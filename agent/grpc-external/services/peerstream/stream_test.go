@@ -1133,7 +1133,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
-		c.incomingHeartbeatTimeout = 5 * time.Millisecond
+		c.incomingHeartbeatTimeout = 50 * time.Millisecond // may need to be tuned higher to reduce flakes
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
