@@ -567,7 +567,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			if resp := msg.GetResponse(); resp != nil {
 				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, logger)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackRecvError(err.Error())
@@ -612,7 +612,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(logger, status, update)
+				resp, err = makeServiceResponse(status, update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)
@@ -623,7 +623,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// TODO(Peering): figure out how to sync this separately
 
 			case update.CorrelationID == subCARoot:
-				resp, err = makeCARootsResponse(logger, update)
+				resp, err = makeCARootsResponse(update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create ca roots response", "error", err)

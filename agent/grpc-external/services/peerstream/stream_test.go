@@ -1498,7 +1498,7 @@ func Test_makeServiceResponse_ExportedServicesCount(t *testing.T) {
 					},
 				},
 			}}
-		_, err := makeServiceResponse(srv.Logger, mst, update)
+		_, err := makeServiceResponse(mst, update)
 		require.NoError(t, err)
 
 		require.Equal(t, 1, mst.GetExportedServicesCount())
@@ -1510,7 +1510,7 @@ func Test_makeServiceResponse_ExportedServicesCount(t *testing.T) {
 			Result: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{},
 			}}
-		_, err := makeServiceResponse(srv.Logger, mst, update)
+		_, err := makeServiceResponse(mst, update)
 		require.NoError(t, err)
 
 		require.Equal(t, 0, mst.GetExportedServicesCount())
@@ -1541,7 +1541,7 @@ func Test_processResponse_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse(peerName, "", mst, tc.in, srv.Logger)
+		reply, err := srv.processResponse(peerName, "", mst, tc.in)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1867,7 +1867,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 		}
 
 		// Simulate an update arriving for billing/api.
-		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in, srv.Logger)
+		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in)
 		require.NoError(t, err)
 
 		for svc, expect := range tc.expect {
