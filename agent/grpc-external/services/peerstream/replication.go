@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -35,7 +35,6 @@ import (
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
 func makeServiceResponse(
-	logger hclog.Logger,
 	mst *MutableStatus,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
@@ -87,7 +86,6 @@ func makeServiceResponse(
 }
 
 func makeCARootsResponse(
-	logger hclog.Logger,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
 	any, _, err := marshalToProtoAny[*pbpeering.PeeringTrustBundle](update.Result)
@@ -127,7 +125,6 @@ func (s *Server) processResponse(
 	partition string,
 	mutableStatus *MutableStatus,
 	resp *pbpeerstream.ReplicationMessage_Response,
-	logger hclog.Logger,
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
@@ -151,7 +148,7 @@ func (s *Server) processResponse(
 			), err
 		}
 
-		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource, logger); err != nil {
+		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -163,7 +160,7 @@ func (s *Server) processResponse(
 		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	case pbpeerstream.Operation_OPERATION_DELETE:
-		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, logger); err != nil {
+		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -196,7 +193,6 @@ func (s *Server) handleUpsert(
 	resourceURL string,
 	resourceID string,
 	resource *anypb.Any,
-	logger hclog.Logger,
 ) error {
 	if resource.TypeUrl != resourceURL {
 		return fmt.Errorf("mismatched resourceURL %q and Any typeUrl %q", resourceURL, resource.TypeUrl)
@@ -455,7 +451,6 @@ func (s *Server) handleDelete(
 	mutableStatus *MutableStatus,
 	resourceURL string,
 	resourceID string,
-	logger hclog.Logger,
 ) error {
 	switch resourceURL {
 	case pbpeerstream.TypeURLExportedService:
