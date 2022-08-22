@@ -183,3 +183,49 @@ tls:
 
 ```
 
+#### Example cross-namespace certificateRef
+
+The following example creates a `Gateway` named `example-gateway` in namespace `gateway-namespace`. This `Gateway` has a `certificateRef` in namespace `secret-namespace`. The reference is allowed because the `ReferenceGrant`, named `reference-grant` in namespace `secret-namespace`, allows `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
+
+<CodeBlockConfig filename="gateway_with_referencegrant.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1beta1
+  kind: Gateway
+  metadata:
+    name: example-gateway
+    namespace: gateway-namespace
+  spec:
+    gatewayClassName: consul-api-gateway
+    listeners:
+    - protocol: HTTPS
+      port: 443
+      name: https
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        certificateRefs:
+          - name: cert
+            namespace: secret-namespace
+            group: ""
+            kind: Secret
+  ---
+
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferenceGrant
+  metadata:
+    name: reference-grant
+    namespace: secret-namespace
+  spec:
+    from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: gateway-namespace
+      to:
+      - group: ""
+        kind: Secret
+        name: cert
+  ```
+
+</CodeBlockConfig>
