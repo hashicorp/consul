@@ -2535,12 +2535,6 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("use_auto_cert is only valid in the tls.grpc stanza")
 	}
 
-	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
-	// for historic and backwards-compatibility reasons.
-	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{} && t.GRPCModifiedByDeprecatedConfig == nil) {
-		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
-	}
-
 	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
 	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
 
