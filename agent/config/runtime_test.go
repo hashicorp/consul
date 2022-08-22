@@ -5516,39 +5516,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "tls.grpc without ports.https",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"tls": {
-					"grpc": {
-						"cert_file": "cert-1234"
-					}
-				}
-			}
-		`},
-		hcl: []string{`
-			tls {
-				grpc {
-					cert_file = "cert-1234"
-				}
-			}
-		`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-
-			rt.TLS.Domain = "consul."
-			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.GRPC.CertFile = "cert-1234"
-		},
-		expectedWarnings: []string{
-			"tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)",
-		},
-	})
-	run(t, testCase{
 		desc: "tls.grpc.use_auto_cert defaults to false",
 		args: []string{
 			`-data-dir=` + dataDir,
