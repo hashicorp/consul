@@ -1402,7 +1402,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								Interval:                10,
 								MaxFailures:             2,
 								EnforcingConsecutive5xx: 60,
-								MaxEjectionPercent:      10,
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -1437,7 +1436,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"Interval":                int64(10),
 								"MaxFailures":             int64(2),
 								"EnforcingConsecutive5xx": int64(60),
-								"MaxEjectionPercent":      int64(10),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "remote",
