@@ -174,7 +174,7 @@ In the following example, `tls` settings are configured to use a secret named `c
 
 tls:
   certificateRefs:
-    name: consul-server-cert
+  - name: consul-server-cert
     group: ""
     kind: Secret
   mode: Terminate
