@@ -169,7 +169,11 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 	}
 
-	od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: p.EnforcingConsecutive5xx}
+	if p.EnforcingConsecutive5xx != nil {
+		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+	} else {
+		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: uint32(100)}
+	}
 
 	return od
 }
