@@ -1318,9 +1318,6 @@
     ]
   },
   {
-    "divider": true
-  },
-  {
     "title": "Internals",
     "hidden": true,
     "routes": [
