@@ -162,11 +162,11 @@ configure exceptions on a per-Pod basis. The following Pod annotations allow you
 
 ## Known Limitations
 
-* In a deployment configuration with [federation between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes),
-  services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster (Consul datacenter) using the
+- You cannot use transparent proxy in a deployment configuration with [federation between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes).
+Instead, services in one Kubernetes cluster must explicitly dial a service to a Consul datacenter in another Kubernetes cluster using the
   [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-  annotation. You cannot use transparent proxy. For example, an annotation of
-  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` will reach an upstream service called `my-service`
+  annotation. For example, an annotation of
+  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` reaches an upstream service called `my-service`
   on port `1234` in the datacenter `dc2`.
  
 - You cannot use transparent proxy in a deployment configuration with a
