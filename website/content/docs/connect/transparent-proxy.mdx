@@ -169,14 +169,14 @@ configure exceptions on a per-Pod basis. The following Pod annotations allow you
   `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` will reach an upstream service called `my-service`
   on port `1234` in the datacenter `dc2`.
  
-* In the deployment configuration with a
-  [single Consul datacenter spanning multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s),
+- You cannot use transparent proxy in a deployment configuration with a
+  [single Consul datacenter spanning multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s). Instead,
   services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the
   [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-  annotation. You cannot use transparent proxy. For example, an annotation of
+  annotation. For example, an annotation of
   `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`,
-  will reach an upstream service called `my-service` in another Kubernetes cluster and on port `1234`.
-  Although transparent proxy is enabled, Kubernetes DNS is not utilized when communicating between services existing on separate Kubernetes clusters.
+  reaches an upstream service called `my-service` in another Kubernetes cluster and on port `1234`.
+  Although transparent proxy is enabled, Kubernetes DNS is not utilized when communicating between services that exist on separate Kubernetes clusters.
   
 * In a deployment configuration with [cluster peering](/docs/connect/cluster-peering), you can use transparent proxy.
 
