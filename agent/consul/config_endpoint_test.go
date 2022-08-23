@@ -1401,7 +1401,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 							PassiveHealthCheck: &structs.PassiveHealthCheck{
 								Interval:                10,
 								MaxFailures:             2,
-								EnforcingConsecutive5xx: 60,
+								EnforcingConsecutive5xx: uintPointer(60),
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -2509,4 +2509,8 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 			require.NoError(t, gateWriteToSecondary(tcase.targetDC, tcase.localDC, tcase.primaryDC, tcase.kind))
 		})
 	}
+}
+
+func uintPointer(v uint32) *uint32 {
+	return &v
 }
