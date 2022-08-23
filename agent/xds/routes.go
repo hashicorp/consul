@@ -565,6 +565,10 @@ func makeUpstreamRouteForDiscoveryChain(
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
+				if destination.IdleTimeout > 0 {
+					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
+				}
+
 				if destination.HasRetryFeatures() {
 					retryPolicy := &envoy_route_v3.RetryPolicy{}
 					if destination.NumRetries > 0 {
