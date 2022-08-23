@@ -178,7 +178,7 @@ Instead, services in one Kubernetes cluster must explicitly dial a service to a 
   reaches an upstream service called `my-service` in another Kubernetes cluster and on port `1234`.
   Although transparent proxy is enabled, Kubernetes DNS is not utilized when communicating between services that exist on separate Kubernetes clusters.
   
-* In a deployment configuration with [cluster peering](/docs/connect/cluster-peering), you can use transparent proxy.
+* In a deployment configuration with [cluster peering](/docs/connect/cluster-peering), transparent proxy is fully supported and thus dialing services explicitly is not required. 
 
 - When dialing headless services, the request is proxied using a plain TCP proxy. The upstream's protocol is not considered.
 
