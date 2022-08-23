@@ -140,6 +140,7 @@ func TestAutopilotStateToReadyServers(t *testing.T) {
 func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	expected := EventPayloadReadyServers{
 		{
+
 			ID:              "792ae13c-d765-470b-852c-e073fdb6e849",
 			Address:         "198.18.0.2",
 			TaggedAddresses: map[string]string{"wan": "5.4.3.2"},
@@ -167,7 +168,19 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
+		&structs.Node{Node: "node-1", TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-1",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
@@ -177,7 +190,19 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
+		&structs.Node{Node: "node-2", TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-2",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
@@ -187,17 +212,17 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
+		&structs.Node{Node: "node-3", TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
 		nil,
 	)
 
 	store.On("NodeService",
 		memdb.WatchSet(nil),
-		"",
+		"node-3",
 		structs.ConsulServiceID,
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Times(3).Return(
+	).Once().Return(
 		uint64(0),
 		nil,
 		nil,
@@ -508,7 +533,19 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
+		&structs.Node{Node: "node-1", TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-1",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
@@ -518,7 +555,19 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
+		&structs.Node{Node: "node-2", TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-2",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
@@ -528,17 +577,17 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		structs.DefaultPeerKeyword,
 	).Times(2).Return(
 		uint64(0),
-		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
+		&structs.Node{Node: "node-3", TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
 		nil,
 	)
 
 	store.On("NodeService",
 		memdb.WatchSet(nil),
-		"",
+		"node-3",
 		structs.ConsulServiceID,
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Times(3).Return(
+	).Once().Return(
 		uint64(0),
 		nil,
 		nil,
