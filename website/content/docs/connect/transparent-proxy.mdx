@@ -189,7 +189,7 @@ In Kubernetes, services can reach other services via their
 traffic will be transparently sent through the proxy. Connect services in Kubernetes are required to have a Kubernetes
 service selecting the Pods.
 
-~> Note: In order to use Kubernetes DNS, the Kubernetes service name will need to match the Consul service name. This will be the
+~> **Note**: In order to use Kubernetes DNS, the Kubernetes service name needs to match the Consul service name. This is the
 case by default, unless the service Pods have the annotation `consul.hashicorp.com/connect-service` overriding the
 Consul service name.
 
