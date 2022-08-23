@@ -569,7 +569,9 @@ function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  # Redirect stderr to /dev/null because on arm64 docker run prints out a warning
+  # and we don't want that warning text to be part of the envoy bootstrap json.
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@" 2> /dev/null
 }
 
 function docker_wget {

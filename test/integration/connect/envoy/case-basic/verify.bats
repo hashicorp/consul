@@ -3,6 +3,8 @@
 load helpers
 
 @test "s1 proxy is running correct version" {
+  # todo: need to sleep right now to wait for envoy
+  sleep 2
   assert_envoy_version 19000
 }
 

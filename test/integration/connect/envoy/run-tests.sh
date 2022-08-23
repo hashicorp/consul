@@ -15,7 +15,8 @@ XDS_TARGET=${XDS_TARGET:-server}
 ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
 export ENVOY_VERSION
 
-export DOCKER_BUILDKIT=1
+# todo: buildkit breaks on m1 macs
+export DOCKER_BUILDKIT=0
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -44,17 +45,18 @@ function network_snippet {
 }
 
 function aws_snippet {
-  local snippet=""
-
-  # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
-  # The AWS credentials must have permission to invoke the Lambda function.
-  [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-  [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-  [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-  [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
-  [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
-
-  echo "$snippet"
+  echo ""
+#  local snippet=""
+#
+#  # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
+#  # The AWS credentials must have permission to invoke the Lambda function.
+#  [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+#  [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+#  [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+#  [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
+#  [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
+#
+#  echo "$snippet"
 }
 
 function init_workdir {
@@ -492,6 +494,8 @@ function run_tests {
   fi
 
   echo "Setting up the primary datacenter"
+  # todo: need to sleep to wait for Consul to come up.
+  sleep 5
   pre_service_setup primary
 
   if is_set $REQUIRE_SECONDARY; then
@@ -692,6 +696,8 @@ function common_run_container_sidecar_proxy {
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker run -d --name $(container_name_prev) \
+    # todo: force amd64 for envoy images.
+    --platform linux/amd64 \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
