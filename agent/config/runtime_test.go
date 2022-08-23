@@ -4201,6 +4201,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
+								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},

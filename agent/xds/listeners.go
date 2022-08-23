@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	"net"
 	"net/url"
 	"regexp"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -1194,6 +1195,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		routeName:        name,
 		cluster:          LocalAppClusterName,
 		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+		idleTimeoutMs:    cfg.LocalIdleTimeoutMs,
 	}
 	if useHTTPFilter {
 		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
@@ -1940,6 +1942,7 @@ type listenerFilterOpts struct {
 	statPrefix           string
 	routePath            string
 	requestTimeoutMs     *int
+	idleTimeoutMs        *int
 	ingressGateway       bool
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
 	forwardClientDetails bool
@@ -2065,6 +2068,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		if opts.requestTimeoutMs != nil {
 			r := route.GetRoute()
 			r.Timeout = durationpb.New(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
+		}
+
+		if opts.idleTimeoutMs != nil {
+			r := route.GetRoute()
+			r.IdleTimeout = durationpb.New(time.Duration(*opts.idleTimeoutMs) * time.Millisecond)
 		}
 
 		// If a path is provided, do not match on a catch-all prefix

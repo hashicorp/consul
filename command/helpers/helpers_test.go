@@ -906,6 +906,7 @@ func TestParseConfigEntry(t *testing.T) {
 						  Partition             = "chard"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
+						  IdleTimeout           = "99s"
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
@@ -1085,6 +1086,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"Partition": "chard",
 							"PrefixRewrite": "/alternate",
 							"RequestTimeout": "99s",
+							"IdleTimeout": "99s",
 							"NumRetries": 12345,
 							"RetryOnConnectFailure": true,
 							"RetryOnStatusCodes": [
@@ -1177,6 +1179,7 @@ func TestParseConfigEntry(t *testing.T) {
 							Partition:             "chard",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},

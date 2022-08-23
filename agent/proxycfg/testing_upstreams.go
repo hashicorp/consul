@@ -621,6 +621,15 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/timeout",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:     "idle-timeout",
+							IdleTimeout: 33 * time.Second,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
 							PathPrefix: "/retry-connect",
 						}),
 						Destination: &structs.ServiceRouteDestination{
