@@ -110,6 +110,17 @@ func TestCommandConfigWatcher(t *testing.T) {
 				require.Equal(t, 9999, cfg.PublicListener.BindPort)
 			},
 		},
+
+		{
+			Name: "-sidecar-for, one sidecar case-insensitive",
+			Flags: []string{
+				"-sidecar-for", "One-SideCar",
+			},
+			Test: func(t *testing.T, cfg *proxy.Config) {
+				// Sanity check we got the right instance.
+				require.Equal(t, 9999, cfg.PublicListener.BindPort)
+			},
+		},
 	}
 
 	for _, tc := range cases {
