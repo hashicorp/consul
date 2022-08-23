@@ -296,6 +296,7 @@ type GetEnvoyBootstrapParamsRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to NodeSpec:
+	//
 	//	*GetEnvoyBootstrapParamsRequest_NodeId
 	//	*GetEnvoyBootstrapParamsRequest_NodeName
 	NodeSpec isGetEnvoyBootstrapParamsRequest_NodeSpec `protobuf_oneof:"node_spec"`
@@ -401,7 +402,10 @@ type GetEnvoyBootstrapParamsResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	ServiceKind ServiceKind `protobuf:"varint,1,opt,name=service_kind,json=serviceKind,proto3,enum=hashicorp.consul.dataplane.ServiceKind" json:"service_kind,omitempty"`
-	// The destination service name
+	// service is be used to identify the service (as the local cluster name and
+	// in metric tags). If the service is a connect proxy it will be the name of
+	// the proxy's destination service, for gateways it will be the gateway
+	// service's name.
 	Service    string           `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
 	Namespace  string           `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Partition  string           `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`

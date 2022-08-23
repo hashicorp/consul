@@ -52,9 +52,15 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	}
 
 	// Build out the response
+	var serviceName string
+	if svc.ServiceKind == structs.ServiceKindConnectProxy {
+		serviceName = svc.ServiceProxy.DestinationServiceName
+	} else {
+		serviceName = svc.ServiceName
+	}
 
 	resp := &pbdataplane.GetEnvoyBootstrapParamsResponse{
-		Service:     svc.ServiceProxy.DestinationServiceName,
+		Service:     serviceName,
 		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
 		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
 		Datacenter:  s.Datacenter,
