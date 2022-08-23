@@ -132,7 +132,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 ## Export services between clusters
 
-1. For the service in "cluster-02" that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods.
+1. For the service in "cluster-02" that you want to export, add the following [annotation](/docs/k8s/annotations-and-labels) to your service's pods.
 
     <CodeBlockConfig filename="backend-service.yml">
 
@@ -140,7 +140,6 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     ##…
     annotations:
       "consul.hashicorp.com/connect-inject": "true"
-      "consul.hashicorp.com/transparent-proxy": "false"
     ##…
     ```
 
@@ -207,8 +206,6 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     ##…
     annotations:
       "consul.hashicorp.com/connect-inject": "true"
-      "consul.hashicorp.com/transparent-proxy": "false"
-      "consul.hashicorp.com/connect-service-upstreams": "backend-service.svc.cluster-02.peer:1234"
     ##…
     ```
 
@@ -220,10 +217,10 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl apply --filename frontend-service.yml
     ```
 
-1. Run the following command and check the output to confirm that you peered your clusters successfully.
+1. Run the following command in `frontend-service` and check the output to confirm that you peered your clusters successfully.
 
     ```shell-session
-    $ curl localhost:1234
+    $ kubectl exec -it $(kubectl get pod -l app=frontend -o name) -- curl localhost:1234
     {
         "name": "backend-service",
         ##…
