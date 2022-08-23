@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service;
+package hashicorp.consul.internal.service;
 
 import "google/protobuf/struct.proto";
 import "proto/pbcommon/common.proto";

@@ -104,18 +104,19 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			MaxInboundConnections: 5,
 		}
 
-		endpoint := &EndpointConfig{
-			Address: "my.example.com",
-			Port:    80,
+		dest := &DestinationConfig{
+			Addresses: []string{"my.example.com"},
+			Port:      80,
 		}
 
 		service2 := &ServiceConfigEntry{
-			Kind:     ServiceDefaults,
-			Name:     "bar",
-			Protocol: "tcp",
-			Endpoint: endpoint,
+			Kind:        ServiceDefaults,
+			Name:        "bar",
+			Protocol:    "tcp",
+			Destination: dest,
 		}
 
 		// set it
@@ -144,6 +145,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Protocol, readService.Protocol)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
+		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
 
 		// update it
 		service.Protocol = "tcp"
@@ -191,7 +193,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Kind, readService.Kind)
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
-				require.Equal(t, endpoint, readService.Endpoint)
+				require.Equal(t, dest, readService.Destination)
 			}
 		}
 
@@ -213,8 +215,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: defaultPartition,
-			Namespace: defaultNamespace,
+			Partition: splitDefaultPartition,
+			Namespace: splitDefaultNamespace,
 		}
 		ce := c.ConfigEntries()
 
@@ -530,8 +532,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"Kind": "service-defaults",
 				"Name": "external",
 				"Protocol": "http",
-				"Endpoint": {
-					"Address": "1.2.3.4/24",
+				"Destination": {
+					"Addresses": [
+						"1.2.3.4"
+					],
 					"Port": 443
 				}
 			}
@@ -540,9 +544,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind:     "service-defaults",
 				Name:     "external",
 				Protocol: "http",
-				Endpoint: &EndpointConfig{
-					Address: "1.2.3.4/24",
-					Port:    443,
+				Destination: &DestinationConfig{
+					Addresses: []string{"1.2.3.4"},
+					Port:      443,
 				},
 			},
 		},

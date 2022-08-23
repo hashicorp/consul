@@ -30,8 +30,10 @@ module.exports = function(defaults, $ = process.env) {
     'consul-ui',
     'consul-acls',
     'consul-lock-sessions',
+    'consul-peerings',
     'consul-partitions',
-    'consul-nspaces'
+    'consul-nspaces',
+    'consul-hcp'
   ].map(item => {
     return {
       name: item,

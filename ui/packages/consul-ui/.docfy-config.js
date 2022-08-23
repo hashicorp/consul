@@ -113,6 +113,12 @@ module.exports = {
       urlPrefix: 'docs/consul-lock-sessions',
     },
     {
+      root: `${path.dirname(require.resolve('consul-peerings/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-peerings',
+    },
+    {
       root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
       pattern: '**/README.mdx',
       urlSchema: 'auto',

@@ -1,0 +1,28 @@
+# Consul::Peer::Form::Generate
+
+```hbs preview-template
+
+<DataSource @src={{
+  uri '/${partition/${nspace}/${dc}/peer/${name}'
+    (hash
+      partition=''
+      nspace=''
+      dc='dc1'
+      name=''
+    )
+  }}
+as |source|>
+{{#if source.data}}
+  <Consul::Peer::Form::Generate
+    @item={{source.data}}
+    @onchange={{noop}}
+    @regenerate={{false}}
+  as |form|>
+    <form.Fieldsets />
+    <form.Actions
+      @onclose={{noop}}
+    />
+  </Consul::Peer::Form::Generate>
+{{/if}}
+</DataSource>
+```

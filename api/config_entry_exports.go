@@ -57,7 +57,7 @@ type ServiceConsumer struct {
 func (e *ExportedServicesConfigEntry) GetKind() string            { return ExportedServices }
 func (e *ExportedServicesConfigEntry) GetName() string            { return e.Name }
 func (e *ExportedServicesConfigEntry) GetPartition() string       { return e.Name }
-func (e *ExportedServicesConfigEntry) GetNamespace() string       { return IntentionDefaultNamespace }
+func (e *ExportedServicesConfigEntry) GetNamespace() string       { return splitDefaultNamespace }
 func (e *ExportedServicesConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *ExportedServicesConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
 func (e *ExportedServicesConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }

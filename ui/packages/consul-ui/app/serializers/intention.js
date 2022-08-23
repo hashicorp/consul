@@ -21,8 +21,15 @@ export default class IntentionSerializer extends Serializer {
       item.Legacy = true;
       item.LegacyID = item.ID;
     }
-    item.ID = this
-      .uri`${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+
+    if (item.SourcePeer) {
+      item.ID = this
+        .uri`peer:${item.SourcePeer}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+    } else {
+      item.ID = this
+        .uri`${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+    }
+
     return item;
   }
 

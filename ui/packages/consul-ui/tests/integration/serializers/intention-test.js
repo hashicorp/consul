@@ -19,16 +19,19 @@ module('Integration | Serializer | intention', function(hooks) {
       url: `/v1/connect/intentions?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
+      const expected = payload.map(item => {
+        if (item.SourcePeer) {
+          delete item.SourcePeer;
+        }
+        return Object.assign({}, item, {
           Datacenter: dc,
           // TODO: default isn't required here, once we've
           // refactored out our Serializer this can go
           Namespace: nspace,
           Partition: partition,
           uid: `["${partition}","${nspace}","${dc}","${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}"]`,
-        })
-      );
+        });
+      });
       const actual = serializer.respondForQuery(
         function(cb) {
           const headers = {

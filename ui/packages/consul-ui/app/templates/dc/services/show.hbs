@@ -2,12 +2,13 @@
   @name={{routeName}}
 as |route|>
     <DataLoader
-      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}/${peer}'
         (hash
           partition=route.params.partition
           nspace=route.params.nspace
           dc=route.params.dc
           name=route.params.name
+          peer=route.params.peer
         )
       }}
     as |loader|>
@@ -116,12 +117,12 @@ as |items item dc|}}
       {{/if}}
   {{#let
   (hash
-      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
-      services=(eq item.Service.Kind 'terminating-gateway')
-      upstreams=(eq item.Service.Kind 'ingress-gateway')
+      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')) (not item.Service.PeerName))
+      services=(and (eq item.Service.Kind 'terminating-gateway') (not item.Service.PeerName))
+      upstreams=(and (eq item.Service.Kind 'ingress-gateway') (not item.Service.PeerName))
       instances=true
-      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service))
-      routing=(and dc.MeshEnabled item.IsOrigin)
+      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
+      routing=(and dc.MeshEnabled item.IsOrigin (not item.Service.PeerName))
       tags=true
   )
   as |tabs|}}
@@ -135,7 +136,7 @@ as |items item dc|}}
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
             <ol>
-                <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+              <li><a data-test-back href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
             </ol>
           </BlockSlot>
           <BlockSlot @name="header">
@@ -144,6 +145,7 @@ as |items item dc|}}
               </h1>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
+              <Consul::Peer::Info @item={{item.Service}} />
           </BlockSlot>
           <BlockSlot @name="nav">
             {{#if (not-eq item.Service.Kind 'mesh-gateway')}}

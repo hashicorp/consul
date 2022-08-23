@@ -271,7 +271,6 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       children: [
         {
           name: 'Incoming',
-          yaml: false,
           type: 'TLSDirectionConfig: <optional>',
           description: `TLS configuration for inbound mTLS connections targeting
                         the public listener on \`connect-proxy\` and \`terminating-gateway\`
@@ -279,14 +278,12 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           children: [
             {
               name: 'TLSMinVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
             },
             {
               name: 'TLSMaxVersion',
-              yaml: false,
               type: 'string: ""',
               description: {
                 hcl:
@@ -297,7 +294,6 @@ Note that the Kubernetes example does not include a `partition` field. Configura
             },
             {
               name: 'CipherSuites',
-              yaml: false,
               type: 'array<string>: <optional>',
               description: `Set the default list of TLS cipher suites
                             to support when negotiating connections using
@@ -315,7 +311,6 @@ Note that the Kubernetes example does not include a `partition` field. Configura
         },
         {
           name: 'Outgoing',
-          yaml: false,
           type: 'TLSDirectionConfig: <optional>',
           description: `TLS configuration for outbound mTLS connections dialing upstreams
                         from \`connect-proxy\` and \`ingress-gateway\`
@@ -323,14 +318,12 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           children: [
             {
               name: 'TLSMinVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
             },
             {
               name: 'TLSMaxVersion',
-              yaml: false,
               type: 'string: ""',
               description: {
                 hcl:
@@ -341,7 +334,6 @@ Note that the Kubernetes example does not include a `partition` field. Configura
             },
             {
               name: 'CipherSuites',
-              yaml: false,
               type: 'array<string>: <optional>',
               description: `Set the default list of TLS cipher suites
                             to support when negotiating connections using
@@ -366,9 +358,8 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       children: [
         {
           name: 'SanitizeXForwardedClientCert',
-          yaml: false,
           type: 'bool: <optional>',
-          description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\` 
+          description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\`
                         for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
                         If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },

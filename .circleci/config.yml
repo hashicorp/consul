@@ -23,6 +23,15 @@ references:
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
+  envoy-versions: &supported_envoy_versions
+    - &default_envoy_version "1.20.6"
+    - "1.21.4"
+    - "1.22.2"
+    - "1.23.0"
+  nomad-versions: &supported_nomad_versions
+    - &default_nomad_version "1.3.3"
+    - "1.2.10"
+    - "1.1.16"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -30,7 +39,7 @@ references:
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -100,15 +109,18 @@ commands:
         type: env_var_name
         default: ROLE_ARN
     steps:
+      # Only run the assume-role command for the main repo. The AWS credentials aren't available for forks.
       - run: |
-          export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
-          export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
-          export ROLE_ARN="${<< parameters.role-arn >>}"
-          # assume role has duration of 15 min (the minimum allowed)
-          CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
-          echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
-          echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
-          echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
+          if [[ "${CIRCLE_BRANCH%%/*}/" != "pull/" ]]; then
+            export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
+            export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
+            export ROLE_ARN="${<< parameters.role-arn >>}"
+            # assume role has duration of 15 min (the minimum allowed)
+            CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
+            echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
+          fi
 
   run-go-test-full:
     parameters:
@@ -237,7 +249,9 @@ jobs:
       - run:
           name: Install protobuf
           command: make proto-tools
-
+      - run:
+          name: "Protobuf Format"
+          command: make proto-format
       - run:
           command: make --always-make proto
       - run: |
@@ -245,7 +259,7 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
-      - run: 
+      - run:
           name: "Protobuf Lint"
           command: make proto-lint
 
@@ -553,21 +567,24 @@ jobs:
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
-  # Nomad 0.8 builds on go1.10
-  # Run integration tests on nomad/v0.8.7
-  nomad-integration-0_8:
+  nomad-integration-test: &NOMAD_TESTS
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.19
+    parameters:
+      nomad-version:
+        type: enum
+        enum: *supported_nomad_versions
+        default: *default_nomad_version
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: v0.8.7
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: << parameters.nomad-version >>
     steps: &NOMAD_INTEGRATION_TEST_STEPS
-      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+      - run: git clone https://github.com/hashicorp/nomad.git --branch v${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
 
       # make dev build of nomad
       - run:
@@ -593,16 +610,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  # run integration tests on nomad/main
-  nomad-integration-main:
-    docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
-    environment:
-      <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: main
-    steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   # build frontend yarn cache
   frontend-cache:
@@ -672,22 +679,6 @@ jobs:
             - packages/consul-ui/dist
       - run: *notify-slack-failure
 
-  # build static-assets file
-  build-static-assets:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ./pkg
-      - run: mv pkg/packages/consul-ui/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
-      - run: make static-assets
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./agent/uiserver/bindata_assetfs.go
-      - run: *notify-slack-failure
-
   # commits static assets to git
   publish-static-assets:
     docker:
@@ -700,7 +691,12 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
+          name: move compiled ui files to agent/uiserver
+          command: |
+            rm -rf agent/uiserver/dist
+            mv packages/consul-ui/dist agent/uiserver
+      - run:
+          name: commit agent/uiserver/dist/ if there are UI changes
           command: |
             # check if there are any changes in ui/
             # if there are, we commit the ui static asset file
@@ -714,8 +710,8 @@ jobs:
               git checkout -B ci/main-assetfs-build main
 
               short_sha=$(git rev-parse --short HEAD)
-              git add agent/uiserver/bindata_assetfs.go
-              git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
+              git add agent/uiserver/dist/
+              git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
               git push --force origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
@@ -833,14 +829,19 @@ jobs:
       - run:
           name: Compatibility Integration Tests
           command: |
-            subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
-            echo "Running $(echo $subtests | wc -w) subtests"
-            echo "$subtests"
-            subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
             mkdir -p /tmp/test-results/
-            docker run consul:local consul version
             cd ./test/integration/consul-container
-            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --target-version local --latest-version latest
+            docker run --rm consul:local consul version
+            gotestsum \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              --packages="./..." \
+              -- \
+              -timeout=30m \
+              ./... \
+              --target-version local \
+              --latest-version latest
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
@@ -858,15 +859,30 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_3: &ENVOY_TESTS
+  envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
+    parameters:
+      envoy-version:
+        type: enum
+        enum: *supported_envoy_versions
+        default: *default_envoy_version
+      xds-target:
+        type: enum
+        enum: ["server", "client"]
+        default: "server"
     environment:
-      ENVOY_VERSION: "1.19.3"
+      ENVOY_VERSION: << parameters.envoy-version >>
+      XDS_TARGET: << parameters.xds-target >>
+      AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_LAMBDA
+          secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
+          role-arn: ROLE_ARN_LAMBDA
       # Get go binary from workspace
       - attach_workspace:
           at: .
@@ -897,21 +913,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_20_2:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.20.2"
-
-  envoy-integration-test-1_21_1:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.21.1"
-
-  envoy-integration-test-1_22_0:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.22.0"
-
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
     docker:
@@ -934,21 +935,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *notify-slack-failure
-
-  trigger-oss-merge:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress curl jq
-      - run:
-          name: trigger oss merge
-          command: |
-            curl -s -X POST \
-                    --header "Circle-Token: ${CIRCLECI_API_TOKEN}" \
-                    --header "Content-Type: application/json" \
-                    -d '{"build_parameters": {"CIRCLE_JOB": "oss-merge"}}' \
-                    "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
       - run: *notify-slack-failure
 
   # Run load tests against a commit
@@ -983,6 +969,7 @@ jobs:
               LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
             fi
             echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
+            git checkout ${LOCAL_COMMIT_SHA}
 
             short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
             echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
@@ -1002,7 +989,8 @@ jobs:
           working_directory: .circleci/terraform/load-test
           name: terraform init
           command: |
-            echo "commit is ${LOCAL_COMMIT_SHA}"
+            short_ref=$(git rev-parse --short HEAD)
+            echo "Testing commit id: $short_ref"
             terraform init \
             -backend-config="bucket=${BUCKET}" \
             -backend-config="key=${LOCAL_COMMIT_SHA}" \
@@ -1018,7 +1006,7 @@ jobs:
           when: always
           name: terraform destroy
           command: |
-            terraform destroy -auto-approve
+            for i in $(seq 1 5); do terraform destroy -auto-approve && s=0 && break || s=$? && sleep 20; done; (exit $s)
       - run: *notify-slack-failure
 
   # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
@@ -1081,6 +1069,7 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1099,20 +1088,12 @@ workflows:
       - ember-build-prod:
           requires:
             - frontend-cache
-      - build-static-assets:
+      - publish-static-assets:
           requires:
             - ember-build-prod
-      - publish-static-assets:
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
-          requires:
-            - build-static-assets
       - dev-build:
           requires:
-            - build-static-assets
+            - ember-build-prod
       - dev-upload-s3:
           requires:
             - dev-build
@@ -1120,6 +1101,7 @@ workflows:
           requires:
             - dev-build
           context: consul-ci
+      - noop
   test-integrations:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1135,28 +1117,23 @@ workflows:
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-main:
+      - nomad-integration-test:
           requires:
             - dev-build
-      - nomad-integration-0_8:
+          matrix:
+            parameters:
+              nomad-version: *supported_nomad_versions
+      - envoy-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_3:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_20_2:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_21_1:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_22_0:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              envoy-version: *supported_envoy_versions
+              xds-target: ["server", "client"]
       - compatibility-integration-test:
           requires:
             - dev-build
-
+      - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1189,16 +1166,7 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
-  workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - trigger-oss-merge:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
+      - noop
 
   load-test:
     when: << pipeline.parameters.trigger-load-test >>

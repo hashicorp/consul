@@ -21,7 +21,6 @@ Description:
 Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
-    -bindata                 Just install tools for static assets.
     -h | --help              Print this help text.
 EOF
 }
@@ -38,10 +37,6 @@ function main {
         case "$1" in
             -protobuf )
                 proto_tools_install
-                return 0
-                ;;
-            -bindata )
-                bindata_install
                 return 0
                 ;;
             -lint )
@@ -132,16 +127,6 @@ function lint_install {
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
 }
 
-function bindata_install {
-    install_unversioned_tool \
-        'go-bindata' \
-        'github.com/hashicorp/go-bindata/go-bindata@bf7910a'
-
-    install_unversioned_tool \
-        'go-bindata-assetfs' \
-        'github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe'
-}
-
 function tools_install {
     local mockery_version
 
@@ -154,7 +139,6 @@ function tools_install {
         'github.com/vektra/mockery/v2'
 
     lint_install
-    bindata_install
     proto_tools_install
 
     return 0
@@ -165,10 +149,10 @@ function install_unversioned_tool {
     local install="$2"
 
     if ! command -v "${command}" &>/dev/null ; then
-        status_stage "installing tool: ${install}"
+        echo "installing tool: ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
 
     return 0
@@ -181,7 +165,10 @@ function install_versioned_tool {
     local installbase="$4"
 
     local should_install=
+    local install_reason=
     local got
+    local vgot
+    local vneed
 
     local expect="${module}@${version}"
     local install="${installbase}@${version}"
@@ -196,25 +183,43 @@ function install_versioned_tool {
             err "dev version of '${command}' requested but not installed"
             return 1
         fi
-        status "skipping tool: ${installbase} (using development version)"
+        echo "skipping tool: ${installbase} (using development version)"
         return 0
     fi
 
     if command -v "${command}" &>/dev/null ; then
-        got="$(go version -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
-            awk '{print $2 "@" $3}')"
+        mod_line="$(go version -m "$(which "${command}")" | grep '\smod\s')"
+        act_mod=$(echo "${mod_line}" | awk '{print $2}')
+        if [[ "$module" != "$act_mod" ]]; then
+            err "${command} is already installed by module \"${act_mod}\" but should be installed by module \"${module}\". Delete it and re-run to re-install."
+            return 1
+        fi
+
+        got="$(echo "${mod_line}" | grep "${module}" | awk '{print $2 "@" $3}')"
         if [[ "$expect" != "$got" ]]; then
             should_install=1
+            install_reason="upgrade"
+        fi
+
+        # check that they were compiled with the current version of go
+        set +o pipefail
+        vgot="$(go version -m $(which "${command}") | head -n 1 | grep -o 'go[0-9.]\+')"
+        vneed="$(go version | head -n 1 | awk '{print $3}')"
+        set -o pipefail
+        if [[ "$vgot" != "$vneed" ]]; then
+            should_install=1
+            install_reason="go toolchain upgrade"
         fi
     else
         should_install=1
+        install_reason="install"
     fi
 
     if [[ -n $should_install ]]; then
-        status_stage "installing tool: ${install}"
+        echo "installing tool (${install_reason}): ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
     return 0
 }

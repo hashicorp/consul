@@ -2,7 +2,7 @@
   @name={{routeName}}
 as |route|>
   <DataLoader
-    @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
         (hash
           partition=route.params.partition
           nspace=route.params.nspace
@@ -10,6 +10,7 @@ as |route|>
           id=route.params.id
           node=route.params.node
           name=route.params.name
+          peer=route.params.peer
         )
       }}
   as |loader|>
@@ -108,7 +109,7 @@ as |item|}}
           {{! and this second request get the info for that instance and saves }}
           {{! it into the `proxy` variable }}
             <DataSource
-              @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}'
+            @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
                 (hash
                   partition=route.params.partition
                   nspace=route.params.nspace
@@ -116,6 +117,7 @@ as |item|}}
                   id=meta.data.ServiceID
                   node=meta.data.NodeName
                   name=meta.data.ServiceName
+                  peer=route.params.peer
                 )
               }}
               @onchange={{action (mut proxy) value="data"}}
@@ -126,7 +128,7 @@ as |item|}}
       <AppView>
           <BlockSlot @name="breadcrumbs">
               <ol>
-                  <li><a href={{href-to 'dc.services'}}>All Services</a></li>
+                  <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
                   <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
               </ol>
           </BlockSlot>
@@ -151,6 +153,12 @@ as |item|}}
               <dt>Node Name</dt>
               <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
             </dl>
+            {{#if item.Service.PeerName}}
+              <dl>
+                <dt>Peer Name</dt>
+                <dd>{{item.Service.PeerName}}</dd>
+              </dl>
+            {{/if}}
           </BlockSlot>
           <BlockSlot @name="actions">
             {{#let (or item.Service.Address item.Node.Address) as |address|}}

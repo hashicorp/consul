@@ -551,6 +551,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/docs/agent/config/cli-flags#_max_query_time).
 
+- `peering` This object allows setting options for cluster peering.
+
+  The following sub-keys are available:
+
+  - `enabled` ((#peering_enabled)) (Defaults to `false`) Controls whether cluster peering is enabled.
+    When disabled, the UI won't show peering, all peering APIs will return
+    an error, any peerings stored in Consul already will be ignored (but they will not be deleted),
+    and all peering connections from other clusters will be rejected. This was added in Consul 1.13.0.
+
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
@@ -869,11 +878,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `master` ((#acl_tokens_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.initial_management`](#acl_tokens_initial_management).**
 
-    - `default` ((#acl_tokens_default)) - When provided, the agent will
-      use this token when making requests to the Consul servers. Clients can override
-      this token on a per-request basis by providing the "?token" query parameter.
-      When not provided, the empty token, which maps to the 'anonymous' ACL token,
-      is used.
+    - `default` ((#acl_tokens_default)) - When provided, this agent will
+      use this token by default when making requests to the Consul servers
+      instead of the [anonymous token](/docs/security/acl/acl-tokens#anonymous-token).
+      Consul HTTP API requests can provide an alternate token in their authorization header
+      to override the `default` or anonymous token on a per-request basis,
+      as described in [HTTP API Authentication](/api-docs#authentication).
 
     - `agent` ((#acl_tokens_agent)) - Used for clients and servers to perform
       internal operations. If this isn't specified, then the
@@ -993,11 +1003,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
-  the [`acl.tokens.default`](#acl_tokens_default) field instead.** When provided,
-  the agent will use this token when making requests to the Consul servers. Clients
-  can override this token on a per-request basis by providing the "?token" query
-  parameter. When not provided, the empty token, which maps to the 'anonymous' ACL
-  policy, is used.
+  the [`acl.tokens.default`](#acl_tokens_default) field instead.**
 
 - `acl_ttl` ((#acl_ttl_legacy)) - **Deprecated in Consul 1.4.0. See the
   [`acl.token_ttl`](#acl_token_ttl) field instead.**Used to control Time-To-Live
@@ -1048,12 +1054,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   The following sub-keys are available:
 
-  - `enabled` ((#connect_enabled)) Controls whether Connect features are
+  - `enabled` ((#connect_enabled)) (Defaults to `false`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
-    in order for Connect to function properly. Defaults to false.
+    in order for Connect to function properly.
 
-  - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) Controls whether cross-datacenter federation traffic between servers is funneled
-    through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
+  - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
+    through mesh gateways. This was added in Consul 1.8.0.
+
+  - `enable_serverless_plugin` ((#connect_enable_serverless_plugin)) (Defaults to `false`) Determines whether the serverless plugin
+    is enabled. The serverless plugin supports [AWS
+    Lambda](https://aws.amazon.com/lambda/). For additional information on invoking Lambda functions
+    from mesh services, refer to the [Lambda documentation](/docs/lambda).
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
     use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
@@ -1679,9 +1690,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     be used based on **where** this particular instance is running (e.g. a specific
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
-  - `disable_compat_1.9` ((#telemetry-disable_compat_1.9))
-    This allows users to disable metrics deprecated in 1.9 so they are no longer emitted, improving performance and reducing storage in large deployments. As of 1.12 this defaults to `true` and will be removed, along with 1.9 style http metrics in 1.13.
-
   - `disable_hostname` ((#telemetry-disable_hostname))
     This controls whether or not to prepend runtime telemetry with the machine's
     hostname, defaults to false.
@@ -1990,14 +1998,12 @@ specially crafted certificate signed by the CA can be used to gain full access t
       Certificate Authority from the [`ca_file`](#tls_defaults_ca_file) or
       [`ca_path`](#tls_defaults_ca_path). By default, this is false, and Consul
       will not make use of TLS for outgoing connections. This applies to clients
-      and servers as both will make outgoing connections. This setting *does not*
+      and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
       interface.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
-    To enable TLS on the gRPC interface you also must define an HTTPS port via
-    [`ports.https`](#https_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -2065,7 +2071,9 @@ specially crafted certificate signed by the CA can be used to gain full access t
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
-      is signed by a trusted CA. This setting *must* be enabled to prevent a
+      is signed by a trusted CA.
+
+      ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and Connect CA root keys*.
 
@@ -2076,7 +2084,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
 ### Deprecated Options ((#tls_deprecated_options))
 
 The following options were deprecated in Consul 1.12, please use the
-[`tls`](#tls) stanza instead.
+[`tls`](#tls-1) stanza instead.
 
 - `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

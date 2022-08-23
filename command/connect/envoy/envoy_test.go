@@ -55,6 +55,11 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 			[]string{""},
 			"No proxy ID specified",
 		},
+		{
+			"-register with nodename",
+			[]string{"-register", "-proxy-id", "gw-svc-id", "-node-name", "gw-node"},
+			"'-register' cannot be used with '-node-name'",
+		},
 	}
 
 	for _, tc := range cases {
@@ -131,11 +136,38 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "No proxy ID specified",
 		},
 		{
+			Name:    "node-name without proxy-id",
+			Flags:   []string{"-node-name", "test-node"},
+			WantErr: "'-node-name' requires '-proxy-id'",
+		},
+		{
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:  "defaults-nodemeta",
+			Flags: []string{"-proxy-id", "test-proxy", "-node-name", "test-node"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				NodeName:     "test-node",
 				// We don't know this til after the lookup so it will be empty in the
 				// initial args call we are testing here.
 				ProxySourceService: "",
@@ -177,6 +209,72 @@ func TestGenerateConfig(t *testing.T) {
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusBackendPort: "20100",
 				PrometheusScrapePath:  "/scrape-path",
+			},
+		},
+		{
+			Name: "prometheus-metrics-tls-ca-file",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path",
+				"-prometheus-ca-file", "../../../test/key/ourdomain.cer", "-prometheus-cert-file", "../../../test/key/ourdomain_server.cer",
+				"-prometheus-key-file", "../../../test/key/ourdomain_server.key"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
+				PrometheusCAFile:      "../../../test/key/ourdomain.cer",
+				PrometheusCertFile:    "../../../test/key/ourdomain_server.cer",
+				PrometheusKeyFile:     "../../../test/key/ourdomain_server.key",
+			},
+		},
+		{
+			Name: "prometheus-metrics-tls-ca-path",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path",
+				"-prometheus-ca-path", "../../../test/ca_path", "-prometheus-cert-file", "../../../test/key/ourdomain_server.cer",
+				"-prometheus-key-file", "../../../test/key/ourdomain_server.key"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
+				PrometheusCAPath:      "../../../test/ca_path",
+				PrometheusCertFile:    "../../../test/key/ourdomain_server.cer",
+				PrometheusKeyFile:     "../../../test/key/ourdomain_server.key",
 			},
 		},
 		{
@@ -765,6 +863,24 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name:  "ingress-gateway-nodemeta",
+			Flags: []string{"-proxy-id", "ingress-gateway-1", "-node-name", "test-node"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "ingress-gateway-1",
+				ProxyID:      "ingress-gateway-1",
+				NodeName:     "test-node",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
@@ -1011,7 +1127,8 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 }
 
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
-// routing /agent/service/... requests to testMockAgentProxyConfig and
+// routing /agent/service/... requests to testMockAgentProxyConfig,
+// routing /catalog/node-services/... requests to testMockCatalogNodeServiceList
 // routing /agent/self requests to testMockAgentSelf.
 func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -1022,6 +1139,8 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
 		case strings.Contains(r.URL.Path, "/agent/self"):
 			testMockAgentSelf(tc.XDSPort, tc.AgentSelf110)(w, r)
+		case strings.Contains(r.URL.Path, "/catalog/node-services"):
+			testMockCatalogNodeServiceList()(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1090,7 +1209,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
 		proxyID := strings.TrimPrefix(r.URL.Path, "/v1/agent/service/")
-		serviceID := strings.TrimSuffix(proxyID, "-sidecar-proxy")
+		serviceID := strings.TrimSuffix(proxyID, "-proxy")
 
 		svc := api.AgentService{
 			Kind:    api.ServiceKindConnectProxy,
@@ -1110,6 +1229,48 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 		}
 
 		cfgJSON, err := json.Marshal(svc)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(cfgJSON)
+	}
+}
+
+func testMockCatalogNodeServiceList() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		quotedProxyID := strings.TrimPrefix(r.URL.Query().Get("filter"), "ID == ")
+		proxyID := quotedProxyID[1 : len(quotedProxyID)-1]
+		serviceID := strings.TrimSuffix(proxyID, "-proxy")
+
+		var svcKind api.ServiceKind
+		if strings.Contains(proxyID, "ingress-gateway") {
+			svcKind = api.ServiceKindIngressGateway
+		} else {
+			svcKind = api.ServiceKindConnectProxy
+		}
+
+		var svcProxy api.AgentServiceConnectProxyConfig
+		if svcKind == api.ServiceKindConnectProxy {
+			svcProxy = api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: serviceID,
+				DestinationServiceID:   serviceID,
+			}
+		}
+		svc := api.AgentService{
+			Kind:    svcKind,
+			ID:      proxyID,
+			Service: proxyID,
+			Proxy:   &svcProxy,
+		}
+
+		nodeSvc := api.CatalogNodeServiceList{
+			Node:     &api.Node{Datacenter: "dc1"},
+			Services: []*api.AgentService{&svc},
+		}
+
+		cfgJSON, err := json.Marshal(nodeSvc)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(err.Error()))

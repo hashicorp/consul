@@ -57,6 +57,11 @@ type Intention struct {
 	SourcePartition      string `json:",omitempty"`
 	DestinationPartition string `json:",omitempty"`
 
+	// SourcePeer cannot be a wildcard "*" and is not compatible with legacy
+	// intentions. Cannot be used with SourcePartition, as both represent the
+	// same level of tenancy (partition is local to cluster, peer is remote).
+	SourcePeer string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
@@ -311,7 +316,9 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 	// complete intention. This is so that both ends can be aware of why
 	// something does or does not work.
 
-	if ixn.SourceName != "" {
+	// If SourcePeer is set, tenancy is irrelevant in the context of the local cluster
+	// so we skip authorizing on the Source end.
+	if ixn.SourceName != "" && ixn.SourcePeer == "" {
 		ixn.FillAuthzContext(&authzContext, false)
 		if authz.IntentionRead(ixn.SourceName, &authzContext) == acl.Allow {
 			return true
@@ -394,9 +401,13 @@ func (x *Intention) String() string {
 		idPart = "ID: " + x.ID + ", "
 	}
 
-	var srcPartitionPart string
+	// Cluster may be either partition (local) or peer (remote)
+	var srcClusterPart string
 	if x.SourcePartition != "" {
-		srcPartitionPart = x.SourcePartition + "/"
+		srcClusterPart = x.SourcePartition + "/"
+	}
+	if x.SourcePeer != "" {
+		srcClusterPart = "peer(" + x.SourcePeer + ")/"
 	}
 
 	var dstPartitionPart string
@@ -412,7 +423,7 @@ func (x *Intention) String() string {
 	}
 
 	return fmt.Sprintf("%s%s/%s => %s%s/%s (%sPrecedence: %d, %s)",
-		srcPartitionPart, x.SourceNS, x.SourceName,
+		srcClusterPart, x.SourceNS, x.SourceName,
 		dstPartitionPart, x.DestinationNS, x.DestinationName,
 		idPart,
 		x.Precedence,
@@ -461,6 +472,7 @@ func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
 	src := &SourceIntention{
 		Name:             x.SourceName,
 		EnterpriseMeta:   *x.SourceEnterpriseMeta(),
+		Peer:             x.SourcePeer,
 		Action:           x.Action,
 		Permissions:      nil, // explicitly not symmetric with the old APIs
 		Precedence:       0,   // Ignore, let it be computed.
@@ -492,6 +504,15 @@ type IntentionSourceType string
 const (
 	// IntentionSourceConsul is a service within the Consul catalog.
 	IntentionSourceConsul IntentionSourceType = "consul"
+)
+
+type IntentionTargetType string
+
+const (
+	// IntentionTargetService is a service within the Consul catalog.
+	IntentionTargetService IntentionTargetType = "service"
+	// IntentionTargetDestination is a destination defined through a service-default config entry.
+	IntentionTargetDestination IntentionTargetType = "destination"
 )
 
 // Intentions is a list of intentions.
@@ -561,7 +582,8 @@ type IntentionMutation struct {
 	ID          string
 	Destination ServiceName
 	Source      ServiceName
-	Value       *SourceIntention
+	// TODO(peering): check if this needs peer field
+	Value *SourceIntention
 }
 
 // RequestDatacenter returns the datacenter for a given request.
@@ -707,6 +729,8 @@ type IntentionQueryExact struct {
 	// TODO(partitions): check query works with partitions
 	SourcePartition      string `json:",omitempty"`
 	DestinationPartition string `json:",omitempty"`
+
+	SourcePeer string `json:",omitempty"`
 }
 
 // Validate is used to ensure all 4 required parameters are specified.
@@ -727,6 +751,7 @@ func (q *IntentionQueryExact) Validate() error {
 	return err
 }
 
+// TODO(peering): add support for listing peer
 type IntentionListRequest struct {
 	Datacenter         string
 	Legacy             bool `json:"-"`
@@ -755,12 +780,18 @@ func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 		return a.Precedence > b.Precedence
 	}
 
-	// Tie break on lexicographic order of the tuple in canonical form (SrcPxn,
-	// SrcNS, Src, DstPxn, DstNS, Dst). This is arbitrary but it keeps sorting
-	// deterministic which is a nice property for consistency. It is arguably
-	// open to abuse if implementations rely on this however by definition the
-	// order among same-precedence rules is arbitrary and doesn't affect whether
-	// an allow or deny rule is acted on since all applicable rules are checked.
+	// Tie break on lexicographic order of the tuple in canonical form:
+	//
+	//   (SrcPeer, SrcPxn, SrcNS, Src, DstPxn, DstNS, Dst)
+	//
+	// This is arbitrary but it keeps sorting deterministic which is a nice
+	// property for consistency. It is arguably open to abuse if implementations
+	// rely on this however by definition the order among same-precedence rules
+	// is arbitrary and doesn't affect whether an allow or deny rule is acted on
+	// since all applicable rules are checked.
+	if a.SourcePeer != b.SourcePeer {
+		return a.SourcePeer < b.SourcePeer
+	}
 	if a.SourcePartition != b.SourcePartition {
 		return a.SourcePartition < b.SourcePartition
 	}

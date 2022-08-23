@@ -6,7 +6,7 @@ set -uo pipefail
 ### It is still up to the reviewer to make sure that any tests added are needed and meaningful.
 
 # search for any "new" or modified metric emissions
-metrics_modified=$(git --no-pager diff HEAD origin/main | grep -i "SetGauge\|EmitKey\|IncrCounter\|AddSample\|MeasureSince\|UpdateFilter")
+metrics_modified=$(git --no-pager diff origin/main...HEAD | grep -i "SetGauge\|EmitKey\|IncrCounter\|AddSample\|MeasureSince\|UpdateFilter")
 # search for PR body or title metric references
 metrics_in_pr_body=$(echo "${PR_BODY-""}" | grep -i "metric")
 metrics_in_pr_title=$(echo "${PR_TITLE-""}" | grep -i "metric")

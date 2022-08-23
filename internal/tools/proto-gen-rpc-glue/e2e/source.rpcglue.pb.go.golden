@@ -309,6 +309,50 @@ func (msg *ExampleReadTODO) Token() string {
 }
 
 // IsRead implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) IsRead() bool {
+	// TODO(peering): figure out read semantics here
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) AllowStaleRead() bool {
+	// TODO(peering): figure out read semantics here
+	// TODO(peering): this needs to stay false for calls to head to the leader until we sync stream tracker information
+	// like ImportedServicesCount, ExportedServicesCount, as well as general Status fields thru raft to make available
+	// to followers as well
+	return false
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	// TODO(peering): figure out read semantics here
+	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	// TODO(peering): figure out read semantics here
+	return rpcHoldTimeout
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) SetTokenSecret(s string) {
+	// TODO(peering): figure out read semantics here
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) TokenSecret() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+
+// Token implements structs.RPCInfo
+func (msg *ExampleLeaderReadTODO) Token() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+
+// IsRead implements structs.RPCInfo
 func (msg *ExampleWriteTODO) IsRead() bool {
 	// TODO(peering): figure out write semantics here
 	return false

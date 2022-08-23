@@ -61,10 +61,10 @@ The corresponding CLI command is [`consul snapshot save`](/commands/snapshot/sav
 With a custom datacenter:
 
 ```shell-session
-$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter --output snapshot.tgz
+$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter --output snapshot.snap
 ```
 
-The above example results in a tarball named `snapshot.tgz` in the current working directory.
+The above example results in a tarball named `snapshot.snap` in the current working directory.
 
 In addition to the Consul standard stale-related headers, the `X-Consul-Index`
 header will contain the index at which the snapshot took place.
@@ -110,7 +110,7 @@ call to [generate snapshot](#generate-snapshot).
 ```shell-session
 $ curl \
     --request PUT \
-    --data-binary @snapshot.tgz \
+    --data-binary @snapshot.snap \
     http://127.0.0.1:8500/v1/snapshot
 ```
 

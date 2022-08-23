@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
@@ -80,6 +81,11 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	// Handle invalid ACL tokens up-front.
+	if _, err := s.authenticate(stream.Context()); err != nil {
+		return err
+	}
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -105,7 +111,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
-		s.CheckFetcher,
 		s.CfgFetcher,
 		true,
 	)
@@ -200,7 +205,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 			}
 
-		case cfgSnap = <-stateCh:
+		case cs, ok := <-stateCh:
+			if !ok {
+				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
+				// or by the proxycfg.Manager when an irrecoverable error is encountered
+				// such as the ACL token getting deleted.
+				//
+				// We know for sure that this is the latter case, because in the former we
+				// would've already exited this loop.
+				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
+			}
+			cfgSnap = cs
+
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
@@ -242,11 +258,21 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				// is received but lets not panic about it.
 				continue
 			}
+
+			nodeName := node.GetMetadata().GetFields()["node_name"].GetStringValue()
+			if nodeName == "" {
+				nodeName = s.NodeName
+			}
+
 			// Start authentication process, we need the proxyID
 			proxyID = structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
 
 			// Start watching config for that proxy
-			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
+			var err error
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
 			// the end of the current loop iteration. We have to do it in the loop

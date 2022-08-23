@@ -602,14 +602,14 @@ type serviceRequestStub struct {
 }
 
 func (r serviceRequestStub) NewMaterializer() (submatview.Materializer, error) {
-	view, err := newHealthView(r.ServiceSpecificRequest)
+	view, err := NewHealthView(r.ServiceSpecificRequest)
 	if err != nil {
 		return nil, err
 	}
 	deps := submatview.Deps{
 		View:    view,
 		Logger:  hclog.New(nil),
-		Request: newMaterializerRequest(r.ServiceSpecificRequest),
+		Request: NewMaterializerRequest(r.ServiceSpecificRequest),
 	}
 	return submatview.NewRPCMaterializer(r.streamClient, deps), nil
 }
@@ -727,8 +727,8 @@ func getNamespace(ns string) string {
 
 func validateNamespace(ns string) func(request *pbsubscribe.SubscribeRequest) error {
 	return func(request *pbsubscribe.SubscribeRequest) error {
-		if request.Namespace != ns {
-			return fmt.Errorf("expected request.Namespace %v, got %v", ns, request.Namespace)
+		if got := request.GetNamedSubject().GetNamespace(); got != ns {
+			return fmt.Errorf("expected request.NamedSubject.Namespace %v, got %v", ns, got)
 		}
 		return nil
 	}

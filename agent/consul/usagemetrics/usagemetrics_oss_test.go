@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/stretchr/testify/require"
-
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -34,6 +35,12 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 				// --- node ---
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
@@ -222,6 +229,12 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Value:  3,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
 				// --- member ---
 				"consul.usage.test.consul.members.servers;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.members.servers",
@@ -231,6 +244,409 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 				"consul.usage.test.consul.members.clients;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.members.clients",
 					Value:  1,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- service ---
+				"consul.usage.test.consul.state.services;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.services",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.service_instances",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- service mesh ---
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-proxy": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-proxy"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=mesh-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
+					},
+				},
+				// --- kv ---
+				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.kv_entries",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "exported-services"},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Only have a single interval for the test
+			sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
+			cfg := metrics.DefaultConfig("consul.usage.test")
+			cfg.EnableHostname = false
+			metrics.NewGlobal(cfg, sink)
+
+			mockStateProvider := &mockStateProvider{}
+			s, err := newStateStore()
+			require.NoError(t, err)
+			if tcase.modfiyStateStore != nil {
+				tcase.modfiyStateStore(t, s)
+			}
+			mockStateProvider.On("State").Return(s)
+
+			reporter, err := NewUsageMetricsReporter(
+				new(Config).
+					WithStateProvider(mockStateProvider).
+					WithLogger(testutil.Logger(t)).
+					WithDatacenter("dc1").
+					WithGetMembersFunc(tcase.getMembersFunc),
+			)
+			require.NoError(t, err)
+
+			reporter.runOnce()
+
+			intervals := sink.Data()
+			require.Len(t, intervals, 1)
+			intv := intervals[0]
+
+			assertEqualGaugeMaps(t, tcase.expectedGauges, intv.Gauges)
+		})
+	}
+}
+
+func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
+	type testCase struct {
+		modfiyStateStore func(t *testing.T, s *state.Store)
+		getMembersFunc   getMembersFunc
+		expectedGauges   map[string]metrics.GaugeValue
+	}
+	cases := map[string]testCase{
+		"empty-state": {
+			expectedGauges: map[string]metrics.GaugeValue{
+				// --- node ---
+				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.nodes",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- member ---
+				"consul.usage.test.consul.members.clients;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.members.clients",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.members.servers;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.members.servers",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- service ---
+				"consul.usage.test.consul.state.services;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.services",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.service_instances",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- service mesh ---
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-proxy": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-proxy"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=mesh-gateway": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
+					},
+				},
+				// --- kv ---
+				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.kv_entries",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "exported-services"},
+					},
+				},
+			},
+			getMembersFunc: func() []serf.Member { return []serf.Member{} },
+		},
+		"peerings": {
+			modfiyStateStore: func(t *testing.T, s *state.Store) {
+				id, err := uuid.GenerateUUID()
+				require.NoError(t, err)
+				require.NoError(t, s.PeeringWrite(1, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "foo", ID: id}}))
+				id, err = uuid.GenerateUUID()
+				require.NoError(t, err)
+				require.NoError(t, s.PeeringWrite(2, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "bar", ID: id}}))
+				id, err = uuid.GenerateUUID()
+				require.NoError(t, err)
+				require.NoError(t, s.PeeringWrite(3, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "baz", ID: id}}))
+			},
+			getMembersFunc: func() []serf.Member {
+				return []serf.Member{
+					{
+						Name:   "foo",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "bar",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+				}
+			},
+			expectedGauges: map[string]metrics.GaugeValue{
+				// --- node ---
+				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.nodes",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  3,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- member ---
+				"consul.usage.test.consul.members.servers;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.members.servers",
+					Value:  2,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.members.clients;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.members.clients",
+					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 				// --- service ---
@@ -424,6 +840,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				// --- node ---
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
@@ -654,6 +1076,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Value:  4,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
 				// --- member ---
 				"consul.usage.test.consul.members.servers;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.members.servers",
@@ -866,6 +1294,12 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  0,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
 				// --- member ---
 				"consul.usage.test.consul.members.clients;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.members.clients",
@@ -1058,6 +1492,12 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
 					Value:  3,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- peering ---
+				"consul.usage.test.consul.state.peerings;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.peerings",
+					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 				// --- member ---

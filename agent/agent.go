@@ -20,7 +20,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,6 +30,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -38,9 +38,12 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
-	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
+	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
+	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -54,6 +57,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -174,7 +178,7 @@ type delegate interface {
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -209,9 +213,9 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
 	// opposed to the multiplexed "server" port).
-	publicGRPCServer *grpc.Server
+	externalGRPCServer *grpc.Server
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -244,6 +248,9 @@ type Agent struct {
 
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[structs.CheckID]*checks.CheckTCP
+
+	// checkUDPs maps the check ID to an associated UDP check
+	checkUDPs map[structs.CheckID]*checks.CheckUDP
 
 	// checkGRPCs maps the check ID to an associated GRPC check
 	checkGRPCs map[structs.CheckID]*checks.CheckGRPC
@@ -398,6 +405,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkHTTPs:      make(map[structs.CheckID]*checks.CheckHTTP),
 		checkH2PINGs:    make(map[structs.CheckID]*checks.CheckH2PING),
 		checkTCPs:       make(map[structs.CheckID]*checks.CheckTCP),
+		checkUDPs:       make(map[structs.CheckID]*checks.CheckUDP),
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
@@ -531,7 +539,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.buildPublicGRPCServer()
+	a.buildExternalGRPCServer()
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -570,7 +578,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.publicGRPCServer)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -626,11 +634,8 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		Cache:  &proxycfg.CacheWrapper{Cache: a.cache},
-		Health: &proxycfg.HealthWrapper{Health: a.rpcClientHealth},
-		Logger: a.logger.Named(logging.ProxyConfig),
-		State:  a.State,
-		Tokens: a.baseDeps.Tokens,
+		DataSources: a.proxyDataSources(),
+		Logger:      a.logger.Named(logging.ProxyConfig),
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
 			Segment:       a.config.SegmentName,
@@ -646,11 +651,17 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	go func() {
-		if err := a.proxyConfig.Run(); err != nil {
-			a.logger.Error("proxy config manager exited with error", "error", err)
-		}
-	}()
+
+	go localproxycfg.Sync(
+		&lib.StopChannelContext{StopCh: a.shutdownCh},
+		localproxycfg.SyncConfig{
+			Manager:  a.proxyConfig,
+			State:    a.State,
+			Logger:   a.proxyConfig.Logger.Named("agent-state"),
+			Tokens:   a.baseDeps.Tokens,
+			NodeName: a.config.NodeName,
+		},
+	)
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -707,12 +718,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
-	// future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
-	}
-
 	if a.tlsConfigurator.Cert() != nil {
 		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
@@ -755,13 +760,8 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) buildPublicGRPCServer() {
-	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
-	var tls *tlsutil.Configurator
-	if a.config.HTTPSPort > 0 {
-		tls = a.tlsConfigurator
-	}
-	a.publicGRPCServer = publicgrpc.NewServer(a.logger.Named("grpc.public"), tls)
+func (a *Agent) buildExternalGRPCServer() {
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
@@ -769,17 +769,36 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
+	// TODO(agentless): rather than asserting the concrete type of delegate, we
+	// should add a method to the Delegate interface to build a ConfigSource.
+	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
+	if server, ok := a.delegate.(*consul.Server); ok {
+		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+			NodeName:          a.config.NodeName,
+			LocalState:        a.State,
+			LocalConfigSource: cfg,
+			Manager:           a.proxyConfig,
+			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+		})
+		go func() {
+			<-a.shutdownCh
+			catalogCfg.Shutdown()
+		}()
+		cfg = catalogCfg
+	}
+
 	a.xdsServer = xds.NewServer(
+		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
 		a.config.ConnectServerlessPluginEnabled,
-		a.proxyConfig,
+		cfg,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a,
 	)
-	a.xdsServer.Register(a.publicGRPCServer)
+	a.xdsServer.Register(a.externalGRPCServer)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
@@ -792,7 +811,7 @@ func (a *Agent) listenAndServeGRPC() error {
 				"address", innerL.Addr().String(),
 				"network", innerL.Addr().Network(),
 			)
-			err := a.publicGRPCServer.Serve(innerL)
+			err := a.externalGRPCServer.Serve(innerL)
 			if err != nil {
 				a.logger.Error("gRPC server failed", "error", err)
 			}
@@ -844,8 +863,18 @@ func (a *Agent) listenAndServeDNS() error {
 	return merr.ErrorOrNil()
 }
 
+// startListeners will return a net.Listener for every address unless an
+// error is encountered, in which case it will close all previously opened
+// listeners and return the error.
 func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
-	var ln []net.Listener
+	var lns []net.Listener
+
+	closeAll := func() {
+		for _, l := range lns {
+			l.Close()
+		}
+	}
+
 	for _, addr := range addrs {
 		var l net.Listener
 		var err error
@@ -854,22 +883,25 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 		case *net.UnixAddr:
 			l, err = a.listenSocket(x.Name)
 			if err != nil {
+				closeAll()
 				return nil, err
 			}
 
 		case *net.TCPAddr:
 			l, err = net.Listen("tcp", x.String())
 			if err != nil {
+				closeAll()
 				return nil, err
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
 		default:
+			closeAll()
 			return nil, fmt.Errorf("unsupported address type %T", addr)
 		}
-		ln = append(ln, l)
+		lns = append(lns, l)
 	}
-	return ln, nil
+	return lns, nil
 }
 
 // listenHTTP binds listeners to the provided addresses and also returns
@@ -1169,6 +1201,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RPCAddr = runtimeCfg.RPCBindAddr
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
+	cfg.GRPCPort = runtimeCfg.GRPCPort
+
 	cfg.Segment = runtimeCfg.SegmentName
 	if len(runtimeCfg.Segments) > 0 {
 		segments, err := segmentConfig(runtimeCfg)
@@ -1320,6 +1354,9 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// function does not drift.
 	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
 
+	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
+	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
@@ -1451,6 +1488,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
+	for _, chk := range a.checkUDPs {
+		chk.Stop()
+	}
 	for _, chk := range a.checkGRPCs {
 		chk.Stop()
 	}
@@ -1465,7 +1505,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	a.publicGRPCServer.Stop()
+	a.externalGRPCServer.Stop()
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {
@@ -2750,6 +2790,31 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tcp.Start()
 			a.checkTCPs[cid] = tcp
 
+		case chkType.IsUDP():
+			if existing, ok := a.checkUDPs[cid]; ok {
+				existing.Stop()
+				delete(a.checkUDPs, cid)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
+				chkType.Interval = checks.MinInterval
+			}
+
+			udp := &checks.CheckUDP{
+				CheckID:       cid,
+				ServiceID:     sid,
+				UDP:           chkType.UDP,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				StatusHandler: statusHandler,
+			}
+			udp.Start()
+			a.checkUDPs[cid] = udp
+
 		case chkType.IsGRPC():
 			if existing, ok := a.checkGRPCs[cid]; ok {
 				existing.Stop()
@@ -3048,6 +3113,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	if check, ok := a.checkTCPs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTCPs, checkID)
+	}
+	if check, ok := a.checkUDPs[checkID]; ok {
+		check.Stop()
+		delete(a.checkUDPs, checkID)
 	}
 	if check, ok := a.checkGRPCs[checkID]; ok {
 		check.Stop()
@@ -3774,7 +3843,7 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
-	//if auto reload is enabled, make sure we have the right certs file watched.
+	// if auto reload is enabled, make sure we have the right certs file watched.
 	if autoReload {
 		for _, f := range []struct {
 			oldCfg tlsutil.ProtocolConfig
@@ -3805,12 +3874,6 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			// reset not reloadable fields
 			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
 		}
-	}
-
-	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
-	// metrics in a future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	return a.reloadConfigInternal(newCfg)
@@ -4023,6 +4086,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
 	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
+	a.cache.RegisterType(cachetype.IntentionUpstreamsDestinationName, &cachetype.IntentionUpstreamsDestination{RPC: a})
 
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
@@ -4045,6 +4109,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
+	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
 
@@ -4052,8 +4117,16 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
 
+	a.cache.RegisterType(cachetype.TrustBundleReadName, &cachetype.TrustBundle{Client: a.rpcClientPeering})
+
+	a.cache.RegisterType(cachetype.ExportedPeeredServicesName, &cachetype.ExportedPeeredServices{RPC: a})
+
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
+
+	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
+
+	a.cache.RegisterType(cachetype.PeeredUpstreamsName, &cachetype.PeeredUpstreams{RPC: a})
 
 	a.registerEntCache()
 }
@@ -4149,6 +4222,61 @@ func (a *Agent) listenerPortLocked(svcID structs.ServiceID, checkID structs.Chec
 	}
 
 	return port, nil
+}
+
+func (a *Agent) proxyDataSources() proxycfg.DataSources {
+	sources := proxycfg.DataSources{
+		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
+		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
+		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
+		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
+		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
+		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
+		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		ServiceGateways:                 proxycfgglue.CacheServiceGateways(a.cache),
+		Health:                          proxycfgglue.ClientHealth(a.rpcClientHealth),
+		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
+		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
+		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		IntentionUpstreamsDestination:   proxycfgglue.CacheIntentionUpstreamsDestination(a.cache),
+		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
+		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
+		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
+		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
+		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
+		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
+		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
+		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
+	}
+
+	if server, ok := a.delegate.(*consul.Server); ok {
+		deps := proxycfgglue.ServerDataSourceDeps{
+			Datacenter:     a.config.Datacenter,
+			EventPublisher: a.baseDeps.EventPublisher,
+			ViewStore:      a.baseDeps.ViewStore,
+			Logger:         a.logger.Named("proxycfg.server-data-sources"),
+			ACLResolver:    a.delegate,
+			GetStore:       func() proxycfgglue.Store { return server.FSM().State() },
+		}
+		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
+		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
+		sources.ExportedPeeredServices = proxycfgglue.ServerExportedPeeredServices(deps)
+		sources.FederationStateListMeshGateways = proxycfgglue.ServerFederationStateListMeshGateways(deps)
+		sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
+		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
+		sources.Intentions = proxycfgglue.ServerIntentions(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
+		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
+		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
+		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)
+	}
+
+	a.fillEnterpriseProxyDataSources(&sources)
+	return sources
+
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {

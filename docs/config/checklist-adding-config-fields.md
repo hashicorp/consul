@@ -45,6 +45,8 @@ There are four specific cases covered with increasing complexity:
       - [ ] Add that to `DefaultSource` in `agent/config/defaults.go`.
       - [ ] Add a test case to the table test `TestLoad_IntegrationWithFlags` in
         `agent/config/runtime_test.go`.
+      - [ ] If the config needs to be defaulted for the test server used in unit tests,
+            also add it to `DefaultConfig()` in `agent/consul/defaults.go`.
  - [ ] **If** your config should take effect on a reload/HUP.
       - [ ] Add necessary code to to trigger a safe (locked or atomic) update to
         any state the feature needs changing. This needs to be added to one or

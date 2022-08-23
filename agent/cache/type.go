@@ -5,6 +5,7 @@ import (
 )
 
 // Type implements the logic to fetch certain types of data.
+//go:generate mockery --name Type --inpackage
 type Type interface {
 	// Fetch fetches a single unique item.
 	//
