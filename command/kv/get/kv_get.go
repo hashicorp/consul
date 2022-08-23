@@ -112,7 +112,7 @@ func (c *cmd) Run(args []string) int {
 			if c.detailed {
 				var b bytes.Buffer
 				if err := prettyKVPair(&b, pair, false, true); err != nil {
-					c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
+					c.UI.Error(fmt.Sprintf("Error rendering KV key: %s", err))
 					return 1
 				}
 				c.UI.Info(b.String())

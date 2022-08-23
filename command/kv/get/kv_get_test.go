@@ -439,7 +439,7 @@ func TestKVGetCommand_KeysRecurse(t *testing.T) {
 	}
 	for k, v := range keys {
 		var pair *api.KVPair
-		switch k {
+		switch v {
 		case "":
 			pair = &api.KVPair{Key: k, Value: nil}
 		default:
@@ -461,12 +461,11 @@ func TestKVGetCommand_KeysRecurse(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 	output := ui.OutputWriter.String()
-	fmt.Println(output)
 	for key, value := range keys {
 		if !strings.Contains(output, key) {
 			t.Fatalf("bad %#v missing %q", output, key)
 		}
-		if strings.Contains(output, key+":"+base64.StdEncoding.EncodeToString([]byte(value))) {
+		if strings.Contains(output, key+":"+string([]byte(value))) {
 			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
 		}
 	}
@@ -490,7 +489,7 @@ func TestKVGetCommand_DetailedKeysRecurse(t *testing.T) {
 	}
 	for k, v := range keys {
 		var pair *api.KVPair
-		switch k {
+		switch v {
 		case "":
 			pair = &api.KVPair{Key: k, Value: nil}
 		default:
@@ -515,17 +514,6 @@ func TestKVGetCommand_DetailedKeysRecurse(t *testing.T) {
 	output := ui.OutputWriter.String()
 	fmt.Println(output)
 	for key, value := range keys {
-		for _, key := range []string{
-			"CreateIndex",
-			"LockIndex",
-			"ModifyIndex",
-			"Flags",
-			"Session",
-		} {
-			if !strings.Contains(output, key) {
-				t.Fatalf("bad %#v, missing %q", output, key)
-			}
-		}
 		if value != "" && strings.Contains(output, value) {
 			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
 		}
