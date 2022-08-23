@@ -1,0 +1,79 @@
+---
+layout: docs
+page_title: 0.4.x
+description: >-
+  Consul API Gateway release notes for version 0.4.x
+---
+
+# Consul API Gateway 0.4.0
+
+## Release Highlights
+
+- **Support for Kubernetes Gateway API Version 0.5.0 and v1beta1 APIs:**
+  The `v0.5.0` release of the Kubernetes Gateway API is significant because it
+  marks the growth in maturity to a beta API version (v1beta1) release for some
+  of the key APIs:
+  - GatewayClass
+  - Gateway
+  - HTTPRoute
+
+  The other APIs (e.g. TCPRoute) are still at the `v1alpha2` stage.
+
+  Reaching `v1beta1` status has several benefits for users, including greater
+  stability and backward compatibility requirements. Existing fields and allowed
+  options can not be removed or renamed except in a new, major version of the
+  API. Once an API reaches `v1beta1` status, future versions must comply with
+  several backward compatibility requirements.
+
+- **URL Path Prefix Rewrite** This release introduces support for rewriting a
+  URL's path prefix when routing HTTP traffic. To use this functionality, add a
+  `URLRewrite` filter to an `HTTPRoute` configuration. This enables the gateway
+  to rewrite the URL path in a client's HTTP request before sending the request
+  to a service. For example, you could configure the gateway to change the path
+  from `//store/checkout` to `//cart/checkout`. Refer to the [usage
+  documentation](/docs/api-gateway/usage) for additional information.  
+
+## What has Changed
+
+- **Reference Policy Renamed to Reference Grant** In v0.5.0 of the Kubernetes
+  Gateway API, `ReferencePolicy` has been renamed to `ReferenceGrant`. This
+  release supports both but `ReferencePolicy` is deprecated and will be removed
+  in a future version of the standard.
+
+  After upgrading to this version of Consul API Gateway, you should rename all
+  existing `ReferencePolicy` to `ReferenceGrant`. Refer to the [Upgrades](/docs/api-gateway/upgrades)
+  instructions for additional details.
+
+## Supported Software
+
+- Consul 1.11.2+
+- HashiCorp Consul Helm chart 0.47.1+
+- Kubernetes 1.21+
+  - Kubernetes 1.24 is not supported at this time.
+- Kubectl 1.21+
+- Envoy proxy support is determined by the Consul version deployed. Refer to
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+
+## Kubernetes Gateway API Specification
+
+Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: v0.5.0
+
+## Upgrading
+
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/api-gateway/upgrades)
+
+## Known Issues
+The following issues are know to exist in the v0.4.0 release
+
+- API Gateway pods fail to start if namespace mirroring enabled and destination
+  namespace doesn't exist. See GitHub Issue
+  [#248](https://github.com/hashicorp/consul-api-gateway/issues/248) for
+  details.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+~> **Note:** The following link will take you to the changelogs on the GitHub website.
+
+- [0.4.0](https://github.com/hashicorp/consul-api-gateway/releases/tag/v0.4.0)

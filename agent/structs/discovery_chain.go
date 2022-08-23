@@ -53,24 +53,6 @@ type CompiledDiscoveryChain struct {
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
 }
 
-func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryGraphNode) bool {
-	if node.Type != DiscoveryGraphNodeTypeResolver {
-		return false
-	}
-	failover := node.Resolver.Failover
-
-	if failover != nil && len(failover.Targets) > 0 {
-		for _, failTargetID := range failover.Targets {
-			failTarget := c.Targets[failTargetID]
-			switch failTarget.MeshGateway.Mode {
-			case MeshGatewayModeLocal, MeshGatewayModeRemote:
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {

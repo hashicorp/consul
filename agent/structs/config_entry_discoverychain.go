@@ -954,6 +954,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		r := e.Redirect
 
+		if err := r.ValidateEnterprise(); err != nil {
+			return fmt.Errorf("Redirect: %s", err.Error())
+		}
+
 		if len(e.Failover) > 0 {
 			return fmt.Errorf("Redirect and Failover cannot both be set")
 		}
@@ -988,18 +992,59 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf("Cross-datacenter failover is only supported in the default partition")
 			}
 
-			if subset != "*" && !isSubset(subset) {
-				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
+			errorPrefix := fmt.Sprintf("Bad Failover[%q]: ", subset)
+
+			if err := f.ValidateEnterprise(); err != nil {
+				return fmt.Errorf(errorPrefix + err.Error())
 			}
 
-			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 {
-				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, or Datacenters is required", subset)
+			if subset != "*" && !isSubset(subset) {
+				return fmt.Errorf(errorPrefix + "not a valid subset subset")
+			}
+
+			if f.isEmpty() {
+				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required")
 			}
 
 			if f.ServiceSubset != "" {
 				if f.Service == "" || f.Service == e.Name {
 					if !isSubset(f.ServiceSubset) {
-						return fmt.Errorf("Bad Failover[%q].ServiceSubset %q is not a valid subset of %q", subset, f.ServiceSubset, f.Service)
+						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, f.ServiceSubset, f.Service)
+					}
+				}
+			}
+
+			if len(f.Datacenters) != 0 && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with Datacenters", subset)
+			}
+
+			if f.ServiceSubset != "" && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with ServiceSubset", subset)
+			}
+
+			if f.Service != "" && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with Service", subset)
+			}
+
+			for i, target := range f.Targets {
+				errorPrefix := fmt.Sprintf("Bad Failover[%q].Targets[%d]: ", subset, i)
+
+				if err := target.ValidateEnterprise(); err != nil {
+					return fmt.Errorf(errorPrefix + err.Error())
+				}
+
+				switch {
+				case target.Peer != "" && target.ServiceSubset != "":
+					return fmt.Errorf(errorPrefix + "Peer cannot be set with ServiceSubset")
+				case target.Peer != "" && target.Partition != "":
+					return fmt.Errorf(errorPrefix + "Partition cannot be set with Peer")
+				case target.Peer != "" && target.Datacenter != "":
+					return fmt.Errorf(errorPrefix + "Peer cannot be set with Datacenter")
+				case target.Partition != "" && target.Datacenter != "":
+					return fmt.Errorf(errorPrefix + "Partition cannot be set with Datacenter")
+				case target.ServiceSubset != "" && (target.Service == "" || target.Service == e.Name):
+					if !isSubset(target.ServiceSubset) {
+						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, target.ServiceSubset, e.Name)
 					}
 				}
 			}
@@ -1107,9 +1152,24 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 
 	if len(e.Failover) > 0 {
 		for _, failover := range e.Failover {
-			failoverID := NewServiceID(defaultIfEmpty(failover.Service, e.Name), failover.GetEnterpriseMeta(&e.EnterpriseMeta))
-			if failoverID != svcID {
-				found[failoverID] = struct{}{}
+			if len(failover.Targets) == 0 {
+				failoverID := NewServiceID(defaultIfEmpty(failover.Service, e.Name), failover.GetEnterpriseMeta(&e.EnterpriseMeta))
+				if failoverID != svcID {
+					found[failoverID] = struct{}{}
+				}
+				continue
+			}
+
+			for _, target := range failover.Targets {
+				// We can't know about related services on cluster peers.
+				if target.Peer != "" {
+					continue
+				}
+
+				failoverID := NewServiceID(defaultIfEmpty(target.Service, e.Name), target.GetEnterpriseMeta(failover.GetEnterpriseMeta(&e.EnterpriseMeta)))
+				if failoverID != svcID {
+					found[failoverID] = struct{}{}
+				}
 			}
 		}
 	}
@@ -1175,8 +1235,9 @@ type ServiceResolverRedirect struct {
 
 // There are some restrictions on what is allowed in here:
 //
-// - Service, ServiceSubset, Namespace, and Datacenters cannot all be
-//   empty at once.
+// - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
+// empty at once. When Targets is defined, the other fields should not be
+// populated.
 //
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
@@ -1205,6 +1266,37 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
+
+	// Targets specifies a fixed list of failover targets to try. We never try a
+	// target multiple times, so those are subtracted from this list before
+	// proceeding.
+	//
+	// This is a DESTINATION during failover.
+	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
+}
+
+func (f *ServiceResolverFailover) isEmpty() bool {
+	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
+}
+
+type ServiceResolverFailoverTarget struct {
+	// Service specifies the name of the service to try during failover.
+	Service string `json:",omitempty"`
+
+	// ServiceSubset specifies the service subset to try during failover.
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+
+	// Partition specifies the partition to try during failover.
+	Partition string `json:",omitempty"`
+
+	// Namespace specifies the namespace to try during failover.
+	Namespace string `json:",omitempty"`
+
+	// Datacenter specifies the datacenter to try during failover.
+	Datacenter string `json:",omitempty"`
+
+	// Peer specifies the name of the cluster peer to try during failover.
+	Peer string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

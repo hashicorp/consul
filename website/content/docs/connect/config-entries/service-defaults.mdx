@@ -688,6 +688,12 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       ]
     },
     {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
+    },
+    {
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default

@@ -21,10 +21,9 @@ The following CRDs are used to create and manage a peering connection:
 ## Prerequisites
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
-- Consul version 1.13.0 or later
+- Consul version 1.13.1 or later
 - At least two Kubernetes clusters
-- The Kubernetes clusters must be running in a flat network
-- The network must be running on Consul on Kubernetes version 0.45 or later
+- The installation must be running on Consul on Kubernetes version 0.47.1 or later
 
 ### Helm chart configuration
 
@@ -34,7 +33,7 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   ```yaml
   global:
-    image: "hashicorp/consul:1.13.0"
+    image: "hashicorp/consul:1.13.1"
     peering:
       enabled: true
   connectInject:
@@ -48,14 +47,19 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   </CodeBlockConfig>
 
-Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI.
+Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI. With these values,
+the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
+using [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice). When generating a peering token from one of the
+clusters, the address(es) of the load balancer will be used in the peering token, so the peering stream will go through
+the load balancer in front of the servers. For customizing the addresses used in the peering token, see
+[`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
 
 ```shell-session
 $ export HELM_RELEASE_NAME=cluster-name
 ```
 
 ```shell-session
-$ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.45.0" --values values.yaml
+$ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.47.1" --values values.yaml
 ```
 
 ## Create a peering token
