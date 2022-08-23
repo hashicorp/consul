@@ -10,7 +10,7 @@ description: >-
 # Proxy Defaults
 
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you 
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you
 to configure global defaults across all services for Connect proxy
 configurations. Only one global entry is supported.
 
@@ -28,8 +28,8 @@ service definitions](/docs/connect/registration/sidecar-service).
 ## Requirements
 
 The following Consul binaries are supported:
-* Consul 1.8.4+ on Kubernetes. 
-* Consul 1.5.0+ on other platforms. 
+* Consul 1.8.4+ on Kubernetes.
+* Consul 1.5.0+ on other platforms.
 
 ## Usage
 
@@ -321,7 +321,6 @@ spec:
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'TransparentProxy',
@@ -333,7 +332,6 @@ spec:
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is captured and redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
