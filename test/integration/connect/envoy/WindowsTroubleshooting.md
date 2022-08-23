@@ -38,5 +38,39 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - The "config-dir" path of the creation of the images of "envoy_consul" was adapted to adapt to the Windows format.
 - The use of the function "stop_and_copy_files" was included after the creation of the bootstrap files to include these among the shared files in the volume.
 
+## Difference over network types
 
+There are fundamental differences in networking between the Linux version and the Windows version. In Linux, a Host type network is used that links all the containers through localhost, but this type of network does not exist in Windows. In Windows, the use of a NAT-type network was chosen. This difference is the cause of many of the problems that exist when running the tests on Windows since, in Host-type networks, any call to localhost from any of the containers would refer to the Docker host. This brings problems in two different categories, on the one hand when it comes to setting up the containers required for the test environment and on the other hand when running the tests themselves.
 
+### Differences when lifting containers
+
+When building the test environment in the current architecture running with Windows, we find that there are problems linking the different containers with Consul. Many default settings are used in the Linux scheme. This assumes that the services are running on the same machine, so it checks pointing to "localhost". But, in windows architecture these configurations don't work since each container is considered an independent entity with its own localhost. In this aspect, the registration of the services in consul had to be modified so that they included the address of the sidecar, since without it the connection to the services is not made.
+
+```powershell
+services {
+  connect {
+    sidecar_service {
+      proxy {
+        local_service_address = "s1-sidecar-proxy"
+      }
+    }
+  }
+}
+```
+
+### Differences in test calls
+
+The tests are carried out from the **envoy_verify-primary_1** bats container, in all cases pointing to localhost to verify some feature. When pointing to localhost, within the windows network it takes it as if it were pointing to itself and for that reason they fail. To solve it, a function was created that maps each port with a hostname and from there locates the assigned IP and returns the corresponding IP and port.
+
+```powershell
+@test "s1 proxy admin is up on :19000" {
+  retry_default curl -f -s localhost:19000/stats -o /dev/null
+}
+
+ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
+```
+
+## Problems with the Workdir
+
+A problem was found with the method set for creating the volume. The way the volume is currently created in Windows creates a static volume. This means that every time you want to reflect a change in the containers, it must be deleted and recreated. For this reason, every time a file is required to be modified from outside the application, the **stop_and_copy_files** function must be executed.
