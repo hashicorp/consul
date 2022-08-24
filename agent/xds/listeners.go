@@ -1132,21 +1132,6 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			return nil, err
 		}
 
-		// If an inbound connect limit is set, inject a connection limit filter on each chain.
-		if cfg.MaxInboundConnections > 0 {
-			connectionLimitFilter, err := makeConnectionLimitFilter(cfg.MaxInboundConnections)
-			if err != nil {
-				return nil, err
-			}
-			l.FilterChains = []*envoy_listener_v3.FilterChain{
-				{
-					Filters: []*envoy_listener_v3.Filter{
-						connectionLimitFilter,
-					},
-				},
-			}
-		}
-
 		// For HTTP-like services attach an RBAC http filter and do a best-effort insert
 		if useHTTPFilter {
 			httpAuthzFilter, err := makeRBACHTTPFilter(
