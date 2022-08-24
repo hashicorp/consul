@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -720,7 +720,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 		return nil, err
 	}
 
-	if existing == nil || !existing.IsActive() {
+	if !existing.IsActive() {
 		// Return early when the Peering doesn't exist or is already marked for deletion.
 		// We don't return nil because the pb will fail to marshal.
 		return &pbpeering.PeeringDeleteResponse{}, nil
