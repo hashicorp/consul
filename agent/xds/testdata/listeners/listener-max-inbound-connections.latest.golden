@@ -77,7 +77,7 @@
               "name": "envoy.filters.network.connection_limit",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.connection_limit.v3.ConnectionLimit",
-                "statPrefix": "inbound connection limit",
+                "statPrefix": "inbound_connection_limit",
                 "maxConnections": "222"
               }
             },
