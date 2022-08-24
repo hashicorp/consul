@@ -29,6 +29,8 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
+
 type deltaRecvResponse int
 
 const (
@@ -85,6 +87,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	if _, err := s.authenticate(stream.Context()); err != nil {
 		return err
 	}
+
+	session, err := s.Limiter.BeginSession()
+	if err != nil {
+		return errOverwhelmed
+	}
+	defer session.End()
 
 	// Loop state
 	var (
@@ -159,6 +167,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-session.Terminated():
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {

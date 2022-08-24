@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -108,6 +109,7 @@ type Server struct {
 	CfgSrc       ProxyConfigSource
 	ResolveToken ACLResolverFunc
 	CfgFetcher   ConfigFetcher
+	Limiter      *limiter.Limiter
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -159,6 +161,7 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
+	limiter *limiter.Limiter,
 ) *Server {
 	return &Server{
 		NodeName:                nodeName,
@@ -166,6 +169,7 @@ func NewServer(
 		CfgSrc:                  cfgMgr,
 		ResolveToken:            resolveToken,
 		CfgFetcher:              cfgFetcher,
+		Limiter:                 limiter,
 		AuthCheckFrequency:      DefaultAuthCheckFrequency,
 		activeStreams:           &activeStreamCounters{},
 		serverlessPluginEnabled: serverlessPluginEnabled,

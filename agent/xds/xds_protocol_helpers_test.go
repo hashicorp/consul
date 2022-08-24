@@ -6,7 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -161,6 +164,7 @@ func newTestServerDeltaScenario(
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
+		limiter.NewLimiter(rate.NewLimiter(rate.Inf, 0)),
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency
