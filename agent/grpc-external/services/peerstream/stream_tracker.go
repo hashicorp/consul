@@ -215,7 +215,7 @@ func (s *Status) GetExportedServicesCount() uint64 {
 }
 
 // IsHealthy is a convenience func that returns true/ false for a peering status.
-// We define a peering as unhealthy if its status satisfies the following:
+// We define a peering as unhealthy if its status satisfies one of the following:
 // -  If heartbeat hasn't been received within the IncomingHeartbeatTimeout
 // -  If the last sent error is newer than last sent success
 // -  If the last received error is newer than last received success
