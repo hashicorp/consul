@@ -651,7 +651,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 	// mock handler only gets called once during the initial subscription
 	backend.handler.expect("", 0, 1, payload)
 
-	// Only configure a tracker for CA roots events.
+	// Only configure a tracker for server address events.
 	tracker := newResourceSubscriptionTracker()
 	tracker.Subscribe(pbpeerstream.TypeURLPeeringServerAddresses)
 
