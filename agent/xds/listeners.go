@@ -1251,7 +1251,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	if len(l.FilterChains) > 0 {
-		// An FilterChains has been initialized earlier with a connection limit filter
+		// The list of FilterChains has already been initialized
 		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
 	} else {
 		l.FilterChains = []*envoy_listener_v3.FilterChain{
@@ -2016,7 +2016,7 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener
 
 func makeConnectionLimitFilter(limit int) (*envoy_listener_v3.Filter, error) {
 	cfg := &envoy_connection_limit_v3.ConnectionLimit{
-		StatPrefix:     "inbound connection limit",
+		StatPrefix:     "inbound_connection_limit",
 		MaxConnections: wrapperspb.UInt64(uint64(limit)),
 	}
 	return makeFilter("envoy.filters.network.connection_limit", cfg)
