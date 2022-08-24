@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1342,4 +1344,107 @@ func Test_isFailedPreconditionErr(t *testing.T) {
 	// test that wrapped errors are checked correctly
 	werr := fmt.Errorf("wrapped: %w", err)
 	assert.True(t, isFailedPreconditionErr(werr))
+}
+
+func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// We want 1s retries for this test
+	orig := maxRetryBackoff
+	maxRetryBackoff = 1
+	t.Cleanup(func() { maxRetryBackoff = orig })
+
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+	})
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
+
+	// Create a peering at dialer by establishing a peering with acceptor's token
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
+
+	establishReq := pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
+
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	testutil.RunStep(t, "add a bad address", func(t *testing.T) {
+		// force close open stream so it picks up a new address
+		dialer.peerStreamServer.ConnectedStreams()[p.Peering.ID] <- struct{}{}
+
+		clone := proto.Clone(p.Peering)
+		updated := clone.(*pbpeering.Peering)
+		// start with bad address so we will have a connection error
+		updated.PeerServerAddresses = append([]string{
+			"bad",
+		}, p.Peering.PeerServerAddresses...)
+
+		require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: updated}))
+
+		retry.Run(t, func(r *retry.R) {
+			status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+			require.True(r, found)
+			// We assert for this error to be set which would indicate that we iterated
+			// through a bad address.
+			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing dial tcp: address bad: missing port in address")
+			require.True(r, status.Connected)
+		})
+	})
 }
