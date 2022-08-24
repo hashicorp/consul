@@ -2019,6 +2019,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
     - `verify_incoming` - ((#tls_grpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
 
+    - `use_auto_cert` - (Defaults to `false`) Enables or disables TLS on gRPC servers. Set to `true` to allow `auto_encrypt` TLS settings to apply to gRPC listeners. We recommend disabling TLS on gRPC servers if you are using `auto_encrypt` for other TLS purposes, such as enabling HTTPS.
+
   - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
     the HTTPS interface you must define a port via [`ports.https`](#https_port).
 
