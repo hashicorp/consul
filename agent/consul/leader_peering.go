@@ -92,13 +92,6 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 	}
 
 	for _, peer := range peers {
-		status, found := s.peerStreamServer.StreamStatus(peer.ID)
-		if !found {
-			logger.Trace("did not find status for; will skip metric emission",
-				"peer_name", peer.Name, "peer_id", peer.ID, "peer_remote_id", peer.PeerID)
-			continue
-		}
-
 		part := peer.Partition
 		labels := []metrics.Label{
 			{Name: "peer_name", Value: peer.Name},
@@ -108,20 +101,23 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 			labels = append(labels, metrics.Label{Name: "partition", Value: part})
 		}
 
-		// exported services count metric
-		esc := status.GetExportedServicesCount()
-		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if found {
+			// exported services count metric
+			esc := status.GetExportedServicesCount()
+			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+		}
 
 		// peering health metric
-		if !status.Connected {
-			logger.Trace("this peering is not connected; will not report peering.healthy metric",
-				"peer_name", peer.Name, "peer_id", peer.ID, "peer_remote_id", peer.PeerID)
+		if status.NeverConnected {
+			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
 		} else {
 			healthy := status.IsHealthy()
 			healthyInt := 0
 			if healthy {
 				healthyInt = 1
 			}
+
 			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthyInt), labels)
 		}
 	}

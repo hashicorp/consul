@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"testing"
 	"time"
 
@@ -974,6 +975,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	var (
 		s2PeerID1          = generateUUID()
 		s2PeerID2          = generateUUID()
+		s2PeerID3          = generateUUID()
 		testContextTimeout = 60 * time.Second
 		lastIdx            = uint64(0)
 	)
@@ -1068,6 +1070,21 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		mst2.TrackRecvHeartbeat()
 	}
 
+	// Simulate a peering that never connects
+	{
+		p3 := &pbpeering.Peering{
+			ID:                  s2PeerID3,
+			Name:                "my-peer-s4",
+			PeerID:              token.PeerID, // doesn't much matter what these values are
+			PeerCAPems:          token.CA,
+			PeerServerName:      token.ServerName,
+			PeerServerAddresses: token.ServerAddresses,
+		}
+		require.True(t, p3.ShouldDial())
+		lastIdx++
+		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p3}))
+	}
+
 	// set up a metrics sink
 	sink := metrics.NewInmemSink(testContextTimeout, testContextTimeout)
 	cfg := metrics.DefaultConfig("us-west")
@@ -1101,6 +1118,12 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric2))
 
 		require.Equal(r, float32(1), healthyMetric2.Value)
+
+		keyHealthyMetric3 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s4;peer_id=%s", s2PeerID3)
+		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
+
+		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
 	})
 }
 

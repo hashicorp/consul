@@ -109,7 +109,9 @@ func (t *Tracker) StreamStatus(id string) (resp Status, found bool) {
 
 	s, ok := t.streams[id]
 	if !ok {
-		return Status{}, false
+		return Status{
+			NeverConnected: true,
+		}, false
 	}
 	return s.GetStatus(), true
 }
@@ -154,6 +156,9 @@ type Status struct {
 
 	// Connected is true when there is an open stream for the peer.
 	Connected bool
+
+	// NeverConnected is true for peerings that have never connected, false otherwise.
+	NeverConnected bool
 
 	// DisconnectErrorMessage tracks the error that caused the stream to disconnect non-gracefully.
 	// If the stream is connected or it disconnected gracefully it will be empty.
@@ -215,12 +220,9 @@ func (s *Status) GetExportedServicesCount() uint64 {
 // -  If the last sent error is newer than last sent success
 // -  If the last received error is newer than last received success
 // If none of these conditions apply, we call the peering healthy.
-// NOTE: This func assumes that s.Connected() is true; we don't want to convolve
-// the meaning of "healthy" with "healthy" and "connected". If the peering is not connected
-// we should not call this func.
 func (s *Status) IsHealthy() bool {
 	if time.Now().Sub(s.LastRecvHeartbeat) > s.heartbeatTimeout {
-		// 1. If heartbeat hasn't been received for a while - report unheahtly
+		// 1. If heartbeat hasn't been received for a while - report unhealthy
 		return false
 	}
 
@@ -245,6 +247,7 @@ func newMutableStatus(now func() time.Time, heartbeatTimeout time.Duration, conn
 		Status: Status{
 			Connected:        connected,
 			heartbeatTimeout: heartbeatTimeout,
+			NeverConnected:   !connected,
 		},
 		timeNow: now,
 		doneCh:  make(chan struct{}),
