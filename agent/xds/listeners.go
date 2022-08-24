@@ -1216,7 +1216,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	// If an inbound connect limit is set, inject a connection limit filter on each chain.
-	if cfg.MaxInboundConnections > 0 && useHTTPFilter {
+	if cfg.MaxInboundConnections > 0 {
 		connectionLimitFilter, err := makeConnectionLimitFilter(cfg.MaxInboundConnections)
 		if err != nil {
 			return nil, err
@@ -1246,7 +1246,6 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 				},
 			},
 		}
-
 	}
 
 	err = s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
