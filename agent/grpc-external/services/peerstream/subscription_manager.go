@@ -833,7 +833,10 @@ func (m *subscriptionManager) subscribeServerAddrs(
 			serverAddrs = append(serverAddrs, grpcAddr)
 		}
 
-		// TODO(peering): handle empty addresses here?
+		if len(serverAddrs) == 0 {
+			m.logger.Warn("did not find any server addresses with external gRPC ports to publish")
+			continue
+		}
 
 		updateCh <- cache.UpdateEvent{
 			CorrelationID: subServerAddrs,
