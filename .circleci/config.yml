@@ -1124,7 +1124,7 @@ workflows:
       - envoy-integration-test-1_19_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_4:
+      - envoy-integration-test-1_20_6:
           requires:
             - dev-build
       - envoy-integration-test-1_21_3:
