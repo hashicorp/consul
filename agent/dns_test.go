@@ -5383,6 +5383,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		}
 		// All those queries should have at max queriesLimited elements
 		for idx, qType := range queriesLimited {
+			qType := qType // capture loop var
 			t.Run(fmt.Sprintf("ARecordLimit %d qType: %d", idx, qType), func(t *testing.T) {
 				t.Parallel()
 				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize)
