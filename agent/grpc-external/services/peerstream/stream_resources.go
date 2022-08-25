@@ -406,7 +406,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
 	incomingHeartbeatCtx, incomingHeartbeatCtxCancel :=
-		context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+		context.WithTimeout(context.Background(), s.IncomingHeartbeatTimeout)
 	// NOTE: It's important that we wrap the call to cancel in a wrapper func because during the loop we're
 	// re-assigning the value of incomingHeartbeatCtxCancel and we want the defer to run on the last assigned
 	// value, not the current value.
@@ -605,7 +605,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
 				//nolint:govet
 				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
-					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+					context.WithTimeout(context.Background(), s.IncomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:
@@ -642,6 +642,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			if err := streamSend(replResp); err != nil {
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
+			status.TrackSendSuccess()
 		}
 	}
 }

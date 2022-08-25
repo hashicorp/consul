@@ -31,11 +31,18 @@ import (
 )
 
 var leaderExportedServicesCountKey = []string{"consul", "peering", "exported_services"}
+var leaderHealthyPeeringKey = []string{"consul", "peering", "healthy"}
 var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
 	{
 		Name: leaderExportedServicesCountKey,
 		Help: "A gauge that tracks how many services are exported for the peering. " +
-			"The labels are \"peering\" and, for enterprise, \"partition\". " +
+			"The labels are \"peer_name\", \"peer_id\" and, for enterprise, \"partition\". " +
+			"We emit this metric every 9 seconds",
+	},
+	{
+		Name: leaderHealthyPeeringKey,
+		Help: "A gauge that tracks how if a peering is healthy (1) or not (0). " +
+			"The labels are \"peer_name\", \"peer_id\" and, for enterprise, \"partition\". " +
 			"We emit this metric every 9 seconds",
 	},
 }
@@ -85,13 +92,6 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 	}
 
 	for _, peer := range peers {
-		status, found := s.peerStreamServer.StreamStatus(peer.ID)
-		if !found {
-			logger.Trace("did not find status for", "peer_name", peer.Name)
-			continue
-		}
-
-		esc := status.GetExportedServicesCount()
 		part := peer.Partition
 		labels := []metrics.Label{
 			{Name: "peer_name", Value: peer.Name},
@@ -101,7 +101,25 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 			labels = append(labels, metrics.Label{Name: "partition", Value: part})
 		}
 
-		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if found {
+			// exported services count metric
+			esc := status.GetExportedServicesCount()
+			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+		}
+
+		// peering health metric
+		if status.NeverConnected {
+			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
+		} else {
+			healthy := status.IsHealthy()
+			healthyInt := 0
+			if healthy {
+				healthyInt = 1
+			}
+
+			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthyInt), labels)
+		}
 	}
 
 	return nil
