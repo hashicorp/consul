@@ -231,7 +231,7 @@ service "example-https" {
 }
 ```
 
-Now fetch the ID of the terminating gateway token
+Fetch the ID of the terminating gateway token.
 
 ```shell-session
 consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
