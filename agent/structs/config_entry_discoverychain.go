@@ -400,8 +400,8 @@ type ServiceRouteDestination struct {
 	// downstream request (and retries) to be processed.
 	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
 
-	// IdleTimeout is the total amount of time permitted for the entire
-	// downstream request (and retries) to be processed.
+	// IdleTimeout is The total amount of time permitted for the request stream
+	// to be idle
 	IdleTimeout time.Duration `json:",omitempty" alias:"idle_timeout"`
 
 	// NumRetries is the number of times to retry the request when a retryable
