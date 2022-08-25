@@ -1,0 +1,44 @@
+---
+layout: docs
+page_title: 1.12.x
+description: >-
+  Consul release notes for version 1.12.x
+---
+
+# Consul 1.12.0
+
+## Release Highlights
+
+* **AWS IAM Auth Method:** Added an AWS IAM auth method that allows authenticating to Consul using AWS IAM identities 
+
+* **Per listener TLS Config:** It is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the tls stanza. 
+
+* **AWS Lambda:** Add the ability to invoke AWS Lambdas through terminating gateways.  
+
+* **Mesh wide TLS min/max versions and cipher suites:** 
+
+
+## What's Changed
+
+- Removes support for Envoy 1.17.x and Envoy 1.18.x, and adds support for Envoy 1.21.x and Envoy 1.22.x. Please see support to the Envoy Compatibility [matrix](/docs/connect/proxies/envoy) for more details.  
+
+- The disable_compat_1.9 option now defaults to true. 1.9 style `consul.http...` metrics can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
+
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-12-0) and the changelogs.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [1.12.0](https://github.com/hashicorp/consul/releases/tag/v1.12.0)
+- [1.12.1](https://github.com/hashicorp/consul/releases/tag/v1.12.1)
+- [1.12.2](https://github.com/hashicorp/consul/releases/tag/v1.12.2)
+- [1.12.3](https://github.com/hashicorp/consul/releases/tag/v1.12.3)
+- [1.12.4](https://github.com/hashicorp/consul/releases/tag/v1.12.4)
+
