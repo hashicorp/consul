@@ -168,6 +168,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	for {
 		select {
 		case <-session.Terminated():
+			generator.Logger.Debug("terminating stream to rebalance load")
 			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.

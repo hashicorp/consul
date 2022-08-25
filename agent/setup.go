@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/local"
@@ -149,6 +151,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
+
+	d.XDSSessionLimiter = limiter.NewSessionLimiter(rate.NewLimiter(rate.Inf, 0))
 
 	return d, nil
 }
