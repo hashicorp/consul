@@ -391,6 +391,12 @@ func (s *Server) runPeeringDeletions(ctx context.Context) error {
 	// process. This includes deletion of the peerings themselves in addition to any peering data
 	raftLimiter := rate.NewLimiter(defaultDeletionApplyRate, int(defaultDeletionApplyRate))
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		_, peerings, err := s.fsm.State().PeeringListDeleted(ws)
