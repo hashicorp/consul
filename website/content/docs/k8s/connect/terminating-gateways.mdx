@@ -202,15 +202,12 @@ true
 </Tab>
 </Tabs>
 
-
-
 ### Update terminating gateway ACL role if ACLs are enabled
 
 If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
-being represented by the gateway:
+being represented by the gateway.
 
-- Create a new policy that includes these permissions
-- Update the existing role to include the new policy
+Create a new policy that includes the write permission for the service you created.
 
 <CodeBlockConfig filename="write-policy.hcl">
 
@@ -242,7 +239,7 @@ consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" 
 ID:       <role id>
 ```
 
-Update the terminating gateway acl token with the new policy
+Update the terminating gateway ACL token with the new policy.
 
 ```shell-session
 $ consul acl role update -id <role id> -policy-name example-https-write-policy
