@@ -104,25 +104,25 @@ you may register the service as a node in the Consul catalog.
 The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/docs/connect/transparent-proxy) must be enabled.
 The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
 
-| External Services Layer | Client dials | Client uses TLS | Allowed     | Notes                                                                                         |
-| ----------------------- | ------------ | --------------- | ----------- | --------------------------------------------------------------------------------------------- |
-| L4                      | Hostname     | Yes             | Allowed     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
-| L4                      | IP           | Yes             | Allowed     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
-| L4                      | Hostname     | No              | Not allowed | The sidecar is not protocol aware and can not identify traffic going to the external service. |
-| L4                      | IP           | No              | Allowed     | There are no limitations on dialing IPs without TLS.                                          |
-| L7                      | Hostname     | Yes             | Not allowed | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
-| L7                      | IP           | Yes             | Not allowed | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
-| L7                      | Hostname     | No              | Allowed     | A `Host` or `:authority` header is required.                                                  |
-| L7                      | IP           | No              | Allowed     | There are no limitations on dialing IPs without TLS.                                          |
+| <nobr>External Services Layer</nobr> | <nobr>Client dials</nobr> | <nobr>Client uses TLS</nobr> | Allowed                  | Notes                                                                                         |
+|--------------------------------------|---------------------------|------------------------------|--------------------------|-----------------------------------------------------------------------------------------------|
+| L4                                   | Hostname                  | Yes                          | <nobr>Allowed</nobr>     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
+| L4                                   | IP                        | Yes                          | <nobr>Allowed</nobr>     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
+| L4                                   | Hostname                  | No                           | <nobr>Not allowed</nobr> | The sidecar is not protocol aware and can not identify traffic going to the external service. |
+| L4                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
+| L7                                   | Hostname                  | Yes                          | <nobr>Not allowed</nobr> | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
+| L7                                   | IP                        | Yes                          | <nobr>Not allowed</nobr> | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
+| L7                                   | Hostname                  | No                           | <nobr>Allowed</nobr>     | A `Host` or `:authority` header is required.                                                  |
+| L7                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
 
 You can provide a `caFile` to secure traffic between unencrypted clients that connect to external services through the terminating gateway.
 Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
 
-Also note that regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
+-> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
 
 Create a `ServiceDefaults` custom resource for the external service:
 
-<CodeBlockConfig filename="serviceDefaults.yaml">
+<CodeBlockConfig filename="service-defaults.yaml">
 
 ```yaml
   apiVersion: consul.hashicorp.com/v1alpha1
@@ -142,14 +142,15 @@ Create a `ServiceDefaults` custom resource for the external service:
 Apply the `ServiceDefaults` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply --filename serviceDefaults.yaml
+$ kubectl apply --filename service-defaults.yaml
 ```
 
-All other terminating gateway operations can use the name of the `ServiceDefaults` in place of a typical Consul service name.
+All other terminating gateway operations can use the name of the `ServiceDefaults` component, in this case "example-https", as a Consul service name.
+
 </Tab>
 <Tab heading="Using Consul catalog">
 
--> **Note:** Normal Consul services are registered with the Consul client on the node that
+Normally, Consul services are registered with the Consul client on the node that
 they're running on. Since this is an external service, there is no Consul node
 to register it onto. Instead, we will make up a node name and register the
 service to that node.
