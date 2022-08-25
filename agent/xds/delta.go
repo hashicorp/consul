@@ -88,7 +88,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		return err
 	}
 
-	session, err := s.Limiter.BeginSession()
+	session, err := s.SessionLimiter.BeginSession()
 	if err != nil {
 		return errOverwhelmed
 	}

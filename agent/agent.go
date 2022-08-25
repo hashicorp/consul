@@ -799,7 +799,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		limiter.NewLimiter(rate.NewLimiter(rate.Inf, 0)),
+		limiter.NewSessionLimiter(rate.NewLimiter(rate.Inf, 0)),
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 

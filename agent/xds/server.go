@@ -104,12 +104,12 @@ type ProxyConfigSource interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName     string
-	Logger       hclog.Logger
-	CfgSrc       ProxyConfigSource
-	ResolveToken ACLResolverFunc
-	CfgFetcher   ConfigFetcher
-	Limiter      *limiter.Limiter
+	NodeName       string
+	Logger         hclog.Logger
+	CfgSrc         ProxyConfigSource
+	ResolveToken   ACLResolverFunc
+	CfgFetcher     ConfigFetcher
+	SessionLimiter *limiter.SessionLimiter
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -161,7 +161,7 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
-	limiter *limiter.Limiter,
+	limiter *limiter.SessionLimiter,
 ) *Server {
 	return &Server{
 		NodeName:                nodeName,
@@ -169,7 +169,7 @@ func NewServer(
 		CfgSrc:                  cfgMgr,
 		ResolveToken:            resolveToken,
 		CfgFetcher:              cfgFetcher,
-		Limiter:                 limiter,
+		SessionLimiter:          limiter,
 		AuthCheckFrequency:      DefaultAuthCheckFrequency,
 		activeStreams:           &activeStreamCounters{},
 		serverlessPluginEnabled: serverlessPluginEnabled,

@@ -164,7 +164,7 @@ func newTestServerDeltaScenario(
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
-		limiter.NewLimiter(rate.NewLimiter(rate.Inf, 0)),
+		limiter.NewSessionLimiter(rate.NewLimiter(rate.Inf, 0)),
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency

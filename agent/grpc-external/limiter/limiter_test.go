@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLimiter(t *testing.T) {
+func TestSessionLimiter(t *testing.T) {
 	termRateLimiter := newTestRateLimiter()
-	lim := NewLimiter(termRateLimiter)
+	lim := NewSessionLimiter(termRateLimiter)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)

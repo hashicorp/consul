@@ -17,8 +17,8 @@ const Unlimited uint32 = 0
 // ErrCapacityReached is returned when there is no capacity for additional sessions.
 var ErrCapacityReached = errors.New("active session limit reached")
 
-// Limiter is a session-based concurrency limiter, it provides the basis of
-// gRPC/xDS load balancing.
+// SessionLimiter is a session-based concurrency limiter, it provides the basis
+// of gRPC/xDS load balancing.
 //
 // Stream handlers obtain a session with BeginSession before they begin serving
 // resources - if the server has reached capacity ErrCapacityReached is returned,
@@ -31,10 +31,10 @@ var ErrCapacityReached = errors.New("active session limit reached")
 //	   stream) when it is closed.
 //
 // The maximum number of concurrent sessions is controlled with SetMaxSessions.
-// If there are more than the given maximum sessions already in-flight, Limiter
-// will terminate randomly-selected sessions at a rate controlled by the
-// termLimiter given in NewLimiter.
-type Limiter struct {
+// If there are more than the given maximum sessions already in-flight,
+// SessionLimiter will terminate randomly-selected sessions at a rate controlled
+// by the termLimiter given in NewSessionLimiter.
+type SessionLimiter struct {
 	termLimiter Waiter
 
 	// max and inFlight are read/written using atomic operations.
@@ -56,12 +56,12 @@ type Waiter interface {
 	Wait(ctx context.Context) error
 }
 
-// NewLimiter creates a new Limiter.
+// NewSessionLimiter creates a new SessionLimiter.
 //
 // termLimiter is used to control the rate at which excess sessions will be
 // terminated.
-func NewLimiter(termLimiter Waiter) *Limiter {
-	return &Limiter{
+func NewSessionLimiter(termLimiter Waiter) *SessionLimiter {
+	return &SessionLimiter{
 		termLimiter: termLimiter,
 		max:         Unlimited,
 		wakeCh:      make(chan struct{}, 1),
@@ -70,10 +70,10 @@ func NewLimiter(termLimiter Waiter) *Limiter {
 	}
 }
 
-// Run the Limiter's termination loop, which terminates excess sessions if the
-// limit is lowered. It will exit when the given context is canceled or reaches
-// its deadline.
-func (l *Limiter) Run(ctx context.Context) {
+// Run the SessionLimiter's termination loop, which terminates excess sessions
+// if the limit is lowered. It will exit when the given context is canceled or
+// reaches its deadline.
+func (l *SessionLimiter) Run(ctx context.Context) {
 	for {
 		select {
 		case <-l.wakeCh:
@@ -100,7 +100,7 @@ func (l *Limiter) Run(ctx context.Context) {
 
 // SetMaxSessions controls the maximum number of concurrent sessions. If it is
 // lower, randomly-selected sessions will be terminated.
-func (l *Limiter) SetMaxSessions(max uint32) {
+func (l *SessionLimiter) SetMaxSessions(max uint32) {
 	atomic.StoreUint32(&l.max, max)
 
 	// Send on wakeCh without blocking if the Run loop is busy. wakeCh has a
@@ -119,7 +119,7 @@ func (l *Limiter) SetMaxSessions(max uint32) {
 //	1. Call End on the session when finished.
 //	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
 //	   stream) when it is closed.
-func (l *Limiter) BeginSession() (*Session, error) {
+func (l *SessionLimiter) BeginSession() (*Session, error) {
 	if !l.hasCapacity() {
 		return nil, ErrCapacityReached
 	}
@@ -136,7 +136,7 @@ func (l *Limiter) BeginSession() (*Session, error) {
 //
 // This is acceptable for our uses, especially because excess sessions will
 // eventually get terminated.
-func (l *Limiter) hasCapacity() bool {
+func (l *SessionLimiter) hasCapacity() bool {
 	max := atomic.LoadUint32(&l.max)
 	if max == Unlimited {
 		return true
@@ -150,7 +150,7 @@ func (l *Limiter) hasCapacity() bool {
 //
 //	- max has changed by the time we compare it to inFlight.
 //	- inFlight > max now, but decreases before we terminate a session.
-func (l *Limiter) overCapacity() bool {
+func (l *SessionLimiter) overCapacity() bool {
 	max := atomic.LoadUint32(&l.max)
 	if max == Unlimited {
 		return false
@@ -160,7 +160,7 @@ func (l *Limiter) overCapacity() bool {
 	return cur > max
 }
 
-func (l *Limiter) terminateSession() {
+func (l *SessionLimiter) terminateSession() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -170,7 +170,7 @@ func (l *Limiter) terminateSession() {
 	l.deleteSessionLocked(idx)
 }
 
-func (l *Limiter) createSessionLocked() *Session {
+func (l *SessionLimiter) createSessionLocked() *Session {
 	session := &Session{
 		l:      l,
 		id:     l.maxSessionID,
@@ -186,7 +186,7 @@ func (l *Limiter) createSessionLocked() *Session {
 	return session
 }
 
-func (l *Limiter) deleteSessionLocked(idx int) {
+func (l *SessionLimiter) deleteSessionLocked(idx int) {
 	delete(l.sessions, l.sessionIDs[idx])
 
 	l.sessionIDs[idx] = l.sessionIDs[len(l.sessionIDs)-1]
@@ -197,10 +197,10 @@ func (l *Limiter) deleteSessionLocked(idx int) {
 
 // Session allows its holder to perform an operation (e.g. serve a gRPC stream)
 // concurrenly with other session-holders. Sessions may be terminated abruptly
-// by the Limiter, so it is the responsibility of the holder to receive on the
-// Terminated channel and halt the operation when it is closed.
+// by the SessionLimiter, so it is the responsibility of the holder to receive
+// on the Terminated channel and halt the operation when it is closed.
 type Session struct {
-	l *Limiter
+	l *SessionLimiter
 
 	id     uint64
 	termCh chan struct{}
