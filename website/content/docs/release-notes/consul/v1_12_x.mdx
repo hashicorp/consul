@@ -11,15 +11,17 @@ description: >-
 
 * **AWS IAM Auth Method:** Consul now provides an AWS IAM auth method that allows allows AWS IAM roles and users to authenticate with Consul to obtain ACL tokens. Please see to ECS [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam) for detailed configuration information. 
 
-* **Per listener TLS Config:** It is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the tls stanza. 
+* **Per listener TLS Config:** It is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the `tls` stanza. See [TLS Configuration Reference](https://www.consul.io/docs/agent/config/config-files#tls-configuration-reference) for more details. 
 
 * **AWS Lambda:** Add the ability to invoke AWS Lambdas through terminating gateways which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Please see [AWS Lambda](/docs]/lambda) and [Invoke Lambda Functions](/docs/lambda/invocation) for more details. 
 
-* **Mesh wide TLS min/max versions and cipher suites:** 
+* **Mesh wide TLS min/max versions and cipher suites:** Using the [Mesh](/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
 
-* **Add token information to PermissionDeniedErrors** 
+* **Expanded details for ACL Permission Denied Errors**: Details are now provided when a permission denied errors are surfaced for RPC calls, that include the accessor id of the ACL token, the permission that is lacking, and the namespace and/or partition that the error occurred on. 
 
-* **Automatically reload agent config when watching agnet config file changes**:  using the auto-reload-config CLI flag or auto_reload_config config option 
+* **ACL token read**: The `consul acl token read -rules` command now includes an `-expanded` to display detailed info about any policies/rules affecting the token. Please see [Consul ACL Token read](/commands/acl/token/read) for more details.
+
+* **Automatically reload agent config when watching agent config file changes**: When using the `auto-reload-config` CLI flag or `auto_reload_config` agent config option, Consul will automatically reload the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change. Please see [auto_reload_config](/docs/agent/config/cli-flags#_auto_reload_config) for more details.
 
 
 ## What's Changed
@@ -29,6 +31,10 @@ description: >-
 - The disable_compat_1.9 option now defaults to true. 1.9 style `consul.http...` metrics can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
 
 - The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
+
+- If TLS min versions and max versions are not specified the following default TLS min/max versions will be set. Details on how to configure TLS min and max are found in the [Mesh](/docs/connect/config-entries/mesh#tls) Config Entry or CRD documentation. 
+  - Incoming connecttions: TLS 1.2 for min0 version, TLS 1.3 for max version
+  - Outgoing connections: TLS 1.2 for both TLS min and TLS max versions. 
 
 ## Upgrading
 
