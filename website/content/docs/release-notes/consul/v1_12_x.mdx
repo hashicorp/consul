@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-* **AWS IAM Auth Method:** Added an AWS IAM auth method that allows authenticating to Consul using AWS IAM identities 
+* **AWS IAM Auth Method:** Consul now provides an AWS IAM auth method that allows allows AWS IAM roles and users to authenticate with Consul to obtain ACL tokens. Please see to ECS [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam) for detailed configuration information. 
 
 * **Per listener TLS Config:** It is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the tls stanza. 
 
