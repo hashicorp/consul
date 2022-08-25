@@ -621,7 +621,7 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/timeout",
+							PathPrefix: "/idle-timeout",
 						}),
 						Destination: &structs.ServiceRouteDestination{
 							Service:     "idle-timeout",
