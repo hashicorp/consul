@@ -36,9 +36,11 @@ terminatingGateways:
 
 ## Deploying the Helm chart
 
-Ensure you have the latest consul-helm chart and install Consul via helm using the following
-[guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
-as previously discussed.
+The Helm chart may be deployed using the [Consul on Kubernetes CLI](/docs/k8s/k8s-cli).
+
+```shell-session
+consul-k8s install -f config.yaml
+```
 
 ## Accessing the Consul agent
 
