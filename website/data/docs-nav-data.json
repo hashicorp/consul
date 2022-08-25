@@ -809,6 +809,10 @@
           {
             "title": "Run Consul-Terraform-Sync",
             "path": "nia/usage/run"
+          },
+          {
+            "title": "Run Consul-Terraform-Sync with High Availability",
+            "path": "nia/usage/run-ha"
           }
         ]
       },

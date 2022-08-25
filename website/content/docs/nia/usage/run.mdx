@@ -7,13 +7,15 @@ description: >-
 
 # Run Consul-Terraform-Sync
 
+This topic describes the basic procedure for running Consul-Terraform-Sync (CTS). Verify that you have met the [basic requirements](/docs/nia/usage/requirements) before attempting to run CTS.
+
 1. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
   ```shell-session
   $ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
   ```
 
-2. Create the config.hcl file, all the options are available [here](/docs/nia/configuration).
+2. Create the config.hcl file and configure the options for your use case. Refer to the [configuration reference](/docs/nia/configuration) for details about all CTS configurations.
 
 3. Run Consul-Terraform-Sync (CTS).
 
@@ -29,6 +31,11 @@ description: >-
 
 ## Other Run modes
 
-CTS allows you to inspect your configuration before applying any change and to run in once mode, meaning that you can verify the changes are correctly applied in a test run before running it in unsupervised daemon mode.
+You can [configure CTS for high availability](/docs/nia/usage/run-ha), which is an enterprise capability that ensures that all changes to Consul that occur during a failover transition are processed and that CTS continues to operate as expected.
 
-To learn more on these options check the [Consul-Terraform-Sync Run Modes and Status Inspection](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-run-and-inspect?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+You can start CTS in [inspect mode](/docs/nia/cli/start#modes) to review and test your configuration before applying any changes. Inspect mode allows you to verify that the changes work as expected before running them in an unsupervised daemon mode.
+
+For hands-on instructions on using inspect mode, refer to the [Consul-Terraform-Sync Run Modes and Status Inspection](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-run-and-inspect?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+ 
+
+
