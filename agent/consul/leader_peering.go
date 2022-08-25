@@ -304,30 +304,28 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 	go func() {
 		defer close(nextServerAddr)
 
-		var (
-			init    bool
-			ringbuf *ring.Ring
-			innerWs memdb.WatchSet
-		)
+		// we initialize the ring buffer with the peer passed to `establishStream`
+		// because the caller has pre-checked `peer.ShouldDial`, guaranteeing
+		// at least one server address.
+		//
+		// IMPORTANT: ringbuf must always be length > 0 or else `<-nextServerAddr` may block.
+		ringbuf := ring.New(len(peer.PeerServerAddresses))
+		for _, addr := range peer.PeerServerAddresses {
+			ringbuf.Value = addr
+			ringbuf = ringbuf.Next()
+		}
+		innerWs := memdb.NewWatchSet()
+		_, _, err := s.fsm.State().PeeringReadByID(innerWs, peer.ID)
+		if err != nil {
+			s.logger.Warn("failed to watch for changes to peer; server addresses may become stale over time.",
+				"peer_id", peer.ID,
+				"error", err)
+		}
 
 		fetchAddrs := func() error {
+			// reinstantiate innerWs to prevent it from growing indefinitely
 			innerWs = memdb.NewWatchSet()
 			_, peering, err := s.fsm.State().PeeringReadByID(innerWs, peer.ID)
-			if !init {
-				init = true
-				// On the first call to `fetchAddrs` we initialize the
-				// ring buffer with the peer passed to `establishStream`
-				// (not the one fetched just above) because the caller
-				// has pre-checked `peer.ShouldDial`, guaranteeing
-				// at least one server address. Further reads from the
-				// state store may not have this guarantee.
-				ringbuf = ring.New(len(peer.PeerServerAddresses))
-				for _, addr := range peer.PeerServerAddresses {
-					ringbuf.Value = addr
-					ringbuf = ringbuf.Next()
-				}
-				return nil
-			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch peer %q: %w", peer.ID, err)
 			}
@@ -344,11 +342,6 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 				ringbuf = ringbuf.Next()
 			}
 			return nil
-		}
-		if err := fetchAddrs(); err != nil {
-			s.logger.Warn("watchset for peer was fired but failed to update server addresses",
-				"peer_id", peer.ID,
-				"error", err)
 		}
 
 		for {
@@ -453,6 +446,12 @@ func (s *Server) runPeeringDeletions(ctx context.Context) error {
 	// process. This includes deletion of the peerings themselves in addition to any peering data
 	raftLimiter := rate.NewLimiter(defaultDeletionApplyRate, int(defaultDeletionApplyRate))
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		_, peerings, err := s.fsm.State().PeeringListDeleted(ws)

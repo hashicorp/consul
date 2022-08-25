@@ -1420,6 +1420,9 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "calling establish with active connection does not overwrite server addresses", func(t *testing.T) {
+		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		t.Cleanup(cancel)
+
 		// generate a new token from the acceptor
 		req := pbpeering.GenerateTokenRequest{
 			PeerName: "my-peer-dialer",
@@ -1463,6 +1466,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 			"bad",
 		}, p.Peering.PeerServerAddresses...)
 
+		// this write will wake up the watch on the leader to refetch server addresses
 		require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: updated}))
 
 		retry.Run(t, func(r *retry.R) {
