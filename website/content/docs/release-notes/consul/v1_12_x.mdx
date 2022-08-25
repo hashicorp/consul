@@ -13,9 +13,13 @@ description: >-
 
 * **Per listener TLS Config:** It is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the tls stanza. 
 
-* **AWS Lambda:** Add the ability to invoke AWS Lambdas through terminating gateways.  
+* **AWS Lambda:** Add the ability to invoke AWS Lambdas through terminating gateways which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Please see [AWS Lambda](/docs]/lambda) and [Invoke Lambda Functions](/docs/lambda/invocation) for more details. 
 
 * **Mesh wide TLS min/max versions and cipher suites:** 
+
+* **Add token information to PermissionDeniedErrors** 
+
+* **Automatically reload agent config when watching agnet config file changes**:  using the auto-reload-config CLI flag or auto_reload_config config option 
 
 
 ## What's Changed
