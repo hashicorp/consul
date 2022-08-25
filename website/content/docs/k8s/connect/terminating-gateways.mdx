@@ -278,8 +278,6 @@ Configure the [`caFile`](https://www.consul.io/docs/connect/config-entries/termi
 - Consul Helm chart 0.43 or older
 - An Envoy image with an alpine base image
 
-For `ServiceDefaults` destinations, refer to [Register an external service as a destination](#register-an-external-service-as-a-destination).
-
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
 ```shell-session
@@ -315,7 +313,7 @@ $ kubectl apply --filename service-intentions.yaml
 
 ### Define the external services as upstreams for services in the mesh
 
-Finally define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
+As a final step, you may define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
 An example deployment is provided which will serve as a static client for the terminating gateway service.
 
 <CodeBlockConfig filename="static-client.yaml">
@@ -364,33 +362,35 @@ spec:
 
 </CodeBlockConfig>
 
-Run the service via `kubectl apply`:
+Deploy the service with `kubectl apply`.
 
 ```shell-session
 $ kubectl apply --filename static-client.yaml
 ```
 
-Wait for the service to be ready:
+Wait for the service to be ready.
 
 ```shell-session
 $ kubectl rollout status deploy static-client --watch
 deployment "static-client" successfully rolled out
 ```
 
-You can verify connectivity of the static-client and terminating gateway via a curl command:
+You can verify connectivity of the static-client and terminating gateway via a curl command.
 
-<CodeBlockConfig heading="External services registered with the Consul catalog">
-
-```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
-```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="External services registered with `ServiceDefaults` destinations">
+<Tabs>
+<Tab heading="Registered with `ServiceDefaults` destinations">
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl -vvvs https://example.com/
 ```
 
-</CodeBlockConfig>
+</Tab>
+<Tab heading="Registered with the Consul catalog">
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
+```
+
+</Tab>
+</Tabs>
+
