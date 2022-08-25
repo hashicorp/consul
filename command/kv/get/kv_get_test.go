@@ -2,7 +2,6 @@ package get
 
 import (
 	"encoding/base64"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -465,7 +464,7 @@ func TestKVGetCommand_KeysRecurse(t *testing.T) {
 		if !strings.Contains(output, key) {
 			t.Fatalf("bad %#v missing %q", output, key)
 		}
-		if strings.Contains(output, key+":"+string([]byte(value))) {
+		if strings.Contains(output, key+":"+value) {
 			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
 		}
 	}
@@ -512,7 +511,6 @@ func TestKVGetCommand_DetailedKeysRecurse(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 	output := ui.OutputWriter.String()
-	fmt.Println(output)
 	for key, value := range keys {
 		if value != "" && strings.Contains(output, value) {
 			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
