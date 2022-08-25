@@ -94,14 +94,15 @@ Registering the external services with Consul is a multi-step process:
 
 ### Register external services with Consul
 
-There are two ways to register an external service with Consul:
-1. If [`TransparentProxy`](/docs/connect/transparent-proxy) is enabled, the preferred method is to declare external endpoints in the [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of `ServiceDefaults`.
-1. You can add the service as a node in the Consul catalog.
+You may register an external service with Consul using `ServiceDefaults` if
+[`TransparentProxy`](/docs/connect/transparent-proxy) is enabled. Otherwise,
+you may register the service as a node in the Consul catalog.
 
-#### Register an external service as a destination
+<Tabs>
+<Tab heading="Using ServiceDefaults and TransparentProxy">
 
-The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial the external service directly. It is valid only in [`TransparentProxy`](/docs/connect/transparent-proxy)) mode.
-The following table describes traffic behaviors when using `destination`s to route traffic through a terminating gateway:
+The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/docs/connect/transparent-proxy) must be enabled.
+The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
 
 | External Services Layer | Client dials | Client uses TLS | Allowed | Notes |
 |---|---|---|---|---|
@@ -145,8 +146,8 @@ $ kubectl apply --filename serviceDefaults.yaml
 ```
 
 All other terminating gateway operations can use the name of the `ServiceDefaults` in place of a typical Consul service name.
-
-#### Register an external service as a Catalog Node
+</Tab>
+<Tab heading="Using Consul catalog">
 
 -> **Note:** Normal Consul services are registered with the Consul client on the node that
 they're running on. Since this is an external service, there is no Consul node
@@ -197,6 +198,10 @@ If ACLs and TLS are enabled :
 $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
+</Tab>
+</Tabs>
+
+
 
 ### Update terminating gateway ACL role if ACLs are enabled
 
