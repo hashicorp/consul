@@ -1382,12 +1382,6 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
-	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-	require.NoError(t, err)
-
-	var token structs.PeeringToken
-	require.NoError(t, json.Unmarshal(tokenJSON, &token))
-
 	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
 	_, dialer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "dialer"
@@ -1425,13 +1419,46 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 		require.True(r, status.Connected)
 	})
 
-	testutil.RunStep(t, "add a bad address", func(t *testing.T) {
-		// force close open stream so it picks up a new address
-		dialer.peerStreamServer.ConnectedStreams()[p.Peering.ID] <- struct{}{}
+	testutil.RunStep(t, "calling establish with active connection does not overwrite server addresses", func(t *testing.T) {
+		// generate a new token from the acceptor
+		req := pbpeering.GenerateTokenRequest{
+			PeerName: "my-peer-dialer",
+		}
+		resp, err := acceptorClient.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+
+		token, err := acceptor.peeringBackend.DecodeToken([]byte(resp.PeeringToken))
+		require.NoError(t, err)
+
+		// we will update the token with bad addresses to assert it doesn't clobber existing ones
+		token.ServerAddresses = []string{"1.2.3.4:1234"}
+
+		badToken, err := acceptor.peeringBackend.EncodeToken(token)
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		t.Cleanup(cancel)
+
+		// try establishing
+		establishReq := pbpeering.EstablishRequest{
+			PeerName:     "my-peer-acceptor",
+			PeeringToken: string(badToken),
+		}
+		_, err = dialerClient.Establish(ctx, &establishReq)
+		require.NoError(t, err)
+
+		p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+		require.NoError(t, err)
+		require.NotContains(t, p.Peering.PeerServerAddresses, "1.2.3.4:1234")
+	})
+
+	testutil.RunStep(t, "updated server addresses are picked up by the leader", func(t *testing.T) {
+		// force close the acceptor's gRPC server so the dialier retries with a new address.
+		acceptor.externalGRPCServer.Stop()
 
 		clone := proto.Clone(p.Peering)
 		updated := clone.(*pbpeering.Peering)
-		// start with bad address so we will have a connection error
+		// start with a bad address so we can assert for a specific error
 		updated.PeerServerAddresses = append([]string{
 			"bad",
 		}, p.Peering.PeerServerAddresses...)
@@ -1444,7 +1471,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 			// We assert for this error to be set which would indicate that we iterated
 			// through a bad address.
 			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing dial tcp: address bad: missing port in address")
-			require.True(r, status.Connected)
+			require.False(r, status.Connected)
 		})
 	})
 }
