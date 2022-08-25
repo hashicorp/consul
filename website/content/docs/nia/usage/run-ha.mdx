@@ -84,7 +84,7 @@ If the `high_availability.cluster.storage.namespace` field is configured, then y
 
 We recommend deploying a cluster that includes three CTS instances. This is so that the cluster has one leader and two followers.
 
-1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/docs/nia/installation/configure) for all configuration options.
+1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/docs/nia/configuration) for all configuration options.
 1. Issue the startup command and pass the configuration file. Refer to the [`start` command reference](/docs/nia/cli/start#modes) for additional information about CTS startup modes. 
   ```shell-session
   $ consul-terraform-sync start -config-file ha-config.hcl

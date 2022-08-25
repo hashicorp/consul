@@ -813,6 +813,10 @@
           {
             "title": "Run Consul-Terraform-Sync with High Availability",
             "path": "nia/usage/run-ha"
+          },
+          {
+            "title": "Error Messages",
+            "path": "nia/usage/errors-ref"
           }
         ]
       },
