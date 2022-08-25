@@ -86,6 +86,7 @@ module.exports = function(environment, $ = process.env) {
       PartitionsEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
+      APIPrefix: env('CONSUL_API_PREFIX', '')
     },
 
     // Static variables used in multiple places throughout the UI
@@ -111,6 +112,7 @@ module.exports = function(environment, $ = process.env) {
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
+          APIPrefix: env('CONSUL_API_PREFIX', '')
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -162,6 +164,7 @@ module.exports = function(environment, $ = process.env) {
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', true),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
+          APIPrefix: env('CONSUL_API_PREFIX', '')
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -176,7 +179,9 @@ module.exports = function(environment, $ = process.env) {
       ENV = Object.assign({}, ENV, {
         // in production operatorConfig is populated at consul runtime from
         // operator configuration
-        operatorConfig: {},
+        operatorConfig: {
+          APIPrefix: ''
+        },
       });
       break;
   }
