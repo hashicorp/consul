@@ -9,29 +9,13 @@ description: >-
 
 ## Release Highlights
 
-- **Support for Kubernetes Gateway API Version 0.5.0 and v1beta1 APIs:**
-  The `v0.5.0` release of the Kubernetes Gateway API is significant because it
-  marks the growth in maturity to a beta API version (v1beta1) release for some
-  of the key APIs:
-  - GatewayClass
-  - Gateway
-  - HTTPRoute
+- **Cluster Peering (Beta)** This release introduces support for Cluster Peering.  Support Consul cluster peering, which allows service connectivity between two independent clusters. Enabling peering will deploy the peering controllers and PeeringAcceptor and PeeringDialer CRDs. The new CRDs are used to establish a peering connection between two clusters. See the [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for full instructions on using Cluster Peering on Kubernetes.
+  
+- **Envoy Proxy Debugging  CLI Commands**: This release introduces new commands to quickly identify proxies and troubleshoot Envoy proxies for Sidecars and Gateways. 
+  * Add `consul-k8s proxy list` command for displaying Pods running Envoy managed by Consul. 
+  * Add `consul-k8s proxy read podname` command for displaying Envoy configuration for a given Pod
 
-  The other APIs (e.g. TCPRoute) are still at the `v1alpha2` stage.
-
-  Reaching `v1beta1` status has several benefits for users, including greater
-  stability and backward compatibility requirements. Existing fields and allowed
-  options can not be removed or renamed except in a new, major version of the
-  API. Once an API reaches `v1beta1` status, future versions must comply with
-  several backward compatibility requirements.
-
-- **URL Path Prefix Rewrite** This release introduces support for rewriting a
-  URL's path prefix when routing HTTP traffic. To use this functionality, add a
-  `URLRewrite` filter to an `HTTPRoute` configuration. This enables the gateway
-  to rewrite the URL path in a client's HTTP request before sending the request
-  to a service. For example, you could configure the gateway to change the path
-  from `//store/checkout` to `//cart/checkout`. Refer to the [usage
-  documentation](/docs/api-gateway/usage) for additional information.  
+- **Transparent Proxy Egress:** Add support for Destinations on the Service Defaults CRD when using Transparent Proxy for Terminating Gateways.
 
 ## What has Changed
 
@@ -58,11 +42,11 @@ description: >-
 For detailed information on upgrading, please refer to the [Upgrades page](/docs/api-gateway/upgrades)
 
 ## Known Issues
-The following issues are know to exist in the v0.4.0 release
 
-- API Gateway pods fail to start if namespace mirroring enabled and destination
-  namespace doesn't exist. See GitHub Issue
-  [#248](https://github.com/hashicorp/consul-api-gateway/issues/248) for
+The following issues are know to exist in the v0.47.0 and v0.47.1 releases
+
+- Kubernetes 1.24 is not supported since secret based tokens are no longer autocreated by default for service accounts. See GitHub Issue
+  [[GH-1145](https://github.com/hashicorp/consul-k8s/issues/1145)] for
   details.
 
 ## Changelogs
