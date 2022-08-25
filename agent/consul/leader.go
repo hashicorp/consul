@@ -1077,6 +1077,10 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
 			service.Meta["grpc_port"] = grpcPortStr
 		}
+		grpcTLSPortStr := member.Tags["grpc_tls_port"]
+		if v, err := strconv.Atoi(grpcTLSPortStr); err == nil && v > 0 {
+			service.Meta["grpc_tls_port"] = grpcTLSPortStr
+		}
 
 		// Attempt to join the consul server
 		if err := s.joinConsulServer(member, parts); err != nil {

@@ -807,7 +807,7 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	// Spawn listeners and register xds servers.
 	var listeners []net.Listener
-	start := func(proto string, addrs []net.Addr, srv *grpc.Server) error {
+	start := func(port_name string, addrs []net.Addr, srv *grpc.Server) error {
 		if len(addrs) < 1 || srv == nil {
 			return nil
 		}
@@ -822,13 +822,13 @@ func (a *Agent) listenAndServeGRPC() error {
 		for _, l := range ln {
 			go func(innerL net.Listener) {
 				a.logger.Info("Started gRPC server",
-					"protocol", proto,
+					"port_name", port_name,
 					"address", innerL.Addr().String(),
 					"network", innerL.Addr().Network(),
 				)
 				err := srv.Serve(innerL)
 				if err != nil {
-					a.logger.Error("gRPC server failed", "protocol", proto, "error", err)
+					a.logger.Error("gRPC server failed", "port_name", port_name, "error", err)
 				}
 			}(l)
 		}
@@ -1228,6 +1228,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
 	cfg.GRPCPort = runtimeCfg.GRPCPort
+	cfg.GRPCTLSPort = runtimeCfg.GRPCTLSPort
 
 	cfg.Segment = runtimeCfg.SegmentName
 	if len(runtimeCfg.Segments) > 0 {
