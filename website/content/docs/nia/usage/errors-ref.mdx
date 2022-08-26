@@ -21,12 +21,7 @@ The resolution is to add the missing local module on the incompatible CTS instan
 
 ## Example API and CLI error messages
 
-In the following example response error:
-
-- CTS can determine the leader.
-- `high_availability.instance.address` is configured for the leader.
-- The CTS instance you sent the request to is not the leader.
-
+**Error**:
 
 ```json
 {
@@ -36,17 +31,25 @@ In the following example response error:
 }
 ```
 
-The resolution is to redirect the request to the leader instance, for example:
+**Conditions**:
+
+- CTS can determine the leader.
+- `high_availability.instance.address` is configured for the leader.
+- The CTS instance you sent the request to is not the leader.
+
+
+
+**Resolution**:
+
+Redirect the request to the leader instance, for example:
 
 ```shell-session
 $ curl --request GET cts-01.example.com:8558/v1/tasks
 ```
 ---
-In the following example response error:
 
-* CTS can determine the leader.
-* The CTS instance you sent the request to is not the leader.
-* `high_availability.instance.address` is not configured.
+
+**Error**:
 
 ```json
 {
@@ -55,15 +58,20 @@ In the following example response error:
     }
 }
 ```
-The resolution is to identify the leader instance address and redirect the request to the leader. We recommend deploying a cluster that has three instances. You can query each instance until the leader responds. 
+
+**Conditions**:
+
+* CTS can determine the leader.
+* The CTS instance you sent the request to is not the leader.
+* `high_availability.instance.address` is not configured.
+
+**Resolution**:
+
+Identify the leader instance address and redirect the request to the leader. We recommend deploying a cluster that has three instances. You can query each instance until the leader responds. 
 
 ---
 
-In the following example response error:
-
-* The CTS instance you sent the request to is not the leader. 
-* The CTS is unable to determine the leader. 
-* Note that these conditions are rare.
+**Error**:
 
 ```json
 {
@@ -72,9 +80,18 @@ In the following example response error:
     }
 }
 ```
-The resolution is to identify and send the request to the leader CTS instance. You can identify the leader by either making a call to the [`status` API endpoint](/docs/nia/api/status) or by checking the logs for the following entry:
+
+**Conditions**:
+
+* The CTS instance you sent the request to is not the leader. 
+* The CTS is unable to determine the leader. 
+* Note that these conditions are rare.
+
+
+**Resolution**:
+
+Identify and send the request to the leader CTS instance. You can identify the leader by either making a call to the [`status` API endpoint](/docs/nia/api/status) or by checking the logs for the following entry:
 
 ```shell-session
 [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
 ```
-
