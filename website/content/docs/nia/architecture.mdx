@@ -15,16 +15,16 @@ The following diagram shows the CTS workflow as it monitors the Consul service c
 
 [![Consul-Terraform-Sync Architecture](/img/nia-highlevel-diagram.svg)](/img/nia-highlevel-diagram.svg)
 
-1. CTS monitors the state of Consul’s service catalog and its KV store. This process is described in [Watcher and Views](#watcher-and-views).
+1. CTS monitors the state of Consul’s service catalog and its KV store. This process is described in [Watcher and views](#watcher-and-views).
 1. CTS detects a change.
 1. CTS prompts Terraform to update the state of the infrastructure.
 
 
 ## Watcher and views
 
-CTS uses Consul’s [blocking queries](/api-docs/features/blocking) functionality to monitor Consul for updates. If an endpoint does not support blocking queries, CTS uses polling to watch for changes. These mechanisms are referred to in CTS as watchers. 
+CTS uses Consul’s [blocking queries](/api-docs/features/blocking) functionality to monitor Consul for updates. If an endpoint does not support blocking queries, CTS uses polling to watch for changes. These mechanisms are referred to in CTS as *watchers*. 
 
-The watcher maintains a separate thread for each value monitored and runs any tasks that depend on the watched value whenever it's updated. These threads are referred to as views.  For example, a thread may run a task to update a proxy when the watcher sees that an instance changes to an unhealthy state.
+The watcher maintains a separate thread for each value monitored and runs any tasks that depend on the watched value whenever it is updated. These threads are referred to as _views_.  For example, a thread may run a task to update a proxy when the watcher detects that an instance has become unhealthy .
 
 ## Tasks
 
@@ -51,17 +51,17 @@ The following types of state information are associated with CTS.
 
 ### Terraform state information 
 
-By default, CTS stores [Terraform state data](https://www.terraform.io/docs/state/index.html) in the Consul KV, but you can specify where this information is stored by configuring the `backend` setting in the [Terraform driver configuration](/docs/nia/configuration#backend). If the backend is not configured to a local location, then the data persists if CTS stops.  
+By default, CTS stores [Terraform state data](https://www.terraform.io/docs/state/index.html) in the Consul KV, but you can specify where this information is stored by configuring the `backend` setting in the [Terraform driver configuration](/docs/nia/configuration#backend). The data persists if CTS stops and the backend is configured to a remote location.  
 
 ### CTS task and event data 
 
 By default, CTS stores task and event data in the Consul KV. This data is transient and does not persist unless you configure [CTS to run with high availability enabled](/docs/nia/usage/run-ha). High availability is an enterprise feature that promotes CTS resiliency. When high availability is enabled, CTS stores and persists task changes and events that occur when an instance stops.  
 
-The data stored when operating in high availability mode includes task changes made using the task API or CLI, such as creating a new task, deleting a task, or enabling/disabling a task. You can empty the leader’s stored state information by starting CTS with the [`-reset-storage` flag](/docs/nia/cli/start#options).
+The data stored when operating in high availability mode includes task changes made using the task API or CLI. Examples of task changes include creating a new task, deleting a task, and enabling or disabling a task. You can empty the leader’s stored state information by starting CTS with the [`-reset-storage` flag](/docs/nia/cli/start#options).
 
 ## Instance compatibility checks (high availability)
 
-If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), CTS performs instance compatibility checks to ensure that all instances in the cluster behave consistently, enabling CTS to properly perform automations configured in the state storage. 
+If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), CTS performs instance compatibility checks to ensure that all instances in the cluster behave consistently. Consistent instance behavior enables CTS to properly perform automations configured in the state storage. 
 
 The only incompatibility CTS checks for are tasks that are configured with a [local module](/docs/nia/configuration#module). CTS instances that do not include this module directory are incompatible. Example log:
 
@@ -72,7 +72,7 @@ Refer to [Error Messages](/docs/nia/usage/errors-ref) for additional information
 
 CTS instances perform a compatibility check on start-up based on the stored state and every five minutes after starting. If the check detects an incompatible CTS instance, it generates a log so that an operator can address it. 
 
-CTS will continue to run and log the error message if it finds an incompatibility. CTS can still elect an incompatible instance to be the leader, but tasks affected by the incompatibility will not run successfully. This is because all active CTS instances enter [`once-mode`](/docs/nia/cli/start#modes) and run the tasks once when initially elected. 
+CTS logs the error message and continues to run when it finds an incompatibility. CTS can still elect an incompatible instance to be the leader, but tasks affected by the incompatibility do not run successfully. This happens because all active CTS instances enter [`once-mode`](/docs/nia/cli/start#modes) and run the tasks once when initially elected. 
 
 ## Security guidelines
 

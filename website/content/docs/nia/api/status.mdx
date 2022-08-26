@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
-If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/status` endpoint on CTS leader or follower instances, but requests to a follower instance return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
+If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/status` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
 
 ## Overall Status
 

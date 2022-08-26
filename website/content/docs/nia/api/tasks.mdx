@@ -9,7 +9,7 @@ description: >-
 
 The `/tasks` endpoints interact with the tasks that Consul-Terraform-Sync (CTS) is responsible for running.
 
-If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/tasks` endpoint on CTS leader or follower instances, but requests to a follower instance return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
+If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/tasks` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
 
 ## Get Tasks
 
