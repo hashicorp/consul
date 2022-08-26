@@ -15,7 +15,11 @@
             "hidden": true
           },
           {
-            "title": "What is a Service Mesh?",
+            "title": "Service Discovery",
+            "path": "intro/usecases/what-is-service-discovery"
+          },
+          {
+            "title": "Service Mesh",
             "path": "intro/usecases/what-is-a-service-mesh"
           }
         ]
@@ -263,6 +267,10 @@
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Peered Clusters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-peers"
               }
             ]
           },
@@ -280,7 +288,7 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering",
+            "title": "What is Cluster Peering?",
             "path": "connect/cluster-peering"
           },
           {
@@ -355,19 +363,48 @@
       },
       {
         "title": "Installation",
-        "path": "api-gateway/consul-api-gateway-install"
+        "path": "api-gateway/install"
       },
       {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
       },
       {
-        "title": "Common Errors",
-        "path": "api-gateway/common-errors"
+        "title": "Upgrades",
+        "path": "api-gateway/upgrades"
       },
       {
-        "title": "Upgrades",
-        "path": "api-gateway/upgrade-specific-versions"
+        "title": "Usage",
+        "path": "api-gateway/usage"
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "api-gateway/configuration"
+          },
+          {
+            "title": "Gateway",
+            "path": "api-gateway/configuration/gateway"
+          },
+          {
+            "title": "GatewayClass",
+            "path": "api-gateway/configuration/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig",
+            "path": "api-gateway/configuration/gatewayclassconfig"
+          },
+          {
+            "title": "Routes",
+            "path": "api-gateway/configuration/routes"
+          },
+          {
+            "title": "MeshService",
+            "path": "api-gateway/configuration/meshservice"
+          }
+        ]
       }
     ]
   },
@@ -1225,6 +1262,14 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
             "title": "v1.11.x",
             "path": "release-notes/consul/v1_11_x"
           },
@@ -1239,8 +1284,21 @@
         ]
       },
       {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
+          }
+        ]
+      },
+      {
         "title": "Consul API Gateway",
         "routes": [
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-api-gateway/v0_4_x"
+          },
           {
             "title": "v0.3.x",
             "path": "release-notes/consul-api-gateway/v0_3_x"
@@ -1258,6 +1316,10 @@
       {
         "title": "Consul ECS",
         "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-ecs/v0_5_x"
+          },
           {
             "title": "v0.4.x",
             "path": "release-notes/consul-ecs/v0_4_x"

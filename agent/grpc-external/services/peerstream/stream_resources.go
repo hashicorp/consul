@@ -77,20 +77,21 @@ func (s *Server) ExchangeSecret(ctx context.Context, req *pbpeerstream.ExchangeS
 		return nil, grpcstatus.Errorf(codes.Internal, "failed to generate peering stream secret: %v", err)
 	}
 
-	secrets := &pbpeering.PeeringSecrets{
+	writeReq := &pbpeering.SecretsWriteRequest{
 		PeerID: req.PeerID,
-		Stream: &pbpeering.PeeringSecrets_Stream{
-			// Overwriting any existing un-utilized pending stream secret.
-			PendingSecretID: id,
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				// Pass the given establishment secret to that it can be re-validated at the state store.
+				// Validating the establishment secret at the RPC is not enough because there can be
+				// concurrent callers with the same establishment secret.
+				EstablishmentSecret: req.EstablishmentSecret,
 
-			// If there is an active stream secret ID it is NOT invalidated here.
-			// It remains active until the pending secret ID is used and promoted to active.
-			// This allows dialing clusters with the active stream secret to continue to dial successfully until they
-			// receive the new secret.
-			ActiveSecretID: existing.GetStream().GetActiveSecretID(),
+				// Overwrite any existing un-utilized pending stream secret.
+				PendingStreamSecret: id,
+			},
 		},
 	}
-	err = s.Backend.PeeringSecretsWrite(secrets)
+	err = s.Backend.PeeringSecretsWrite(writeReq)
 	if err != nil {
 		return nil, grpcstatus.Errorf(codes.Internal, "failed to persist peering secret: %v", err)
 	}
@@ -191,14 +192,13 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 		}
 		authorized = true
 
-		promoted := &pbpeering.PeeringSecrets{
-			PeerID: req.PeerID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				ActiveSecretID: pending,
-
-				// The PendingSecretID is intentionally zeroed out since we want to avoid re-triggering this
-				// promotion process with the same pending secret.
-				PendingSecretID: "",
+		promoted := &pbpeering.SecretsWriteRequest{
+			PeerID: p.ID,
+			Request: &pbpeering.SecretsWriteRequest_PromotePending{
+				PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+					// Overwrite any existing un-utilized pending stream secret.
+					ActiveStreamSecret: pending,
+				},
 			},
 		}
 		err = s.Backend.PeeringSecretsWrite(promoted)
@@ -406,7 +406,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
 	incomingHeartbeatCtx, incomingHeartbeatCtxCancel :=
-		context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+		context.WithTimeout(context.Background(), s.IncomingHeartbeatTimeout)
 	// NOTE: It's important that we wrap the call to cancel in a wrapper func because during the loop we're
 	// re-assigning the value of incomingHeartbeatCtxCancel and we want the defer to run on the last assigned
 	// value, not the current value.
@@ -447,6 +447,8 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// exits. After the method exits this code here won't receive any recv errors and those will be handled
 				// by DrainStream().
 				err = fmt.Errorf("stream ended unexpectedly")
+			} else {
+				err = fmt.Errorf("unexpected error receiving from the stream: %w", err)
 			}
 			status.TrackRecvError(err.Error())
 			return err
@@ -603,7 +605,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
 				//nolint:govet
 				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
-					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+					context.WithTimeout(context.Background(), s.IncomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:
@@ -640,6 +642,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			if err := streamSend(replResp); err != nil {
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
+			status.TrackSendSuccess()
 		}
 	}
 }
@@ -684,10 +687,29 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		dir = "received"
 	}
 
+	// Redact the long-lived stream secret to avoid leaking it in trace logs.
+	pbToLog := pb
+	switch msg := pb.(type) {
+	case *pbpeerstream.ReplicationMessage:
+		clone := &pbpeerstream.ReplicationMessage{}
+		proto.Merge(clone, msg)
+
+		if clone.GetOpen() != nil {
+			clone.GetOpen().StreamSecretID = "hidden"
+			pbToLog = clone
+		}
+	case *pbpeerstream.ReplicationMessage_Open:
+		clone := &pbpeerstream.ReplicationMessage_Open{}
+		proto.Merge(clone, msg)
+
+		clone.StreamSecretID = "hidden"
+		pbToLog = clone
+	}
+
 	m := jsonpb.Marshaler{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pb)
+	out, err := m.MarshalToString(pbToLog)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
 	}

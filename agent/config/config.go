@@ -611,7 +611,7 @@ type Connect struct {
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
 	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
-	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaft certs will be generated.
+	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
 	// certs by. This configuration is not exposed to users (not documented, and agent/config/default.go will override it)
 	TestCALeafRootChangeSpread *string `mapstructure:"test_ca_leaf_root_change_spread"`
@@ -867,6 +867,7 @@ type TLSProtocolConfig struct {
 	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
 	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
 	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
+	UseAutoCert          *bool   `mapstructure:"use_auto_cert"`
 }
 
 type TLS struct {

@@ -3,6 +3,7 @@ package fsm
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -482,6 +484,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
 			Name: "baz",
 		},
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
+			PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+			Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+				GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+					EstablishmentSecret: "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+				},
+			},
+		},
 	}))
 
 	// Peering Trust Bundles
@@ -489,6 +499,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		TrustDomain: "qux.com",
 		PeerName:    "qux",
 		RootPEMs:    []string{"qux certificate bundle"},
+	}))
+
+	// Issue two more secrets writes so that there are three secrets associated with the peering:
+	// - Establishment: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84"
+	// - Pending: "0b7812d4-32d9-4e54-b1b3-4d97084982a0"
+	require.NoError(t, fsm.state.PeeringSecretsWrite(34, &pbpeering.SecretsWriteRequest{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				EstablishmentSecret: "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+				PendingStreamSecret: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
+			},
+		},
+	}))
+	require.NoError(t, fsm.state.PeeringSecretsWrite(33, &pbpeering.SecretsWriteRequest{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+			GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+				EstablishmentSecret: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
+			},
+		},
 	}))
 
 	// Snapshot
@@ -797,6 +828,29 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NotNil(t, prngRestored)
 	require.Equal(t, "baz", prngRestored.Name)
 
+	// Verify peering secrets are restored
+	secretsRestored, err := fsm2.state.PeeringSecretsRead(nil, "1fabcd52-1d46-49b0-b1d8-71559aee47f5")
+	require.NoError(t, err)
+	expectSecrets := &pbpeering.PeeringSecrets{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Establishment: &pbpeering.PeeringSecrets_Establishment{
+			SecretID: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
+		},
+		Stream: &pbpeering.PeeringSecrets_Stream{
+			PendingSecretID: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
+		},
+	}
+	prototest.AssertDeepEqual(t, expectSecrets, secretsRestored)
+
+	uuids := []string{"389bbcdf-1c31-47d6-ae96-f2a3f4c45f84", "0b7812d4-32d9-4e54-b1b3-4d97084982a0"}
+	for _, id := range uuids {
+		free, err := fsm2.state.ValidateProposedPeeringSecretUUID(id)
+		require.NoError(t, err)
+
+		// The UUIDs in the peering secret should be tracked as in use.
+		require.False(t, free)
+	}
+
 	// Verify peering trust bundle is restored
 	idx, ptbRestored, err := fsm2.state.PeeringTrustBundleRead(nil, state.Query{
 		Value: "qux",
@@ -908,4 +962,67 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, idx)
 	require.Nil(t, config)
+}
+
+// This test asserts that ServiceVirtualIP, which made a breaking change
+// in 1.13.0, can still restore from older snapshots which use the old
+// state.ServiceVirtualIP type.
+func Test_restoreServiceVirtualIP(t *testing.T) {
+	psn := structs.PeeredServiceName{
+		ServiceName: structs.ServiceName{
+			Name: "foo",
+		},
+	}
+
+	run := func(t *testing.T, input interface{}) {
+		t.Helper()
+
+		var b []byte
+		buf := bytes.NewBuffer(b)
+		// Encode input
+		encoder := codec.NewEncoder(buf, structs.MsgpackHandle)
+		require.NoError(t, encoder.Encode(input))
+
+		// Create a decoder
+		dec := codec.NewDecoder(buf, structs.MsgpackHandle)
+
+		logger := testutil.Logger(t)
+		fsm, err := New(nil, logger)
+		require.NoError(t, err)
+
+		restore := fsm.State().Restore()
+
+		// Call restore
+		require.NoError(t, restoreServiceVirtualIP(nil, restore, dec))
+		require.NoError(t, restore.Commit())
+
+		ip, err := fsm.State().VirtualIPForService(psn)
+		require.NoError(t, err)
+
+		// 240->224 due to addIPOffset
+		require.Equal(t, "224.0.0.2", ip)
+	}
+
+	t.Run("new ServiceVirtualIP with PeeredServiceName", func(t *testing.T) {
+		run(t, state.ServiceVirtualIP{
+			Service:   psn,
+			IP:        net.ParseIP("240.0.0.2"),
+			RaftIndex: structs.RaftIndex{},
+		})
+	})
+	t.Run("pre-1.13.0 ServiceVirtualIP with ServiceName", func(t *testing.T) {
+		type compatServiceVirtualIP struct {
+			Service   structs.ServiceName
+			IP        net.IP
+			RaftIndex structs.RaftIndex
+		}
+
+		run(t, compatServiceVirtualIP{
+			Service: structs.ServiceName{
+				Name: "foo",
+			},
+			IP:        net.ParseIP("240.0.0.2"),
+			RaftIndex: structs.RaftIndex{},
+		})
+	})
 }

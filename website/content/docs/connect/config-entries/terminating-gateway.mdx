@@ -153,8 +153,9 @@ spec:
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file to be used for one-way TLS authentication.
 
--> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
-bundle in order to properly initiate a TLS connection to the destination service.
+-> **Note**: When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter
+and point to a valid CA bundle in order to properly initiate a TLS
+connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -622,11 +623,12 @@ spec:
     {
       name: 'Services',
       type: 'array<LinkedService>: <optional>',
-      description: `A list of services to link
+      description: `A list of services or destinations to link
                       with the gateway. The gateway will proxy traffic to these services. These linked services
                       must be registered with Consul for the gateway to discover their addresses. They must also
-                      be registered in the same Consul datacenter as the terminating gateway. If Consul ACLs are
-                      enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
+                      be registered in the same Consul datacenter as the terminating gateway.
+                      Destinations are an exception to this requirement, and only need to be defined as a service-defaults configuration entry in the same datacenter.
+                      If Consul ACLs are enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
       children: [
         {
           name: 'Name',

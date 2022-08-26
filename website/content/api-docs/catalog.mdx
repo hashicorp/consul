@@ -410,12 +410,63 @@ The corresponding CLI command is [`consul catalog services`](/commands/catalog/s
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+- `node-meta` `(string: "")` **Deprecated** - Use `filter` with the `NodeMeta` selector instead.
+  This parameter will be removed in a future version of Consul.
+  Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   filters the results to nodes with the specified key/value pairs.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+### Filtering
+
+The filter will be executed against each Service mapping within the catalog.
+The following selectors and filter operations are supported:
+
+| Selector                                             | Supported Operations                               |
+| ---------------------------------------------------- | -------------------------------------------------- |
+| `Address`                                            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Datacenter`                                         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ID`                                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`                                               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `NodeMeta.<any>`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `NodeMeta`                                           | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceAddress`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceConnect.Native`                              | Equal, Not Equal                                   |
+| `ServiceEnableTagOverride`                           | Equal, Not Equal                                   |
+| `ServiceID`                                          | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceKind`                                        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceMeta.<any>`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceMeta`                                        | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceName`                                        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServicePort`                                        | Equal, Not Equal                                   |
+| `ServiceProxy.DestinationServiceID`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.DestinationServiceName`                | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.LocalServiceAddress`                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.LocalServicePort`                      | Equal, Not Equal                                   |
+| `ServiceProxy.Mode`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.TransparentProxy.OutboundListenerPort` | Equal, Not Equal                                   |
+| `ServiceProxy.MeshGateway.Mode`                      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.Datacenter`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationName`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationNamespace`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.DestinationType`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.LocalBindAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams.LocalBindPort`               | Equal, Not Equal                                   |
+| `ServiceProxy.Upstreams.MeshGateway.Mode`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceProxy.Upstreams`                             | Is Empty, Is Not Empty                             |
+| `ServiceTaggedAddresses.<any>.Address`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTaggedAddresses.<any>.Port`                  | Equal, Not Equal                                   |
+| `ServiceTaggedAddresses`                             | Is Empty, Is Not Empty, In, Not In                 |
+| `ServiceTags`                                        | In, Not In, Is Empty, Is Not Empty                 |
+| `ServiceWeights.Passing`                             | Equal, Not Equal                                   |
+| `ServiceWeights.Warning`                             | Equal, Not Equal                                   |
+| `TaggedAddresses.<any>`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                                    | Is Empty, Is Not Empty, In, Not In                 |
 
 ### Sample Request
 

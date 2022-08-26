@@ -124,15 +124,21 @@ func (c *cacheProxyDataSource[ReqType]) Notify(
 
 func dispatchCacheUpdate(ch chan<- proxycfg.UpdateEvent) cache.Callback {
 	return func(ctx context.Context, e cache.UpdateEvent) {
-		u := proxycfg.UpdateEvent{
-			CorrelationID: e.CorrelationID,
-			Result:        e.Result,
-			Err:           e.Err,
-		}
-
 		select {
-		case ch <- u:
+		case ch <- newUpdateEvent(e.CorrelationID, e.Result, e.Err):
 		case <-ctx.Done():
 		}
+	}
+}
+
+func newUpdateEvent(correlationID string, result any, err error) proxycfg.UpdateEvent {
+	// This roughly matches the logic in agent/submatview.LocalMaterializer.isTerminalError.
+	if acl.IsErrNotFound(err) {
+		err = proxycfg.TerminalError(err)
+	}
+	return proxycfg.UpdateEvent{
+		CorrelationID: correlationID,
+		Result:        result,
+		Err:           err,
 	}
 }

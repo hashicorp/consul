@@ -1,6 +1,11 @@
 .consul-external-source {
   @extend %pill-200, %frame-gray-600, %p1;
 }
+
+.consul-external-source::before {
+  --icon-size: icon-300;
+}
+
 .consul-external-source.kubernetes::before {
   @extend %with-logo-kubernetes-color-icon, %as-pseudo;
 }
@@ -15,10 +20,10 @@
   @extend %with-logo-consul-color-icon, %as-pseudo;
 }
 .consul-external-source.vault::before {
-  @extend %with-vault-100;
+  @extend %with-vault-300;
 }
 .consul-external-source.aws::before {
-  @extend %with-aws-100;
+  @extend %with-aws-300;
 }
 .consul-external-source.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;

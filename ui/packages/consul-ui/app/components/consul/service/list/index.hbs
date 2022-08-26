@@ -56,6 +56,11 @@
       {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'instance' without-count=true}}
     </span>
   {{/if}}
+  <Consul::Bucket::List
+    @item={{item}}
+    @nspace={{@nspace}}
+    @partition={{@partition}}
+  />
   {{#if (eq item.Kind 'terminating-gateway')}}
     <span data-test-associated-service-count>
       {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'linked service' without-count=true}}
@@ -87,11 +92,6 @@
       {{/if}}
     </dl>
   {{/if}}
-    <Consul::Bucket::List
-      @item={{item}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
-    />
     <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -260,10 +260,12 @@ func (s *Server) GenerateToken(
 
 		writeReq := &pbpeering.PeeringWriteRequest{
 			Peering: peering,
-			Secret: &pbpeering.PeeringSecrets{
+			SecretsRequest: &pbpeering.SecretsWriteRequest{
 				PeerID: peering.ID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: secretID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: secretID,
+					},
 				},
 			},
 		}
@@ -377,6 +379,7 @@ func (s *Server) Establish(
 	}
 
 	var id string
+	serverAddrs := tok.ServerAddresses
 	if existing == nil {
 		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
 		if err != nil {
@@ -384,6 +387,11 @@ func (s *Server) Establish(
 		}
 	} else {
 		id = existing.ID
+		// If there is a connected stream, assume that the existing ServerAddresses
+		// are up to date and do not try to overwrite them with the token's addresses.
+		if status, ok := s.Tracker.StreamStatus(id); ok && status.Connected {
+			serverAddrs = existing.PeerServerAddresses
+		}
 	}
 
 	// validate that this peer name is not being used as an acceptor already
@@ -395,7 +403,7 @@ func (s *Server) Establish(
 		ID:                  id,
 		Name:                req.PeerName,
 		PeerCAPems:          tok.CA,
-		PeerServerAddresses: tok.ServerAddresses,
+		PeerServerAddresses: serverAddrs,
 		PeerServerName:      tok.ServerName,
 		PeerID:              tok.PeerID,
 		Meta:                req.Meta,
@@ -416,9 +424,9 @@ func (s *Server) Establish(
 	}
 	var exchangeResp *pbpeerstream.ExchangeSecretResponse
 
-	// Loop through the token's addresses once, attempting to fetch the long-lived stream secret.
+	// Loop through the known server addresses once, attempting to fetch the long-lived stream secret.
 	var dialErrors error
-	for _, addr := range peering.PeerServerAddresses {
+	for _, addr := range serverAddrs {
 		exchangeResp, err = exchangeSecret(ctx, addr, tlsOption, &exchangeReq)
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret with %q: %w", addr, err))
@@ -431,18 +439,20 @@ func (s *Server) Establish(
 		return nil, dialErrors
 	}
 
-	// As soon as a peering is written with a list of ServerAddresses that is
-	// non-empty, the leader routine will see the peering and attempt to
-	// establish a connection with the remote peer.
+	// As soon as a peering is written with a non-empty list of ServerAddresses
+	// and an active stream secret, a leader routine will see the peering and
+	// attempt to establish a peering stream with the remote peer.
 	//
 	// This peer now has a record of both the LocalPeerID(ID) and
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: peering,
-		Secret: &pbpeering.PeeringSecrets{
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
 			PeerID: peering.ID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				ActiveSecretID: exchangeResp.StreamSecret,
+			Request: &pbpeering.SecretsWriteRequest_Establish{
+				Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+					ActiveStreamSecret: exchangeResp.StreamSecret,
+				},
 			},
 		},
 	}
@@ -716,7 +726,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 		return nil, err
 	}
 
-	if existing == nil || !existing.IsActive() {
+	if !existing.IsActive() {
 		// Return early when the Peering doesn't exist or is already marked for deletion.
 		// We don't return nil because the pb will fail to marshal.
 		return &pbpeering.PeeringDeleteResponse{}, nil
@@ -729,10 +739,11 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:        existing.ID,
-			Name:      req.Name,
-			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now().UTC()),
+			ID:                  existing.ID,
+			Name:                req.Name,
+			State:               pbpeering.PeeringState_DELETING,
+			PeerServerAddresses: existing.PeerServerAddresses,
+			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

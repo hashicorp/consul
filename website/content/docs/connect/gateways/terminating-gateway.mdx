@@ -12,7 +12,7 @@ description: >-
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh to
-services outside the mesh. These gateways effectively act as Connect proxies that can
+services and [destinations](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) outside the mesh. These gateways effectively act as Connect proxies that can
 represent more than one service. They terminate Connect mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
@@ -55,6 +55,7 @@ Each terminating gateway needs:
 
 1. A local Consul client agent to manage its configuration.
 2. General network connectivity to services within its local Consul datacenter.
+3. General network connectivity to services and destinations outside the mesh that are part of the gateway services list.
 
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
@@ -96,7 +97,7 @@ to terminate mTLS connections on behalf of the linked services and then route th
 If the Consul client agent on the gateway's node is not configured to use the default gRPC port, 8502, then the gateway's token
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
-Linking services to a terminating gateway is done with a `terminating-gateway`
+You can link services and destinations to a terminating gateway with a `terminating-gateway`
 [configuration entry](/docs/connect/config-entries/terminating-gateway). This config entry can be applied via the
 [CLI](/commands/config/write) or [API](/api-docs/config#apply-configuration).
 
@@ -121,6 +122,11 @@ not managed by a Consul client agent. All agent-less services with the same addr
 However, ensure that the [node name](/api-docs/catalog#node) for external services registered directly in the catalog
 does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
 Consul's [anti-entropy sync](/docs/architecture/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
+
+Service-defaults [destinations](/docs/connect/config-entries/service-defaults#destination) let you
+define endpoints external to the mesh and routable through a terminating gateway in transparent mode.
+After you define a service-defaults configuration entry for each destination, you can use the service-default name as part of the terminating gateway services list.
+If a service and a destination service-defaults have the same name, the terminating gateway will use the service.
 
 For a complete example of how to register external services review the
 [external services tutorial](https://learn.hashicorp.com/tutorials/consul/service-registration-external-services).

@@ -17,6 +17,19 @@
     @label={{'peer'}}
     @onchange={{fn (optional @onsubmit) @item}}
     as |writer|>
+      <BlockSlot @name="error" as |after error|>
+        <Notice
+          @type="error"
+          role="alert"
+        as |notice|>
+          <notice.Body>
+            <p>
+              <strong>Error</strong><br />
+              {{error.message}}
+            </p>
+          </notice.Body>
+        </Notice>
+      </BlockSlot>
       <BlockSlot @name="content">
 {{#let
   (unique-id)
@@ -27,15 +40,15 @@ as |id|}}
         >
           {{yield (hash
             Fieldsets=(component "consul/peer/form/initiate/fieldsets"
-             item=@item
+              item=@item
             )
             Actions=(component "consul/peer/form/initiate/actions"
-             item=@item
-             id=id
+              item=@item
+              id=id
             )
           )}}
         </form>
 {{/let}}
-      </BlockSlot>
+    </BlockSlot>
   </DataWriter>
 </div>

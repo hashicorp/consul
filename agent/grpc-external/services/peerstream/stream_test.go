@@ -1,6 +1,7 @@
 package peerstream
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,13 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
+	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -26,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
@@ -178,9 +181,13 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 }
 
 func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
+	type testSeed struct {
+		peering *pbpeering.Peering
+		secrets []*pbpeering.SecretsWriteRequest
+	}
 	type testCase struct {
 		name    string
-		seed    *pbpeering.PeeringWriteRequest
+		seed    *testSeed
 		input   *pbpeerstream.ReplicationMessage
 		wantErr error
 	}
@@ -191,7 +198,13 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		srv, store := newTestServer(t, nil)
 
 		// Write a seed peering.
-		require.NoError(t, store.PeeringWrite(1, tc.seed))
+		if tc.seed != nil {
+			require.NoError(t, store.PeeringWrite(1, &pbpeering.PeeringWriteRequest{Peering: tc.seed.peering}))
+
+			for _, s := range tc.seed.secrets {
+				require.NoError(t, store.PeeringSecretsWrite(1, s))
+			}
+		}
 
 		// Set the initial roots and CA configuration.
 		_, _ = writeInitialRootsAndCA(t, store)
@@ -220,12 +233,14 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
+
+		client.Close()
 	}
 	tt := []testCase{
 		{
 			name: "no secret for peering",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   peeringWithoutSecrets,
 				},
@@ -241,15 +256,19 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		},
 		{
 			name: "unknown secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -264,16 +283,29 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 			wantErr: status.Error(codes.PermissionDenied, "invalid peering stream secret"),
 		},
 		{
-			name: "known active secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			name: "known pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+								PendingStreamSecret: testPendingStreamSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -281,22 +313,44 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 				Payload: &pbpeerstream.ReplicationMessage_Open_{
 					Open: &pbpeerstream.ReplicationMessage_Open{
 						PeerID:         testPeerID,
-						StreamSecretID: testActiveStreamSecretID,
+						StreamSecretID: testPendingStreamSecretID,
 					},
 				},
 			},
 		},
 		{
-			name: "known pending secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			name: "known active secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						PendingSecretID: testPendingStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+								PendingStreamSecret: testPendingStreamSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_PromotePending{
+							PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+								// Pending gets promoted to active.
+								ActiveStreamSecret: testPendingStreamSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -518,7 +572,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var lastSendSuccess time.Time
+	var lastSendAck, lastSendSuccess time.Time
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
@@ -533,19 +587,22 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		}
 
-		lastSendSuccess = it.FutureNow(1)
+		lastSendAck = time.Date(2000, time.January, 1, 0, 0, 2, 0, time.UTC)
+		lastSendSuccess = time.Date(2000, time.January, 1, 0, 0, 3, 0, time.UTC)
 		err := client.Send(ack)
 		require.NoError(t, err)
 
 		expect := Status{
-			Connected: true,
-			LastAck:   lastSendSuccess,
+			Connected:        true,
+			LastAck:          lastSendAck,
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -567,23 +624,26 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		}
 
-		lastNack = it.FutureNow(1)
+		lastSendAck = time.Date(2000, time.January, 1, 0, 0, 4, 0, time.UTC)
+		lastNack = time.Date(2000, time.January, 1, 0, 0, 5, 0, time.UTC)
 		err := client.Send(nack)
 		require.NoError(t, err)
 
 		lastNackMsg = "client peer was unable to apply resource: bad bad not good"
 
 		expect := Status{
-			Connected:       true,
-			LastAck:         lastSendSuccess,
-			LastNack:        lastNack,
-			LastNackMessage: lastNackMsg,
+			Connected:        true,
+			LastAck:          lastSendAck,
+			LastNack:         lastNack,
+			LastNackMessage:  lastNackMsg,
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -640,13 +700,15 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -699,7 +761,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -708,6 +770,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -731,7 +795,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -741,6 +805,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -762,7 +828,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			DisconnectTime:          disconnectTime,
@@ -773,6 +839,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -1075,7 +1143,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
-		c.incomingHeartbeatTimeout = 5 * time.Millisecond
+		c.IncomingHeartbeatTimeout = 5 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1182,7 +1250,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
-		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
+		c.IncomingHeartbeatTimeout = incomingHeartbeatTimeout
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1387,7 +1455,7 @@ func (b *testStreamBackend) ValidateProposedPeeringSecret(id string) (bool, erro
 	return true, nil
 }
 
-func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.SecretsWriteRequest) error {
 	return b.store.PeeringSecretsWrite(1, req)
 }
 
@@ -1628,12 +1696,25 @@ func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, re
 	if remotePeerID != "" {
 		peering.PeerServerAddresses = []string{"127.0.0.1:5300"}
 	}
+
 	require.NoError(t, store.PeeringWrite(idx, &pbpeering.PeeringWriteRequest{
 		Peering: &peering,
-		Secret: &pbpeering.PeeringSecrets{
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
 			PeerID: testPeerID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				PendingSecretID: testPendingStreamSecretID,
+			// Simulate generating a stream secret by first generating a token then exchanging for a stream secret.
+			Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+				GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+					EstablishmentSecret: testEstablishmentSecretID,
+				},
+			},
+		},
+	}))
+	require.NoError(t, store.PeeringSecretsWrite(idx, &pbpeering.SecretsWriteRequest{
+		PeerID: testPeerID,
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				EstablishmentSecret: testEstablishmentSecretID,
+				PendingStreamSecret: testPendingStreamSecretID,
 			},
 		},
 	}))
@@ -1657,7 +1738,7 @@ func writeInitialRootsAndCA(t *testing.T, store *state.Store) (string, *structs.
 	return clusterID, rootA
 }
 
-func makeAnyPB(t *testing.T, pb proto.Message) *anypb.Any {
+func makeAnyPB(t *testing.T, pb newproto.Message) *anypb.Any {
 	any, err := anypb.New(pb)
 	require.NoError(t, err)
 	return any
@@ -2588,6 +2669,51 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
+		})
+	}
+}
+
+// TestLogTraceProto tests that all PB trace log helpers redact the
+// long-lived SecretStreamID.
+// We ensure it gets redacted when logging a ReplicationMessage_Open or a ReplicationMessage.
+// In the stream handler we only log the ReplicationMessage_Open, but testing both guards against
+// a change in that behavior.
+func TestLogTraceProto(t *testing.T) {
+	type testCase struct {
+		input proto.Message
+	}
+
+	tt := map[string]testCase{
+		"replication message": {
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						StreamSecretID: testPendingStreamSecretID,
+					},
+				},
+			},
+		},
+		"open message": {
+			input: &pbpeerstream.ReplicationMessage_Open{
+				StreamSecretID: testPendingStreamSecretID,
+			},
+		},
+	}
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			var b bytes.Buffer
+			logger, err := logging.Setup(logging.Config{
+				LogLevel: "TRACE",
+			}, &b)
+			require.NoError(t, err)
+
+			logTraceRecv(logger, tc.input)
+			logTraceSend(logger, tc.input)
+			logTraceProto(logger, tc.input, false)
+
+			body, err := io.ReadAll(&b)
+			require.NoError(t, err)
+			require.NotContains(t, string(body), testPendingStreamSecretID)
 		})
 	}
 }

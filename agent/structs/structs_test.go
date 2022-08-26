@@ -1157,6 +1157,16 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateConnectProxyWithAgentAutoAssign(t *testing.T) {
+	t.Run("connect-proxy: no port set", func(t *testing.T) {
+		ns := TestNodeServiceProxy(t)
+		ns.Port = 0
+
+		err := ns.ValidateForAgent()
+		assert.NoError(t, err)
+	})
+}
+
 func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 	cases := []struct {
 		Name   string

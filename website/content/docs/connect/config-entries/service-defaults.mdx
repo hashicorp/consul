@@ -236,6 +236,50 @@ spec:
 </Tab>
 </Tabs>
 
+### Terminating gateway destination
+
+Create a default destination that will be assigned to a terminating gateway. A destination
+represents a location outside the Consul cluster. They can be dialed directly when transparent proxy mode is enabled.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+  ```hcl
+  Kind = "service-defaults"
+  Name = "test-destination"
+  Protocol = "tcp"
+  Destination {
+    Addresses = ["test.com","test.org"]
+    Port = 443
+  }
+  ```
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceDefaults
+  metadata:
+    name: test-destination
+  spec:
+    destination:
+      addresses:
+        - "test.com"
+        - "test.org"
+      port: 443
+  ```
+
+  ```json
+  {
+    "Kind": "service-defaults",
+    "Name": "test-destination",
+    "Protocol": "http",
+    "Destination": {
+      "Addresses": ["test.com","test.org"],
+      "Port": 443
+    }
+  }
+  ```
+
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
@@ -322,7 +366,6 @@ spec:
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'UpstreamConfig',
@@ -608,7 +651,6 @@ spec:
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
@@ -624,6 +666,30 @@ spec:
           },
         },
       ],
+    },
+    {
+      name: 'Destination',
+      type: 'DestinationConfig: <optional>',
+      description: `Controls configuration specific to destinations through terminating-gateway. Added in v1.13.0.`,
+      children: [
+        {
+          name: 'Addresses',
+          type: 'array<string>: []',
+          description:`List of addresses associated with the destination. This can be a hostname or an IP address.
+          Wildcards are not accepted.`,
+        },
+        {
+          name: 'Port',
+          type: 'int: 0',
+          description: `Port number associated with the destination.`,
+        },
+      ]
+    },
+    {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
     },
     {
       name: 'MeshGateway',

@@ -216,6 +216,85 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 	}
 }
 
+func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
+
+	for _, tc := range []struct {
+		name      string
+		camel     string
+		snake     string
+		expect    ConfigEntry
+		expectErr string
+	}{
+		{
+			name: "service-defaults-with-MaxInboundConnections",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					port = 8080
+				}
+				max_inbound_connections = 14
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					Port = 8080
+				}
+				MaxInboundConnections = 14
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 8080,
+				},
+				MaxInboundConnections: 14,
+			},
+		},
+	} {
+		tc := tc
+
+		testbody := func(t *testing.T, body string) {
+			var raw map[string]interface{}
+			err := hcl.Decode(&raw, body)
+			require.NoError(t, err)
+
+			got, err := DecodeConfigEntry(raw)
+			if tc.expectErr != "" {
+				require.Nil(t, got)
+				require.Error(t, err)
+				requireContainsLower(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			}
+		}
+
+		t.Run(tc.name+" (snake case)", func(t *testing.T) {
+			testbody(t, tc.snake)
+		})
+		t.Run(tc.name+" (camel case)", func(t *testing.T) {
+			testbody(t, tc.camel)
+		})
+	}
+}
+
 // TestDecodeConfigEntry is the 'structs' mirror image of
 // command/config/write/config_write_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {

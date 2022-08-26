@@ -105,6 +105,7 @@ type TestServerConfig struct {
 	Connect             map[string]interface{} `json:"connect,omitempty"`
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
+	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -139,6 +140,10 @@ type TestTokens struct {
 	AgentRecovery string `json:"agent_master,omitempty"`
 }
 
+type TestPeeringConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // ServerConfigCallback is a function interface which can be
 // passed to NewTestServerConfig to modify the server config.
 type ServerConfigCallback func(c *TestServerConfig)
@@ -151,10 +156,7 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		panic(err)
 	}
 
-	ports, err := freeport.Take(7)
-	if err != nil {
-		t.Fatalf("failed to take ports: %v", err)
-	}
+	ports := freeport.GetN(t, 7)
 
 	logBuffer := NewLogBuffer(t)
 
@@ -189,11 +191,9 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
 		},
-		ReturnPorts: func() {
-			freeport.Return(ports)
-		},
-		Stdout: logBuffer,
-		Stderr: logBuffer,
+		Stdout:  logBuffer,
+		Stderr:  logBuffer,
+		Peering: &TestPeeringConfig{Enabled: true},
 	}
 }
 
@@ -265,7 +265,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
-		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
@@ -273,7 +272,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
-		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
@@ -285,7 +283,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
 	if err := cmd.Start(); err != nil {
-		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
@@ -330,7 +327,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
