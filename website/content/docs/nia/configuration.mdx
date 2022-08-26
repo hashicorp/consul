@@ -7,7 +7,7 @@ description: >-
 
 # Consul-Terraform-Sync Configuration
 
-This topic contains configuration reference information for Consul-Terraform-Sync (CTS). Pass configuration settings in an HCL and JSON configuration file to configure the CTS daemon. Refer to the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) to learn the HCL syntax.
+This topic contains configuration reference information for Consul-Terraform-Sync (CTS). Pass configuration settings in an HCL or JSON configuration file to configure the CTS daemon. Refer to the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) to learn the HCL syntax.
 
 ## Global configurations
 
@@ -219,7 +219,7 @@ The default health check is an [HTTP check](/docs/discovery/checks#http-interval
 
 Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terrform-Sync with High Availability](/docs/nia/usage/run-ha) for additional information. The `high_availability` block contains the following configuration items.
 
-### `high_availability.cluster`
+### High availability cluster
 
 The `cluster` parameter contains configurations for the cluster you want to operate with high availability enabled. You can configure the following options:
 
@@ -238,7 +238,7 @@ The `high_availability.cluster.storage` object contains the following configurat
 | `namespace` | Specifies the namespace to use when storing state in the Consul KV. Default is inferred from the CTS ACL token. The fallback default is `default`. | Optional | String |
 | `session_ttl` | Specifies the session time-to-live for leader elections. You must specify a value greater than the `session_ttl_min` configured for Consul. A longer `session_ttl` results in a longer leader election after a failover. Default is `15s`. | Optional | String |
 
-### `high_availbility.instance`
+### High availability instance
 
 The `instance` parameter is an object that contains configurations unique to the CTS instance. You specify the following configurations:
 - `address`: (Optional) String value that specifies the IP address of the CTS instance to advertise to other instances. This parameter does not have a default value.
@@ -655,7 +655,7 @@ driver "terraform" {
   - Supported backend options: [azurerm](https://www.terraform.io/docs/backends/types/azurerm.html), [consul](https://www.terraform.io/docs/backends/types/consul.html), [cos](https://www.terraform.io/docs/backends/types/cos.html), [gcs](https://www.terraform.io/docs/backends/types/gcs.html), [kubernetes](https://www.terraform.io/docs/backends/types/kubernetes.html), [local](https://www.terraform.io/docs/backends/types/local.html), [manta](https://www.terraform.io/docs/backends/types/manta.html), [pg](https://www.terraform.io/docs/backends/types/pg.html) (Terraform v0.14+), [s3](https://www.terraform.io/docs/backends/types/s3.html). Visit the Terraform documentation links for details on backend configuration options.
   - If omitted, CTS will generate default values and use configurations from the [`consul` block](#consul) to configure [Consul as the backend](https://www.terraform.io/docs/backends/types/consul.html), which stores Terraform statefiles in the Consul KV. The [ACL token provided for Consul authentication](#consul) is used to read and write to the KV store and requires [Consul KV privileges](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS#configure-acl-privileges-for-consul-terraform-sync). The Consul KV path is the base path to store state files for tasks. The full path of each state file will have the task identifier appended to the end of the path, e.g. `consul-terraform-sync/terraform-env:task-name`.
   - The remote enhanced backend is not supported with the Terraform driver to run operations in Terraform Cloud. Use the [Terraform Cloud driver](#terraform-cloud-driver) to integrate CTS with Terraform Cloud for remote workspaces and remote operations.
-  - The `local` backend type is not compatible with CTS instances configured for high availability. If high availability is configured and the Terraform backend type is `local`, CTS logs an error and exits. Refer to [Instance compatibility checks](/docs/nia/architecture#instance-compatibility-checks-high-availability) for additional information.
+  - The `local` backend type is not supported with CTS instances configured for high availability. If high availability is configured and the Terraform backend type is `local`, CTS logs an error and exits.
 - `log` - (bool) Enable all Terraform output (stderr and stdout) to be included in the CTS log. This is useful for debugging and development purposes. It may be difficult to work with log aggregators that expect uniform log format.
 - `path` - (string) The file path to install Terraform or discover an existing Terraform binary. If omitted, Terraform will be installed in the same directory as the CTS daemon. To resolve an incompatible Terraform version or to change versions will require removing the existing binary or change to a different path.
 - `persist_log` - (bool) Enable trace logging for each Terraform client to disk per task. This is equivalent to setting `TF_LOG_PATH=<work_dir>/terraform.log`. Trace log level results in verbose logging and may be useful for debugging and development purposes. We do not recommend enabling this for production. There is no log rotation and may quickly result in large files.

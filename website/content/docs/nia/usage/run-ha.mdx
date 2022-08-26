@@ -50,7 +50,7 @@ We recommend specifying the [TFC driver](/docs/nia/network-drivers/terraform-clo
 
 ## Configuration
 
-Add the `high_availability` block in your CTS configuration and configure the required settings to enable high availability. Refer to the [Configuration reference](#) for details about the configuration fields for the `high_availability` block. 
+Add the `high_availability` block in your CTS configuration and configure the required settings to enable high availability. Refer to the [Configuration reference](/docs/nia/configuration#high-availability) for details about the configuration fields for the `high_availability` block. 
 
 The following example configures high availability functionality for a cluster named `cts-cluster`: 
 
@@ -117,9 +117,9 @@ You can use the following methods for modifying tasks when high availability is 
 
 ### Delete and recreate the task (recommended)
 
-Use the CTS API to identify the CTS leader instance and delete and replace a task. 
+Use the CTS API to identify the CTS leader instance as well as delete and replace a task. 
 
-1. Identify the leader CTS instance by either making a call to the [`status` API endpoint](/docs/nia/cli/start) or by checking the logs for the following entry:
+1. Identify the leader CTS instance by either making a call to the [`status` API endpoint](/docs/nia/api/status) or by checking the logs for the following entry:
 
   ```shell-session
   [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
@@ -144,7 +144,7 @@ Use the CTS API to identify the CTS leader instance and delete and replace a tas
 
 ### Discard data with the `-reset-storage` flag 
 
-You can restart the CTS cluster using the [`-reset-storage` flag](/docs/nia/cli/options) to discard persisted data if you need to update a task.
+You can restart the CTS cluster using the [`-reset-storage` flag](/docs/nia/cli/start#options) to discard persisted data if you need to update a task.
 
 1. Stop a follower instance.
 1. Update the instance’s task configuration.
