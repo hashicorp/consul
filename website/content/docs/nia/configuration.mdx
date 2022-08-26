@@ -226,22 +226,22 @@ The `cluster` parameter contains configurations for the cluster you want to oper
 | Parameter | Description| Required | Type  |
 | --------- | ---------- | -------- | ------|
 | `name` | Specifies the name of the cluster operating with high availability enabled. | Required | String |
-| `storage` | Configures how CTS stores state information. Refer to [State storage and persistence](/docs/nia/architecture#state-storage-and-persistence) for additional information. You can define storage for the `”consul”` resource. Refer to [High availability cluster storage](#high-availability-cluster-storage) for additional information | Optional | Object |
+| `storage` | Configures how CTS stores state information. Refer to [State storage and persistence](/docs/nia/architecture#state-storage-and-persistence) for additional information. You can define storage for the `”consul”` resource. Refer to [High availability cluster storage](#high-availability-cluster-storage) for additional information. | Optional | Object |
 
-#### High availability cluster storage
+#### `high_availability.cluster.storage`
 
 The `high_availability.cluster.storage` object contains the following configurations. 
 
 | Parameter | Description| Required | Type  |
 | --------- | ---------- | -------- | ------|
 | `parent_path` | Defines a parent path in the Consul KV for CTS to store state information. Default is `consul-terraform-sync/`. CTS automatically appends the cluster name to the parent path, so the effective default directory for state information is `consul-terraform-sync/<cluster-name>`. | Optional | String |
-| `namespace` | specifies the namespace to use when storing state in the Consul KV. Default is inferred from the CTS ACL token. The fallback default is `default`. | Optional | String |
-| `session_ttl` | Specifies the session time-to-live for leader elections. You must specify a value greater than the `session_ttl_min` configured for Consul. A longer `session_ttl` results in a longer leader election after a failover. Default is `15s`. | Optional | `15s` |
+| `namespace` | Specifies the namespace to use when storing state in the Consul KV. Default is inferred from the CTS ACL token. The fallback default is `default`. | Optional | String |
+| `session_ttl` | Specifies the session time-to-live for leader elections. You must specify a value greater than the `session_ttl_min` configured for Consul. A longer `session_ttl` results in a longer leader election after a failover. Default is `15s`. | Optional | String |
 
 ### `high_availbility.instance`
 
 The `instance` parameter is an object that contains configurations unique to the CTS instance. You specify the following configurations:
-* `address`: (Optional) String value that specifies the IP address of the CTS instance to advertise to other instances. This parameter does not have a default value.
+- `address`: (Optional) String value that specifies the IP address of the CTS instance to advertise to other instances. This parameter does not have a default value.
 
 
 ## Service
@@ -272,7 +272,7 @@ service {
 
 ## Task
 
-A `task` block configures which task to execute in automation. When the task executes can be determined by the `condition` block. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/docs/nia/api/tasks#tasks) or the [CLI's `task` command](/docs/nia/cli/task#task).
+A `task` block configures which task to execute in automation. Use  the `condition` block to specify when the task executes. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/docs/nia/api/tasks#tasks) or the [CLI's `task` command](/docs/nia/cli/task#task).
 
 ```hcl
 task {
