@@ -742,6 +742,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})
+	s.peerStreamTracker.SetHeartbeatTimeout(s.peerStreamServer.Config.IncomingHeartbeatTimeout)
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	// Initialize internal gRPC server.
@@ -816,6 +817,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 
 		// Note: these external gRPC services are also exposed on the internal server to
 		// enable RPC forwarding.
+		s.peerStreamServer.Register(srv)
 		s.externalACLServer.Register(srv)
 		s.externalConnectCAServer.Register(srv)
 	}

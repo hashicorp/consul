@@ -31,7 +31,7 @@ With transparent proxy:
 
 1. Local upstreams are inferred from service intentions and peered upstreams are
    inferred from imported services, so no explicit configuration is needed.
-1. Outbound connections pointing to a KubeDNS name "just work" — network rules
+1. Outbound connections pointing to a Kubernetes DNS record "just work" — network rules
    redirect them through the proxy.
 1. Inbound traffic is forced to go through the proxy to prevent unauthorized
    direct access to the application.
@@ -160,27 +160,43 @@ configure exceptions on a per-Pod basis. The following Pod annotations allow you
 - [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids)
 
 
+### Dialing Services Across Kubernetes Clusters
+
+- You cannot use transparent proxy in a deployment configuration with [federation between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes).
+  Instead, services in one Kubernetes cluster must explicitly dial a service to a Consul datacenter in another Kubernetes cluster using the
+  [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
+  annotation. For example, an annotation of
+  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` reaches an upstream service called `my-service`
+  in the datacenter `dc2` on port `1234`.
+
+- You cannot use transparent proxy in a deployment configuration with a
+  [single Consul datacenter spanning multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s). Instead,
+  services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the
+  [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
+  annotation. For example, an annotation of
+  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`,
+  reaches an upstream service called `my-service` in another Kubernetes cluster and on port `1234`.
+  Although transparent proxy is enabled, Kubernetes DNS is not utilized when communicating between services that exist on separate Kubernetes clusters.
+
+- In a deployment configuration with [cluster peering](/docs/connect/cluster-peering),
+  transparent proxy is fully supported and thus dialing services explicitly is not required.
+
+
 ## Known Limitations
 
-* Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the
-transparent proxy's datacenter. Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
-[annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) such as
-`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
-in the datacenter `dc2`.
-* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
-`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
+- Deployment configurations with federation across or a single datacenter spanning multiple clusters must explicitly dial a
+  service in another datacenter or cluster using annotations.
 
-* When dialing headless services, the request will be proxied using a plain TCP
- proxy. The upstream's protocol is not considered.
+- When dialing headless services, the request is proxied using a plain TCP proxy. The upstream's protocol is not considered.
 
 ## Using Transparent Proxy
 
 In Kubernetes, services can reach other services via their
-[KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) address or via Pod IPs, and that
+[Kubernetes DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) address or through Pod IPs, and that
 traffic will be transparently sent through the proxy. Connect services in Kubernetes are required to have a Kubernetes
 service selecting the Pods.
 
-~> Note: In order to use KubeDNS, the Kubernetes service name will need to match the Consul service name. This will be the
+~> **Note**: In order to use Kubernetes DNS, the Kubernetes service name needs to match the Consul service name. This is the
 case by default, unless the service Pods have the annotation `consul.hashicorp.com/connect-service` overriding the
 Consul service name.
 
@@ -192,7 +208,7 @@ inbound and outbound listener on the sidecar proxy. The proxy will be configured
 appropriate upstream services based on [Service
 Intentions](/docs/connect/config-entries/service-intentions). This means Connect services no longer
 need to use the `consul.hashicorp.com/connect-service-upstreams` annotation to configure upstreams explicitly. Once the
-Service Intentions are set, they can simply address the upstream services using KubeDNS.
+Service Intentions are set, they can simply address the upstream services using Kubernetes DNS.
 
 As of Consul-k8s >= `0.26.0` and Consul-helm >= `0.32.0`, a Kubernetes service that selects application pods is required
 for Connect applications, i.e:
@@ -213,7 +229,7 @@ spec:
 
 In the example above, if another service wants to reach `sample-app` via transparent proxying,
 it can dial `sample-app.default.svc.cluster.local`, using
-[KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/).
+[Kubernetes DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/).
 If ACLs with default "deny" policy are enabled, it also needs a
 [ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
 `sample-app`.

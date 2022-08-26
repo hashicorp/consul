@@ -1678,6 +1678,9 @@ func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.Ent
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %w", node.Node, err)
 	}
+	if service != nil {
+		service.ID = node.ID
+	}
 
 	return idx, service, nil
 }

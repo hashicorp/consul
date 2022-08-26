@@ -149,6 +149,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
+					"v3": {
+						Filter: "Service.Meta.version == v3",
+					},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"*": {
@@ -157,6 +160,13 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					"v1": {
 						Service:   "alternate",
 						Namespace: splitDefaultNamespace,
+					},
+					"v3": {
+						Targets: []ServiceResolverFailoverTarget{
+							{Peer: "cluster-01"},
+							{Datacenter: "dc1"},
+							{Service: "another-service", ServiceSubset: "v1"},
+						},
 					},
 				},
 				ConnectTimeout: 5 * time.Second,

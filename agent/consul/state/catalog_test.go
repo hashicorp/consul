@@ -272,17 +272,20 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			require.Equal(t, uint64(2), idx)
 			require.Equal(t, svcmap["redis1"], r)
 
+			exp := svcmap["redis1"].ToServiceNode("node1")
+			exp.ID = nodeID
+
 			// lookup service by node name
 			idx, sn, err := s.ServiceNode("", "node1", "redis1", nil, peerName)
 			require.NoError(t, err)
 			require.Equal(t, uint64(2), idx)
-			require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+			require.Equal(t, exp, sn)
 
 			// lookup service by node ID
 			idx, sn, err = s.ServiceNode(string(nodeID), "", "redis1", nil, peerName)
 			require.NoError(t, err)
 			require.Equal(t, uint64(2), idx)
-			require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+			require.Equal(t, exp, sn)
 
 			// lookup service by invalid node
 			_, _, err = s.ServiceNode("", "invalid-node", "redis1", nil, peerName)
