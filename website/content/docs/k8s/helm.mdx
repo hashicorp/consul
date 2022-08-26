@@ -1178,7 +1178,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: -`)
 
-  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: false`) - If true, services using Consul Connect will use Consul DNS
+  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: false`) - If true, services using Consul service mesh will use Consul DNS
     for default DNS resolution. The DNS lookups fall back to the nameserver IPs
     listed in /etc/resolv.conf if not found in Consul.
 
@@ -1529,7 +1529,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'connectInject.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
+  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul service mesh services. All values are overridable
     via annotations on a per-pod basis.
 
     - `defaultEnabled` ((#v-connectinject-metrics-defaultenabled)) (`string: -`) - If true, the connect-injector will automatically
@@ -1805,10 +1805,10 @@ Use these links to navigate to a particular top-level stanza.
 
 ### meshGateway ((#h-meshgateway))
 
-- `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
+- `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul service mesh to work across Consul datacenters.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If mesh gateways are enabled, a Deployment will be created that runs
-    gateways and Consul Connect will be configured to use gateways.
+    gateways and Consul service mesh will be configured to use gateways.
     See https://www.consul.io/docs/connect/mesh_gateway.html
     Requirements: consul 1.6.0+ if using
     global.acls.manageSystemACLs.

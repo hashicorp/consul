@@ -12,9 +12,9 @@ you may want to configure TLS in a way that minimizes downtime to your applicati
 Consul already supports rolling out TLS on an existing cluster without downtime.
 However, depending on your Kubernetes use case, your upgrade procedure may be different.
 
-## Gradual TLS Rollout without Consul Connect
+## Gradual TLS Rollout without Consul Service Mesh
 
-If you're **not using Consul Connect**, follow this process.
+If you're **not using Consul Service Mesh**, follow this process.
 
 1. Run a Helm upgrade with the following config:
 
@@ -39,7 +39,7 @@ other `consul-k8s` components, such as sync catalog or client snapshot deploymen
 1. Repeat steps 1 and 2, turning on TLS verification by setting `global.tls.verify`
    to `true`.
 
-## Gradual TLS Rollout with Consul Connect
+## Gradual TLS Rollout with Consul Service Mesh
 
 Because the sidecar Envoy proxies need to talk to the Consul client agent regularly
 for service discovery, we can't enable TLS on the clients without also re-injecting a
@@ -75,7 +75,7 @@ applications to it.
    and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
 
 1. Run `helm upgrade` with the above config file. The upgrade will trigger an update of all
-   components except clients and servers, such as the Consul Connect webhook deployment
+   components except clients and servers, such as the Consul service mesh webhook deployment
    or the sync catalog deployment. Note that the sync catalog and the client
    snapshot deployments will not be in the `ready` state until the clients on their
    nodes are upgraded. It is OK to proceed to the next step without them being ready
@@ -85,7 +85,7 @@ applications to it.
 1. Gradually perform an upgrade of the clients by deleting client pods on the **new** node
    pool.
 
-1. At this point, all components (e.g., Consul Connect webhook and sync catalog) should be running
+1. At this point, all components (e.g., Consul service mesh webhook and sync catalog) should be running
    on the new node pool.
 
 1. Redeploy all your Connect-enabled applications.

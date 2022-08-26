@@ -645,9 +645,9 @@ These metrics give insight into the health of the cluster as a whole.
 | `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                            | seconds                                 | gauge   |
 | `consul.agent.tls.cert.expiry`         | The number of seconds until the Agent TLS certificate expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                 | seconds                                 | gauge   |
 
-## Connect Built-in Proxy Metrics
+## Consul Service Mesh Built-in Proxy Metrics
 
-Consul Connect's built-in proxy is by default configured to log metrics to the
+Consul service mesh's built-in proxy is by default configured to log metrics to the
 same sink as the agent that starts it.
 
 When running in this mode it emits some basic metrics. These will be expanded

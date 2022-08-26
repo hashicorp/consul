@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: Connect - Configuration
+page_title: Service Mesh - Configuration
 description: >-
-  A Connect-aware proxy enables unmodified applications to use Connect. A
+  A service mesh-aware proxy enables unmodified applications to use Consul service mesh. A
   per-service proxy sidecar transparently handles inbound and outbound service
   connections, automatically wrapping and verifying TLS connections.
 ---
@@ -13,17 +13,17 @@ There are many configuration options exposed for Consul service mesh. The only o
 that must be set is the `connect.enabled` option on Consul servers to enable Consul service mesh.
 All other configurations are optional and have reasonable defaults.
 
-Consul Connect is the component shipped with Consul that enables service mesh functionality. The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
+Consul service mesh is the component shipped with Consul that enables service mesh functionality. The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
 
 -> **Tip:** Service mesh is enabled by default when running Consul in
 dev mode with `consul agent -dev`.
 
 ## Agent Configuration
 
-Begin by enabling Connect for your Consul
-cluster. By default, Connect is disabled. Enabling Connect requires changing
+Begin by enabling Consul service mesh for your Consul
+cluster. By default, Consul service mesh is disabled. Enabling Consul service mesh requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
-Connect, add the following to a new or existing
+Consul service mesh, add the following to a new or existing
 [server configuration file](/docs/agent/config/config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
 
 
@@ -42,17 +42,17 @@ connect {
 ```
 </CodeTabs>
 
-This will enable Connect and configure your Consul cluster to use the
+This will enable Consul service mesh and configure your Consul cluster to use the
 built-in certificate authority for creating and managing certificates.
 You may also configure Consul to use an external
 [certificate management system](/docs/connect/ca), such as
 [Vault](https://vaultproject.io).
 
-Services and proxies may always register with Connect settings, but they will
-fail to retrieve or verify any TLS certificates. This causes all Connect-based
-connection attempts to fail until Connect is enabled on the server agents.
+Services and proxies may always register with Consul service mesh settings, but they will
+fail to retrieve or verify any TLS certificates. This causes all service mesh-based
+connection attempts to fail until Consul service mesh is enabled on the server agents.
 
-Other optional Connect configurations that you can set in the server
+Other optional Consul service mesh configurations that you can set in the server
 configuration file include:
 
 - [certificate authority settings](/docs/agent/config/config-files#connect)
@@ -60,10 +60,10 @@ configuration file include:
 - [dev mode](/docs/agent/config/cli-flags#_dev)
 - [server host name verification](/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname)
 
-If you would like to use Envoy as your Connect proxy you will need to [enable
+If you would like to use Envoy as your Consul service mesh proxy you will need to [enable
 gRPC](/docs/agent/config/config-files#grpc_port).
 
-Additionally if you plan on using the observability features of Connect, it can
+Additionally if you plan on using the observability features of Consul service mesh, it can
 be convenient to configure your proxies and services using [configuration
 entries](/docs/agent/config-entries) which you can interact with using the
 CLI or API, or by creating configuration entry files. You will want to enable
@@ -72,8 +72,8 @@ configuration](/docs/agent/config/config-files#enable_central_service_config) on
 clients, which allows each service's proxy configuration to be managed centrally
 via API.
 
-!> **Security note:** Enabling Connect is enough to try the feature but doesn't
-automatically ensure complete security. Please read the [Connect production
+!> **Security note:** Enabling Consul service mesh is enough to try the feature but doesn't
+automatically ensure complete security. Please read the [Consul service mesh production
 tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist?utm_source=docs) to understand the additional steps
 needed for a secure deployment.
 
@@ -92,7 +92,7 @@ registrations](/docs/discovery/services).
 
 ## Schedulers
 
-Consul Connect is especially useful if you are using an orchestrator like Nomad
+Consul service mesh is especially useful if you are using an orchestrator like Nomad
 or Kubernetes, because these orchestrators can deploy thousands of service instances
 which frequently move hosts. Sidecars for each service can be configured through
 these schedulers, and in some cases they can automate Consul configuration,
@@ -100,15 +100,15 @@ sidecar deployment, and service registration.
 
 ### Nomad
 
-Connect can be used with Nomad to provide secure service-to-service
+Consul service mesh can be used with Nomad to provide secure service-to-service
 communication between Nomad jobs and task groups. The ability to use the dynamic
-port feature of Nomad makes Connect particularly easy to use. Learn about how to
-configure Connect on Nomad by reading the
+port feature of Nomad makes Consul service mesh particularly easy to use. Learn about how to
+configure Consul service mesh on Nomad by reading the
 [integration documentation](/docs/connect/nomad).
 
 ### Kubernetes
 
-The Consul Helm chart can automate much of Consul Connect's configuration, and
+The Consul Helm chart can automate much of Consul service mesh's configuration, and
 makes it easy to automatically inject Envoy sidecars into new pods when they are
 deployed. Learn about the [Helm chart](/docs/platform/k8s/helm) in general,
 or if you are already familiar with it, check out its
