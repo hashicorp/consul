@@ -19,7 +19,7 @@ description: >-
 
 - **Expanded details for ACL Permission Denied errors**: Details are now provided when a permission denied errors surface for RPC calls. Details include the accessor ID of the ACL token, the missing permission, and any namespace or partition that the error occurred on. 
 
-* **ACL token read**: The `consul acl token read -rules` command now includes an `-expanded` to display detailed info about any policies/rules affecting the token. Please see [Consul ACL Token read](/commands/acl/token/read) for more details.
+- **ACL token read**: The `consul acl token read -rules` command now includes an `-expanded` option to display detailed info about any policies and rules affecting the token. Refer to [Consul ACL Token read](/commands/acl/token/read) for more details.
 
 * **Automatically reload agent config when watching agent config file changes**: When using the `auto-reload-config` CLI flag or `auto_reload_config` agent config option, Consul will automatically reload the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change. Please see [auto_reload_config](/docs/agent/config/cli-flags#_auto_reload_config) for more details.
 
