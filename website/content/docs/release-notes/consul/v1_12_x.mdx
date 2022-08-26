@@ -28,7 +28,7 @@ description: >-
 
 - Removes support for Envoy 1.17.x and Envoy 1.18.x, and adds support for Envoy 1.21.x and Envoy 1.22.x. Refer to the [Envoy Compatibility matrix](/docs/connect/proxies/envoy) for more details.  
 
-- The disable_compat_1.9 option now defaults to true. 1.9 style `consul.http...` metrics can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
+- The `disable_compat_1.9` option now defaults to true. Metrics formatted in the style of version 1.9, such as `consul.http...`,  can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
 
 - The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
 
