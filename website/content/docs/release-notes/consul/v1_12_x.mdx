@@ -33,7 +33,7 @@ description: >-
 - The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
 
 - If TLS min versions and max versions are not specified, the TLS min/max versions default to the following values. For details on how to configure TLS min and max, refer to the [Mesh TLS config entry](/docs/connect/config-entries/mesh#tls) or CRD documentation. 
-  - Incoming connecttions: TLS 1.2 for min0 version, TLS 1.3 for max version
+  - Incoming connections: TLS 1.2 for min0 version, TLS 1.3 for max version
   - Outgoing connections: TLS 1.2 for both TLS min and TLS max versions. 
 
 ## Upgrading
