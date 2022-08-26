@@ -15,7 +15,7 @@ description: >-
 ~> **Alert: Deprecation Notice**
 The ACL system described here was Consul's original ACL implementation.
 The legacy ACL system was deprecated in Consul 1.4.0 and removed in Consul 1.11.0.
-The documentation for the new ACL system can be found [here](/docs/security/acl). For information on how to migrate to the new ACL System, please read the [Migrate Legacy ACL Tokens](https://learn.hashicorp.com/tutorials/consul/access-control-token-migration) tutorial.
+The documentation for the new ACL system can be found [here](/docs/security/acl). For information on how to migrate to the new ACL System, please read the [Migrate Legacy ACL Tokens](/consul/tutorials/security-operations/access-control-token-migration?utm_source=docs) tutorial.
 
 The legacy documentation has two sections.
 
@@ -981,7 +981,7 @@ prepared query was created, the behavior changes and now the captured
 ACL Token set by the definer of the query is used when looking up a service.
 
 Capturing ACL Tokens is analogous to
-[PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
+[PostgreSQL's](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
 `SECURITY DEFINER` attribute which can be set on functions, and using the client's ACL
 Token is similar to the complementary `SECURITY INVOKER` attribute.
 

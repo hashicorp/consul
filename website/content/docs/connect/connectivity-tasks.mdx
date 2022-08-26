@@ -7,7 +7,7 @@ description: >-
 
 # Connectivity Tasks
 
-~> **Note**: The features shown below are extensions of Consul’s service mesh capabilities. If you are not utilizing
+~> **Note**: The features shown below are extensions of Consul's service mesh capabilities. If you are not utilizing
 Consul service mesh then these features will not be relevant to your task.
 
 ## Service-to-service traffic between Consul datacenters
@@ -26,7 +26,7 @@ As of Consul 1.8.0, mesh gateways can also forward gossip and RPC traffic betwee
 This is enabled by [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 For more information about mesh gateways, review the [complete documentation](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
-and the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways).
+and the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways?utm_source=docs).
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)
 
@@ -40,11 +40,11 @@ services outside the Consul service mesh to services inside the service mesh.
 These gateways allow you to define what services should be exposed, on what port, and by what hostname. You configure
 an ingress gateway by defining a set of listeners that can map to different sets of backing services.
 
-Ingress gateways are tightly integrated with Consul’s L7 configuration and enable dynamic routing of HTTP requests by
+Ingress gateways are tightly integrated with Consul's L7 configuration and enable dynamic routing of HTTP requests by
 attributes like the request path.
 
 For more information about ingress gateways, review the [complete documentation](/docs/connect/gateways/ingress-gateway)
-and the [ingress gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways).
+and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways?utm_source=docs).
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
@@ -60,11 +60,11 @@ infrastructure you do not control.
 Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
 mTLS connections, enforce Consul intentions, and forward requests to the appropriate destination.
 
-These gateways also simplify authorization from dynamic service addresses. Consul’s intentions determine whether
+These gateways also simplify authorization from dynamic service addresses. Consul's intentions determine whether
 connections through the gateway are authorized. Then traditional tools like firewalls or IAM roles can authorize the
 connections from the known gateway nodes to the destination services.
 
 For more information about terminating gateways, review the [complete documentation](/docs/connect/gateways/terminating-gateway)
-and the [terminating gateway tutorial](https://learn.hashicorp.com/tutorials/consul/teminating-gateways-connect-external-services).
+and the [terminating gateway tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services?utm_source=docs).
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)

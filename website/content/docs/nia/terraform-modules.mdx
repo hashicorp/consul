@@ -120,7 +120,7 @@ The services module input operates by monitoring the [Health List Nodes For Serv
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module.
+Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task's module.
 
 ```hcl
 task {
@@ -228,7 +228,7 @@ task {
 
 ## How to Create a Compatible Terraform Module
 
-You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). CTS is designed to integrate with any module that satisfies the specifications in the following section.
+You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](/terraform/tutorials/modules/module-create?utm_source=docs). CTS is designed to integrate with any module that satisfies the specifications in the following section.
 
 The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module. The template repository has the files described in the next steps prepared.
 

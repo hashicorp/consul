@@ -15,9 +15,9 @@ description: >-
 
 - **Streaming Enabled by Default for Service Health:** Streaming is a major architectural enhancement in how update notifications for blocking queries are delivered within the cluster which significantly reduces CPU and network bandwidth usage for large-scale Consul deployments. In Consul 1.10, streaming is now available for the service health HTTP endpoint and is enabled by default.
 
-- **Redesigned UI and Observability Enhancements:** The Consul UI has been redesigned with a new sidebar layout. Additionally, Kubernetes users now have the ability to deploy Prometheus via the Consul Helm chart which automatically integrates it with Consul’s Service Visualization UI for displaying traffic metrics between services. Lastly, Pod and Envoy metrics can now be exposed to Prometheus using Kubernetes annotations via a single aggregated endpoint.
+- **Redesigned UI and Observability Enhancements:** The Consul UI has been redesigned with a new sidebar layout. Additionally, Kubernetes users now have the ability to deploy Prometheus via the Consul Helm chart which automatically integrates it with Consul's Service Visualization UI for displaying traffic metrics between services. Lastly, Pod and Envoy metrics can now be exposed to Prometheus using Kubernetes annotations via a single aggregated endpoint.
 
-- **Deprecation of Legacy ACL System:** In Consul 1.4, we upgraded to a new Access Controls (ACLs) system. This upgrade made improvements in Consul’s ACL system handles the API, Tokens, and Policies. With Consul 1.10, the legacy system is officially deprecated, and will be removed from Consul in a later release. We strongly recommend that users begin the process of migrating to the newer ACL system.
+- **Deprecation of Legacy ACL System:** In Consul 1.4, we upgraded to a new Access Controls (ACLs) system. This upgrade made improvements in Consul's ACL system handles the API, Tokens, and Policies. With Consul 1.10, the legacy system is officially deprecated, and will be removed from Consul in a later release. We strongly recommend that users begin the process of migrating to the newer ACL system.
 
 ## What's Changed
 

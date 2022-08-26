@@ -73,11 +73,11 @@ Refer to the following sections for information about host, port, memory, and ot
 - [Server Performance](/docs/install/performance)
 - [Required Ports](/docs/install/ports)
 
-The [Datacenter Deploy tutorial](https://learn.hashicorp.com/tutorials/consul/reference-architecture?in=consul/production-deploy#deployment-system-requirements) contains additional information, including licensing configuration, environment variables, and other details.
+The [Datacenter Deploy tutorial](/consul/tutorials/production-deploy/reference-architecture?utm_source=docs) contains additional information, including licensing configuration, environment variables, and other details.
 
 ### Maximum Latency Network requirements
 
-Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol’s maximum latency threshold. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents.  Other network usages outside of Gossip are not bound by these latency requirements (i.e. client to server RPCs, HTTP API requests, xDS proxy configuration, DNS).
+Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol's maximum latency threshold. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents.  Other network usages outside of Gossip are not bound by these latency requirements (i.e. client to server RPCs, HTTP API requests, xDS proxy configuration, DNS).
 
 For data sent between all Consul agents the following latency requirements must be met:
 
@@ -97,7 +97,7 @@ The `-dev` flag is provided for learning purposes only.
 We strongly advise against using it for production environments.
 
 -> **Getting Started Tutorials**: You can test a local agent by following the
-[Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=consul.io&utm_medium=docs).
+[Getting Started tutorials](/consul/tutorials/getting-started/get-started-install?utm_source=docs).
 
 When starting Consul with the `-dev` flag, the only additional information Consul needs to run is the location of a directory for storing agent state data.
 You can specify the location with the `-data-dir` flag or define the location in an external file and point the file with the `-config-file` flag.

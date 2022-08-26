@@ -36,7 +36,7 @@ Without a quorum, Consul experiences an outage:
 it cannot provide most of its capabilities because they rely on
 the availability of this state information.
 If Consul has an outage, normal operation can be restored by following the
-[outage recovery guide](https://learn.hashicorp.com/tutorials/consul/recovery-outage).
+[outage recovery guide](/consul/tutorials/datacenter-operations/recovery-outage?utm_source=docs).
 
 If Consul is deployed with 3 servers, the quorum size is 2. The deployment can lose 1
 server and still maintain quorum, so it has a fault tolerance of 1.
@@ -80,7 +80,7 @@ to protect your Consul datacenter from a single zone-level failure.
 For example, if deploying 5 Consul servers across 3 availability zones, place no more than 2 servers in each zone.
 If one zone fails, at most 2 servers are lost and quorum will be maintained by the 3 remaining servers.
 
-To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server’s agent configuration.
+To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server's agent configuration.
 
 Additionally, you should leverage resources that can automatically restore your compute instance,
 such as autoscaling groups, virtual machine scale sets, or compute engine autoscaler.
@@ -135,5 +135,5 @@ However, Consul redundancy zones can be used even without the backing of infrast
 For more information on redundancy zones, refer to:
 - [Redundancy zone documentation](/docs/enterprise/redundancy)
   for a more detailed explanation
-- [Redundancy zone tutorial](https://learn.hashicorp.com/tutorials/consul/redundancy-zones?in=consul/enterprise)
+- [Redundancy zone tutorial](/consul/tutorials/datacenter-operations/redundancy-zones?utm_source=docs)
   to learn how to use them
