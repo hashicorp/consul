@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	"net"
 	"net/url"
 	"regexp"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -1022,6 +1023,18 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 	return nil
 }
 
+func getAlpnProtocols(protocol string) []string {
+	var alpnProtocols = []string{}
+	switch protocol {
+	case "grpc", "http2":
+		alpnProtocols = append(alpnProtocols, "h2", "http/1.1")
+	case "http":
+		alpnProtocols = append(alpnProtocols, "http/1.1")
+	}
+
+	return alpnProtocols
+}
+
 func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
@@ -1030,12 +1043,23 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
+	// Determine listener protocol type from configured service protocol
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		//s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
 	tlsContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)
+
+	// Configure alpn protocols on CommonTLSContext
+	tlsContext.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
 	if len(peerBundles) > 0 {
