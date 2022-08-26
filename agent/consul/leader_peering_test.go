@@ -1442,7 +1442,8 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		t.Cleanup(cancel)
 
-		// try establishing
+		// Try establishing.
+		// This call will only succeed if the bad address was not used in the calls to exchange the peering secret.
 		establishReq := pbpeering.EstablishRequest{
 			PeerName:     "my-peer-acceptor",
 			PeeringToken: string(badToken),
