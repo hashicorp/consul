@@ -219,6 +219,7 @@ type ServiceResolverRedirect struct {
 	Namespace     string `json:",omitempty"`
 	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 }
 
 type ServiceResolverFailover struct {

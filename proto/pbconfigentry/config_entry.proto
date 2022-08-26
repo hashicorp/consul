@@ -122,6 +122,7 @@ message ServiceResolverRedirect {
   string Namespace = 3;
   string Partition = 4;
   string Datacenter = 5;
+  string Peer = 6;
 }
 
 // mog annotation:

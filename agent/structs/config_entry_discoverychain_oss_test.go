@@ -72,6 +72,28 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			},
 			validateErr: `Bad Failover["*"]: Setting Namespace requires Consul Enterprise`,
 		},
+		{
+			name: "setting redirect Namespace on OSS",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Namespace: "ns1",
+				},
+			},
+			validateErr: `Redirect: Setting Namespace requires Consul Enterprise`,
+		},
+		{
+			name: "setting redirect Partition on OSS",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Partition: "ap1",
+				},
+			},
+			validateErr: `Redirect: Setting Partition requires Consul Enterprise`,
+		},
 	}
 
 	// Bulk add a bunch of similar validation cases.
