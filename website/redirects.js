@@ -1273,4 +1273,14 @@ module.exports = [
     destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
     permanent: true,
   },
+  {
+    source: '/docs/nia/installation/run',
+    destination: '/docs/nia/usage/run',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/installation/requirements',
+    destination: '/docs/nia/usage/requirements',
+    permanent: true,
+  },
 ]
