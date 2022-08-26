@@ -1249,6 +1249,14 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
             "title": "v1.11.x",
             "path": "release-notes/consul/v1_11_x"
           },
@@ -1259,6 +1267,15 @@
           {
             "title": "v1.9.x",
             "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
           }
         ]
       },
