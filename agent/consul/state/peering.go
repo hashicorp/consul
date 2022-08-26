@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -981,7 +982,7 @@ func peeringsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, en
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		if peering == nil || !peering.IsActive() {
+		if !peering.IsActive() {
 			continue
 		}
 		peerings = append(peerings, peering)

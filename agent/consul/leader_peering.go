@@ -295,13 +295,6 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 		return fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
-	// Create a ring buffer to cycle through peer addresses in the retry loop below.
-	buffer := ring.New(len(peer.PeerServerAddresses))
-	for _, addr := range peer.PeerServerAddresses {
-		buffer.Value = addr
-		buffer = buffer.Next()
-	}
-
 	secret, err := s.fsm.State().PeeringSecretsRead(ws, peer.ID)
 	if err != nil {
 		return fmt.Errorf("failed to read secret for peering: %w", err)
@@ -312,27 +305,26 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 
 	logger.Trace("establishing stream to peer")
 
-	retryCtx, cancel := context.WithCancel(ctx)
-	cancelFns[peer.ID] = cancel
-
 	streamStatus, err := s.peerStreamTracker.Register(peer.ID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
 	}
 
+	streamCtx, cancel := context.WithCancel(ctx)
+	cancelFns[peer.ID] = cancel
+
+	// Start a goroutine to watch for updates to peer server addresses.
+	// The latest valid server address can be received from nextServerAddr.
+	nextServerAddr := make(chan string)
+	go s.watchPeerServerAddrs(streamCtx, peer, nextServerAddr)
+
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
-	go retryLoopBackoffPeering(retryCtx, logger, func() error {
+	go retryLoopBackoffPeering(streamCtx, logger, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
-		defer func() {
-			buffer = buffer.Next()
-		}()
-		addr, ok := buffer.Value.(string)
-		if !ok {
-			return fmt.Errorf("peer server address type %T is not a string", buffer.Value)
-		}
+		addr := <-nextServerAddr
 
 		logger.Trace("dialing peer", "addr", addr)
-		conn, err := grpc.DialContext(retryCtx, addr,
+		conn, err := grpc.DialContext(streamCtx, addr,
 			// TODO(peering): use a grpc.WithStatsHandler here?)
 			tlsOption,
 			// For keep alive parameters there is a larger comment in ClientConnPool.dial about that.
@@ -349,7 +341,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 		defer conn.Close()
 
 		client := pbpeerstream.NewPeerStreamServiceClient(conn)
-		stream, err := client.StreamResources(retryCtx)
+		stream, err := client.StreamResources(streamCtx)
 		if err != nil {
 			return err
 		}
@@ -395,6 +387,74 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 	}, peeringRetryTimeout)
 
 	return nil
+}
+
+// watchPeerServerAddrs sends an up-to-date peer server address to nextServerAddr.
+// It loads the server addresses into a ring buffer and cycles through them until:
+//  1. streamCtx is cancelled (peer is deleted)
+//  2. the peer is modified and the watchset fires.
+//
+// In case (2) we refetch the peering and rebuild the ring buffer.
+func (s *Server) watchPeerServerAddrs(ctx context.Context, peer *pbpeering.Peering, nextServerAddr chan<- string) {
+	defer close(nextServerAddr)
+
+	// we initialize the ring buffer with the peer passed to `establishStream`
+	// because the caller has pre-checked `peer.ShouldDial`, guaranteeing
+	// at least one server address.
+	//
+	// IMPORTANT: ringbuf must always be length > 0 or else `<-nextServerAddr` may block.
+	ringbuf := ring.New(len(peer.PeerServerAddresses))
+	for _, addr := range peer.PeerServerAddresses {
+		ringbuf.Value = addr
+		ringbuf = ringbuf.Next()
+	}
+	innerWs := memdb.NewWatchSet()
+	_, _, err := s.fsm.State().PeeringReadByID(innerWs, peer.ID)
+	if err != nil {
+		s.logger.Warn("failed to watch for changes to peer; server addresses may become stale over time.",
+			"peer_id", peer.ID,
+			"error", err)
+	}
+
+	fetchAddrs := func() error {
+		// reinstantiate innerWs to prevent it from growing indefinitely
+		innerWs = memdb.NewWatchSet()
+		_, peering, err := s.fsm.State().PeeringReadByID(innerWs, peer.ID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch peer %q: %w", peer.ID, err)
+		}
+		if !peering.IsActive() {
+			return fmt.Errorf("peer %q is no longer active", peer.ID)
+		}
+		if len(peering.PeerServerAddresses) == 0 {
+			return fmt.Errorf("peer %q has no addresses to dial", peer.ID)
+		}
+
+		ringbuf = ring.New(len(peering.PeerServerAddresses))
+		for _, addr := range peering.PeerServerAddresses {
+			ringbuf.Value = addr
+			ringbuf = ringbuf.Next()
+		}
+		return nil
+	}
+
+	for {
+		select {
+		case nextServerAddr <- ringbuf.Value.(string):
+			ringbuf = ringbuf.Next()
+		case err := <-innerWs.WatchCh(ctx):
+			if err != nil {
+				// context was cancelled
+				return
+			}
+			// watch fired so we refetch the peering and rebuild the ring buffer
+			if err := fetchAddrs(); err != nil {
+				s.logger.Warn("watchset for peer was fired but failed to update server addresses",
+					"peer_id", peer.ID,
+					"error", err)
+			}
+		}
+	}
 }
 
 func (s *Server) startPeeringDeferredDeletion(ctx context.Context) {
