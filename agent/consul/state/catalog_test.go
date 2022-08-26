@@ -2104,10 +2104,13 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns1.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(2, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	ns1Dogs := testRegisterService(t, s, 3, "node1", "dogs")
+	ns1Dogs.EnterpriseMeta.Normalize()
+
 	testRegisterNode(t, s, 4, "node2")
 	ns2 := &structs.NodeService{
 		ID:      "service3",
@@ -2116,6 +2119,7 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns2.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(5, "node2", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2139,7 +2143,7 @@ func TestStateStore_Services(t *testing.T) {
 		ns1.ToServiceNode("node1"),
 		ns2.ToServiceNode("node2"),
 	}
-	assertDeepEqual(t, services, expected, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
+	assertDeepEqual(t, expected, services, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 
 	// Deleting a node with a service should fire the watch.
 	if err := s.DeleteNode(6, "node1", nil, ""); err != nil {
@@ -2178,6 +2182,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns1.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(2, "node0", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2188,6 +2193,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns2.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(3, "node1", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
