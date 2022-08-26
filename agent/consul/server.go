@@ -742,7 +742,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})
-	s.peerStreamTracker.SetHeartbeatTimeout(s.peerStreamServer.Config.IncomingHeartbeatTimeout)
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	// Initialize internal gRPC server.
@@ -1575,12 +1574,12 @@ func (s *Server) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.
