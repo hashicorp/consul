@@ -55,7 +55,7 @@ By default, CTS stores [Terraform state data](https://www.terraform.io/docs/stat
 
 ### CTS task and event data 
 
-By default, CTS stores task and event data in the Consul KV. This data is transient and does not persist unless you configure [CTS to run with high availability enabled](/docs/nia/usage/run-ha). High availability is an enterprise feature that promotes CTS resiliency. When high availability is enabled, CTS stores and persists task changes and events that occur when an instance stops.  
+By default, CTS stores task and event data in memory. This data is transient and does not persist. If you configure [CTS to run with high availability enabled](/docs/nia/usage/run-ha), CTS stores the data in the Consul KV. High availability is an enterprise feature that promotes CTS resiliency. When high availability is enabled, CTS stores and persists task changes and events that occur when an instance stops.  
 
 The data stored when operating in high availability mode includes task changes made using the task API or CLI. Examples of task changes include creating a new task, deleting a task, and enabling or disabling a task. You can empty the leader’s stored state information by starting CTS with the [`-reset-storage` flag](/docs/nia/cli/start#options).
 
@@ -63,7 +63,7 @@ The data stored when operating in high availability mode includes task changes m
 
 If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), CTS performs instance compatibility checks to ensure that all instances in the cluster behave consistently. Consistent instance behavior enables CTS to properly perform automations configured in the state storage. 
 
-The only incompatibility CTS checks for are tasks that are configured with a [local module](/docs/nia/configuration#module). CTS instances that do not include this module directory are incompatible. Example log:
+The CTS instance compatibility check reports an error if the task [module](/docs/nia/configuration#module) is configured with a local module, but the module does not exist on the CTS instance. Refer to the [Terraform documentation](https://www.terraform.io/language/modules/sources#module-sources) for additional information about module sources. Example log:
 
 ```shell-session
 [ERROR] ha.compat: error="compatibility check failure: stat ./example-module: no such file or directory"
@@ -72,7 +72,7 @@ Refer to [Error Messages](/docs/nia/usage/errors-ref) for additional information
 
 CTS instances perform a compatibility check on start-up based on the stored state and every five minutes after starting. If the check detects an incompatible CTS instance, it generates a log so that an operator can address it. 
 
-CTS logs the error message and continues to run when it finds an incompatibility. CTS can still elect an incompatible instance to be the leader, but tasks affected by the incompatibility do not run successfully. This happens because all active CTS instances enter [`once-mode`](/docs/nia/cli/start#modes) and run the tasks once when initially elected. 
+CTS logs the error message and continues to run when it finds an incompatibility. CTS can still elect an incompatible instance to be the leader, but tasks affected by the incompatibility do not run successfully. This can happen when all active CTS instances enter [`once-mode`](/docs/nia/cli/start#modes) and run the tasks once when initially elected. 
 
 ## Security guidelines
 

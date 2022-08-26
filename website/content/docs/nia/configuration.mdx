@@ -44,7 +44,7 @@ tls {
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `log_level` - (string: "INFO") The log level to use for CTS logging. This defaults to "INFO". The available log levels are "TRACE", "DEBUG", "INFO", "WARN", and "ERR".
 - `port` - (int: 8558) The port for CTS to use to serve API requests.
-- `id` (string: Generated ID with the format `cts-<hostname>`) The ID of the CTS instance. CTS uses the ID as the service ID for CTS if service registration is enabled. CTS also uses the ID to identify the instance in the cluster.
+- `id` (string: Generated ID with the format `cts-<hostname>`) The ID of the CTS instance. CTS uses the ID as the service ID for CTS if service registration is enabled. CTS also uses the ID to identify the instance in a high availability cluster.
 - `syslog` - Specifies the syslog server for logging.
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   - `facility` - (string: "local0") Name of the syslog facility to log to.
@@ -190,8 +190,7 @@ Service registration requires that the [Consul token](/docs/nia/configuration#co
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul. When service registration is enabled for a [CTS instance configured for high availability](/docs/nia/usage/run-ha), the instance also registers itself with a new tag using the `cts-cluster:<cluster-name>` format.
-| `true` |
+| `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul. When service registration is enabled for a [CTS instance configured for high availability](/docs/nia/usage/run-ha), the instance also registers itself with a new tag using the `cts-cluster:<cluster-name>` format. | `true` |
 | `service_name` | Optional | string | The service name for CTS. We recommended specifying the same name used for [`high_availability.cluster.name`](#high_availability-cluster) value if [CTS is configured for high availability](/docs/nia/usage/run-ha). | `consul-terraform-sync` |
 | `address` | Optional | string | The IP address or hostname for CTS. | IP address of the Consul agent node |
 | `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
@@ -226,7 +225,7 @@ The `cluster` parameter contains configurations for the cluster you want to oper
 | Parameter | Description| Required | Type  |
 | --------- | ---------- | -------- | ------|
 | `name` | Specifies the name of the cluster operating with high availability enabled. | Required | String |
-| `storage` | Configures how CTS stores state information. Refer to [State storage and persistence](/docs/nia/architecture#state-storage-and-persistence) for additional information. You can define storage for the `”consul”` resource. Refer to [High availability cluster storage](#high-availability-cluster-storage) for additional information. | Optional | Object |
+| `storage` | Configures how CTS stores state information. Refer to [State storage and persistence](/docs/nia/architecture#state-storage-and-persistence) for additional information. You can define storage for the `"consul"` resource. Refer to [High availability cluster storage](#high-availability-cluster-storage) for additional information. | Optional | Object |
 
 #### `high_availability.cluster.storage`
 
