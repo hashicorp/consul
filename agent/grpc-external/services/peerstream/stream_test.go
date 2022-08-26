@@ -576,7 +576,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var lastSendSuccess time.Time
+	var lastSendAck, lastSendSuccess time.Time
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
@@ -591,19 +591,22 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		}
 
-		lastSendSuccess = it.FutureNow(1)
+		lastSendAck = time.Date(2000, time.January, 1, 0, 0, 2, 0, time.UTC)
+		lastSendSuccess = time.Date(2000, time.January, 1, 0, 0, 3, 0, time.UTC)
 		err := client.Send(ack)
 		require.NoError(t, err)
 
 		expect := Status{
-			Connected: true,
-			LastAck:   lastSendSuccess,
+			Connected:        true,
+			LastAck:          lastSendAck,
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -625,23 +628,26 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		}
 
-		lastNack = it.FutureNow(1)
+		lastSendAck = time.Date(2000, time.January, 1, 0, 0, 4, 0, time.UTC)
+		lastNack = time.Date(2000, time.January, 1, 0, 0, 5, 0, time.UTC)
 		err := client.Send(nack)
 		require.NoError(t, err)
 
 		lastNackMsg = "client peer was unable to apply resource: bad bad not good"
 
 		expect := Status{
-			Connected:       true,
-			LastAck:         lastSendSuccess,
-			LastNack:        lastNack,
-			LastNackMessage: lastNackMsg,
+			Connected:        true,
+			LastAck:          lastSendAck,
+			LastNack:         lastNack,
+			LastNackMessage:  lastNackMsg,
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -698,13 +704,15 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -757,7 +765,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -766,6 +774,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -789,7 +799,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -799,6 +809,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -820,7 +832,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			DisconnectTime:          disconnectTime,
@@ -831,6 +843,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
+			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			LastSendSuccess:  lastSendSuccess,
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -1240,7 +1254,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
-		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
+		c.IncomingHeartbeatTimeout = incomingHeartbeatTimeout
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")

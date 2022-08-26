@@ -42,8 +42,8 @@ type Config struct {
 	// outgoingHeartbeatInterval is how often we send a heartbeat.
 	outgoingHeartbeatInterval time.Duration
 
-	// incomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
-	incomingHeartbeatTimeout time.Duration
+	// IncomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
+	IncomingHeartbeatTimeout time.Duration
 }
 
 //go:generate mockery --name ACLResolver --inpackage
@@ -63,8 +63,8 @@ func NewServer(cfg Config) *Server {
 	if cfg.outgoingHeartbeatInterval == 0 {
 		cfg.outgoingHeartbeatInterval = defaultOutgoingHeartbeatInterval
 	}
-	if cfg.incomingHeartbeatTimeout == 0 {
-		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
+	if cfg.IncomingHeartbeatTimeout == 0 {
+		cfg.IncomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
 		Config: cfg,

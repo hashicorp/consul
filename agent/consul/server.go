@@ -742,6 +742,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})
+	s.peerStreamTracker.SetHeartbeatTimeout(s.peerStreamServer.Config.IncomingHeartbeatTimeout)
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	// Initialize internal gRPC server.

@@ -270,14 +270,14 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#rootpkipath.
+           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#intermediatepkipath.
+           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please see https://www.consul.io/docs/connect/ca/vault#common-ca-config-options
-          for additional configuration options.
+          Please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#configuration)
+          for all configuration options available for that provider.
 
           Example:
 
@@ -286,7 +286,8 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "leaf_cert_ttl": "36h"
+                     "leaf_cert_ttl": "36h",
+                     "namespace": "my-vault-ns"
                   }]
               }]
             }

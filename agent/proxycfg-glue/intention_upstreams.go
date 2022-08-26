@@ -54,13 +54,8 @@ func (s serverIntentionUpstreams) Notify(ctx context.Context, req *structs.Servi
 
 func dispatchBlockingQueryUpdate[ResultType any](ch chan<- proxycfg.UpdateEvent) func(context.Context, string, ResultType, error) {
 	return func(ctx context.Context, correlationID string, result ResultType, err error) {
-		event := proxycfg.UpdateEvent{
-			CorrelationID: correlationID,
-			Result:        result,
-			Err:           err,
-		}
 		select {
-		case ch <- event:
+		case ch <- newUpdateEvent(correlationID, result, err):
 		case <-ctx.Done():
 		}
 	}

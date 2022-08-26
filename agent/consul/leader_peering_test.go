@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -24,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -974,6 +977,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	var (
 		s2PeerID1          = generateUUID()
 		s2PeerID2          = generateUUID()
+		s2PeerID3          = generateUUID()
 		testContextTimeout = 60 * time.Second
 		lastIdx            = uint64(0)
 	)
@@ -1063,6 +1067,24 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		// mimic tracking exported services
 		mst2.TrackExportedService(structs.ServiceName{Name: "d-service"})
 		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
+
+		// pretend that the hearbeat happened
+		mst2.TrackRecvHeartbeat()
+	}
+
+	// Simulate a peering that never connects
+	{
+		p3 := &pbpeering.Peering{
+			ID:                  s2PeerID3,
+			Name:                "my-peer-s4",
+			PeerID:              token.PeerID, // doesn't much matter what these values are
+			PeerCAPems:          token.CA,
+			PeerServerName:      token.ServerName,
+			PeerServerAddresses: token.ServerAddresses,
+		}
+		require.True(t, p3.ShouldDial())
+		lastIdx++
+		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p3}))
 	}
 
 	// set up a metrics sink
@@ -1092,6 +1114,18 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
 
 		require.Equal(r, float32(2), metric2.Value) // for d, e services
+
+		keyHealthyMetric2 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		healthyMetric2, ok := intv.Gauges[keyHealthyMetric2]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric2))
+
+		require.Equal(r, float32(1), healthyMetric2.Value)
+
+		keyHealthyMetric3 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s4;peer_id=%s", s2PeerID3)
+		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
+
+		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
 	})
 }
 
@@ -1342,4 +1376,139 @@ func Test_isFailedPreconditionErr(t *testing.T) {
 	// test that wrapped errors are checked correctly
 	werr := fmt.Errorf("wrapped: %w", err)
 	assert.True(t, isFailedPreconditionErr(werr))
+}
+
+func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// We want 1s retries for this test
+	orig := maxRetryBackoff
+	maxRetryBackoff = 1
+	t.Cleanup(func() { maxRetryBackoff = orig })
+
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+	})
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
+
+	// Create a peering at dialer by establishing a peering with acceptor's token
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
+
+	establishReq := pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
+
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	testutil.RunStep(t, "calling establish with active connection does not overwrite server addresses", func(t *testing.T) {
+		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		t.Cleanup(cancel)
+
+		// generate a new token from the acceptor
+		req := pbpeering.GenerateTokenRequest{
+			PeerName: "my-peer-dialer",
+		}
+		resp, err := acceptorClient.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+
+		token, err := acceptor.peeringBackend.DecodeToken([]byte(resp.PeeringToken))
+		require.NoError(t, err)
+
+		// we will update the token with bad addresses to assert it doesn't clobber existing ones
+		token.ServerAddresses = []string{"1.2.3.4:1234"}
+
+		badToken, err := acceptor.peeringBackend.EncodeToken(token)
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		t.Cleanup(cancel)
+
+		// Try establishing.
+		// This call will only succeed if the bad address was not used in the calls to exchange the peering secret.
+		establishReq := pbpeering.EstablishRequest{
+			PeerName:     "my-peer-acceptor",
+			PeeringToken: string(badToken),
+		}
+		_, err = dialerClient.Establish(ctx, &establishReq)
+		require.NoError(t, err)
+
+		p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+		require.NoError(t, err)
+		require.NotContains(t, p.Peering.PeerServerAddresses, "1.2.3.4:1234")
+	})
+
+	testutil.RunStep(t, "updated server addresses are picked up by the leader", func(t *testing.T) {
+		// force close the acceptor's gRPC server so the dialier retries with a new address.
+		acceptor.externalGRPCServer.Stop()
+
+		clone := proto.Clone(p.Peering)
+		updated := clone.(*pbpeering.Peering)
+		// start with a bad address so we can assert for a specific error
+		updated.PeerServerAddresses = append([]string{
+			"bad",
+		}, p.Peering.PeerServerAddresses...)
+
+		// this write will wake up the watch on the leader to refetch server addresses
+		require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: updated}))
+
+		retry.Run(t, func(r *retry.R) {
+			status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+			require.True(r, found)
+			// We assert for this error to be set which would indicate that we iterated
+			// through a bad address.
+			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing dial tcp: address bad: missing port in address")
+			require.False(r, status.Connected)
+		})
+	})
 }
