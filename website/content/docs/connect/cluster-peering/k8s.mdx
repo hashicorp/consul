@@ -136,10 +136,9 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 1. For the service in "cluster-02" that you want to export, add the following [annotation](/docs/k8s/annotations-and-labels) to your service's pods.
 
-    <CodeBlockConfig filename="backend-service.yaml" highlight="38">
+    <CodeBlockConfig filename="backend-service.yaml">
 
     ```yaml
-    ---
     # Service to expose backend
     apiVersion: v1
     kind: Service
@@ -250,10 +249,9 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file.
 
-    <CodeBlockConfig filename="frontend-service.yaml" highlight="37">
+    <CodeBlockConfig filename="frontend-service.yaml">
 
     ```yaml
-    ---
     # Service to expose frontend
     apiVersion: v1
     kind: Service
