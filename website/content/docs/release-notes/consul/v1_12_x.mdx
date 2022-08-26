@@ -15,7 +15,7 @@ description: >-
 
 * **AWS Lambda:** Add the ability to invoke AWS Lambdas through terminating gateways which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Please see [AWS Lambda](/docs]/lambda) and [Invoke Lambda Functions](/docs/lambda/invocation) for more details. 
 
-* **Mesh wide TLS min/max versions and cipher suites:** Using the [Mesh](/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
+- **Mesh-wide TLS min/max versions and cipher suites:** Using the [Mesh](/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
 
 * **Expanded details for ACL Permission Denied Errors**: Details are now provided when a permission denied errors are surfaced for RPC calls, that include the accessor id of the ACL token, the permission that is lacking, and the namespace and/or partition that the error occurred on. 
 
