@@ -95,7 +95,7 @@
 }
 
 %composite-row-detail .policy::before {
-  @extend %with-file-fill-mask, %as-pseudo;
+  @extend %with-file-text-mask, %as-pseudo;
   margin-right: 3px;
 }
 %composite-row-detail .role::before {

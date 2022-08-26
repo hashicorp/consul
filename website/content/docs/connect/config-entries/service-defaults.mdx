@@ -366,7 +366,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'UpstreamConfig',
@@ -652,7 +651,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
@@ -686,6 +684,12 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           description: `Port number associated with the destination.`,
         },
       ]
+    },
+    {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
     },
     {
       name: 'MeshGateway',

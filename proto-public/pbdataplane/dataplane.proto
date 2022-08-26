@@ -68,12 +68,17 @@ enum ServiceKind {
 
 message GetEnvoyBootstrapParamsResponse {
   ServiceKind service_kind = 1;
-  // The destination service name
+  // service is be used to identify the service (as the local cluster name and
+  // in metric tags). If the service is a connect proxy it will be the name of
+  // the proxy's destination service, for gateways it will be the gateway
+  // service's name.
   string service = 2;
   string namespace = 3;
   string partition = 4;
   string datacenter = 5;
   google.protobuf.Struct config = 6;
+  string node_id = 7;
+  string node_name = 8;
 }
 
 service DataplaneService {

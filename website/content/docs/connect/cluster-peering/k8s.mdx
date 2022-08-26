@@ -9,7 +9,7 @@ description: >-
 
 ~> **Cluster peering is currently in beta:** Functionality associated
 with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in
-beta may have performance issues, scaling issues, and limited support.
+beta may have performance issues, scaling issues, and limited support.<br/><br/>Cluster peering is not currently available in the HCP Consul offering.
 
 To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
 
@@ -21,10 +21,9 @@ The following CRDs are used to create and manage a peering connection:
 ## Prerequisites
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
-- Consul version 1.13.0 or later
+- Consul version 1.13.1 or later
 - At least two Kubernetes clusters
-- The Kubernetes clusters must be running in a flat network
-- The network must be running on Consul on Kubernetes version 0.45 or later
+- The installation must be running on Consul on Kubernetes version 0.47.1 or later
 
 ### Helm chart configuration
 
@@ -34,7 +33,7 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   ```yaml
   global:
-    image: "hashicorp/consul:1.13.0"
+    image: "hashicorp/consul:1.13.1"
     peering:
       enabled: true
   connectInject:
@@ -48,14 +47,19 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   </CodeBlockConfig>
 
-Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI.
+Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI. With these values,
+the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
+using [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice). When generating a peering token from one of the
+clusters, the address(es) of the load balancer will be used in the peering token, so the peering stream will go through
+the load balancer in front of the servers. For customizing the addresses used in the peering token, see
+[`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
 
 ```shell-session
 $ export HELM_RELEASE_NAME=cluster-name
 ```
 
 ```shell-session
-$ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.45.0" --values values.yaml
+$ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.47.1" --values values.yaml
 ```
 
 ## Create a peering token
@@ -128,7 +132,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 ## Export services between clusters
 
-1. For the service in "cluster-02" that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods.
+1. For the service in "cluster-02" that you want to export, add the following [annotation](/docs/k8s/annotations-and-labels) to your service's pods.
 
     <CodeBlockConfig filename="backend-service.yml">
 
@@ -136,7 +140,6 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     ##…
     annotations:
       "consul.hashicorp.com/connect-inject": "true"
-      "consul.hashicorp.com/transparent-proxy": "false"
     ##…
     ```
 
@@ -203,8 +206,6 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     ##…
     annotations:
       "consul.hashicorp.com/connect-inject": "true"
-      "consul.hashicorp.com/transparent-proxy": "false"
-      "consul.hashicorp.com/connect-service-upstreams": "backend-service.svc.cluster-02.peer:1234"
     ##…
     ```
 
@@ -216,10 +217,10 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl apply --filename frontend-service.yml
     ```
 
-1. Run the following command and check the output to confirm that you peered your clusters successfully.
+1. Run the following command in `frontend-service` and check the output to confirm that you peered your clusters successfully.
 
     ```shell-session
-    $ curl localhost:1234
+    $ kubectl exec -it $(kubectl get pod -l app=frontend -o name) -- curl localhost:1234
     {
         "name": "backend-service",
         ##…
@@ -237,3 +238,32 @@ To confirm that you deleted your peering connection, in `cluster-01`, query the 
 ```shell-session
 $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
 ```
+
+## Recreate or reset a peering connection
+
+To recreate or reset the peering connection, you need to generate a new peering token on the cluster where you created the `PeeringAcceptor` (in this example, `cluster-01`).
+
+1. You can do this by creating or updating the annotation `consul.hashicorp.com/peering-version` on the `PeeringAcceptor`. If the annotation already exists, update its value to a version that is higher.
+
+    <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringAcceptor
+    metadata:
+      name: cluster-02
+      annotations:
+        consul.hashicorp.com/peering-version: 1 ## The peering version you want to set.
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+    </CodeBlockConfig>
+
+1. Once you have done this, repeat the steps in the peering process. This includes saving your peering token so that you can export it to the other cluster. This will re-establish peering with the updated token.
+
+~> **Note:** A new peering token is only generated upon manually setting and updating the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token will cause the previous token to expire.

@@ -1461,7 +1461,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 	}
 
 	newTarget := func(service, serviceSubset, datacenter string) *structs.DiscoveryTarget {
-		t := structs.NewDiscoveryTarget(service, serviceSubset, "default", "default", datacenter)
+		t := structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+			Service:       service,
+			ServiceSubset: serviceSubset,
+			Partition:     "default",
+			Namespace:     "default",
+			Datacenter:    datacenter,
+		})
 		t.SNI = connect.TargetSNI(t, connect.TestTrustDomain)
 		t.Name = t.SNI
 		t.ConnectTimeout = 5 * time.Second // default

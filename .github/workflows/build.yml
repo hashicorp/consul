@@ -410,8 +410,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["i386", "x86_64", "armv7hl", "aarch64"]
-      # fail-fast: true
+        # TODO(eculver): re-enable when there is a smaller verification container available
+        arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
 
