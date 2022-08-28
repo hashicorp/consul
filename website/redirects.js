@@ -1288,4 +1288,24 @@ module.exports = [
     destination: '/docs/api-gateway/upgrades',
     permanent: true,
   },
+  {
+    source: '/docs/api-gateway/upgrade-specific-versions',
+    destination: '/docs/api-gateway/upgrades',
+    permanent: true,
+  },
+  {
+    source: '/docs/intro/usecases/what-is-service-discovery',
+    destination: '/docs/concepts/service-discovery',
+    permanent: true,
+  },
+  {
+    source: '/docs/intro/usecases/what-is-a-service-mesh',
+    destination: '/docs/concepts/service-mesh',
+    permanent: true,
+  },
+  {
+    source: '/docs/download-tools',
+    destination: '/docs/integrate/download-tools',
+    permanent: true,
+  }
 ]
