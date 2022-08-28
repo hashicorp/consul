@@ -21,44 +21,28 @@ type OSServiceClient struct {
 }
 
 func NewOSServiceClient() (*OSServiceClient, error) {
-	var s *uint16
-	scHandle, err := win.OpenSCManager(s, nil, windows.SC_MANAGER_CONNECT)
-
+	scHandle, err := win.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to service manager: %w", err)
 	}
-
-	return &OSServiceClient{
-		scHandle: scHandle,
-	}, nil
+	return &OSServiceClient{scHandle: scHandle}, nil
 }
 
 func (client *OSServiceClient) Check(serviceName string) (err error) {
-	var isHealthy bool
-
 	m := win.getWindowsSvcMgr(client.scHandle)
-	defer func() {
-		errDisconnect := m.Disconnect()
-		if isHealthy || errDisconnect == nil || err != nil {
-			return
-		}
-		//unreachable at the moment but we might want to log this error. leaving here for code-review
-		err = errDisconnect
-	}()
+	defer m.Disconnect()
 
-	svcHandle, err := win.OpenService(win.getWindowsSvcMgrHandle(m), syscall.StringToUTF16Ptr(serviceName), windows.SC_MANAGER_ENUMERATE_SERVICE)
+	svcNamePtr, err := syscall.UTF16PtrFromString(serviceName)
+	if err != nil {
+		return fmt.Errorf("service name must not contain NUL bytes: %w", err)
+	}
+	svcHandle, err := win.OpenService(win.getWindowsSvcMgrHandle(m), svcNamePtr, windows.SC_MANAGER_ENUMERATE_SERVICE)
 	if err != nil {
 		return fmt.Errorf("error accessing service: %w", err)
 	}
 	service := win.getWindowsSvc(serviceName, svcHandle)
-	defer func() {
-		errClose := service.Close()
-		if isHealthy || errClose == nil || err != nil {
-			return
-		}
-		//unreachable at the moment but we might want to log this error. leaving here for code-review
-		err = errClose
-	}()
+	defer service.Close()
+
 	status, err := service.Query()
 	if err != nil {
 		return fmt.Errorf("error querying service status: %w", err)
@@ -66,12 +50,11 @@ func (client *OSServiceClient) Check(serviceName string) (err error) {
 
 	switch status.State {
 	case svc.Running:
-		err = nil
-		isHealthy = true
+		return nil
 	case svc.Paused, svc.Stopped:
-		err = ErrOSServiceStatusCritical
+		err = fmt.Errorf("service status: %v - %w", svcStateString(status.State), ErrOSServiceStatusCritical)
 	default:
-		err = fmt.Errorf("service status: %v", status.State)
+		err = fmt.Errorf("service status: %v", svcStateString(status.State))
 	}
 
 	return err
@@ -111,4 +94,29 @@ type windowsSvcMgr interface {
 type windowsSvc interface {
 	Close() error
 	Query() (svc.Status, error)
+}
+
+// svcStateString converts svc.State (uint32) to human readable string
+//
+// source: https://pkg.go.dev/golang.org/x/sys/windows/svc#pkg-constants
+func svcStateString(state svc.State) string {
+	switch state {
+	case svc.State(windows.SERVICE_STOPPED):
+		return "Stopped"
+	case svc.State(windows.SERVICE_START_PENDING):
+		return "StartPending"
+	case svc.State(windows.SERVICE_STOP_PENDING):
+		return "StopPending"
+	case svc.State(windows.SERVICE_RUNNING):
+		return "Running"
+	case svc.State(windows.SERVICE_CONTINUE_PENDING):
+		return "ContinuePending"
+	case svc.State(windows.SERVICE_PAUSE_PENDING):
+		return "PausePending"
+	case svc.State(windows.SERVICE_PAUSED):
+		return "Paused"
+	default:
+		//if not handled we return the underlying uint32
+		return fmt.Sprintf("%d", state)
+	}
 }

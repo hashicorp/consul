@@ -1111,13 +1111,7 @@ func (c *CheckOSService) run() {
 }
 
 func (c *CheckOSService) doCheck() (string, error) {
-
-	target := c.OSService
-	if c.OSService != "" {
-		target = c.OSService
-	}
-
-	err := c.Client.Check(target)
+	err := c.Client.Check(c.OSService)
 	if err == nil {
 		return api.HealthPassing, nil
 	}
@@ -1130,7 +1124,38 @@ func (c *CheckOSService) doCheck() (string, error) {
 
 func (c *CheckOSService) check() {
 	var out string
-	status, err := c.doCheck()
+	var status string
+	var err error
+
+	waitCh := make(chan error, 1)
+	go func() {
+		status, err = c.doCheck()
+		waitCh <- err
+	}()
+
+	timeout := 30 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	select {
+	case <-time.After(timeout):
+		msg := fmt.Sprintf("Timed out (%s) running check", timeout.String())
+		c.Logger.Warn("Timed out running check",
+			"check", c.CheckID.String(),
+			"timeout", timeout.String(),
+		)
+
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, msg)
+
+		// Now wait for the process to exit so we never start another
+		// instance concurrently.
+		<-waitCh
+		return
+
+	case err = <-waitCh:
+		// The process returned before the timeout, proceed normally
+	}
+
 	if err != nil {
 		c.Logger.Debug("Check failed",
 			"check", c.CheckID.String(),
