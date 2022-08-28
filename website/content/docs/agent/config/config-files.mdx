@@ -1998,7 +1998,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       Certificate Authority from the [`ca_file`](#tls_defaults_ca_file) or
       [`ca_path`](#tls_defaults_ca_path). By default, this is false, and Consul
       will not make use of TLS for outgoing connections. This applies to clients
-      and servers as both will make outgoing connections. This setting *does not*
+      and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
       interface.
 
@@ -2018,6 +2018,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
     - `tls_cipher_suites` ((#tls_grpc_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
 
     - `verify_incoming` - ((#tls_grpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+    - `use_auto_cert` - (Defaults to `false`) Enables or disables TLS on gRPC servers. Set to `true` to allow `auto_encrypt` TLS settings to apply to gRPC listeners. We recommend disabling TLS on gRPC servers if you are using `auto_encrypt` for other TLS purposes, such as enabling HTTPS.
 
   - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
     the HTTPS interface you must define a port via [`ports.https`](#https_port).
@@ -2071,7 +2073,9 @@ specially crafted certificate signed by the CA can be used to gain full access t
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
-      is signed by a trusted CA. This setting *must* be enabled to prevent a
+      is signed by a trusted CA.
+
+      ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and Connect CA root keys*.
 
@@ -2082,7 +2086,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
 ### Deprecated Options ((#tls_deprecated_options))
 
 The following options were deprecated in Consul 1.12, please use the
-[`tls`](#tls) stanza instead.
+[`tls`](#tls-1) stanza instead.
 
 - `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

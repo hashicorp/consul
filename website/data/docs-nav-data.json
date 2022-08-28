@@ -399,6 +399,10 @@
           {
             "title": "Routes",
             "path": "api-gateway/configuration/routes"
+          },
+          {
+            "title": "MeshService",
+            "path": "api-gateway/configuration/meshservice"
           }
         ]
       }
@@ -1245,6 +1249,14 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
             "title": "v1.11.x",
             "path": "release-notes/consul/v1_11_x"
           },
@@ -1259,8 +1271,21 @@
         ]
       },
       {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
+          }
+        ]
+      },
+      {
         "title": "Consul API Gateway",
         "routes": [
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-api-gateway/v0_4_x"
+          },
           {
             "title": "v0.3.x",
             "path": "release-notes/consul-api-gateway/v0_3_x"
