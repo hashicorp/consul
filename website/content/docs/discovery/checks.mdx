@@ -92,11 +92,10 @@ There are several different kinds of checks:
   `timeout` field in the check definition. If any timeout on read exists, the check is still considered healthy.
 
 - `OSService + Interval` - These checks monitor the health of a service running on
-  the host operating system. Windows Services or SystemD services on Windows and Unix respectively.
+  the host operating system as either a Windows service (Windows) or a SystemD service (Unix).
   The check is logged as `healthy` if the service is running.
-  If it is stopped or not running, the status is `critical`, every other result sets
-  the status to `warning` since it basically means that there are issues in determining the
-  health of the service and the check is not reliable.
+  If it is stopped or not running, the status is `critical`. All other result sets
+  the status to `warning`, which indicates that the check is not reliable because an issue is preventing the check from determining the health of the service.
 
 - `Time to Live (TTL)` ((#ttl)) - These checks retain their last known state
   for a given TTL. The state of the check must be updated periodically over the HTTP
