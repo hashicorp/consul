@@ -28,6 +28,9 @@ connect: Terminating gateways with a wildcard service entry should no longer pic
 BREAKING CHANGES:
 
 * config-entry: Exporting a specific service name across all namespace is invalid.
+* connect: contains an upgrade compatibility issue when restoring snapshots containing service mesh proxy registrations from pre-1.13 versions of Consul [[GH-14107](https://github.com/hashicorp/consul/issues/14107)]. Fixed in 1.13.1 [[GH-14149](https://github.com/hashicorp/consul/issues/14149)]. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#all-service-mesh-deployments) for more information.
+* connect: if using auto-encrypt or auto-config, TLS is required for gRPC communication between Envoy and Consul as of 1.13.0; this TLS for gRPC requirement will be removed in a future 1.13 patch release. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#service-mesh-deployments-using-auto-encrypt-or-auto-config) for more information.
+* connect: if a pre-1.13 Consul agent's HTTPS port was not enabled, upgrading to 1.13 may turn on TLS for gRPC communication for Envoy and Consul depending on the agent's TLS configuration. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#grpc-tls) for more information.
 * connect: Removes support for Envoy 1.19 [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
 * telemetry: config flag `telemetry { disable_compat_1.9 = (true|false) }` has been removed. Before upgrading you should remove this flag from your config if the flag is being used. [[GH-13532](https://github.com/hashicorp/consul/issues/13532)]
 
@@ -943,6 +946,24 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.17 (April 13, 2022)
+
+SECURITY:
+
+* agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled. [[GH-12685](https://github.com/hashicorp/consul/issues/12685)]
+* connect: Properly set SNI when configured for services behind a terminating gateway. [[GH-12672](https://github.com/hashicorp/consul/issues/12672)]
+
+DEPRECATIONS:
+
+* tls: With the upgrade to Go 1.17, the ordering of `tls_cipher_suites` will no longer be honored, and `tls_prefer_server_cipher_suites` is now ignored. [[GH-12767](https://github.com/hashicorp/consul/issues/12767)]
+
+BUG FIXES:
+
+* connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault. [[GH-12607](https://github.com/hashicorp/consul/issues/12607)]
+* memberlist: fixes a bug which prevented members from joining a cluster with
+large amounts of churn [[GH-253](https://github.com/hashicorp/memberlist/issues/253)] [[GH-12046](https://github.com/hashicorp/consul/issues/12046)]
+* replication: Fixed a bug which could prevent ACL replication from continuing successfully after a leader election. [[GH-12565](https://github.com/hashicorp/consul/issues/12565)]
 
 ## 1.9.16 (February 28, 2022)
 

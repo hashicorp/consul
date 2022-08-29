@@ -621,38 +621,50 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 }
 
 func TestPeeringService_Delete(t *testing.T) {
-	// TODO(peering): see note on newTestServer, refactor to not use this
-	s := newTestServer(t, nil)
-
-	p := &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:          nil,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+	tt := map[string]pbpeering.PeeringState{
+		"active peering":     pbpeering.PeeringState_ACTIVE,
+		"terminated peering": pbpeering.PeeringState_TERMINATED,
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
-	require.NoError(t, err)
-	require.Nil(t, p.DeletedAt)
-	require.True(t, p.IsActive())
 
-	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	for name, overrideState := range tt {
+		t.Run(name, func(t *testing.T) {
+			// TODO(peering): see note on newTestServer, refactor to not use this
+			s := newTestServer(t, nil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	t.Cleanup(cancel)
+			// A pointer is kept for the following peering so that we can modify the object without another PeeringWrite.
+			p := &pbpeering.Peering{
+				ID:                  testUUID(t),
+				Name:                "foo",
+				PeerCAPems:          nil,
+				PeerServerName:      "test",
+				PeerServerAddresses: []string{"addr1"},
+			}
+			err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
+			require.NoError(t, err)
+			require.Nil(t, p.DeletedAt)
+			require.True(t, p.IsActive())
 
-	_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
-	require.NoError(t, err)
+			// Overwrite the peering state to simulate deleting from a non-initial state.
+			p.State = overrideState
 
-	retry.Run(t, func(r *retry.R) {
-		_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
-		require.NoError(r, err)
+			client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
-		// Initially the peering will be marked for deletion but eventually the leader
-		// routine will clean it up.
-		require.Nil(r, resp)
-	})
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			t.Cleanup(cancel)
+
+			_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
+			require.NoError(t, err)
+
+			retry.Run(t, func(r *retry.R) {
+				_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
+				require.NoError(r, err)
+
+				// Initially the peering will be marked for deletion but eventually the leader
+				// routine will clean it up.
+				require.Nil(r, resp)
+			})
+		})
+	}
 }
 
 func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {

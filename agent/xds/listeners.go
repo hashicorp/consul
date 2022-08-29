@@ -1214,16 +1214,38 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 		}
 	}
+
+	// If an inbound connect limit is set, inject a connection limit filter on each chain.
+	if cfg.MaxInboundConnections > 0 {
+		connectionLimitFilter, err := makeConnectionLimitFilter(cfg.MaxInboundConnections)
+		if err != nil {
+			return nil, err
+		}
+		l.FilterChains = []*envoy_listener_v3.FilterChain{
+			{
+				Filters: []*envoy_listener_v3.Filter{
+					connectionLimitFilter,
+				},
+			},
+		}
+	}
+
 	filter, err := makeListenerFilter(filterOpts)
 	if err != nil {
 		return nil, err
 	}
-	l.FilterChains = []*envoy_listener_v3.FilterChain{
-		{
-			Filters: []*envoy_listener_v3.Filter{
-				filter,
+
+	if len(l.FilterChains) > 0 {
+		// The list of FilterChains has already been initialized
+		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
+	} else {
+		l.FilterChains = []*envoy_listener_v3.FilterChain{
+			{
+				Filters: []*envoy_listener_v3.Filter{
+					filter,
+				},
 			},
-		},
+		}
 	}
 
 	err = s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
@@ -1247,17 +1269,6 @@ func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v
 	// Always apply TLS certificates
 	if err := s.injectConnectTLSForPublicListener(cfgSnap, l); err != nil {
 		return nil
-	}
-
-	// If an inbound connect limit is set, inject a connection limit filter on each chain.
-	if proxyCfg.MaxInboundConnections > 0 {
-		filter, err := makeConnectionLimitFilter(proxyCfg.MaxInboundConnections)
-		if err != nil {
-			return nil
-		}
-		for idx := range l.FilterChains {
-			l.FilterChains[idx].Filters = append(l.FilterChains[idx].Filters, filter)
-		}
 	}
 
 	return nil
@@ -1990,6 +2001,7 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener
 
 func makeConnectionLimitFilter(limit int) (*envoy_listener_v3.Filter, error) {
 	cfg := &envoy_connection_limit_v3.ConnectionLimit{
+		StatPrefix:     "inbound_connection_limit",
 		MaxConnections: wrapperspb.UInt64(uint64(limit)),
 	}
 	return makeFilter("envoy.filters.network.connection_limit", cfg)
