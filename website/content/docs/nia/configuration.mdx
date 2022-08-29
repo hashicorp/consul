@@ -245,7 +245,7 @@ The `instance` parameter is an object that contains configurations unique to the
 
 ## Service
 
-~> Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Module Input](/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
+~> **Note:** Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Module Input](/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. Refer to [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
 
 A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `module_input "services` blocks.
 
