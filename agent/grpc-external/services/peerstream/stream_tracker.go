@@ -14,18 +14,27 @@ type Tracker struct {
 	mu      sync.RWMutex
 	streams map[string]*MutableStatus
 
+	// heartbeatTimeout is the max duration a connection is allowed to be
+	// disconnected before the stream health is reported as non-healthy
+	heartbeatTimeout time.Duration
+
 	// timeNow is a shim for testing.
 	timeNow func() time.Time
 }
 
-func NewTracker() *Tracker {
+func NewTracker(heartbeatTimeout time.Duration) *Tracker {
+	if heartbeatTimeout == 0 {
+		heartbeatTimeout = defaultIncomingHeartbeatTimeout
+	}
 	return &Tracker{
-		streams: make(map[string]*MutableStatus),
-		timeNow: time.Now,
+		streams:          make(map[string]*MutableStatus),
+		timeNow:          time.Now,
+		heartbeatTimeout: heartbeatTimeout,
 	}
 }
 
-func (t *Tracker) SetClock(clock func() time.Time) {
+// setClock is used for debugging purposes only.
+func (t *Tracker) setClock(clock func() time.Time) {
 	if clock == nil {
 		t.timeNow = time.Now
 	} else {
@@ -128,6 +137,39 @@ func (t *Tracker) DeleteStatus(id string) {
 	delete(t.streams, id)
 }
 
+// IsHealthy is a calculates the health of a peering status.
+// We define a peering as unhealthy if its status has been in the following
+// states for longer than the configured incomingHeartbeatTimeout.
+//   - If it is disconnected
+//   - If the last received Nack is newer than last received Ack
+//   - If the last received error is newer than last received success
+//
+// If none of these conditions apply, we call the peering healthy.
+func (t *Tracker) IsHealthy(s Status) bool {
+	// If stream is in a disconnected state for longer than the configured
+	// heartbeat timeout, report as unhealthy.
+	if !s.DisconnectTime.IsZero() &&
+		t.timeNow().Sub(s.DisconnectTime) > t.heartbeatTimeout {
+		return false
+	}
+
+	// If last Nack is after last Ack, it means the peer is unable to
+	// handle our replication message.
+	if s.LastNack.After(s.LastAck) &&
+		t.timeNow().Sub(s.LastAck) > t.heartbeatTimeout {
+		return false
+	}
+
+	// If last recv error is newer than last recv success, we were unable
+	// to handle the peer's replication message.
+	if s.LastRecvError.After(s.LastRecvResourceSuccess) &&
+		t.timeNow().Sub(s.LastRecvError) > t.heartbeatTimeout {
+		return false
+	}
+
+	return true
+}
+
 type MutableStatus struct {
 	mu sync.RWMutex
 
@@ -199,37 +241,6 @@ func (s *Status) GetImportedServicesCount() uint64 {
 
 func (s *Status) GetExportedServicesCount() uint64 {
 	return uint64(len(s.ExportedServices))
-}
-
-// IsHealthy is a convenience func that returns true/ false for a peering status.
-// We define a peering as unhealthy if its status satisfies one of the following:
-// -  If it is disconnected
-// -  If the last received Nack is newer than last received Ack
-// -  If the last received error is newer than last received success
-// If none of these conditions apply, we call the peering healthy.
-func (s *Status) IsHealthy() bool {
-	if !s.Connected {
-		return false
-	}
-
-	// If stream is in a disconnected state, report unhealthy.
-	// This should be logically equivalent to s.Connected above.
-	if !s.DisconnectTime.IsZero() {
-		return false
-	}
-
-	// If last Nack is after last Ack, it means the peer is unable to
-	// handle our replication messages.
-	if s.LastNack.After(s.LastAck) {
-		return false
-	}
-
-	// If last recv error is newer than last recv success - report unhealthy
-	if s.LastRecvError.After(s.LastRecvResourceSuccess) {
-		return false
-	}
-
-	return true
 }
 
 func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
