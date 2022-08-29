@@ -1279,7 +1279,6 @@ module.exports = [
     permanent: true,
   },
   {
-<<<<<<< HEAD
     source: '/docs/k8s/installation/install#consul-k8s-cli-installation',
     destination: '/docs/k8s/installation/install-cli',
     permanent: true,
@@ -1400,15 +1399,16 @@ module.exports = [
   {
     source: '/docs/k8s/installation/vault/wan-federation',
     destination: '/docs/k8s/deployment-configurations/vault/wan-federation',
-=======
+    permanent: true,
+  },
+  {
     source: '/docs/api-gateway/common-errors',
-    destination: '/docs/api-gateway/usage\#error-messages',
+    destination: '/docs/api-gateway/usage#error-messages',
     permanent: true,
   },
   {
     source: '/docs/api-gateway/upgrade-specific-versions',
     destination: '/docs/api-gateway/upgrades',
->>>>>>> origin/main
     permanent: true,
   },
   {
