@@ -45,7 +45,7 @@ func TestStatus_IsHealthy(t *testing.T) {
 			},
 		},
 		{
-			name:        "receive error before receive success",
+			name:        "nack before ack",
 			expectedVal: false,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now()
