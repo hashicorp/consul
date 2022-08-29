@@ -535,6 +535,12 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 	if req.Peering.Name == "" {
 		return errors.New("Missing Peering Name")
 	}
+	if req.Peering.State == pbpeering.PeeringState_DELETING && (req.Peering.DeletedAt == nil || structs.IsZeroProtoTime(req.Peering.DeletedAt)) {
+		return errors.New("Missing deletion time for peering in deleting state")
+	}
+	if req.Peering.DeletedAt != nil && !structs.IsZeroProtoTime(req.Peering.DeletedAt) && req.Peering.State != pbpeering.PeeringState_DELETING {
+		return fmt.Errorf("Unexpected state for peering with deletion time: %s", pbpeering.PeeringStateToAPI(req.Peering.State))
+	}
 
 	// Ensure the name is unique (cannot conflict with another peering with a different ID).
 	_, existing, err := peeringReadTxn(tx, nil, Query{
@@ -546,6 +552,10 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 	}
 
 	if existing != nil {
+		if req.Peering.ShouldDial() != existing.ShouldDial() {
+			return fmt.Errorf("Cannot switch peering dialing mode from %t to %t", existing.ShouldDial(), req.Peering.ShouldDial())
+		}
+
 		if req.Peering.ID != existing.ID {
 			return fmt.Errorf("A peering already exists with the name %q and a different ID %q", req.Peering.Name, existing.ID)
 		}
