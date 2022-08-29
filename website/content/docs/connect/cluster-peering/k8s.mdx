@@ -276,7 +276,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yml
     ```
 
-1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file. In order dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](https://www.consul.io/docs/discovery/dns#service-virtual-ip-lookups). 
+1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](https://www.consul.io/docs/discovery/dns#service-virtual-ip-lookups). 
 
     <CodeBlockConfig filename="frontend-service.yaml">
 
