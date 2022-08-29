@@ -96,6 +96,16 @@ pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
 Alternatively, the TXT record will only include the node's metadata value when the
 node's metadata key starts with `rfc1035-`.
 
+
+### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+For node lookups, only the partition and datacenter need to be specified as nodes cannot be
+namespaced.
+
+```text
+[<tag>.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
+```
+
 ## Service Lookups
 
 A service lookup is used to query for service providers. Service queries support
@@ -398,7 +408,32 @@ of a service imported from that peer.
 
 The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
 under the `consul-virtual` tag.
+ 
+### Service Virtual IP Lookups for Namespaces and Admin Partitions <EnterpriseAlert inline />
 
+Consul Enterprise supports resolving namespaced and partitioned services via DNS.
+The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
+The DNS server can also resolve nodes assigned to partitions.
+To maintain backwards compatibility existing queries can be used and these will
+resolve services within the `default` namespace and partition. However, for resolving
+services from other namespaces or partitions the following form can be used:
+
+```text
+[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+This sequence is the canonical naming convention of a Consul Enterprise service. At least two of the following
+fields must be present:
+* `namespace`
+* `partition`
+* `datacenter`
+  
+For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
+
+```text
+<service>.virtual[.<namespace>].<peer>.<domain>
+```
+ 
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -479,38 +514,6 @@ to reach a node from outside its datacenter, you can configure this behavior
 using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
 options.
-
-## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
-
-Consul Enterprise supports resolving namespaced and partitioned services via DNS.
-The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
-The DNS server can also resolve nodes assigned to partitions.
-To maintain backwards compatibility existing queries can be used and these will
-resolve services within the `default` namespace and partition. However, for resolving
-services from other namespaces or partitions the following form can be used:
-
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-This sequence is the canonical naming convention of a Consul Enterprise service. At least two of the following
-fields must be present:
-* `namespace`
-* `partition`
-* `datacenter`
-
-For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
-
-```text
-<service>.virtual[.<namespace>].<peer>.<domain>
-```
-
-For node lookups, only the partition and datacenter need to be specified as nodes cannot be
-namespaced.
-
-```text
-[<tag>.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
-```
 
 ## DNS with ACLs
 
