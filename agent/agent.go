@@ -2939,9 +2939,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Client:        a.osServiceClient,
 				StatusHandler: statusHandler,
 			}
-			if prev := a.checkOSServices[cid]; prev != nil {
-				prev.Stop()
-			}
 			osServiceCheck.Start()
 			a.checkOSServices[cid] = osServiceCheck
 
