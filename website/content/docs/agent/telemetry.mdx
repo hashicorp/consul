@@ -695,11 +695,12 @@ agent. The table below describes the additional metrics exported by the proxy.
 **Requirements:**
 - Consul 1.13.0+
 
-[Cluster peering](/docs/connect/cluster-peering) refers to enabling communication between Consul clusters through a peer connection, as opposed to a federated connection. Consul collects metrics that describe the number of services exported to a peered cluster. Peering metrics are only emitted by the leader server.  
+[Cluster peering](/docs/connect/cluster-peering) refers to enabling communication between Consul clusters through a peer connection, as opposed to a federated connection. Consul collects metrics that describe the number of services exported to a peered cluster. Peering metrics are only emitted by the leader server. Note these metrics are emitted every 9 seconds.
 
 | Metric                                | Description                                                           | Unit   | Type    |
 | ------------------------------------- | ----------------------------------------------------------------------| ------ | ------- |
 | `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.  | count  | gauge   |
+| `consul.peering.healthy`    | Tracks the health connectivity of a peering as reported by the server. Note that both the dialer and the acceptor for a peering will report its own health metric for a peering. If the peering has not received a heartbeat within the heartbeat timeout, or if we didn't last receive or send a success before an error, we call the peering unhealthy (metric has 0 value). Otherwise, we call it healthy (metrics has 1 value).  | health state (1 healthy, 0 unhealthy)  | gauge   |
 
 ### Labels
 Consul attaches the following labels to metric values. 
