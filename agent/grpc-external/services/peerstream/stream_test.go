@@ -655,7 +655,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 				},
 			},
 		}
-		lastRecvResourceSuccess = it.FutureNow(2)
+		lastRecvResourceSuccess = it.FutureNow(1)
 		err := client.Send(resp)
 		require.NoError(t, err)
 
