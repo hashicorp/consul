@@ -689,6 +689,7 @@ func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.Ser
 	t.Namespace = s.Namespace
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
+	t.Peer = s.Peer
 }
 func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *ServiceResolverRedirect) {
 	if s == nil {
@@ -699,6 +700,7 @@ func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *S
 	s.Namespace = t.Namespace
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
+	s.Peer = t.Peer
 }
 func ServiceResolverSubsetToStructs(s *ServiceResolverSubset, t *structs.ServiceResolverSubset) {
 	if s == nil {
