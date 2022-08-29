@@ -97,14 +97,20 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		resp, err := client.GetEnvoyBootstrapParams(ctx, req)
 		require.NoError(t, err)
 
-		require.Equal(t, tc.registerReq.Service.Proxy.DestinationServiceName, resp.Service)
+		if tc.registerReq.Service.IsGateway() {
+			require.Equal(t, tc.registerReq.Service.Service, resp.Service)
+		} else {
+			require.Equal(t, tc.registerReq.Service.Proxy.DestinationServiceName, resp.Service)
+		}
+
 		require.Equal(t, serverDC, resp.Datacenter)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.PartitionOrDefault(), resp.Partition)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
 		require.Contains(t, resp.Config.Fields, proxyConfigKey)
 		require.Equal(t, structpb.NewStringValue(proxyConfigValue), resp.Config.Fields[proxyConfigKey])
 		require.Equal(t, convertToResponseServiceKind(tc.registerReq.Service.Kind), resp.ServiceKind)
-
+		require.Equal(t, tc.registerReq.Node, resp.NodeName)
+		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
 	}
 
 	testCases := []testCase{

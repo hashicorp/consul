@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -973,6 +975,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	var (
 		s2PeerID1          = generateUUID()
 		s2PeerID2          = generateUUID()
+		s2PeerID3          = generateUUID()
 		testContextTimeout = 60 * time.Second
 		lastIdx            = uint64(0)
 	)
@@ -1062,6 +1065,24 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		// mimic tracking exported services
 		mst2.TrackExportedService(structs.ServiceName{Name: "d-service"})
 		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
+
+		// pretend that the hearbeat happened
+		mst2.TrackRecvHeartbeat()
+	}
+
+	// Simulate a peering that never connects
+	{
+		p3 := &pbpeering.Peering{
+			ID:                  s2PeerID3,
+			Name:                "my-peer-s4",
+			PeerID:              token.PeerID, // doesn't much matter what these values are
+			PeerCAPems:          token.CA,
+			PeerServerName:      token.ServerName,
+			PeerServerAddresses: token.ServerAddresses,
+		}
+		require.True(t, p3.ShouldDial())
+		lastIdx++
+		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p3}))
 	}
 
 	// set up a metrics sink
@@ -1091,6 +1112,18 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
 
 		require.Equal(r, float32(2), metric2.Value) // for d, e services
+
+		keyHealthyMetric2 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		healthyMetric2, ok := intv.Gauges[keyHealthyMetric2]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric2))
+
+		require.Equal(r, float32(1), healthyMetric2.Value)
+
+		keyHealthyMetric3 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s4;peer_id=%s", s2PeerID3)
+		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
+
+		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
 	})
 }
 
@@ -1331,4 +1364,14 @@ func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
 	require.Equal(t, []error{
 		fmt.Errorf("error 1"),
 	}, allErrors)
+}
+
+func Test_isFailedPreconditionErr(t *testing.T) {
+	st := grpcstatus.New(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+	err := st.Err()
+	assert.True(t, isFailedPreconditionErr(err))
+
+	// test that wrapped errors are checked correctly
+	werr := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, isFailedPreconditionErr(werr))
 }

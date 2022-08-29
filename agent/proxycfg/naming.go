@@ -63,22 +63,29 @@ func NewUpstreamIDFromServiceID(sid structs.ServiceID) UpstreamID {
 	return id
 }
 
-// TODO(peering): confirm we don't need peername here
 func NewUpstreamIDFromTargetID(tid string) UpstreamID {
-	// Drop the leading subset if one is present in the target ID.
-	separators := strings.Count(tid, ".")
-	if separators > 3 {
-		prefix := tid[:strings.Index(tid, ".")+1]
-		tid = strings.TrimPrefix(tid, prefix)
+	var id UpstreamID
+	split := strings.Split(tid, ".")
+
+	switch {
+	case split[len(split)-2] == "external":
+		id = UpstreamID{
+			Name:           split[0],
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(split[2], split[1]),
+			Peer:           split[4],
+		}
+	case len(split) == 5:
+		// Drop the leading subset if one is present in the target ID.
+		split = split[1:]
+		fallthrough
+	default:
+		id = UpstreamID{
+			Name:           split[0],
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(split[2], split[1]),
+			Datacenter:     split[3],
+		}
 	}
 
-	split := strings.SplitN(tid, ".", 4)
-
-	id := UpstreamID{
-		Name:           split[0],
-		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(split[2], split[1]),
-		Datacenter:     split[3],
-	}
 	id.normalize()
 	return id
 }

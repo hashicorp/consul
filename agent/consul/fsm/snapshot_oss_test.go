@@ -3,6 +3,7 @@ package fsm
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -961,4 +962,67 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, idx)
 	require.Nil(t, config)
+}
+
+// This test asserts that ServiceVirtualIP, which made a breaking change
+// in 1.13.0, can still restore from older snapshots which use the old
+// state.ServiceVirtualIP type.
+func Test_restoreServiceVirtualIP(t *testing.T) {
+	psn := structs.PeeredServiceName{
+		ServiceName: structs.ServiceName{
+			Name: "foo",
+		},
+	}
+
+	run := func(t *testing.T, input interface{}) {
+		t.Helper()
+
+		var b []byte
+		buf := bytes.NewBuffer(b)
+		// Encode input
+		encoder := codec.NewEncoder(buf, structs.MsgpackHandle)
+		require.NoError(t, encoder.Encode(input))
+
+		// Create a decoder
+		dec := codec.NewDecoder(buf, structs.MsgpackHandle)
+
+		logger := testutil.Logger(t)
+		fsm, err := New(nil, logger)
+		require.NoError(t, err)
+
+		restore := fsm.State().Restore()
+
+		// Call restore
+		require.NoError(t, restoreServiceVirtualIP(nil, restore, dec))
+		require.NoError(t, restore.Commit())
+
+		ip, err := fsm.State().VirtualIPForService(psn)
+		require.NoError(t, err)
+
+		// 240->224 due to addIPOffset
+		require.Equal(t, "224.0.0.2", ip)
+	}
+
+	t.Run("new ServiceVirtualIP with PeeredServiceName", func(t *testing.T) {
+		run(t, state.ServiceVirtualIP{
+			Service:   psn,
+			IP:        net.ParseIP("240.0.0.2"),
+			RaftIndex: structs.RaftIndex{},
+		})
+	})
+	t.Run("pre-1.13.0 ServiceVirtualIP with ServiceName", func(t *testing.T) {
+		type compatServiceVirtualIP struct {
+			Service   structs.ServiceName
+			IP        net.IP
+			RaftIndex structs.RaftIndex
+		}
+
+		run(t, compatServiceVirtualIP{
+			Service: structs.ServiceName{
+				Name: "foo",
+			},
+			IP:        net.ParseIP("240.0.0.2"),
+			RaftIndex: structs.RaftIndex{},
+		})
+	})
 }

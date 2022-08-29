@@ -153,8 +153,9 @@ spec:
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file to be used for one-way TLS authentication.
 
--> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
-bundle in order to properly initiate a TLS connection to the destination service.
+-> **Note**: When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter
+and point to a valid CA bundle in order to properly initiate a TLS
+connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 

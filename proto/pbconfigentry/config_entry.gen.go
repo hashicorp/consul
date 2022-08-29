@@ -630,6 +630,14 @@ func ServiceResolverFailoverToStructs(s *ServiceResolverFailover, t *structs.Ser
 	t.ServiceSubset = s.ServiceSubset
 	t.Namespace = s.Namespace
 	t.Datacenters = s.Datacenters
+	{
+		t.Targets = make([]structs.ServiceResolverFailoverTarget, len(s.Targets))
+		for i := range s.Targets {
+			if s.Targets[i] != nil {
+				ServiceResolverFailoverTargetToStructs(s.Targets[i], &t.Targets[i])
+			}
+		}
+	}
 }
 func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *ServiceResolverFailover) {
 	if s == nil {
@@ -639,6 +647,38 @@ func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *S
 	s.ServiceSubset = t.ServiceSubset
 	s.Namespace = t.Namespace
 	s.Datacenters = t.Datacenters
+	{
+		s.Targets = make([]*ServiceResolverFailoverTarget, len(t.Targets))
+		for i := range t.Targets {
+			{
+				var x ServiceResolverFailoverTarget
+				ServiceResolverFailoverTargetFromStructs(&t.Targets[i], &x)
+				s.Targets[i] = &x
+			}
+		}
+	}
+}
+func ServiceResolverFailoverTargetToStructs(s *ServiceResolverFailoverTarget, t *structs.ServiceResolverFailoverTarget) {
+	if s == nil {
+		return
+	}
+	t.Service = s.Service
+	t.ServiceSubset = s.ServiceSubset
+	t.Partition = s.Partition
+	t.Namespace = s.Namespace
+	t.Datacenter = s.Datacenter
+	t.Peer = s.Peer
+}
+func ServiceResolverFailoverTargetFromStructs(t *structs.ServiceResolverFailoverTarget, s *ServiceResolverFailoverTarget) {
+	if s == nil {
+		return
+	}
+	s.Service = t.Service
+	s.ServiceSubset = t.ServiceSubset
+	s.Partition = t.Partition
+	s.Namespace = t.Namespace
+	s.Datacenter = t.Datacenter
+	s.Peer = t.Peer
 }
 func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.ServiceResolverRedirect) {
 	if s == nil {
