@@ -130,7 +130,7 @@ export GOLDFLAGS
 
 # Allow skipping docker build during integration tests in CI since we already
 # have a built binary
-ENVOY_INTEG_DEPS?=dev-docker
+ENVOY_INTEG_DEPS?=docker-envoy-integ
 ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
@@ -346,8 +346,22 @@ consul-docker: go-build-image
 ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
+# Build image used to run integration tests locally.
+docker-envoy-integ:
+	$(MAKE) GOARCH=amd64 linux
+	docker build \
+      --platform linux/amd64 $(NOCACHE) $(QUIET) \
+      -t 'consul:local' \
+      --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+      $(CURDIR)/pkg/bin/linux_amd64 \
+      -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+
+# Run integration tests.
+# Use GO_TEST_FLAGS to run specific tests:
+#      make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"
+# NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
-	@go test -v -timeout=30m -tags integration ./test/integration/connect/envoy
+	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
 .PHONY: test-compat-integ
 test-compat-integ: dev-docker
