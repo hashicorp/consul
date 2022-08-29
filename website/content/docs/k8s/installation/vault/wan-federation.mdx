@@ -36,7 +36,7 @@ The two data centers will federated using mesh gateways.  This communication top
 
 In this setup, you will deploy Vault server in the primary datacenter (dc1) Kubernetes cluster, which is also the primary Consul datacenter. You will configure your Vault Helm installation in the secondary datacenter (dc2) Kubernetes cluster to use it as an external server. This way there will be a single vault server cluster that will be used by both Consul datacenters.
 
-~> **Note**: For demonstration purposes, you will deploy a Vault server in dev mode. For production installations, this is not recommended. Please visit the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide?in=vault/day-one-raft) for guidance on how to install Vault in a production setting. 
+~> **Note**: For demonstration purposes, you will deploy a Vault server in dev mode. For production installations, this is not recommended. Please visit the [Vault Deployment Guide](/vault/tutorials/raft/raft-deployment-guide?utm_source=docs) for guidance on how to install Vault in a production setting. 
 
 1. Change your current Kubernetes context to target the primary datacenter (dc1).
 

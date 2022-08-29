@@ -64,7 +64,7 @@ If you intend to invoke Lambda services through a terminating gateway, the gatew
 
 *  [Terminating gateways documentation](/docs/connect/gateways#terminating-gateways)
 *  [Terminating gateways on Kubernetes documentation](/docs/k8s/connect/terminating-gateways)
-*  [Connect External Services to Consul With Terminating Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services)
+*  [Connect External Services to Consul With Terminating Gateways tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services?utm_source=docs)
 
 To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`
@@ -75,8 +75,8 @@ configuration entry.
 You can set up a mesh gateway so that you can invoke Lambda services across datacenters and admin partitions. The mesh gateway must be running and registered in the relevant Consul datacenters and partitions. Refer to the following documentation and tutorials for instructions on how to set up mesh gateways:
 
 * [Mesh gateway documentation](/docs/connect/gateways#mesh-gateways)
-* [Connect Services Across Datacenters with Mesh Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
-* [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways?in=consul/kubernetes)
+* [Connect Services Across Datacenters with Mesh Gateways tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways?utm_source=docs)
+* [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](/consul/tutorials/kubernetes/kubernetes-mesh-gateways?utm_source=docs?in=consul/kubernetes)
 
 When using admin partitions, you must add Lambda services to the `Services`
 field of [the `exported-services` configuration
@@ -124,7 +124,7 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 #### Optional: Store the CA Certificate in Parameter Store
 
-When Lambda registrator makes a request to Consul's [HTTP API](/api-docs) over HTTPS and the Consul API is signed by a custom CA, Lambda registrator uses the CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information) to verify the authenticity of the Consul API.  You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
+When Lambda registrator makes a request to Consul's [HTTP API](/api-docs) over HTTPS and the Consul API is signed by a custom CA, Lambda registrator uses the CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information) to verify the authenticity of the Consul API.  You can apply the following Terraform configuration to store Consul's server CA in Parameter Store:
 
 ```hcl
 resource "aws_ssm_parameter" "ca-cert" {
@@ -278,6 +278,6 @@ The following tags are supported. In all cases, the `<PREFIX>` should be
 | - | - |
 | `<PREFIX>/enabled` | Determines if Consul configures the service as an AWS Lambda. |
 | `<PREFIX>/payload-passthrough` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda. |
-| `<PREFIX>/arn` | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service’s Lambda. |
+| `<PREFIX>/arn` | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. |
 | `<PREFIX>/invocation-mode` | Determines if Consul configures the Lambda to be invoked using the `synchronous` or `asynchronous` [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
 | `<PREFIX>/region` | Specifies the AWS region the Lambda is running in. |

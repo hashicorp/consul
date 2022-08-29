@@ -562,6 +562,10 @@
             "title": "Auth Methods",
             "routes": [
               {
+<<<<<<< HEAD
+                "title": "Minikube",
+                "href": "/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs&utm_content=k8s&utm_term=mk"
+=======
                 "title": "Overview",
                 "path": "security/acl/auth-methods"
               },
@@ -719,27 +723,27 @@
             "routes": [
               {
                 "title": "Minikube",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk"
+                "href": "/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs&utm_medium=docs&utm_content=k8s&utm_term=mk"
               },
               {
                 "title": "Kind",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind"
+                "href": "/consul/tutorials/kubernetes/kubernetes-kind?utm_source=docs&utm_content=k8s&utm_term=kind"
               },
               {
                 "title": "AKS (Azure)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks"
+                "href": "/consul/tutorials/kubernetes/kubernetes-aks-azure?utm_source=docs&utm_content=k8s&utm_term=aks"
               },
               {
                 "title": "EKS (AWS)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks"
+                "href": "/consul/tutorials/kubernetes/kubernetes-eks-aws?utm_source=docs&utm_content=k8s&utm_term=eks"
               },
               {
                 "title": "GKE (Google Cloud)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke"
+                "href": "/consul/tutorials/kubernetes/kubernetes-gke-google?utm_source=docs&utm_content=k8s&utm_term=gke"
               },
               {
                 "title": "Red Hat OpenShift",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift"
+                "href": "/consul/tutorials/kubernetes/kubernetes-openshift-red-hat&utm_content=k8s&utm_term=openshift"
               },
               {
                 "title": "Self Hosted Kubernetes",

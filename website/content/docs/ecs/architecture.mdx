@@ -52,7 +52,7 @@ This diagram shows the timeline of a task starting up and all its containers:
       permissions for the service and its sidecar proxy. This token is written to a shared
       volume for use by the `health-sync` container.
     - It registers the service for the current task and its sidecar proxy with Consul.
-    - It runs `consul connect envoy -bootstrap` to generate Envoy’s bootstrap JSON file and
+    - It runs `consul connect envoy -bootstrap` to generate Envoy's bootstrap JSON file and
       writes it to a shared volume.
 - **T1:** The following containers start:
   - `sidecar-proxy` starts using a custom entrypoint command, `consul-ecs envoy-entrypoint`.

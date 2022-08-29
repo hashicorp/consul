@@ -16,7 +16,7 @@ The program is intended to be largely self-service with links to resources, code
 
 ## Categories of Consul Integrations
 
-By leveraging Consul’s RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed both with the open source version of Consul, Consul Enterprise, and HCP Consul. 
+By leveraging Consul's RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul's functionalities. These integrations can be performed both with the open source version of Consul, Consul Enterprise, and HCP Consul. 
 
 **The Consul ecosystem of integrations:**
 
@@ -26,19 +26,19 @@ By leveraging Consul’s RESTful HTTP API system, prospective partners are able 
 
 </ImageConfig>
 
-**Data Plane**: These integrations extend Consul’s certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping APM and logging tools, extend sidecar proxies to support Consul connect, and extend API gateways to allow Consul to route incoming traffic to the proxies for Connect-enabled services.
+**Data Plane**: These integrations extend Consul's certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping APM and logging tools, extend sidecar proxies to support Consul connect, and extend API gateways to allow Consul to route incoming traffic to the proxies for Connect-enabled services.
 
 **Control Plane**: Consul has a client-server architecture and is the control plane for the service mesh.
 
 **Platform**: These integrations leverage automation of Consul agent deployment, configuration, and management. Designed to be platform agnostic, Consul can be deployed in a variety of form factors, including major Public Cloud providers (AWS, GCP, Azure) as well as in bare-metal, virtual machine, and container (Docker, Kubernetes) environments. They include the Consul agent running in both client and server mode.
 
-**Infrastructure**: There are two integration options in this category: natively through a direct integration with Consul or via Consul-Terraform-Sync (CTS). By leveraging Consul’s powerful **Network Infrastructure Automation (NIA)*** capabilities through CTS, changes in an infrastructure are seamlessly automated when Consul detects a change in its service catalog. For example, these integrations could be used to automate IP updates of load balancers or firewall security policies by leveraging Consul service discovery.
+**Infrastructure**: There are two integration options in this category: natively through a direct integration with Consul or via Consul-Terraform-Sync (CTS). By leveraging Consul's powerful **Network Infrastructure Automation (NIA)*** capabilities through CTS, changes in an infrastructure are seamlessly automated when Consul detects a change in its service catalog. For example, these integrations could be used to automate IP updates of load balancers or firewall security policies by leveraging Consul service discovery.
 
--> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul’s service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. More details can be found [here](/docs/integrate/nia-integration).
+-> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul's service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. More details can be found [here](/docs/integrate/nia-integration).
 
-**HCP Consul**: HCP Consul is secure by default and offers an enterprise-level service level agreement (SLA) to deploy an organization’s most important applications. Sign up for HCP Consul is free and available [here](https://cloud.hashicorp.com/products/consul).
+**HCP Consul**: HCP Consul is secure by default and offers an enterprise-level service level agreement (SLA) to deploy an organization's most important applications. Sign up for HCP Consul is free and available [here](https://cloud.hashicorp.com/products/consul).
 
-**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](https://www.consul.io/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul badge for integrations validated to work with [HCP Consul](https://cloud.hashicorp.com/docs/consul/features). Each badge would be displayed on HashiCorp’s partner page as well as be available for posting on the partner’s own website to provide better visibility and differentiation of the integration for joint customers.
+**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](https://www.consul.io/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul badge for integrations validated to work with [HCP Consul](https://cloud.hashicorp.com/docs/consul/features). Each badge would be displayed on HashiCorp's partner page as well as be available for posting on the partner's own website to provide better visibility and differentiation of the integration for joint customers.
 
 <span style={{display:'block', textAlign:'center'}}>
 <ImageConfig inline height={192} width={192}>
@@ -89,7 +89,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **API Gateway**
 
-- [Ambassador Integration documentation](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador)
+- [Ambassador Integration documentation](/consul/tutorials/developer-mesh/service-mesh-gateway-ambassador?utm_source=docs)
 - [F5 Terminating Gateway Integration Documentation](https://www.hashicorp.com/integrations/f5-networks/consul)
 - [Traefik Integration with Consul Service Mesh](https://traefik.io/blog/integrating-consul-connect-service-mesh-with-traefik-2-5/)
 - [Kong's Ingress Controller Integration with Consul](https://www.hashicorp.com/integrations/kong/consul)
@@ -108,14 +108,14 @@ Here are links to resources, documentation, examples and best practices to guide
 
 #### Platform:
 
-- [Consul-AWS for AWS Cloud Map](https://learn.hashicorp.com/tutorials/consul/sync-aws-services)
+- [Consul-AWS for AWS Cloud Map](/consul/tutorials/cloud-integrations/sync-aws-services?utm_source=docs)
 - [Consul Integration with AWS ECS](/docs/ecs/get-started/install)
 - [Consul Integration with Layer5 Meshery](https://www.hashicorp.com/integrations/layer5-io/consul)
-- [Consul Integration with VMware Tanzu Application Service](https://learn.hashicorp.com/tutorials/consul/sync-pivotal-cloud-services)
+- [Consul Integration with VMware Tanzu Application Service](/consul/tutorials/cloud-integrations/sync-pivotal-cloud-services?utm_source=docs)
 
 #### Infrastructure:
 
--> **Note**: The types of integration areas below could be developed to natively work with Consul or through leveraging Consul-Terraform-Sync and Consul’s network automation capabilities. 
+-> **Note**: The types of integration areas below could be developed to natively work with Consul or through leveraging Consul-Terraform-Sync and Consul's network automation capabilities. 
 
 **Firewalls**
 
@@ -132,32 +132,32 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **Load Balancer**
 
-- [Load Balancing with NGINX and Consul Template](https://learn.hashicorp.com/tutorials/consul/load-balancing-nginx)
-- [Load Balancing with HAProxy Service Discovery](https://learn.hashicorp.com/tutorials/consul/load-balancing-haproxy)
+- [Load Balancing with NGINX and Consul Template](/consul/tutorials/load-balancing/load-balancing-nginx?utm_source=docs)
+- [Load Balancing with HAProxy Service Discovery](/consul/tutorials/load-balancing/load-balancing-haproxy?utm_source=docs)
 
   **Network Infrastructure Automation \(using CTS\):**
   
-  - [Automate F5 BIG-IP with Consul NIA](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-f5-bigip-fast?in=consul/network-infrastructure-automation)
+  - [Automate F5 BIG-IP with Consul NIA](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-f5-bigip-fast?utm_source=docs)
   - [Automate VMware Advanced Load Balancers (Avi) with Consul NIA](https://www.hashicorp.com/integrations/_vmware/consul)
 
 **Application Delivery Controllers \(ADC\):**
 
-- [Automate A10 ADC with Consul NIA](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-a10-adc?in=consul/network-infrastructure-automation)
+- [Automate A10 ADC with Consul NIA](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-a10-adc?utm_source=docs)
 - [Automate Citrix ADC with Consul NIA](https://www.hashicorp.com/integrations/citrix-adc/consul)
 
 ### 3. Develop and Test
 
 The only knowledge necessary to write a plugin is basic command-line skills and knowledge of the [Go programming language](http://www.golang.org). Use the plugin interface to develop your integration. All integrations should contain unit and acceptance testing.
 
-**HCP Consul**: The process to configure a testing instance of HCP consul [is very simple](https://learn.hashicorp.com/tutorials/cloud/get-started-consul). HCP has been designed as a HashiCorp managed service so configuration is minimal as only Consul client agents need to be installed. Furthermore, HashiCorp provides all new users an initial credit which should last approximately 2 months using a [development cluster](https://cloud.hashicorp.com/pricing/consul). When deployed with AWS free tier services, there should be no cost beyond the time spent by the designated tester.
+**HCP Consul**: The process to configure a testing instance of HCP consul [is very simple](/consul/tutorials/cloud-get-started/get-started-consul?utm_source=docs). HCP has been designed as a HashiCorp managed service so configuration is minimal as only Consul client agents need to be installed. Furthermore, HashiCorp provides all new users an initial credit which should last approximately 2 months using a [development cluster](https://cloud.hashicorp.com/pricing/consul). When deployed with AWS free tier services, there should be no cost beyond the time spent by the designated tester.
 
-Please note that HCP Consul is currently only deployed on AWS so the partner’s application should be able to be deployed or run in AWS. For more information, please refer to [Peering an HVN to an AWS VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU). 
+Please note that HCP Consul is currently only deployed on AWS so the partner's application should be able to be deployed or run in AWS. For more information, please refer to [Peering an HVN to an AWS VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU). 
 
 #### HCP Consul Resource Links:
 
-- [Getting Started with HCP Consul](https://learn.hashicorp.com/tutorials/cloud/get-started-consul?in=consul/cloud-get-started)
+- [Getting Started with HCP Consul](/consul/tutorials/cloud-get-started/get-started-consul?utm_source=docs)
 - [Peering an HVN to a VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU)
-- [Connecting a Consul Client to HCP Consul](https://learn.hashicorp.com/tutorials/cloud/consul-client-virtual-machines?in=consul/cloud-get-started)
+- [Connecting a Consul Client to HCP Consul](/consul/tutorials/cloud-get-started/consul-client-aws-ec2?utm_source=docs)
 - [Monitoring HCP Consul with Datadog](https://docs.datadoghq.com/integrations/guide/hcp-consul/)
 
 **Consul Enterprise**: An integration qualifies for Consul Enterprise when it is tested and compatible with Consul Enterprise Namespaces.

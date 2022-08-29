@@ -112,9 +112,9 @@ Here are some general recommendations:
 - For DNS-heavy workloads, configuring all Consul agents in a cluster with the
   [`allow_stale`](/docs/agent/config/config-files#allow_stale) configuration option will allow reads to
   scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
-  for DNS by default. See [Stale Reads](https://learn.hashicorp.com/tutorials/consul/dns-caching#stale-reads) in the
-  [DNS Caching](https://learn.hashicorp.com/tutorials/consul/dns-caching) guide for more details. It's also good to set
-  reasonable, non-zero [DNS TTL values](https://learn.hashicorp.com/tutorials/consul/dns-caching#ttl-values) if your clients will
+  for DNS by default. See [Stale Reads](/consul/tutorials/networking/dns-caching?utm_source=docs#stale-reads) in the
+  [DNS Caching](/consul/tutorials/networking/dns-caching?utm_source=docs) guide for more details. It's also good to set
+  reasonable, non-zero [DNS TTL values](/consul/tutorials/networking/dns-caching?utm_source=docs#ttl-values) if your clients will
   respect them.
 
 - In other applications that perform high volumes of reads against Consul, consider using the
@@ -146,7 +146,7 @@ set size. You can determine the working set size by noting the value of
 
 ## Read/Write Tuning
 
-Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key’s value size is `512KB`.
+Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key's value size is `512KB`.
 
 -> Consul is write limited by disk I/O and read limited by CPU.
 
@@ -166,7 +166,7 @@ It should be noted that `stale` is not appropriate for coordination where strong
 
 **Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
-Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
+Consul's agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
 To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/docs/agent/config/config-files#limits)
 

@@ -11,7 +11,7 @@ description: The /acl endpoints manage the Consul's ACL system.
 The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api-docs/acl/tokens) and [policies](/api-docs/acl/policies) with the `/acl` endpoints.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+the [ACL tutorial](/consul/tutorials/security/access-control-setup-production?utm_source=docs).
 
 ## Bootstrap ACLs
 
@@ -80,7 +80,7 @@ consider the cluster in a potentially compromised state.
 
 The returned token will have unrestricted privileges to manage all details of the system.
 It can then be used to further configure the ACL system. Please check the
-[ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more details.
+[ACL tutorial](/consul/tutorials/security/access-control-setup-production?utm_source=docs) for more details.
 
 ## Check ACL Replication
 
@@ -88,7 +88,7 @@ This endpoint returns the status of the ACL replication processes in the
 datacenter. This is intended to be used by operators or by automation checking
 to discover the health of ACL replication.
 
-Please check the [ACL Replication tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
+Please check the [ACL Replication tutorial](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters?utm_source=docs)
 for more details.
 
 | Method | Path               | Produces           |

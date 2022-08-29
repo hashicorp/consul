@@ -35,7 +35,7 @@ as the DNS server for a node and provide a
 [`recursors`](/docs/agent/config/config-files#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. Review the
-[DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=consul.io&utm_medium=docs) for examples.
+[DNS Forwarding tutorial](/consul/tutorials/networking/dns-forwarding?utm_source=docs) for examples.
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
@@ -469,7 +469,7 @@ as there is no way for the query to specify a domain.
 By default, all DNS results served by Consul set a 0 TTL value. This disables
 caching of DNS results. However, there are many situations in which caching is
 desirable for performance and scalability. This is discussed more in the tutorial
-for [DNS caching](https://learn.hashicorp.com/tutorials/consul/dns-caching).
+for [DNS caching](/consul/tutorials/networking/dns-caching?utm_source=docs).
 
 ## WAN Address Translation
 
@@ -540,5 +540,5 @@ DNS lookups and required policies when ACLs are enabled:
 For guidance on how to configure an appropriate token for DNS, refer to the
 securing Consul with ACLs guides for:
 
-- [Production Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#token-for-dns)
-- [Development Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup#additional-acl-configuration)
+- [Production Environments](/consul/tutorials/security/access-control-setup-production?utm_source=docs#token-for-dns)
+- [Development Environments](/consul/tutorials/day-0/access-control-setup?utm_source=docs#enable-acls-on-consul-clients)

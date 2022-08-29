@@ -18,7 +18,7 @@ It is always safer to spin up a new Kubernetes cluster but that is not an
 option for most teams. Consul supports [upgrading in place](/docs/k8s/upgrade).
 
 Non-production environments should be upgraded first. If upgrading
-a Consul version, Consul data should be [backed up](https://learn.hashicorp.com/tutorials/consul/kubernetes-disaster-recovery).
+a Consul version, Consul data should be [backed up](/consul/tutorials/kubernetes-production/kubernetes-disaster-recovery?utm_source=docs).
 
 ### Q: How can I run tcpdump on Consul servers?
 
@@ -159,7 +159,7 @@ If the remote datacenter is not available, then those resources will also not be
 available from that datacenter. That will not affect the requests to the local
 datacenter. There are some special situations where a limited subset of data
 can be replicated, such as with Consul's built-in
-[ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
+[ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters?utm_source=docs)
 capability, or external tools like
 [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
