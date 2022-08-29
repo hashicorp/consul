@@ -6,7 +6,10 @@ description: The /agent/check endpoints interact with checks on the local agent 
 
 # Check - Agent HTTP API
 
-The `/agent/check` endpoints interact with checks on the local agent in Consul.
+Consul's health check capabilities are described in the
+[health checks overview](/docs/discovery/checks).
+The `/agent/check` endpoints interact with health checks
+managed by the local agent in Consul.
 These should not be confused with checks in the catalog.
 
 ## List Checks
@@ -418,6 +421,10 @@ $ curl \
 This endpoint is used with a TTL type check to set the status of the check to
 `critical` and to reset the TTL clock.
 
+If you want to manually mark a service as unhealthy,
+use [maintenance mode](/api-docs/agent#enable-maintenance-mode)
+instead of defining a TTL health check and using this endpoint.
+
 | Method | Path                          | Produces           |
 | ------ | ----------------------------- | ------------------ |
 | `PUT`  | `/agent/check/fail/:check_id` | `application/json` |
@@ -455,6 +462,10 @@ $ curl \
 
 This endpoint is used with a TTL type check to set the status of the check and
 to reset the TTL clock.
+
+If you want to manually mark a service as unhealthy,
+use [maintenance mode](/api-docs/agent#enable-maintenance-mode)
+instead of defining a TTL health check and using this endpoint.
 
 | Method | Path                            | Produces           |
 | ------ | ------------------------------- | ------------------ |

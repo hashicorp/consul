@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -379,6 +379,7 @@ func (s *Server) Establish(
 	}
 
 	var id string
+	serverAddrs := tok.ServerAddresses
 	if existing == nil {
 		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
 		if err != nil {
@@ -386,6 +387,11 @@ func (s *Server) Establish(
 		}
 	} else {
 		id = existing.ID
+		// If there is a connected stream, assume that the existing ServerAddresses
+		// are up to date and do not try to overwrite them with the token's addresses.
+		if status, ok := s.Tracker.StreamStatus(id); ok && status.Connected {
+			serverAddrs = existing.PeerServerAddresses
+		}
 	}
 
 	// validate that this peer name is not being used as an acceptor already
@@ -397,7 +403,7 @@ func (s *Server) Establish(
 		ID:                  id,
 		Name:                req.PeerName,
 		PeerCAPems:          tok.CA,
-		PeerServerAddresses: tok.ServerAddresses,
+		PeerServerAddresses: serverAddrs,
 		PeerServerName:      tok.ServerName,
 		PeerID:              tok.PeerID,
 		Meta:                req.Meta,
@@ -418,9 +424,9 @@ func (s *Server) Establish(
 	}
 	var exchangeResp *pbpeerstream.ExchangeSecretResponse
 
-	// Loop through the token's addresses once, attempting to fetch the long-lived stream secret.
+	// Loop through the known server addresses once, attempting to fetch the long-lived stream secret.
 	var dialErrors error
-	for _, addr := range peering.PeerServerAddresses {
+	for _, addr := range serverAddrs {
 		exchangeResp, err = exchangeSecret(ctx, addr, tlsOption, &exchangeReq)
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret with %q: %w", addr, err))
@@ -720,11 +726,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 		return nil, err
 	}
 
-	if existing == nil || !existing.IsActive() {
+	if existing == nil || existing.State == pbpeering.PeeringState_DELETING {
 		// Return early when the Peering doesn't exist or is already marked for deletion.
 		// We don't return nil because the pb will fail to marshal.
 		return &pbpeering.PeeringDeleteResponse{}, nil
 	}
+
 	// We are using a write request due to needing to perform a deferred deletion.
 	// The peering gets marked for deletion by setting the DeletedAt field,
 	// and a leader routine will handle deleting the peering.

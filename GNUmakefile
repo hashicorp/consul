@@ -16,6 +16,7 @@ PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
+GOARCH?=$(shell go env GOARCH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
@@ -152,7 +153,28 @@ dev-docker: linux
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	#  'consul:local' tag is needed to run the integration tests
-	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' -t 'consul:local' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	@docker buildx use default && docker buildx build -t 'consul:local' \
+       --platform linux/$(GOARCH) \
+	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --load \
+       -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
+
+check-remote-dev-image-env:
+ifndef REMOTE_DEV_IMAGE
+	$(error REMOTE_DEV_IMAGE is undefined: set this image to <your_docker_repo>/<your_docker_image>:<image_tag>, e.g. hashicorp/consul-k8s-dev:latest)
+endif
+
+remote-docker: check-remote-dev-image-env
+	$(MAKE) GOARCH=amd64 linux
+	$(MAKE) GOARCH=arm64 linux
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
+	@docker buildx use default && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
+       --platform linux/amd64,linux/arm64 \
+	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --push \
+       -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
 # In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
@@ -174,10 +196,10 @@ ifeq ($(CIRCLE_BRANCH), main)
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
 endif
 
-# linux builds a linux binary independent of the source platform
+# linux builds a linux binary compatible with the source platform
 linux:
-	@mkdir -p ./pkg/bin/linux_amd64
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./pkg/bin/linux_amd64 -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	@mkdir -p ./pkg/bin/linux_$(GOARCH)
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:

@@ -178,7 +178,9 @@ The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/
 
 #### Exclude outbound CIDR blocks
 
-The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) annotation defines a comma-separated list of outbound CIDR blocks to exclude from traffic redirection when running in transparent proxy mode. The CIDR blocks are string data values. In the following example, services in the `3.3.3.3/24` IP range are not redirected through the transparent proxy:
+The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) annotation 
+defines a comma-separated list of outbound CIDR blocks to exclude from traffic redirection when running in transparent proxy mode. The CIDR blocks are string data values. 
+In the following example, services in the `3.3.3.3/24` IP range are not redirected through the transparent proxy:
 
 <CodeBlockConfig heading="Exclude outbound CIDR blocks from redirection">
 
@@ -193,7 +195,9 @@ The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/
 
 #### Exclude user IDs
 
-The [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids) annotation defines a comma-separated list of additional user IDs to exclude from traffic redirection when running in transparent proxy mode. The user IDs are string data values. In the following example, services with the IDs `4444 ` and `44444 ` are not redirected through the transparent proxy:
+The [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids) annotation 
+defines a comma-separated list of additional user IDs to exclude from traffic redirection when running in transparent proxy mode. The user IDs are string data values. 
+In the following example, services with the IDs `4444 ` and `44444 ` are not redirected through the transparent proxy:
 
 <CodeBlockConfig heading="Exclude user IDs from redirection">
 
@@ -215,15 +219,39 @@ probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liven
 There are two methods for solving this issue. The first method is to set the `connectInject.transparentProxy.defaultOverwriteProbes` annotation to overwrite the Kubernetes HTTP health probes to point to the proxy. The second method is to [enable the Consul container network interface (CNI) plugin](#enable-the-consul-cni-plugin) to perform traffic redirection. Refer to the Consul on Kubernetes installation instructions for additional information. 
 
 #### Overwrite Kubernetes HTTP health probes
-You can either include the `connectInject.transparentProxy.defaultOverwriteProbes` Helm value to your command or add the `consul.hashicorp.com/transparent-proxy-overwrite-probes` Kubernetes annotation to your pod configuration to overwrite health probes.
+You can either include the `connectInject.transparentProxy.defaultOverwriteProbes` Helm value to your command or add the 
+`consul.hashicorp.com/transparent-proxy-overwrite-probes` Kubernetes annotation to your pod configuration to overwrite health probes.
 
 Refer to [Kubernetes Health Checks in Consul on Kubernetes](/docs/k8s/connect/health) for additional information.
 
+### Dial services across Kubernetes cluster
+
+If your [Consul servers are federated between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes), 
+then you must configure services in one Kubernetes cluster to explicitly dial a service in the datacenter of another Kubernetes cluster using the 
+[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. 
+The following example configures the service to dial an upstream service called `my-service` in datacenter `dc2` on port `1234`:
+
+```yaml
+  "consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"
+```
+
+If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s),
+then you must configure services in one Kubernetes cluster to explicitly dial a service in another Kubernetes cluster using the 
+[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. 
+The following example configures the service to dial an upstream service called `my-service` in another Kubernetes cluster on port `1234`:
+
+```yaml
+"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"
+```
+
+You do not need to configure services to explicitlly dial upstream services if your Consul clusters are connected with a [peering connection](/docs/connect/cluster-peering). 
 
 ## Usage
 
-When transparent proxy is enabled, traffic sent to 
-[KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) or Pod IP addresses is redirected throughh the proxy. You must bind Kubernetes Services to Pods using a selector as you define Kubernetes Services in the mesh. The Kubernetes Service name must match the Consul service name to use KubeDNS. This is the default behavior unless you have applied the `consul.hashicorp.com/connect-service` Kubernetes annotation to the service pods. The annotation overrides the Consul service name.
+When transparent proxy is enabled, traffic sent to [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) 
+or Pod IP addresses is redirected through the proxy. You must use a selector to bind Kubernetes Services to Pods as you define Kubernetes Services in the mesh. 
+The Kubernetes Service name must match the Consul service name to use KubeDNS. This is the default behavior unless you have applied the `consul.hashicorp.com/connect-service` 
+Kubernetes annotation to the service pods. The annotation overrides the Consul service name.
 
 Consul configures traffic redirection for each Pod bound to the Kubernetes Service with `iptables` rules. The rules direct all inbound and outbound traffic through an inbound and outbound listener on the sidecar proxy. Consul configures the proxy to route traffic to the appropriate upstream services based on [service
 intentions](/docs/connect/config-entries/service-intentions), which address the upstream services using KubeDNS.
@@ -249,8 +277,8 @@ spec:
 </CodeBlockConfig>
 
 
-Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
-
+Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. 
+If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
 
 ### Headless Services
 For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present connect certificates for mTLS and
@@ -260,13 +288,6 @@ Note that when dialing individual instances, Consul ignores the HTTP routing rul
 
 ## Known Limitations
 
-* The address that a downstream service dials must correspond to the address of an upstream service in the transparent proxy's datacenter. You can apply an [annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to enable services to dial explicit upstreams in other datacenters without transparent proxy. The following example enables downstream services to dial `my-service`
-in the datacenter `dc2`:
-
-  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"`
-
-* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. In the following example, services in another Kubernetes cluster explicitly dial `my-service` on port `1234` instead of using KubeDNS: 
-
-  `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"` 
+- Deployment configurations with federation across or a single datacenter spanning multiple clusters must explicitly dial a service in another datacenter or cluster using annotations.
   
-* When dialing headless services, the request is proxied using a plain TCP proxy. Consul does not take into consideration the upstream's protocol.
+- When dialing headless services, the request is proxied using a plain TCP proxy. Consul does not take into consideration the upstream's protocol.
