@@ -46,7 +46,7 @@ You can use the following methods to get the context names for your clusters:
   the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
   using [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice). 
 
-  When generating a peering token from one of the clusters, the address(es) of the load balancer will be used in the peering token, so the peering stream will go through the load balancer in front of the servers. For customizing the addresses used in the peering token, see [`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
+  When generating a peering token from one of the clusters, Consul uses the address(es) of the load balancer in the peering token so that the peering stream goes through the load balancer in front of the servers. For customizing the addresses used in the peering token, refer to [`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
 
   <CodeBlockConfig filename="values.yaml">
 
