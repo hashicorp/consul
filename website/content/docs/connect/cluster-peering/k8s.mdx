@@ -27,49 +27,49 @@ You must implement the following requirements to create and use cluster peering 
 
 ###  Prepare for install
 
-1. After provisioning a Kubernetes cluster and setting up your kubeconfig file to manage access to multiple Kubernetes clusters, export the Kubernetes context names for future use with `kubectl`. For more information on how to use kubeconfig and contexts, refer to [Configure access to multiple clusters] (https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the Kubernetes documentation website. 
+1. After provisioning a Kubernetes cluster and setting up your kubeconfig file to manage access to multiple Kubernetes clusters, export the Kubernetes context names for future use with `kubectl`. For more information on how to use kubeconfig and contexts, refer to [Configure access to multiple clusters](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the Kubernetes documentation website. 
 
-  You can use the following methods to get the context names for your clusters:
+    You can use the following methods to get the context names for your clusters:
   
     * Issue the `kubectl config current-context` command to get the context for the cluster you are currently in.
     * Issue the `kubectl config get-contexts` command to get all configured contexts in your kubeconfig file.  
-
-  ```shell-session
-  $ export CLUSTER1_CONTEXT=<CONTEXT for first Kubernetes cluster>
-  $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
-  ```
+    
+    ```shell-session
+    $ export CLUSTER1_CONTEXT=<CONTEXT for first Kubernetes cluster>
+    $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
+    ```
 
 1. To establish cluster peering through Kubernetes, create a `values.yaml` file with the following Helm values. 
    
-  With these values,
-  the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
-  using [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice). 
+    With these values,
+    the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
+    using [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice). 
 
-  When generating a peering token from one of the clusters, Consul uses the address(es) of the load balancer in the peering token so that the peering stream goes through the load balancer in front of the servers. For customizing the addresses used in the peering token, refer to [`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
+    When generating a peering token from one of the clusters, Consul uses the address(es) of the load balancer in the peering token so that the peering stream goes through the load balancer in front of the servers. For customizing the addresses used in the peering token, refer to [`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
 
-  <CodeBlockConfig filename="values.yaml">
+    <CodeBlockConfig filename="values.yaml">
 
-  ```yaml
-  global:
-    image: "hashicorp/consul:1.13.1"
-    peering:
+    ```yaml
+    global:
+      image: "hashicorp/consul:1.13.1"
+      peering:
+        enabled: true
+    connectInject:
       enabled: true
-  connectInject:
-    enabled: true
-  dns:
-    enabled: true
-    enableRedirection: true
-  server:
-    exposeService:
-      enabeld: true
-  controller:
-    enabled: true
-  meshGateway:
-    enabled: true
-    replicas: 1
-  ```
+    dns:
+      enabled: true
+      enableRedirection: true
+    server:
+      exposeService:
+        enabeld: true
+    controller:
+      enabled: true
+    meshGateway:
+      enabled: true
+      replicas: 1
+    ```
 
-  </CodeBlockConfig>
+    </CodeBlockConfig>
   
 ### Install Consul on Kubernetes
 
@@ -277,7 +277,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yml
     ```
 
-1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](https://www.consul.io/docs/discovery/dns#service-virtual-ip-lookups). 
+1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). 
 
     <CodeBlockConfig filename="frontend-service.yaml">
 
