@@ -726,11 +726,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 		return nil, err
 	}
 
-	if !existing.IsActive() {
+	if existing == nil || existing.State == pbpeering.PeeringState_DELETING {
 		// Return early when the Peering doesn't exist or is already marked for deletion.
 		// We don't return nil because the pb will fail to marshal.
 		return &pbpeering.PeeringDeleteResponse{}, nil
 	}
+
 	// We are using a write request due to needing to perform a deferred deletion.
 	// The peering gets marked for deletion by setting the DeletedAt field,
 	// and a leader routine will handle deleting the peering.
