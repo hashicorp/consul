@@ -278,7 +278,7 @@ check = {
 OSService checks periodically direct the Consul agent to monitor the health of a service running on
 the host operating system as either a Windows service (Windows) or a SystemD service (Unix).
 The check is logged as `healthy` if the service is running.
-If it is stopped or not running, the status is `critical`. All other result sets
+If it is stopped or not running, the status is `critical`. All other results set
 the status to `warning`, which indicates that the check is not reliable because an issue is preventing the check from determining the health of the service.
 
 The following service definition file snippet is an example
