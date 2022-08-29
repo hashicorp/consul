@@ -30,8 +30,9 @@ You must implement the following requirements to create and use cluster peering 
 1. After provisioning a Kubernetes cluster and setting up your kubeconfig file to manage access to multiple Kubernetes clusters, export the Kubernetes context names for future use with `kubectl`. 
 
   You can use the following methods to get the context names for your clusters:
-  * Issue the `kubectl config current-context` command to get the context for the cluster you are currently in.
-  * Issue the `kubectl config get-contexts` command to get all configured contexts in your kubeconfig file.  
+  
+    * Issue the `kubectl config current-context` command to get the context for the cluster you are currently in.
+    * Issue the `kubectl config get-contexts` command to get all configured contexts in your kubeconfig file.  
 
   ```shell-session
   $ export CLUSTER1_CONTEXT=<CONTEXT for first Kubernetes cluster>
