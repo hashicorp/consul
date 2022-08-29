@@ -1283,6 +1283,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 
 	ports := freeport.GetN(t, 4) // {rpc, serf_lan, serf_wan, grpc}
 
+	conf.PeeringEnabled = true
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.DataDir = dir

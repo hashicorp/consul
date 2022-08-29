@@ -66,6 +66,23 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart enables Cluster Peering for the cluster. This option enables peering controllers and
       allows use of the PeeringAcceptor and PeeringDialer CRDs for establishing service mesh peerings.
 
+    - `tokenGeneration` ((#v-global-peering-tokengeneration))
+
+      - `serverAddresses` ((#v-global-peering-tokengeneration-serveraddresses))
+
+        - `source` ((#v-global-peering-tokengeneration-serveraddresses-source)) (`string: ""`) - Source can be set to "","consul" or "static".
+
+          "" is the default source. If servers are enabled, it will check if `server.exposeService` is enabled, and read
+          the addresses from that service to use as the peering token server addresses. If using admin partitions and
+          only Consul client agents are enabled, the addresses in `externalServers.hosts` and `externalServers.grpcPort`
+          will be used.
+
+          "consul" will use the Consul advertise addresses in the peering token.
+
+          "static" will use the addresses specified in `global.peering.tokenGeneration.serverAddresses.static`.
+
+        - `static` ((#v-global-peering-tokengeneration-serveraddresses-static)) (`array<string>: []`) - Static addresses must be formatted "hostname|ip:port" where the port is the Consul server(s)' grpc port.
+
   - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
     It additionally indicates that you are running Consul Enterprise v1.11+ with a valid Consul Enterprise
     license. Admin partitions enables deploying services across partitions, while sharing
@@ -253,14 +270,14 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#rootpkipath.
+           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#intermediatepkipath.
+           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please see https://www.consul.io/docs/connect/ca/vault#common-ca-config-options
-          for additional configuration options.
+          Please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#configuration)
+          for all configuration options available for that provider.
 
           Example:
 
@@ -269,7 +286,8 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "leaf_cert_ttl": "36h"
+                     "leaf_cert_ttl": "36h",
+                     "namespace": "my-vault-ns"
                   }]
               }]
             }
@@ -846,6 +864,33 @@ Use these links to navigate to a particular top-level stanza.
       "sample/annotation2": "bar"
     ```
 
+  - `exposeService` ((#v-server-exposeservice)) - Configures a service to expose ports on the Consul servers over a Kubernetes Service.
+
+    - `enabled` ((#v-server-exposeservice-enabled)) (`boolean: -`) - When enabled, deploys a Kubernetes Service to reach the Consul servers.
+
+    - `type` ((#v-server-exposeservice-type)) (`string: LoadBalancer`) - Type of service, supports LoadBalancer or NodePort.
+
+    - `nodePort` ((#v-server-exposeservice-nodeport)) - If service is of type NodePort, configures the nodePorts.
+
+      - `http` ((#v-server-exposeservice-nodeport-http)) (`integer: null`) - Configures the nodePort to expose the Consul server http port.
+
+      - `https` ((#v-server-exposeservice-nodeport-https)) (`integer: null`) - Configures the nodePort to expose the Consul server https port.
+
+      - `serf` ((#v-server-exposeservice-nodeport-serf)) (`integer: null`) - Configures the nodePort to expose the Consul server serf port.
+
+      - `rpc` ((#v-server-exposeservice-nodeport-rpc)) (`integer: null`) - Configures the nodePort to expose the Consul server rpc port.
+
+      - `grpc` ((#v-server-exposeservice-nodeport-grpc)) (`integer: null`) - Configures the nodePort to expose the Consul server grpc port.
+
+    - `annotations` ((#v-server-exposeservice-annotations)) (`string: null`) - This value defines additional annotations for
+      server pods. This should be formatted as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
   - `service` ((#v-server-service)) - Server service properties.
 
     - `annotations` ((#v-server-service-annotations)) (`string: null`) - Annotations to apply to the server service.
@@ -880,6 +925,8 @@ Use these links to navigate to a particular top-level stanza.
     wish to use separate hosts for the HTTPS connections.
 
   - `httpsPort` ((#v-externalservers-httpsport)) (`integer: 8501`) - The HTTPS port of the Consul servers.
+
+  - `grpcPort` ((#v-externalservers-grpcport)) (`integer: 8503`) - The GRPC port of the Consul servers.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 

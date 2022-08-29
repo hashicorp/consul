@@ -353,7 +353,7 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 			q.MaxQueryTime = defaultQueryTime
 		}
 		// Timeout after maximum jitter has elapsed.
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}
@@ -1413,6 +1413,27 @@ func (s *NodeService) IsGateway() bool {
 func (s *NodeService) Validate() error {
 	var result error
 
+	if s.Kind == ServiceKindConnectProxy {
+		if s.Port == 0 && s.SocketPath == "" {
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
+		}
+	}
+
+	commonValidation := s.ValidateForAgent()
+	if commonValidation != nil {
+		result = multierror.Append(result, commonValidation)
+	}
+
+	return result
+}
+
+// ValidateForAgent does a subset validation, with the assumption that a local agent can assist with missing values.
+//
+// I.e. in the catalog case, a local agent cannot be assumed to facilitate auto-assignment of port or socket path,
+// so additional checks are needed.
+func (s *NodeService) ValidateForAgent() error {
+	var result error
+
 	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
 
 	// ConnectProxy validation
@@ -1426,10 +1447,6 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf(
 				"Proxy.DestinationServiceName must not be a wildcard for Connect proxy "+
 					"services"))
-		}
-
-		if s.Port == 0 && s.SocketPath == "" {
-			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -2194,8 +2211,8 @@ type PeeredServiceName struct {
 }
 
 type ServiceName struct {
-	Name string
-	acl.EnterpriseMeta
+	Name               string
+	acl.EnterpriseMeta `mapstructure:",squash"`
 }
 
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {

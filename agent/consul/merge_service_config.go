@@ -159,6 +159,13 @@ func computeResolvedServiceConfig(
 			thisReply.Destination = *serviceConf.Destination
 		}
 
+		if serviceConf.MaxInboundConnections > 0 {
+			if thisReply.ProxyConfig == nil {
+				thisReply.ProxyConfig = map[string]interface{}{}
+			}
+			thisReply.ProxyConfig["max_inbound_connections"] = serviceConf.MaxInboundConnections
+		}
+
 		thisReply.Meta = serviceConf.Meta
 	}
 

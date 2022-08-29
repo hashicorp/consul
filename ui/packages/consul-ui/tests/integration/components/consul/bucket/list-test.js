@@ -224,31 +224,31 @@ module('Integration | Component | consul bucket list', function(hooks) {
       assert.dom('[data-test-bucket-item="partition"]').doesNotExist('partition is not displayed');
     });
 
-    test('it displays a peer and no nspace and no service when item.namespace and nspace match', async function(assert) {
+    test('it displays a peer and nspace when item.namespace and nspace match', async function(assert) {
       const PEER_NAME = 'Tomster';
       const NAMESPACE_NAME = 'Mascot';
-      const SERVICE_NAME = 'Ember.js';
 
       this.set('peerName', PEER_NAME);
       this.set('namespace', NAMESPACE_NAME);
-      this.set('service', SERVICE_NAME);
 
       await render(hbs`
         <Consul::Bucket::List
           @item={{hash
             PeerName=this.peerName
             Namespace=this.namespace
-            Service=this.service
             Partition="default"
           }}
           @nspace={{this.namespace}}
-          @service="default"
         />
       `);
 
       assert.dom('[data-test-bucket-item="peer"]').hasText(PEER_NAME, 'Peer is displayed');
-      assert.dom('[data-test-bucket-item="nspace"]').doesNotExist('namespace is not displayed');
-      assert.dom('[data-test-bucket-item="service"]').doesNotExist('service is not displayed');
+      assert
+        .dom('[data-test-bucket-item="nspace"]')
+        .hasText(
+          NAMESPACE_NAME,
+          'namespace is displayed when peer is displayed and we are not on OSS (i.e. cannot use nspaces)'
+        );
       assert.dom('[data-test-bucket-item="partition"]').doesNotExist('partition is not displayed');
     });
   });

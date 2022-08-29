@@ -991,14 +991,12 @@ You can specify the following parameters to configure ingress gateway configurat
         },
         {
           name: 'TLSMinVersion',
-          yaml: false,
           type: 'string: ""',
           description:
             "Set the default minimum TLS version supported for the gateway's listeners. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
         },
         {
           name: 'TLSMaxVersion',
-          yaml: false,
           type: 'string: ""',
           description: {
             hcl:
@@ -1009,7 +1007,6 @@ You can specify the following parameters to configure ingress gateway configurat
         },
         {
           name: 'CipherSuites',
-          yaml: false,
           type: 'array<string>: <optional>',
           description: `Set the default list of TLS cipher suites for the gateway's
                         listeners to support when negotiating connections using
@@ -1179,21 +1176,18 @@ You can specify the following parameters to configure ingress gateway configurat
             },
             {
               name: 'TLSMinVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 'Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.',
             },
             {
               name: 'TLSMaxVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 'Set the maximum TLS version supported for this listener. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.',
             },
             {
               name: 'CipherSuites',
-              yaml: false,
               type: 'array<string>: <optional>',
               description: `Set the list of TLS cipher suites to support when negotiating
                             connections using TLS 1.2 or earlier. If unspecified,

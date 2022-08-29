@@ -81,6 +81,11 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	// Handle invalid ACL tokens up-front.
+	if _, err := s.authenticate(stream.Context()); err != nil {
+		return err
+	}
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -200,7 +205,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 			}
 
-		case cfgSnap = <-stateCh:
+		case cs, ok := <-stateCh:
+			if !ok {
+				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
+				// or by the proxycfg.Manager when an irrecoverable error is encountered
+				// such as the ACL token getting deleted.
+				//
+				// We know for sure that this is the latter case, because in the former we
+				// would've already exited this loop.
+				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
+			}
+			cfgSnap = cs
+
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)

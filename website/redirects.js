@@ -1265,12 +1265,27 @@ module.exports = [
   },
   {
     source: '/docs/api-gateway/api-gateway-usage',
-    destination: '/docs/api-gateway/consul-api-gateway-install',
+    destination: '/docs/api-gateway/install',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/consul-api-gateway-install',
+    destination: '/docs/api-gateway/install',
     permanent: true,
   },
   {
     source: '/docs/k8s/installation/vault/connect-ca',
     destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/common-errors',
+    destination: '/docs/api-gateway/usage#error-messages',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/upgrade-specific-versions',
+    destination: '/docs/api-gateway/upgrades',
     permanent: true,
   },
 ]

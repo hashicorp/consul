@@ -14,19 +14,139 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.13.0
+## Consul 1.13.x
 
-### gRPC TLS
+### Service Mesh Compatibility
 
-In prior Consul versions if HTTPS was enabled for the client API and exposed
-via `ports { https = NUMBER }` then the same TLS material was used to encrypt
-the gRPC port used for xDS. Now this is decoupled and activating TLS on the
-gRPC endpoint is controlled solely with the gRPC section of the new 
-[`tls` stanza](/docs/agent/config/config-files#tls-configuration-reference).
+Before upgrading existing Consul deployments using service mesh to Consul 1.13.x,
+review the following guidances relevant to your deployment:
+- [All service mesh deployments](#all-service-mesh-deployments)
+- [Service mesh deployments using auto-encrypt or auto-config](#service-mesh-deployments-using-auto-encrypt-or-auto-config)
+- [Service mesh deployments without the HTTPS port enabled on Consul agents](#service-mesh-deployments-without-the-https-port-enabled-on-consul-agents)
 
-If you have not yet switched to the new `tls` stanza and were NOT using HTTPS
-for the API then updating to Consul 1.13 will activate TLS for gRPC since the
-deprecated TLS settings are used as defaults.
+#### All service mesh deployments
+
+Upgrade to **Consul version 1.13.1 or later**.
+
+Consul 1.13.0 contains a bug that prevents Consul server agents from restoring 
+saved state on startup if the state
+
+1. was generated before Consul 1.13 (such as during an upgrade), and
+2. contained any Connect proxy registrations.
+
+This bug is fixed in Consul versions 1.13.1 and newer.
+
+#### Service mesh deployments using auto-encrypt or auto-config
+
+**Do not upgrade to Consul 1.13 yet** if using
+[auto-encrypt](/docs/agent/config/config-files#auto_encrypt) or
+[auto-config](/docs/agent/config/config-files#auto_config).
+
+In Consul 1.13, auto-encrypt and auto-config both cause Consul
+to require TLS for gRPC communication with Envoy proxies.
+In environments where Envoy proxies are not already configured
+to use TLS for gRPC, upgrading Consul 1.13 will cause
+Envoy proxies to disconnect from the control plane (Consul agents).
+
+The underlying cause is the same as discussed in
+[deployments without the HTTPS port enabled on Consul agents](#service-mesh-deployments-without-the-https-port-enabled-on-consul-agents).
+However, when using auto-encrypt or auto-config,
+the problem **cannot** currently be avoided by 
+[modifying the agent's TLS configuration](#modify-the-consul-agent-s-tls-configuration)
+because auto-encrypt and auto-config automatically set
+interface-generic TLS configuration in a manner similar to
+[`tls.defaults`](/docs/agent/config/config-files#tls_defaults).
+We are working to address this problem in an upcoming 1.13 patch release.
+
+#### Service mesh deployments without the HTTPS port enabled on Consul agents ((#grpc-tls))
+
+If the HTTPS port is not enabled
+([`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port))
+on a pre-1.13 Consul agent,
+**[modify the agent's TLS configuration before upgrading](#modify-the-consul-agent-s-tls-configuration)**
+to avoid Envoy proxies disconnecting from the control plane (Consul agents).
+Envoy proxies include service mesh sidecars and gateways.
+
+##### Changes to gRPC and HTTP interface configuration
+
+If a Consul agent's HTTP API is exposed externally,
+enabling HTTPS (TLS encryption for HTTP) is important.
+
+The gRPC interface is used for xDS communication between Consul and
+Envoy proxies when using Consul service mesh.
+A Consul agent's gRPC traffic is often loopback-only,
+which TLS encryption is not important for.
+
+Prior to Consul 1.13, if [`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port)
+was configured, TLS was enabled for both HTTP *and* gRPC.
+This was inconvenient for deployments that
+needed TLS for HTTP, but not for gRPC.
+Enabling HTTPS also required launching Envoy proxies
+with the necessary TLS material for xDS communication
+with its Consul agent via TLS over gRPC.
+
+Consul 1.13 addresses this inconvenience by fully decoupling the TLS configuration for HTTP and gRPC interfaces.
+TLS for gRPC is no longer enabled by setting
+[`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port).
+TLS configuration for gRPC is now determined exclusively by:
+
+1. [`tls.grpc`](/docs/agent/config/config-files#tls_grpc), which overrides
+1. [`tls.defaults`](/docs/agent/config/config-files#tls_defaults), which overrides
+1. [Deprecated TLS options](/docs/agent/config/config-files#tls_deprecated_options) such as
+   [`ca_file`](/docs/agent/config/config-files#ca_file-4),
+   [`cert_file`](/docs/agent/config/config-files#cert_file-4), and
+   [`key_file`](/docs/agent/config/config-files#key_file-4).
+
+This decoupling has a side effect that requires a
+[TLS configuration change](#modify-the-consul-agent-s-tls-configuration)
+for pre-1.13 agents without the HTTPS port enabled.
+Without a TLS configuration change,
+Consul 1.13 agents may now expect gRPC *with* TLS,
+causing communication to fail with Envoy proxies
+that continue to use gRPC *without* TLS.
+
+##### Modify the Consul agent's TLS configuration
+
+If [`tls.grpc`](/docs/agent/config/config-files#tls_grpc),
+[`tls.defaults`](/docs/agent/config/config-files#tls_defaults),
+or the [deprecated TLS options](/docs/agent/config/config-files#tls_deprecated_options)
+define TLS material in their
+`ca_file`, `ca_path`, `cert_file`, or `key_file` fields,
+TLS for gRPC will be enabled in Consul 1.13, even if
+[`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port)
+is not set.
+
+This will cause Envoy proxies to disconnect from the control plane
+after upgrading to Consul 1.13 if associated pre-1.13 Consul agents
+have **not** set
+[`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port).
+To avoid this problem, make the following agent configuration changes:
+
+1. Remove TLS material from the Consul agents'
+   interface-generic TLS configuration options:
+   [`tls.defaults`](/docs/agent/config/config-files#tls_grpc) and
+   [deprecated TLS options](/docs/agent/config/config-files#tls_deprecated_options)
+1. Reapply TLS material to the non-gRPC interfaces that need it with the
+   interface-specific TLS configuration stanzas
+   [introduced in Consul 1.12](/docs/upgrading/upgrade-specific#tls-configuration):
+   [`tls.https`](/docs/agent/config/config-files#tls_https) and
+   [`tls.internal_rpc`](/docs/agent/config/config-files#tls_internal_rpc).
+
+   If upgrading directly from pre-1.12 Consul,
+   the above configuration change cannot be made before upgrading.
+   Therefore, consider upgrading agents to Consul 1.12 before upgrading to 1.13.
+
+If pre-1.13 Consul agents have set
+[`ports { https = POSITIVE_INTEGER }`](/docs/agent/config/config-files#https_port),
+this configuration change is not required to upgrade.
+That setting means the pre-1.13 Consul agent requires TLS for gRPC *already*,
+and will continue to do so after upgrading to 1.13.
+If your pre-1.13 service mesh is working, you have already
+configured your Envoy proxies to use TLS for gRPC when bootstrapping Envoy
+via [`consul connect envoy`](/commands/connect/envoy),
+such as with flags or environment variables like
+[`-ca-file`](/commands/connect/envoy#ca-file) and
+[`CONSUL_CACERT`](/commands#consul_cacert).
 
 ### 1.9 Telemetry Compatibility
 
@@ -50,9 +170,11 @@ style `consul.api.http...` metrics and removing the configuration flag from your
 
 ### Nomad Namespace Incompatibility
 
-Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0.
+Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0, and instead should upgrade to 1.12.1 or later.
 
-Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
+Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces.
+
+The Consul Enterprise codebase was updated with a fix for this issue in version 1.12.1.
 
 ### TLS Configuration
 

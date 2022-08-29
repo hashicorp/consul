@@ -10,27 +10,13 @@ For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-pla
 
 ## Supported Consul versions
 
-### Version 0.33.0 and above
-
-Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version.
+Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version. When installing or upgrading to a specific versions, ensure that you are using the correct Consul version with the compatible `consul-k8s` helm chart and/or CLI.   
 
 | Consul Version | Compatible consul-k8s Versions   |
 | -------------- | -------------------------------- |
+| 1.13.x         | 0.47.0 - latest                  |
 | 1.12.x         | 0.43.0 - latest                  |
 | 1.11.x         | 0.39.0 - 0.42.0, 0.44.0 - latest |
-| 1.10.x         | 0.33.0 - 0.38.0                  |
-
-### Prior to version 0.33.0
-
-Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was distributed to deploy the Consul on Kubernetes binary. The default version of the `consul-k8s` binary specified by the Helm chart should be used to ensure proper compatibility, since the Helm chart is designed and tested with the default `consul-k8s` version. To find the default version for the appropriate Helm chart version, navigate to the corresponding tag (i.e. 0.32.1) in [`values.yaml`](https://github.com/hashicorp/consul-helm/blob/v0.32.1/values.yaml) and retrieve the `imageK8S` global value.
-
-| Consul Version | Compatible Consul Helm Versions (default `consul-k8s` image) |
-| -------------- | -----------------------------------------------------------|
-| 1.10.x         | 0.32.0 (consul-k8s:0.26.0) - 0.32.1 (consul-k8s:0.26.0)    |
-| 1.9.x          | 0.27.0 (consul-k8s:0.21.0) - 0.31.1 (consul-k8s:0.25.0)    |
-| 1.8.x          | 0.22.0 (consul-k8s:0.16.0) - 0.26.0 (consul-k8s:0.20.0)    |
-| 1.7.x          | 0.17.0 (consul-k8s:0.12.0) - 0.21.0 (consul-k8s:0.15.0)    |
-| 1.6.x          | 0.10.0 (consul-k8s:0.9.2) - 0.16.2 (consul-k8s:0.11.0)     |
 
 ## Supported Envoy versions
 

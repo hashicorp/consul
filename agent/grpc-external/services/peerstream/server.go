@@ -26,11 +26,12 @@ const (
 
 type Server struct {
 	Config
+
+	Tracker *Tracker
 }
 
 type Config struct {
 	Backend     Backend
-	Tracker     *Tracker
 	GetStore    func() StateStore
 	Logger      hclog.Logger
 	ForwardRPC  func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
@@ -53,7 +54,6 @@ type ACLResolver interface {
 
 func NewServer(cfg Config) *Server {
 	requireNotNil(cfg.Backend, "Backend")
-	requireNotNil(cfg.Tracker, "Tracker")
 	requireNotNil(cfg.GetStore, "GetStore")
 	requireNotNil(cfg.Logger, "Logger")
 	// requireNotNil(cfg.ACLResolver, "ACLResolver") // TODO(peering): reenable check when ACLs are required
@@ -67,7 +67,8 @@ func NewServer(cfg Config) *Server {
 		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
-		Config: cfg,
+		Config:  cfg,
+		Tracker: NewTracker(cfg.incomingHeartbeatTimeout),
 	}
 }
 
@@ -99,7 +100,7 @@ type Backend interface {
 	GetLeaderAddress() string
 
 	ValidateProposedPeeringSecret(id string) (bool, error)
-	PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error
+	PeeringSecretsWrite(req *pbpeering.SecretsWriteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error

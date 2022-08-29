@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fixed some spurious issues during peering establishment when a follower is dialed
+```
