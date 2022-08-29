@@ -26,11 +26,12 @@ const (
 
 type Server struct {
 	Config
+
+	Tracker *Tracker
 }
 
 type Config struct {
 	Backend     Backend
-	Tracker     *Tracker
 	GetStore    func() StateStore
 	Logger      hclog.Logger
 	ForwardRPC  func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
@@ -42,8 +43,8 @@ type Config struct {
 	// outgoingHeartbeatInterval is how often we send a heartbeat.
 	outgoingHeartbeatInterval time.Duration
 
-	// IncomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
-	IncomingHeartbeatTimeout time.Duration
+	// incomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
+	incomingHeartbeatTimeout time.Duration
 }
 
 //go:generate mockery --name ACLResolver --inpackage
@@ -53,7 +54,6 @@ type ACLResolver interface {
 
 func NewServer(cfg Config) *Server {
 	requireNotNil(cfg.Backend, "Backend")
-	requireNotNil(cfg.Tracker, "Tracker")
 	requireNotNil(cfg.GetStore, "GetStore")
 	requireNotNil(cfg.Logger, "Logger")
 	// requireNotNil(cfg.ACLResolver, "ACLResolver") // TODO(peering): reenable check when ACLs are required
@@ -63,11 +63,12 @@ func NewServer(cfg Config) *Server {
 	if cfg.outgoingHeartbeatInterval == 0 {
 		cfg.outgoingHeartbeatInterval = defaultOutgoingHeartbeatInterval
 	}
-	if cfg.IncomingHeartbeatTimeout == 0 {
-		cfg.IncomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
+	if cfg.incomingHeartbeatTimeout == 0 {
+		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
-		Config: cfg,
+		Config:  cfg,
+		Tracker: NewTracker(cfg.incomingHeartbeatTimeout),
 	}
 }
 

@@ -1216,7 +1216,7 @@ func TestLeader_Peering_NoEstablishmentWhenPeeringDisabled(t *testing.T) {
 	}))
 
 	require.Never(t, func() bool {
-		_, found := s1.peerStreamTracker.StreamStatus(peerID)
+		_, found := s1.peerStreamServer.StreamStatus(peerID)
 		return found
 	}, 7*time.Second, 1*time.Second, "peering should not have been established")
 }
