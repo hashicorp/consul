@@ -33,8 +33,7 @@ connectivity between agent members on the same segment.
 
 ![Consul datacenter agent connectivity with network segments](/img/network-segments/consul-network-segments-multiple.png)
 
-To get started with network segments you can review the tutorial on HashiCorp
-Learn for [Network Segments](/consul/tutorials/datacenter-operations/network-partition-datacenters?utm_source=docs).
+Complete the [Network Segments](/consul/tutorials/datacenter-operations/network-partition-datacenters?utm_source=docs) tutorial to learn more about network segments.
 
 -> **Info:** Network segments enable you to operate a Consul datacenter without full
 mesh (LAN) connectivity between agents. To federate multiple Consul datacenters
@@ -57,10 +56,11 @@ Segments (Enterprise) creates multiple segments within one cluster.
 **Federated Cluster:** A set of connected clusters, each representing a unique Consul “datacenter”. These Consul servers are federated together
 over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
-never interact with remote Consul servers directly. There are currently two
-inter-cluster network models which can be viewed on HashiCorp Learn:
-[WAN gossip (OSS)](/consul/tutorials/networking/federation-gossip-wan?utm_source=docs)
-and [Network Areas (Enterprise)](/consul/tutorials/datacenter-operations/federation-network-areas?utm_source=docs).
+never interact with remote Consul servers directly. There are two tutorials that
+will guide you through inter-cluster network models:
+
+1. [WAN gossip (OSS)](/consul/tutorials/networking/federation-gossip-wan?utm_source=docs)
+1. [Network Areas (Enterprise)](/consul/tutorials/datacenter-operations/federation-network-areas?utm_source=docs).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity
 among themselves, and use Serf to maintain a shared view of the members of the

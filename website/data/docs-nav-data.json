@@ -562,10 +562,6 @@
             "title": "Auth Methods",
             "routes": [
               {
-<<<<<<< HEAD
-                "title": "Minikube",
-                "href": "/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs&utm_content=k8s&utm_term=mk"
-=======
                 "title": "Overview",
                 "path": "security/acl/auth-methods"
               },
