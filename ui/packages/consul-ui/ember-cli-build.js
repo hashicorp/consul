@@ -162,6 +162,15 @@ module.exports = function (defaults, $ = process.env) {
             {
               module: require('@csstools/postcss-sass'),
             },
+            {
+              module: require('tailwindcss'),
+              options: {
+                config: './tailwind.config.js',
+              },
+            },
+            {
+              module: require('autoprefixer'),
+            },
           ],
         },
       },
