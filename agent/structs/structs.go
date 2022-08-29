@@ -353,7 +353,7 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 			q.MaxQueryTime = defaultQueryTime
 		}
 		// Timeout after maximum jitter has elapsed.
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}
@@ -2211,8 +2211,8 @@ type PeeredServiceName struct {
 }
 
 type ServiceName struct {
-	Name string
-	acl.EnterpriseMeta
+	Name               string
+	acl.EnterpriseMeta `mapstructure:",squash"`
 }
 
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
