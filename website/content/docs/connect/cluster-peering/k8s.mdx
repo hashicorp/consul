@@ -25,7 +25,7 @@ You must implement the following requirements to create and use cluster peering 
 - At least two Kubernetes clusters
 - The installation must be running on Consul on Kubernetes version 0.47.1 or later
 
-### Pre-setup 
+###  Preparation for install
 
 1. After provisioning a Kubernetes cluster and setting up your kubeconfig file to manage access to multiple Kubernetes clusters, export the Kubernetes context names for future use with `kubectl`. 
 
@@ -38,9 +38,7 @@ You can use the following methods to get the context names for your clusters:
   $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
   ```
 
-### Helm chart configuration
-
-1. To establish cluster peering through Kubernetes, create a values.yaml file with the following Helm values. 
+1. To establish cluster peering through Kubernetes, create a `values.yaml` file with the following Helm values. 
    
   With these values,
   the servers in each cluster will be exposed over a Kubernetes Load balancer service. This service can be customized
@@ -71,6 +69,8 @@ You can use the following methods to get the context names for your clusters:
   ```
 
   </CodeBlockConfig>
+  
+## 
 
 1. Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI. 
   
