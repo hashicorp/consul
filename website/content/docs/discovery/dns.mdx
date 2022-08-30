@@ -99,12 +99,19 @@ node's metadata key starts with `rfc1035-`.
 
 ### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
 
-For node lookups, only the partition and datacenter must be specified as part of the DNS query. This is because nodes cannot be
-namespaced.
+Consul nodes exist at the admin partition level within a datacenter.
+By default, the partition and datacenter used in a [node lookup](#node-lookups) are
+the partition and datacenter of the Consul agent that received the DNS query.
 
+Use the following query format to specify a partition for a node lookup:
 ```text
 [<tag>.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
 ```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+node lookups to non-`default` partitions must explicitly specify
+the partition of the target node.
 
 ## Service Lookups
 
