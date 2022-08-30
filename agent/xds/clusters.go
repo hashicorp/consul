@@ -772,6 +772,13 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	clusterName := generatePeeredClusterName(uid, tbs)
 
+	outlierDetection := ToOutlierDetection(cfg.PassiveHealthCheck)
+	// We can't rely on health checks for services on cluster peers because they
+	// don't take into account service resolvers, splitters and routers. Setting
+	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
+	// entire cluster.
+	outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: 100}
+
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
@@ -785,7 +792,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+			OutlierDetection: outlierDetection,
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			if err := s.setHttp2ProtocolOptions(c); err != nil {

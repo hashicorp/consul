@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -14,95 +15,107 @@ const (
 	aPeerID = "63b60245-c475-426b-b314-4588d210859d"
 )
 
-func TestStatus_IsHealthy(t *testing.T) {
+func TestTracker_IsHealthy(t *testing.T) {
 	type testcase struct {
-		name             string
-		dontConnect      bool
-		modifierFunc     func(status *MutableStatus)
-		expectedVal      bool
-		heartbeatTimeout time.Duration
+		name         string
+		tracker      *Tracker
+		modifierFunc func(status *MutableStatus)
+		expectedVal  bool
 	}
 
 	tcs := []testcase{
 		{
-			name:        "never connected, unhealthy",
-			expectedVal: false,
-			dontConnect: true,
-		},
-		{
-			name:        "no heartbeat, unhealthy",
-			expectedVal: false,
-		},
-		{
-			name:        "heartbeat is not received, unhealthy",
-			expectedVal: false,
+			name:        "disconnect time within timeout",
+			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
+			expectedVal: true,
 			modifierFunc: func(status *MutableStatus) {
-				// set heartbeat
-				status.LastRecvHeartbeat = time.Now().Add(-1 * time.Second)
-			},
-			heartbeatTimeout: 1 * time.Second,
-		},
-		{
-			name:        "send error before send success",
-			expectedVal: false,
-			modifierFunc: func(status *MutableStatus) {
-				// set heartbeat
-				status.LastRecvHeartbeat = time.Now()
-
-				status.LastSendSuccess = time.Now()
-				status.LastSendError = time.Now()
+				status.DisconnectTime = time.Now()
 			},
 		},
 		{
-			name:        "received error before received success",
+			name:        "disconnect time past timeout",
+			tracker:     NewTracker(1 * time.Millisecond),
 			expectedVal: false,
 			modifierFunc: func(status *MutableStatus) {
-				// set heartbeat
-				status.LastRecvHeartbeat = time.Now()
-
-				status.LastRecvResourceSuccess = time.Now()
-				status.LastRecvError = time.Now()
+				status.DisconnectTime = time.Now().Add(-1 * time.Minute)
+			},
+		},
+		{
+			name:        "receive error before receive success within timeout",
+			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
+			expectedVal: true,
+			modifierFunc: func(status *MutableStatus) {
+				now := time.Now()
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
+			},
+		},
+		{
+			name:        "receive error before receive success within timeout",
+			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
+			expectedVal: true,
+			modifierFunc: func(status *MutableStatus) {
+				now := time.Now()
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
+			},
+		},
+		{
+			name:        "receive error before receive success past timeout",
+			tracker:     NewTracker(1 * time.Millisecond),
+			expectedVal: false,
+			modifierFunc: func(status *MutableStatus) {
+				now := time.Now().Add(-2 * time.Second)
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
+			},
+		},
+		{
+			name:        "nack before ack within timeout",
+			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
+			expectedVal: true,
+			modifierFunc: func(status *MutableStatus) {
+				now := time.Now()
+				status.LastAck = now
+				status.LastNack = now.Add(1 * time.Second)
+			},
+		},
+		{
+			name:        "nack before ack past timeout",
+			tracker:     NewTracker(1 * time.Millisecond),
+			expectedVal: false,
+			modifierFunc: func(status *MutableStatus) {
+				now := time.Now().Add(-2 * time.Second)
+				status.LastAck = now
+				status.LastNack = now.Add(1 * time.Second)
 			},
 		},
 		{
 			name:        "healthy",
+			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
 			expectedVal: true,
-			modifierFunc: func(status *MutableStatus) {
-				// set heartbeat
-				status.LastRecvHeartbeat = time.Now()
-			},
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			tracker := NewTracker()
-			if tc.heartbeatTimeout.Microseconds() != 0 {
-				tracker.SetHeartbeatTimeout(tc.heartbeatTimeout)
+			tracker := tc.tracker
+
+			st, err := tracker.Connected(aPeerID)
+			require.NoError(t, err)
+			require.True(t, st.Connected)
+
+			if tc.modifierFunc != nil {
+				tc.modifierFunc(st)
 			}
 
-			if !tc.dontConnect {
-				st, err := tracker.Connected(aPeerID)
-				require.NoError(t, err)
-				require.True(t, st.Connected)
-
-				if tc.modifierFunc != nil {
-					tc.modifierFunc(st)
-				}
-
-				require.Equal(t, tc.expectedVal, st.IsHealthy())
-
-			} else {
-				st, found := tracker.StreamStatus(aPeerID)
-				require.False(t, found)
-				require.Equal(t, tc.expectedVal, st.IsHealthy())
-			}
+			assert.Equal(t, tc.expectedVal, tracker.IsHealthy(st.GetStatus()))
 		})
 	}
 }
 
 func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
-	tracker := NewTracker()
+	tracker := NewTracker(defaultIncomingHeartbeatTimeout)
 	peerID := "63b60245-c475-426b-b314-4588d210859d"
 
 	it := incrementalTime{
@@ -120,8 +133,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.NoError(t, err)
 
 		expect := Status{
-			Connected:        true,
-			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			Connected: true,
 		}
 
 		status, ok := tracker.StreamStatus(peerID)
@@ -147,9 +159,8 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 
 		lastSuccess = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 		expect := Status{
-			Connected:        true,
-			LastAck:          lastSuccess,
-			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			Connected: true,
+			LastAck:   lastSuccess,
 		}
 		require.Equal(t, expect, status)
 	})
@@ -159,10 +170,9 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		sequence++
 
 		expect := Status{
-			Connected:        false,
-			DisconnectTime:   it.base.Add(time.Duration(sequence) * time.Second).UTC(),
-			LastAck:          lastSuccess,
-			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			Connected:      false,
+			DisconnectTime: it.base.Add(time.Duration(sequence) * time.Second).UTC(),
+			LastAck:        lastSuccess,
 		}
 		status, ok := tracker.StreamStatus(peerID)
 		require.True(t, ok)
@@ -174,9 +184,8 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.NoError(t, err)
 
 		expect := Status{
-			Connected:        true,
-			LastAck:          lastSuccess,
-			heartbeatTimeout: defaultIncomingHeartbeatTimeout,
+			Connected: true,
+			LastAck:   lastSuccess,
 
 			// DisconnectTime gets cleared on re-connect.
 		}
@@ -203,7 +212,7 @@ func TestTracker_connectedStreams(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		tracker := NewTracker()
+		tracker := NewTracker(defaultIncomingHeartbeatTimeout)
 		if tc.setup != nil {
 			tc.setup(t, tracker)
 		}

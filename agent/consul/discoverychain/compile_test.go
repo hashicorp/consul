@@ -39,6 +39,7 @@ func TestCompile(t *testing.T) {
 		"service redirect":                                 testcase_ServiceRedirect(),
 		"service and subset redirect":                      testcase_ServiceAndSubsetRedirect(),
 		"datacenter redirect":                              testcase_DatacenterRedirect(),
+		"redirect to cluster peer":                         testcase_PeerRedirect(),
 		"datacenter redirect with mesh gateways":           testcase_DatacenterRedirect_WithMeshGateways(),
 		"service failover":                                 testcase_ServiceFailover(),
 		"service failover through redirect":                testcase_ServiceFailoverThroughRedirect(),
@@ -1079,6 +1080,47 @@ func testcase_DatacenterRedirect() compileTestCase {
 				Service:    "main",
 				Datacenter: "dc9",
 			}, nil),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_PeerRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+				Peer:    "cluster-01",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:other.default.default.external.cluster-01",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.external.cluster-01": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.external.cluster-01",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.external.cluster-01",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
+				Service: "other",
+				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+			}),
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
