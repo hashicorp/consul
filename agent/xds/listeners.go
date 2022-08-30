@@ -115,9 +115,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if proxyCfg.LstenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(proxyCfg.LstenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse LstenerTracingJSON config", "error", err)
+	if proxyCfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
 		}
 	}
 
@@ -1209,9 +1209,9 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
 
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if cfg.LstenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(cfg.LstenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse LstenerTracingJSON config", "error", err)
+	if cfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(cfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
 		}
 	}
 
@@ -1338,7 +1338,7 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 		statPrefix:      "",
 		routePath:       path.Path,
 		httpAuthzFilter: nil,
-		// in the exposed check listener de don't set the tracing configuration
+		// in the exposed check listener we don't set the tracing configuration
 	}
 	f, err := makeListenerFilter(opts)
 	if err != nil {
@@ -1578,9 +1578,9 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
-	if proxyCfg.LstenerTracingJSON != "" {
-		if tracing, err = makeTracingFromUserConfig(proxyCfg.LstenerTracingJSON); err != nil {
-			s.Logger.Warn("failed to parse LstenerTracingJSON config", "error", err)
+	if proxyCfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
 		}
 	}
 
