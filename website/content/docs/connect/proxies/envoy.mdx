@@ -759,6 +759,45 @@ definition](/docs/connect/registration/service-registration) or
   </CodeTabs>
 
 
+- `envoy_listener_tracing_json` - Specifies a [tracing 
+  configuration](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-msg-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing)
+  to be inserter in the public and upstreams listeners of the proxy.
+
+  <CodeBlockConfig heading="Example envoy_listener_tracing_json">
+
+  ```json
+  {
+    "@type" : "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+    "provider" : {
+      "name" : "envoy.tracers.zipkin",
+      "typed_config" : {
+        "@type" : "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+        "collector_cluster" : "otelcolector",
+        "collector_endpoint" : "/api/v2/spans",
+        "collector_endpoint_version" : "HTTP_JSON",
+        "shared_span_context" : false
+      }
+    },
+    "custom_tags" : [
+      {
+        "tag" : "custom_header",
+        "request_header" : {
+          "name" : "x-custom-traceid",
+          "default_value" : ""
+        }
+      },
+      {
+        "tag" : "alloc_id",
+        "environment" : {
+          "name" : "NOMAD_ALLOC_ID"
+        }
+      }
+    ]
+  }
+  ```
+
+  </CodeBlockConfig>
+
 - `envoy_local_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
   to be delivered in place of the local application cluster. This allows
   customization of timeouts, rate limits, load balancing strategy etc.
