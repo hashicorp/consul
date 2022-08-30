@@ -4,6 +4,8 @@ import (
 	"context"
 	"math"
 
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
@@ -12,6 +14,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
+
+var StatsGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"xds", "server", "idealSessionsMax"},
+		Help: "The ideal maximum number of xDS sessions per server.",
+	},
+}
 
 // errorMargin is amount to which we allow a server to be over-occupied,
 // expressed as a percentage (between 0 and 1).
@@ -86,6 +95,7 @@ func (a *Controller) Run(ctx context.Context) {
 			"num_servers", numServers,
 			"num_proxies", numProxies,
 		)
+		metrics.SetGauge([]string{"xds", "server", "idealSessionsMax"}, float32(maxSessions))
 		a.cfg.SessionLimiter.SetMaxSessions(maxSessions)
 		prevMaxSessions = maxSessions
 	}

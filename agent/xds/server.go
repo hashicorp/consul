@@ -30,6 +30,13 @@ var StatsGauges = []prometheus.GaugeDefinition{
 	},
 }
 
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"xds", "server", "sessionDrained"},
+		Help: "Counts the number of xDS sessions that are drained/terminated to rebalance load between servers.",
+	},
+}
+
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
