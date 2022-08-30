@@ -351,6 +351,28 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 </Tabs>
 
+### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, all service lookups use the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a namespace, partition, and/or datacenter
+for all service lookup types except `.query`,
+including `.service`, `.connect`, `.virtual`, and `.ingress`.
+At least two of those three fields (`namespace`, `partition`, `datacenter`)
+must be specified.
+```text
+[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+service lookups to non-`default` partitions must explicitly specify
+the partition of the target service.
+
+To lookup services imported from a cluster peer,
+use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
@@ -375,28 +397,6 @@ To allow for simple load balancing, the set of nodes returned is randomized each
 Both A and SRV records are supported. SRV records provide the port that a service is
 registered on, enabling clients to avoid relying on well-known ports. SRV records are
 only served if the client specifically requests them.
-
-### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
-
-By default, all service lookups use the `default` namespace
-within the partition and datacenter of the Consul agent that received the DNS query.
-
-Use the following query format to specify a namespace, partition, and/or datacenter
-for all service lookup types except `.query`,
-including `.service`, `.connect`, `.virtual`, and `.ingress`.
-At least two of those three fields (`namespace`, `partition`, `datacenter`)
-must be specified.
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-Consul server agents are in the `default` partition.
-If DNS queries are addressed to Consul server agents,
-service lookups to non-`default` partitions must explicitly specify
-the partition of the target service.
-
-To lookup services imported from a cluster peer,
-use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
 
 ### Connect-Capable Service Lookups
 
