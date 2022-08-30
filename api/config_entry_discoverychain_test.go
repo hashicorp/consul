@@ -194,6 +194,20 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			verify: verifyResolver,
 		},
 		{
+			name: "redirect to peer",
+			entry: &ServiceResolverConfigEntry{
+				Kind:      ServiceResolver,
+				Name:      "test-redirect",
+				Partition: splitDefaultPartition,
+				Namespace: splitDefaultNamespace,
+				Redirect: &ServiceResolverRedirect{
+					Service: "test-failover",
+					Peer:    "cluster-01",
+				},
+			},
+			verify: verifyResolver,
+		},
+		{
 			name: "mega splitter", // use one mega object to avoid multiple trips
 			entry: &ServiceSplitterConfigEntry{
 				Kind:      ServiceSplitter,
