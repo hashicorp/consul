@@ -37,6 +37,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, true)
 	})
 }
+
 func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -134,9 +135,11 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 
 	// Delete the peering to trigger the termination sequence.
 	deleted := &pbpeering.Peering{
-		ID:        p.Peering.ID,
-		Name:      "my-peer-acceptor",
-		DeletedAt: structs.TimeToProto(time.Now()),
+		ID:                  p.Peering.ID,
+		Name:                "my-peer-acceptor",
+		State:               pbpeering.PeeringState_DELETING,
+		PeerServerAddresses: p.Peering.PeerServerAddresses,
+		DeletedAt:           structs.TimeToProto(time.Now()),
 	}
 	require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
 	dialer.logger.Trace("deleted peering for my-peer-acceptor")
@@ -259,6 +262,7 @@ func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS b
 	deleted := &pbpeering.Peering{
 		ID:        p.Peering.PeerID,
 		Name:      "my-peer-dialer",
+		State:     pbpeering.PeeringState_DELETING,
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}
 
@@ -428,6 +432,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 		Peering: &pbpeering.Peering{
 			ID:        peerID,
 			Name:      peerName,
+			State:     pbpeering.PeeringState_DELETING,
 			DeletedAt: structs.TimeToProto(time.Now()),
 		},
 	}))
@@ -1131,6 +1136,7 @@ func TestLeader_Peering_NoDeletionWhenPeeringDisabled(t *testing.T) {
 		Peering: &pbpeering.Peering{
 			ID:        peerID,
 			Name:      peerName,
+			State:     pbpeering.PeeringState_DELETING,
 			DeletedAt: structs.TimeToProto(time.Now()),
 		},
 	}))
