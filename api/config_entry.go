@@ -236,6 +236,8 @@ type ServiceConfigEntry struct {
 	UpstreamConfig        *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
 	Destination           *DestinationConfig      `json:",omitempty"`
 	MaxInboundConnections int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	Meta                  map[string]string       `json:",omitempty"`
 	CreateIndex           uint64
 	ModifyIndex           uint64

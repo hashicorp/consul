@@ -105,6 +105,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"gir": "zim",
 			},
 			MaxInboundConnections: 5,
+			LocalConnectTimeoutMs: 5000,
+			LocalRequestTimeoutMs: 7000,
 		}
 
 		dest := &DestinationConfig{
@@ -146,6 +148,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
 		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
+		require.Equal(t, service.LocalConnectTimeoutMs, readService.LocalConnectTimeoutMs)
+		require.Equal(t, service.LocalRequestTimeoutMs, readService.LocalRequestTimeoutMs)
 
 		// update it
 		service.Protocol = "tcp"
