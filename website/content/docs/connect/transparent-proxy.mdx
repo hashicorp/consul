@@ -42,13 +42,12 @@ Your network must meet the following environment and software requirements to us
 * Transparent proxy is available for Kubernetes environments.
 * Consul 1.10.0+
 * Consul Helm chart 0.32.0+. If you want to use the Consul CNI plugin to redirect traffic, Helm chart 0.48.0+ is required. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for additional information.
-* Consul on Kubernetes (`consul-k8s`) 0.26.0+
 * [Service intentions](/docs/connect/intentions) must be configured to allow communication between intended services. 
 * The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command: 
 
   `$ modprobe ip_tables`  
 
-~> **Upgrading to a supported version**: Always follow the [proper upgrade path](/docs/upgrading/upgrade-specific/#transparent-proxy-on-kubernetes) when upgrading to a supported version of Consul, Consul on Kubernetes (`consul-k8s`), and Consul Helm chart.
+~> **Upgrading to a supported version**: Always follow the [proper upgrade path](/docs/upgrading/upgrade-specific/#transparent-proxy-on-kubernetes) when upgrading to a supported version of Consul, Consul on Kubernetes (`consul-k8s`), and the Consul Helm chart.
 
 ## Configuration
 
@@ -58,7 +57,7 @@ This section describes how to configure the transparent proxy.
 
 You can enable the transparent proxy for an entire cluster, individual Kubernetes namespaces, and individual services.
 
-When installing Consul using the Helm chart, transparent proxy is enabled for the entire cluster by default.
+When you install Consul using the Helm chart, transparent proxy is enabled for the entire cluster by default.
 
 #### Entire cluster
 
@@ -253,7 +252,7 @@ or Pod IP addresses is redirected through the proxy. You must use a selector to 
 The Kubernetes Service name must match the Consul service name to use KubeDNS. This is the default behavior unless you have applied the `consul.hashicorp.com/connect-service` 
 Kubernetes annotation to the service pods. The annotation overrides the Consul service name.
 
-Consul configures `iptables` rules for each Pod bound to the Kubernetes Service to redirect all inbound and outbound traffic through an inbound and outbound listener on the sidecar proxy. Consul configures the proxy to route traffic to the appropriate upstream services based on [service
+Consul configures redirection for each Pod bound to the Kubernetes Service using  `iptables` rules. The rules redirect all inbound and outbound traffic through an inbound and outbound listener on the sidecar proxy. Consul configures the proxy to route traffic to the appropriate upstream services based on [service
 intentions](/docs/connect/config-entries/service-intentions), which address the upstream services using KubeDNS.
 
 In the following example, the Kubernetes service selects `sample-app` application Pods so that they can be reached within the mesh. 
