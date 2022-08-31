@@ -2957,8 +2957,9 @@ func TestProxyConfigEntry(t *testing.T) {
 				Name: "",
 			},
 			expected: &ProxyConfigEntry{
-				Name: ProxyConfigGlobal,
-				Kind: ProxyDefaults,
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},
 	}
