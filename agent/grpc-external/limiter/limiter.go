@@ -50,7 +50,7 @@ type SessionLimiter struct {
 	mu           sync.Mutex
 	maxSessionID uint64
 	sessionIDs   []uint64 // sessionIDs must be sorted so we binary search it.
-	sessions     map[uint64]*Session
+	sessions     map[uint64]*session
 }
 
 // NewSessionLimiter creates a new SessionLimiter.
@@ -60,7 +60,7 @@ func NewSessionLimiter() *SessionLimiter {
 		max:          Unlimited,
 		wakeCh:       make(chan struct{}, 1),
 		sessionIDs:   make([]uint64, 0),
-		sessions:     make(map[uint64]*Session),
+		sessions:     make(map[uint64]*session),
 	}
 }
 
@@ -118,7 +118,7 @@ func (l *SessionLimiter) SetDrainRateLimit(limit rate.Limit) {
 //	1. Call End on the session when finished.
 //	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
 //	   stream) when it is closed.
-func (l *SessionLimiter) BeginSession() (*Session, error) {
+func (l *SessionLimiter) BeginSession() (Session, error) {
 	if !l.hasCapacity() {
 		return nil, ErrCapacityReached
 	}
@@ -169,8 +169,8 @@ func (l *SessionLimiter) terminateSession() {
 	l.deleteSessionLocked(idx)
 }
 
-func (l *SessionLimiter) createSessionLocked() *Session {
-	session := &Session{
+func (l *SessionLimiter) createSessionLocked() *session {
+	session := &session{
 		l:      l,
 		id:     l.maxSessionID,
 		termCh: make(chan struct{}),
@@ -199,7 +199,21 @@ func (l *SessionLimiter) deleteSessionLocked(idx int) {
 // concurrenly with other session-holders. Sessions may be terminated abruptly
 // by the SessionLimiter, so it is the responsibility of the holder to receive
 // on the Terminated channel and halt the operation when it is closed.
-type Session struct {
+type Session interface {
+	// End the session.
+	//
+	// This MUST be called when the session-holder is done (e.g. the gRPC stream
+	// is closed).
+	End()
+
+	// Terminated is a channel that is closed when the session is terminated.
+	//
+	// The session-holder MUST receive on it and exit (e.g. close the gRPC stream)
+	// when it is closed.
+	Terminated() <-chan struct{}
+}
+
+type session struct {
 	l *SessionLimiter
 
 	id     uint64
@@ -212,11 +226,7 @@ type Session struct {
 	done uint32
 }
 
-// End the session.
-//
-// This MUST be called when the session-holder is done (e.g. the gRPC stream
-// is closed).
-func (s *Session) End() {
+func (s *session) End() {
 	if !atomic.CompareAndSwapUint32(&s.done, 0, 1) {
 		return
 	}
@@ -235,13 +245,9 @@ func (s *Session) End() {
 	s.l.deleteSessionLocked(idx)
 }
 
-// Terminated is a channel that is closed when the session is terminated.
-//
-// The session-holder MUST receive on it and exit (e.g. close the gRPC stream)
-// when it is closed.
-func (s *Session) Terminated() <-chan struct{} { return s.termCh }
+func (s *session) Terminated() <-chan struct{} { return s.termCh }
 
-func (s *Session) terminate() {
+func (s *session) terminate() {
 	if atomic.CompareAndSwapUint32(&s.done, 0, 1) {
 		close(s.termCh)
 	}

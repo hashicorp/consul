@@ -105,6 +105,12 @@ type ProxyConfigSource interface {
 	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
 }
 
+// SessionLimiter is the interface exposed by limiter.SessionLimiter. We depend
+// on an interface rather than the concrete type so we can mock it in tests.
+type SessionLimiter interface {
+	BeginSession() (limiter.Session, error)
+}
+
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
 // of it's public members must be set before the gRPC server is started.
 //
@@ -116,7 +122,7 @@ type Server struct {
 	CfgSrc         ProxyConfigSource
 	ResolveToken   ACLResolverFunc
 	CfgFetcher     ConfigFetcher
-	SessionLimiter *limiter.SessionLimiter
+	SessionLimiter SessionLimiter
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -168,7 +174,7 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
-	limiter *limiter.SessionLimiter,
+	limiter SessionLimiter,
 ) *Server {
 	return &Server{
 		NodeName:                nodeName,

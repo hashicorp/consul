@@ -137,6 +137,7 @@ func newTestServerDeltaScenario(
 	token string,
 	authCheckFrequency time.Duration,
 	serverlessPluginEnabled bool,
+	sessionLimiter SessionLimiter,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -155,6 +156,10 @@ func newTestServerDeltaScenario(
 		metrics.NewGlobal(cfg, sink)
 	})
 
+	if sessionLimiter == nil {
+		sessionLimiter = limiter.NewSessionLimiter()
+	}
+
 	s := NewServer(
 		"node-123",
 		testutil.Logger(t),
@@ -162,7 +167,7 @@ func newTestServerDeltaScenario(
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
-		limiter.NewSessionLimiter(),
+		sessionLimiter,
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency
