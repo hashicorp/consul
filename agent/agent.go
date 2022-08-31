@@ -708,7 +708,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// Start a goroutine to terminate excess xDS sessions.
-	go a.baseDeps.XDSSessionLimiter.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
+	go a.baseDeps.XDSStreamLimiter.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// register watches
 	if err := a.reloadWatches(a.config); err != nil {
@@ -800,7 +800,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a.baseDeps.XDSSessionLimiter,
+		a.baseDeps.XDSStreamLimiter,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 

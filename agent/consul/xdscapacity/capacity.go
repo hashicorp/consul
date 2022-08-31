@@ -18,22 +18,22 @@ import (
 
 var StatsGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"xds", "server", "idealSessionsMax"},
-		Help: "The ideal maximum number of xDS sessions per server.",
+		Name: []string{"xds", "server", "idealStreamsMax"},
+		Help: "The maximum number of xDS streams per server, chosen to achieve a roughly even spread of load across servers.",
 	},
 }
 
 // errorMargin is amount to which we allow a server to be over-occupied,
 // expressed as a percentage (between 0 and 1).
 //
-// We allow 10% more than the ideal number of sessions per server.
+// We allow 10% more than the ideal number of streams per server.
 const errorMargin = 0.1
 
-// Controller determines the ideal number of xDS sessions for the server to
+// Controller determines the ideal number of xDS streams for the server to
 // handle and enforces it using the given SessionLimiter.
 //
-// We aim for a roughly even spread of sessions between servers in the cluster
-// and, to that end, limit the number of sessions each server can handle to:
+// We aim for a roughly even spread of streams between servers in the cluster
+// and, to that end, limit the number of streams each server can handle to:
 //
 //	(<number of proxies> / <number of healthy servers>) + <error margin>
 //
@@ -58,7 +58,7 @@ type Config struct {
 }
 
 // SessionLimiter is used to enforce the session limit to achieve the ideal
-// spread of xDS sessions between servers.
+// spread of xDS streams between servers.
 type SessionLimiter interface {
 	SetMaxSessions(maxSessions uint32)
 	SetDrainRateLimit(rateLimit rate.Limit)
@@ -167,7 +167,7 @@ func (a *Controller) updateMaxSessions(numServers, numProxies uint32) {
 		"num_servers", numServers,
 		"num_proxies", numProxies,
 	)
-	metrics.SetGauge([]string{"xds", "server", "idealSessionsMax"}, float32(maxSessions))
+	metrics.SetGauge([]string{"xds", "server", "idealStreamsMax"}, float32(maxSessions))
 	a.cfg.SessionLimiter.SetMaxSessions(maxSessions)
 	a.prevMaxSessions = maxSessions
 }

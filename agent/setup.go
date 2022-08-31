@@ -152,7 +152,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
-	d.XDSSessionLimiter = limiter.NewSessionLimiter()
+	d.XDSStreamLimiter = limiter.NewSessionLimiter()
 
 	return d, nil
 }

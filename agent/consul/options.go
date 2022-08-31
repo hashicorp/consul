@@ -16,15 +16,15 @@ import (
 )
 
 type Deps struct {
-	EventPublisher    *stream.EventPublisher
-	Logger            hclog.InterceptLogger
-	TLSConfigurator   *tlsutil.Configurator
-	Tokens            *token.Store
-	Router            *router.Router
-	ConnPool          *pool.ConnPool
-	GRPCConnPool      GRPCClientConner
-	LeaderForwarder   LeaderForwarder
-	XDSSessionLimiter *limiter.SessionLimiter
+	EventPublisher   *stream.EventPublisher
+	Logger           hclog.InterceptLogger
+	TLSConfigurator  *tlsutil.Configurator
+	Tokens           *token.Store
+	Router           *router.Router
+	ConnPool         *pool.ConnPool
+	GRPCConnPool     GRPCClientConner
+	LeaderForwarder  LeaderForwarder
+	XDSStreamLimiter *limiter.SessionLimiter
 	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
 	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
 	// the rpc server.

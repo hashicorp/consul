@@ -32,8 +32,8 @@ var StatsGauges = []prometheus.GaugeDefinition{
 
 var StatsCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"xds", "server", "sessionDrained"},
-		Help: "Counts the number of xDS sessions that are drained/terminated to rebalance load between servers.",
+		Name: []string{"xds", "server", "streamDrained"},
+		Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
 	},
 }
 
