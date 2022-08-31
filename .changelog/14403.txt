@@ -1,0 +1,3 @@
+```release-note:feature
+connect: Add local_idle_timeout_ms to allow configuring the Envoy idle timeout on local_app
+```
