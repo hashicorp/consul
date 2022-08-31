@@ -46,7 +46,8 @@ function network_snippet {
 }
 
 function aws_snippet {
-  if [[ ! -z "$LAMBDA_TESTS_ENABLED" ]]; then
+  LAMBDA_TESTS_ENABLED=${LAMBDA_TESTS_ENABLED:-false}
+  if [ "$LAMBDA_TESTS_ENABLED" != false ]; then
     local snippet=""
 
     # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
