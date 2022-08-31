@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
@@ -50,6 +51,16 @@ func TestController(t *testing.T) {
 
 	limiter := newTestLimiter()
 
+	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
+	cfg := metrics.DefaultConfig("consul")
+	cfg.EnableHostname = false
+	metrics.NewGlobal(cfg, sink)
+
+	t.Cleanup(func() {
+		sink := &metrics.BlackholeSink{}
+		metrics.NewGlobal(cfg, sink)
+	})
+
 	adj := NewController(Config{
 		Logger:         testutil.Logger(t),
 		GetStore:       func() Store { return store },
@@ -62,14 +73,29 @@ func TestController(t *testing.T) {
 
 	// Keen readers will notice the numbers here are off by one. This is due to
 	// floating point math (because we multiply by 1.1).
-	adj.SetServerCount(2)
-	require.Equal(t, 56, limiter.receive(t))
+	testutil.RunStep(t, "load split between 2 servers", func(t *testing.T) {
+		adj.SetServerCount(2)
+		require.Equal(t, 56, limiter.receive(t))
+	})
 
-	adj.SetServerCount(1)
-	require.Equal(t, 111, limiter.receive(t))
+	testutil.RunStep(t, "all load on 1 server", func(t *testing.T) {
+		adj.SetServerCount(1)
+		require.Equal(t, 111, limiter.receive(t))
+	})
 
-	require.NoError(t, store.DeleteService(index+1, "ingress-gateway-0-node-0", "ingress-gateway-0", acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword))
-	require.Equal(t, 109, limiter.receive(t))
+	testutil.RunStep(t, "delete proxy service", func(t *testing.T) {
+		require.NoError(t, store.DeleteService(index+1, "ingress-gateway-0-node-0", "ingress-gateway-0", acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword))
+		require.Equal(t, 109, limiter.receive(t))
+	})
+
+	testutil.RunStep(t, "check we're emitting gauge", func(t *testing.T) {
+		data := sink.Data()
+		require.Len(t, data, 1)
+
+		gauge, ok := data[0].Gauges["consul.xds.server.idealStreamsMax"]
+		require.True(t, ok)
+		require.Equal(t, float32(109), gauge.Value)
+	})
 }
 
 func newTestLimiter() *testLimiter {
