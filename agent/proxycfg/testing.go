@@ -280,6 +280,31 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
+func TestUpstreamNodesPeerCluster01(t testing.T) structs.CheckServiceNodes {
+	peer := "cluster-01"
+	service := structs.TestNodeServiceWithNameInPeer(t, "web", peer)
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:       "test1",
+				Node:     "test1",
+				Address:  "10.40.1.1",
+				PeerName: peer,
+			},
+			Service: service,
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:       "test2",
+				Node:     "test2",
+				Address:  "10.40.1.2",
+				PeerName: peer,
+			},
+			Service: service,
+		},
+	}
+}
+
 func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{

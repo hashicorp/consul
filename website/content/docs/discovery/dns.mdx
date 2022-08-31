@@ -96,6 +96,23 @@ pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
 Alternatively, the TXT record will only include the node's metadata value when the
 node's metadata key starts with `rfc1035-`.
 
+
+### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+Consul nodes exist at the admin partition level within a datacenter.
+By default, the partition and datacenter used in a [node lookup](#node-lookups) are
+the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a partition for a node lookup:
+```text
+<node>.node.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+node lookups to non-`default` partitions must explicitly specify
+the partition of the target node.
+
 ## Service Lookups
 
 A service lookup is used to query for service providers. Service queries support
@@ -334,6 +351,28 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 </Tabs>
 
+### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, all service lookups use the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a namespace, partition, and/or datacenter
+for all service lookup types except `.query`,
+including `.service`, `.connect`, `.virtual`, and `.ingress`.
+At least two of those three fields (`namespace`, `partition`, `datacenter`)
+must be specified.
+```text
+[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+service lookups to non-`default` partitions must explicitly specify
+the partition of the target service.
+
+To lookup services imported from a cluster peer,
+use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
@@ -398,7 +437,21 @@ of a service imported from that peer.
 
 The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
 under the `consul-virtual` tag.
+ 
+#### Service Virtual IP Lookups for Consul Enterprise <EnterpriseAlert inline />
 
+By default, a service virtual IP lookup uses the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+To lookup services imported from a cluster peered partition or open-source datacenter,
+specify the namespace and peer name in the lookup:
+```text
+<service>.virtual[.<namespace>].<peer>.<domain>
+```
+
+To lookup services not imported from a cluster peer,
+refer to [service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
+ 
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -479,38 +532,6 @@ to reach a node from outside its datacenter, you can configure this behavior
 using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
 options.
-
-## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
-
-Consul Enterprise supports resolving namespaced and partitioned services via DNS.
-The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
-The DNS server can also resolve nodes assigned to partitions.
-To maintain backwards compatibility existing queries can be used and these will
-resolve services within the `default` namespace and partition. However, for resolving
-services from other namespaces or partitions the following form can be used:
-
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-This sequence is the canonical naming convention of a Consul Enterprise service. At least two of the following
-fields must be present:
-* `namespace`
-* `partition`
-* `datacenter`
-
-For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
-
-```text
-<service>.virtual[.<namespace>].<peer>.<domain>
-```
-
-For node lookups, only the partition and datacenter need to be specified as nodes cannot be
-namespaced.
-
-```text
-[<tag>.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
-```
 
 ## DNS with ACLs
 

@@ -108,7 +108,7 @@ First, create a configuration entry and specify the `Kind` as `"exported-service
 
 ```hcl
 Kind = "exported-services"
-
+Name = "default"
 Services = [
   {
     ## The name and namespace of the service to export.
@@ -120,10 +120,11 @@ Services = [
       {
         ## The peer name to reference in config is the one set
         ## during the peering process.
-        Peer = "cluster-02"
+        PeerName = "cluster-02"
       }
-  }
     ]
+  }
+]
 ```
 
 </CodeBlockConfig>

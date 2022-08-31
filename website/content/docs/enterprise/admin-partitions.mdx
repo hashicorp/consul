@@ -58,7 +58,7 @@ The partition in which [`proxy-defaults`](/docs/connect/config-entries/proxy-def
 
 ### Cross-partition Networking
 
-You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
+You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by dowstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
 
 ## Requirements
 
