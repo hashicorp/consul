@@ -152,7 +152,7 @@ func calcRateLimit(numProxies uint32) rate.Limit {
 }
 
 func (a *Controller) updateMaxSessions(numServers, numProxies uint32) {
-	if numServers == 0 && numProxies == 0 {
+	if numServers == 0 || numProxies == 0 {
 		return
 	}
 
