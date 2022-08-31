@@ -20,8 +20,20 @@
     "title": "Get Started",
     "routes": [
       {
-        "title": "Overview",
+        "title": "Install Consul",
         "path": "install"
+      },
+      {
+        "title": "Learn HCP Consul",
+        "href": "https://learn.hashicorp.com/tutorials/cloud/get-started-consul"
+      },
+      {
+        "title": "Learn Consul on Kubernetes",
+        "href": "https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy"
+      },
+      {
+        "title": "Learn Consul on VMs",
+        "href": "https://learn.hashicorp.com/tutorials/consul/get-started-install"
       },
       {
         "title": "Manual Bootstrap",
