@@ -199,7 +199,7 @@ type PassiveHealthCheck struct {
 
 	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
 	// when an outlier status is detected through consecutive 5xx.
-	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+	// This setting can be used to disable ejection or to ramp it up slowly.
 	EnforcingConsecutive5xx uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 

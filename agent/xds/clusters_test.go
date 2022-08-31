@@ -175,6 +175,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
 						"enforcing_consecutive_5xx": float64(80),
+						"max_failures":              float64(5),
+						"interval":                  float64(10),
 					}
 				}, nil)
 			},
