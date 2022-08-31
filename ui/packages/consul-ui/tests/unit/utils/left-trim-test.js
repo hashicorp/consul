@@ -1,5 +1,4 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import leftTrim from 'consul-ui/utils/left-trim';
 
 module('Unit | Utility | left trim', function() {
