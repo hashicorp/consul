@@ -5,7 +5,9 @@ package limiter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
+	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -47,7 +49,7 @@ type SessionLimiter struct {
 	// Everything below here is guarded by mu.
 	mu           sync.Mutex
 	maxSessionID uint64
-	sessionIDs   []uint64
+	sessionIDs   []uint64 // sessionIDs must be sorted so we binary search it.
 	sessions     map[uint64]*Session
 }
 
@@ -186,8 +188,9 @@ func (l *SessionLimiter) createSessionLocked() *Session {
 func (l *SessionLimiter) deleteSessionLocked(idx int) {
 	delete(l.sessions, l.sessionIDs[idx])
 
-	l.sessionIDs[idx] = l.sessionIDs[len(l.sessionIDs)-1]
-	l.sessionIDs = l.sessionIDs[:len(l.sessionIDs)-1]
+	// Note: it's important that we preserve the order here (which most allocation
+	// free deletion tricks don't) because we binary search the slice.
+	l.sessionIDs = append(l.sessionIDs[:idx], l.sessionIDs[idx+1:]...)
 
 	atomic.AddUint32(&l.inFlight, ^uint32(0))
 }
@@ -221,12 +224,12 @@ func (s *Session) End() {
 	s.l.mu.Lock()
 	defer s.l.mu.Unlock()
 
-	idx := -1
-	for i, id := range s.l.sessionIDs {
-		if id == s.id {
-			idx = i
-			break
-		}
+	idx := sort.Search(len(s.l.sessionIDs), func(i int) bool {
+		return s.l.sessionIDs[i] >= s.id
+	})
+
+	if idx == len(s.l.sessionIDs) || s.l.sessionIDs[idx] != s.id {
+		panic(fmt.Sprintf("could not find session id: %d", s.id))
 	}
 
 	s.l.deleteSessionLocked(idx)
