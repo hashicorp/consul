@@ -13,8 +13,8 @@ description: >-
 [Consul Service Mesh](/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
 your Consul services. Consul Service Mesh can be used with Kubernetes to secure pod
-communication with other pods and external Kubernetes services. Consul Connect is used interchangeably with the name
-Consul Service Mesh and is what will be used to refer to for Service Mesh functionality within Consul.
+communication with other pods and external Kubernetes services. "Consul Connect" refers to the service mesh functionality within Consul and is used interchangeably with the name
+"Consul Service Mesh." 
 
 The Connect sidecar running Envoy can be automatically injected into pods in
 your cluster, making configuration for Kubernetes automatic.
@@ -274,8 +274,7 @@ spec:
 `9090` and will also select the same pods.
 
 ~> Kubernetes 1.24+ only
-In Kubernetes 1.24+ you will need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets)
-explicitly for each multi-port service which references the ServiceAccount and it *must* have the same name as the ServiceAccount:
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
 
 ```yaml
 apiVersion: v1
