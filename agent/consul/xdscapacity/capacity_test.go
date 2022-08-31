@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -87,4 +88,20 @@ func (tl *testLimiter) receive(t *testing.T) int {
 		t.Fatal("timeout waiting for SetMaxSessions")
 	}
 	panic("this should never be reached")
+}
+
+func (tl *testLimiter) SetDrainRateLimit(rateLimit rate.Limit) {}
+
+func TestCalcRateLimit(t *testing.T) {
+	for in, out := range map[uint32]rate.Limit{
+		0:          rate.Limit(1),
+		1:          rate.Limit(1),
+		512:        rate.Limit(1),
+		768:        rate.Limit(2),
+		1024:       rate.Limit(3),
+		2816:       rate.Limit(10),
+		1000000000: rate.Limit(10),
+	} {
+		require.Equalf(t, out, calcRateLimit(in), "calcRateLimit(%d)", in)
+	}
 }

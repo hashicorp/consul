@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 
@@ -164,7 +162,7 @@ func newTestServerDeltaScenario(
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
-		limiter.NewSessionLimiter(rate.NewLimiter(rate.Inf, 0)),
+		limiter.NewSessionLimiter(),
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency

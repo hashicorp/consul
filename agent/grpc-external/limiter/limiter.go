@@ -8,7 +8,8 @@ import (
 	"math/rand"
 	"sync"
 	"sync/atomic"
-	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // Unlimited can be used to allow an unlimited number of concurrent sessions.
@@ -32,15 +33,15 @@ var ErrCapacityReached = errors.New("active session limit reached")
 //
 // The maximum number of concurrent sessions is controlled with SetMaxSessions.
 // If there are more than the given maximum sessions already in-flight,
-// SessionLimiter will terminate randomly-selected sessions at a rate controlled
-// by the termLimiter given in NewSessionLimiter.
+// SessionLimiter will drain randomly-selected sessions at a rate controlled
+// by SetDrainRateLimit.
 type SessionLimiter struct {
-	termLimiter Waiter
+	drainLimiter *rate.Limiter
 
 	// max and inFlight are read/written using atomic operations.
 	max, inFlight uint32
 
-	// wakeCh is used to trigger the Run loop to start terminating excess sessions.
+	// wakeCh is used to trigger the Run loop to start draining excess sessions.
 	wakeCh chan struct{}
 
 	// Everything below here is guarded by mu.
@@ -50,29 +51,20 @@ type SessionLimiter struct {
 	sessions     map[uint64]*Session
 }
 
-// Waiter is responsible for controlling the rate at which excess sessions will
-// be terminated.
-type Waiter interface {
-	Wait(ctx context.Context) error
-}
-
 // NewSessionLimiter creates a new SessionLimiter.
-//
-// termLimiter is used to control the rate at which excess sessions will be
-// terminated.
-func NewSessionLimiter(termLimiter Waiter) *SessionLimiter {
+func NewSessionLimiter() *SessionLimiter {
 	return &SessionLimiter{
-		termLimiter: termLimiter,
-		max:         Unlimited,
-		wakeCh:      make(chan struct{}, 1),
-		sessionIDs:  make([]uint64, 0),
-		sessions:    make(map[uint64]*Session),
+		drainLimiter: rate.NewLimiter(rate.Inf, 1),
+		max:          Unlimited,
+		wakeCh:       make(chan struct{}, 1),
+		sessionIDs:   make([]uint64, 0),
+		sessions:     make(map[uint64]*Session),
 	}
 }
 
-// Run the SessionLimiter's termination loop, which terminates excess sessions
-// if the limit is lowered. It will exit when the given context is canceled or
-// reaches its deadline.
+// Run the SessionLimiter's drain loop, which terminates excess sessions if the
+// limit is lowered. It will exit when the given context is canceled or reaches
+// its deadline.
 func (l *SessionLimiter) Run(ctx context.Context) {
 	for {
 		select {
@@ -82,7 +74,7 @@ func (l *SessionLimiter) Run(ctx context.Context) {
 					break
 				}
 
-				if err := l.termLimiter.Wait(ctx); err != nil {
+				if err := l.drainLimiter.Wait(ctx); err != nil {
 					break
 				}
 
@@ -99,7 +91,7 @@ func (l *SessionLimiter) Run(ctx context.Context) {
 }
 
 // SetMaxSessions controls the maximum number of concurrent sessions. If it is
-// lower, randomly-selected sessions will be terminated.
+// lower, randomly-selected sessions will be drained.
 func (l *SessionLimiter) SetMaxSessions(max uint32) {
 	atomic.StoreUint32(&l.max, max)
 
@@ -109,6 +101,11 @@ func (l *SessionLimiter) SetMaxSessions(max uint32) {
 	case l.wakeCh <- struct{}{}:
 	default:
 	}
+}
+
+// SetDrainRateLimit controls the rate at which excess sessions will be drained.
+func (l *SessionLimiter) SetDrainRateLimit(limit rate.Limit) {
+	l.drainLimiter.SetLimit(limit)
 }
 
 // BeginSession begins a new session, or returns ErrCapacityReached if the
@@ -135,7 +132,7 @@ func (l *SessionLimiter) BeginSession() (*Session, error) {
 //	- inFlight < max now, but increases before we create a new session.
 //
 // This is acceptable for our uses, especially because excess sessions will
-// eventually get terminated.
+// eventually be drained.
 func (l *SessionLimiter) hasCapacity() bool {
 	max := atomic.LoadUint32(&l.max)
 	if max == Unlimited {
@@ -246,5 +243,3 @@ func (s *Session) terminate() {
 		close(s.termCh)
 	}
 }
-
-func init() { rand.Seed(time.Now().UnixNano()) }

@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/lib"
 )
 
+func init() { lib.SeedMathRand() }
+
 func TestSessionLimiter(t *testing.T) {
-	termRateLimiter := newTestRateLimiter()
-	lim := NewSessionLimiter(termRateLimiter)
+	lim := NewSessionLimiter()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -22,12 +25,12 @@ func TestSessionLimiter(t *testing.T) {
 	doneCh := make(chan struct{})
 	t.Cleanup(func() { close(doneCh) })
 
-	// Start 18 sessions, and increment the counter when they are terminated.
+	// Start 10 sessions, and increment the counter when they are terminated.
 	var (
 		terminations uint32
 		wg           sync.WaitGroup
 	)
-	for i := 0; i < 18; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			sess, err := lim.BeginSession()
@@ -47,18 +50,10 @@ func TestSessionLimiter(t *testing.T) {
 	// Wait for all the sessions to begin.
 	wg.Wait()
 
-	// Lowering max sessions to 10 should result in 8 sessions being terminated,
-	// but termRateLimiter will only allow 5 to be terminated right now.
-	lim.SetMaxSessions(10)
-	termRateLimiter.allow(ctx, 5)
+	// Lowering max sessions to 5 should result in 5 sessions being terminated.
+	lim.SetMaxSessions(5)
 	require.Eventually(t, func() bool {
 		return atomic.LoadUint32(&terminations) == 5
-	}, 2*time.Second, 50*time.Millisecond)
-
-	// Allow the remaining sessions to be terminated.
-	termRateLimiter.allow(ctx, 5)
-	require.Eventually(t, func() bool {
-		return atomic.LoadUint32(&terminations) == 8
 	}, 2*time.Second, 50*time.Millisecond)
 
 	// Attempting to start a new session should fail immediately.
@@ -66,7 +61,7 @@ func TestSessionLimiter(t *testing.T) {
 	require.Equal(t, ErrCapacityReached, err)
 
 	// Raising MaxSessions should make room for a new session.
-	lim.SetMaxSessions(11)
+	lim.SetMaxSessions(6)
 	sess, err := lim.BeginSession()
 	require.NoError(t, err)
 
@@ -83,33 +78,4 @@ func TestSessionLimiter(t *testing.T) {
 	sess.End()
 	_, err = lim.BeginSession()
 	require.Equal(t, ErrCapacityReached, err)
-}
-
-func newTestRateLimiter() *testWaiter {
-	return &testWaiter{waitCh: make(chan struct{})}
-}
-
-type testWaiter struct {
-	waitCh chan struct{}
-}
-
-func (tw *testWaiter) Wait(ctx context.Context) error {
-	select {
-	case <-tw.waitCh:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-func (tw *testWaiter) allow(ctx context.Context, n int) {
-	go func() {
-		for i := 0; i < n; i++ {
-			select {
-			case tw.waitCh <- struct{}{}:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
 }

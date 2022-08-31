@@ -8,6 +8,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/watch"
@@ -44,6 +45,9 @@ type Controller struct {
 
 	serverCh chan uint32
 	doneCh   chan struct{}
+
+	prevMaxSessions uint32
+	prevRateLimit   rate.Limit
 }
 
 // Config contains the dependencies for Controller.
@@ -57,6 +61,7 @@ type Config struct {
 // spread of xDS sessions between servers.
 type SessionLimiter interface {
 	SetMaxSessions(maxSessions uint32)
+	SetDrainRateLimit(rateLimit rate.Limit)
 }
 
 // NewController creates a new capacity controller with the given config.
@@ -80,37 +85,19 @@ func (a *Controller) Run(ctx context.Context) {
 		a.cfg.Logger.Error("failed to count proxy services", "error", err)
 	}
 
-	var numServers, prevMaxSessions uint32
-	update := func() {
-		if numServers == 0 && numProxies == 0 {
-			return
-		}
-		maxSessions := uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
-		if prevMaxSessions == maxSessions {
-			return
-		}
-		a.cfg.Logger.Debug(
-			"updating max sessions",
-			"max_sessions", maxSessions,
-			"num_servers", numServers,
-			"num_proxies", numProxies,
-		)
-		metrics.SetGauge([]string{"xds", "server", "idealSessionsMax"}, float32(maxSessions))
-		a.cfg.SessionLimiter.SetMaxSessions(maxSessions)
-		prevMaxSessions = maxSessions
-	}
-
+	var numServers uint32
 	for {
 		select {
 		case s := <-a.serverCh:
 			numServers = s
-			update()
+			a.updateMaxSessions(numServers, numProxies)
 		case <-ws.WatchCh(ctx):
 			var count uint32
 			ws, count, err = a.countProxies()
 			if err == nil {
 				numProxies = count
-				update()
+				a.updateDrainRateLimit(numProxies)
+				a.updateMaxSessions(numServers, numProxies)
 			} else {
 				a.cfg.Logger.Error("failed to count proxy services", "error", err)
 			}
@@ -127,6 +114,62 @@ func (a *Controller) SetServerCount(count uint32) {
 	case a.serverCh <- count:
 	case <-a.doneCh:
 	}
+}
+
+func (c *Controller) updateDrainRateLimit(numProxies uint32) {
+	rateLimit := calcRateLimit(numProxies)
+	if rateLimit == c.prevRateLimit {
+		return
+	}
+
+	c.cfg.Logger.Debug("updating drain rate limit", "rate_limit", rateLimit)
+	c.cfg.SessionLimiter.SetDrainRateLimit(rateLimit)
+	c.prevRateLimit = rateLimit
+}
+
+// We dynamically scale the rate at which excess sessions will be drained
+// according to the number of proxies in the catalog.
+//
+// The numbers here are pretty arbitrary (change them if you find better ones!)
+// but the logic is:
+//
+//	0-512 proxies: drain 1 per second
+//	513-2815 proxies: linearly scaled by 1/s for every additional 256 proxies
+//	2816+ proxies: drain 10 per second
+//
+func calcRateLimit(numProxies uint32) rate.Limit {
+	perSecond := math.Floor((float64(numProxies) - 256) / 256)
+
+	if perSecond < 1 {
+		return 1
+	}
+
+	if perSecond > 10 {
+		return 10
+	}
+
+	return rate.Limit(perSecond)
+}
+
+func (a *Controller) updateMaxSessions(numServers, numProxies uint32) {
+	if numServers == 0 && numProxies == 0 {
+		return
+	}
+
+	maxSessions := uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
+	if maxSessions == a.prevMaxSessions {
+		return
+	}
+
+	a.cfg.Logger.Debug(
+		"updating max sessions",
+		"max_sessions", maxSessions,
+		"num_servers", numServers,
+		"num_proxies", numProxies,
+	)
+	metrics.SetGauge([]string{"xds", "server", "idealSessionsMax"}, float32(maxSessions))
+	a.cfg.SessionLimiter.SetMaxSessions(maxSessions)
+	a.prevMaxSessions = maxSessions
 }
 
 func (a *Controller) countProxies() (memdb.WatchSet, uint32, error) {

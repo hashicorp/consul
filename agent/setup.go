@@ -9,7 +9,6 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"golang.org/x/time/rate"
 	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -153,7 +152,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
-	d.XDSSessionLimiter = limiter.NewSessionLimiter(rate.NewLimiter(rate.Inf, 0))
+	d.XDSSessionLimiter = limiter.NewSessionLimiter()
 
 	return d, nil
 }
