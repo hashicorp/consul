@@ -71,6 +71,26 @@ func TestParseCertURIFromString(t *testing.T) {
 			"",
 		},
 		{
+			"mesh-gateway with no partition",
+			"spiffe://1234.consul/gateway/mesh/dc/dc1",
+			&SpiffeIDMeshGateway{
+				Host:       "1234.consul",
+				Partition:  "default",
+				Datacenter: "dc1",
+			},
+			"",
+		},
+		{
+			"mesh-gateway with partition",
+			"spiffe://1234.consul/ap/bizdev/gateway/mesh/dc/dc1",
+			&SpiffeIDMeshGateway{
+				Host:       "1234.consul",
+				Partition:  "bizdev",
+				Datacenter: "dc1",
+			},
+			"",
+		},
+		{
 			"service with URL-encoded values",
 			"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
 			&SpiffeIDService{

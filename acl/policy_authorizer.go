@@ -43,6 +43,9 @@ type policyAuthorizer struct {
 	// meshRule contains the mesh policies.
 	meshRule *policyAuthorizerRule
 
+	// peeringRule contains the peering policies.
+	peeringRule *policyAuthorizerRule
+
 	// embedded enterprise policy authorizer
 	enterprisePolicyAuthorizer
 }
@@ -320,6 +323,15 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 			return err
 		}
 		p.meshRule = &policyAuthorizerRule{access: access}
+	}
+
+	// Load the peering policy
+	if policy.Peering != "" {
+		access, err := AccessLevelFromString(policy.Peering)
+		if err != nil {
+			return err
+		}
+		p.peeringRule = &policyAuthorizerRule{access: access}
 	}
 
 	return nil
@@ -687,6 +699,25 @@ func (p *policyAuthorizer) MeshRead(ctx *AuthorizerContext) EnforcementDecision 
 func (p *policyAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision {
 	if p.meshRule != nil {
 		return enforce(p.meshRule.access, AccessWrite)
+	}
+	// default to OperatorWrite access
+	return p.OperatorWrite(ctx)
+}
+
+// PeeringRead determines if the read-only peering functions are allowed.
+func (p *policyAuthorizer) PeeringRead(ctx *AuthorizerContext) EnforcementDecision {
+	if p.peeringRule != nil {
+		return enforce(p.peeringRule.access, AccessRead)
+	}
+	// default to OperatorRead access
+	return p.OperatorRead(ctx)
+}
+
+// PeeringWrite determines if the state-changing peering functions are
+// allowed.
+func (p *policyAuthorizer) PeeringWrite(ctx *AuthorizerContext) EnforcementDecision {
+	if p.peeringRule != nil {
+		return enforce(p.peeringRule.access, AccessWrite)
 	}
 	// default to OperatorWrite access
 	return p.OperatorWrite(ctx)

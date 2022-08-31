@@ -9,7 +9,7 @@ type NoOpEventPublisher struct{}
 
 func (NoOpEventPublisher) Publish([]Event) {}
 
-func (NoOpEventPublisher) RegisterHandler(Topic, SnapshotFunc) error {
+func (NoOpEventPublisher) RegisterHandler(Topic, SnapshotFunc, bool) error {
 	return fmt.Errorf("stream event publisher is disabled")
 }
 

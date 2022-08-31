@@ -14,7 +14,6 @@ import (
 // resources for a single client.
 type ResourceGenerator struct {
 	Logger         hclog.Logger
-	CheckFetcher   HTTPCheckFetcher
 	CfgFetcher     ConfigFetcher
 	IncrementalXDS bool
 
@@ -23,13 +22,11 @@ type ResourceGenerator struct {
 
 func newResourceGenerator(
 	logger hclog.Logger,
-	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
 	incrementalXDS bool,
 ) *ResourceGenerator {
 	return &ResourceGenerator{
 		Logger:         logger,
-		CheckFetcher:   checkFetcher,
 		CfgFetcher:     cfgFetcher,
 		IncrementalXDS: incrementalXDS,
 	}

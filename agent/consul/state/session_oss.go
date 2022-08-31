@@ -14,48 +14,44 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func sessionIndexer() indexerSingleWithPrefix {
-	return indexerSingleWithPrefix{
-		readIndex:   readIndex(indexFromQuery),
-		writeIndex:  writeIndex(indexFromSession),
-		prefixIndex: prefixIndex(prefixIndexFromQuery),
+func sessionIndexer() indexerSingleWithPrefix[Query, *structs.Session, any] {
+	return indexerSingleWithPrefix[Query, *structs.Session, any]{
+		readIndex:   indexFromQuery,
+		writeIndex:  indexFromSession,
+		prefixIndex: prefixIndexFromQuery,
 	}
 }
 
-func nodeSessionsIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  readIndex(indexFromIDValueLowerCase),
-		writeIndex: writeIndex(indexNodeFromSession),
+func nodeSessionsIndexer() indexerSingle[singleValueID, *structs.Session] {
+	return indexerSingle[singleValueID, *structs.Session]{
+		readIndex:  indexFromIDValueLowerCase,
+		writeIndex: indexNodeFromSession,
 	}
 }
 
-func idCheckIndexer() indexerSingle {
-	return indexerSingle{
+func idCheckIndexer() indexerSingle[*sessionCheck, *sessionCheck] {
+	return indexerSingle[*sessionCheck, *sessionCheck]{
 		readIndex:  indexFromNodeCheckIDSession,
 		writeIndex: indexFromNodeCheckIDSession,
 	}
 }
 
-func sessionCheckIndexer() indexerSingle {
-	return indexerSingle{
+func sessionCheckIndexer() indexerSingle[Query, *sessionCheck] {
+	return indexerSingle[Query, *sessionCheck]{
 		readIndex:  indexFromQuery,
 		writeIndex: indexSessionCheckFromSession,
 	}
 }
 
-func nodeChecksIndexer() indexerSingle {
-	return indexerSingle{
+func nodeChecksIndexer() indexerSingle[multiValueID, *sessionCheck] {
+	return indexerSingle[multiValueID, *sessionCheck]{
 		readIndex:  indexFromMultiValueID,
 		writeIndex: indexFromNodeCheckID,
 	}
 }
 
 // indexFromNodeCheckID creates an index key from a sessionCheck structure
-func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*sessionCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
+func indexFromNodeCheckID(e *sessionCheck) ([]byte, error) {
 	var b indexBuilder
 	v := strings.ToLower(e.Node)
 	if v == "" {

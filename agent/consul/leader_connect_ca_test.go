@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1001,7 +1002,7 @@ func generateExternalRootCA(t *testing.T, client *vaultapi.Client) string {
 		"ttl":         "2400h",
 	})
 	require.NoError(t, err, "failed to generate root")
-	return ca.EnsureTrailingNewline(resp.Data["certificate"].(string))
+	return lib.EnsureTrailingNewline(resp.Data["certificate"].(string))
 }
 
 func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM string) string {
@@ -1033,12 +1034,12 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	require.NoError(t, err, "failed to sign intermediate")
 
 	var buf strings.Builder
-	buf.WriteString(ca.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
-	buf.WriteString(ca.EnsureTrailingNewline(rootPEM))
+	buf.WriteString(lib.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
+	buf.WriteString(lib.EnsureTrailingNewline(rootPEM))
 
 	_, err = client.Logical().Write(path+"/intermediate/set-signed", map[string]interface{}{
 		"certificate": buf.String(),
 	})
 	require.NoError(t, err, "failed to set signed intermediate")
-	return ca.EnsureTrailingNewline(buf.String())
+	return lib.EnsureTrailingNewline(buf.String())
 }

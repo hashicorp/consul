@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -36,18 +35,18 @@ func tokensTableSchema() *memdb.TableSchema {
 				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
 				AllowMissing: true,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromUUIDString),
-					writeIndex: writeIndex(indexAccessorIDFromACLToken),
+				Indexer: indexerSingle[string, *structs.ACLToken]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexAccessorIDFromACLToken,
 				},
 			},
 			indexID: {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromStringCaseSensitive),
-					writeIndex: writeIndex(indexSecretIDFromACLToken),
+				Indexer: indexerSingle[string, *structs.ACLToken]{
+					readIndex:  indexFromStringCaseSensitive,
+					writeIndex: indexSecretIDFromACLToken,
 				},
 			},
 			indexPolicies: {
@@ -55,58 +54,58 @@ func tokensTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerMulti{
-					readIndex:       readIndex(indexFromUUIDQuery),
-					writeIndexMulti: writeIndexMulti(indexPoliciesFromACLToken),
+				Indexer: indexerMulti[Query, *structs.ACLToken]{
+					readIndex:       indexFromUUIDQuery,
+					writeIndexMulti: indexPoliciesFromACLToken,
 				},
 			},
 			indexRoles: {
 				Name:         indexRoles,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerMulti{
-					readIndex:       readIndex(indexFromUUIDQuery),
-					writeIndexMulti: writeIndexMulti(indexRolesFromACLToken),
+				Indexer: indexerMulti[Query, *structs.ACLToken]{
+					readIndex:       indexFromUUIDQuery,
+					writeIndexMulti: indexRolesFromACLToken,
 				},
 			},
 			indexAuthMethod: {
 				Name:         indexAuthMethod,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromAuthMethodQuery),
-					writeIndex: writeIndex(indexAuthMethodFromACLToken),
+				Indexer: indexerSingle[AuthMethodQuery, *structs.ACLToken]{
+					readIndex:  indexFromAuthMethodQuery,
+					writeIndex: indexAuthMethodFromACLToken,
 				},
 			},
 			indexLocality: {
 				Name:         indexLocality,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromBoolQuery),
-					writeIndex: writeIndex(indexLocalFromACLToken),
+				Indexer: indexerSingle[BoolQuery, *structs.ACLToken]{
+					readIndex:  indexFromBoolQuery,
+					writeIndex: indexLocalFromACLToken,
 				},
 			},
 			indexExpiresGlobal: {
 				Name:         indexExpiresGlobal,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromTimeQuery),
-					writeIndex: writeIndex(indexExpiresGlobalFromACLToken),
+				Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
+					readIndex:  indexFromTimeQuery,
+					writeIndex: indexExpiresGlobalFromACLToken,
 				},
 			},
 			indexExpiresLocal: {
 				Name:         indexExpiresLocal,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromTimeQuery),
-					writeIndex: writeIndex(indexExpiresLocalFromACLToken),
+				Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
+					readIndex:  indexFromTimeQuery,
+					writeIndex: indexExpiresLocalFromACLToken,
 				},
 			},
 
-			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
+			// DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
 			// This table indexes all the ACL tokens that do not have an AccessorID
 			// TODO(ACL-Legacy-Compat): remove in phase 2
 			"needs-upgrade": {
@@ -142,7 +141,7 @@ func policiesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *structs.ACLPolicy, any]{
 					readIndex:   indexFromQuery,
 					writeIndex:  indexNameFromACLPolicy,
 					prefixIndex: prefixIndexFromQuery,
@@ -152,12 +151,7 @@ func policiesTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexNameFromACLPolicy(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLPolicy)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
-	}
-
+func indexNameFromACLPolicy(p *structs.ACLPolicy) ([]byte, error) {
 	if p.Name == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -183,7 +177,7 @@ func rolesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *structs.ACLRole, any]{
 					readIndex:   indexFromQuery,
 					writeIndex:  indexNameFromACLRole,
 					prefixIndex: prefixIndexFromQuery,
@@ -194,7 +188,7 @@ func rolesTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerMulti{
+				Indexer: indexerMulti[Query, *structs.ACLRole]{
 					readIndex:       indexFromUUIDQuery,
 					writeIndexMulti: multiIndexPolicyFromACLRole,
 				},
@@ -203,75 +197,43 @@ func rolesTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexNameFromACLRole(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLRole)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
-	}
-
-	if p.Name == "" {
+func indexNameFromACLRole(r *structs.ACLRole) ([]byte, error) {
+	if r.Name == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(p.Name))
+	b.String(strings.ToLower(r.Name))
 	return b.Bytes(), nil
 }
 
-func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for UUIDQuery index", raw)
-	}
+func indexFromUUIDQuery(q Query) ([]byte, error) {
 	return uuidStringToBytes(q.Value)
 }
 
-func prefixIndexFromUUIDQuery(arg interface{}) ([]byte, error) {
-	switch v := arg.(type) {
-	case *acl.EnterpriseMeta:
-		return nil, nil
-	case acl.EnterpriseMeta:
-		return nil, nil
-	case Query:
-		return variableLengthUUIDStringToBytes(v.Value)
+func prefixIndexFromUUIDWithPeerQuery(q Query) ([]byte, error) {
+	var b indexBuilder
+	peername := q.PeerOrEmpty()
+	if peername == "" {
+		b.String(structs.LocalPeerKeyword)
+	} else {
+		b.String(strings.ToLower(peername))
 	}
-
-	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
+	uuidBytes, err := variableLengthUUIDStringToBytes(q.Value)
+	if err != nil {
+		return nil, err
+	}
+	return append(b.Bytes(), uuidBytes...), nil
 }
 
-func prefixIndexFromUUIDWithPeerQuery(arg interface{}) ([]byte, error) {
-	switch v := arg.(type) {
-	case Query:
-		var b indexBuilder
-		peername := v.PeerOrEmpty()
-		if peername == "" {
-			b.String(structs.LocalPeerKeyword)
-		} else {
-			b.String(strings.ToLower(peername))
-		}
-		uuidBytes, err := variableLengthUUIDStringToBytes(v.Value)
-		if err != nil {
-			return nil, err
-		}
-		return append(b.Bytes(), uuidBytes...), nil
-	}
-
-	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
-}
-
-func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
-	role, ok := raw.(*structs.ACLRole)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
-	}
-
-	count := len(role.Policies)
+func multiIndexPolicyFromACLRole(r *structs.ACLRole) ([][]byte, error) {
+	count := len(r.Policies)
 	if count == 0 {
 		return nil, errMissingValueForIndex
 	}
 
 	vals := make([][]byte, 0, count)
-	for _, link := range role.Policies {
+	for _, link := range r.Policies {
 		v, err := uuidStringToBytes(link.ID)
 		if err != nil {
 			return nil, err
@@ -290,16 +252,16 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromUUIDString),
-					writeIndex: writeIndex(indexIDFromACLBindingRule),
+				Indexer: indexerSingle[string, *structs.ACLBindingRule]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexIDFromACLBindingRule,
 				},
 			},
 			indexAuthMethod: {
 				Name:         indexAuthMethod,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[Query, *structs.ACLBindingRule]{
 					readIndex:  indexFromQuery,
 					writeIndex: indexAuthMethodFromACLBindingRule,
 				},
@@ -308,12 +270,8 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexIDFromACLBindingRule(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLBindingRule)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
-	}
-	vv, err := uuidStringToBytes(p.ID)
+func indexIDFromACLBindingRule(r *structs.ACLBindingRule) ([]byte, error) {
+	vv, err := uuidStringToBytes(r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -321,27 +279,18 @@ func indexIDFromACLBindingRule(raw interface{}) ([]byte, error) {
 	return vv, err
 }
 
-func indexAuthMethodFromACLBindingRule(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLBindingRule)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
-	}
-
-	if p.AuthMethod == "" {
+func indexAuthMethodFromACLBindingRule(r *structs.ACLBindingRule) ([]byte, error) {
+	if r.AuthMethod == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(p.AuthMethod))
+	b.String(strings.ToLower(r.AuthMethod))
 	return b.Bytes(), nil
 }
 
-func indexFromUUIDString(raw interface{}) ([]byte, error) {
-	index, ok := raw.(string)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for UUID string index", raw)
-	}
-	uuid, err := uuidStringToBytes(index)
+func indexFromUUIDString(raw string) ([]byte, error) {
+	uuid, err := uuidStringToBytes(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -350,17 +299,12 @@ func indexFromUUIDString(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexAccessorIDFromACLToken(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-
-	if p.AccessorID == "" {
+func indexAccessorIDFromACLToken(t *structs.ACLToken) ([]byte, error) {
+	if t.AccessorID == "" {
 		return nil, errMissingValueForIndex
 	}
 
-	uuid, err := uuidStringToBytes(p.AccessorID)
+	uuid, err := uuidStringToBytes(t.AccessorID)
 	if err != nil {
 		return nil, err
 	}
@@ -369,37 +313,23 @@ func indexAccessorIDFromACLToken(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexSecretIDFromACLToken(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-
-	if p.SecretID == "" {
+func indexSecretIDFromACLToken(t *structs.ACLToken) ([]byte, error) {
+	if t.SecretID == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(p.SecretID)
+	b.String(t.SecretID)
 	return b.Bytes(), nil
 }
 
-func indexFromStringCaseSensitive(raw interface{}) ([]byte, error) {
-	q, ok := raw.(string)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for string prefix query", raw)
-	}
-
+func indexFromStringCaseSensitive(s string) ([]byte, error) {
 	var b indexBuilder
-	b.String(q)
+	b.String(s)
 	return b.Bytes(), nil
 }
 
-func indexPoliciesFromACLToken(raw interface{}) ([][]byte, error) {
-	token, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
+func indexPoliciesFromACLToken(token *structs.ACLToken) ([][]byte, error) {
 	links := token.Policies
 
 	numLinks := len(links)
@@ -420,11 +350,7 @@ func indexPoliciesFromACLToken(raw interface{}) ([][]byte, error) {
 	return vals, nil
 }
 
-func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
-	token, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
+func indexRolesFromACLToken(token *structs.ACLToken) ([][]byte, error) {
 	links := token.Roles
 
 	numLinks := len(links)
@@ -445,63 +371,45 @@ func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
 	return vals, nil
 }
 
-func indexFromBoolQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(BoolQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
-	}
+func indexFromBoolQuery(q BoolQuery) ([]byte, error) {
 	var b indexBuilder
 	b.Bool(q.Value)
 	return b.Bytes(), nil
 }
 
-func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
-	}
-
+func indexLocalFromACLToken(token *structs.ACLToken) ([]byte, error) {
 	var b indexBuilder
-	b.Bool(p.Local)
+	b.Bool(token.Local)
 	return b.Bytes(), nil
 }
 
-func indexFromTimeQuery(arg interface{}) ([]byte, error) {
-	p, ok := arg.(*TimeQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for TimeQuery index", arg)
-	}
-
+func indexFromTimeQuery(q *TimeQuery) ([]byte, error) {
 	var b indexBuilder
-	b.Time(p.Value)
+	b.Time(q.Value)
 	return b.Bytes(), nil
 }
 
-func indexExpiresLocalFromACLToken(raw interface{}) ([]byte, error) {
-	return indexExpiresFromACLToken(raw, true)
+func indexExpiresLocalFromACLToken(token *structs.ACLToken) ([]byte, error) {
+	return indexExpiresFromACLToken(token, true)
 }
 
-func indexExpiresGlobalFromACLToken(raw interface{}) ([]byte, error) {
-	return indexExpiresFromACLToken(raw, false)
+func indexExpiresGlobalFromACLToken(token *structs.ACLToken) ([]byte, error) {
+	return indexExpiresFromACLToken(token, false)
 }
 
-func indexExpiresFromACLToken(raw interface{}, local bool) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-	if p.Local != local {
+func indexExpiresFromACLToken(t *structs.ACLToken, local bool) ([]byte, error) {
+	if t.Local != local {
 		return nil, errMissingValueForIndex
 	}
-	if !p.HasExpirationTime() {
+	if !t.HasExpirationTime() {
 		return nil, errMissingValueForIndex
 	}
-	if p.ExpirationTime.Unix() < 0 {
-		return nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", p.ExpirationTime)
+	if t.ExpirationTime.Unix() < 0 {
+		return nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", t.ExpirationTime)
 	}
 
 	var b indexBuilder
-	b.Time(*p.ExpirationTime)
+	b.Time(*t.ExpirationTime)
 	return b.Bytes(), nil
 }
 
@@ -513,7 +421,7 @@ func authMethodsTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[Query, *structs.ACLAuthMethod]{
 					readIndex:  indexFromQuery,
 					writeIndex: indexNameFromACLAuthMethod,
 				},
@@ -522,17 +430,12 @@ func authMethodsTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexNameFromACLAuthMethod(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLAuthMethod)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLAuthMethod index", raw)
-	}
-
-	if p.Name == "" {
+func indexNameFromACLAuthMethod(m *structs.ACLAuthMethod) ([]byte, error) {
+	if m.Name == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(p.Name))
+	b.String(strings.ToLower(m.Name))
 	return b.Bytes(), nil
 }

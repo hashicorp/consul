@@ -57,6 +57,12 @@ func (s *Server) revokeEnterpriseLeadership() error {
 	return nil
 }
 
+func (s *Server) startTenancyDeferredDeletion(ctx context.Context) {
+}
+
+func (s *Server) stopTenancyDeferredDeletion() {
+}
+
 func (s *Server) validateEnterpriseRequest(entMeta *acl.EnterpriseMeta, write bool) error {
 	return nil
 }

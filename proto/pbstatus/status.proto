@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package status;
+package hashicorp.consul.internal.status;
 
 import "google/protobuf/any.proto";
 

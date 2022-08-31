@@ -84,11 +84,12 @@ const (
 	PeeringTerminateByIDType                    = 37
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
+	PeeringSecretsWriteType                     = 40
 )
 
 const (
 	// LocalPeerKeyword is a reserved keyword used for indexing in the state store for objects in the local peer.
-	LocalPeerKeyword = "internal"
+	LocalPeerKeyword = "~"
 
 	// DefaultPeerKeyword is the PeerName to use to refer to the local
 	// cluster's own data, rather than replicated peered data.
@@ -149,6 +150,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringDeleteType:               "PeeringDelete",
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
+	PeeringSecretsWriteType:         "PeeringSecret",
 }
 
 const (
@@ -351,7 +353,7 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 			q.MaxQueryTime = defaultQueryTime
 		}
 		// Timeout after maximum jitter has elapsed.
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}
@@ -682,6 +684,30 @@ func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
 }
 
+// PartitionSpecificRequest is used to query about a specific partition.
+type PartitionSpecificRequest struct {
+	Datacenter string
+
+	acl.EnterpriseMeta
+	QueryOptions
+}
+
+func (r *PartitionSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+	}
+}
+
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter string
@@ -776,9 +802,15 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter         string
-	Node               string
-	PeerName           string
+	Datacenter string
+	Node       string
+	PeerName   string
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -801,6 +833,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Node,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -1178,6 +1211,11 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindDestination is a Destination  for the Connect feature.
+	// This service allows external traffic to exit the mesh through a terminating gateway
+	// based on centralized configuration.
+	ServiceKindDestination ServiceKind = "destination"
 )
 
 // Type to hold a address and port of a service
@@ -1251,6 +1289,13 @@ type PeeringServiceMeta struct {
 	SNI      []string `json:",omitempty"`
 	SpiffeID []string `json:",omitempty"`
 	Protocol string   `json:",omitempty"`
+}
+
+func (m *PeeringServiceMeta) PrimarySNI() string {
+	if m == nil || len(m.SNI) == 0 {
+		return ""
+	}
+	return m.SNI[0]
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
@@ -1368,6 +1413,27 @@ func (s *NodeService) IsGateway() bool {
 func (s *NodeService) Validate() error {
 	var result error
 
+	if s.Kind == ServiceKindConnectProxy {
+		if s.Port == 0 && s.SocketPath == "" {
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
+		}
+	}
+
+	commonValidation := s.ValidateForAgent()
+	if commonValidation != nil {
+		result = multierror.Append(result, commonValidation)
+	}
+
+	return result
+}
+
+// ValidateForAgent does a subset validation, with the assumption that a local agent can assist with missing values.
+//
+// I.e. in the catalog case, a local agent cannot be assumed to facilitate auto-assignment of port or socket path,
+// so additional checks are needed.
+func (s *NodeService) ValidateForAgent() error {
+	var result error
+
 	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
 
 	// ConnectProxy validation
@@ -1381,10 +1447,6 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf(
 				"Proxy.DestinationServiceName must not be a wildcard for Connect proxy "+
 					"services"))
-		}
-
-		if s.Port == 0 && s.SocketPath == "" {
-			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -1663,7 +1725,7 @@ type HealthCheck struct {
 	ServiceID   string        // optional associated service
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
-	Type        string        // Check type: http/ttl/tcp/etc
+	Type        string        // Check type: http/ttl/tcp/udp/etc
 
 	Interval string // from definition
 	Timeout  string // from definition
@@ -1728,6 +1790,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
+	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
@@ -1878,6 +1941,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
+		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
@@ -2140,9 +2204,15 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+// PeeredServiceName is a basic tuple of ServiceName and peer
+type PeeredServiceName struct {
+	ServiceName ServiceName
+	Peer        string
+}
+
 type ServiceName struct {
-	Name string
-	acl.EnterpriseMeta
+	Name               string
+	acl.EnterpriseMeta `mapstructure:",squash"`
 }
 
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
@@ -2184,6 +2254,11 @@ type IndexedServiceList struct {
 	QueryMeta
 }
 
+type IndexedPeeredServiceList struct {
+	Services []PeeredServiceName
+	QueryMeta
+}
+
 type IndexedServiceNodes struct {
 	ServiceNodes ServiceNodes
 	QueryMeta
@@ -2212,8 +2287,9 @@ type IndexedCheckServiceNodes struct {
 }
 
 type IndexedNodesWithGateways struct {
-	Nodes    CheckServiceNodes
-	Gateways GatewayServices
+	ImportedNodes CheckServiceNodes
+	Nodes         CheckServiceNodes
+	Gateways      GatewayServices
 	QueryMeta
 }
 
@@ -2223,7 +2299,8 @@ type DatacenterIndexedCheckServiceNodes struct {
 }
 
 type IndexedNodeDump struct {
-	Dump NodeDump
+	ImportedDump NodeDump
+	Dump         NodeDump
 	QueryMeta
 }
 

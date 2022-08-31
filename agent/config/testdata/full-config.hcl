@@ -305,6 +305,9 @@ node_meta {
 node_name = "otlLxGaI"
 non_voting_server = true
 partition = ""
+peering {
+    enabled = true
+}
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -654,7 +657,6 @@ telemetry {
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
 tls {
     defaults {
@@ -695,6 +697,7 @@ tls {
         tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
         tls_min_version = "TLSv1_0"
         verify_incoming = true
+        use_auto_cert   = true
     }
 }
 tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"

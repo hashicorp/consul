@@ -3,7 +3,7 @@
 
 syntax = "proto3";
 
-package serverdiscovery;
+package hashicorp.consul.serverdiscovery;
 
 service ServerDiscoveryService {
   // WatchServers will stream back sets of ready servers as they change such as

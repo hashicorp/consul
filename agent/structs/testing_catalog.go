@@ -53,6 +53,28 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 	}
 }
 
+const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
+
+func TestNodeServiceWithNameInPeer(t testing.T, name string, peer string) *NodeService {
+	service := "payments"
+	return &NodeService{
+		Kind:    ServiceKindTypical,
+		Service: name,
+		Port:    8080,
+		Connect: ServiceConnect{
+			PeerMeta: &PeeringServiceMeta{
+				SNI: []string{
+					service + ".default.default." + peer + ".external." + peerTrustDomain,
+				},
+				SpiffeID: []string{
+					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + service,
+				},
+				Protocol: "tcp",
+			},
+		},
+	}
+}
+
 // TestNodeServiceProxy returns a *NodeService representing a valid
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {

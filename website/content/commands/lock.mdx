@@ -46,12 +46,6 @@ of 5 seconds, a `SIGKILL` will be used to force termination. For Consul agents
 on Windows, the child process is always terminated with a `SIGKILL`, since
 Windows has no POSIX compatible notion for `SIGTERM`.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `-child-exit-code` - Exit 2 if the child process exited with an error
@@ -81,6 +75,12 @@ Windows has no POSIX compatible notion for `SIGTERM`.
   are "ns", "us" (or "µs"), "ms", "s", "m", "h". The default value is 0.
 
 - `-verbose` - Enables verbose output.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## SHELL
 

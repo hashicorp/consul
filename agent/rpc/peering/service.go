@@ -4,27 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"google.golang.org/genproto/googleapis/rpc/code"
+	"github.com/hashicorp/go-multierror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/dns"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -34,7 +36,7 @@ var (
 	errPeeringTokenEmptyPeerID          = errors.New("peering token peer ID value is empty")
 )
 
-// errPeeringInvalidServerAddress is returned when an initiate request contains
+// errPeeringInvalidServerAddress is returned when an establish request contains
 // an invalid server address.
 type errPeeringInvalidServerAddress struct {
 	addr string
@@ -45,33 +47,60 @@ func (e *errPeeringInvalidServerAddress) Error() string {
 	return fmt.Sprintf("%s is not a valid peering server address", e.addr)
 }
 
+// For private/internal gRPC handlers, protoc-gen-rpc-glue generates the
+// requisite methods to satisfy the structs.RPCInfo interface using fields
+// from the pbcommon package. This service is public, so we can't use those
+// fields in our proto definition. Instead, we construct our RPCInfo manually.
+var writeRequest struct {
+	structs.WriteRequest
+	structs.DCSpecificRequest
+}
+
+var readRequest struct {
+	structs.QueryOptions
+	structs.DCSpecificRequest
+}
+
+// Server implements pbpeering.PeeringService to provide RPC operations for
+// managing peering relationships.
+type Server struct {
+	Config
+}
+
 type Config struct {
+	Backend        Backend
+	Tracker        *peerstream.Tracker
+	Logger         hclog.Logger
+	ForwardRPC     func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
 	Datacenter     string
 	ConnectEnabled bool
-	// TODO(peering): remove this when we're ready
-	DisableMeshGatewayMode bool
+	PeeringEnabled bool
 }
 
-// Service implements pbpeering.PeeringService to provide RPC operations for
-// managing peering relationships.
-type Service struct {
-	Backend Backend
-	logger  hclog.Logger
-	config  Config
-	streams *streamTracker
-}
-
-func NewService(logger hclog.Logger, cfg Config, backend Backend) *Service {
-	cfg.DisableMeshGatewayMode = true
-	return &Service{
-		Backend: backend,
-		logger:  logger,
-		config:  cfg,
-		streams: newStreamTracker(),
+func NewServer(cfg Config) *Server {
+	requireNotNil(cfg.Backend, "Backend")
+	requireNotNil(cfg.Tracker, "Tracker")
+	requireNotNil(cfg.Logger, "Logger")
+	requireNotNil(cfg.ForwardRPC, "ForwardRPC")
+	if cfg.Datacenter == "" {
+		panic("Datacenter is required")
+	}
+	return &Server{
+		Config: cfg,
 	}
 }
 
-var _ pbpeering.PeeringServiceServer = (*Service)(nil)
+func requireNotNil(v interface{}, name string) {
+	if v == nil {
+		panic(name + " is required")
+	}
+}
+
+var _ pbpeering.PeeringServiceServer = (*Server)(nil)
+
+func (s *Server) Register(grpcServer *grpc.Server) {
+	pbpeering.RegisterPeeringServiceServer(grpcServer, s)
+}
 
 // Backend defines the core integrations the Peering endpoint depends on. A
 // functional implementation will integrate with various subcomponents of Consul
@@ -79,8 +108,11 @@ var _ pbpeering.PeeringServiceServer = (*Service)(nil)
 // providing access to CA data and the RPC system for forwarding requests to
 // other servers.
 type Backend interface {
-	// Forward should forward the request to the leader when necessary.
-	Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error)
+	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
+	// actions based on the permissions granted to the token.
+	// If either entMeta or authzContext are non-nil they will be populated with the
+	// partition and namespace from the token.
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error)
 
 	// GetAgentCACertificates returns the CA certificate to be returned in the peering token data
 	GetAgentCACertificates() ([]string, error)
@@ -100,27 +132,31 @@ type Backend interface {
 
 	EnterpriseCheckPartitions(partition string) error
 
+	EnterpriseCheckNamespaces(namespace string) error
+
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 
 	// IsLeader indicates whether the consul server is in a leader state or not.
 	IsLeader() bool
 
+	// SetLeaderAddress is called on a raft.LeaderObservation in a go routine
+	// in the consul server; see trackLeaderChanges()
+	SetLeaderAddress(string)
+
+	// GetLeaderAddress provides the best hint for the current address of the
+	// leader. There is no guarantee that this is the actual address of the
+	// leader.
+	GetLeaderAddress() string
+
+	// CheckPeeringUUID returns true if the given UUID is not associated with
+	// an existing peering.
+	CheckPeeringUUID(id string) (bool, error)
+
+	ValidateProposedPeeringSecret(id string) (bool, error)
+
+	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
+
 	Store() Store
-	Apply() Apply
-	LeadershipMonitor() LeadershipMonitor
-}
-
-// LeadershipMonitor provides a way for the consul server to update the peering service about
-// the server's leadership status.
-// Server addresses should look like: ip:port
-type LeadershipMonitor interface {
-	// UpdateLeaderAddr is called on a raft.LeaderObservation in a go routine in the consul server;
-	// see trackLeaderChanges()
-	UpdateLeaderAddr(leaderAddr string)
-
-	// GetLeaderAddr provides the best hint for the current address of the leader.
-	// There is no guarantee that this is the actual address of the leader.
-	GetLeaderAddr() string
 }
 
 // Store provides a read-only interface for querying Peering data.
@@ -129,29 +165,23 @@ type Store interface {
 	PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
-	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
-	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
-	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
-	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
-	AbandonCh() <-chan struct{}
+	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 }
 
-// Apply provides a write-only interface for persisting Peering data.
-type Apply interface {
-	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
-	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
-	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
-	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
-	CatalogRegister(req *structs.RegisterRequest) error
-}
+var peeringNotEnabledErr = grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint")
 
 // GenerateToken implements the PeeringService RPC method to generate a
 // peering token which is the initial step in establishing a peering relationship
 // with other Consul clusters.
-func (s *Service) GenerateToken(
+func (s *Server) GenerateToken(
 	ctx context.Context,
 	req *pbpeering.GenerateTokenRequest,
 ) (*pbpeering.GenerateTokenResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -164,11 +194,11 @@ func (s *Service) GenerateToken(
 		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
-	// TODO(peering): add metrics
-	// TODO(peering): add tracing
+	defer metrics.MeasureSince([]string{"peering", "generate_token"}, time.Now())
 
 	resp := &pbpeering.GenerateTokenResponse{}
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).GenerateToken(ctx, req)
 		return err
@@ -177,46 +207,107 @@ func (s *Service) GenerateToken(
 		return resp, err
 	}
 
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	var (
+		peering  *pbpeering.Peering
+		secretID string
+	)
+
+	// This loop ensures at most one retry in the case of a race condition.
+	for canRetry := true; canRetry; canRetry = false {
+		peering, err = s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
+		if err != nil {
+			return nil, err
+		}
+
+		if peering == nil {
+			id, err := lib.GenerateUUID(s.Backend.CheckPeeringUUID)
+			if err != nil {
+				return resp, err
+			}
+			peering = &pbpeering.Peering{
+				ID:   id,
+				Name: req.PeerName,
+				Meta: req.Meta,
+
+				// PartitionOrEmpty is used to avoid writing "default" in OSS.
+				Partition: entMeta.PartitionOrEmpty(),
+			}
+		} else {
+			// validate that this peer name is not being used as a dialer already
+			if err := validatePeer(peering, false); err != nil {
+				return nil, err
+			}
+		}
+
+		// A new establishment secret is generated on every GenerateToken request.
+		// This allows for rotating secrets by generating a new token for a peering and then
+		// using the new token to re-establish the peering.
+		secretID, err = s.generateNewEstablishmentSecret()
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate secret for peering establishment: %w", err)
+		}
+
+		writeReq := &pbpeering.PeeringWriteRequest{
+			Peering: peering,
+			SecretsRequest: &pbpeering.SecretsWriteRequest{
+				PeerID: peering.ID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: secretID,
+					},
+				},
+			},
+		}
+		if err := s.Backend.PeeringWrite(writeReq); err != nil {
+			// There's a possible race where two servers call Generate Token at the
+			// same time with the same peer name for the first time. They both
+			// generate an ID and try to insert and only one wins. This detects the
+			// collision and forces the loser to discard its generated ID and use
+			// the one from the other server.
+			if strings.Contains(err.Error(), "A peering already exists with the name") {
+				// retry to fetch existing peering
+				continue
+			}
+			return nil, fmt.Errorf("failed to write peering: %w", err)
+		}
+		// write succeeded, break loop early
+		break
+	}
+
 	ca, err := s.Backend.GetAgentCACertificates()
 	if err != nil {
 		return nil, err
 	}
 
-	serverAddrs, err := s.Backend.GetServerAddresses()
-	if err != nil {
-		return nil, err
-	}
-
-	writeReq := pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name: req.PeerName,
-			// TODO(peering): Normalize from ACL token once this endpoint is guarded by ACLs.
-			Partition: req.PartitionOrDefault(),
-			Meta:      req.Meta,
-		},
-	}
-	if err := s.Backend.Apply().PeeringWrite(&writeReq); err != nil {
-		return nil, fmt.Errorf("failed to write peering: %w", err)
-	}
-
-	q := state.Query{
-		Value:          strings.ToLower(req.PeerName),
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
-	}
-	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
-	if err != nil {
-		return nil, err
-	}
-	if peering == nil {
-		return nil, fmt.Errorf("peering was deleted while token generation request was in flight")
+	// ServerExternalAddresses must be formatted as addr:port.
+	var serverAddrs []string
+	if len(req.ServerExternalAddresses) > 0 {
+		serverAddrs = req.ServerExternalAddresses
+	} else {
+		serverAddrs, err = s.Backend.GetServerAddresses()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
-		PeerID:          peering.ID,
-		CA:              ca,
-		ServerAddresses: serverAddrs,
-		ServerName:      s.Backend.GetServerName(),
+		PeerID:              peering.ID,
+		CA:                  ca,
+		ServerAddresses:     serverAddrs,
+		ServerName:          s.Backend.GetServerName(),
+		EstablishmentSecret: secretID,
 	}
 
 	encoded, err := s.Backend.EncodeToken(&tok)
@@ -227,13 +318,17 @@ func (s *Service) GenerateToken(
 	return resp, err
 }
 
-// Initiate implements the PeeringService RPC method to finalize peering
+// Establish implements the PeeringService RPC method to finalize peering
 // registration. Given a valid token output from a peer's GenerateToken endpoint,
 // a peering is registered.
-func (s *Service) Initiate(
+func (s *Server) Establish(
 	ctx context.Context,
-	req *pbpeering.InitiateRequest,
-) (*pbpeering.InitiateResponse, error) {
+	req *pbpeering.EstablishRequest,
+) (*pbpeering.EstablishResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	// validate prior to forwarding to the leader, this saves a network hop
 	if err := dns.ValidateLabel(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
@@ -250,54 +345,169 @@ func (s *Service) Initiate(
 		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
-	resp := &pbpeering.InitiateResponse{}
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	resp := &pbpeering.EstablishResponse{}
+	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
-		resp, err = pbpeering.NewPeeringServiceClient(conn).Initiate(ctx, req)
+		resp, err = pbpeering.NewPeeringServiceClient(conn).Establish(ctx, req)
 		return err
 	})
 	if handled || err != nil {
 		return resp, err
 	}
 
-	defer metrics.MeasureSince([]string{"peering", "initiate"}, time.Now())
+	defer metrics.MeasureSince([]string{"peering", "establish"}, time.Now())
 
-	// convert ServiceAddress values to strings
-	serverAddrs := make([]string, len(tok.ServerAddresses))
-	for i, addr := range tok.ServerAddresses {
-		serverAddrs[i] = addr
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
 	}
 
-	// as soon as a peering is written with a list of ServerAddresses that is
-	// non-empty, the leader routine will see the peering and attempt to
-	// establish a connection with the remote peer.
+	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	existing, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrEmpty()); err != nil {
+		return nil, err
+	}
+
+	var id string
+	serverAddrs := tok.ServerAddresses
+	if existing == nil {
+		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		id = existing.ID
+		// If there is a connected stream, assume that the existing ServerAddresses
+		// are up to date and do not try to overwrite them with the token's addresses.
+		if status, ok := s.Tracker.StreamStatus(id); ok && status.Connected {
+			serverAddrs = existing.PeerServerAddresses
+		}
+	}
+
+	// validate that this peer name is not being used as an acceptor already
+	if err := validatePeer(existing, true); err != nil {
+		return nil, err
+	}
+
+	peering := &pbpeering.Peering{
+		ID:                  id,
+		Name:                req.PeerName,
+		PeerCAPems:          tok.CA,
+		PeerServerAddresses: serverAddrs,
+		PeerServerName:      tok.ServerName,
+		PeerID:              tok.PeerID,
+		Meta:                req.Meta,
+		State:               pbpeering.PeeringState_ESTABLISHING,
+
+		// PartitionOrEmpty is used to avoid writing "default" in OSS.
+		Partition: entMeta.PartitionOrEmpty(),
+	}
+
+	tlsOption, err := peering.TLSDialOption()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build TLS dial option from peering: %w", err)
+	}
+
+	exchangeReq := pbpeerstream.ExchangeSecretRequest{
+		PeerID:              peering.PeerID,
+		EstablishmentSecret: tok.EstablishmentSecret,
+	}
+	var exchangeResp *pbpeerstream.ExchangeSecretResponse
+
+	// Loop through the known server addresses once, attempting to fetch the long-lived stream secret.
+	var dialErrors error
+	for _, addr := range serverAddrs {
+		exchangeResp, err = exchangeSecret(ctx, addr, tlsOption, &exchangeReq)
+		if err != nil {
+			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret with %q: %w", addr, err))
+		}
+		if exchangeResp != nil {
+			break
+		}
+	}
+	if exchangeResp == nil {
+		return nil, dialErrors
+	}
+
+	// As soon as a peering is written with a non-empty list of ServerAddresses
+	// and an active stream secret, a leader routine will see the peering and
+	// attempt to establish a peering stream with the remote peer.
 	//
 	// This peer now has a record of both the LocalPeerID(ID) and
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name:                req.PeerName,
-			PeerCAPems:          tok.CA,
-			PeerServerAddresses: serverAddrs,
-			PeerServerName:      tok.ServerName,
-			PeerID:              tok.PeerID,
-			Meta:                req.Meta,
+		Peering: peering,
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
+			PeerID: peering.ID,
+			Request: &pbpeering.SecretsWriteRequest_Establish{
+				Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+					ActiveStreamSecret: exchangeResp.StreamSecret,
+				},
+			},
 		},
 	}
-	if err = s.Backend.Apply().PeeringWrite(writeReq); err != nil {
+	if err := s.Backend.PeeringWrite(writeReq); err != nil {
 		return nil, fmt.Errorf("failed to write peering: %w", err)
 	}
-	// resp.Status == 0
+	// TODO(peering): low prio: consider adding response details
 	return resp, nil
 }
 
-func (s *Service) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
+// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We validate by looking at
+// the remotePeerID from the PeeringToken and looking up for a peering in the partition. If there is one and the
+// request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
+func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
+	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
+	if err != nil {
+		return fmt.Errorf("cannot read peering by ID: %w", err)
+	}
+
+	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
+		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
+	}
+
+	return nil
+}
+
+func exchangeSecret(ctx context.Context, addr string, tlsOption grpc.DialOption, req *pbpeerstream.ExchangeSecretRequest) (*pbpeerstream.ExchangeSecretResponse, error) {
+	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(dialCtx, addr,
+		tlsOption,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial peer: %w", err)
+	}
+	defer conn.Close()
+
+	client := pbpeerstream.NewPeerStreamServiceClient(conn)
+	return client.ExchangeSecret(ctx, req)
+}
+
+// OPTIMIZE: Handle blocking queries
+func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var resp *pbpeering.PeeringReadResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringRead(ctx, req)
 		return err
@@ -307,26 +517,47 @@ func (s *Service) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadReq
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "read"}, time.Now())
-	// TODO(peering): ACL check request token
 
-	// TODO(peering): handle blocking queries
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().PeeringReadAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
 	q := state.Query{
 		Value:          strings.ToLower(req.Name),
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition)}
+		EnterpriseMeta: *entMeta,
+	}
 	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
 	if err != nil {
 		return nil, err
 	}
-	return &pbpeering.PeeringReadResponse{Peering: peering}, nil
+	if peering == nil {
+		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
+	}
+
+	cp := s.reconcilePeering(peering)
+	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
 }
 
-func (s *Service) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
+// OPTIMIZE: Handle blocking queries
+func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var resp *pbpeering.PeeringListResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringList(ctx, req)
 		return err
@@ -335,26 +566,77 @@ func (s *Service) PeeringList(ctx context.Context, req *pbpeering.PeeringListReq
 		return resp, err
 	}
 
-	defer metrics.MeasureSince([]string{"peering", "list"}, time.Now())
-	// TODO(peering): ACL check request token
-
-	// TODO(peering): handle blocking queries
-	_, peerings, err := s.Backend.Store().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(req.Partition))
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
-	return &pbpeering.PeeringListResponse{Peerings: peerings}, nil
+
+	if err := authz.ToAllowAuthorizer().PeeringReadAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	defer metrics.MeasureSince([]string{"peering", "list"}, time.Now())
+
+	_, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	// reconcile the actual peering state; need to copy over the ds for peering
+	var cPeerings []*pbpeering.Peering
+	for _, p := range peerings {
+		cp := s.reconcilePeering(p)
+		cPeerings = append(cPeerings, cp)
+	}
+
+	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
+}
+
+// TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state
+// reconcilePeering enriches the peering with the following information:
+// -- PeeringState.Active if the peering is active
+// -- ImportedServicesCount and ExportedServicesCount
+// NOTE: we return a new peering with this additional data
+func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
+	streamState, found := s.Tracker.StreamStatus(peering.ID)
+	if !found {
+		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
+			" exported services count or reconcile peering state", "peerID", peering.ID)
+		return peering
+	} else {
+		cp := copyPeering(peering)
+
+		// reconcile pbpeering.PeeringState_Active
+		if streamState.Connected {
+			cp.State = pbpeering.PeeringState_ACTIVE
+		} else if streamState.DisconnectErrorMessage != "" {
+			cp.State = pbpeering.PeeringState_FAILING
+		}
+
+		// add imported & exported services counts
+		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
+		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
+
+		return cp
+	}
 }
 
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
 // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
-func (s *Service) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRequest) (*pbpeering.PeeringWriteResponse, error) {
+func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRequest) (*pbpeering.PeeringWriteResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Peering.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var resp *pbpeering.PeeringWriteResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringWrite(ctx, req)
 		return err
@@ -364,23 +646,56 @@ func (s *Service) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteR
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "write"}, time.Now())
-	// TODO(peering): ACL check request token
 
-	// TODO(peering): handle blocking queries
-	err = s.Backend.Apply().PeeringWrite(req)
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Peering.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	if req.Peering == nil {
+		return nil, fmt.Errorf("missing required peering body")
+	}
+
+	var id string
+	peering, err := s.getExistingPeering(req.Peering.Name, entMeta.PartitionOrDefault())
+	if err != nil {
+		return nil, err
+	}
+	if peering == nil {
+		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		id = peering.ID
+	}
+	req.Peering.ID = id
+
+	err = s.Backend.PeeringWrite(req)
 	if err != nil {
 		return nil, err
 	}
 	return &pbpeering.PeeringWriteResponse{}, nil
 }
 
-func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDeleteRequest) (*pbpeering.PeeringDeleteResponse, error) {
+func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDeleteRequest) (*pbpeering.PeeringDeleteResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var resp *pbpeering.PeeringDeleteResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringDelete(ctx, req)
 		return err
@@ -390,23 +705,71 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "delete"}, time.Now())
-	// TODO(peering): ACL check request token
 
-	// TODO(peering): handle blocking queries
-	err = s.Backend.Apply().PeeringDelete(req)
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	q := state.Query{
+		Value:          strings.ToLower(req.Name),
+		EnterpriseMeta: *entMeta,
+	}
+	_, existing, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil || existing.State == pbpeering.PeeringState_DELETING {
+		// Return early when the Peering doesn't exist or is already marked for deletion.
+		// We don't return nil because the pb will fail to marshal.
+		return &pbpeering.PeeringDeleteResponse{}, nil
+	}
+
+	// We are using a write request due to needing to perform a deferred deletion.
+	// The peering gets marked for deletion by setting the DeletedAt field,
+	// and a leader routine will handle deleting the peering.
+	writeReq := &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			// We only need to include the name and partition for the peering to be identified.
+			// All other data associated with the peering can be discarded because once marked
+			// for deletion the peering is effectively gone.
+			ID:                  existing.ID,
+			Name:                req.Name,
+			State:               pbpeering.PeeringState_DELETING,
+			PeerServerAddresses: existing.PeerServerAddresses,
+			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
+
+			// PartitionOrEmpty is used to avoid writing "default" in OSS.
+			Partition: entMeta.PartitionOrEmpty(),
+		},
+	}
+	err = s.Backend.PeeringWrite(writeReq)
 	if err != nil {
 		return nil, err
 	}
 	return &pbpeering.PeeringDeleteResponse{}, nil
 }
 
-func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
+// OPTIMIZE: Handle blocking queries
+func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
 	var resp *pbpeering.TrustBundleReadResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleRead(ctx, req)
 		return err
@@ -416,13 +779,21 @@ func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundl
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
-	// TODO(peering): ACL check request token
 
-	// TODO(peering): handle blocking queries
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
 
 	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
 		Value:          req.Name,
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+		EnterpriseMeta: *entMeta,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
@@ -434,13 +805,26 @@ func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundl
 	}, nil
 }
 
-func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
+// TODO(peering): rename rpc & request/response to drop the "service" part
+// OPTIMIZE: Handle blocking queries
+func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
+	if err := s.Backend.EnterpriseCheckNamespaces(req.Namespace); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+	if req.ServiceName == "" {
+		return nil, errors.New("missing service name")
+	}
 
 	var resp *pbpeering.TrustBundleListByServiceResponse
-	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleListByService(ctx, req)
 		return err
@@ -450,360 +834,80 @@ func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.T
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_list_by_service"}, time.Now())
-	// TODO(peering): ACL check request token
 
-	// TODO(peering): handle blocking queries
-
-	entMeta := *structs.NodeEnterpriseMetaInPartition(req.Partition)
-	// TODO(peering): we're throwing away the index here that would tell us how to execute a blocking query
-	_, peers, err := s.Backend.Store().PeeringsForService(nil, req.ServiceName, entMeta)
+	var authzCtx acl.AuthorizerContext
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), &entMeta, &authzCtx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get peers for service %s: %v", req.ServiceName, err)
+		return nil, err
 	}
 
-	trustBundles := []*pbpeering.PeeringTrustBundle{}
-	for _, peer := range peers {
-		q := state.Query{
-			Value:          strings.ToLower(peer.Name),
-			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
-		}
-		_, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, q)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peer.Name, err)
-		}
-
-		if trustBundle != nil {
-			trustBundles = append(trustBundles, trustBundle)
-		}
-	}
-	return &pbpeering.TrustBundleListByServiceResponse{Bundles: trustBundles}, nil
-}
-
-type BidirectionalStream interface {
-	Send(*pbpeering.ReplicationMessage) error
-	Recv() (*pbpeering.ReplicationMessage, error)
-	Context() context.Context
-}
-
-// StreamResources handles incoming streaming connections.
-func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResourcesServer) error {
-	if !s.Backend.IsLeader() {
-		// we are not the leader so we will hang up on the dialer
-
-		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
-		s.logger.Error("cannot establish a peering stream on a follower node")
-		return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(req.ServiceName, &authzCtx); err != nil {
+		return nil, err
 	}
 
-	// Initial message on a new stream must be a new subscription request.
-	first, err := stream.Recv()
-	if err != nil {
-		s.logger.Error("failed to establish stream", "error", err)
-		return err
-	}
-
-	// TODO(peering) Make request contain a list of resources, so that roots and services can be
-	//  			 subscribed to with a single request. See:
-	//               https://github.com/envoyproxy/data-plane-api/blob/main/envoy/service/discovery/v3/discovery.proto#L46
-	req := first.GetRequest()
-	if req == nil {
-		return grpcstatus.Error(codes.InvalidArgument, "first message when initiating a peering must be a subscription request")
-	}
-	s.logger.Trace("received initial replication request from peer")
-	logTraceRecv(s.logger, req)
-
-	if req.PeerID == "" {
-		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must specify a PeerID")
-	}
-	if req.Nonce != "" {
-		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce")
-	}
-	if !pbpeering.KnownTypeURL(req.ResourceURL) {
-		return grpcstatus.Error(codes.InvalidArgument, fmt.Sprintf("subscription request to unknown resource URL: %s", req.ResourceURL))
-	}
-
-	_, p, err := s.Backend.Store().PeeringReadByID(nil, req.PeerID)
-	if err != nil {
-		s.logger.Error("failed to look up peer", "peer_id", req.PeerID, "error", err)
-		return grpcstatus.Error(codes.Internal, "failed to find PeerID: "+req.PeerID)
-	}
-	if p == nil {
-		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
-	}
-
-	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
-	// TODO(peering): Store subscription request so that an event publisher can separately handle pushing messages for it
-	s.logger.Info("accepted initial replication request from peer", "peer_id", req.PeerID)
-
-	// For server peers both of these ID values are the same, because we generated a token with a local ID,
-	// and the client peer dials using that same ID.
-	return s.HandleStream(HandleStreamRequest{
-		LocalID:   p.ID,
-		RemoteID:  p.PeerID,
-		PeerName:  p.Name,
-		Partition: p.Partition,
-		Stream:    stream,
-	})
-}
-
-type HandleStreamRequest struct {
-	// LocalID is the UUID for the peering in the local Consul datacenter.
-	LocalID string
-
-	// RemoteID is the UUID for the peering from the perspective of the peer.
-	RemoteID string
-
-	// PeerName is the name of the peering.
-	PeerName string
-
-	// Partition is the local partition associated with the peer.
-	Partition string
-
-	// Stream is the open stream to the peer cluster.
-	Stream BidirectionalStream
-}
-
-// The localID provided is the locally-generated identifier for the peering.
-// The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Service) HandleStream(req HandleStreamRequest) error {
-	logger := s.logger.Named("stream").With("peer_id", req.LocalID)
-	logger.Trace("handling stream for peer")
-
-	status, err := s.streams.connected(req.LocalID)
-	if err != nil {
-		return fmt.Errorf("failed to register stream: %v", err)
-	}
-
-	// TODO(peering) Also need to clear subscriptions associated with the peer
-	defer s.streams.disconnected(req.LocalID)
-
-	var trustDomain string
-	if s.config.ConnectEnabled {
-		// Read the TrustDomain up front - we do not allow users to change the ClusterID
-		// so reading it once at the beginning of the stream is sufficient.
-		trustDomain, err = getTrustDomain(s.Backend.Store(), logger)
-		if err != nil {
-			return err
-		}
-	}
-
-	mgr := newSubscriptionManager(
-		req.Stream.Context(),
-		logger,
-		s.config,
-		trustDomain,
-		s.Backend,
+	var (
+		idx     uint64
+		bundles []*pbpeering.PeeringTrustBundle
 	)
-	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.PeerName, req.Partition)
 
-	sub := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_Request_{
-			Request: &pbpeering.ReplicationMessage_Request{
-				ResourceURL: pbpeering.TypeURLService,
-				PeerID:      req.RemoteID,
-			},
-		},
-	}
-	logTraceSend(logger, sub)
-
-	if err := req.Stream.Send(sub); err != nil {
-		if err == io.EOF {
-			logger.Info("stream ended by peer")
-			status.trackReceiveError(err.Error())
-			return nil
-		}
-		// TODO(peering) Test error handling in calls to Send/Recv
-		status.trackSendError(err.Error())
-		return fmt.Errorf("failed to send to stream: %v", err)
-	}
-
-	// TODO(peering): Should this be buffered?
-	recvChan := make(chan *pbpeering.ReplicationMessage)
-	go func() {
-		defer close(recvChan)
-		for {
-			msg, err := req.Stream.Recv()
-			if err == io.EOF {
-				logger.Info("stream ended by peer")
-				status.trackReceiveError(err.Error())
-				return
-			}
-			if e, ok := grpcstatus.FromError(err); ok {
-				// Cancelling the stream is not an error, that means we or our peer intended to terminate the peering.
-				if e.Code() == codes.Canceled {
-					return
-				}
-			}
-			if err != nil {
-				logger.Error("failed to receive from stream", "error", err)
-				status.trackReceiveError(err.Error())
-				return
-			}
-
-			logTraceRecv(logger, msg)
-			recvChan <- msg
-		}
-	}()
-
-	for {
-		select {
-		// When the doneCh is closed that means that the peering was deleted locally.
-		case <-status.doneCh:
-			logger.Info("ending stream")
-
-			term := &pbpeering.ReplicationMessage{
-				Payload: &pbpeering.ReplicationMessage_Terminated_{
-					Terminated: &pbpeering.ReplicationMessage_Terminated{},
-				},
-			}
-			logTraceSend(logger, term)
-
-			if err := req.Stream.Send(term); err != nil {
-				status.trackSendError(err.Error())
-				return fmt.Errorf("failed to send to stream: %v", err)
-			}
-
-			logger.Trace("deleting stream status")
-			s.streams.deleteStatus(req.LocalID)
-
-			return nil
-
-		case msg, open := <-recvChan:
-			if !open {
-				// No longer receiving data on the stream.
-				return nil
-			}
-
-			if !s.Backend.IsLeader() {
-				// we are not the leader anymore so we will hang up on the dialer
-
-				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
-				logger.Error("node is not a leader anymore; cannot continue streaming")
-				return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
-			}
-
-			if req := msg.GetRequest(); req != nil {
-				switch {
-				case req.Nonce == "":
-					// TODO(peering): This can happen on a client peer since they don't try to receive subscriptions before entering HandleStream.
-					//                Should change that behavior or only allow it that one time.
-
-				case req.Error != nil && (req.Error.Code != int32(code.Code_OK) || req.Error.Message != ""):
-					logger.Warn("client peer was unable to apply resource", "code", req.Error.Code, "error", req.Error.Message)
-					status.trackNack(fmt.Sprintf("client peer was unable to apply resource: %s", req.Error.Message))
-
-				default:
-					status.trackAck()
-				}
-
-				continue
-			}
-
-			if resp := msg.GetResponse(); resp != nil {
-				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(req.PeerName, req.Partition, resp)
-				if err != nil {
-					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
-					status.trackReceiveError(err.Error())
-				} else {
-					status.trackReceiveSuccess()
-				}
-
-				logTraceSend(logger, reply)
-				if err := req.Stream.Send(reply); err != nil {
-					status.trackSendError(err.Error())
-					return fmt.Errorf("failed to send to stream: %v", err)
-				}
-
-				continue
-			}
-
-			if term := msg.GetTerminated(); term != nil {
-				logger.Info("received peering termination message, cleaning up imported resources")
-
-				// Once marked as terminated, a separate deferred deletion routine will clean up imported resources.
-				if err := s.Backend.Apply().PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: req.LocalID}); err != nil {
-					return err
-				}
-				return nil
-			}
-
-		case update := <-subCh:
-			var resp *pbpeering.ReplicationMessage
-			switch {
-			case strings.HasPrefix(update.CorrelationID, subExportedService),
-				strings.HasPrefix(update.CorrelationID, subExportedProxyService):
-				resp = makeServiceResponse(logger, update)
-
-			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
-				// TODO(Peering): figure out how to sync this separately
-
-			case update.CorrelationID == subCARoot:
-				resp = makeCARootsResponse(logger, update)
-
-			default:
-				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
-				continue
-			}
-			if resp == nil {
-				continue
-			}
-			logTraceSend(logger, resp)
-			if err := req.Stream.Send(resp); err != nil {
-				status.trackSendError(err.Error())
-				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
-			}
-		}
-	}
-}
-
-func getTrustDomain(store Store, logger hclog.Logger) (string, error) {
-	_, cfg, err := store.CAConfig(nil)
 	switch {
-	case err != nil:
-		logger.Error("failed to read Connect CA Config", "error", err)
-		return "", grpcstatus.Error(codes.Internal, "failed to read Connect CA Config")
-	case cfg == nil:
-		logger.Warn("cannot begin stream because Connect CA is not yet initialized")
-		return "", grpcstatus.Error(codes.FailedPrecondition, "Connect CA is not yet initialized")
-	}
-	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
-}
-
-func (s *Service) StreamStatus(peer string) (resp StreamStatus, found bool) {
-	return s.streams.streamStatus(peer)
-}
-
-// ConnectedStreams returns a map of connected stream IDs to the corresponding channel for tearing them down.
-func (s *Service) ConnectedStreams() map[string]chan struct{} {
-	return s.streams.connectedStreams()
-}
-
-func logTraceRecv(logger hclog.Logger, pb proto.Message) {
-	logTraceProto(logger, pb, true)
-}
-
-func logTraceSend(logger hclog.Logger, pb proto.Message) {
-	logTraceProto(logger, pb, false)
-}
-
-func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
-	if !logger.IsTrace() {
-		return
+	case req.Kind == string(structs.ServiceKindMeshGateway):
+		idx, bundles, err = s.Backend.Store().PeeringTrustBundleList(nil, entMeta)
+	case req.ServiceName != "":
+		idx, bundles, err = s.Backend.Store().TrustBundleListByService(nil, req.ServiceName, s.Datacenter, entMeta)
+	case req.Kind != "":
+		return nil, grpcstatus.Error(codes.InvalidArgument, "kind must be mesh-gateway if set")
+	default:
+		return nil, grpcstatus.Error(codes.InvalidArgument, "one of service or kind is required")
 	}
 
-	dir := "sent"
-	if received {
-		dir = "received"
-	}
-
-	m := jsonpb.Marshaler{
-		Indent: "  ",
-	}
-	out, err := m.MarshalToString(pb)
 	if err != nil {
-		out = "<ERROR: " + err.Error() + ">"
+		return nil, err
+	}
+	return &pbpeering.TrustBundleListByServiceResponse{Index: idx, Bundles: bundles}, nil
+}
+
+func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peering, error) {
+	q := state.Query{
+		Value:          strings.ToLower(peerName),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(partition),
+	}
+	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return nil, err
 	}
 
-	logger.Trace("replication message", "direction", dir, "protobuf", out)
+	return peering, nil
+}
+
+func (s *Server) generateNewEstablishmentSecret() (string, error) {
+	id, err := lib.GenerateUUID(s.Backend.ValidateProposedPeeringSecret)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// validatePeer enforces the following rule for an existing peering:
+// - if a peering already exists, it can only be used as an acceptor or dialer
+//
+// We define a DIALER as a peering that has server addresses (or a peering that is created via the Establish endpoint)
+// Conversely, we define an ACCEPTOR as a peering that is created via the GenerateToken endpoint
+func validatePeer(peering *pbpeering.Peering, shouldDial bool) error {
+	if peering != nil && peering.ShouldDial() != shouldDial {
+		if shouldDial {
+			return fmt.Errorf("cannot create peering with name: %q; there is an existing peering expecting to be dialed", peering.Name)
+		} else {
+			return fmt.Errorf("cannot create peering with name: %q; there is already an established peering", peering.Name)
+		}
+	}
+	return nil
+}
+
+func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
+	var copyP pbpeering.Peering
+	proto.Merge(&copyP, p)
+
+	return &copyP
 }

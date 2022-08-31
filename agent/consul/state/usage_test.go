@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestStateStore_Usage_NodeUsage(t *testing.T) {
@@ -43,6 +44,68 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(2))
 	require.Equal(t, usage.Nodes, 1)
+}
+
+// Test that nodes added/deleted from peers are not counted.
+func TestStateStore_Usage_NodeUsagePeering(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register two nodes, one local, one from a remote peer.
+	testRegisterNodePeer(t, s, 0, "node1", "peer")
+	testRegisterNode(t, s, 1, "node2")
+
+	testutil.RunStep(t, "write node", func(t *testing.T) {
+		// Test that we're only tracking the local node.
+		idx, usage, err := s.NodeUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), idx)
+		require.Equal(t, 1, usage.Nodes)
+	})
+
+	testutil.RunStep(t, "delete node", func(t *testing.T) {
+		// Deregister the remote peered node. Count should remain the same.
+		require.NoError(t, s.DeleteNode(2, "node1", nil, "peer"))
+		idx, usage, err := s.NodeUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), idx)
+		require.Equal(t, 1, usage.Nodes)
+	})
+}
+
+func TestStateStore_Usage_PeeringUsage(t *testing.T) {
+	s := testStateStore(t)
+
+	// No nodes have been registered, and thus no usage entry exists
+	idx, usage, err := s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(0))
+	require.Equal(t, usage.Peerings, 0)
+
+	testRegisterPeering(t, s, 0, "test-peering1")
+	testRegisterPeering(t, s, 1, "test-peering2")
+
+	idx, usage, err = s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(1))
+	require.Equal(t, usage.Peerings, 2)
+}
+
+func TestStateStore_Usage_PeeringUsage_Delete(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterPeering(t, s, 0, "test-peering1")
+	peering2 := testRegisterPeering(t, s, 1, "test-peering2")
+
+	idx, usage, err := s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(1))
+	require.Equal(t, usage.Peerings, 2)
+
+	require.NoError(t, s.PeeringTerminateByID(2, peering2.ID))
+	idx, usage, err = s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, 2, usage.Peerings)
 }
 
 func TestStateStore_Usage_KVUsage(t *testing.T) {
@@ -162,6 +225,46 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	for k := range usage.ConnectServiceInstances {
 		require.Equal(t, 0, usage.ConnectServiceInstances[k])
 	}
+}
+
+// Test that services from remote peers aren't counted in writes or deletes.
+func TestStateStore_Usage_ServiceUsagePeering(t *testing.T) {
+	s := testStateStore(t)
+	peerName := "peer"
+
+	// Register remote peer node/services.
+	testRegisterNodePeer(t, s, 0, "node1", peerName)
+	testRegisterServicePeer(t, s, 1, "node1", "service1", peerName)
+	testRegisterSidecarProxyPeer(t, s, 2, "node1", "service1", peerName)
+	testRegisterConnectNativeServicePeer(t, s, 3, "node1", "service-native", peerName)
+
+	// Register local node/services.
+	testRegisterNode(t, s, 4, "node2")
+	testRegisterService(t, s, 5, "node2", "service1")
+	testRegisterSidecarProxy(t, s, 6, "node2", "service1")
+	testRegisterConnectNativeService(t, s, 7, "node2", "service-native")
+
+	testutil.RunStep(t, "writes", func(t *testing.T) {
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(7), idx)
+		require.Equal(t, 3, usage.Services)
+		require.Equal(t, 3, usage.ServiceInstances)
+		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+		require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	})
+
+	testutil.RunStep(t, "deletes", func(t *testing.T) {
+		require.NoError(t, s.DeleteNode(7, "node1", nil, peerName))
+		require.NoError(t, s.DeleteNode(8, "node2", nil, ""))
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(8), idx)
+		require.Equal(t, 0, usage.Services)
+		require.Equal(t, 0, usage.ServiceInstances)
+		require.Equal(t, 0, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+		require.Equal(t, 0, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	})
 }
 
 func TestStateStore_Usage_Restore(t *testing.T) {

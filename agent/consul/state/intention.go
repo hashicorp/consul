@@ -600,6 +600,7 @@ func legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *s
 
 	// Convert the interface{} if it is non-nil
 	var result *structs.Intention
+
 	if intention != nil {
 		result = intention.(*structs.Intention)
 	}
@@ -842,11 +843,12 @@ func (s *Store) IntentionMatchOne(
 	ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
+	destinationType structs.IntentionTargetType,
 ) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+	return compatIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
 func compatIntentionMatchOneTxn(
@@ -854,6 +856,7 @@ func compatIntentionMatchOneTxn(
 	ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
+	destinationType structs.IntentionTargetType,
 ) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
@@ -863,7 +866,7 @@ func compatIntentionMatchOneTxn(
 	if !usingConfigEntries {
 		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
 	}
-	return configIntentionMatchOneTxn(tx, ws, entry, matchType)
+	return configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
 func legacyIntentionMatchOneTxn(
@@ -949,12 +952,17 @@ type ServiceWithDecision struct {
 // IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
 // intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
-func (s *Store) IntentionTopology(ws memdb.WatchSet,
-	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+func (s *Store) IntentionTopology(
+	ws memdb.WatchSet,
+	target structs.ServiceName,
+	downstreams bool,
+	defaultDecision acl.EnforcementDecision,
+	intentionTarget structs.IntentionTargetType,
+) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision)
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision, intentionTarget)
 	if err != nil {
 		requested := "upstreams"
 		if downstreams {
@@ -965,13 +973,18 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 
 	resp := make(structs.ServiceList, 0)
 	for _, svc := range services {
-		resp = append(resp, svc.Name)
+		resp = append(resp, structs.ServiceName{Name: svc.Name.Name, EnterpriseMeta: svc.Name.EnterpriseMeta})
 	}
 	return idx, resp, nil
 }
 
-func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
-	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, []ServiceWithDecision, error) {
+func (s *Store) intentionTopologyTxn(
+	tx ReadTxn, ws memdb.WatchSet,
+	target structs.ServiceName,
+	downstreams bool,
+	defaultDecision acl.EnforcementDecision,
+	intentionTarget structs.IntentionTargetType,
+) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
 
@@ -987,7 +1000,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, intentionTarget)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}
@@ -999,7 +1012,13 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
 	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	var services []*KindServiceName
+	if intentionTarget == structs.IntentionTargetService {
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	} else {
+		// destinations can only ever be upstream, since they are only allowed as intention destination.
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+	}
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 	}
@@ -1056,7 +1075,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		}
 
 		result = append(result, ServiceWithDecision{
-			Name:     candidate,
+			Name:     structs.ServiceName{Name: candidate.Name, EnterpriseMeta: candidate.EnterpriseMeta},
 			Decision: decision,
 		})
 	}

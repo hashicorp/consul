@@ -179,10 +179,10 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
-// EndpointConfig represents a virtual service, i.e. one that is external to Consul
-type EndpointConfig struct {
-	// Address of the endpoint; hostname, IP, or CIDR
-	Address string `json:",omitempty"`
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
+	// Addresses of the endpoint; hostname or IP
+	Addresses []string `json:",omitempty"`
 
 	// Port allowed within this endpoint
 	Port int `json:",omitempty"`
@@ -218,21 +218,22 @@ type UpstreamLimits struct {
 }
 
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Protocol         string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-	Endpoint         *EndpointConfig         `json:",omitempty"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+	Kind                  string
+	Name                  string
+	Partition             string                  `json:",omitempty"`
+	Namespace             string                  `json:",omitempty"`
+	Protocol              string                  `json:",omitempty"`
+	Mode                  ProxyMode               `json:",omitempty"`
+	TransparentProxy      *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway           MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose                ExposeConfig            `json:",omitempty"`
+	ExternalSNI           string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig        *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+	Destination           *DestinationConfig      `json:",omitempty"`
+	MaxInboundConnections int                     `json:",omitempty" alias:"max_inbound_connections"`
+	Meta                  map[string]string       `json:",omitempty"`
+	CreateIndex           uint64
+	ModifyIndex           uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }

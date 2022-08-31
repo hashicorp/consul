@@ -57,11 +57,9 @@ type Manager struct {
 // panic. The ManagerConfig is passed by value to NewManager so the passed value
 // can be mutated safely.
 type ManagerConfig struct {
-	// Cache is the agent's cache instance that can be used to retrieve, store and
-	// monitor state for the proxies.
-	Cache CacheNotifier
-	// Health provides service health updates on a notification channel.
-	Health Health
+	// DataSources contains the dependencies used to consume data used to configure
+	// proxies.
+	DataSources DataSources
 	// source describes the current agent's identity, it's used directly for
 	// prepared query discovery but also indirectly as a way to pass current
 	// Datacenter name into other request types that need it. This is sufficient
@@ -81,7 +79,7 @@ type ManagerConfig struct {
 
 // NewManager constructs a Manager.
 func NewManager(cfg ManagerConfig) (*Manager, error) {
-	if cfg.Cache == nil || cfg.Source == nil || cfg.Logger == nil {
+	if cfg.Source == nil || cfg.Logger == nil {
 		return nil, errors.New("all ManagerConfig fields must be provided")
 	}
 	m := &Manager{
@@ -129,14 +127,13 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 		}
 
 		// We are updating the proxy, close its old state
-		state.Close()
+		state.Close(false)
 	}
 
 	// TODO: move to a function that translates ManagerConfig->stateConfig
 	stateConfig := stateConfig{
 		logger:                m.Logger.With("service_id", id.String()),
-		cache:                 m.Cache,
-		health:                m.Health,
+		dataSources:           m.DataSources,
 		source:                m.Source,
 		dnsConfig:             m.DNSConfig,
 		intentionDefaultAllow: m.IntentionDefaultAllow,
@@ -151,14 +148,13 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 		return err
 	}
 
-	ch, err := state.Watch()
-	if err != nil {
+	if _, err = state.Watch(); err != nil {
 		return err
 	}
 	m.proxies[id] = state
 
 	// Start a goroutine that will wait for changes and broadcast them to watchers.
-	go m.notifyBroadcast(ch)
+	go m.notifyBroadcast(id, state)
 	return nil
 }
 
@@ -178,8 +174,8 @@ func (m *Manager) Deregister(id ProxyID, source ProxySource) {
 	}
 
 	// Closing state will let the goroutine we started in Register finish since
-	// watch chan is closed.
-	state.Close()
+	// watch chan is closed
+	state.Close(false)
 	delete(m.proxies, id)
 
 	// We intentionally leave potential watchers hanging here - there is no new
@@ -189,10 +185,16 @@ func (m *Manager) Deregister(id ProxyID, source ProxySource) {
 	// cleaned up naturally.
 }
 
-func (m *Manager) notifyBroadcast(ch <-chan ConfigSnapshot) {
-	// Run until ch is closed
-	for snap := range ch {
+func (m *Manager) notifyBroadcast(proxyID ProxyID, state *state) {
+	// Run until ch is closed (by a defer in state.run).
+	for snap := range state.snapCh {
 		m.notify(&snap)
+	}
+
+	// If state.run exited because of an irrecoverable error, close all of the
+	// watchers so that the consumers reconnect/retry at a higher level.
+	if state.failed() {
+		m.closeAllWatchers(proxyID)
 	}
 }
 
@@ -284,6 +286,20 @@ func (m *Manager) Watch(id ProxyID) (<-chan *ConfigSnapshot, CancelFunc) {
 	}
 }
 
+func (m *Manager) closeAllWatchers(proxyID ProxyID) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	watchers, ok := m.watchers[proxyID]
+	if !ok {
+		return
+	}
+
+	for watchID := range watchers {
+		m.closeWatchLocked(proxyID, watchID)
+	}
+}
+
 // closeWatchLocked cleans up state related to a single watcher. It assumes the
 // lock is held.
 func (m *Manager) closeWatchLocked(proxyID ProxyID, watchID uint64) {
@@ -312,7 +328,7 @@ func (m *Manager) Close() error {
 
 	// Then close all states
 	for proxyID, state := range m.proxies {
-		state.Close()
+		state.Close(false)
 		delete(m.proxies, proxyID)
 	}
 	return nil

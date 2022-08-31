@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/integration/consul-container/libs/cluster"
+
+	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 )
@@ -21,17 +22,17 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, *targetImage)
-	defer Terminate(t, cluster)
+	cluster := serversCluster(t, numServers, *utils.TargetImage)
+	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := cluster.Nodes[0].GetClient()
 
-	waitForLeader(t, cluster, client)
-	waitForMembers(t, client, 4)
+	libcluster.WaitForLeader(t, cluster, client)
+	libcluster.WaitForMembers(t, client, 4)
 
 	serviceName := "api"
 	index := serviceCreate(t, client, serviceName)
@@ -74,41 +75,41 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *targetImage,
+			Version: *utils.TargetImage,
 		})
 
 	for i := 1; i < 3; i++ {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *latestImage,
+				Version: *utils.LatestImage,
 			})
 
 	}
 
-	cluster, err := cluster.New(configs)
+	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
-	defer Terminate(t, cluster)
+	defer terminate(t, cluster)
 
 	const (
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := clients[0].GetClient()
 
-	waitForLeader(t, cluster, client)
-	waitForMembers(t, client, 4)
+	libcluster.WaitForLeader(t, cluster, client)
+	libcluster.WaitForMembers(t, client, 4)
 
 	serviceName := "api"
 	index := serviceCreate(t, client, serviceName)
@@ -151,39 +152,39 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: *utils.TargetImage,
 			})
 
 	}
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *latestImage,
+			Version: *utils.LatestImage,
 		})
 
-	cluster, err := cluster.New(configs)
+	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
-	defer Terminate(t, cluster)
+	defer terminate(t, cluster)
 
 	const (
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := clients[0].GetClient()
 
-	waitForLeader(t, cluster, client)
-	waitForMembers(t, client, 4)
+	libcluster.WaitForLeader(t, cluster, client)
+	libcluster.WaitForMembers(t, client, 4)
 
 	serviceName := "api"
 	index := serviceCreate(t, client, serviceName)
@@ -227,7 +228,7 @@ func clientsCreate(t *testing.T, numClients int, version string, serfKey string)
 			node.Config{
 				HCL: fmt.Sprintf(`
 				node_name = %q
-				log_level = "TRACE"
+				log_level = "DEBUG"
 				encrypt = %q`, utils.RandName("consul-client"), serfKey),
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: version,
@@ -250,28 +251,28 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 	return meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, version string) *cluster.Cluster {
+func serversCluster(t *testing.T, numServers int, version string) *libcluster.Cluster {
 	var configs []node.Config
 	for i := 0; i < numServers; i++ {
 		configs = append(configs, node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: version,
 		})
 	}
-	cluster, err := cluster.New(configs)
+	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 
-	waitForLeader(t, cluster, nil)
-	waitForMembers(t, cluster.Nodes[0].GetClient(), numServers)
+	libcluster.WaitForLeader(t, cluster, nil)
+	libcluster.WaitForMembers(t, cluster.Nodes[0].GetClient(), numServers)
 
 	return cluster
 }
 
-func Terminate(t *testing.T, cluster *cluster.Cluster) {
+func terminate(t *testing.T, cluster *libcluster.Cluster) {
 	err := cluster.Terminate()
 	require.NoError(t, err)
 }

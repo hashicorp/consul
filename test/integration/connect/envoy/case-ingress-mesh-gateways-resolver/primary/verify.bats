@@ -23,11 +23,11 @@ load helpers
 }
 
 @test "gateway-secondary should have healthy endpoints for s1" {
-   assert_upstream_has_endpoints_in_status consul-secondary:19003 s1 HEALTHY 1
+   assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s1 HEALTHY 1
 }
 
 @test "gateway-secondary should have healthy endpoints for s2" {
-   assert_upstream_has_endpoints_in_status consul-secondary:19003 s2 HEALTHY 1
+   assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s2 HEALTHY 1
 }
 
 @test "ingress should be able to connect to s1" {

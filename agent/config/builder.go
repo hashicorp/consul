@@ -804,6 +804,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
+		// What is a sensible default for BuildDate?
+		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
@@ -913,7 +915,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
-			DisableCompatOneNine:               boolValWithDefault(c.Telemetry.DisableCompatOneNine, true),
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
@@ -1008,65 +1009,67 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			LogRotateBytes:    intVal(c.LogRotateBytes),
 			LogRotateMaxFiles: intVal(c.LogRotateMaxFiles),
 		},
-		MaxQueryTime:                     b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                           types.NodeID(stringVal(c.NodeID)),
-		NodeMeta:                         c.NodeMeta,
-		NodeName:                         b.nodeName(c.NodeName),
-		ReadReplica:                      boolVal(c.ReadReplica),
-		PidFile:                          stringVal(c.PidFile),
-		PrimaryDatacenter:                primaryDatacenter,
-		PrimaryGateways:                  b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
-		PrimaryGatewaysInterval:          b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
-		RPCAdvertiseAddr:                 rpcAdvertiseAddr,
-		RPCBindAddr:                      rpcBindAddr,
-		RPCHandshakeTimeout:              b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                      intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:             intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                      intVal(c.RPCProtocol),
-		RPCRateLimit:                     rate.Limit(float64Val(c.Limits.RPCRate)),
-		RPCConfig:                        consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
-		RaftProtocol:                     intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:            intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:             b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:                 intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:              b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:              b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:                 boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:             b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:             b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                     b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:          intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:          intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                     b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                      stringVal(c.SegmentName),
-		Segments:                         segments,
-		SegmentLimit:                     intVal(c.SegmentLimit),
-		SerfAdvertiseAddrLAN:             serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:             serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:              serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:              serfAllowedCIDRSWAN,
-		SerfBindAddrLAN:                  serfBindAddrLAN,
-		SerfBindAddrWAN:                  serfBindAddrWAN,
-		SerfPortLAN:                      serfPortLAN,
-		SerfPortWAN:                      serfPortWAN,
-		ServerMode:                       serverMode,
-		ServerName:                       stringVal(c.ServerName),
-		ServerPort:                       serverPort,
-		Services:                         services,
-		SessionTTLMin:                    b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:                   skipLeaveOnInt,
-		StartJoinAddrsLAN:                b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		TaggedAddresses:                  c.TaggedAddresses,
-		TranslateWANAddrs:                boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                     uint64Val(c.Limits.TxnMaxReqLen),
-		UIConfig:                         b.uiConfigVal(c.UIConfig),
-		UnixSocketGroup:                  stringVal(c.UnixSocket.Group),
-		UnixSocketMode:                   stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:                   stringVal(c.UnixSocket.User),
-		Watches:                          c.Watches,
-		AutoReloadConfigCoalesceInterval: 1 * time.Second,
+		MaxQueryTime:                      b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                            types.NodeID(stringVal(c.NodeID)),
+		NodeMeta:                          c.NodeMeta,
+		NodeName:                          b.nodeName(c.NodeName),
+		ReadReplica:                       boolVal(c.ReadReplica),
+		PeeringEnabled:                    boolVal(c.Peering.Enabled),
+		PeeringTestAllowPeerRegistrations: boolValWithDefault(c.Peering.TestAllowPeerRegistrations, false),
+		PidFile:                           stringVal(c.PidFile),
+		PrimaryDatacenter:                 primaryDatacenter,
+		PrimaryGateways:                   b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval:           b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:                  rpcAdvertiseAddr,
+		RPCBindAddr:                       rpcBindAddr,
+		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                       intVal(c.RPCProtocol),
+		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
+		RaftProtocol:                      intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:           intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:           intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                      b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                       stringVal(c.SegmentName),
+		Segments:                          segments,
+		SegmentLimit:                      intVal(c.SegmentLimit),
+		SerfAdvertiseAddrLAN:              serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:              serfAdvertiseAddrWAN,
+		SerfAllowedCIDRsLAN:               serfAllowedCIDRSLAN,
+		SerfAllowedCIDRsWAN:               serfAllowedCIDRSWAN,
+		SerfBindAddrLAN:                   serfBindAddrLAN,
+		SerfBindAddrWAN:                   serfBindAddrWAN,
+		SerfPortLAN:                       serfPortLAN,
+		SerfPortWAN:                       serfPortWAN,
+		ServerMode:                        serverMode,
+		ServerName:                        stringVal(c.ServerName),
+		ServerPort:                        serverPort,
+		Services:                          services,
+		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:                    skipLeaveOnInt,
+		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		TaggedAddresses:                   c.TaggedAddresses,
+		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
+		UIConfig:                          b.uiConfigVal(c.UIConfig),
+		UnixSocketGroup:                   stringVal(c.UnixSocket.Group),
+		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:                    stringVal(c.UnixSocket.User),
+		Watches:                           c.Watches,
+		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 	}
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
@@ -1946,6 +1949,13 @@ func stringVal(v *string) string {
 	return *v
 }
 
+func timeValWithDefault(v *time.Time, defaultVal time.Time) time.Time {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
 func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
 		return defaultVal
@@ -2521,10 +2531,9 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
 	}
 
-	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
-	// for historic and backwards-compatibility reasons.
-	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{} && t.GRPCModifiedByDeprecatedConfig == nil) {
-		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
+	// And UseAutoCert right now only applies to external gRPC interface.
+	if t.Defaults.UseAutoCert != nil || t.HTTPS.UseAutoCert != nil || t.InternalRPC.UseAutoCert != nil {
+		return c, errors.New("use_auto_cert is only valid in the tls.grpc stanza")
 	}
 
 	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
@@ -2581,6 +2590,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	mapCommon("https", t.HTTPS, &c.HTTPS)
 	mapCommon("grpc", t.GRPC, &c.GRPC)
+	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
 
 	c.ServerName = rt.ServerName
 	c.NodeName = rt.NodeName

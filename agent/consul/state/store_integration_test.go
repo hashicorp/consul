@@ -418,7 +418,7 @@ func (s *Store) topicServiceTestHandler(req stream.SubscribeRequest, snap stream
 
 func registerTestSnapshotHandlers(t *testing.T, s *Store, publisher EventPublisher) {
 	t.Helper()
-	err := publisher.RegisterHandler(topicService, s.topicServiceTestHandler)
+	err := publisher.RegisterHandler(topicService, s.topicServiceTestHandler, false)
 	require.NoError(t, err)
 }
 

@@ -58,6 +58,10 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return DefaultNamespaceName
 }
 
+func EqualNamespaces(_, _ string) bool {
+	return true
+}
+
 func NamespaceOrDefault(_ string) string {
 	return DefaultNamespaceName
 }
@@ -78,7 +82,9 @@ func (m *EnterpriseMeta) MergeNoWildcard(_ *EnterpriseMeta) {
 	// do nothing
 }
 
-func (_ *EnterpriseMeta) Normalize() {}
+func (_ *EnterpriseMeta) Normalize()          {}
+func (_ *EnterpriseMeta) NormalizePartition() {}
+func (_ *EnterpriseMeta) NormalizeNamespace() {}
 
 func (m *EnterpriseMeta) Matches(_ *EnterpriseMeta) bool {
 	return true

@@ -22,7 +22,7 @@ var (
 		},
 		Service: structs.ServiceQuery{
 			Service: "${name.full}",
-			Failover: structs.QueryDatacenterOptions{
+			Failover: structs.QueryFailoverOptions{
 				Datacenters: []string{
 					"${name.full}",
 					"${name.prefix}",
@@ -69,7 +69,7 @@ var (
 		},
 		Service: structs.ServiceQuery{
 			Service: "${name.full}",
-			Failover: structs.QueryDatacenterOptions{
+			Failover: structs.QueryFailoverOptions{
 				Datacenters: []string{
 					"dc1",
 					"dc2",

@@ -6,38 +6,23 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
 
-// UpdateEvent contains new data for a resource we are subscribed to (e.g. an
-// agent cache entry).
-type UpdateEvent struct {
-	CorrelationID string
-	Result        interface{}
-	Err           error
-}
-
-type CacheNotifier interface {
-	Notify(ctx context.Context, t string, r cache.Request,
-		correlationID string, ch chan<- UpdateEvent) error
-}
-
-type Health interface {
-	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
-}
-
 const (
 	coalesceTimeout                    = 200 * time.Millisecond
 	rootsWatchID                       = "roots"
+	peeringTrustBundlesWatchID         = "peering-trust-bundles"
 	leafWatchID                        = "leaf"
+	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
@@ -52,7 +37,13 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	peeredUpstreamsID                  = "peered-upstreams"
+	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
+	upstreamPeerWatchIDPrefix          = "upstream-peer:"
+	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	DestinationConfigEntryID           = "destination:"
+	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second
@@ -61,8 +52,7 @@ const (
 type stateConfig struct {
 	logger                hclog.Logger
 	source                *structs.QuerySource
-	cache                 CacheNotifier
-	health                Health
+	dataSources           DataSources
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
@@ -81,9 +71,19 @@ type state struct {
 	// in Watch.
 	cancel func()
 
+	// failedFlag is (atomically) set to 1 (by Close) when run exits because a data
+	// source is in an irrecoverable state. It can be read with failed.
+	failedFlag int32
+
 	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
+}
+
+// failed returns whether run exited because a data source is in an
+// irrecoverable state.
+func (s *state) failed() bool {
+	return atomic.LoadInt32(&s.failedFlag) == 1
 }
 
 type DNSConfig struct {
@@ -261,9 +261,12 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 }
 
 // Close discards the state and stops any long-running watches.
-func (s *state) Close() error {
+func (s *state) Close(failed bool) error {
 	if s.cancel != nil {
 		s.cancel()
+	}
+	if failed {
+		atomic.StoreInt32(&s.failedFlag, 1)
 	}
 	return nil
 }
@@ -311,7 +314,13 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 		case <-ctx.Done():
 			return
 		case u := <-s.ch:
-			s.logger.Trace("A blocking query returned; handling snapshot update", "correlationID", u.CorrelationID)
+			s.logger.Trace("Data source returned; handling snapshot update", "correlationID", u.CorrelationID)
+
+			if IsTerminalError(u.Err) {
+				s.logger.Error("Data source in an irrecoverable state; exiting", "error", u.Err, "correlationID", u.CorrelationID)
+				s.Close(true)
+				return
+			}
 
 			if err := s.handler.handleUpdate(ctx, u, snap); err != nil {
 				s.logger.Error("Failed to handle update from watch",
@@ -458,16 +467,16 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 }
 
 type gatewayWatchOpts struct {
-	notifier   CacheNotifier
-	notifyCh   chan UpdateEvent
-	source     structs.QuerySource
-	token      string
-	key        GatewayKey
-	upstreamID UpstreamID
+	internalServiceDump InternalServiceDump
+	notifyCh            chan UpdateEvent
+	source              structs.QuerySource
+	token               string
+	key                 GatewayKey
+	upstreamID          UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
-	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,

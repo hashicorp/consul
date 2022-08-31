@@ -345,7 +345,7 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// Cluster metrics are prefixed by consul.destination
 		//
 		// Cluster metric name format:
-		// <subset>.<service>.<namespace>.<partition>.<datacenter>.<internal|internal-<version>|external>.<trustdomain>.consul
+		// <subset>.<service>.<namespace>.<partition>.<datacenter|peering>.<internal|internal-<version>|external>.<trustdomain>.consul
 		//
 		// Examples:
 		// (default partition)
@@ -360,6 +360,8 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// - cluster.v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.f8f8f8f8~v2.pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		// - cluster.passthrough~pong.default.partA.dc2.internal-v1.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// (peered)
+		// - cluster.pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		{"consul.destination.custom_hash",
 			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:(%s)~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
 				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
@@ -377,12 +379,16 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.partition",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.internal[^.]*\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.datacenter",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.internal[^.]*\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.peer",
+			fmt.Sprintf(`^cluster\.(%s\.(?:%s\.)?(%s)\.external\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.routing_type",
 			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
@@ -408,16 +414,26 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// Examples:
 		// - tcp.upstream.db.dc1.downstream_cx_total: 0
 		// - http.upstream.web.frontend.west.dc1.downstream_cx_total: 0
+		//
+		// Peered Listener metric name format:
+		// <tcp|http>.upstream_peered.<service>.<namespace>.peer
+		//
+		// Examples:
+		// - http.upstream_peered.web.frontend.cloudpeer.downstream_cx_total: 0
 		{"consul.upstream.service",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?(?:\.%s)?\.%s\.)`,
+			fmt.Sprintf(`^(?:tcp|http)\.upstream(?:_peered)?\.((%s)(?:\.%s)?(?:\.%s)?\.%s\.)`,
 				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.datacenter",
 			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?(?:\.%s)?\.(%s)\.)`,
 				reSegment, reSegment, reSegment, reSegment)},
 
+		{"consul.upstream.peer",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream_peered\.(%s(?:\.%s)?\.(%s)\.)`,
+				reSegment, reSegment, reSegment)},
+
 		{"consul.upstream.namespace",
-			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?(?:\.%s)?\.%s\.)`,
+			fmt.Sprintf(`^(?:tcp|http)\.upstream(?:_peered)?\.(%s(?:\.(%s))?(?:\.%s)?\.%s\.)`,
 				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.upstream.partition",
@@ -446,8 +462,8 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.datacenter",
-				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.%s\.%s\.consul\.)`,
-					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.internal[^.]*\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 			{"consul.routing_type",
 				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
@@ -637,6 +653,29 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 			]
 		}
 	}`
+
+	// Enable TLS on the prometheus listener if cert/private key are provided.
+	var tlsConfig string
+	if args.PrometheusCertFile != "" {
+		tlsConfig = `,
+				"transportSocket": {
+					"name": "tls",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+						"commonTlsContext": {
+							"tlsCertificateSdsSecretConfigs": [
+								{
+									"name": "prometheus_cert"
+								}
+							],
+							"validationContextSdsSecretConfig": {
+								"name": "prometheus_validation_context"
+							}
+						}
+					}
+				}`
+	}
+
 	listenerJSON := `{
 		"name": "` + name + `_listener",
 		"address": {
@@ -694,10 +733,42 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							]
 						}
 					}
-				]
+				]` + tlsConfig + `
 			}
 		]
 	}`
+
+	secretsTemplate := `{
+		"name": "prometheus_cert",
+		"tlsCertificate": {
+			"certificateChain": {
+				"filename": "%s"
+			},
+			"privateKey": {
+				"filename": "%s"
+			}
+		}	
+	},
+	{
+		"name": "prometheus_validation_context",
+		"validationContext": {
+			%s
+		}
+	}`
+	var validationContext string
+	if args.PrometheusCAPath != "" {
+		validationContext = fmt.Sprintf(`"watchedDirectory": {
+			"path": "%s"
+		}`, args.PrometheusCAPath)
+	} else {
+		validationContext = fmt.Sprintf(`"trustedCa": {
+			"filename": "%s"
+		}`, args.PrometheusCAFile)
+	}
+	var secretsJSON string
+	if args.PrometheusCertFile != "" {
+		secretsJSON = fmt.Sprintf(secretsTemplate, args.PrometheusCertFile, args.PrometheusKeyFile, validationContext)
+	}
 
 	// Make sure we do not append the same cluster multiple times, as that will
 	// cause envoy startup to fail.
@@ -716,6 +787,12 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		listenerJSON = ",\n" + listenerJSON
 	}
 	args.StaticListenersJSON += listenerJSON
+
+	if args.StaticSecretsJSON != "" {
+		secretsJSON = ",\n" + secretsJSON
+	}
+	args.StaticSecretsJSON += secretsJSON
+
 	return nil
 }
 

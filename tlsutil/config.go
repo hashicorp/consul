@@ -88,7 +88,7 @@ type ProtocolConfig struct {
 	// certificate authority. This is used to verify authenticity of server
 	// nodes.
 	//
-	// Note: this setting doesn't apply to the gRPC configuration, as Consul
+	// Note: this setting doesn't apply to the external gRPC configuration, as Consul
 	// makes no outgoing connections using this protocol.
 	VerifyOutgoing bool
 
@@ -102,6 +102,10 @@ type ProtocolConfig struct {
 	//
 	// Note: this setting only applies to the Internal RPC configuration.
 	VerifyServerHostname bool
+
+	// UseAutoCert is used to enable usage of auto_encrypt/auto_config generated
+	// certificate & key material on external gRPC listener.
+	UseAutoCert bool
 }
 
 // Config configures the Configurator.
@@ -167,6 +171,10 @@ type protocolConfig struct {
 	// combinedCAPool is a pool containing both manualCAPEMs and the certificates
 	// received from auto-config/auto-encrypt.
 	combinedCAPool *x509.CertPool
+
+	// useAutoCert indicates wether we should use auto-encrypt/config data
+	// for TLS server/listener. NOTE: Only applies to external GRPC Server.
+	useAutoCert bool
 }
 
 // Configurator provides tls.Config and net.Dial wrappers to enable TLS for
@@ -231,6 +239,13 @@ func (c *Configurator) ManualCAPems() []string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.internalRPC.manualCAPEMs
+}
+
+// GRPCManualCAPems returns the currently loaded CAs for the gRPC in PEM format.
+func (c *Configurator) GRPCManualCAPems() []string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.grpc.manualCAPEMs
 }
 
 // Update updates the internal configuration which is used to generate
@@ -316,6 +331,7 @@ func (c *Configurator) loadProtocolConfig(base Config, pc ProtocolConfig) (*prot
 		manualCAPEMs:   pems,
 		manualCAPool:   manualPool,
 		combinedCAPool: combinedPool,
+		useAutoCert:    pc.UseAutoCert,
 	}, nil
 }
 
@@ -613,16 +629,15 @@ func (c *Configurator) Cert() *tls.Certificate {
 	return cert
 }
 
-// GRPCTLSConfigured returns whether there's a TLS certificate configured for
-// gRPC (either manually or by auto-config/auto-encrypt). It is checked, along
-// with the presence of an HTTPS port, to determine whether to enable TLS on
-// incoming gRPC connections.
+// GRPCServerUseTLS returns whether there's a TLS certificate configured for
+// (external) gRPC (either manually or by auto-config/auto-encrypt), and use
+// of TLS for gRPC has not been explicitly disabled at auto-encrypt.
 //
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) GRPCTLSConfigured() bool {
+func (c *Configurator) GRPCServerUseTLS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.grpc.cert != nil || c.autoTLS.cert != nil
+	return c.grpc.cert != nil || (c.grpc.useAutoCert && c.autoTLS.cert != nil)
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to

@@ -25,12 +25,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul acl token create [options] [args]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `-accessor=<string>` - Create the token with this Accessor ID. It must be a UUID. If not
@@ -70,9 +64,15 @@ Usage: `consul acl token create [options] [args]`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

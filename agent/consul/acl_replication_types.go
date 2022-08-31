@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 )
 
 type aclTokenReplicator struct {
@@ -99,7 +100,7 @@ func (r *aclTokenReplicator) PendingUpdateEstimatedSize(i int) int {
 }
 
 func (r *aclTokenReplicator) PendingUpdateIsRedacted(i int) bool {
-	return r.updated[i].SecretID == redactedToken
+	return r.updated[i].SecretID == aclfilter.RedactedToken
 }
 
 func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {

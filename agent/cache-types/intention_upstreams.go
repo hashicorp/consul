@@ -10,7 +10,7 @@ import (
 // Recommended name for registration.
 const IntentionUpstreamsName = "intention-upstreams"
 
-// GatewayUpstreams supports fetching upstreams for a given gateway name.
+// IntentionUpstreams supports fetching upstreams for a given service name.
 type IntentionUpstreams struct {
 	RegisterOptionsBlockingRefresh
 	RPC RPC

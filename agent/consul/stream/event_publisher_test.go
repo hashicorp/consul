@@ -101,7 +101,7 @@ func registerTestSnapshotHandlers(t *testing.T, publisher *EventPublisher) {
 		return 1, nil
 	}
 
-	require.NoError(t, publisher.RegisterHandler(testTopic, testTopicHandler))
+	require.NoError(t, publisher.RegisterHandler(testTopic, testTopicHandler, false))
 }
 
 func runSubscription(ctx context.Context, sub *Subscription) <-chan eventOrErr {
@@ -158,8 +158,8 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 
 	publisher := NewEventPublisher(time.Second)
 	registerTestSnapshotHandlers(t, publisher)
-	publisher.RegisterHandler(intTopic(22), fn)
-	publisher.RegisterHandler(intTopic(33), fn)
+	publisher.RegisterHandler(intTopic(22), fn, false)
+	publisher.RegisterHandler(intTopic(33), fn, false)
 	go publisher.Run(ctx)
 
 	sub1, err := publisher.Subscribe(&SubscribeRequest{Topic: intTopic(22), Subject: SubjectNone})
@@ -443,7 +443,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 	defer cancel()
 
 	publisher := NewEventPublisher(time.Second)
-	publisher.RegisterHandler(testTopic, testTopicHandler)
+	publisher.RegisterHandler(testTopic, testTopicHandler, false)
 	go publisher.Run(ctx)
 
 	simulateExistingSubscriber(t, publisher, req)
@@ -574,4 +574,126 @@ func simulateExistingSubscriber(t *testing.T, p *EventPublisher, r *SubscribeReq
 	p.lock.Lock()
 	delete(p.snapCache, r.topicSubject())
 	p.lock.Unlock()
+}
+
+func TestEventPublisher_Subscribe_WildcardNotSupported(t *testing.T) {
+	publisher := NewEventPublisher(0)
+
+	handler := func(SubscribeRequest, SnapshotAppender) (uint64, error) { return 0, nil }
+	require.NoError(t, publisher.RegisterHandler(testTopic, handler, false))
+
+	_, err := publisher.Subscribe(&SubscribeRequest{
+		Topic:   testTopic,
+		Subject: SubjectWildcard,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "does not support wildcard subscriptions")
+}
+
+func TestEventPublisher_Subscribe_WildcardSupported(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	publisher := NewEventPublisher(0)
+	go publisher.Run(ctx)
+
+	var (
+		// These events are in the snapshot.
+		a1 = Event{
+			Topic:   testTopic,
+			Payload: simplePayload{key: "a", value: "1"},
+			Index:   1,
+		}
+		b1 = Event{
+			Topic:   testTopic,
+			Payload: simplePayload{key: "b", value: "1"},
+			Index:   1,
+		}
+
+		// These events are published after the subscription begins.
+		a2 = Event{
+			Topic:   testTopic,
+			Payload: simplePayload{key: "a", value: "2"},
+			Index:   2,
+		}
+		b2 = Event{
+			Topic:   testTopic,
+			Payload: simplePayload{key: "b", value: "2"},
+			Index:   2,
+		}
+	)
+
+	handler := func(_ SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		buf.Append([]Event{a1, b1})
+		return 1, nil
+	}
+	require.NoError(t, publisher.RegisterHandler(testTopic, handler, true))
+
+	sub, err := publisher.Subscribe(&SubscribeRequest{
+		Topic:   testTopic,
+		Subject: SubjectWildcard,
+	})
+	require.NoError(t, err)
+	t.Cleanup(sub.Unsubscribe)
+
+	eventCh := runSubscription(ctx, sub)
+
+	next := getNextEvent(t, eventCh)
+	require.Equal(t, &PayloadEvents{
+		Items: []Event{a1, b1},
+	}, next.Payload)
+
+	next = getNextEvent(t, eventCh)
+	require.True(t, next.IsEndOfSnapshot(), "expected end of snapshot")
+
+	publisher.Publish([]Event{a2, b2})
+	next = getNextEvent(t, eventCh)
+	require.Equal(t, &PayloadEvents{
+		Items: []Event{a2, b2},
+	}, next.Payload)
+}
+
+func TestEventPublisher_Publish_WildcardNotAllowed(t *testing.T) {
+	publisher := NewEventPublisher(0)
+
+	require.Panics(t, func() {
+		publisher.Publish([]Event{
+			{
+				Topic:   testTopic,
+				Payload: wildcardPayload{},
+			},
+		})
+	})
+}
+
+type wildcardPayload struct{}
+
+func (wildcardPayload) Subject() Subject                              { return SubjectWildcard }
+func (wildcardPayload) HasReadPermission(acl.Authorizer) bool         { return true }
+func (wildcardPayload) ToSubscriptionEvent(uint64) *pbsubscribe.Event { return &pbsubscribe.Event{} }
+
+func TestEventPublisher_SnapshotIndex0(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	publisher := NewEventPublisher(10 * time.Second)
+	go publisher.Run(ctx)
+
+	publisher.RegisterHandler(testTopic, func(SubscribeRequest, SnapshotAppender) (uint64, error) {
+		return 0, nil
+	}, false)
+
+	sub, err := publisher.Subscribe(&SubscribeRequest{
+		Topic:   testTopic,
+		Subject: StringSubject("sub-key"),
+	})
+	require.NoError(t, err)
+	t.Cleanup(sub.Unsubscribe)
+
+	eventCh := runSubscription(ctx, sub)
+	event := getNextEvent(t, eventCh)
+	require.True(t, event.IsEndOfSnapshot())
+
+	// Even though the snapshot handler returned 0, the subscriber shouldn't see it.
+	require.Equal(t, uint64(1), event.Index)
 }

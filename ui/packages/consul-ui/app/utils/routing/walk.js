@@ -6,6 +6,9 @@ export const walk = function(routes) {
     if (item === '_options') {
       return;
     }
+    if(routes[item] === null) {
+      return;
+    }
     const options = routes[item]._options;
     let cb;
     if (Object.keys(routes[item]).length > 1) {

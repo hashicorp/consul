@@ -39,6 +39,10 @@ type EventPublisher struct {
 	publishCh chan []Event
 
 	snapshotHandlers SnapshotHandlers
+
+	// wildcards contains map keys used to access the buffer for a topic's wildcard
+	// subject — it is used to track which topics support wildcard subscriptions.
+	wildcards map[Topic]topicSubject
 }
 
 // topicSubject is used as a map key when accessing topic buffers and cached
@@ -76,7 +80,8 @@ type SnapshotHandlers map[Topic]SnapshotFunc
 
 // SnapshotFunc builds a snapshot for the subscription request, and appends the
 // events to the Snapshot using SnapshotAppender.
-// If err is not nil the SnapshotFunc must return a non-zero index.
+//
+// Note: index MUST NOT be zero if any events were appended.
 type SnapshotFunc func(SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
@@ -101,6 +106,7 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
 		snapshotHandlers: make(map[Topic]SnapshotFunc),
+		wildcards:        make(map[Topic]topicSubject),
 	}
 
 	return e
@@ -109,8 +115,10 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 // RegisterHandler will register a new snapshot handler function. The expectation is
 // that all handlers get registered prior to the event publisher being Run. Handler
 // registration is therefore not concurrency safe and access to handlers is internally
-// not synchronized.
-func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc) error {
+// not synchronized. Passing supportsWildcard allows consumers to subscribe to events
+// on this topic with *any* subject (by requesting SubjectWildcard) but this must be
+// supported by the handler function.
+func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
 	if topic.String() == "" {
 		return fmt.Errorf("the topic cannnot be empty")
 	}
@@ -120,6 +128,13 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc) erro
 	}
 
 	e.snapshotHandlers[topic] = handler
+
+	if supportsWildcard {
+		e.wildcards[topic] = topicSubject{
+			Topic:   topic.String(),
+			Subject: SubjectWildcard.String(),
+		}
+	}
 
 	return nil
 }
@@ -138,9 +153,21 @@ func (e *EventPublisher) RefreshTopic(topic Topic) error {
 // Publish events to all subscribers of the event Topic. The events will be shared
 // with all subscriptions, so the Payload used in Event.Payload must be immutable.
 func (e *EventPublisher) Publish(events []Event) {
-	if len(events) > 0 {
-		e.publishCh <- events
+	if len(events) == 0 {
+		return
 	}
+
+	for idx, event := range events {
+		if _, ok := event.Payload.(closeSubscriptionPayload); ok {
+			continue
+		}
+
+		if event.Payload.Subject() == SubjectWildcard {
+			panic(fmt.Sprintf("SubjectWildcard can only be used for subscription, not for publishing (topic: %s, index: %d)", event.Topic, idx))
+		}
+	}
+
+	e.publishCh <- events
 }
 
 // Run the event publisher until ctx is cancelled. Run should be called from a
@@ -172,6 +199,15 @@ func (e *EventPublisher) publishEvent(events []Event) {
 			Subject: event.Payload.Subject().String(),
 		}
 		groupedEvents[groupKey] = append(groupedEvents[groupKey], event)
+
+		// If the topic supports wildcard subscribers, copy the events to a wildcard
+		// buffer too.
+		e.lock.Lock()
+		wildcard, ok := e.wildcards[event.Topic]
+		e.lock.Unlock()
+		if ok {
+			groupedEvents[wildcard] = append(groupedEvents[wildcard], event)
+		}
 	}
 
 	e.lock.Lock()
@@ -231,6 +267,12 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
+	}
+
+	if req.Subject == SubjectWildcard {
+		if _, supportsWildcard := e.wildcards[req.Topic]; !supportsWildcard {
+			return nil, fmt.Errorf("topic %s does not support wildcard subscriptions", req.Topic)
+		}
 	}
 
 	topicBuf := e.bufferForSubscription(req.topicSubject())

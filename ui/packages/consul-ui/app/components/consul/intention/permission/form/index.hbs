@@ -108,7 +108,7 @@ as |group|>
             type="checkbox"
             name="method"
             value={{method}}
-            checked={{if (contains method changeset.HTTP.Methods) 'checked'}}
+            checked={{if (includes method changeset.HTTP.Methods) 'checked'}}
             onchange={{action 'change' 'method' changeset}}
           />
           <span>{{method}}</span>

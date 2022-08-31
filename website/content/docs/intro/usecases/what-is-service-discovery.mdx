@@ -1,0 +1,96 @@
+---
+layout: docs
+page_title: Service Discovery
+description: >-
+  Learn what service discovery is, its benefits, and how it works. 
+  Service mesh can solve many of the modern challenges that exist in multi-platform and multi-cloud application architectures, ranging from security to application resiliency.
+---
+
+# What is service discovery?
+
+_Service discovery_ helps you discover, track, and monitor the health of services within a network. Service discovery registers and maintains a record of all your services in a _service catalog_. This service catalog acts as a single source of truth that allows your services to query and communicate with each other.
+
+## Benefits of service discovery
+
+Service discovery provides benefits for all organizations, ranging from simplified scalability to improved application resiliency. Some of the benefits of service discovery include:
+
+- Dynamic IP address and port discovery
+- Simplified horizontal service scaling
+- Abstracts discovery logic away from applications
+- Reliable service communication ensured by health checks
+- Load balances requests across healthy service instances
+- Faster deployment times achieved by high-speed discovery
+- Automated service registration and de-registration
+
+## How does a service mesh work?
+
+Service discovery uses a service's identity instead of traditional access information (IP address and port). This allows you to dynamically map services and track any changes within a service catalog. Service consumers (users or other services) then use DNS to dynamically retrieve other service’s access information from the service catalog. The lifecycle of a service may look like the following:
+
+A service consumer communicates with the “Web” service via a unique Consul DNS entry provided by the service catalog. 
+
+![Example diagram of how service consumers query for services](/img/what_is_service_discovery_1.png)
+
+A new instance of the “Web” service registers itself to the service catalog with its IP address and port. As new instances of your services are registered to the service catalog, they will participate in the load balancing pool for handling service consumer requests.
+
+![Example diagram of how a service is registered to the service catalog](/img/what_is_service_discovery_2.png)
+
+The service catalog is dynamically updated as new instances of the service are added and legacy or unhealthy service instances are removed. Removed services will no longer participate in the load balancing pool for handling service consumer requests.
+
+![Example diagram of how unhealthy services are removed from the service catalog](/img/what_is_service_discovery_3.png)
+
+## What is service discovery in microservices?
+
+In a microservices application, the set of active service instances changes frequently across a large, dynamic environment. These service instances rely on a service catalog to retrieve the most up-to-date access information from the respective services. A reliable service catalog is especially important for service discovery in microservices to ensure healthy, scalable, and highly responsive application operation.
+
+## What are the two main types of service discovery?
+
+There are two main service‑discovery patterns: _client-side_ discovery and _server-side_ discovery. 
+
+In systems that use client‑side discovery, the service consumer is responsible for determining the access information of available service instances and load balancing requests between them. 
+
+1. The service consumer queries the service catalog
+2. The service catalog retrieves and returns all access information
+3. The service consumer selects a healthy downstream service and makes requests directly to it	
+
+![Example diagram of client-side discovery concept](/img/what_is_service_discovery_4.png)
+
+In systems that use server‑side discovery, the service consumer uses an intermediary to query the service catalog and make requests to them.
+
+1. The service consumer queries an intermediary (Consul)
+2. The intermediary queries the service catalog and routes requests to the available service instances.
+
+![Example diagram of server-side discovery concept](/img/what_is_service_discovery_5.png)
+
+For modern applications, this discovery method is advantageous because developers can make their applications faster and more lightweight by decoupling and centralizing service discovery logic. 
+
+## Service discovery vs load balancing
+
+Service discovery and load balancing share a similarity in distributing requests to back end services, but differ in many important ways. 
+
+Traditional load balancers are not designed for rapid registration and de-registration of services, nor are they designed for high-availability. By contrast, service discovery systems use multiple nodes that maintain the service registry state and a peer-to-peer state management system for increased resilience across any type of infrastructure. 
+
+For modern, cloud-based applications, service discovery is the preferred method for directing traffic to the right service provider due to its ability to scale and remain resilient, independent of infrastructure.
+
+## How do you implement service discovery?
+
+You can implement service discovery systems across any type of infrastructure, whether it is on-premise or in the cloud. Service discovery is a native feature of many container orchestrators such as Kubernetes or Nomad. There are also platform-agnostic service discovery methods available for non-container workloads such as VMs and serverless technologies. Implementing a resilient service discovery system involves creating a set of servers that maintain and facilitate service registry operations. You can achieve this by installing a service discovery system or using a managed service discovery service.
+
+## What is Consul?
+
+Consul is a service networking solution that lets you  automate network configurations, discover services, and enable secure connectivity across any cloud or runtime. With these features, Consul helps you solve the complex networking and security challenges of operating microservices and cloud infrastructure (multi-cloud and hybrid cloud). You can use these features independently or together to achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security. 
+
+Consul’s service discovery capabilities help you discover, track, and monitor the health of services within a network. Consul acts as a single source of truth that allows your services to query and communicate with each other.
+
+You can use Consul with virtual machines (VMs), containers, serverless technologies, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes. Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
+
+Consul is available as a [self-managed](/downloads) project or as a fully managed service mesh solution ([HCP Consul](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs)). HCP Consul enables users to discover and securely connect services without the added operational burden of maintaining a service mesh on their own.
+
+## Next steps
+
+Get started with service discovery today by leveraging Consul on HCP, Consul on Kubernetes, or Consul on VMs. Prepare your organization for the future of multi-cloud and embrace a [zero-trust](https://www.hashicorp.com/solutions/zero-trust-security) architecture.
+
+Feel free to get started with Consul by exploring one of these Consul Learn tutorials:
+
+[Getting Started with Consul on VMs](https://learn.hashicorp.com/collections/consul/getting-started)
+[Getting Started with Consul on HCP](https://learn.hashicorp.com/collections/consul/cloud-get-started)
+[Getting Started with Consul on Kubernetes](https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh)

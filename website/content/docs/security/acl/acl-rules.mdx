@@ -22,6 +22,7 @@ The following table provides an overview of the resources you can use to create 
 | `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes    |
 | `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/api-docs/keyring). <br/>See [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
 | `mesh` &nbsp; &nbsp; &nbsp;        | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rules) for details.                                                                                                                                                                                | No     |
+| `peering` &nbsp; &nbsp; &nbsp;        | Controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering). For more details, refer to [Peering Rules](#peering-rules).                                                                           | No     |
 | `namespace`<br/>`namespace_prefix` | <EnterpriseAlert inline /> Controls access to one or more namespaces. <br/>See [Namespace Rules](#namespace-rules) for details.                                                                                                                                                                                                                      | Yes    |
 | `node`<br/>`node_prefix` &nbsp;    | Controls access to node-level operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Prepared Query API](/api-docs/query), [Network Coordinate API](/api-docs/coordinate), and [Agent API](/api-docs/agent) <br/>See [Node Rules](#node-rules) for details.                                                                                     | Yes    |
 | `operator` &nbsp; &nbsp; &nbsp;    | Controls access to cluster-level operations available in the [Operator API](/api-docs/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details.                                                                                                                                                                  | No     |
@@ -71,25 +72,29 @@ You can include any number of namespace rules inside the admin partition.
 
 In the following example, the policy grants `write` access to the `ex-namespace`
 namespace, as well as namespaces prefixed with `exns-` in the `example` partition.
-The `mesh` resource is also scoped to the admin partition rule, which grants
-`write` access to mesh-level resources in the `example` partition.
+The `mesh` and `peering` resources are also scoped to the admin partition rule, which grants
+`write` access to the `mesh` and `peering` resources in the `example` partition.
 
 In addition, the policy grants `read` access to the `ex-namespace` namespace, as
 well as namespaces prefixed with `exns-` in all partitions containing the
-`example-` prefix. Read access is granted for `mesh` resource scoped within the
-associated partition.
+`example-` prefix. Read access is granted for the `mesh` and `peering` resources
+scoped within the associated partition.
 
 <CodeTabs heading="Example admin partition rules">
 
 ```hcl
 partition "example" {
   mesh = "write"
+  peering = "write"
+
   node "my-node" {
     policy = "write"
   }
+
   namespace "ex-namespace" {
     policy = "write"
   }
+
   namespace_prefix "exns-" {
     policy = "write"
   }
@@ -97,6 +102,7 @@ partition "example" {
 
 partition_prefix "example-" {
   mesh = "read"
+  peering = "read"
 
   node "my-node" {
     policy = "read"
@@ -367,9 +373,14 @@ keyring = "write"
 
 </CodeTabs>
 
-### Mesh Rules
+## Mesh Rules
 
-The `mesh` resource controls access to ingress gateways, terminating gateways, and mesh configuration entries. The following rule grants read and write access:
+The `mesh` resource controls access to ingress gateways, terminating gateways, and mesh configuration entries.
+
+In Consul Enterprise, mesh rules are scoped to an admin partition. Therefore, they can be nested in an
+[admin partition rule](#admin-partition-rules) but not a [namespace rule](#namespace-rules).
+
+The following rule grants read and write access:
 
 <CodeTabs heading="Example mesh rule">
 
@@ -599,6 +610,30 @@ operator = "read"
 ```
 
 </CodeTabs>
+
+## Peering Rules
+The `peering` resource controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering).
+
+In Consul Enterprise, peering rules are scoped to an admin partition. Therefore, they can be nested in an
+[admin partition rule](#admin-partition-rules) but not a [namespace rule](#namespace-rules).
+
+The following rule grants read and write access:
+
+<CodeTabs heading="Example peering rule">
+
+```hcl
+peering = "write"
+```
+
+```json
+{
+  "peering": "write"
+}
+```
+
+</CodeTabs>
+
+For an example of how to apply rules for the `peering` resource alongside other rules, refer to the example configuration in [Admin Partition Rules](#admin-partition-rules).
 
 ## Prepared Query Rules
 

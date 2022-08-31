@@ -36,7 +36,7 @@ func NewDataplaneServiceClient(cc grpc.ClientConnInterface) DataplaneServiceClie
 
 func (c *dataplaneServiceClient) GetSupportedDataplaneFeatures(ctx context.Context, in *GetSupportedDataplaneFeaturesRequest, opts ...grpc.CallOption) (*GetSupportedDataplaneFeaturesResponse, error) {
 	out := new(GetSupportedDataplaneFeaturesResponse)
-	err := c.cc.Invoke(ctx, "/dataplane.DataplaneService/GetSupportedDataplaneFeatures", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *dataplaneServiceClient) GetSupportedDataplaneFeatures(ctx context.Conte
 
 func (c *dataplaneServiceClient) GetEnvoyBootstrapParams(ctx context.Context, in *GetEnvoyBootstrapParamsRequest, opts ...grpc.CallOption) (*GetEnvoyBootstrapParamsResponse, error) {
 	out := new(GetEnvoyBootstrapParamsResponse)
-	err := c.cc.Invoke(ctx, "/dataplane.DataplaneService/GetEnvoyBootstrapParams", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.dataplane.DataplaneService/GetEnvoyBootstrapParams", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func _DataplaneService_GetSupportedDataplaneFeatures_Handler(srv interface{}, ct
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dataplane.DataplaneService/GetSupportedDataplaneFeatures",
+		FullMethod: "/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataplaneServiceServer).GetSupportedDataplaneFeatures(ctx, req.(*GetSupportedDataplaneFeaturesRequest))
@@ -110,7 +110,7 @@ func _DataplaneService_GetEnvoyBootstrapParams_Handler(srv interface{}, ctx cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dataplane.DataplaneService/GetEnvoyBootstrapParams",
+		FullMethod: "/hashicorp.consul.dataplane.DataplaneService/GetEnvoyBootstrapParams",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataplaneServiceServer).GetEnvoyBootstrapParams(ctx, req.(*GetEnvoyBootstrapParamsRequest))
@@ -122,7 +122,7 @@ func _DataplaneService_GetEnvoyBootstrapParams_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DataplaneService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "dataplane.DataplaneService",
+	ServiceName: "hashicorp.consul.dataplane.DataplaneService",
 	HandlerType: (*DataplaneServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

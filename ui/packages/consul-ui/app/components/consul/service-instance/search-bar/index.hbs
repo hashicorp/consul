@@ -56,7 +56,7 @@ as |key value|}}
           <BlockSlot @name="options">
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
                 {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
@@ -81,7 +81,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "passing" "warning" "critical" "empty") as |state|}}
-          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.status.value}}>
+          <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
             {{t (concat "common.consul." state)
                 default=(array
                   (concat "common.search." state)
@@ -107,7 +107,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each @sources as |source|}}
-          <Option class={{source}} @value={{source}} @selected={{contains source @filter.source.value}}>
+          <Option class={{source}} @value={{source}} @selected={{includes source @filter.source.value}}>
             {{t (concat "common.brand." source)}}
           </Option>
     {{/each}}

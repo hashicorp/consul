@@ -18,7 +18,7 @@
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['access overview', 'read zones'],
+            abilities: ['read servers'],
           },
         },
         cataloghealth: {
@@ -30,7 +30,7 @@
         license: {
           _options: {
             path: '/license',
-            abilities: ['access overview', 'read licence'],
+            abilities: ['read license'],
           },
         },
       },
@@ -46,7 +46,7 @@
               kind: 'kind',
               searchproperty: {
                 as: 'searchproperty',
-                empty: [['Name', 'Tags']],
+                empty: [['Partition', 'Name', 'Tags', 'PeerName']],
               },
               search: {
                 as: 'filter',
@@ -56,7 +56,9 @@
           },
         },
         show: {
-          _options: { path: '/:name' },
+          _options: {
+            path: '/:name',
+          },
           instances: {
             _options: {
               path: '/instances',
@@ -213,7 +215,7 @@
               status: 'status',
               searchproperty: {
                 as: 'searchproperty',
-                empty: [['Node', 'Address', 'Meta']],
+                empty: [['Node', 'Address', 'Meta', 'PeerName']],
               },
               search: {
                 as: 'filter',
