@@ -1193,6 +1193,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		filterName:       name,
 		routeName:        name,
 		cluster:          LocalAppClusterName,
+		idleTimeoutMs:    cfg.LocalIdleTimeoutMs,
 		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
 	}
 	if useHTTPFilter {
@@ -1950,6 +1951,7 @@ type listenerFilterOpts struct {
 	cluster              string
 	statPrefix           string
 	routePath            string
+	idleTimeoutMs        *int
 	requestTimeoutMs     *int
 	ingressGateway       bool
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
@@ -2072,6 +2074,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 					},
 				},
 			},
+		}
+
+		if opts.idleTimeoutMs != nil {
+			r := route.GetRoute()
+			r.IdleTimeout = durationpb.New(time.Duration(*opts.idleTimeoutMs) * time.Millisecond)
 		}
 
 		if opts.requestTimeoutMs != nil {

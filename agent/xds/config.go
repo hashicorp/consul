@@ -38,6 +38,12 @@ type ProxyConfig struct {
 	// set.
 	LocalConnectTimeoutMs int `mapstructure:"local_connect_timeout_ms"`
 
+	// LocalIdleTimeoutMs is the number of milliseconds a request's stream to the
+	// local app instance may be idle. If not set, no value is set, Envoy defaults
+	// are respected, and an Envoy stream_idle_timeout (5m) will apply. If set,
+	// this LocalIdleTimeoutMs value will override the Envoy stream_idle_timeout.
+	LocalIdleTimeoutMs *int `mapstructure:"local_idle_timeout_ms"`
+
 	// LocalRequestTimeoutMs is the number of milliseconds to timeout HTTP requests
 	// to the local app instance. If not set, no value is set, Envoy defaults are
 	// respected (15s)
