@@ -98,6 +98,10 @@ func (f *HTTPFlags) Datacenter() string {
 	return f.datacenter.String()
 }
 
+func (f *HTTPFlags) Partition() string {
+	return f.partition.String()
+}
+
 func (f *HTTPFlags) Stale() bool {
 	if f.stale.v == nil {
 		return false
