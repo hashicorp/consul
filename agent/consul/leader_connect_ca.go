@@ -1100,6 +1100,28 @@ func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
 
 	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
 	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
+	return pruneExpiredIntermediates(caRoot)
+}
+
+// pruneExpiredIntermediates removes expired intermediate certificates
+// from the given CARoot.
+func pruneExpiredIntermediates(caRoot *structs.CARoot) error {
+	var newIntermediates []string
+	now := time.Now()
+	for i, intermediatePEM := range caRoot.IntermediateCerts {
+		cert, err := connect.ParseCert(intermediatePEM)
+		if err != nil {
+			return fmt.Errorf("error parsing leaf signing cert: %w", err)
+		}
+
+		// Only keep the intermediate cert if it's still valid, or if it's the most
+		// recently added (and thus the active signing cert).
+		if cert.NotAfter.After(now) || i == len(caRoot.IntermediateCerts) {
+			newIntermediates = append(newIntermediates, intermediatePEM)
+		}
+	}
+
+	caRoot.IntermediateCerts = newIntermediates
 	return nil
 }
 
