@@ -127,9 +127,20 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	if err != nil {
 		return nil, nil, "", err
 	}
-	// Setup default check if none given
+	// Setup default check if none given.
 	if len(checks) < 1 {
-		checks = sidecarDefaultChecks(ns.ID, sidecar.Proxy.LocalServiceAddress, sidecar.Port)
+		// The check should use the sidecar's address because it makes a request to the sidecar.
+		// If the sidecar's address is empty, we fall back to the address of the local service, as set in
+		// sidecar.Proxy.LocalServiceAddress, in the hope that the proxy is also accessible on that address
+		// (which in most cases it is because it's running as a sidecar in the same network).
+		// We could instead fall back to the address of the service as set by (ns.Address), but I've kept it using
+		// sidecar.Proxy.LocalServiceAddress so as to not change things too much in the
+		// process of fixing #14433.
+		checkAddress := sidecar.Address
+		if checkAddress == "" {
+			checkAddress = sidecar.Proxy.LocalServiceAddress
+		}
+		checks = sidecarDefaultChecks(ns.ID, checkAddress, sidecar.Port)
 	}
 
 	return sidecar, checks, token, nil
@@ -202,14 +213,11 @@ func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.Servic
 	return sidecarPort, nil
 }
 
-func sidecarDefaultChecks(serviceID string, localServiceAddress string, port int) []*structs.CheckType {
-	// Setup default check if none given
+func sidecarDefaultChecks(serviceID string, address string, port int) []*structs.CheckType {
 	return []*structs.CheckType{
 		{
-			Name: "Connect Sidecar Listening",
-			// Default to localhost rather than agent/service public IP. The checks
-			// can always be overridden if a non-loopback IP is needed.
-			TCP:      ipaddr.FormatAddressPort(localServiceAddress, port),
+			Name:     "Connect Sidecar Listening",
+			TCP:      ipaddr.FormatAddressPort(address, port),
 			Interval: 10 * time.Second,
 		},
 		{
