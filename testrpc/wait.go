@@ -11,7 +11,9 @@ import (
 
 type rpcFn func(string, interface{}, interface{}) error
 
-// WaitForLeader ensures we have a leader and a node registration.
+// WaitForLeader ensures we have a leader and a node registration. It
+// does not wait for the Consul (node) service to be ready. Use `WaitForTestAgent`
+// to make sure the Consul service is ready.
 //
 // Most uses of this would be better served in the agent/consul package by
 // using waitForLeaderEstablishment() instead.
@@ -91,7 +93,8 @@ func flattenOptions(options []waitOption) waitOption {
 	return flat
 }
 
-// WaitForTestAgent ensures we have a node with serfHealth check registered
+// WaitForTestAgent ensures we have a node with serfHealth check registered.
+// You'll want to use this if you expect the Consul (node) service to be ready.
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
 
