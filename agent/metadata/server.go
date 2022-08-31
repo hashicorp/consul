@@ -23,30 +23,27 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name         string // <node>.<dc>
-	ShortName    string // <node>
-	ID           string
-	Datacenter   string
-	Segment      string
-	Port         int
-	SegmentAddrs map[string]string
-	SegmentPorts map[string]int
-	WanJoinPort  int
-	LanJoinPort  int
-
-	// TODO why are these ports needed? It looks like nothing is referencing them.
+	Name                string // <node>.<dc>
+	ShortName           string // <node>
+	ID                  string
+	Datacenter          string
+	Segment             string
+	Port                int
+	SegmentAddrs        map[string]string
+	SegmentPorts        map[string]int
+	WanJoinPort         int
+	LanJoinPort         int
 	ExternalGRPCPort    int
 	ExternalGRPCTLSPort int
-
-	Bootstrap    bool
-	Expect       int
-	Build        version.Version
-	Version      int
-	RaftVersion  int
-	Addr         net.Addr
-	Status       serf.MemberStatus
-	ReadReplica  bool
-	FeatureFlags map[string]int
+	Bootstrap           bool
+	Expect              int
+	Build               version.Version
+	Version             int
+	RaftVersion         int
+	Addr                net.Addr
+	Status              serf.MemberStatus
+	ReadReplica         bool
+	FeatureFlags        map[string]int
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
