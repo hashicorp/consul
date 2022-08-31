@@ -139,8 +139,8 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:          ServiceResolver,
 				Name:          "test-failover",
-				Partition:     splitDefaultPartition,
-				Namespace:     splitDefaultNamespace,
+				Partition:     defaultPartition,
+				Namespace:     defaultNamespace,
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
 					"v1": {
@@ -156,7 +156,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					},
 					"v1": {
 						Service:   "alternate",
-						Namespace: splitDefaultNamespace,
+						Namespace: defaultNamespace,
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
@@ -172,12 +172,12 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:      ServiceResolver,
 				Name:      "test-redirect",
-				Partition: splitDefaultPartition,
-				Namespace: splitDefaultNamespace,
+				Partition: defaultPartition,
+				Namespace: defaultNamespace,
 				Redirect: &ServiceResolverRedirect{
 					Service:       "test-failover",
 					ServiceSubset: "v2",
-					Namespace:     splitDefaultNamespace,
+					Namespace:     defaultNamespace,
 					Datacenter:    "d",
 				},
 			},
@@ -188,14 +188,14 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceSplitterConfigEntry{
 				Kind:      ServiceSplitter,
 				Name:      "test-split",
-				Partition: splitDefaultPartition,
-				Namespace: splitDefaultNamespace,
+				Partition: defaultPartition,
+				Namespace: defaultNamespace,
 				Splits: []ServiceSplit{
 					{
 						Weight:        90,
 						Service:       "test-failover",
 						ServiceSubset: "v1",
-						Namespace:     splitDefaultNamespace,
+						Namespace:     defaultNamespace,
 						RequestHeaders: &HTTPHeaderModifiers{
 							Set: map[string]string{
 								"x-foo": "bar",
@@ -208,7 +208,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					{
 						Weight:    10,
 						Service:   "test-redirect",
-						Namespace: splitDefaultNamespace,
+						Namespace: defaultNamespace,
 					},
 				},
 				Meta: map[string]string{
@@ -223,8 +223,8 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceRouterConfigEntry{
 				Kind:      ServiceRouter,
 				Name:      "test-route",
-				Partition: splitDefaultPartition,
-				Namespace: splitDefaultNamespace,
+				Partition: defaultPartition,
+				Namespace: defaultNamespace,
 				Routes: []ServiceRoute{
 					{
 						Match: &ServiceRouteMatch{
@@ -241,8 +241,8 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Destination: &ServiceRouteDestination{
 							Service:               "test-failover",
 							ServiceSubset:         "v2",
-							Namespace:             splitDefaultNamespace,
-							Partition:             splitDefaultPartition,
+							Namespace:             defaultNamespace,
+							Partition:             defaultPartition,
 							PrefixRewrite:         "/",
 							RequestTimeout:        5 * time.Second,
 							NumRetries:            5,
@@ -334,8 +334,8 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:      ServiceResolver,
 				Name:      "test-least-req",
-				Partition: splitDefaultPartition,
-				Namespace: splitDefaultNamespace,
+				Partition: defaultPartition,
+				Namespace: defaultNamespace,
 				LoadBalancer: &LoadBalancer{
 					Policy:             "least_request",
 					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
@@ -348,8 +348,8 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:      ServiceResolver,
 				Name:      "test-ring-hash",
-				Namespace: splitDefaultNamespace,
-				Partition: splitDefaultPartition,
+				Namespace: defaultNamespace,
+				Partition: defaultPartition,
 				LoadBalancer: &LoadBalancer{
 					Policy: "ring_hash",
 					RingHashConfig: &RingHashConfig{
