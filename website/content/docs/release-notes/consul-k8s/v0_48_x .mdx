@@ -9,13 +9,32 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (Beta)**: This release introduces support for Cluster Peering, which allows service connectivity between two independent clusters. Enabling peering will deploy the peering controllers and PeeringAcceptor and PeeringDialer CRDs. The new CRDs are used to establish a peering connection between two clusters. Refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for full instructions on using Cluster Peering on Kubernetes.
+- **CNI Plugin**: This release introduces a CNI Plugin. 
   
-- **Envoy Proxy Debugging CLI Commands**: This release introduces new commands to quickly identify proxies and troubleshoot Envoy proxies for sidecars and gateways. 
-  * Add `consul-k8s proxy list` command for displaying pods running Envoy managed by Consul. 
-  * Add `consul-k8s proxy read podname` command for displaying Envoy configuration for a given pod
+- **MaxInboundConnections in service-defaults CRD**: Add support for MaxInboundConnections on the Service Defaults CRD. [GH-1437]
 
-- **Transparent Proxy Egress**: Adds support for destinations on the Service Defaults CRD when using transparent proxy for terminating gateways.
+## What has Changed
+
+- **Kubernetes 1.24 Support**: Users deploying multiple services to the same Pod (multiport) on Kubernetes 1.24+ must also deploy a Kube Secret for each ServiceAccount associated with the Consul service. The name of the Secret must match the ServiceAccount name and be of type 'kubernetes.io/service-account-token'
+Example:
+
+  ```yaml
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: svc1
+    annotations:
+      kubernetes.io/service-account.name: svc1
+  type: kubernetes.io/service-account-token
+  ---
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: svc2
+    annotations:
+      kubernetes.io/service-account.name: svc2
+  type: kubernetes.io/service-account-token
+  ```
 
 ## Supported Software
 
