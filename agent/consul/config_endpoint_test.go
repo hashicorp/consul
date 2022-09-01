@@ -1374,8 +1374,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 							Protocol:    "http",
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 							PassiveHealthCheck: &structs.PassiveHealthCheck{
-								Interval:    10,
-								MaxFailures: 2,
+								Interval:                10,
+								MaxFailures:             2,
+								EnforcingConsecutive5xx: uintPointer(60),
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -1407,8 +1408,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: wildcard,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":    int64(10),
-								"MaxFailures": int64(2),
+								"Interval":                int64(10),
+								"MaxFailures":             int64(2),
+								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "remote",
@@ -1420,8 +1422,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":    int64(10),
-								"MaxFailures": int64(2),
+								"Interval":                int64(10),
+								"MaxFailures":             int64(2),
+								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",
@@ -2490,4 +2493,8 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 			require.NoError(t, gateWriteToSecondary(tcase.targetDC, tcase.localDC, tcase.primaryDC, tcase.kind))
 		})
 	}
+}
+
+func uintPointer(v uint32) *uint32 {
+	return &v
 }
