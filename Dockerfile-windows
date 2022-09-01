@@ -1,5 +1,4 @@
 FROM mcr.microsoft.com/windows/servercore:1809
-
 ENV VERSION=1.12.0
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
@@ -20,7 +19,6 @@ RUN mkdir C:\\consul
 RUN mkdir C:\\consul\\data
 RUN mkdir C:\\consul\\config
 
-
 # Server RPC is used for communication between Consul clients and servers for internal
 # request forwarding.
 EXPOSE 8300
@@ -37,7 +35,6 @@ EXPOSE 8500 8600 8600/udp
 ENV CONSUL_URL=https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_windows_amd64.zip
 RUN curl %CONSUL_URL% -L -o consul.zip
 RUN tar -xf consul.zip -C consul
-ENV PATH C:\\Program Files\\Git\\bin;C:\\consul;C:\\Windows\\System32;%PATH%
 
 COPY .release/docker/docker-entrypoint-windows.sh C:\\docker-entrypoint-windows.sh
 ENTRYPOINT ["bash.exe", "docker-entrypoint-windows.sh"]

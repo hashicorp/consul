@@ -4,7 +4,6 @@ services {
   connect { 
     sidecar_service {
       proxy {
-        local_service_address = "s2-sidecar-proxy"
       }
   } }
 }

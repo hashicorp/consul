@@ -1,6 +1,6 @@
 {
   "admin": {
-    "access_log_path": "C:/envoy",
+    "access_log_path": "C:\\envoy\\log ",
     "address": {
       "socket_address": {
         "address": "0.0.0.0",

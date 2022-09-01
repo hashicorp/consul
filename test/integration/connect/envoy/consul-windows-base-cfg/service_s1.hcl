@@ -10,7 +10,6 @@ services {
             local_bind_port = 5000
           }
         ]
-        local_service_address = "s1-sidecar-proxy"
       }
     }
   }

@@ -1,10 +1,6 @@
-FROM docker.mirror.hashicorp.services/windows/fortio AS fortio
-
 FROM docker.mirror.hashicorp.services/windows/bats:1.7.0
 
 RUN choco install openssl -yf
 RUN choco install jq -yf
 
-COPY --from=fortio C:\\fortio C:\\fortio
-
-ENV PATH C:\\Windows\\System32;C:\\fortio;C:\\ProgramData\\chocolatey\\lib\\jq\\tools;C:\\Program Files\\OpenSSL-Win64\\bin;%PATH%
+ENV PATH C:\\Windows\\System32;C:\\ProgramData\\chocolatey\\lib\\jq\\tools;C:\\Program Files\\OpenSSL-Win64\\bin;%PATH%
