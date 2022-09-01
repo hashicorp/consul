@@ -27,6 +27,12 @@ type ProxyConfig struct {
 	// Note: This escape hatch is compatible with the discovery chain.
 	PublicListenerJSON string `mapstructure:"envoy_public_listener_json"`
 
+	// ListenerTracingJSON is a complete override ("escape hatch") for the
+	// listeners tracing configuration.
+	//
+	// Note: This escape hatch is compatible with the discovery chain.
+	ListenerTracingJSON string `mapstructure:"envoy_listener_tracing_json"`
+
 	// LocalClusterJSON is a complete override ("escape hatch") for the
 	// local application cluster.
 	//
