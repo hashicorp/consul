@@ -57,7 +57,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, []string{"*"}, "")
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
 		if err != nil {
 			return nil, err
 		}
@@ -249,11 +249,12 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-		virtualHost, err := makeUpstreamRouteForDiscoveryChain(
-			uid.EnvoyID(),
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(
+			cfgSnap,
+			uid,
 			chain,
 			[]string{"*"},
-			meshGatewayExportedClusterNamePrefix,
+			true,
 		)
 		if err != nil {
 			return nil, err
@@ -367,7 +368,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, domains, "")
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
 			}
@@ -500,17 +501,24 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	return domains
 }
 
-func makeUpstreamRouteForDiscoveryChain(
-	routeName string,
+func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	uid proxycfg.UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-	clusterNamePrefix string,
+	forMeshGateway bool,
 ) (*envoy_route_v3.VirtualHost, error) {
+	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+	}
+
+	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
+	if err != nil && !forMeshGateway {
+		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", cfgSnap.Kind)
 	}
 
 	switch startNode.Type {
@@ -534,13 +542,17 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain, clusterNamePrefix)
+				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)
 				if err != nil {
 					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain, clusterNamePrefix)
+				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
+				if !ok {
+					continue
+				}
+				routeAction = ra
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -599,43 +611,42 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain, clusterNamePrefix)
-		if err != nil {
-			return nil, err
-		}
+		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
+		if err == nil {
+			var lb *structs.LoadBalancer
+			if startNode.LoadBalancer != nil {
+				lb = startNode.LoadBalancer
+			}
+			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+			}
 
-		var lb *structs.LoadBalancer
-		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer
-		}
-		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-		}
+			defaultRoute := &envoy_route_v3.Route{
+				Match:  makeDefaultRouteMatch(),
+				Action: routeAction,
+			}
 
-		defaultRoute := &envoy_route_v3.Route{
-			Match:  makeDefaultRouteMatch(),
-			Action: routeAction,
+			routes = []*envoy_route_v3.Route{defaultRoute}
 		}
-
-		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain, clusterNamePrefix)
+		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
+		if ok {
+			var lb *structs.LoadBalancer
+			if startNode.LoadBalancer != nil {
+				lb = startNode.LoadBalancer
+			}
+			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+			}
 
-		var lb *structs.LoadBalancer
-		if startNode.LoadBalancer != nil {
-			lb = startNode.LoadBalancer
-		}
-		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-		}
+			defaultRoute := &envoy_route_v3.Route{
+				Match:  makeDefaultRouteMatch(),
+				Action: routeAction,
+			}
 
-		defaultRoute := &envoy_route_v3.Route{
-			Match:  makeDefaultRouteMatch(),
-			Action: routeAction,
+			routes = []*envoy_route_v3.Route{defaultRoute}
 		}
-
-		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	default:
 		return nil, fmt.Errorf("unknown first node in discovery chain of type: %s", startNode.Type)
@@ -782,13 +793,17 @@ func makeDefaultRouteMatch() *envoy_route_v3.RouteMatch {
 	}
 }
 
-func makeRouteActionForChainCluster(
+func (s *ResourceGenerator) makeRouteActionForChainCluster(
+	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
 	targetID string,
 	chain *structs.CompiledDiscoveryChain,
-	clusterNamePrefix string,
-) *envoy_route_v3.Route_Route {
-	target := chain.Targets[targetID]
-	return makeRouteActionFromName(clusterNamePrefix + CustomizeClusterName(target.Name, chain))
+	forMeshGateway bool,
+) (*envoy_route_v3.Route_Route, bool) {
+	td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+	if !ok {
+		return nil, false
+	}
+	return makeRouteActionFromName(td.clusterName), true
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -801,10 +816,11 @@ func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
 	}
 }
 
-func makeRouteActionForSplitter(
+func (s *ResourceGenerator) makeRouteActionForSplitter(
+	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
-	clusterNamePrefix string,
+	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
@@ -815,15 +831,16 @@ func makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		target := chain.Targets[targetID]
-
-		clusterName := clusterNamePrefix + CustomizeClusterName(target.Name, chain)
+		targetOptions, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+		if !ok {
+			continue
+		}
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: makeUint32Value(int(split.Weight * 100)),
-			Name:   clusterName,
+			Name:   targetOptions.clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
 			return nil, err

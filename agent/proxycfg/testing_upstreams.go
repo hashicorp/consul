@@ -91,6 +91,24 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Nodes: TestUpstreamNodesPeerCluster01(t),
 			},
 		})
+	case "redirect-to-cluster-peer":
+		events = append(events, UpdateEvent{
+			CorrelationID: "peer-trust-bundle:cluster-01",
+			Result: &pbpeering.TrustBundleReadResponse{
+				Bundle: &pbpeering.PeeringTrustBundle{
+					PeerName:          "peer1",
+					TrustDomain:       "peer1.domain",
+					ExportedPartition: "peer1ap",
+					RootPEMs:          []string{"peer1-root-1"},
+				},
+			},
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodesPeerCluster01(t),
+			},
+		})
 	case "failover-through-double-remote-gateway-triggered":
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
@@ -286,6 +304,17 @@ func setupTestVariationDiscoveryChain(
 							{Peer: "cluster-01"},
 						},
 					},
+				},
+			},
+		)
+	case "redirect-to-cluster-peer":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Redirect: &structs.ServiceResolverRedirect{
+					Peer: "cluster-01",
 				},
 			},
 		)

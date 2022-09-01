@@ -57,6 +57,12 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "connect-proxy-with-chain-and-redirect-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+			},
+		},
+		{
 			name: "connect-proxy-with-chain-and-splitter",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", nil, nil)
