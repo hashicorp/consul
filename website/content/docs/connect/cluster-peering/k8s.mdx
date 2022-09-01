@@ -61,7 +61,7 @@ You must implement the following requirements to create and use cluster peering 
       enableRedirection: true
     server:
       exposeService:
-        enabeld: true
+        enabled: true
     controller:
       enabled: true
     meshGateway:
@@ -173,7 +173,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     apiVersion: v1
     kind: Service
     metadata:
-      name: backend-service
+      name: backend
     spec:
       selector:
         app: backend
@@ -235,7 +235,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       name: default ## The name of the partition containing the service
     spec:
       services:
-        - name: backend-service ## The name of the service you want to export
+        - name: backend ## The name of the service you want to export
           consumers:
           - peer: cluster-01 ## The name of the peer that receives the service
     ```
@@ -261,11 +261,11 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       name: backend-deny
     spec:
       destination:
-        name: backend-service
+        name: backend
       sources:
        - name: "*"
          action: deny
-       - name: frontend-service
+       - name: frontend
          action: allow
     ```
 
@@ -286,7 +286,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     apiVersion: v1
     kind: Service
     metadata:
-      name: frontend-service
+      name: frontend
     spec:
       selector:
         app: frontend
@@ -332,7 +332,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
             - name: "LISTEN_ADDR"
               value: "0.0.0.0:9090"
             - name: "UPSTREAM_URIS"
-              value: "http://backend-service.virtual.cluster-02.consul"
+              value: "http://backend.virtual.cluster-02.consul"
             - name: "NAME"
               value: "frontend"
             - name: "MESSAGE"
@@ -365,9 +365,9 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       "duration": "59.752279ms",
       "body": "Hello World",
       "upstream_calls": {
-        "http://backend-service.virtual.cluster-02.consul": {
+        "http://backend.virtual.cluster-02.consul": {
           "name": "backend",
-          "uri": "http://backend-service.virtual.cluster-02.consul",
+          "uri": "http://backend.virtual.cluster-02.consul",
           "type": "HTTP",
           "ip_addresses": [
             "10.32.2.10"
