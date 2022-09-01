@@ -41,9 +41,6 @@ export default function(scenario, assert, find, currentPage, $) {
       assert[negative ? 'notOk' : 'ok'](res, this.step);
       setTimeout(() => next());
     })
-    .then('I wait a tick', function() {
-      return new Promise(resolve => setTimeout(resolve, 0));
-    })
     .then(
       [
         `I${dont} $verb the $pageObject object with value "$value"`,
