@@ -1318,7 +1318,10 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		l.logger.Info("Deregistered service", "service", key.ID)
 		return nil
 
-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+	case acl.IsErrNotFound(err):
+		l.services[key].Token = ""
+		fallthrough
+	case acl.IsErrPermissionDenied(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
@@ -1359,8 +1362,10 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		l.pruneCheck(key)
 		l.logger.Info("Deregistered check", "check", key.String())
 		return nil
-
-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+	case acl.IsErrNotFound(err):
+		l.checks[key].Token = ""
+		fallthrough
+	case acl.IsErrPermissionDenied(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
