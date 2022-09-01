@@ -1,25 +1,25 @@
 ---
 layout: docs
-page_title: Install Consul from the Helm Chart
+page_title: Install Consul on Kubernetes from the Helm Chart
 description: >-
   This topic describes how to install Consul on Kubernetes using the official Consul Helm chart.
 ---
 
 # Install Consul on Kubernetes from the Helm Chart
 
-This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. Refer to [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli)For instruction on how to install Consul on Kubernetes using the Consul K8s CLI.
+This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli).
 
 ## Introduction
 
 We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. The configuration enables you to run a server cluster, a client cluster, or both.
 
-Consul can run directly on Kubernetes in server or client mode so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the architecture section to learn more about the general architecture of Consul on Kubernetes. 
+Consul can run directly on Kubernetes in server or client mode so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [architecture section](/docs/k8s/architecture) to learn more about the general architecture of Consul on Kubernetes. 
 
-The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, upgrade, etc. the Consul cluster.
+The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, and upgrade the Consul cluster.
 
-The Helm chart has no required configuration and will install a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/docs/k8s/helm#configuration-values) prior to going to production.
+The Helm chart has no required configuration, so it installs a Consul cluster with default configurations. We strongly recommend that you [learn about the configuration options](/docs/k8s/helm#configuration-values) prior to going to production.
 
--> **Security warning**: By default, chart installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
+-> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
 
 Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
 
@@ -29,7 +29,7 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 
 ## Requirements
 
-* Helm 3.2+ (visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version)
+- Helm version 3.2+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
 
 ## Install Consul
 
@@ -109,7 +109,7 @@ NAME: consul
 
 ### Enable the Consul CNI plugin
 
-By default, Consul generates a `connect-inject init` container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy). The container configures traffic redirection in the service mesh through the sidecar proxy when Consul is in . To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization. 
+By default, Consul generates a `connect-inject init` container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy). The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization. 
 
 Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection. Because the plugin is executed by the Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network. 
 

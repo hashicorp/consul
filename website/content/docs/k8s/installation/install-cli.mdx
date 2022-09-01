@@ -2,7 +2,7 @@
 layout: docs
 page_title: Install Consul from the Consul K8s CLI
 description: >-
-  This topic describes how to install Consul on Kubernetes uisng the Consul K8s CLI tool.
+  This topic describes how to install Consul on Kubernetes using the Consul K8s CLI tool.
 ---
 
 
@@ -12,23 +12,22 @@ This topic describes how to install Consul on Kubernetes using the Consul K8s CL
 
 ## Introduction
 
-If this is your first time installing Consul on Kubernetes, then you must first install the Consul K8s CLI tool. You can install Consul on Kubernetes using the after installing the CLI.
-
+If it is your first time installing Consul on Kubernetes, then you must first install the Consul K8s CLI tool. You can install Consul on Kubernetes using the Consul K8s tool after installing the CLI.
 
 ## Requirements
 
-* The `kubectl` client must already be configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
-* Install one of the following package managers so that you can install the Consul K8s CLI tool. The installation instructions also provide commands for installing and using the package managers:
-   * MacOS: [Homebrew](https://brew.sh) 
-   * Ubuntu/Debian: apt 
-   * CentOS/RHEL: yum
+- The `kubectl` client must already be configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
+- Install one of the following package managers so that you can install the Consul K8s CLI tool. The installation instructions also provide commands for installing and using the package managers:
+   - MacOS: [Homebrew](https://brew.sh) 
+   - Ubuntu/Debian: apt 
+   - CentOS/RHEL: yum
 
-You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, you will need to first download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/docs/k8s/compatibility) for details.
+You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/docs/k8s/compatibility) for details.
 
 
 ## Install the CLI 
 
-The following instructions describe how to install the latest version of the Consul K8s CLI tool, as well as earlier versions so that you can install an appropriate version of tool for your control plane.
+The following instructions describe how to install the latest version of the Consul K8s CLI tool, as well as earlier versions, so that you can install an appropriate version of tool for your control plane.
 
 ### Install the latest version
 
@@ -127,13 +126,13 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 ### Install a previous version
 
-Complete the following instructions install a specific version of the CLI so that your tool is compatible with your Consul on Kubernetes control plane (refer to the [compatibility matrix](/docs/k8s/compatibility) for additional information). 
+Complete the following instructions to install a specific version of the CLI so that your tool is compatible with your Consul on Kubernetes control plane. Refer to the [compatibility matrix](/docs/k8s/compatibility) for additional information. 
 
 <Tabs>
 
 <Tab heading="MacOS">
 
-1. Download the appropriate version of Consul K8s CLI using the following `curl` command. Enter the appropriate version for your deployment via the `$VERSION` environment variable.
+1. Download the appropriate version of Consul K8s CLI using the following `curl` command. Set the `$VERSION` environment variable to the appropriate version for your deployment.
 
    ```shell-session
    $ export VERSION=0.39.0 && \
