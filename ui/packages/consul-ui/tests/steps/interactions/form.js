@@ -74,7 +74,6 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
             return await fillInElement(obj, name, data[item]);
           }
         }, Promise.resolve());
-        await new Promise(resolve => setTimeout(resolve, 0));
         return res;
       }
     )
