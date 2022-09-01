@@ -253,9 +253,9 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServers has all gRPC servers exposed on the dedicated gRPC ports, as
+	// externalGRPCServers has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
-	externalGRPCServers []*grpc.Server
+	externalGRPCServer *grpc.Server
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -388,7 +388,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -434,7 +434,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
 		tlsConfigurator:         flat.TLSConfigurator,
-		externalGRPCServers:     externalGRPCServers,
+		externalGRPCServer:      externalGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
 		tombstoneGC:             gc,
@@ -681,13 +681,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Helper function for registering to all GRPC servers
-	registerGrpc := func(g GRPCService) {
-		for _, srv := range s.externalGRPCServers {
-			g.Register(srv)
-		}
-	}
-
 	// Initialize external gRPC server - register services on external gRPC server.
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
@@ -705,7 +698,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 		PrimaryDatacenter:         s.config.PrimaryDatacenter,
 		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
 	})
-	registerGrpc(s.externalACLServer)
+	s.externalACLServer.Register(externalGRPCServer)
 
 	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
 		Publisher:   s.publisher,
@@ -718,7 +711,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 		},
 		ConnectEnabled: s.config.ConnectEnabled,
 	})
-	registerGrpc(s.externalConnectCAServer)
+	s.externalConnectCAServer.Register(externalGRPCServer)
 
 	dataplaneServer := dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
@@ -726,14 +719,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
 	})
-	registerGrpc(dataplaneServer)
+	dataplaneServer.Register(externalGRPCServer)
 
 	serverDiscoveryServer := serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	})
-	registerGrpc(serverDiscoveryServer)
+	serverDiscoveryServer.Register(externalGRPCServer)
 
 	s.peerStreamTracker = peerstream.NewTracker()
 	s.peeringBackend = NewPeeringBackend(s)
@@ -754,7 +747,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServers []*grpc.Server) (*
 		},
 	})
 	s.peerStreamTracker.SetHeartbeatTimeout(s.peerStreamServer.Config.IncomingHeartbeatTimeout)
-	registerGrpc(s.peerStreamServer)
+	s.peerStreamServer.Register(externalGRPCServer)
 
 	// Initialize internal gRPC server.
 	//

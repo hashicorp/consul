@@ -1325,7 +1325,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	externalGRPCServer := gogrpc.NewServer()
 
 	deps := newDefaultDeps(t, conf)
-	server, err := consul.NewServer(conf, deps, []*gogrpc.Server{externalGRPCServer})
+	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())

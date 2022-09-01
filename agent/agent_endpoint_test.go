@@ -1502,7 +1502,8 @@ func TestAgent_Self(t *testing.T) {
 					map[string][]string{"envoy": proxysupport.EnvoyVersions},
 					val.XDS.SupportedProxies,
 				)
-				require.Equal(t, a.Config.GRPCTLSPort, val.XDS.PortTLS)
+				require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Ports.TLS)
+				require.Equal(t, a.Config.GRPCPort, val.XDS.Ports.Plaintext)
 				if tc.grpcTLS {
 					require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Port)
 				} else {

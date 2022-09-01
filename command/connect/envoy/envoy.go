@@ -705,20 +705,21 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	type response struct {
 		XDS struct {
-			Port    int
-			PortTLS int
+			Ports struct {
+				Plaintext int
+				TLS       int
+			}
 		}
 	}
 
 	var resp response
-	if err := mapstructure.Decode(self, &resp); err == nil && resp.XDS.Port != 0 {
-		// Determine the protocol based on the provided Port matching PortTLS
-		proto := "http://"
-		// TODO: Simplify this check after 1.14 when Port is guaranteed to be plain-text.
-		if resp.XDS.Port == resp.XDS.PortTLS {
-			proto = "https://"
+	if err := mapstructure.Decode(self, &resp); err == nil {
+		if resp.XDS.Ports.TLS > 0 {
+			return resp.XDS.Ports.TLS, "https://", nil
 		}
-		return resp.XDS.Port, proto, nil
+		if resp.XDS.Ports.Plaintext > 0 {
+			return resp.XDS.Ports.Plaintext, "http://", nil
+		}
 	}
 
 	// Fallback to old API for the case where a new consul CLI is being used with

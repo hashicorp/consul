@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -218,9 +219,10 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var dir string
 	var srv *Server
 
+	var config *Config
+	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		var config *Config
 		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
@@ -234,7 +236,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		srv, err = newServer(t, config)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -245,13 +248,18 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
 		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-
 		ln, err := net.Listen("tcp", externalGRPCAddr)
 		require.NoError(t, err)
+
+		// Wrap the listener with TLS
+		if deps.TLSConfigurator.GRPCServerUseTLS() {
+			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+		}
+
 		go func() {
-			_ = srv.externalGRPCServers[0].Serve(ln)
+			_ = srv.externalGRPCServer.Serve(ln)
 		}()
-		t.Cleanup(srv.externalGRPCServers[0].Stop)
+		t.Cleanup(srv.externalGRPCServer.Stop)
 	}
 
 	return dir, srv
@@ -300,19 +308,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-
-	// setup grpc servers
-	srvGRPC, srvGRPCTLS := external.BuildExternalGRPCServers(
-		c.GRPCPort, c.GRPCTLSPort, deps.TLSConfigurator, deps.Logger)
-	var grpcServers []*grpc.Server
-	if srvGRPC != nil {
-		grpcServers = append(grpcServers, srvGRPC)
-	}
-	if srvGRPCTLS != nil {
-		grpcServers = append(grpcServers, srvGRPCTLS)
-	}
-
-	srv, err := NewServer(c, deps, grpcServers)
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"))
+	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
 	}
@@ -1219,7 +1216,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
+		s1, err := NewServer(conf, deps, grpc.NewServer())
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1257,7 +1254,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
+		s2, err := NewServer(conf, deps, grpc.NewServer())
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1291,7 +1288,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
+		s1, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1310,7 +1307,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
+		s2, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
