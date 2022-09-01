@@ -52,6 +52,11 @@ Example:
 
 For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
+## Known Issues
+The following issues are know to exist in the v0.48.0 release: 
+
+- Consul CNI Plugin currently does not support RedHat OpenShift as the CNI Plugin Daemonset requires additional SecurityContextConstraint objects to run on OpenShift. Support for OpenShift will be added in an upcoming release. 
+
 ## Changelogs
 
 The changelogs for this major release version and any maintenance versions are listed below.
