@@ -129,8 +129,8 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - `access_key_id` (optional) - the AWS access key for authentication (see below for more information about authenticating).
 - `secret_access_key` (optional) - the AWS secret access key for authentication (see below for more information about authenticating).
 - `service` (optional) - String value that specifies which AWS service to filter. You can specify either `ec2` or `ecs`. Default is `ec2`.
-- `ecs_cluster` (optional) - String value that limits searches a specific AWS ECS cluster name or full ARN. By default, Consul searches all clusters with the specified tag values.
-- `ecs_family` (optional) - String value limits searches to a AWS ECS task definition family. By default, Consul searches all task definition families with the specified tags. 
+- `ecs_cluster` (optional) - String value that limits searches to a specific AWS ECS cluster name or full ARN. By default, Consul searches all clusters with the specified tag values.
+- `ecs_family` (optional) - String value limits searches to a AWS ECS task definition family. By default, Consul searches all task definition families with the specified tags.
 - `endpoint` (optional) - String value that specifies the endpoint URL of the AWS service to use. If not set, the AWS client sets the value, which defaults to the public DNS name for the service in the specified region.
 
 #### Authentication & Precedence
@@ -141,10 +141,9 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - ECS task role metadata (container-specific).
 - EC2 instance role metadata.
 
-To discover EC2 consul-servers, the only required IAM permission is `ec2:DescribeInstances`, and it is
-recommended that you make a dedicated key used only to auto-join the datacenter. If the
-region is omitted it will be discovered through the local instance's [EC2
-metadata
+The only IAM permission required for discovering EC2 consul-servers is `ec2:DescribeInstances`.
+We recommend that you make a dedicated key used only to auto-join the datacenter.
+If the region is omitted it will be discovered through the local instance's [EC2 metadata
 endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html).
 
 The AWS ECS task role associated with the service attempting to discover the `consul-server` must have the following IAM permissions:
