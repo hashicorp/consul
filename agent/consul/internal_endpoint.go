@@ -153,64 +153,87 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			// we don't support calling this endpoint for a specific peer
-			if args.PeerName != "" {
-				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
-			}
-
 			// this maxIndex will be the max of the ServiceDump calls and the PeeringList call
 			var maxIndex uint64
 
-			// get a local dump for services
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
-			if err != nil {
-				return fmt.Errorf("could not get a service dump for local nodes: %w", err)
-			}
-
-			if index > maxIndex {
-				maxIndex = index
-			}
-			reply.Nodes = nodes
-
-			// get a list of all peerings
-			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("could not list peers for service dump %w", err)
-			}
-
-			if index > maxIndex {
-				maxIndex = index
-			}
-
-			for _, p := range listedPeerings {
-				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
+			// If PeerName is not empty, we return only the imported services from that peer
+			if args.PeerName != "" {
+				// get a local dump for services
+				index, nodes, err := state.ServiceDump(ws,
+					args.ServiceKind,
+					args.UseServiceKind,
+					// Note we fetch imported services with wildcard namespace because imported services' namespaces
+					// are in a different locality; regardless of our local namespace, we return all imported services
+					// of the local partition.
+					args.EnterpriseMeta.WithWildcardNamespace(),
+					args.PeerName)
 				if err != nil {
-					return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+					return fmt.Errorf("could not get a service dump for peer %q: %w", args.PeerName, err)
 				}
 
 				if index > maxIndex {
 					maxIndex = index
 				}
-				reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
-			}
+				reply.Index = maxIndex
+				reply.ImportedNodes = nodes
 
-			// Get, store, and filter gateway services
-			idx, gatewayServices, err := state.DumpGatewayServices(ws)
-			if err != nil {
-				return err
-			}
-			reply.Gateways = gatewayServices
+			} else {
+				// otherwise return both local and all imported services
 
-			if idx > maxIndex {
-				maxIndex = idx
-			}
-			reply.Index = maxIndex
+				// get a local dump for services
+				index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
+				if err != nil {
+					return fmt.Errorf("could not get a service dump for local nodes: %w", err)
+				}
 
-			raw, err := filter.Execute(reply.Nodes)
-			if err != nil {
-				return fmt.Errorf("could not filter local service dump: %w", err)
+				if index > maxIndex {
+					maxIndex = index
+				}
+				reply.Nodes = nodes
+
+				// get a list of all peerings
+				index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+				if err != nil {
+					return fmt.Errorf("could not list peers for service dump %w", err)
+				}
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+
+				for _, p := range listedPeerings {
+					// Note we fetch imported services with wildcard namespace because imported services' namespaces
+					// are in a different locality; regardless of our local namespace, we return all imported services
+					// of the local partition.
+					index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+					if err != nil {
+						return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+					}
+
+					if index > maxIndex {
+						maxIndex = index
+					}
+					reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+				}
+
+				// Get, store, and filter gateway services
+				idx, gatewayServices, err := state.DumpGatewayServices(ws)
+				if err != nil {
+					return err
+				}
+				reply.Gateways = gatewayServices
+
+				if idx > maxIndex {
+					maxIndex = idx
+				}
+				reply.Index = maxIndex
+
+				raw, err := filter.Execute(reply.Nodes)
+				if err != nil {
+					return fmt.Errorf("could not filter local service dump: %w", err)
+				}
+				reply.Nodes = raw.(structs.CheckServiceNodes)
 			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
 
 			importedRaw, err := filter.Execute(reply.ImportedNodes)
 			if err != nil {
