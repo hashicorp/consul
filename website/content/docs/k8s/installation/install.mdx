@@ -115,6 +115,8 @@ Instead, you can enable the Consul container network interface (CNI) plugin to p
 
 Add the following configuration to your `config.yaml` file to enable the Consul CNI plugin:
 
+<CodeTabs tabs={[ "Reference configuration","GKE configuration" ]}>
+
 <CodeBlockConfig filename="config.yaml">
 
 ```yaml
@@ -123,13 +125,30 @@ global:
 connectInject:
   enabled: true
   cni:
-    enabled: true
-    logLevel: info
-    cniBinDir: "/opt/cni/bin"
-    cniNetDir: "/etc/cni/net.d"
+     enabled: true
+     logLevel: info
+     cniBinDir: "/opt/cni/bin"
+     cniNetDir: "/etc/cni/net.d"
 ```
-
 </CodeBlockConfig>
+
+<CodeBlockConfig filename="config.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  cni:
+   enabled: true
+   logLevel: info
+     cniBinDir: "/home/kubernetes/bin"
+     cniNetDir: "/etc/cni/net.d"
+```
+</CodeBlockConfig>
+
+</CodeTabs>
+
 
 The following table describes the available CNI plugin options:
 
