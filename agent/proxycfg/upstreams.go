@@ -186,7 +186,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
-		resp, ok := u.Result.(*structs.IndexedNodesWithGateways)
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
