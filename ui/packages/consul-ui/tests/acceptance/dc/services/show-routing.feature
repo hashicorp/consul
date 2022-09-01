@@ -52,7 +52,7 @@ Feature: dc / services / show-routing: Show Routing for Service
       service: service-1
     ---
     And I see routing on the tabs
-    And pause for 1
+    And pause for 1000
     And I visit the service page for yaml
     ---
       dc: dc1
