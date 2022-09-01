@@ -34,9 +34,20 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 		return nil, aclDisabled
 	}
 
-	args := structs.DCSpecificRequest{
+	args := structs.ACLInitialTokenBootstrapRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
+
+	if req.ContentLength != 0 {
+		var bootstrapSecretRequest struct {
+			BootstrapSecret string
+		}
+		if err := lib.DecodeJSON(req.Body, &bootstrapSecretRequest); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		}
+		args.BootstrapSecret = bootstrapSecretRequest.BootstrapSecret
+	}
+
 	var out structs.ACLToken
 	err := s.agent.RPC(req.Context(), "ACL.BootstrapTokens", &args, &out)
 	if err != nil {

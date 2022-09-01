@@ -3,8 +3,11 @@ package bootstrap
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -43,13 +46,46 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	args = c.flags.Args()
+	if l := len(args); l < 0 || l > 1 {
+		c.UI.Error("This command takes up to one argument")
+		return 1
+	}
+
+	var terminalToken []byte
+	var err error
+
+	if len(args) == 1 {
+		switch args[0] {
+		case "":
+			terminalToken = []byte{}
+		case "-":
+			terminalToken, err = ioutil.ReadAll(os.Stdin)
+		default:
+			file := args[0]
+			terminalToken, err = ioutil.ReadFile(file)
+		}
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading provided token: %v", err))
+			return 1
+		}
+	}
+
+	// Remove newline from the token if it was passed by stdin
+	boottoken := strings.TrimSuffix(string(terminalToken), "\n")
+
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
-	t, _, err := client.ACL().Bootstrap()
+	var t *api.ACLToken
+	if len(boottoken) > 0 {
+		t, _, err = client.ACL().BootstrapOpts(boottoken)
+	} else {
+		t, _, err = client.ACL().Bootstrap()
+	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed ACL bootstrapping: %v", err))
 		return 1
