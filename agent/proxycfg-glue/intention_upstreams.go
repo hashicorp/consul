@@ -5,11 +5,19 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 )
+
+// CacheIntentionUpstreams satisfies the proxycfg.IntentionUpstreams interface
+// by sourcing data from the agent cache.
+func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsName}
+}
 
 // ServerIntentionUpstreams satisfies the proxycfg.IntentionUpstreams interface
 // by sourcing data from a blocking query against the server's state store.

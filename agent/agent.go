@@ -4269,6 +4269,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
+		sources.ResolvedServiceConfig = proxycfgglue.ServerResolvedServiceConfig(deps, proxycfgglue.CacheResolvedServiceConfig(a.cache))
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
 		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
 		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)
