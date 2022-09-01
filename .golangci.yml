@@ -88,8 +88,6 @@ linters-settings:
         - github.com/hashicorp/go-msgpack:
             recommendations:
               - github.com/hashicorp/consul-net-rpc/go-msgpack
-      # Set to true to raise lint issues for packages that are loaded from a local path via replace directive.
-      local_replace_directives: true
 
   depguard:
     list-type: denylist
