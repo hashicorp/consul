@@ -11,7 +11,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -198,8 +197,7 @@ func (a *Controller) countProxies() (memdb.WatchSet, uint32, error) {
 }
 
 type Store interface {
-	watch.StateStore
-
+	AbandonCh() <-chan struct{}
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 }
