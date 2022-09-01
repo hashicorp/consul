@@ -82,12 +82,6 @@ func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
 	return &cacheProxyDataSource[*cachetype.ServiceHTTPChecksRequest]{c, cachetype.ServiceHTTPChecksName}
 }
 
-// CacheIntentionUpstreamsDestination satisfies the proxycfg.IntentionUpstreamsDestination interface
-// by sourcing data from the agent cache.
-func CacheIntentionUpstreamsDestination(c *cache.Cache) proxycfg.IntentionUpstreams {
-	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsDestinationName}
-}
-
 // CacheLeafCertificate satisifies the proxycfg.LeafCertificate interface by
 // sourcing data from the agent cache.
 //
@@ -128,6 +122,15 @@ func dispatchCacheUpdate(ch chan<- proxycfg.UpdateEvent) cache.Callback {
 	return func(ctx context.Context, e cache.UpdateEvent) {
 		select {
 		case ch <- newUpdateEvent(e.CorrelationID, e.Result, e.Err):
+		case <-ctx.Done():
+		}
+	}
+}
+
+func dispatchBlockingQueryUpdate[ResultType any](ch chan<- proxycfg.UpdateEvent) func(context.Context, string, ResultType, error) {
+	return func(ctx context.Context, correlationID string, result ResultType, err error) {
+		select {
+		case ch <- newUpdateEvent(correlationID, result, err):
 		case <-ctx.Done():
 		}
 	}
