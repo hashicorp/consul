@@ -82,7 +82,7 @@ cd test/load-ecs/
 cp variables.auto.tfvars.example variables.auto.tfvars
 terraform init
 make certs
-AWS_PROFILE=test-3 make repos
+AWS_PROFILE=test-3 TF_VAR_aws_region=us-east-2 make repos
 AWS_PROFILE=test-3 TF_VAR_aws_region=us-east-2 make images
 AWS_PROFILE=test-3 TF_VAR_aws_region=us-east-2 TF_VAR_consul_encryption_token=12345= TF_VAR_datadog_apikey=DDABC123 TF_VAR_k6_apikey=k6987ZYX make infra
 AWS_PROFILE=test-3 TF_VAR_aws_region=us-east-2 TF_VAR_consul_encryption_token=12345= TF_VAR_datadog_apikey=DDABC123 TF_VAR_k6_apikey=k6987ZYX make test-ecs
