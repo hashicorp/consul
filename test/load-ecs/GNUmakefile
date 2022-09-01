@@ -2,7 +2,7 @@ SHELL = bash
 
 TF_VAR_aws_region ?= "us-east-1"
 AWS_ACCOUNT_ID=$(shell aws sts get-caller-identity | jq -r .Account)
-CLUSTER_NAME ?= consul-example
+TF_VAR_cluster_name ?= consul-example
 
 # Refresh certificates, build and deploy images
 .PHONY: all
@@ -51,16 +51,16 @@ build: server agent datadog k6
 push:
 	@test "$(TF_VAR_aws_region)" || $(shell echo "Failed to find TF_VAR_aws_region from environment" && exit 1)
 	@test "$(AWS_ACCOUNT_ID)" || $(shell echo "Failed to find AWS_ACCOUNT_ID from caller identity" && exit 1)
-	@test "$(CLUSTER_NAME)" || $(shell echo "Failed to find CLUSTER_NAME from caller identity" && exit 1)
+	@test "$(TF_VAR_cluster_name)" || $(shell echo "Failed to find CLUSTER_NAME from caller identity" && exit 1)
 	@aws ecr get-login-password --region $(TF_VAR_aws_region) | docker login --username AWS --password-stdin "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com"
-	@docker tag "consul-server:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:server"
-	@docker tag "consul-agent:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:agent"
-	@docker tag "datadog-agent:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:datadog"
-	@docker tag "k6:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:k6"
-	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:server"
-	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:agent"
-	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:datadog"
-	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(CLUSTER_NAME)/consul:k6"
+	@docker tag "consul-server:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:server"
+	@docker tag "consul-agent:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:agent"
+	@docker tag "datadog-agent:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:datadog"
+	@docker tag "k6:local" "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:k6"
+	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:server"
+	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:agent"
+	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:datadog"
+	docker push "$(AWS_ACCOUNT_ID).dkr.ecr.$(TF_VAR_aws_region).amazonaws.com/$(TF_VAR_cluster_name)/consul:k6"
 
 
 # Pre-build some infra, so that ECR can exist before docker build tag push

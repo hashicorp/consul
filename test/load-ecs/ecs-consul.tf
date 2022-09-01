@@ -72,7 +72,7 @@ resource "aws_secretsmanager_secret" "datadog_apikey" {
 
 resource "aws_secretsmanager_secret_version" "datadog_apikey" {
   secret_id     = aws_secretsmanager_secret.datadog_apikey.id
-  secret_string = var.datadog_apikey
+  secret_string = var.datadog_apikey == "" ? " " : var.datadog_apikey # secretsmanager wont allow and empty string
 }
 
 resource "aws_secretsmanager_secret" "certs" {

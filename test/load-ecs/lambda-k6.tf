@@ -1,13 +1,3 @@
-resource "aws_secretsmanager_secret" "k6_apikey" {
-  name                    = "${lower(var.cluster_name)}/${lower(random_pet.test.id)}/k6_apikey"
-  recovery_window_in_days = 7
-}
-
-resource "aws_secretsmanager_secret_version" "k6_apikey" {
-  secret_id     = aws_secretsmanager_secret.k6_apikey.id
-  secret_string = var.k6_apikey
-}
-
 resource "aws_cloudwatch_log_group" "function-logs" {
   name              = "/aws/lambda/${var.cluster_name}K6"
   retention_in_days = 7
