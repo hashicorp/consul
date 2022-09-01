@@ -69,7 +69,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
@@ -114,13 +114,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC3(t),
 			},
 		})
@@ -141,7 +141,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
@@ -168,7 +168,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
