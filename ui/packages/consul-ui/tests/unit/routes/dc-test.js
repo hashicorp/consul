@@ -1,6 +1,5 @@
-import { module } from 'qunit';
+import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-import test from 'ember-sinon-qunit/test-support/test';
 
 module('Unit | Route | dc', function(hooks) {
   setupTest(hooks);

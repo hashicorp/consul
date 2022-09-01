@@ -1,5 +1,4 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import isFolder from 'consul-ui/utils/isFolder';
 
 module('Unit | Utils | isFolder', function() {

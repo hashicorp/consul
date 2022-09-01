@@ -1,5 +1,4 @@
-import { module, skip } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, skip, test } from 'qunit';
 import createURL from 'consul-ui/utils/http/create-url';
 import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
