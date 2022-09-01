@@ -120,6 +120,7 @@ module.exports = function(environment, $ = process.env) {
           enabled: true,
           endpoints: {
             '/v1': '/mock-api/v1',
+            '/prefixed-api': '/mock-api/prefixed-api',
           },
         },
         APP: Object.assign({}, ENV.APP, {
