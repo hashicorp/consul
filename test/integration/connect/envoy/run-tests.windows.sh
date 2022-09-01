@@ -9,6 +9,8 @@ readonly self_name="$0"
 
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 
+readonly SINGLE_CONTAINER_BASE_NAME=envoy_consul
+
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
@@ -62,7 +64,6 @@ function init_workdir {
 
   # Reload consul config from defaults
   cp consul-windows-base-cfg/*.hcl workdir/${CLUSTER}/consul/
-  cp consul-windows-base-cfg/envoy/*.json workdir/${CLUSTER}/envoy/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${CLUSTER}/consul \;
@@ -611,15 +612,13 @@ function common_run_container_service {
   local CLUSTER="$2"
   local httpPort="$3"
   local grpcPort="$4"
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
 
-  docker.exe run -d --name $(container_name_prev) \
-    -e "FORTIO_NAME=${service}" \
-    $(network_snippet $CLUSTER) \
-    "${HASHICORP_DOCKER_PROXY}/windows/fortio" \
-    server \
-    -http-port ":$httpPort" \
-    -grpc-port ":$grpcPort" \
-    -redirect-port disabled >/dev/null
+  docker.exe exec -d $CONTAINER_NAME bash -c "FORTIO_NAME=${service} &&
+                                              fortio.exe server \
+                                              -http-port ":$httpPort" \
+                                              -grpc-port ":$grpcPort" \
+                                              -redirect-port disabled >/dev/null"
 }
 
 function run_container_s1 {
@@ -688,6 +687,7 @@ function run_container_s3-alpha {
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
   # if [ $1=="s1" ] ; then
   #   IPSERV=10.244.0.170
   # else
@@ -698,16 +698,11 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker.exe run -d --name $(container_name_prev) \
-    --hostname ${1}-sidecar-proxy \
-    $WORKDIR_SNIPPET \
-    $(network_snippet $CLUSTER) \
-    "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
-    envoy \
-    -c C:\\workdir\\${CLUSTER}\\envoy\\${service}-bootstrap.json \
-    -l trace \
-    --disable-hot-restart \
-    --drain-time-s 1 >/dev/null
+  docker.exe exec -d $CONTAINER_NAME bash -c "envoy.exe \
+                                              -c /c/workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
+                                              -l trace \
+                                              --disable-hot-restart \
+                                              --drain-time-s 1 >/dev/null"
 }
 
 function run_container_s1-sidecar-proxy {
@@ -780,20 +775,17 @@ function run_container_s3-sidecar-proxy-alpha {
 function common_run_container_gateway {
   local name="$1"
   local DC="$2"
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker.exe run -d --name $(container_name_prev) \
-    $WORKDIR_SNIPPET \
-    $(network_snippet $DC) \
-    "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
-    envoy \
-    -c /workdir/${DC}/envoy/${name}-bootstrap.json \
-    -l trace \
-    --disable-hot-restart \
-    --drain-time-s 1 >/dev/null
+  docker.exe exec -d $CONTAINER_NAME bash -c "envoy.exe \
+                                              -c /c/workdir/${DC}/envoy/${name}-bootstrap.json \
+                                              -l trace \
+                                              --disable-hot-restart \
+                                              --drain-time-s 1 >/dev/null"
 }
 
 function run_container_gateway-primary {
