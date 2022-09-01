@@ -545,10 +545,10 @@ function workdir_cleanup {
 function suite_setup {
     # Cleanup from any previous unclean runs.
     suite_teardown
-    docker.exe network create -d transparent envoy-tests
+    # docker.exe network create -d transparent envoy-tests
     # docker.exe network create -d transparent --subnet=10.244.0.0/24 -o com.docker.network.windowsshim.interface="Ethernet" envoy-tests
     # docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
-    # docker.exe network create -d "nat" envoy-tests &>/dev/null
+    docker.exe network create -d "nat" envoy-tests &>/dev/null
     # Start the volume container
     #
     # This is a dummy container that we use to create volume and keep it
@@ -571,12 +571,6 @@ function suite_setup {
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
     docker.exe run --rm -t bats-verify -v
-
-    # pre-build the consul+envoy container
-    echo "Rebuilding 'consul-dev-envoy:v${ENVOY_VERSION}' image..."
-    docker.exe build -t consul-dev-envoy:v${ENVOY_VERSION} \
-         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-         -f Dockerfile-consul-envoy-windows .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."

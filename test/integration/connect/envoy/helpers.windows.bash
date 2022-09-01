@@ -7,43 +7,43 @@ function check_hostport {
     local HOSTPORT=$1
     if [[ $HOSTPORT == "localhost:8500" ]]
     then        
-        ADDRESS=$(nslookup envoy_consul-primary_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${ADDRESS}:8500"
     elif [[ $HOSTPORT == *"localhost:21000"* ]]
     then
-        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:21001"* ]]
     then
-        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
+        ADDRESS=$(nslookup consul-primary)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21001/"${ADDRESS}:21001"}"
     elif [[ $HOSTPORT == *"localhost:19000"* ]]
     then
-        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"localhost:19001"* ]]
     then
-        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"${ADDRESS}:19001"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
     then
-        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
     then
-        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"${ADDRESS}:19001"}"    
     elif [[ $HOSTPORT == *"localhost:1234"* ]]
     then
-        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
         CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"${ADDRESS}:1234"}"      
     elif [[ $HOSTPORT == "localhost:2345" ]]
     then
-        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        ADDRESS=$(nslookup consul-primary)
        CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"${ADDRESS}:2345"}"
      elif [[ $HOSTPORT == *"localhost:5000"* ]]
     then
-        ADDRESS=$(nslookup envoy_s2_1)
+        ADDRESS=$(nslookup consul-primary)
        CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"${ADDRESS}:5000"}"                  
     else
         return 1        
@@ -839,7 +839,7 @@ function gen_envoy_bootstrap {
     -envoy-version "$ENVOY_VERSION" \
     -http-addr envoy_consul-${DC}_1:8500 \
     -grpc-addr envoy_consul-${DC}_1:8502 \
-    -admin-access-log-path C:/envoy \
+    -admin-access-log-path="C:/envoy/envoy.log" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS}); then
     
     # All OK, write config to file
