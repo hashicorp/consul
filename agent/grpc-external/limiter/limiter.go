@@ -49,7 +49,7 @@ type SessionLimiter struct {
 	// Everything below here is guarded by mu.
 	mu           sync.Mutex
 	maxSessionID uint64
-	sessionIDs   []uint64 // sessionIDs must be sorted so we binary search it.
+	sessionIDs   []uint64 // sessionIDs must be sorted so we can binary search it.
 	sessions     map[uint64]*session
 }
 
