@@ -309,6 +309,8 @@ definition](/docs/connect/registration/service-registration) or
     load balancer.
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
+  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
+    when an outlier status is detected through consecutive 5xx.
 
 ### Gateway Options
 
