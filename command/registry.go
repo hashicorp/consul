@@ -96,6 +96,12 @@ import (
 	operraft "github.com/hashicorp/consul/command/operator/raft"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
+	"github.com/hashicorp/consul/command/peering"
+	peerdelete "github.com/hashicorp/consul/command/peering/delete"
+	peerestablish "github.com/hashicorp/consul/command/peering/establish"
+	peergenerate "github.com/hashicorp/consul/command/peering/generate"
+	peerlist "github.com/hashicorp/consul/command/peering/list"
+	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
@@ -214,6 +220,12 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil }},
 		entry{"operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil }},
 		entry{"operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil }},
+		entry{"peering", func(cli.Ui) (cli.Command, error) { return peering.New(), nil }},
+		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
+		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
+		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
+		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
+		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
