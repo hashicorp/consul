@@ -724,8 +724,8 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 				  	"LocalServicePort": 4444,
 				  	"upstreams": [
 						{
-							"destination_name": "fake-backend",
-							"local_bind_port": 25001
+							"DestinationName": "fake-backend",
+							"LocalBindPort": 25001
 						}
 				  	]
 				}
