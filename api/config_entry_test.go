@@ -1314,6 +1314,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"HTTP": {
 					"SanitizeXForwardedClientCert": true
+				},
+				"Peering": {
+					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -1345,6 +1348,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
