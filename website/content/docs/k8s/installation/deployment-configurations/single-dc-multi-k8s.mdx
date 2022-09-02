@@ -76,7 +76,7 @@ which are likely going to change.
 
 To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
 
-```shell
+```shell-session
 $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
 ```
 
