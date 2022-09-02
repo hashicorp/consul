@@ -1,4 +1,7 @@
+ARG ENVOY_VERSION=v1.19.5
 ARG CONSUL_IMAGE_VERSION=latest
+
+FROM envoyproxy/envoy-windows:${ENVOY_VERSION} as envoy
 FROM windows/consul:${CONSUL_IMAGE_VERSION}
 COPY dist/ C:\\consul
 
@@ -8,10 +11,8 @@ ENV FORTIO_URL=https://github.com/fortio/fortio/releases/download/v1.33.0/fortio
 RUN curl %FORTIO_URL% -L -o fortio.zip
 RUN tar -xf fortio.zip -C fortio
 
-# FROM envoyproxy/envoy-windows:v1.19.5 as envoy
-# COPY --from=envoy ["Program Files\envoy", "C:\envoy"]
-RUN mkdir C:\\envoy
-COPY envoy.exe envoy/envoy.exe
+# Copy envoy.exe from FROM envoyproxy/envoy-windows:${ENVOY_VERSION}
+COPY --from=envoy ["C:/Program Files/envoy/", "C:/envoy/"]
 
 EXPOSE 8300
 EXPOSE 8301 8301/udp 8302 8302/udp
@@ -20,5 +21,6 @@ EXPOSE 8502
 
 EXPOSE 19000 19001 19002 19003 19004
 EXPOSE 21000 21001 21002 21003 21004
+EXPOSE 5000 1234 2345
 
-ENV PATH C:\\Program Files\\Git\\bin;C:\\consul;C:\\Windows\\System32;C:\\fortio;C:\\envoy;C:\\Program Files\\OpenSSL-Win64\\bin;C:\\ProgramData\\chocolatey\\lib\\jq\\tools;%PATH%
+RUN SETX /M path "%PATH%;C:\consul;C:\envoy;C:\fortio;C:\Program Files\Git\bin"
