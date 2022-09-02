@@ -1395,6 +1395,17 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 				},
 			},
 		},
+		{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+					// The PeerID field is only set for the messages coming FROM
+					// the establishing side and are going to be empty from the
+					// other side.
+					PeerID: "",
+				},
+			},
+		},
 	}
 	got := []*pbpeerstream.ReplicationMessage{
 		receivedSub1,
