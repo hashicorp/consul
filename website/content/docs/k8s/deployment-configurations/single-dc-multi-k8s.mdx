@@ -27,7 +27,7 @@ to pods or nodes in another. In many hosted Kubernetes environments, this may ha
 
 The Helm release name must be unique for each Kubernetes cluster.
 The Helm chart uses the Helm release name as a prefix for the
-ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases are identical of if `global.name` for each cluster is identical, subsequent Consul on Kubernetes clusters overwrite existing ACL resources and cause the clusters to fail.
+ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases are identical, or if `global.name` for each cluster is identical, subsequent Consul on Kubernetes clusters will overwrite existing ACL resources and cause the clusters to fail.
 
 Before proceeding with installation, prepare the Helm release names as environment variables for both the server and client install.
 
