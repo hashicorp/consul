@@ -575,6 +575,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					status.TrackRecvResourceSuccess()
 				}
 
+				// We are replying ACK or NACK depending on whether we successfully processed the response.
 				if err := streamSend(reply); err != nil {
 					return fmt.Errorf("failed to send to stream: %v", err)
 				}

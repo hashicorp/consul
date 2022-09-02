@@ -215,6 +215,141 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			token:   "foo",
 			wantErr: "reserved for internal use",
 		},
+		{
+			name: "uses proxy address for check",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Address: "123.123.123.123",
+						Proxy: &structs.ConnectProxyConfig{
+							LocalServiceAddress: "255.255.255.255",
+						},
+					},
+				},
+				Address: "255.255.255.255",
+			},
+			token: "foo",
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				Address:                    "123.123.123.123",
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "255.255.255.255",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "123.123.123.123:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+			wantToken: "foo",
+		},
+		{
+			name: "uses proxy.local_service_address for check if proxy address is empty",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Address: "", // Proxy address empty.
+						Proxy: &structs.ConnectProxyConfig{
+							LocalServiceAddress: "1.2.3.4",
+						},
+					},
+				},
+				Address: "", // Service address empty.
+			},
+			token: "foo",
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				Address:                    "",
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "1.2.3.4",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "1.2.3.4:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+			wantToken: "foo",
+		},
+		{
+			name: "uses 127.0.0.1 for check if proxy and proxy.local_service_address are empty",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Address: "",
+						Proxy: &structs.ConnectProxyConfig{
+							LocalServiceAddress: "",
+						},
+					},
+				},
+				Address: "",
+			},
+			token: "foo",
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				Address:                    "",
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+			wantToken: "foo",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

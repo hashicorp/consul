@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: 0.47.x
+description: >-
+  Consul on Kubernetes release notes for version 0.47.x
+---
+
+# Consul on Kubernetes 0.47.0
+
+## Release Highlights
+
+- **Cluster Peering (Beta)**: This release introduces support for Cluster Peering, which allows service connectivity between two independent clusters. Enabling peering will deploy the peering controllers and PeeringAcceptor and PeeringDialer CRDs. The new CRDs are used to establish a peering connection between two clusters. Refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s) for full instructions on using Cluster Peering on Kubernetes.
+  
+- **Envoy Proxy Debugging CLI Commands**: This release introduces new commands to quickly identify proxies and troubleshoot Envoy proxies for sidecars and gateways. 
+  * Add `consul-k8s proxy list` command for displaying pods running Envoy managed by Consul. 
+  * Add `consul-k8s proxy read podname` command for displaying Envoy configuration for a given pod
+
+- **Transparent Proxy Egress**: Adds support for destinations on the Service Defaults CRD when using transparent proxy for terminating gateways.
+
+## Supported Software
+
+- Consul 1.11.x, Consul 1.12.x and Consul 1.13.1+
+- Kubernetes 1.19-1.23
+- Kubectl 1.19+
+- Envoy proxy support is determined by the Consul version deployed. Refer to
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+
+## Upgrading
+
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
+
+## Known Issues
+
+The following issues are know to exist in the v0.47.0 and v0.47.1 releases
+
+- Kubernetes 1.24 is not supported because secret-based tokens are no longer autocreated by default for service accounts. Refer to GitHub issue
+  [[GH-1145](https://github.com/hashicorp/consul-k8s/issues/1145)] for
+  details.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+~> **Note:** The following link takes you to the changelogs on the GitHub website.
+
+- [0.47.0](https://github.com/hashicorp/consul-k8s/releases/tag/v0.47.0)
+- [0.47.1](https://github.com/hashicorp/consul-k8s/releases/tag/v0.47.1)

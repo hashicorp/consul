@@ -814,6 +814,18 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 	return mesh.TLS.Outgoing
 }
 
+func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, error) {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
+	case structs.ServiceKindIngressGateway:
+		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
+	default:
+		// This is a coherence check and should never fail
+		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
+	}
+}
+
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
 	nodes, _ := u.PeerUpstreamEndpoints.Get(uid)
 	if len(nodes) == 0 {

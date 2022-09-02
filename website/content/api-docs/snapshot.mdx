@@ -75,9 +75,9 @@ This endpoint restores a point-in-time snapshot of the Consul server state.
 
 Restores involve a potentially dangerous low-level Raft operation that is not
 designed to handle server failures during a restore. This operation is primarily
-intended to be used when recovering from a disaster, restoring into a fresh
-cluster of Consul servers running the same version as the cluster from where the
-snapshot was taken.
+intended to recover from a disaster. It restores your configuration into a fresh
+cluster of Consul servers as long as your new cluster runs the same Consul
+version as the cluster that originally took the snapshot.
 
 | Method | Path        | Produces                      |
 | :----- | :---------- | ----------------------------- |

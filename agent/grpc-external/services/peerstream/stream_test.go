@@ -499,9 +499,8 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	srv, store := newTestServer(t, func(c *Config) {
-		c.Tracker.SetClock(it.Now)
-	})
+	srv, store := newTestServer(t, nil)
+	srv.Tracker.setClock(it.Now)
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
@@ -552,9 +551,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	srv, store := newTestServer(t, func(c *Config) {
-		c.Tracker.SetClock(it.Now)
-	})
+	srv, store := newTestServer(t, nil)
+	srv.Tracker.setClock(it.Now)
 
 	// Set the initial roots and CA configuration.
 	_, rootA := writeInitialRootsAndCA(t, store)
@@ -572,7 +570,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var lastSendSuccess time.Time
+	var lastSendAck time.Time
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
@@ -587,19 +585,19 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		}
 
-		lastSendSuccess = it.FutureNow(1)
+		lastSendAck = it.FutureNow(1)
 		err := client.Send(ack)
 		require.NoError(t, err)
 
 		expect := Status{
 			Connected: true,
-			LastAck:   lastSendSuccess,
+			LastAck:   lastSendAck,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -629,15 +627,15 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:       true,
-			LastAck:         lastSendSuccess,
+			LastAck:         lastSendAck,
 			LastNack:        lastNack,
 			LastNackMessage: lastNackMsg,
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(testPeerID)
+			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
-			require.Equal(r, expect, status)
+			require.Equal(r, expect, rStatus)
 		})
 	})
 
@@ -694,7 +692,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -753,7 +751,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -785,7 +783,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			LastRecvResourceSuccess: lastRecvResourceSuccess,
@@ -816,7 +814,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
-			LastAck:                 lastSendSuccess,
+			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
 			DisconnectTime:          disconnectTime,
@@ -1128,9 +1126,9 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	}
 
 	srv, store := newTestServer(t, func(c *Config) {
-		c.Tracker.SetClock(it.Now)
 		c.incomingHeartbeatTimeout = 5 * time.Millisecond
 	})
+	srv.Tracker.setClock(it.Now)
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
@@ -1176,9 +1174,9 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 	outgoingHeartbeatInterval := 5 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
-		c.Tracker.SetClock(it.Now)
 		c.outgoingHeartbeatInterval = outgoingHeartbeatInterval
 	})
+	srv.Tracker.setClock(it.Now)
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
@@ -1235,9 +1233,9 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	incomingHeartbeatTimeout := 10 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
-		c.Tracker.SetClock(it.Now)
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
 	})
+	srv.Tracker.setClock(it.Now)
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
@@ -2746,7 +2744,6 @@ func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.
 			store: store,
 			pub:   publisher,
 		},
-		Tracker:        NewTracker(),
 		GetStore:       func() StateStore { return store },
 		Logger:         testutil.Logger(t),
 		Datacenter:     "dc1",

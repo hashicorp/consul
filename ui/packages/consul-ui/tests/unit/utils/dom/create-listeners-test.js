@@ -1,6 +1,6 @@
 import createListeners from 'consul-ui/utils/dom/create-listeners';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/create listeners', function() {
   test('it has add and remove methods', function(assert) {
@@ -33,7 +33,7 @@ module('Unit | Utility | dom/create listeners', function() {
     assert.equal(handlers.length, 0);
   });
   test('remove calls the remove functions', function(assert) {
-    const expected = this.stub();
+    const expected = sinon.stub();
     const arr = [expected];
     const listeners = createListeners(arr);
     listeners.remove();
@@ -42,7 +42,7 @@ module('Unit | Utility | dom/create listeners', function() {
   });
   test('listeners are added on add', function(assert) {
     const listeners = createListeners();
-    const stub = this.stub();
+    const stub = sinon.stub();
     const target = {
       addEventListener: stub,
     };
@@ -54,8 +54,8 @@ module('Unit | Utility | dom/create listeners', function() {
   });
   test('listeners as objects are added on add and removed on remove', function(assert) {
     const listeners = createListeners();
-    const addStub = this.stub();
-    const removeStub = this.stub();
+    const addStub = sinon.stub();
+    const removeStub = sinon.stub();
     const target = {
       addEventListener: addStub,
       removeEventListener: removeStub,
@@ -77,7 +77,7 @@ module('Unit | Utility | dom/create listeners', function() {
   });
   test('listeners are removed on remove', function(assert) {
     const listeners = createListeners();
-    const stub = this.stub();
+    const stub = sinon.stub();
     const target = {
       addEventListener: function() {},
       removeEventListener: stub,
@@ -91,7 +91,7 @@ module('Unit | Utility | dom/create listeners', function() {
   });
   test('listeners as functions are removed on remove', function(assert) {
     const listeners = createListeners();
-    const stub = this.stub();
+    const stub = sinon.stub();
     const remove = listeners.add(stub);
     remove();
     assert.ok(stub.calledOnce);
@@ -99,7 +99,7 @@ module('Unit | Utility | dom/create listeners', function() {
   test('listeners as other listeners are removed on remove', function(assert) {
     const listeners = createListeners();
     const listeners2 = createListeners();
-    const stub = this.stub();
+    const stub = sinon.stub();
     listeners2.add(stub);
     const remove = listeners.add(listeners2);
     remove();
@@ -108,7 +108,7 @@ module('Unit | Utility | dom/create listeners', function() {
   test('listeners as functions of other listeners are removed on remove', function(assert) {
     const listeners = createListeners();
     const listeners2 = createListeners();
-    const stub = this.stub();
+    const stub = sinon.stub();
     const remove = listeners.add(listeners2.add(stub));
     remove();
     assert.ok(stub.calledOnce);
@@ -120,7 +120,7 @@ module('Unit | Utility | dom/create listeners', function() {
       removeEventListener: function() {},
     };
     const name = 'test';
-    const expected = this.stub();
+    const expected = sinon.stub();
     const remove = listeners.add(target, name, expected);
     const actual = remove();
     actual[0]();

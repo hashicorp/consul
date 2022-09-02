@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -534,6 +535,12 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 	if req.Peering.Name == "" {
 		return errors.New("Missing Peering Name")
 	}
+	if req.Peering.State == pbpeering.PeeringState_DELETING && (req.Peering.DeletedAt == nil || structs.IsZeroProtoTime(req.Peering.DeletedAt)) {
+		return errors.New("Missing deletion time for peering in deleting state")
+	}
+	if req.Peering.DeletedAt != nil && !structs.IsZeroProtoTime(req.Peering.DeletedAt) && req.Peering.State != pbpeering.PeeringState_DELETING {
+		return fmt.Errorf("Unexpected state for peering with deletion time: %s", pbpeering.PeeringStateToAPI(req.Peering.State))
+	}
 
 	// Ensure the name is unique (cannot conflict with another peering with a different ID).
 	_, existing, err := peeringReadTxn(tx, nil, Query{
@@ -545,11 +552,32 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 	}
 
 	if existing != nil {
+		if req.Peering.ShouldDial() != existing.ShouldDial() {
+			return fmt.Errorf("Cannot switch peering dialing mode from %t to %t", existing.ShouldDial(), req.Peering.ShouldDial())
+		}
+
 		if req.Peering.ID != existing.ID {
 			return fmt.Errorf("A peering already exists with the name %q and a different ID %q", req.Peering.Name, existing.ID)
 		}
+
+		// Nothing to do if our peer wants to terminate the peering but the peering is already marked for deletion.
+		if existing.State == pbpeering.PeeringState_DELETING && req.Peering.State == pbpeering.PeeringState_TERMINATED {
+			return nil
+		}
+
+		// No-op deletion
+		if existing.State == pbpeering.PeeringState_DELETING && req.Peering.State == pbpeering.PeeringState_DELETING {
+			return nil
+		}
+
+		// No-op termination
+		if existing.State == pbpeering.PeeringState_TERMINATED && req.Peering.State == pbpeering.PeeringState_TERMINATED {
+			return nil
+		}
+
 		// Prevent modifications to Peering marked for deletion.
-		if !existing.IsActive() {
+		// This blocks generating new peering tokens or re-establishing the peering until the peering is done deleting.
+		if existing.State == pbpeering.PeeringState_DELETING {
 			return fmt.Errorf("cannot write to peering that is marked for deletion")
 		}
 
@@ -581,8 +609,8 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		req.Peering.ModifyIndex = idx
 	}
 
-	// Ensure associated secrets are cleaned up when a peering is marked for deletion.
-	if req.Peering.State == pbpeering.PeeringState_DELETING {
+	// Ensure associated secrets are cleaned up when a peering is marked for deletion or terminated.
+	if !req.Peering.IsActive() {
 		if err := peeringSecretsDeleteTxn(tx, req.Peering.ID, req.Peering.ShouldDial()); err != nil {
 			return fmt.Errorf("failed to delete peering secrets: %w", err)
 		}
@@ -981,7 +1009,7 @@ func peeringsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, en
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		if peering == nil || !peering.IsActive() {
+		if !peering.IsActive() {
 			continue
 		}
 		peerings = append(peerings, peering)

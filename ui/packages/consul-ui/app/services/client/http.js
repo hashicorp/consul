@@ -210,6 +210,7 @@ export default class HttpService extends Service {
     return this.settings.findBySlug('token').then(token => {
       return fetch(`${path}`, {
         ...params,
+        credentials: 'include',
         headers: {
           'X-Consul-Token': typeof token.SecretID === 'undefined' ? '' : token.SecretID,
           ...params.headers,

@@ -1,5 +1,4 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 
