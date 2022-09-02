@@ -1027,8 +1027,10 @@ func getAlpnProtocols(protocol string) []string {
 	var alpnProtocols []string
 
 	switch protocol {
-	case "grpc", "http2":
+	case "grpc":
 		alpnProtocols = append(alpnProtocols, "h2", "http/1.1")
+	case "http2":
+		alpnProtocols = append(alpnProtocols, "h2")
 	case "http":
 		alpnProtocols = append(alpnProtocols, "http/1.1")
 	}
