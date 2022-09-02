@@ -49,7 +49,7 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api
 			return false, err
 		}
 
-	case api.KVGet, api.KVGetTree:
+	case api.KVGet, api.KVGetTree, api.KVGetOrEmpty:
 		// Filtering for GETs is done on the output side.
 
 	case api.KVCheckSession, api.KVCheckIndex:
