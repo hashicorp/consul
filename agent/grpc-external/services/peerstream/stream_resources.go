@@ -170,10 +170,9 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 		}
 		logTraceSend(logger, term)
 
-		err := stream.Send(term)
-		if err != nil {
-			return grpcstatus.Error(codes.FailedPrecondition, "peering is marked as deleted: "+req.PeerID)
-		}
+		// we don't care if send fails; stream will be killed by termination message or grpc error
+		_ = stream.Send(term)
+		return grpcstatus.Error(codes.FailedPrecondition, "peering is marked as deleted: "+req.PeerID)
 	}
 
 	secrets, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
