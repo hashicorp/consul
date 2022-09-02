@@ -396,16 +396,24 @@ you can use the following query formats specify namespace but not partition:
 
 ### Prepared Query Lookups
 
-The format of a prepared query lookup is:
+The following formats are valid for prepared query lookups:
 
-```text
-<query or name>.query[.<datacenter>].<domain>
-```
+- Standard lookup
+
+  ```text
+  <query name or id>.query[.<datacenter>].<domain>
+  ```
+
+- [RFC 2782](https://tools.ietf.org/html/rfc2782) SRV lookup
+
+  ```text
+  _<query name or id>._tcp.query[.<datacenter>].<domain>
+  ```
 
 The `datacenter` is optional, and if not provided, the datacenter of this Consul
 agent is assumed.
 
-The `query or name` is the ID or given name of an existing
+The `query name or id` is the given name or ID of an existing
 [Prepared Query](/api-docs/query). These behave like standard service
 queries but provide a much richer set of features, such as filtering by multiple
 tags and automatically failing over to look for services in remote datacenters if
