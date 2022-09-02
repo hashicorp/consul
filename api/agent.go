@@ -425,18 +425,18 @@ type ConnectProxyConfig struct {
 
 // Upstream is the response structure for a proxy upstream configuration.
 type Upstream struct {
-	DestinationType      UpstreamDestType `json:",omitempty"`
-	DestinationPartition string           `json:",omitempty"`
-	DestinationNamespace string           `json:",omitempty"`
-	DestinationPeer      string           `json:",omitempty"`
-	DestinationName      string
+	DestinationType      UpstreamDestType       `json:"destination_type,omitempty"`
+	DestinationPartition string                 `json:"destination_partition,omitempty"`
+	DestinationNamespace string                 `json:"destination_namespace,omitempty"`
+	DestinationPeer      string                 `json:"destination_peer,omitempty"`
+	DestinationName      string                 `json:"destination_name,omitempty"`
 	Datacenter           string                 `json:",omitempty"`
-	LocalBindAddress     string                 `json:",omitempty"`
-	LocalBindPort        int                    `json:",omitempty"`
-	LocalBindSocketPath  string                 `json:",omitempty"`
-	LocalBindSocketMode  string                 `json:",omitempty"`
+	LocalBindAddress     string                 `json:"local_bind_address,omitempty"`
+	LocalBindPort        int                    `json:"local_bind_port,omitempty"`
+	LocalBindSocketPath  string                 `json:"local_bind_socket_path,omitempty"`
+	LocalBindSocketMode  string                 `json:"local_bind_socket_mode,omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
-	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
+	MeshGateway          MeshGatewayConfig      `json:"mesh_gateway,omitempty"`
 	CentrallyConfigured  bool                   `json:",omitempty" bexpr:"-"`
 }
 
