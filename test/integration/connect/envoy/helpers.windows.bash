@@ -5,50 +5,43 @@ CONTAINER_HOSTPORT=""
 # This function uses regex to change the localhost with the corresponding container name.
 function check_hostport {
     local HOSTPORT=$1
+    local ADDRESS="consul-primary"
+
     if [[ $HOSTPORT == "localhost:8500" ]]
-    then        
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${ADDRESS}:8500"
+    then
+      CONTAINER_HOSTPORT="${ADDRESS}:8500"
     elif [[ $HOSTPORT == *"localhost:21000"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:21001"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21001/"${ADDRESS}:21001"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:21001/"${ADDRESS}:21001"}"
     elif [[ $HOSTPORT == *"localhost:19000"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"${ADDRESS}:19000"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"localhost:19001"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"${ADDRESS}:19001"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"${ADDRESS}:19001"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"${ADDRESS}:19001"}"    
+      CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"${ADDRESS}:19001"}"    
     elif [[ $HOSTPORT == *"localhost:1234"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"${ADDRESS}:1234"}"      
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"${ADDRESS}:1234"}"      
     elif [[ $HOSTPORT == "localhost:2345" ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"${ADDRESS}:2345"}"
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"${ADDRESS}:2345"}"
      elif [[ $HOSTPORT == *"localhost:5000"* ]]
     then
-        ADDRESS=$(nslookup consul-primary)
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"${ADDRESS}:5000"}"                  
+      CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"${ADDRESS}:5000"}"
     else
-        return 1        
+      return 1
     fi
 }
+
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -165,14 +158,15 @@ function is_set {
 }
 
 function get_cert {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   local SERVER_NAME=$2
   local CA_FILE=$3
   local SNI_FLAG=""
   if [ -n "$SERVER_NAME" ]; then
     SNI_FLAG="-servername $SERVER_NAME"
   fi
-  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)
+  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)  
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -182,7 +176,6 @@ function assert_proxy_presents_cert_uri {
   local DC=${3:-primary}
   local NS=${4:-default}
   local PARTITION=${5:default}
-
   CERT=$(retry_default get_cert $HOSTPORT)
 
   echo "WANT SERVICE: ${PARTITION}/${NS}/${SERVICENAME}"
@@ -260,7 +253,8 @@ function assert_envoy_version {
 }
 
 function assert_envoy_expose_checks_listener_count {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   local EXPECT_PATH=$2
 
   # scrape this once
@@ -293,7 +287,8 @@ function get_envoy_expose_checks_listener_once {
 }
 
 function assert_envoy_http_rbac_policy_count {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_http_rbac_once $HOSTPORT | jq '.rules.policies | length')
@@ -302,7 +297,8 @@ function assert_envoy_http_rbac_policy_count {
 }
 
 function get_envoy_http_rbac_once {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
@@ -318,14 +314,16 @@ function assert_envoy_network_rbac_policy_count {
 }
 
 function get_envoy_network_rbac_once {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT  
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
 }
 
 function get_envoy_listener_filters {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
@@ -366,7 +364,8 @@ function assert_envoy_dynamic_cluster_exists {
 }
 
 function get_envoy_cluster_config {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   local CLUSTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
@@ -419,7 +418,8 @@ function get_envoy_metrics {
 }
 
 function get_upstream_endpoint_in_status_count {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   local CLUSTER_NAME=$2
   local HEALTH_STATUS=$3
   run curl -s -f "http://${HOSTPORT}/clusters?format=json"
@@ -715,7 +715,8 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   run curl --no-keepalive -s -v -f -d hello $HOSTPORT
 
   echo "OUTPUT $output"
@@ -739,7 +740,8 @@ function must_pass_tcp_connection {
 # must_fail_http_connection see must_fail_tcp_connection but this expects Envoy
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
-  local HOSTPORT=$(check_hostport $1)
+  check_hostport $1
+  local HOSTPORT=$CONTAINER_HOSTPORT
   # Attempt to curl through upstream
   run curl --no-keepalive -s -i -d hello "$HOSTPORT"
 
