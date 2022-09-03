@@ -163,7 +163,7 @@ which can be seen by running `kubectl get nodes --output wide`.
 Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service.
 In our example, the port is `31557`.
 
-```shell
+```shell-session
 $ kubectl get service cluster1-consul-ui --context cluster1
 NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h
