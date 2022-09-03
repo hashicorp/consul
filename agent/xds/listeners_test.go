@@ -2,6 +2,7 @@ package xds
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -1114,4 +1115,35 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetAlpnProtocols(t *testing.T) {
+	tests := map[string]struct {
+		protocol string
+		want     []string
+	}{
+		"http": {
+			protocol: "http",
+			want:     []string{"http/1.1"},
+		},
+		"http2": {
+			protocol: "http2",
+			want:     []string{"h2"},
+		},
+		"grpc": {
+			protocol: "grpc",
+			want:     []string{"h2", "http/1.1"},
+		},
+		"empty": {
+			protocol: "",
+			want:     nil,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := getAlpnProtocols(tc.protocol)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
