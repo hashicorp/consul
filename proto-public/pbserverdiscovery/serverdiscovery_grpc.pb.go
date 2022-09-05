@@ -27,6 +27,9 @@ type ServerDiscoveryServiceClient interface {
 	// should be considered ready for sending general RPC requests towards that would
 	// catalog queries, xDS proxy configurations and similar services.
 	WatchServers(ctx context.Context, in *WatchServersRequest, opts ...grpc.CallOption) (ServerDiscoveryService_WatchServersClient, error)
+	// GetSupportedDataplaneFeatures returns the dataplane features supported by
+	// this server.
+	GetSupportedDataplaneFeatures(ctx context.Context, in *GetSupportedDataplaneFeaturesRequest, opts ...grpc.CallOption) (*GetSupportedDataplaneFeaturesResponse, error)
 }
 
 type serverDiscoveryServiceClient struct {
@@ -69,6 +72,15 @@ func (x *serverDiscoveryServiceWatchServersClient) Recv() (*WatchServersResponse
 	return m, nil
 }
 
+func (c *serverDiscoveryServiceClient) GetSupportedDataplaneFeatures(ctx context.Context, in *GetSupportedDataplaneFeaturesRequest, opts ...grpc.CallOption) (*GetSupportedDataplaneFeaturesResponse, error) {
+	out := new(GetSupportedDataplaneFeaturesResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.serverdiscovery.ServerDiscoveryService/GetSupportedDataplaneFeatures", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServerDiscoveryServiceServer is the server API for ServerDiscoveryService service.
 // All implementations should embed UnimplementedServerDiscoveryServiceServer
 // for forward compatibility
@@ -78,6 +90,9 @@ type ServerDiscoveryServiceServer interface {
 	// should be considered ready for sending general RPC requests towards that would
 	// catalog queries, xDS proxy configurations and similar services.
 	WatchServers(*WatchServersRequest, ServerDiscoveryService_WatchServersServer) error
+	// GetSupportedDataplaneFeatures returns the dataplane features supported by
+	// this server.
+	GetSupportedDataplaneFeatures(context.Context, *GetSupportedDataplaneFeaturesRequest) (*GetSupportedDataplaneFeaturesResponse, error)
 }
 
 // UnimplementedServerDiscoveryServiceServer should be embedded to have forward compatible implementations.
@@ -86,6 +101,9 @@ type UnimplementedServerDiscoveryServiceServer struct {
 
 func (UnimplementedServerDiscoveryServiceServer) WatchServers(*WatchServersRequest, ServerDiscoveryService_WatchServersServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchServers not implemented")
+}
+func (UnimplementedServerDiscoveryServiceServer) GetSupportedDataplaneFeatures(context.Context, *GetSupportedDataplaneFeaturesRequest) (*GetSupportedDataplaneFeaturesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSupportedDataplaneFeatures not implemented")
 }
 
 // UnsafeServerDiscoveryServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -120,13 +138,36 @@ func (x *serverDiscoveryServiceWatchServersServer) Send(m *WatchServersResponse)
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ServerDiscoveryService_GetSupportedDataplaneFeatures_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSupportedDataplaneFeaturesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerDiscoveryServiceServer).GetSupportedDataplaneFeatures(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.serverdiscovery.ServerDiscoveryService/GetSupportedDataplaneFeatures",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerDiscoveryServiceServer).GetSupportedDataplaneFeatures(ctx, req.(*GetSupportedDataplaneFeaturesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ServerDiscoveryService_ServiceDesc is the grpc.ServiceDesc for ServerDiscoveryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ServerDiscoveryService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "hashicorp.consul.serverdiscovery.ServerDiscoveryService",
 	HandlerType: (*ServerDiscoveryServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetSupportedDataplaneFeatures",
+			Handler:    _ServerDiscoveryService_GetSupportedDataplaneFeatures_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "WatchServers",

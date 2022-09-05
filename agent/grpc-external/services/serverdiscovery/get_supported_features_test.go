@@ -1,4 +1,4 @@
-package dataplane
+package serverdiscovery
 
 import (
 	"context"
@@ -14,10 +14,8 @@ import (
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 )
-
-const testACLToken = "acl-token"
 
 func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
@@ -30,17 +28,17 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 		ACLResolver: aclResolver,
 	})
 	client := testClient(t, server)
-	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbserverdiscovery.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(resp.SupportedDataplaneFeatures))
 
 	for _, feature := range resp.SupportedDataplaneFeatures {
 		switch feature.GetFeatureName() {
-		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT:
+		case pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT:
 			require.True(t, feature.GetSupported())
-		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS:
+		case pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS:
 			require.True(t, feature.GetSupported())
-		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION:
+		case pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION:
 			require.True(t, feature.GetSupported())
 		default:
 			require.False(t, feature.GetSupported())
@@ -59,7 +57,7 @@ func TestSupportedDataplaneFeatures_Unauthenticated(t *testing.T) {
 		ACLResolver: aclResolver,
 	})
 	client := testClient(t, server)
-	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbserverdiscovery.GetSupportedDataplaneFeaturesRequest{})
 	require.Error(t, err)
 	require.Equal(t, codes.Unauthenticated.String(), status.Code(err).String())
 	require.Nil(t, resp)
@@ -76,7 +74,7 @@ func TestSupportedDataplaneFeatures_PermissionDenied(t *testing.T) {
 		ACLResolver: aclResolver,
 	})
 	client := testClient(t, server)
-	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbserverdiscovery.GetSupportedDataplaneFeaturesRequest{})
 	require.Error(t, err)
 	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
 	require.Nil(t, resp)

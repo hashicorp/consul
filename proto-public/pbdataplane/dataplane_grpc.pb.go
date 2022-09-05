@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataplaneServiceClient interface {
-	GetSupportedDataplaneFeatures(ctx context.Context, in *GetSupportedDataplaneFeaturesRequest, opts ...grpc.CallOption) (*GetSupportedDataplaneFeaturesResponse, error)
 	GetEnvoyBootstrapParams(ctx context.Context, in *GetEnvoyBootstrapParamsRequest, opts ...grpc.CallOption) (*GetEnvoyBootstrapParamsResponse, error)
 }
 
@@ -32,15 +31,6 @@ type dataplaneServiceClient struct {
 
 func NewDataplaneServiceClient(cc grpc.ClientConnInterface) DataplaneServiceClient {
 	return &dataplaneServiceClient{cc}
-}
-
-func (c *dataplaneServiceClient) GetSupportedDataplaneFeatures(ctx context.Context, in *GetSupportedDataplaneFeaturesRequest, opts ...grpc.CallOption) (*GetSupportedDataplaneFeaturesResponse, error) {
-	out := new(GetSupportedDataplaneFeaturesResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *dataplaneServiceClient) GetEnvoyBootstrapParams(ctx context.Context, in *GetEnvoyBootstrapParamsRequest, opts ...grpc.CallOption) (*GetEnvoyBootstrapParamsResponse, error) {
@@ -56,7 +46,6 @@ func (c *dataplaneServiceClient) GetEnvoyBootstrapParams(ctx context.Context, in
 // All implementations should embed UnimplementedDataplaneServiceServer
 // for forward compatibility
 type DataplaneServiceServer interface {
-	GetSupportedDataplaneFeatures(context.Context, *GetSupportedDataplaneFeaturesRequest) (*GetSupportedDataplaneFeaturesResponse, error)
 	GetEnvoyBootstrapParams(context.Context, *GetEnvoyBootstrapParamsRequest) (*GetEnvoyBootstrapParamsResponse, error)
 }
 
@@ -64,9 +53,6 @@ type DataplaneServiceServer interface {
 type UnimplementedDataplaneServiceServer struct {
 }
 
-func (UnimplementedDataplaneServiceServer) GetSupportedDataplaneFeatures(context.Context, *GetSupportedDataplaneFeaturesRequest) (*GetSupportedDataplaneFeaturesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSupportedDataplaneFeatures not implemented")
-}
 func (UnimplementedDataplaneServiceServer) GetEnvoyBootstrapParams(context.Context, *GetEnvoyBootstrapParamsRequest) (*GetEnvoyBootstrapParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEnvoyBootstrapParams not implemented")
 }
@@ -80,24 +66,6 @@ type UnsafeDataplaneServiceServer interface {
 
 func RegisterDataplaneServiceServer(s grpc.ServiceRegistrar, srv DataplaneServiceServer) {
 	s.RegisterService(&DataplaneService_ServiceDesc, srv)
-}
-
-func _DataplaneService_GetSupportedDataplaneFeatures_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSupportedDataplaneFeaturesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DataplaneServiceServer).GetSupportedDataplaneFeatures(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneServiceServer).GetSupportedDataplaneFeatures(ctx, req.(*GetSupportedDataplaneFeaturesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _DataplaneService_GetEnvoyBootstrapParams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -125,10 +93,6 @@ var DataplaneService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "hashicorp.consul.dataplane.DataplaneService",
 	HandlerType: (*DataplaneServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "GetSupportedDataplaneFeatures",
-			Handler:    _DataplaneService_GetSupportedDataplaneFeatures_Handler,
-		},
 		{
 			MethodName: "GetEnvoyBootstrapParams",
 			Handler:    _DataplaneService_GetEnvoyBootstrapParams_Handler,

@@ -1,4 +1,4 @@
-package dataplane
+package serverdiscovery
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	acl "github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	structs "github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 )
 
-func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
+func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbserverdiscovery.GetSupportedDataplaneFeaturesRequest) (*pbserverdiscovery.GetSupportedDataplaneFeaturesResponse, error) {
 	logger := s.Logger.Named("get-supported-dataplane-features").With("request_id", external.TraceID())
 
 	logger.Trace("Started processing request")
@@ -30,20 +30,20 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	supportedFeatures := []*pbdataplane.DataplaneFeatureSupport{
+	supportedFeatures := []*pbserverdiscovery.DataplaneFeatureSupport{
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS,
+			FeatureName: pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS,
 			Supported:   true,
 		},
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT,
+			FeatureName: pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT,
 			Supported:   true,
 		},
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION,
+			FeatureName: pbserverdiscovery.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION,
 			Supported:   true,
 		},
 	}
 
-	return &pbdataplane.GetSupportedDataplaneFeaturesResponse{SupportedDataplaneFeatures: supportedFeatures}, nil
+	return &pbserverdiscovery.GetSupportedDataplaneFeaturesResponse{SupportedDataplaneFeatures: supportedFeatures}, nil
 }

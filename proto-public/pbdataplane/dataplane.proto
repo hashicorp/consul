@@ -6,24 +6,6 @@ package hashicorp.consul.dataplane;
 
 import "google/protobuf/struct.proto";
 
-message GetSupportedDataplaneFeaturesRequest {}
-
-enum DataplaneFeatures {
-  DATAPLANE_FEATURES_UNSPECIFIED = 0;
-  DATAPLANE_FEATURES_WATCH_SERVERS = 1;
-  DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT = 2;
-  DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION = 3;
-}
-
-message DataplaneFeatureSupport {
-  DataplaneFeatures feature_name = 1;
-  bool supported = 2;
-}
-
-message GetSupportedDataplaneFeaturesResponse {
-  repeated DataplaneFeatureSupport supported_dataplane_features = 1;
-}
-
 message GetEnvoyBootstrapParamsRequest {
   oneof node_spec {
     string node_id = 1;
@@ -82,7 +64,5 @@ message GetEnvoyBootstrapParamsResponse {
 }
 
 service DataplaneService {
-  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
-
   rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {}
 }

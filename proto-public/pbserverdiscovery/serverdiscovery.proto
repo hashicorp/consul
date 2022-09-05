@@ -11,6 +11,11 @@ service ServerDiscoveryService {
   // should be considered ready for sending general RPC requests towards that would
   // catalog queries, xDS proxy configurations and similar services.
   rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {}
+
+  // GetSupportedDataplaneFeatures returns the dataplane features supported by
+  // this server.
+  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
+
 }
 
 message WatchServersRequest {
@@ -32,3 +37,22 @@ message Server {
   // the consul version of the server
   string version = 3;
 }
+
+message GetSupportedDataplaneFeaturesRequest {}
+
+enum DataplaneFeatures {
+  DATAPLANE_FEATURES_UNSPECIFIED = 0;
+  DATAPLANE_FEATURES_WATCH_SERVERS = 1;
+  DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT = 2;
+  DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION = 3;
+}
+
+message DataplaneFeatureSupport {
+  DataplaneFeatures feature_name = 1;
+  bool supported = 2;
+}
+
+message GetSupportedDataplaneFeaturesResponse {
+  repeated DataplaneFeatureSupport supported_dataplane_features = 1;
+}
+
