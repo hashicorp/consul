@@ -1046,13 +1046,9 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
-	// Determine listener protocol type from configured service protocol
-	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		//s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
-	}
+	// Determine listener protocol type from configured service protocol. Don't hard fail on a config typo,
+	//The parse func returns default config if there is an error, so it's safe to continue.
+	cfg, _ := ParseProxyConfig(cfgSnap.Proxy.Config)
 
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
 	tlsContext := makeCommonTLSContext(
