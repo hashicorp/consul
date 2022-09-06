@@ -78,7 +78,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "service - good midex case",
+			name:  "service - good mixed case",
 			id:    testSigning,
 			input: &SpiffeIDService{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Namespace: "defAUlt", Datacenter: "dc1", Service: "WEB"},
 			want:  true,
@@ -102,7 +102,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "mesh gateway - good midex case",
+			name:  "mesh gateway - good mixed case",
 			id:    testSigning,
 			input: &SpiffeIDMeshGateway{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Datacenter: "dc1"},
 			want:  true,
