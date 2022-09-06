@@ -1,6 +1,6 @@
 export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
   const dont = `( don't| shouldn't| can't)?`;
-  const fillInElement = function(page, name, value) {
+  const fillInElement = async function(page, name, value) {
     const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
     if (cm) {
       if (!cm.CodeMirror.options.readOnly) {
@@ -11,7 +11,7 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
       return page;
     } else {
       const $el = document.querySelector(`[name="${name}"]`);
-      fillIn($el, value);
+      await fillIn($el, value);
       return page;
     }
   };
@@ -57,11 +57,13 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
         } catch (e) {
           obj = currentPage();
         }
-        const res = Object.keys(data).reduce(function(prev, item, i, arr) {
+        const res = Object.keys(data).reduce(async function(prev, item, i, arr) {
+          await prev;
+
           const name = `${obj.prefix || property}[${item}]`;
           if (negative) {
             try {
-              fillInElement(prev, name, data[item]);
+              await fillInElement(obj, name, data[item]);
               throw new TypeError(`${item} is editable`);
             } catch (e) {
               if (e instanceof TypeError) {
@@ -69,10 +71,9 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
               }
             }
           } else {
-            return fillInElement(prev, name, data[item]);
+            return await fillInElement(obj, name, data[item]);
           }
-        }, obj);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        }, Promise.resolve());
         return res;
       }
     )

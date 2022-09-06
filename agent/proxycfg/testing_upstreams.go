@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func setupTestVariationConfigEntriesAndSnapshot(
@@ -70,6 +71,24 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC2(t),
+			},
+		})
+	case "failover-to-cluster-peer":
+		events = append(events, UpdateEvent{
+			CorrelationID: "peer-trust-bundle:cluster-01",
+			Result: &pbpeering.TrustBundleReadResponse{
+				Bundle: &pbpeering.PeeringTrustBundle{
+					PeerName:          "peer1",
+					TrustDomain:       "peer1.domain",
+					ExportedPartition: "peer1ap",
+					RootPEMs:          []string{"peer1-root-1"},
+				},
+			},
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodesPeerCluster01(t),
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -251,6 +270,21 @@ func setupTestVariationDiscoveryChain(
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2"},
+					},
+				},
+			},
+		)
+	case "failover-to-cluster-peer":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{Peer: "cluster-01"},
+						},
 					},
 				},
 			},

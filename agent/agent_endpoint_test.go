@@ -3786,7 +3786,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				fmt.Println("TCP Check:= ", v)
 			}
 			if hasNoCorrectTCPCheck {
-				t.Fatalf("Did not find the expected TCP Healtcheck '%s' in %#v ", tt.expectedTCPCheckStart, a.checkTCPs)
+				t.Fatalf("Did not find the expected TCP Healthcheck '%s' in %#v ", tt.expectedTCPCheckStart, a.checkTCPs)
 			}
 			require.Equal(t, sidecarSvc, gotSidecar)
 		})

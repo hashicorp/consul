@@ -370,9 +370,9 @@ type Server struct {
 
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
+
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
-	peeringServer     *peering.Server
-	peerStreamTracker *peerstream.Tracker
+	peeringServer *peering.Server
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -728,11 +728,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	})
 	serverDiscoveryServer.Register(externalGRPCServer)
 
-	s.peerStreamTracker = peerstream.NewTracker()
 	s.peeringBackend = NewPeeringBackend(s)
 	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
 		Backend:        s.peeringBackend,
-		Tracker:        s.peerStreamTracker,
 		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
 		Logger:         logger.Named("grpc-api.peerstream"),
 		ACLResolver:    s.ACLResolver,
@@ -746,7 +744,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})
-	s.peerStreamTracker.SetHeartbeatTimeout(s.peerStreamServer.Config.IncomingHeartbeatTimeout)
 	s.peerStreamServer.Register(externalGRPCServer)
 
 	// Initialize internal gRPC server.
@@ -795,7 +792,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 
 	p := peering.NewServer(peering.Config{
 		Backend: s.peeringBackend,
-		Tracker: s.peerStreamTracker,
+		Tracker: s.peerStreamServer.Tracker,
 		Logger:  deps.Logger.Named("grpc-api.peering"),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			// Only forward the request if the dc in the request matches the server's datacenter.

@@ -1,8 +1,8 @@
-import { module, skip } from 'qunit';
+import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
-import test from 'ember-sinon-qunit/test-support/test';
 import Route from '@ember/routing/route';
 import Mixin from 'consul-ui/mixins/with-blocking-actions';
+import sinon from 'sinon';
 
 module('Unit | Mixin | with blocking actions', function(hooks) {
   setupTest(hooks);
@@ -24,7 +24,7 @@ module('Unit | Mixin | with blocking actions', function(hooks) {
   test('afterCreate just calls afterUpdate', function(assert) {
     const subject = this.subject();
     const expected = [1, 2, 3, 4];
-    const afterUpdate = this.stub(subject, 'afterUpdate').returns(expected);
+    const afterUpdate = sinon.stub(subject, 'afterUpdate').returns(expected);
     const actual = subject.afterCreate(expected);
     assert.deepEqual(actual, expected);
     assert.ok(afterUpdate.calledOnce);
@@ -33,7 +33,7 @@ module('Unit | Mixin | with blocking actions', function(hooks) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = this.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
     const actual = subject.afterUpdate();
     assert.equal(actual, expected);
     assert.ok(transitionTo.calledOnce);
@@ -42,7 +42,7 @@ module('Unit | Mixin | with blocking actions', function(hooks) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = this.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
     const actual = subject.afterDelete();
     assert.equal(actual, expected);
     assert.ok(transitionTo.calledOnce);
@@ -51,7 +51,7 @@ module('Unit | Mixin | with blocking actions', function(hooks) {
     const subject = this.subject();
     subject.routeName = 'dc.kv.index';
     const expected = 'refresh';
-    const refresh = this.stub(subject, 'refresh').returns(expected);
+    const refresh = sinon.stub(subject, 'refresh').returns(expected);
     const actual = subject.afterDelete();
     assert.equal(actual, expected);
     assert.ok(refresh.calledOnce);
@@ -67,7 +67,7 @@ module('Unit | Mixin | with blocking actions', function(hooks) {
   test('action cancel just calls afterUpdate', function(assert) {
     const subject = this.subject();
     const expected = [1, 2, 3, 4];
-    const afterUpdate = this.stub(subject, 'afterUpdate').returns(expected);
+    const afterUpdate = sinon.stub(subject, 'afterUpdate').returns(expected);
     // TODO: unsure as to whether ember testing should actually bind this for you?
     const actual = subject.actions.cancel.bind(subject)(expected);
     assert.deepEqual(actual, expected);

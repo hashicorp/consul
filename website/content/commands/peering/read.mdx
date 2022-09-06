@@ -1,0 +1,62 @@
+---
+layout: commands
+page_title: 'Commands: Peering Read'
+---
+
+# Consul Peering Read
+
+Command: `consul peering read`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/peering/:name](/api-docs/peering#read-a-peering-connection)
+
+The `peering read` displays information on the status of a peering connection.
+
+The table below shows this command's [required ACLs](/api#authentication).
+
+| ACL Required |
+| ------------ |
+| `peering:read`  |
+
+## Usage
+
+Usage: `consul peering read [options] -name <peer name>`
+
+#### Command Options
+
+- `-name=<string>` - (Required) The name of the peer associated with a connection that you want to read.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+The following example outputs information about a peering connection locally referred to as "cluster-02":
+
+```shell-session hideClipboard
+$ consul peering read -name cluster-02
+Name:         cluster-02
+ID:           3b001063-8079-b1a6-764c-738af5a39a97
+State:        ACTIVE
+Meta:
+    env=production
+
+Peer ID:               e83a315c-027e-bcb1-7c0c-a46650904a05
+Peer Server Name:      server.dc1.consul
+Peer CA Pems:          0
+Peer Server Addresses:
+    10.0.0.1:8300
+
+Imported Services: 0
+Exported Services: 2
+
+Create Index: 89
+Modify Index: 89
+```
+
