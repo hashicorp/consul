@@ -11,7 +11,9 @@ test(
       {
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
-        operatorConfig: {}
+        operatorConfig: {
+          APIPrefix: '',
+        }
       },
       {
         environment: 'test',
@@ -24,6 +26,7 @@ test(
           PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -40,6 +43,7 @@ test(
           PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -56,6 +60,7 @@ test(
           PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -69,6 +74,7 @@ test(
           PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       }
     ].forEach(

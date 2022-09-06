@@ -132,6 +132,12 @@ export default function(config = {}, win = window, doc = document) {
         return operatorConfig.LocalDatacenter;
       case 'CONSUL_DATACENTER_PRIMARY':
         return operatorConfig.PrimaryDatacenter;
+      case 'CONSUL_API_PREFIX':
+        // we want API prefix to look like an env var for if we ever change
+        // operator config to be an API request, we need this variable before we
+        // make and API request so this specific variable should never be be
+        // retrived via an API request
+        return operatorConfig.APIPrefix;
       case 'CONSUL_UI_CONFIG':
         dashboards = {
           service: undefined,
@@ -246,6 +252,7 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_DATACENTER_LOCAL':
       case 'CONSUL_DATACENTER_PRIMARY':
+      case 'CONSUL_API_PREFIX':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_PEERINGS_ENABLED':

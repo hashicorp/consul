@@ -1,6 +1,6 @@
 import domEventSourceCallable, { defaultRunner } from 'consul-ui/utils/dom/event-source/callable';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/event-source/callable', function() {
   const createEventTarget = function() {
@@ -43,14 +43,14 @@ module('Unit | Utility | dom/event-source/callable', function() {
       return count === 11;
     };
     const configuration = {};
-    const then = this.stub().callsArg(0);
+    const then = sinon.stub().callsArg(0);
     const target = {
       source: function(configuration) {
         return {
           then: then,
         };
       },
-      dispatchEvent: this.stub(),
+      dispatchEvent: sinon.stub(),
     };
     defaultRunner(target, configuration, isClosed);
     assert.ok(then.callCount == 10);
@@ -59,7 +59,7 @@ module('Unit | Utility | dom/event-source/callable', function() {
   test('it calls the defaultRunner', function(assert) {
     const Promise = createPromise();
     const EventTarget = createEventTarget();
-    const run = this.stub();
+    const run = sinon.stub();
     const EventSource = domEventSourceCallable(EventTarget, Promise, run);
     const source = new EventSource();
     assert.ok(run.calledOnce);

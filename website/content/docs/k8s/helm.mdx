@@ -270,14 +270,14 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#rootpkipath.
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          Please see https://www.consul.io/docs/connect/ca/vault#intermediatepkipath.
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please see https://www.consul.io/docs/connect/ca/vault#common-ca-config-options
-          for additional configuration options.
+          Please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#configuration)
+          for all configuration options available for that provider.
 
           Example:
 
@@ -286,6 +286,7 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
+                     "namespace": "my-vault-ns",
                      "leaf_cert_ttl": "36h"
                   }]
               }]
@@ -504,8 +505,7 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.  This should only be set for datacenters
-      that are not the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
@@ -1575,6 +1575,47 @@ Use these links to navigate to a particular top-level stanza.
       If you need to set this to `0`, you will need to add a
       --set 'connectInject.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
+
+  - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
+
+    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin. 
+      Requires connectInject.enabled to also be true.
+
+    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
+
+    - `cniBinDir` ((#v-connectinject-cni-cnibindir)) (`string: /opt/cni/bin`) - Location on the kubernetes node where the CNI plugin is installed. Shoud be the absolute path and start with a '/'
+      Example on GKE:
+
+      ```yaml
+      cniBinDir: "/home/kubernetes/bin"
+      ```
+
+    - `cniNetDir` ((#v-connectinject-cni-cninetdir)) (`string: /etc/cni/net.d`) - Location on the kubernetes node of all CNI configuration. Should be the absolute path and start with a '/'
+
+    - `resources` ((#v-connectinject-cni-resources)) (`map`) - The resource settings for CNI installer daemonset.
+
+    - `resourceQuota` ((#v-connectinject-cni-resourcequota)) - Resource quotas for running the daemonset as system critical pods
+
+      - `pods` ((#v-connectinject-cni-resourcequota-pods)) (`integer: 5000`)
+
+    - `securityContext` ((#v-connectinject-cni-securitycontext)) (`map`) - The security context for the CNI installer daemonset. This should be a YAML map corresponding to a
+      Kubernetes [SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) object.
+      By default, servers will run as root, with user ID `0` and group ID `0`.
+      Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
+      by the OpenShift platform.
+
+    - `updateStrategy` ((#v-connectinject-cni-updatestrategy)) (`string: null`) - updateStrategy for the CNI installer DaemonSet.
+      See https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy.
+      This should be a multi-line string mapping directly to the updateStrategy
+
+      Example:
+
+      ```yaml
+      updateStrategy: |
+        rollingUpdate:
+          maxUnavailable: 5
+        type: RollingUpdate
+      ```
 
   - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.

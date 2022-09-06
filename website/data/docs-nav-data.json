@@ -419,85 +419,53 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
+
       {
-        "title": "Get Started",
+        "title": "Installation",
         "routes": [
           {
-            "title": "Installing Consul on Kubernetes",
-            "path": "k8s/installation/install"
-          },
-          {
-            "title": "Installing Consul K8s CLI",
+            "title": "Install from Consul K8s CLI",
             "path": "k8s/installation/install-cli"
           },
           {
-            "title": "Platform Guides",
-            "routes": [
-              {
-                "title": "Minikube",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk"
-              },
-              {
-                "title": "Kind",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind"
-              },
-              {
-                "title": "AKS (Azure)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks"
-              },
-              {
-                "title": "EKS (AWS)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks"
-              },
-              {
-                "title": "GKE (Google Cloud)",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke"
-              },
-              {
-                "title": "Red Hat OpenShift",
-                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift"
-              },
-              {
-                "title": "Self Hosted Kubernetes",
-                "path": "k8s/installation/platforms/self-hosted-kubernetes"
-              }
-            ]
+            "title": "Install from Helm Chart",
+            "path": "k8s/installation/install"
+          }
+        ]
+      },
+      {
+        "title": "Deployment Configurations",
+        "routes": [
+          {
+            "title": "Consul Clients Outside Kubernetes",
+            "path": "k8s/deployment-configurations/clients-outside-kubernetes"
           },
           {
-            "title": "Deployment Configurations",
-            "routes": [
-              {
-                "title": "Consul Clients Outside Kubernetes",
-                "path": "k8s/installation/deployment-configurations/clients-outside-kubernetes"
-              },
-              {
-                "title": "Consul Servers Outside Kubernetes",
-                "path": "k8s/installation/deployment-configurations/servers-outside-kubernetes"
-              },
-              {
-                "title": "Single Consul Datacenter in Multiple Kubernetes Clusters",
-                "path": "k8s/installation/deployment-configurations/single-dc-multi-k8s"
-              },
-              {
-                "title": "Consul Enterprise",
-                "path": "k8s/installation/deployment-configurations/consul-enterprise"
-              }
-            ]
+            "title": "Consul Servers Outside Kubernetes",
+            "path": "k8s/deployment-configurations/servers-outside-kubernetes"
+          },
+          {
+            "title": "Single Consul Datacenter in Multiple Kubernetes Clusters",
+            "path": "k8s/deployment-configurations/single-dc-multi-k8s"
+          },
+          {
+            "title": "Consul Enterprise",
+            "path": "k8s/deployment-configurations/consul-enterprise"
           },
           {
             "title": "Multi-Cluster Federation",
             "routes": [
               {
                 "title": "Overview",
-                "path": "k8s/installation/multi-cluster"
+                "path": "k8s/deployment-configurations/multi-cluster"
               },
               {
                 "title": "Federation Between Kubernetes Clusters",
-                "path": "k8s/installation/multi-cluster/kubernetes"
+                "path": "k8s/deployment-configurations/multi-cluster/kubernetes"
               },
               {
                 "title": "Federation Between VMs and Kubernetes",
-                "path": "k8s/installation/multi-cluster/vms-and-kubernetes"
+                "path": "k8s/deployment-configurations/multi-cluster/vms-and-kubernetes"
               }
             ]
           },
@@ -506,62 +474,95 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "k8s/installation/vault"
+                "path": "k8s/deployment-configurations/vault"
               },
               {
                 "title": "Systems Integration",
-                "path": "k8s/installation/vault/systems-integration"
+                "path": "k8s/deployment-configurations/vault/systems-integration"
               },
               {
                 "title": "Data Integration",
                 "routes": [
                   {
                     "title": "Overview",
-                    "path": "k8s/installation/vault/data-integration"
+                    "path": "k8s/deployment-configurations/vault/data-integration"
                   },
                   {
                     "title": "Bootstrap Token",
-                    "path": "k8s/installation/vault/data-integration/bootstrap-token"
+                    "path": "k8s/deployment-configurations/vault/data-integration/bootstrap-token"
                   },
                   {
                     "title": "Enterprise License",
-                    "path": "k8s/installation/vault/data-integration/enterprise-license"
+                    "path": "k8s/deployment-configurations/vault/data-integration/enterprise-license"
                   },
                   {
                     "title": "Gossip Encryption Key",
-                    "path": "k8s/installation/vault/data-integration/gossip"
+                    "path": "k8s/deployment-configurations/vault/data-integration/gossip"
                   },
                   {
                     "title": "Partition Token",
-                    "path": "k8s/installation/vault/data-integration/partition-token"
+                    "path": "k8s/deployment-configurations/vault/data-integration/partition-token"
                   },
                   {
                     "title": "Replication Token",
-                    "path": "k8s/installation/vault/data-integration/replication-token"
+                    "path": "k8s/deployment-configurations/vault/data-integration/replication-token"
                   },
                   {
                     "title": "Server TLS",
-                    "path": "k8s/installation/vault/data-integration/server-tls"
+                    "path": "k8s/deployment-configurations/vault/data-integration/server-tls"
                   },
                   {
                     "title": "Service Mesh Certificates",
-                    "path": "k8s/installation/vault/data-integration/connect-ca"
+                    "path": "k8s/deployment-configurations/vault/data-integration/connect-ca"
                   },
                   {
                     "title": "Snapshot Agent Config",
-                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                    "path": "k8s/deployment-configurations/vault/data-integration/snapshot-agent-config"
                   },
                   {
                     "title": "Webhook Certificates",
-                    "path": "k8s/installation/vault/data-integration/webhook-certs"
+                    "path": "k8s/deployment-configurations/vault/data-integration/webhook-certs"
                   }
                 ]
               },
               {
                 "title": "WAN Federation",
-                "path": "k8s/installation/vault/wan-federation"
+                "path": "k8s/deployment-configurations/vault/wan-federation"
               }
             ]
+          }
+        ]
+      },
+      {
+        "title": "Platform Guides",
+        "routes": [
+          {
+            "title": "Minikube",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk"
+          },
+          {
+            "title": "Kind",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind"
+          },
+          {
+            "title": "AKS (Azure)",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks"
+          },
+          {
+            "title": "EKS (AWS)",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks"
+          },
+          {
+            "title": "GKE (Google Cloud)",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke"
+          },
+          {
+            "title": "Red Hat OpenShift",
+            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift"
+          },
+          {
+            "title": "Self Hosted Kubernetes",
+            "path": "k8s/platforms/self-hosted-kubernetes"
           }
         ]
       },
@@ -693,6 +694,7 @@
       }
     ]
   },
+
   {
     "title": "AWS ECS",
     "routes": [
@@ -1249,6 +1251,14 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
             "title": "v1.11.x",
             "path": "release-notes/consul/v1_11_x"
           },
@@ -1259,6 +1269,19 @@
           {
             "title": "v1.9.x",
             "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.48.x",
+            "path": "release-notes/consul-k8s/v0_48_x"
+          },
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
           }
         ]
       },

@@ -1,12 +1,13 @@
 package external
 
 import (
+	"time"
+
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"time"
 
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/tlsutil"
@@ -34,7 +35,7 @@ func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.S
 			MinTime: 15 * time.Second,
 		}),
 	}
-	if tls != nil && tls.GRPCTLSConfigured() {
+	if tls != nil && tls.GRPCServerUseTLS() {
 		creds := credentials.NewTLS(tls.IncomingGRPCConfig())
 		opts = append(opts, grpc.Creds(creds))
 	}

@@ -366,7 +366,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'UpstreamConfig',
@@ -504,6 +503,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: `The number of consecutive failures which cause a host to be
                       removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -636,6 +645,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -652,7 +671,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',

@@ -57,6 +57,19 @@ Create a JSON file that contains the first cluster's name and the peering token.
 </CodeBlockConfig>
 </Tab>
 
+<Tab heading="Consul CLI">
+
+In `cluster-01`, use the [`consul peering generate-token` command](/commands/operator/generate-token) to issue a request for a peering token.
+
+```shell-session
+$ consul peering generate-token -name cluster-02
+```
+
+The CLI outputs the peering token, which is a base64-encoded string containing the token details.
+Save this value to a file or clipboard to be used in the next step on `cluster-02`.
+
+</Tab>
+
 <Tab heading="Consul UI">
 
 1. In the Consul UI for the datacenter associated with `cluster-01`, click **Peers**.
@@ -88,6 +101,25 @@ You can dial the `peering/establish` endpoint once per peering token. Peering to
 
 </Tab>
 
+<Tab heading="Consul CLI">
+
+In one of the client agents in "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step. The command establishes the peering connection.
+The commands prints "Successfully established peering connection with cluster-01" after the connection is established.
+
+```shell-session
+$ consul peering establish -name cluster-01 -peering-token token-from-generate
+```
+
+When you connect server agents through cluster peering, they peer their default partitions.
+To establish peering connections for other partitions through server agents, you must add the `-partition` flag to the `establish` command and specify the partitions you want to peer.
+For additional configuration information, refer to [`consul peering establish` command](/commands/peering/establish) .
+
+You can run the `peering establish` command once per peering token.
+Peering tokens cannot be reused after being used to establish a connection.
+If you need to re-establish a connection, you must generate a new peering token.
+
+</Tab>
+
 <Tab heading="Consul UI">
 
 1. In the Consul UI for the datacenter associated with `cluster 02`, click **Peers** and then **Add peer connection**.
@@ -108,7 +140,7 @@ First, create a configuration entry and specify the `Kind` as `"exported-service
 
 ```hcl
 Kind = "exported-services"
-
+Name = "default"
 Services = [
   {
     ## The name and namespace of the service to export.
@@ -120,10 +152,11 @@ Services = [
       {
         ## The peer name to reference in config is the one set
         ## during the peering process.
-        Peer = "cluster-02"
+        PeerName = "cluster-02"
       }
-  }
     ]
+  }
+]
 ```
 
 </CodeBlockConfig>
@@ -212,6 +245,20 @@ $  curl http://127.0.0.1:8500/v1/peerings
 ```
 </Tab>
 
+<Tab heading="Consul CLI">
+
+After you establish a peering connection, run the [`consul peering list`](/commands/peering/list) command to get a list of all peering connections.
+For example, the following command requests a list of all peering connections and returns the information in a table:
+
+```shell-session
+$  consul peerings list
+
+Name        State    Imported Svcs  Exported Svcs  Meta
+cluster-02  ACTIVE   0              2              env=production
+cluster-03  PENDING  0              0
+  ```
+</Tab>
+
 <Tab heading="Consul UI">
 
 In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in a datacenter.
@@ -247,6 +294,35 @@ $  curl http://127.0.0.1:8500/v1/peering/cluster-02
 ```
 </Tab>
 
+<Tab heading="Consul CLI">
+
+After you establish a peering connection, run the [`consul peering read`](/commands/peering/list) command to get peering information about for a specific cluster.
+For example, the following command requests peering connection information for "cluster-02":
+
+```shell-session
+$  consul peering read -name cluster-02
+
+Name:         cluster-02
+ID:           3b001063-8079-b1a6-764c-738af5a39a97
+State:        ACTIVE
+Meta:
+    env=production
+
+Peer ID:               e83a315c-027e-bcb1-7c0c-a46650904a05
+Peer Server Name:      server.dc1.consul
+Peer CA Pems:          0
+Peer Server Addresses:
+    10.0.0.1:8300
+
+Imported Services: 0
+Exported Services: 2
+
+Create Index: 89
+Modify Index: 89
+
+```
+</Tab>
+
 <Tab heading="Consul UI">
 
 In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in that datacenter. Click the name of a peered cluster to view additional details about the peering connection.
@@ -277,6 +353,17 @@ In "cluster-01," request the deletion through the [`/peering/ endpoint`](/api-do
 
 ```shell-session
 $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
+```
+</Tab>
+
+<Tab heading="Consul CLI">
+
+In "cluster-01," request the deletion through the [`consul peering delete`](/commands/peering/list) command.
+
+```shell-session
+$ consul peering delete -name cluster-02
+
+Successfully submitted peering connection, cluster-02, for deletion
 ```
 </Tab>
 

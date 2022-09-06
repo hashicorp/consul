@@ -186,6 +186,18 @@ func (s *Server) Register(srv *grpc.Server) {
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 }
 
+func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
+	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
+	if acl.IsErrNotFound(err) {
+		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
+	} else if acl.IsErrPermissionDenied(err) {
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	} else if err != nil {
+		return nil, status.Errorf(codes.Internal, "error resolving acl token: %v", err)
+	}
+	return authz, nil
+}
+
 // authorize the xDS request using the token stored in ctx. This authorization is
 // a bit different from most interfaces. Instead of explicitly authorizing or
 // filtering each piece of data in the response, the request is authorized
@@ -201,13 +213,9 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
-	if acl.IsErrNotFound(err) {
-		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
-	} else if acl.IsErrPermissionDenied(err) {
-		return status.Error(codes.PermissionDenied, err.Error())
-	} else if err != nil {
-		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
+	authz, err := s.authenticate(ctx)
+	if err != nil {
+		return err
 	}
 
 	var authzContext acl.AuthorizerContext

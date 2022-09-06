@@ -201,6 +201,8 @@ If the paths already exist, Consul will use them as configured.
 
 ## Vault ACL Policies
 
+Vault PKI can be managed by either Consul or by Vault. If you want to manually create and tune the PKI secret engines used to store the root and intermediate certificates, use Vault Managed PKI Paths. If you want to have the PKI automatically managed for you, use Consul Managed PKI Paths.
+
 ### Vault Managed PKI Paths
 
 The following Vault policy allows Consul to use pre-existing PKI paths in Vault.
