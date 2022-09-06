@@ -1451,6 +1451,19 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
 		}
+	case *connect.SpiffeIDServer:
+		// The authorizer passed in should have unlimited permissions.
+		if err := allow.ACLWriteAllowed(&authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the URI matches us.
+		// The request must have been issued by a local server.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
 	default:
 		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
 	}
@@ -1472,9 +1485,11 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	if err != nil {
 		return nil, err
 	}
+
 	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	serverID, isServer := spiffeID.(*connect.SpiffeIDServer)
 	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
 
 	var entMeta acl.EnterpriseMeta
@@ -1493,6 +1508,12 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		}
 		entMeta.Merge(mgwID.GetEnterpriseMeta())
 
+	case isServer:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", serverID.Host, signingID.Host())
+		}
+		entMeta.Normalize()
 	case isAgent:
 		// isAgent - if we support more ID types then this would need to be an else if
 		// here we are just automatically fixing the trust domain. For auto-encrypt and
@@ -1519,7 +1540,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		entMeta.Merge(agentID.GetEnterpriseMeta())
 
 	default:
-		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, or mesh gateway ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, server, or mesh gateway ID")
 	}
 
 	commonCfg, err := config.GetCommonConfig()
@@ -1608,6 +1629,8 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	case isAgent:
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
+	case isServer:
+		reply.ServerURI = cert.URIs[0].String()
 	default:
 		return nil, errors.New("not possible")
 	}
