@@ -162,17 +162,20 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
 	}
 	if !p.IsActive() {
-		logger.Warn("peering is marked as deleted or terminated", "peer_id", req.PeerID)
-		term := &pbpeerstream.ReplicationMessage{
-			Payload: &pbpeerstream.ReplicationMessage_Terminated_{
-				Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
-			},
-		}
-		logTraceSend(logger, term)
+		// If peering is terminated, then our peer sent the termination message.
+		// For other non-active states, send the termination message.
+		if p.State != pbpeering.PeeringState_TERMINATED {
+			term := &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Terminated_{
+					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
+				},
+			}
+			logTraceSend(logger, term)
 
-		// we don't care if send fails; stream will be killed by termination message or grpc error
-		_ = stream.Send(term)
-		return grpcstatus.Error(codes.FailedPrecondition, "peering is marked as deleted: "+req.PeerID)
+			// we don't care if send fails; stream will be killed by termination message or grpc error
+			_ = stream.Send(term)
+		}
+		return grpcstatus.Error(codes.Aborted, "peering is marked as deleted: "+req.PeerID)
 	}
 
 	secrets, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
