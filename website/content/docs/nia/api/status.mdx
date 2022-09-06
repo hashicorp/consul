@@ -10,24 +10,24 @@ The `/status` endpoints return status-related information for tasks. This endpoi
 
 If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/status` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
 
-## Overall Status
+## Status for all tasks
 
-This endpoint currently returns the overall status information for all tasks.
+This endpoint returns the overall status information for all tasks.
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status` | `application/json` |
 
-### Request Parameters
+### Request parameters
 Currently no request parameters are offered for the overall status API.
 
-### Response Statuses
+### Response statuses
 
 | Status | Reason           |
 | ------ | ---------------- |
 | 200    | Successfully retrieved the status |
 
-### Response Fields
+### Response fields
 
 | Name	| Type	 | Description        |
 | ----- | ------ | ------------------ |
@@ -65,7 +65,7 @@ Response:
 }
 ```
 
-## Task Status
+## Task status
 
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
@@ -79,7 +79,7 @@ Task health status value is determined by the success or failure of all stored [
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status/tasks/:task_name` | `application/json` |
 
-### Request Parameters
+### Request parameters
 
 | Name	   | Required | Type	 | Description        | Default |
 | -------- | -------- | ------ | ------------------ | ------- |
@@ -87,14 +87,14 @@ Task health status value is determined by the success or failure of all stored [
 |`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
 |`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
 
-### Response Statuses
+### Response statuses
 
 | Status | Reason           |
 | ------ | ---------------- |
 | 200  | Successfully retrieved the task status |
 | 404  | Task with the given name not found |
 
-### Response Fields
+### Response fields
 
 The response is a JSON map of task name to a status information structure with the following fields.
 
@@ -126,7 +126,11 @@ Event represents the process of updating network infrastructure of a task. The d
 |`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Module configured for the task.
 |`config.providers` | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 
-### Example: All Task Statuses
+### Examples 
+
+The following examples call `status` endpoints to retrieve information about tasks. 
+
+#### All task statuses
 
 Request:
 ```shell-session
@@ -163,7 +167,7 @@ Response:
 }
 ```
 
-### Example: Individual Task Status with Events
+#### Individual task status with events
 
 Request:
 ```shell-session
@@ -225,3 +229,69 @@ Response:
   }
 }
 ```
+
+## Cluster status
+
+The `/v1/status/cluster` API endpoint returns information about the cluster and member instances, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/docs/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/docs/nia/usage/errors-ref) for information about CTS error messages. 
+
+| Method | Path              | Response format    |
+| ------ | ----------------- | ------------------ |
+| `GET`  | `/status/cluster` | `application/json` |
+
+### Request parameters
+
+Currently no request parameters are offered for the overall status API.
+
+### Request statuses
+
+- `200`: Successfully retrieved the cluster status
+
+### Response fields
+
+| Field | Type | Description |
+| --- | ---- | --- |
+| `cluster_name` | string | Identifies the name of the cluster. |
+| `members` | list | Contains the CTS instance objects. |
+| `members.address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured. Refer to the [high availability instance configuration](/docs/nia/configuration#high-availability-instance) reference for additional information. |
+| `members.healthy` | Boolean | Indicates the health of the instance. |
+| `members.id` | string | Indicates the instance ID. |
+| `members.leader` | Boolean | Identifies the cluster leader. |
+| `members.service_name` | string | Identifies the name of the service that the instance represents. The value should always be `consul-terraform-sync`. |
+| `request_id` | string | Unique identifier for the request. |
+
+### Example
+
+The following command calls the `/status/cluster` endpoint:
+
+```shell-session
+$ curl –request GET http://localhost:8553/v1/status/cluster
+```
+
+The following example response shows that there are three CTS instances. The cluster is located at `cts-02.example.com`. The leader instance, `cts-02`, is the only healthy instance: 
+
+```json
+{
+  "cluster_name": "cluster-a",
+  "members": [
+    {
+      "address": "cts-02.example.com",
+      "healthy": true,
+      "id": "cts-02",
+      "leader": true,
+      "service_name": "consul-terraform-sync"
+    },
+    {
+      "healthy": false,
+      "id": "cts-03",
+      "leader": false,
+      "service_name": "consul-terraform-sync"
+    },
+    {
+      "healthy": false,
+      "id": "cts-01",
+      "leader": false,
+      "service_name": "consul-terraform-sync"
+    }
+  ],
+  "request_id": "e1bc2236-3d0e-5f5e-dc51-164a1cf6da88"
+}
