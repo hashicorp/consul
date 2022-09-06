@@ -3,7 +3,7 @@ import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
 
-module(`Integration | Service | token`, function(hooks) {
+module(`Integration | Service | token`, function (hooks) {
   setupTest(hooks);
   skip('clone returns the correct data for the clone endpoint');
   const dc = 'dc-1';
@@ -11,8 +11,8 @@ module(`Integration | Service | token`, function(hooks) {
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/token');
       return repo(
         'Token',
@@ -36,17 +36,18 @@ module(`Integration | Service | token`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(function(item) {
+            expected(function (payload) {
+              return payload.map(function (item) {
                 return Object.assign({}, item, {
                   Datacenter: dc,
                   CreateTime: new Date(item.CreateTime),
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.AccessorID}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.AccessorID}"]`,
                   Policies: createPolicies(item),
                 });
               });
@@ -55,7 +56,7 @@ module(`Integration | Service | token`, function(hooks) {
         }
       );
     });
-    test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+    test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/token');
       return repo(
         'Token',
@@ -77,7 +78,7 @@ module(`Integration | Service | token`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          expected(function(item) {
+          expected(function (item) {
             assert.equal(
               actual.uid,
               `["${partition || undefinedPartition}","${nspace || undefinedNspace}","${dc}","${
@@ -90,7 +91,7 @@ module(`Integration | Service | token`, function(hooks) {
         }
       );
     });
-    test(`findByPolicy returns the correct data when nspace is ${nspace}`, function(assert) {
+    test(`findByPolicy returns the correct data when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/token');
       const policy = 'policy-1';
       return repo(
@@ -116,17 +117,18 @@ module(`Integration | Service | token`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(function(item) {
+            expected(function (payload) {
+              return payload.map(function (item) {
                 return Object.assign({}, item, {
                   Datacenter: dc,
                   CreateTime: new Date(item.CreateTime),
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.AccessorID}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.AccessorID}"]`,
                   Policies: createPolicies(item),
                 });
               });
@@ -135,7 +137,7 @@ module(`Integration | Service | token`, function(hooks) {
         }
       );
     });
-    test(`findByRole returns the correct data when nspace is ${nspace}`, function(assert) {
+    test(`findByRole returns the correct data when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/token');
       const role = 'role-1';
       return repo(
@@ -161,17 +163,18 @@ module(`Integration | Service | token`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(function(item) {
+            expected(function (payload) {
+              return payload.map(function (item) {
                 return Object.assign({}, item, {
                   Datacenter: dc,
                   CreateTime: new Date(item.CreateTime),
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.AccessorID}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.AccessorID}"]`,
                   Policies: createPolicies(item),
                 });
               });
