@@ -104,7 +104,7 @@ Repeat the procedure to start the remaining instances for your cluster. We recom
 
 You can implement a rolling update to update a non-task configuration for a CTS instance, such as the Consul connection settings. If you need to update a task in the instance configuration, refer to [Modify tasks](#modify-tasks). 
 
-1. Identify the leader CTS instance by either making a call to the [`status` API endpoint](/docs/nia/cli/start) or by checking the logs for the following entry:
+1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
   ```shell-session
   [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
   ```
@@ -121,10 +121,10 @@ When high availability is enabled, CTS persists task and event data. Refer to [S
 You can use the following methods for modifying tasks when high availability is enabled. We recommend choosing a single method to make all task configuration changes because inconsistencies between the state and the configuration can occur when mixing methods.
 
 ### Delete and recreate the task (recommended)
-
+ 
 Use the CTS API to identify the CTS leader instance as well as delete and replace a task. 
 
-1. Identify the leader CTS instance by either making a call to the [`status` API endpoint](/docs/nia/api/status) or by checking the logs for the following entry:
+1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
 
   ```shell-session
   [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
