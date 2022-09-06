@@ -203,12 +203,13 @@ export default class HttpService extends Service {
     // also see adapters/kv content-types in requestForCreate/UpdateRecord
     // also see https://github.com/hashicorp/consul/issues/3804
     params.headers[CONTENT_TYPE] = 'application/json; charset=utf-8';
+    params.url = `${this.env.var('CONSUL_API_PREFIX')}${params.url}`;
     return params;
   }
 
   fetchWithToken(path, params) {
     return this.settings.findBySlug('token').then(token => {
-      return fetch(`${path}`, {
+      return fetch(`${this.env.var('CONSUL_API_PREFIX')}${path}`, {
         ...params,
         credentials: 'include',
         headers: {

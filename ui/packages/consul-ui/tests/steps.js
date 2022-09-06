@@ -87,6 +87,7 @@ export default function({
     api.server.respondWith(url.split('?')[0], data);
   };
   const setCookie = function(key, value) {
+    document.cookie = `${key}=${value}`;
     api.server.setCookie(key, value);
   };
 
