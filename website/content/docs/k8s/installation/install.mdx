@@ -109,7 +109,7 @@ NAME: consul
 
 ### Enable the Consul CNI plugin
 
-By default, Consul generates a `connect-inject init` container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy). The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization. 
+By default, Consul generates a `connect-inject init` container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy). The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated `CAP_NET_ADMIN` privileges, which may not be compatible with security policies in your organization. 
 
 Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection. Because the plugin is executed by the Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network. 
 
@@ -125,10 +125,10 @@ global:
 connectInject:
   enabled: true
   cni:
-     enabled: true
-     logLevel: info
-     cniBinDir: "/opt/cni/bin"
-     cniNetDir: "/etc/cni/net.d"
+    enabled: true
+    logLevel: info
+    cniBinDir: "/opt/cni/bin"
+    cniNetDir: "/etc/cni/net.d"
 ```
 </CodeBlockConfig>
 
@@ -140,10 +140,10 @@ global:
 connectInject:
   enabled: true
   cni:
-   enabled: true
-   logLevel: info
-     cniBinDir: "/home/kubernetes/bin"
-     cniNetDir: "/etc/cni/net.d"
+    enabled: true
+    logLevel: info
+    cniBinDir: "/home/kubernetes/bin"
+    cniNetDir: "/etc/cni/net.d"
 ```
 </CodeBlockConfig>
 
