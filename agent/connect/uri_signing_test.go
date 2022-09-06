@@ -126,7 +126,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "server - good midex case",
+			name:  "server - good mixed case",
 			id:    testSigning,
 			input: &SpiffeIDServer{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Datacenter: "dc1"},
 			want:  true,
