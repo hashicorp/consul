@@ -67,7 +67,12 @@ $ curl --request GET cts-01.example.com:8558/v1/tasks
 
 **Resolution**:
 
-Identify the leader instance address and redirect the request to the leader. We recommend deploying a cluster that has three instances. You can query each instance until the leader responds. 
+Identify the leader instance address and redirect the request to the leader. You can identify the leader by calling the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
+
+```shell-session
+[INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>. 
+
+We recommend deploying a cluster that has three instances. 
 
 ---
 
@@ -90,7 +95,7 @@ Identify the leader instance address and redirect the request to the leader. We 
 
 **Resolution**:
 
-Identify and send the request to the leader CTS instance. You can identify the leader by either making a call to the [`status` API endpoint](/docs/nia/api/status) or by checking the logs for the following entry:
+Identify and send the request to the leader CTS instance. You can identify the leader by calling the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
 
 ```shell-session
 [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
@@ -110,7 +115,7 @@ Identify and send the request to the leader CTS instance. You can identify the l
 
 **Conditions**:
 
-- CTS is not configured for [high availability](/docs/nia/usage/run-ha).
+- You called the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) without configuring CTS for [high availability](/docs/nia/usage/run-ha).
 
 **Resolution**:
 
