@@ -27,13 +27,13 @@ it will dump the current telemetry information to the agent's `stderr`.
 
 This telemetry information can be used for debugging or otherwise
 getting a better view of what Consul is doing. Review the [Monitoring and
-Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
+Metrics tutorial](https://learn.hashicorp.com/tutorials/consul/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
 
 Additionally, if the [`telemetry` configuration options](/docs/agent/config/config-files#telemetry)
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
 it can be aggregated and flushed to Graphite or any other metrics store.
-For a configuration example for Telegraf, review the [Monitoring with Telegraf tutorial](/consul/tutorials/day-2-operations/monitor-health-telegraf?utm_source=docs).
+For a configuration example for Telegraf, review the [Monitoring with Telegraf tutorial](https://learn.hashicorp.com/tutorials/consul/monitor-health-telegraf?utm_source=docs).
 
 This
 information can also be viewed with the [metrics endpoint](/api-docs/agent#view-metrics) in JSON

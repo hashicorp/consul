@@ -12,9 +12,9 @@ description: |-
 Connect enables secure service-to-service communication over mutual TLS. This
 provides both in-transit data encryption as well as authorization. This page
 will document how to secure Connect. To try Connect locally, complete the
-[Getting Started guide](/consul/tutorials/gs-consul-service-mesh/service-mesh?utm_source=docs) or for a full security model reference,
+[Getting Started guide](https://learn.hashicorp.com/tutorials/consul/service-mesh?utm_source=docs) or for a full security model reference,
 see the dedicated [Consul security model](/docs/security) page. When
-setting up Connect in production, review this [tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist?utm_source=docs).
+setting up Connect in production, review this [tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-production-checklist?utm_source=consul.io&utm_medium=docs).
 
 Connect will function in any Consul configuration. However, unless the checklist
 below is satisfied, Connect is not providing the security guarantees it was
@@ -36,7 +36,7 @@ configuration also forces all service-to-service communication to be explicitly
 allowed via an allow [intention](/docs/connect/intentions).
 
 To learn how to enable ACLs, please see the
-[tutorial on ACLs](/consul/tutorials/security/access-control-setup-production?utm_source=docs).
+[tutorial on ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 **If ACLs are enabled but are in default allow mode**, then services will be
 able to communicate by default. Additionally, if a proper anonymous token

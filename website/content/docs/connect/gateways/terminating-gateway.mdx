@@ -19,7 +19,7 @@ and forward requests to the appropriate destination.
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)
 
 For additional use cases and usage patterns, review the tutorial for
-[understanding terminating gateways](/consul/tutorials/developer-mesh/service-mesh-terminating-gateways?utm_source=docs).
+[understanding terminating gateways](https://learn.hashicorp.com/tutorials/consul/service-mesh-terminating-gateways?utm_source=docs).
 
 ~> **Known limitations:** Terminating gateways currently do not support targeting service subsets with
 [L7 configuration](/docs/connect/l7-traffic). They route to all instances of a service with no capabilities
@@ -79,7 +79,7 @@ a terminating gateway as long as they discover upstreams with the
 ## Running and Using a Terminating Gateway
 
 For a complete example of how to enable connections from services in the Consul service mesh to
-services outside the mesh, review the [terminating gateway tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services?utm_source=docs).
+services outside the mesh, review the [terminating gateway tutorial](https://learn.hashicorp.com/tutorials/consul/teminating-gateways-connect-external-services).
 
 ## Terminating Gateway Configuration
 
@@ -129,4 +129,4 @@ After you define a service-defaults configuration entry for each destination, yo
 If a service and a destination service-defaults have the same name, the terminating gateway will use the service.
 
 For a complete example of how to register external services review the
-[external services tutorial](/consul/tutorials/developer-discovery/service-registration-external-services?utm_source=docs).
+[external services tutorial](https://learn.hashicorp.com/tutorials/consul/service-registration-external-services).

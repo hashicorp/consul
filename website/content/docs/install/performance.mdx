@@ -112,9 +112,9 @@ Here are some general recommendations:
 - For DNS-heavy workloads, configuring all Consul agents in a cluster with the
   [`allow_stale`](/docs/agent/config/config-files#allow_stale) configuration option will allow reads to
   scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
-  for DNS by default. See [Stale Reads](/consul/tutorials/networking/dns-caching?utm_source=docs#stale-reads) in the
-  [DNS Caching](/consul/tutorials/networking/dns-caching?utm_source=docs) guide for more details. It's also good to set
-  reasonable, non-zero [DNS TTL values](/consul/tutorials/networking/dns-caching?utm_source=docs#ttl-values) if your clients will
+  for DNS by default. See [Stale Reads](https://learn.hashicorp.com/tutorials/consul/dns-caching#stale-reads) in the
+  [DNS Caching](https://learn.hashicorp.com/tutorials/consul/dns-caching) guide for more details. It's also good to set
+  reasonable, non-zero [DNS TTL values](https://learn.hashicorp.com/tutorials/consul/dns-caching#ttl-values) if your clients will
   respect them.
 
 - In other applications that perform high volumes of reads against Consul, consider using the

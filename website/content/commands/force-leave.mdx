@@ -57,7 +57,7 @@ consul force-leave ec2-001-staging
 ```
 
 When run on a server that is part of a
-[WAN gossip pool](/consul/tutorials/networking/federation-gossip-wan?utm_source=docs),
+[WAN gossip pool](https://learn.hashicorp.com/consul/security-networking/datacenters),
 `force-leave` can remove failed servers in other datacenters from the WAN pool.
 
 The identifying node-name in a WAN pool is `[node-name].[datacenter]`.

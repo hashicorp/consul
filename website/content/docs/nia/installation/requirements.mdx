@@ -25,13 +25,13 @@ Below are several steps towards a minimum Consul setup required for running CTS.
 
 CTS is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. CTS is not included with the Consul binary and needs to be installed separately.
 
-To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](/consul/tutorials/getting-started/get-started-install?utm_source=docs).
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=docs).
 
 For information on compatible Consul versions, refer to the [Consul compatibility matrix](/docs/nia/compatibility#consul).
 
 ### Run an Agent
 
-The Consul agent must be running in order to dynamically update network devices. To run the local Consul agent, you can run Consul in development mode which can be started with `consul agent -dev` for simplicity. For more details on running Consul agent, refer to the [Getting Started: Run the Consul Agent Tutorial](/consul/tutorials/getting-started/get-started-agent?utm_source=docs).
+The Consul agent must be running in order to dynamically update network devices. To run the local Consul agent, you can run Consul in development mode which can be started with `consul agent -dev` for simplicity. For more details on running Consul agent, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
 
 When running a Consul agent with CTS in production, we suggest to keep a few considerations in mind. CTS uses [blocking queries](/api-docs/features/blocking) to monitor task dependencies, like changes to registered services. This results in multiple long running TCP connections between CTS and the agent to poll changes for each dependency. Monitoring a high number of services may quickly hit the default Consul agent connection limits.
 
@@ -58,13 +58,13 @@ The above example registers a service named "web" with your Consul agent. This r
 
 For more details on registering a service by HTTP API request, refer to the [register service API docs](/api-docs/agent/service#register-service).
 
-For more details on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](/consul/tutorials/getting-started/get-started-service-discovery?utm_source=docs?in=consul/getting-started).
+For more details on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
 
 ### Run a Cluster
 
 The previous steps of installing and running a single Consul agent then registering a single service is sufficient to meaningfully start running CTS.
 
-If you would like to run a Consul cluster rather than a single agent, refer to [Getting Started: Create a Local Consul Datacenter](/consul/tutorials/getting-started/get-started-create-datacenter?utm_source=docs). This will walk you through the steps of running multiple Consul agents and then joining them together into a cluster.
+If you would like to run a Consul cluster rather than a single agent, refer to [Getting Started: Create a Local Consul Datacenter](https://learn.hashicorp.com/tutorials/consul/get-started-create-datacenter?in=consul/getting-started). This will walk you through the steps of running multiple Consul agents and then joining them together into a cluster.
 
 ## Network Infrastructure (using a Terraform Provider)
 

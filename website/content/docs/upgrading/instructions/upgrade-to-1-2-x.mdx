@@ -25,7 +25,7 @@ referring to them as DC1 and DC2. DC1 will be the primary datacenter.
 - You need a Consul cluster with at least 3 nodes to perform this upgrade as documented. If
   you either have a single node cluster or several single node clusters joined via WAN, the
   servers will come up in a `No cluster leader` loop after upgrading. If that happens, you will
-  need to recover the cluster using the method described [here](/consul/tutorials/datacenter-operations/recovery-outage?utm_source=docs#manual-recovery-using-peers-json).
+  need to recover the cluster using the method described [here](https://learn.hashicorp.com/tutorials/consul/recovery-outage#manual-recovery-using-peers-json).
   You can avoid this issue entirely by growing your cluster to 3 nodes prior to upgrading.
 
 ## Assumptions

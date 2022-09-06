@@ -17,7 +17,7 @@ page documents the system architecture.
 [glossary](/docs/install/glossary) of terms to help
 clarify what is being discussed.
 
-The architecture concepts in this document can be used with the [Reference Architecture guide](/consul/tutorials/production-deploy/reference-architecture?utm_source=docs) when deploying Consul in production.
+The architecture concepts in this document can be used with the [Reference Architecture guide](https://learn.hashicorp.com/tutorials/consul/reference-architecture?in=consul/production-deploy#deployment-system-requirements) when deploying Consul in production.
 
 ## 10,000 foot view
 
@@ -27,7 +27,7 @@ From a 10,000 foot altitude the architecture of Consul looks like this:
 
 Let's break down this image and describe each piece. First of all, we can see
 that there are two datacenters, labeled "one" and "two". Consul has first
-class support for [multiple datacenters](/consul/tutorials/networking/federation-gossip-wan?utm_source=docs) and
+class support for [multiple datacenters](https://learn.hashicorp.com/consul/security-networking/datacenters) and
 expects this to be the common case.
 
 Within each datacenter, we have a mixture of clients and servers. It is expected
@@ -67,7 +67,7 @@ an RPC request to the remote Consul servers for that resource and return the res
 If the remote datacenter is not available, then those resources will also not be
 available, but that won't otherwise affect the local datacenter. There are some special
 situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters?utm_source=docs) capability, or
+[ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
 In some places, client agents may cache data from the servers to make it

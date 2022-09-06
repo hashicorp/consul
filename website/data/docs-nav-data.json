@@ -731,27 +731,27 @@
             "routes": [
               {
                 "title": "Minikube",
-                "href": "/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs&utm_medium=docs&utm_content=k8s&utm_term=mk"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=docs&utm_medium=docs&utm_content=k8s&utm_term=mk"
               },
               {
                 "title": "Kind",
-                "href": "/consul/tutorials/kubernetes/kubernetes-kind?utm_source=docs&utm_content=k8s&utm_term=kind"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=docs&utm_content=k8s&utm_term=kind"
               },
               {
                 "title": "AKS (Azure)",
-                "href": "/consul/tutorials/kubernetes/kubernetes-aks-azure?utm_source=docs&utm_content=k8s&utm_term=aks"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=docs&utm_content=k8s&utm_term=aks"
               },
               {
                 "title": "EKS (AWS)",
-                "href": "/consul/tutorials/kubernetes/kubernetes-eks-aws?utm_source=docs&utm_content=k8s&utm_term=eks"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=docs&utm_content=k8s&utm_term=eks"
               },
               {
                 "title": "GKE (Google Cloud)",
-                "href": "/consul/tutorials/kubernetes/kubernetes-gke-google?utm_source=docs&utm_content=k8s&utm_term=gke"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=docs&utm_content=k8s&utm_term=gke"
               },
               {
                 "title": "Red Hat OpenShift",
-                "href": "/consul/tutorials/kubernetes/kubernetes-openshift-red-hat&utm_content=k8s&utm_term=openshift"
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat&utm_content=k8s&utm_term=openshift"
               },
               {
                 "title": "Self Hosted Kubernetes",

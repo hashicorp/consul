@@ -89,7 +89,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **API Gateway**
 
-- [Ambassador Integration documentation](/consul/tutorials/developer-mesh/service-mesh-gateway-ambassador?utm_source=docs)
+- [Ambassador Integration documentation](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador?utm_source=docs)
 - [F5 Terminating Gateway Integration Documentation](https://www.hashicorp.com/integrations/f5-networks/consul)
 - [Traefik Integration with Consul Service Mesh](https://traefik.io/blog/integrating-consul-connect-service-mesh-with-traefik-2-5/)
 - [Kong's Ingress Controller Integration with Consul](https://www.hashicorp.com/integrations/kong/consul)
@@ -109,10 +109,10 @@ Here are links to resources, documentation, examples and best practices to guide
 
 #### Platform:
 
-- [Consul-AWS for AWS Cloud Map](/consul/tutorials/cloud-integrations/sync-aws-services?utm_source=docs)
+- [Consul-AWS for AWS Cloud Map](https://learn.hashicorp.com/tutorials/consul/sync-aws-services?utm_source=docs)
 - [Consul Integration with AWS ECS](/docs/ecs/get-started/install)
 - [Consul Integration with Layer5 Meshery](https://www.hashicorp.com/integrations/layer5-io/consul)
-- [Consul Integration with VMware Tanzu Application Service](/consul/tutorials/cloud-integrations/sync-pivotal-cloud-services?utm_source=docs)
+- [Consul Integration with VMware Tanzu Application Service](https://learn.hashicorp.com/tutorials/consul/sync-pivotal-cloud-services?utm_source=docs)
 
 #### Infrastructure:
 
@@ -133,32 +133,32 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **Load Balancer**
 
-- [Load Balancing with NGINX and Consul Template](/consul/tutorials/load-balancing/load-balancing-nginx?utm_source=docs)
-- [Load Balancing with HAProxy Service Discovery](/consul/tutorials/load-balancing/load-balancing-haproxy?utm_source=docs)
+- [Load Balancing with NGINX and Consul Template](https://learn.hashicorp.com/tutorials/consul/load-balancing-nginx?utm_source=docs)
+- [Load Balancing with HAProxy Service Discovery](https://learn.hashicorp.com/tutorials/consul/load-balancing-haproxy?utm_source=docs)
 
   **Network Infrastructure Automation \(using CTS\):**
   
-  - [Automate F5 BIG-IP with Consul NIA](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-f5-bigip-fast?utm_source=docs)
+  - [Automate F5 BIG-IP with Consul NIA](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-f5-bigip-fast?utm_source=docs)
   - [Automate VMware Advanced Load Balancers (Avi) with Consul NIA](https://www.hashicorp.com/integrations/_vmware/consul)
 
 **Application Delivery Controllers \(ADC\):**
 
-- [Automate A10 ADC with Consul NIA](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-a10-adc?utm_source=docs)
+- [Automate A10 ADC with Consul NIA](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-a10-adc?utm_source=docs)
 - [Automate Citrix ADC with Consul NIA](https://www.hashicorp.com/integrations/citrix-adc/consul)
 
 ### 3. Develop and Test
 
 The only knowledge necessary to write a plugin is basic command-line skills and knowledge of the [Go programming language](http://www.golang.org). Use the plugin interface to develop your integration. All integrations should contain unit and acceptance testing.
 
-**HCP Consul**: The process to configure a testing instance of HCP consul [is very simple](/consul/tutorials/cloud-get-started/get-started-consul?utm_source=docs). HCP has been designed as a HashiCorp managed service so configuration is minimal as only Consul client agents need to be installed. Furthermore, HashiCorp provides all new users an initial credit which should last approximately 2 months using a [development cluster](https://cloud.hashicorp.com/pricing/consul). When deployed with AWS free tier services, there should be no cost beyond the time spent by the designated tester.
+**HCP Consul**: The process to configure a testing instance of HCP consul [is very simple](https://learn.hashicorp.com/tutorials/cloud/consul-introduction?utm_source=docs). HCP has been designed as a HashiCorp managed service so configuration is minimal as only Consul client agents need to be installed. Furthermore, HashiCorp provides all new users an initial credit which should last approximately 2 months using a [development cluster](https://cloud.hashicorp.com/pricing/consul). When deployed with AWS free tier services, there should be no cost beyond the time spent by the designated tester.
 
 Please note that HCP Consul is currently only deployed on AWS so the partner's application should be able to be deployed or run in AWS. For more information, please refer to [Peering an HVN to an AWS VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU). 
 
 #### HCP Consul Resource Links:
 
-- [Getting Started with HCP Consul](/consul/tutorials/cloud-get-started/get-started-consul?utm_source=docs)
+- [Getting Started with HCP Consul](https://learn.hashicorp.com/tutorials/cloud/consul-introduction?utm_source=docs)
 - [Peering an HVN to a VPC for HCP Consul](https://www.youtube.com/watch?v=vuKjkIGYZlU)
-- [Connecting a Consul Client to HCP Consul](/consul/tutorials/cloud-get-started/consul-client-aws-ec2?utm_source=docs)
+- [Connecting a Consul Client to HCP Consul](https://learn.hashicorp.com/tutorials/cloud/consul-client-aws-ec2?utm_source=docs)
 - [Monitoring HCP Consul with Datadog](https://docs.datadoghq.com/integrations/guide/hcp-consul/)
 
 **Consul Enterprise**: An integration qualifies for Consul Enterprise when it is tested and compatible with Consul Enterprise Namespaces.

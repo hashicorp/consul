@@ -33,7 +33,7 @@ connectivity between agent members on the same segment.
 
 ![Consul datacenter agent connectivity with network segments](/img/network-segments/consul-network-segments-multiple.png)
 
-Complete the [Network Segments](/consul/tutorials/datacenter-operations/network-partition-datacenters?utm_source=docs) tutorial to learn more about network segments.
+Complete the [Network Segments](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters) tutorial to learn more about network segments.
 
 -> **Info:** Network segments enable you to operate a Consul datacenter without full
 mesh (LAN) connectivity between agents. To federate multiple Consul datacenters
@@ -59,8 +59,8 @@ forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are two tutorials that
 will guide you through inter-cluster network models:
 
-1. [WAN gossip (OSS)](/consul/tutorials/networking/federation-gossip-wan?utm_source=docs)
-1. [Network Areas (Enterprise)](/consul/tutorials/datacenter-operations/federation-network-areas?utm_source=docs).
+1. [WAN gossip (OSS)](https://learn.hashicorp.com/consul/security-networking/datacenters)
+1. [Network Areas (Enterprise)](https://learn.hashicorp.com/tutorials/consul/federation-network-areas).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity
 among themselves, and use Serf to maintain a shared view of the members of the
@@ -83,7 +83,7 @@ Each additional segment is defined by:
   Serf LAN listener on the server
 
 ~> **Note:** Prior to Consul 1.7.3, a Consul server agent configured with too
-many network segments may not be able to start due to [limitations](/consul/tutorials/datacenter-operations/network-partition-datacenters?utm_source=docs#network-segments-limitations)
+many network segments may not be able to start due to [limitations](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters#network-segments-limitations)
 in Serf.
 
 ### Example Server Configuration

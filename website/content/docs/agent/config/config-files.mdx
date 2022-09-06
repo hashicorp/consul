@@ -106,7 +106,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/docs/agent/config/cli-flags#_alt_domain)
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
-  and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](/consul/tutorials/datacenter-operations/audit-logging?utm_source=docs).
+  and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](https://learn.hashicorp.com/tutorials/consul/audit-logging).
 
   <CodeTabs heading="Example audit configuration">
 
@@ -182,7 +182,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   respected on bootstrapping. If they are not provided, the defaults will be used.
   In order to change the value of these options after bootstrapping, you will need
   to use the [Consul Operator Autopilot](/commands/operator/autopilot)
-  command. For more information about Autopilot, review the [Autopilot tutorial](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations?utm_source=docs).
+  command. For more information about Autopilot, review the [Autopilot tutorial](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations).
 
   The following sub-keys are available:
 
@@ -495,7 +495,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     only works with API endpoints, not `/ui` or `/debug`, those must be disabled
     with their respective configuration options. Any CLI commands that use disabled
     endpoints will no longer function as well. For more general access control, Consul's
-    [ACL system](/consul/tutorials/security/access-control-setup-production?utm_source=docs)
+    [ACL system](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
     should be used, but this option is useful for removing access to HTTP API endpoints
     completely, or on specific agents. This is available in Consul 0.9.0 and later.
 
@@ -940,7 +940,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   This designates the datacenter which is authoritative for ACL information. It must be provided to enable ACLs. All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
-  of ACLs. Please review the [ACL tutorial](/consul/tutorials/security/access-control-setup-production?utm_source=docs) for more details.
+  of ACLs. Please review the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more details.
 
 - `acl_default_policy` ((#acl_default_policy_legacy)) - **Deprecated in Consul 1.4.0. See the [`acl.default_policy`](#acl_default_policy) field instead.**
   Either "allow" or "deny"; defaults to "allow". The default policy controls the
@@ -990,7 +990,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `acl_replication_token` ((#acl_replication_token_legacy)) - **Deprecated
   in Consul 1.4.0. See the [`acl.tokens.replication`](#acl_tokens_replication) field
   instead.** Only used for servers outside the [`primary_datacenter`](#primary_datacenter)
-  running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters?utm_source=docs)
+  running Consul 0.7 or later. When provided, this will enable [ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
   ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
@@ -1225,7 +1225,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 ## DNS and Domain Parameters
 
 - `dns_config` This object allows a number of sub-keys
-  to be set which can tune how DNS queries are serviced. Check the tutorial on [DNS caching](/consul/tutorials/networking/dns-caching?utm_source=docs) for more detail.
+  to be set which can tune how DNS queries are serviced. Check the tutorial on [DNS caching](https://learn.hashicorp.com/tutorials/consul/dns-caching) for more detail.
 
   The following sub-keys are available:
 

@@ -360,7 +360,7 @@ Use these links to navigate to a particular top-level stanza.
     See https://www.consul.io/docs/agent/config/cli-flags#_recursor for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
-  - `tls` ((#v-global-tls)) - Enables TLS (/consul/tutorials/security/tls-encryption-secure?utm_source=docs)
+  - `tls` ((#v-global-tls)) - Enables TLS (https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure?utm_source=docs)
     across the cluster to verify authenticity of the Consul servers and clients.
     Requires Consul v1.4.1+.
 
@@ -621,7 +621,7 @@ Use these links to navigate to a particular top-level stanza.
     Vault Secrets backend:
     If you are using Vault as a secrets backend, a Vault Policy must be created which allows `["create", "update"]`
     capabilities on the PKI issuing endpoint, which is usually of the form `pki/issue/consul-server`. 
-    Please refer the [Consul and Vault tutorial](/consul/tutorials/vault-secure/vault-pki-consul-secure-tls?utm_source=docs) for steps to generate a compatible certificate.
+    Please refer the [Consul and Vault tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-secure-tls?utm_source=docs) for steps to generate a compatible certificate.
     Note: when using TLS, both the `server.serverCert` and `global.tls.caCert` which points to the CA endpoint of this PKI engine
     must be provided.
 

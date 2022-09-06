@@ -233,7 +233,7 @@ The `consul acl set-agent-token master` subcommand has been replaced with
 
 The legacy ACL system that was deprecated in Consul 1.4.0 has been removed.
 Before upgrading you should verify that nothing is still using the legacy ACL
-system. Complete the [Migrate Legacy ACL Tokens](/consul/tutorials/security-operations/access-control-token-migration?utm_source=docs) tutorial to learn more.
+system. Complete the [Migrate Legacy ACL Tokens](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens) tutorial to learn more.
 
 Due to this removal the following endpoints no longer function:
 
@@ -522,7 +522,7 @@ Connect](#connect-multi-datacenter) in the Enterprise version.
 ### ACL Upgrade
 
 Consul 1.4.0 includes a [new ACL
-system](/consul/tutorials/security/access-control-setup-production?utm_source=docs)
+system](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
 that is designed to have a smooth upgrade path but requires care to upgrade
 components in the right order.
 
@@ -701,7 +701,7 @@ Consul 1.0 (and earlier versions of Consul when running with [Raft protocol
 3](/docs/agent/config/config-files#_raft_protocol) had an issue where performing
 rolling updates of Consul servers could result in an outage from old servers
 remaining in the cluster.
-[Autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations?utm_source=docs)
+[Autopilot](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations)
 would normally remove old servers when new ones come online, but it was also
 waiting to promote servers to voters in pairs to maintain an odd quorum size.
 The pairwise promotion feature was removed so that servers become voters as
@@ -721,7 +721,7 @@ Please be sure to read over all the details here before upgrading.
 
 The [`-raft-protocol`](/docs/agent/config/cli-flags#_raft_protocol) default has
 been changed from 2 to 3, enabling all
-[Autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations?utm_source=docs)
+[Autopilot](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations)
 features by default.
 
 Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers
@@ -732,7 +732,7 @@ Compatibility](/docs/upgrading/upgrade-specific#raft-protocol-version-compatibil
 for more details. Also the format of `peers.json` used for outage recovery is
 different when running with the latest Raft protocol. Review [Manual Recovery
 Using
-peers.json](/consul/tutorials/datacenter-operations/recovery-outage?utm_source=docs#manual-recovery-using-peers-json)
+peers.json](https://learn.hashicorp.com/tutorials/consul/recovery-outage#manual-recovery-using-peers-json)
 for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol
@@ -755,7 +755,7 @@ version 3, it will no longer allow servers running any older Raft protocol
 versions to be added. If running a single Consul server, restarting it in-place
 will result in that server not being able to elect itself as a leader. To avoid
 this, either set the Raft protocol back to 2, or use [Manual Recovery Using
-peers.json](/consul/tutorials/datacenter-operations/recovery-outage?utm_source=docs#manual-recovery-using-peers-json)
+peers.json](https://learn.hashicorp.com/tutorials/consul/recovery-outage#manual-recovery-using-peers-json)
 to map the server to its node ID in the Raft quorum configuration.
 
 #### Config Files Require an Extension
@@ -954,7 +954,7 @@ health checks.
 
 If your cluster uses script health checks please be sure to set this to `true`
 as part of upgrading agents. If this is set to `true`, you should also enable
-[ACLs](/consul/tutorials/security/access-control-setup-production?utm_source=docs)
+[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
 to provide control over which users are allowed to register health checks that
 could potentially execute scripts on the agent machines.
 
@@ -1039,7 +1039,7 @@ table of the Raft Protocol versions supported by each Consul version:
 | 0.8             | 1, 2, 3                  |
 
 In order to enable all
-[Autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations?utm_source=docs)
+[Autopilot](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations)
 features, all servers in a Consul datacenter must be running with Raft protocol
 version 3 or later.
 
@@ -1162,7 +1162,7 @@ the file. Consul 0.7 also uses a new, automatically-created raft/peers.info file
 to avoid ingesting the `peers.json` file on the first start after upgrading (the
 `peers.json` file is simply deleted on the first start after upgrading).
 
-Please be sure to review the [Outage Recovery tutorial](/consul/tutorials/datacenter-operations/recovery-outage?utm_source=docs)
+Please be sure to review the [Outage Recovery tutorial](https://learn.hashicorp.com/tutorials/consul/recovery-outage)
 before upgrading for more details.
 
 ## Consul 0.6.4
