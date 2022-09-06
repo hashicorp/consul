@@ -120,3 +120,24 @@ Identify and send the request to the leader CTS instance. You can identify the l
 **Resolution**:
 
 Configure CTS to run in [high availability mode](/docs/nia/usage/run-ha).
+
+---
+
+**Error**:
+
+```json
+{
+  "error": {
+    "message": "example error message: unsupported status parameter value"
+  }
+}
+```
+
+**Conditions**: 
+
+- You sent a request to the `status` API endpoint.
+- The request included an unsupported parameter value.
+
+**Resolution**:
+
+Send a new request and verify that all of the parameter values are correct.
