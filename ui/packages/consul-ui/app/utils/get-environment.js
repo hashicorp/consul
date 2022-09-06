@@ -192,7 +192,7 @@ export default function(config = {}, win = window, doc = document) {
     }
   };
   const ui = function(key) {
-    let $;
+    let $ = {};
     switch (config.environment) {
       case 'development':
       case 'staging':
@@ -227,15 +227,28 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_UI_CONFIG':
               prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
               break;
+            case 'TokenSecretID':
+              prev['CONSUL_HTTP_TOKEN'] = value;
+              break;
             default:
               prev[key] = value;
           }
           return prev;
         }, {});
-        if (typeof $[key] !== 'undefined') {
-          return $[key];
-        }
         break;
+      case 'production':
+        $ = dev().reduce(function(prev, [key, value]) {
+          switch (key) {
+            case 'TokenSecretID':
+              prev['CONSUL_HTTP_TOKEN'] = value;
+              break;
+          }
+          return prev;
+        }, {});
+        break;
+    }
+    if (typeof $[key] !== 'undefined') {
+      return $[key];
     }
     return config[key];
   };
