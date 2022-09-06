@@ -140,7 +140,6 @@ func TestAutopilotStateToReadyServers(t *testing.T) {
 func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	expected := EventPayloadReadyServers{
 		{
-
 			ID:              "792ae13c-d765-470b-852c-e073fdb6e849",
 			Address:         "198.18.0.2",
 			TaggedAddresses: map[string]string{"wan": "5.4.3.2"},
@@ -225,6 +224,104 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	).Once().Return(
 		uint64(0),
 		nil,
+		nil,
+	)
+
+	r := NewReadyServersEventPublisher(Config{
+		GetStore: func() StateStore { return store },
+	})
+
+	actual := r.autopilotStateToReadyServers(exampleState)
+	require.ElementsMatch(t, expected, actual)
+}
+
+func TestAutopilotStateToReadyServersWithExtGRPCPort(t *testing.T) {
+	expected := EventPayloadReadyServers{
+		{
+			ID:          "792ae13c-d765-470b-852c-e073fdb6e849",
+			Address:     "198.18.0.2",
+			ExtGRPCPort: 1234,
+			Version:     "v1.12.0",
+		},
+		{
+			ID:          "65e79ff4-bbce-467b-a9d6-725c709fa985",
+			Address:     "198.18.0.3",
+			ExtGRPCPort: 2345,
+			Version:     "v1.12.0",
+		},
+		{
+			ID:          "db11f0ac-0cbe-4215-80cc-b4e843f4df1e",
+			Address:     "198.18.0.4",
+			ExtGRPCPort: 3456,
+			Version:     "v1.12.0",
+		},
+	}
+
+	store := &MockStateStore{}
+	t.Cleanup(func() { store.AssertExpectations(t) })
+	store.On("GetNodeID",
+		types.NodeID("792ae13c-d765-470b-852c-e073fdb6e849"),
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Times(2).Return(
+		uint64(0),
+		&structs.Node{Node: "node-1"},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-1",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		&structs.NodeService{Meta: map[string]string{"grpc_port": "1234"}},
+		nil,
+	)
+
+	store.On("GetNodeID",
+		types.NodeID("65e79ff4-bbce-467b-a9d6-725c709fa985"),
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Times(2).Return(
+		uint64(0),
+		&structs.Node{Node: "node-2"},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-2",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		&structs.NodeService{Meta: map[string]string{"grpc_port": "2345"}},
+		nil,
+	)
+
+	store.On("GetNodeID",
+		types.NodeID("db11f0ac-0cbe-4215-80cc-b4e843f4df1e"),
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Times(2).Return(
+		uint64(0),
+		&structs.Node{Node: "node-3"},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"node-3",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Once().Return(
+		uint64(0),
+		&structs.NodeService{Meta: map[string]string{"grpc_port": "3456"}},
 		nil,
 	)
 
