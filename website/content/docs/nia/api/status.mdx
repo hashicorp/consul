@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/docs/nia/tasks#status-information).
 
-If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/status` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
+If CTS is configured [for high availability](/docs/nia/usage/run-ha), you can send a request to the [`/status/cluster` endpoint](#cluster-status) of any instance to get information about the cluster. Requests to the `status` endpoint return a 400 error, however, if high availability is enabled and the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
 
 ## Status for all tasks
 
@@ -19,13 +19,12 @@ This endpoint returns the overall status information for all tasks.
 | `GET`  | `/status` | `application/json` |
 
 ### Request parameters
-Currently no request parameters are offered for the overall status API.
+
+No request parameters are available for this endpoint.
 
 ### Response statuses
 
-| Status | Reason           |
-| ------ | ---------------- |
-| 200    | Successfully retrieved the status |
+- `200`: Successfully retrieved the status. 
 
 ### Response fields
 
@@ -89,10 +88,8 @@ Task health status value is determined by the success or failure of all stored [
 
 ### Response statuses
 
-| Status | Reason           |
-| ------ | ---------------- |
-| 200  | Successfully retrieved the task status |
-| 404  | Task with the given name not found |
+- `200`: Successfully retrieved the task status 
+- `404`: Task with the given name not found 
 
 ### Response fields
 
@@ -232,7 +229,7 @@ Response:
 
 ## Cluster status
 
-The `/v1/status/cluster` API endpoint returns information about the cluster and member instances, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/docs/nia/usage/errors-ref) for information about CTS error messages. 
+The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/docs/nia/usage/errors-ref) for information about CTS error messages. 
 
 | Method | Path              | Response format    |
 | ------ | ----------------- | ------------------ |
@@ -248,16 +245,24 @@ Currently no request parameters are offered for the overall status API.
 
 ### Response fields
 
+The following table describes the responses that the `status/cluster` endpoint can send. 
+
 | Field | Type | Description |
 | --- | ---- | --- |
 | `cluster_name` | string | Identifies the name of the cluster. |
-| `members` | list | Contains the CTS instance objects. |
-| `members.address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured. Refer to the [high availability instance configuration](/docs/nia/configuration#high-availability-instance) reference for additional information. |
-| `members.healthy` | Boolean | Indicates the health of the instance. |
-| `members.id` | string | Indicates the instance ID. |
-| `members.leader` | Boolean | Identifies the cluster leader. |
-| `members.service_name` | string | Identifies the name of the service that the instance represents. The value should always be `consul-terraform-sync`. |
-| `request_id` | string | Unique identifier for the request. |
+| `members` | array | Contains an array of [member objects](#member-objects). Each object in the `members` array represents a CTS instance. |
+
+#### Member objects
+
+The following table describes the fields available for objects in the `members` array.  
+
+| Field | Type | Description |
+| --- | ---- | --- |
+| `address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured on the leader instance. Refer to the [high availability instance configuration](/docs/nia/configuration#high-availability-instance) reference for additional information. |
+| `healthy` | boolean | Indicates the health of the service instance health. Refer to [Service Registration](#/docs/nia/configuration#service-registration) for additional information. |
+| `id` | string | Indicates the service registration ID. Refer to [Service Registration](#/docs/nia/configuration#service-registration) for additional information. |
+| `leader` | boolean | Identifies the cluster leader. |
+| `service_name` | string | Identifies the name of the service that the instance represents. Refer to [Service Registration](#/docs/nia/configuration#service-registration) for additional information. Default is `consul-terraform-sync`. |
 
 ### Example
 
@@ -267,7 +272,7 @@ The following command calls the `/status/cluster` endpoint:
 $ curl –request GET http://localhost:8553/v1/status/cluster
 ```
 
-The following example response shows that there are three CTS instances. The cluster is located at `cts-02.example.com`. The leader instance, `cts-02`, is the only healthy instance: 
+The following example response shows three CTS instances. The cluster leader is `cts-02` and is advertising that its address is `cts-02.example.com`: 
 
 ```json
 {
@@ -281,13 +286,13 @@ The following example response shows that there are three CTS instances. The clu
       "service_name": "consul-terraform-sync"
     },
     {
-      "healthy": false,
+      "healthy": true,
       "id": "cts-03",
       "leader": false,
       "service_name": "consul-terraform-sync"
     },
     {
-      "healthy": false,
+      "healthy": true,
       "id": "cts-01",
       "leader": false,
       "service_name": "consul-terraform-sync"
@@ -295,3 +300,4 @@ The following example response shows that there are three CTS instances. The clu
   ],
   "request_id": "e1bc2236-3d0e-5f5e-dc51-164a1cf6da88"
 }
+```
