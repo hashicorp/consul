@@ -103,7 +103,15 @@ export default function (name, method, service, stub, test, assert) {
     } else {
       // we are dealing with a single record
       if (typeof response.get === 'function') {
-        actual = get(response, 'data');
+        const data = get(response, 'data');
+
+        if (data) {
+          // we were dealing with a proxy
+          actual = data;
+        } else {
+          // we are dealing with a model instance we need to iterate attributes
+          actual = getProperties(response, recordAttributes(response));
+        }
       } else {
         actual = response;
       }
