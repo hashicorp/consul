@@ -108,7 +108,7 @@
     "ember-cli-flash": "^2.1.1",
     "ember-cli-htmlbars": "^5.2.0",
     "ember-cli-inject-live-reload": "^2.0.2",
-    "ember-cli-page-object": "^1.16.2",
+    "ember-cli-page-object": "^1.17.10",
     "ember-cli-sass": "^10.0.1",
     "ember-cli-sri": "^2.1.1",
     "ember-cli-string-helpers": "^5.0.0",

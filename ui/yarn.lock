@@ -6530,7 +6530,7 @@ ember-cli-babel@^6.0.0, ember-cli-babel@^6.0.0-beta.4, ember-cli-babel@^6.11.0, 
     ember-cli-version-checker "^2.1.2"
     semver "^5.5.0"
 
-ember-cli-babel@^7.13.2, ember-cli-babel@^7.26.3, ember-cli-babel@^7.26.5:
+ember-cli-babel@^7.13.2, ember-cli-babel@^7.26.1, ember-cli-babel@^7.26.3, ember-cli-babel@^7.26.5:
   version "7.26.11"
   resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-7.26.11.tgz#50da0fe4dcd99aada499843940fec75076249a9f"
   integrity sha512-JJYeYjiz/JTn34q7F5DSOjkkZqy8qwFOOxXfE6pe9yEJqWGu4qErKxlz8I22JoVEQ/aBUO+OcKTpmctvykM9YA==
@@ -6781,15 +6781,15 @@ ember-cli-normalize-entity-name@^1.0.0:
   dependencies:
     silent-error "^1.0.0"
 
-ember-cli-page-object@^1.16.2:
-  version "1.17.7"
-  resolved "https://registry.yarnpkg.com/ember-cli-page-object/-/ember-cli-page-object-1.17.7.tgz#a35c4cc1ece147e9752604cbc2266038660a84f6"
-  integrity sha512-sp7lunZa9p57cNm6og86F12SBx5Tt/7dWndfIKGE9Kol3QP2/72qiUVauhbfoUDSjfYLG2xEAFWDbiLHPMPYsg==
+ember-cli-page-object@^1.17.10:
+  version "1.17.10"
+  resolved "https://registry.yarnpkg.com/ember-cli-page-object/-/ember-cli-page-object-1.17.10.tgz#a3145c7b0341e6180dab28e10c858f8b6535e66a"
+  integrity sha512-J7OQZ4IWftHLunsCicFbaVb/GrI+/DMWMPO5EAca9+0x9K+rxml351Tl1Z/Fpr8UmHg1q/KGwqGx9xGodrRxbg==
   dependencies:
     broccoli-file-creator "^2.1.1"
     broccoli-merge-trees "^2.0.0"
     ceibo "~2.0.0"
-    ember-cli-babel "^6.16.0"
+    ember-cli-babel "^7.26.1"
     ember-cli-node-assets "^0.2.2"
     ember-native-dom-helpers "^0.7.0"
     jquery "^3.4.1"
