@@ -52,13 +52,6 @@ Feature: dc / services / show-routing: Show Routing for Service
       service: service-1
     ---
     And I see routing on the tabs
-    # something weird is going on with this test
-    # without waiting we issue a url reload that
-    # will make the test timeout.
-    # waiting will "fix" this - we should look into
-    # the underlying reason for this soon. This is
-    # only a quick-fix to land ember-qunit v5.
-    And pause for 1000
     And I visit the service page for yaml
     ---
       dc: dc1
