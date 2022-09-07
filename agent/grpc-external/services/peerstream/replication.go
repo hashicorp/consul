@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
@@ -35,7 +36,6 @@ import (
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
 func makeServiceResponse(
-	logger hclog.Logger,
 	mst *MutableStatus,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
@@ -87,7 +87,6 @@ func makeServiceResponse(
 }
 
 func makeCARootsResponse(
-	logger hclog.Logger,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
 	any, _, err := marshalToProtoAny[*pbpeering.PeeringTrustBundle](update.Result)
@@ -100,6 +99,24 @@ func makeCARootsResponse(
 		// TODO(peering): Nonce management
 		Nonce:      "",
 		ResourceID: "roots",
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
+	}, nil
+}
+
+func makeServerAddrsResponse(
+	update cache.UpdateEvent,
+) (*pbpeerstream.ReplicationMessage_Response, error) {
+	any, _, err := marshalToProtoAny[*pbpeering.PeeringServerAddresses](update.Result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal: %w", err)
+	}
+
+	return &pbpeerstream.ReplicationMessage_Response{
+		ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: "server-addrs",
 		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
 		Resource:   any,
 	}, nil
@@ -127,7 +144,6 @@ func (s *Server) processResponse(
 	partition string,
 	mutableStatus *MutableStatus,
 	resp *pbpeerstream.ReplicationMessage_Response,
-	logger hclog.Logger,
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
@@ -151,7 +167,7 @@ func (s *Server) processResponse(
 			), err
 		}
 
-		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource, logger); err != nil {
+		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -163,7 +179,7 @@ func (s *Server) processResponse(
 		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	case pbpeerstream.Operation_OPERATION_DELETE:
-		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, logger); err != nil {
+		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -196,7 +212,6 @@ func (s *Server) handleUpsert(
 	resourceURL string,
 	resourceID string,
 	resource *anypb.Any,
-	logger hclog.Logger,
 ) error {
 	if resource.TypeUrl != resourceURL {
 		return fmt.Errorf("mismatched resourceURL %q and Any typeUrl %q", resourceURL, resource.TypeUrl)
@@ -229,15 +244,23 @@ func (s *Server) handleUpsert(
 
 		return s.handleUpsertRoots(peerName, partition, roots)
 
+	case pbpeerstream.TypeURLPeeringServerAddresses:
+		addrs := &pbpeering.PeeringServerAddresses{}
+		if err := resource.UnmarshalTo(addrs); err != nil {
+			return fmt.Errorf("failed to unmarshal resource: %w", err)
+		}
+
+		return s.handleUpsertServerAddrs(peerName, partition, addrs)
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
 	}
 }
 
 // handleUpdateService handles both deletion and upsert events for a service.
-// 	On an UPSERT event:
-// 		- All nodes, services, checks in the input pbNodes are re-applied through Raft.
-// 		- Any nodes, services, or checks in the catalog that were not in the input pbNodes get deleted.
+//
+//	On an UPSERT event:
+//		- All nodes, services, checks in the input pbNodes are re-applied through Raft.
+//		- Any nodes, services, or checks in the catalog that were not in the input pbNodes get deleted.
 //
 //	On a DELETE event:
 //		- A reconciliation against nil or empty input pbNodes leads to deleting all stored catalog resources
@@ -449,13 +472,39 @@ func (s *Server) handleUpsertRoots(
 	return s.Backend.PeeringTrustBundleWrite(req)
 }
 
+func (s *Server) handleUpsertServerAddrs(
+	peerName string,
+	partition string,
+	addrs *pbpeering.PeeringServerAddresses,
+) error {
+	q := state.Query{
+		Value:          peerName,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition),
+	}
+	_, existing, err := s.GetStore().PeeringRead(nil, q)
+	if err != nil {
+		return fmt.Errorf("failed to read peering: %w", err)
+	}
+	if existing == nil || !existing.IsActive() {
+		return fmt.Errorf("peering does not exist or has been marked for deletion")
+	}
+
+	// Clone to avoid mutating the existing data
+	p := proto.Clone(existing).(*pbpeering.Peering)
+	p.PeerServerAddresses = addrs.GetAddresses()
+
+	req := &pbpeering.PeeringWriteRequest{
+		Peering: p,
+	}
+	return s.Backend.PeeringWrite(req)
+}
+
 func (s *Server) handleDelete(
 	peerName string,
 	partition string,
 	mutableStatus *MutableStatus,
 	resourceURL string,
 	resourceID string,
-	logger hclog.Logger,
 ) error {
 	switch resourceURL {
 	case pbpeerstream.TypeURLExportedService:
