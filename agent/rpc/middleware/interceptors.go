@@ -51,7 +51,7 @@ func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC strin
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
 	elapsed := time.Since(start).Microseconds()
-	elapsedMs := math.Round(float64(elapsed) / math.Pow(10, 6))
+	elapsedMs := float64(elapsed) / math.Pow(10, 3)
 	reqType := requestType(request)
 	isLeader := r.getServerLeadership()
 
