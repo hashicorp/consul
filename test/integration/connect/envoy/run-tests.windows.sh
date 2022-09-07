@@ -20,7 +20,7 @@ XDS_TARGET=${XDS_TARGET:-server}
 ENVOY_VERSION=${ENVOY_VERSION:-"1.22.1"}
 export ENVOY_VERSION
 
-export DOCKER_BUILDKIT=1
+export DOCKER_BUILDKIT=0
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -220,7 +220,7 @@ function start_consul {
       -grpc-port -1 \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
-    
+
     docker.exe run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -332,14 +332,11 @@ function verify {
 
   # need to tell the PID 1 inside of the container that it won't be actual PID
   # 1 because we're using --pid=host so we use TINI_SUBREAPER
-  if docker.exe run --name envoy_verify-${CLUSTER}_1 -t \
-    -e TINI_SUBREAPER=1 \
-    -e ENVOY_VERSION \
-    $WORKDIR_SNIPPET \
-    --pid=host \
-    $(network_snippet $CLUSTER) \
-    bats-verify \
-    --pretty ${CLUSTER}/bats ; then
+  if docker.exe exec -i ${SINGLE_CONTAINER_BASE_NAME}-${CLUSTER}_1 bash -c "TINI_SUBREAPER=1 \
+                                                                            ENVOY_VERSION=${ENVOY_VERSION} \
+                                                                            /c/bats/bin/bats \
+                                                                            --pretty \
+                                                                            /c/workdir/${CLUSTER}/bats" ; then
     echogreen "✓ PASS"
   else
     echored "⨯ FAIL"
@@ -433,7 +430,7 @@ function wipe_volumes {
 function stop_and_copy_files {
     # Create CMD file to execute within the container
     echo "XCOPY C:\workdir_bak C:\workdir /e /h /c /i /y" > copy.cmd
-    # Stop dummy container to copy local workdir to container's workdir_bak    
+    # Stop dummy container to copy local workdir to container's workdir_bak
     docker.exe stop envoy_workdir_1
     docker.exe cp workdir/. envoy_workdir_1:/workdir_bak
     # Copy CMD file into container
@@ -560,18 +557,6 @@ function suite_setup {
         --net=none \
         "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
-
-    # pre-build the verify container
-    echo "Rebuilding 'bats-verify' image..."
-    
-    docker.exe build -t bats-verify -f Dockerfile-bats-windows .
-
-    # if this fails on CircleCI your first thing to try would be to upgrade
-    # the machine image to the latest version using this listing:
-    #
-    # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
-    echo "Checking bats image..."
-    docker.exe run --rm -t bats-verify -v
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
