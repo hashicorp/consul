@@ -507,9 +507,9 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains[fooSN] = fooChain
 		discoChains[barSN] = barChain
 		discoChains[girSN] = girChain
-		endpoints[fooSN] = TestUpstreamNodes(t, "foo")
-		endpoints[barSN] = TestUpstreamNodes(t, "bar")
-		endpoints[girSN] = TestUpstreamNodes(t, "gir")
+		endpoints[fooSN] = TestUpstreamNodes(t, "foo", structs.ConnectProxyConfig{})
+		endpoints[barSN] = TestUpstreamNodes(t, "bar", structs.ConnectProxyConfig{})
+		endpoints[girSN] = TestUpstreamNodes(t, "gir", structs.ConnectProxyConfig{})
 
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{
@@ -605,8 +605,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		needPeerA = true
 		needLeaf = true
 		discoChains[dbSN] = dbChain
-		endpoints[dbSN] = TestUpstreamNodes(t, "db")
-		endpoints[altSN] = TestUpstreamNodes(t, "alt")
+		endpoints[dbSN] = TestUpstreamNodes(t, "db", structs.ConnectProxyConfig{})
+		endpoints[altSN] = TestUpstreamNodes(t, "alt", structs.ConnectProxyConfig{})
 
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{

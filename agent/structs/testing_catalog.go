@@ -42,14 +42,15 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 
 // TestNodeService returns a *NodeService representing a valid regular service: "web".
 func TestNodeService(t testing.T) *NodeService {
-	return TestNodeServiceWithName(t, "web")
+	return TestNodeServiceWithName(t, "web", ConnectProxyConfig{})
 }
 
-func TestNodeServiceWithName(t testing.T, name string) *NodeService {
+func TestNodeServiceWithName(t testing.T, name string, proxyConfig ConnectProxyConfig) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,
 		Port:    8080,
+		Proxy:   proxyConfig,
 	}
 }
 

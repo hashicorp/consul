@@ -192,7 +192,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			setup: func(t *testing.T, dataSources *TestDataSources) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
 				dataSources.Health.Set(dbHealthReq, &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, db.Name),
+					Nodes: TestUpstreamNodes(t, db.Name, structs.ConnectProxyConfig{}),
 				})
 				dataSources.CompiledDiscoveryChain.Set(dbChainReq, &structs.DiscoveryChainResponse{
 					Chain: dbDefaultChain(),
@@ -217,7 +217,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						},
 						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {
-								"db.default.default.dc1": TestUpstreamNodes(t, db.Name),
+								"db.default.default.dc1": TestUpstreamNodes(t, db.Name, structs.ConnectProxyConfig{}),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
@@ -251,7 +251,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			setup: func(t *testing.T, dataSources *TestDataSources) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
 				dataSources.Health.Set(db_v1_HealthReq, &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, db.Name),
+					Nodes: TestUpstreamNodes(t, db.Name, structs.ConnectProxyConfig{}),
 				})
 				dataSources.Health.Set(db_v2_HealthReq, &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodesAlternate(t),
@@ -279,7 +279,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						},
 						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {
-								"v1.db.default.default.dc1": TestUpstreamNodes(t, db.Name),
+								"v1.db.default.default.dc1": TestUpstreamNodes(t, db.Name, structs.ConnectProxyConfig{}),
 								"v2.db.default.default.dc1": TestUpstreamNodesAlternate(t),
 							},
 						},

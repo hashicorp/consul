@@ -28,7 +28,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -141,7 +141,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -245,7 +245,7 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -335,7 +335,7 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -473,7 +473,7 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -584,7 +584,7 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 	}
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -677,7 +677,7 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 	}
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{

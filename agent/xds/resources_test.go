@@ -126,7 +126,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		{
 			name: "defaults",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -136,7 +136,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 					// This test is only concerned about the SPIFFE cert validator config in the public listener
 					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
 					ns.Proxy.Upstreams = structs.Upstreams{}
-				}, []proxycfg.UpdateEvent{
+				}, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "peering-trust-bundles",
 						Result:        proxycfg.TestPeerTrustBundles(t),

@@ -48,6 +48,7 @@ import (
 )
 
 const virtualIPTag = "virtual"
+const defaultEnvoyLocalRequestTimeoutMs = 15000
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -73,12 +74,6 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 1)
 	var err error
-
-	// Configure inbound listener.
-	resources[0], err = s.makeInboundListener(cfgSnap, PublicListenerName)
-	if err != nil {
-		return nil, err
-	}
 
 	// This outboundListener is exclusively used when transparent proxy mode is active.
 	// In that situation there is a single listener where we are redirecting outbound traffic,
@@ -134,6 +129,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		return upstream, !implicit && !explicit
 	}
 
+	minUpstreamLocalRequestTimeoutMs := defaultEnvoyLocalRequestTimeoutMs
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg, skip := getUpstream(uid)
 
@@ -195,6 +191,17 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 			resources = append(resources, upstreamListener)
 
+			endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
+			for _, ep := range endpoints {
+				upstreamReqTimeoutMs := defaultEnvoyLocalRequestTimeoutMs
+				if _, ok := ep.Service.Proxy.Config["local_request_timeout_ms"]; ok {
+					upstreamReqTimeoutMs = int(ep.Service.Proxy.Config["local_request_timeout_ms"].(float64))
+				}
+
+				if upstreamReqTimeoutMs < minUpstreamLocalRequestTimeoutMs {
+					minUpstreamLocalRequestTimeoutMs = upstreamReqTimeoutMs
+				}
+			}
 			// Avoid creating filter chains below for upstreams that have dedicated listeners
 			continue
 		}
@@ -259,6 +266,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 	}
+
+	// Configure inbound listener.
+	resources[0], err = s.makeInboundListener(cfgSnap, PublicListenerName, minUpstreamLocalRequestTimeoutMs)
+	if err != nil {
+		return nil, err
+	}
+
 	requiresTLSInspector := false
 	requiresHTTPInspector := false
 
@@ -1145,7 +1159,7 @@ func makeSpiffeValidatorConfig(trustDomain, roots string, peerBundles []*pbpeeri
 	return ptypes.MarshalAny(cfg)
 }
 
-func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name string) (proto.Message, error) {
+func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name string, minUpstreamLocalRequestTimeoutMs int) (proto.Message, error) {
 	var l *envoy_listener_v3.Listener
 	var err error
 
@@ -1226,6 +1240,12 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	if cfg.ListenerTracingJSON != "" {
 		if tracing, err = makeTracingFromUserConfig(cfg.ListenerTracingJSON); err != nil {
 			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		}
+	}
+
+	if cfg.LocalRequestTimeoutMs == nil {
+		if minUpstreamLocalRequestTimeoutMs < defaultEnvoyLocalRequestTimeoutMs {
+			cfg.LocalRequestTimeoutMs = &minUpstreamLocalRequestTimeoutMs
 		}
 	}
 

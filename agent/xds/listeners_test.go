@@ -2,6 +2,7 @@ package xds
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -18,6 +19,98 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
+
+func TestListenersFromSnapshot2(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	tests := []struct {
+		name   string
+		create func(t testinf.T) *proxycfg.ConfigSnapshot
+		// Setup is called before the test starts. It is passed the snapshot from
+		// TestConfigSnapshot and is allowed to modify it in any way to setup the
+		// test input.
+		setup              func(snap *proxycfg.ConfigSnapshot)
+		overrideGoldenName string
+		generatorSetup     func(*ResourceGenerator)
+	}{
+		{
+			name: "http-upstream-local-request-timeout-rs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+					ns.Proxy.Config["protocol"] = "http"
+				}, structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"local_request_timeout_ms": float64(9000),
+						"protocol":                 "grpc",
+					},
+				}, nil)
+			},
+		},
+	}
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
+
+					// TODO: it would be nice to be able to ensure these snapshots are always valid before we use them in a test.
+					// require.True(t, snap.Valid())
+
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golder files for every test case and so not be any use!
+					setupTLSRootsAndLeaf(t, snap)
+
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
+					g.ProxyFeatures = sf
+					if tt.generatorSetup != nil {
+						tt.generatorSetup(g)
+					}
+
+					listeners, err := g.listenersFromSnapshot(snap)
+					require.NoError(t, err)
+
+					// The order of listeners returned via LDS isn't relevant, so it's safe
+					// to sort these for the purposes of test comparisons.
+					sort.Slice(listeners, func(i, j int) bool {
+						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
+					})
+
+					r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
+					require.NoError(t, err)
+
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
+
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
+
+						expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
+						require.JSONEq(t, expectedJSON, gotJSON)
+					})
+				})
+			}
+		})
+		break
+	}
+}
 
 func TestListenersFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
@@ -40,7 +133,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -59,7 +152,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -78,7 +171,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -97,7 +190,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -121,7 +214,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -129,7 +222,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_port"] = 8888
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -138,7 +231,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
 					ns.Proxy.Config["bind_port"] = 8888
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -149,7 +242,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].LocalBindPort = 0
 					ns.Proxy.Upstreams[0].LocalBindSocketPath = "/tmp/service-mesh/client-1/grpc-employee-server"
 					ns.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -157,7 +250,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 222
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -165,7 +258,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -174,7 +267,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t,
 					func(ns *structs.NodeService) {
 						ns.Proxy.Config["protocol"] = "http"
-					},
+					}, structs.ConnectProxyConfig{},
 					[]proxycfg.UpdateEvent{
 						{
 							CorrelationID: "mesh",
@@ -196,7 +289,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Config["local_request_timeout_ms"] = 2345
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -204,7 +297,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -215,7 +308,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -227,7 +320,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -240,7 +333,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Name:                      "custom-public-listen",
 							HTTPConnectionManagerName: httpConnectionManagerNewName,
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -252,7 +345,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -266,7 +359,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							// Attempt to override the TLS context should be ignored
 							TLSContext: `"allowRenegotiation": false`,
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -288,7 +381,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Name: uid.EnvoyID() + ":custom-upstream",
 							})
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -406,7 +499,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						v.DestinationNamespace = structs.WildcardSpecifier
 						v.DestinationName = structs.WildcardSpecifier
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -778,7 +871,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 	}

@@ -31,7 +31,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 			paymentsUpstream,
 			refundsUpstream,
 		}
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: peerTrustBundleIDPrefix + "cloud",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -148,7 +148,7 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 			noEndpointsUpstream,
 			apiAUpstream,
 		}
-	}, []UpdateEvent{
+	}, structs.ConnectProxyConfig{}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{

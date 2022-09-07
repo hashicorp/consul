@@ -37,7 +37,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -56,7 +56,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -75,7 +75,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -94,7 +94,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -121,7 +121,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "mylocal",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -132,7 +132,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "myservice",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -157,7 +157,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							// Attempt to override the TLS context should be ignored
 							TLSContext: `"allowRenegotiation": false`,
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -166,7 +166,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						"max_failures":              float64(5),
 						"interval":                  float64(10),
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -186,7 +186,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 3456
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -206,7 +206,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_connections": 500,
 						}
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -224,7 +224,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 0,
 						}
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -242,7 +242,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 700,
 						}
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -344,7 +344,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.LocalServiceAddress = ""
 					ns.Proxy.LocalServicePort = 0
 					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{

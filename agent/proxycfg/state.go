@@ -245,19 +245,19 @@ type kindHandler interface {
 // registration state and returns a chan to observe updates to the
 // ConfigSnapshot that contains all necessary config state. The chan is closed
 // when the state is Closed.
-func (s *state) Watch() (<-chan ConfigSnapshot, error) {
+func (s *state) Watch() error {
 	var ctx context.Context
 	ctx, s.cancel = context.WithCancel(context.Background())
 
 	snap, err := s.handler.initialize(ctx)
 	if err != nil {
 		s.cancel()
-		return nil, err
+		return err
 	}
 
 	go s.run(ctx, &snap)
 
-	return s.snapCh, nil
+	return nil
 }
 
 // Close discards the state and stops any long-running watches.
