@@ -138,6 +138,8 @@ export default function(config = {}, win = window, doc = document) {
         // make and API request so this specific variable should never be be
         // retrived via an API request
         return operatorConfig.APIPrefix;
+      case 'CONSUL_HCP_URL':
+        return operatorConfig.HCPURL;
       case 'CONSUL_UI_CONFIG':
         dashboards = {
           service: undefined,
@@ -253,6 +255,7 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_DATACENTER_LOCAL':
       case 'CONSUL_DATACENTER_PRIMARY':
       case 'CONSUL_API_PREFIX':
+      case 'CONSUL_HCP_URL':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_PEERINGS_ENABLED':
