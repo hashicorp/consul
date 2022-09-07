@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/docs/nia/tasks#status-information).
 
-If CTS is configured [for high availability](/docs/nia/usage/run-ha), you can send a request to the [`/status/cluster` endpoint](#cluster-status) of any instance to get information about the cluster. Requests to the `status` endpoint return a 400 error, however, if high availability is enabled and the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
+If CTS is configured [for high availability](/docs/nia/usage/run-ha), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information. 
 
 ## Status for all tasks
 
@@ -237,7 +237,7 @@ The `/v1/status/cluster` API endpoint returns information about high-availabilit
 
 ### Request parameters
 
-Currently no request parameters are offered for the overall status API.
+Currently no request parameters are offered for the cluster status API.
 
 ### Request statuses
 
@@ -250,7 +250,7 @@ The following table describes the responses that the `status/cluster` endpoint c
 | Field | Type | Description |
 | --- | ---- | --- |
 | `cluster_name` | string | Identifies the name of the cluster. |
-| `members` | array | Contains an array of [member objects](#member-objects). Each object in the `members` array represents a CTS instance. |
+| `members` | list[[member](#member-objects)] | Contains a list of [member objects](#member-objects). Each object in the `members` list represents a CTS instance. |
 
 #### Member objects
 
@@ -262,7 +262,7 @@ The following table describes the fields available for objects in the `members` 
 | `healthy` | boolean | Indicates the health of the service instance health. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
 | `id` | string | Indicates the service registration ID. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
 | `leader` | boolean | Identifies the cluster leader. |
-| `service_name` | string | Identifies the name of the service that the instance represents. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. Default is `consul-terraform-sync`. |
+| `service_name` | string | Identifies the name of the service that the instance represents. The value is set by the `service_name` field in the [Service Registration](/docs/nia/configuration#service-registration) configuration.  |
 
 ### Example
 
