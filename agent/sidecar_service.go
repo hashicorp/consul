@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/ipaddr"
@@ -11,6 +12,10 @@ import (
 
 func sidecarServiceID(serviceID string) string {
 	return serviceID + "-sidecar-proxy"
+}
+
+func serviceIDFromSidecarID(sidecarServiceID string) string {
+	return strings.Split(sidecarServiceID, "-")[0]
 }
 
 // sidecarServiceFromNodeService returns a *structs.NodeService representing a
@@ -30,7 +35,7 @@ func sidecarServiceID(serviceID string) string {
 // registration. This will be the same as the token parameter passed unless the
 // SidecarService definition contains a distinct one.
 // TODO: return AddServiceRequest
-func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
+func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil
 	}
@@ -114,41 +119,18 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
-	if sidecar.Port < 1 {
-		port, err := a.sidecarPortFromServiceID(sidecar.CompoundServiceID())
-		if err != nil {
-			return nil, nil, "", err
-		}
-		sidecar.Port = port
-	}
-
 	// Setup checks
 	checks, err := ns.Connect.SidecarService.CheckTypes()
 	if err != nil {
 		return nil, nil, "", err
 	}
-	// Setup default check if none given.
-	if len(checks) < 1 {
-		// The check should use the sidecar's address because it makes a request to the sidecar.
-		// If the sidecar's address is empty, we fall back to the address of the local service, as set in
-		// sidecar.Proxy.LocalServiceAddress, in the hope that the proxy is also accessible on that address
-		// (which in most cases it is because it's running as a sidecar in the same network).
-		// We could instead fall back to the address of the service as set by (ns.Address), but I've kept it using
-		// sidecar.Proxy.LocalServiceAddress so as to not change things too much in the
-		// process of fixing #14433.
-		checkAddress := sidecar.Address
-		if checkAddress == "" {
-			checkAddress = sidecar.Proxy.LocalServiceAddress
-		}
-		checks = sidecarDefaultChecks(ns.ID, checkAddress, sidecar.Port)
-	}
 
 	return sidecar, checks, token, nil
 }
 
-// sidecarPortFromServiceID is used to allocate a unique port for a sidecar proxy.
+// sidecarPortFromServiceIDLocked is used to allocate a unique port for a sidecar proxy.
 // This is called immediately before registration to avoid value collisions. This function assumes the state lock is already held.
-func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.ServiceID) (int, error) {
+func (a *Agent) sidecarPortFromServiceIDLocked(sidecarCompoundServiceID structs.ServiceID) (int, error) {
 	sidecarPort := 0
 
 	// Allocate port if needed (min and max inclusive).
@@ -213,11 +195,23 @@ func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.Servic
 	return sidecarPort, nil
 }
 
-func sidecarDefaultChecks(serviceID string, address string, port int) []*structs.CheckType {
+func sidecarDefaultChecks(sidecarID string, sidecarAddress string, proxyServiceAddress string, port int) []*structs.CheckType {
+	// The check should use the sidecar's address because it makes a request to the sidecar.
+	// If the sidecar's address is empty, we fall back to the address of the local service, as set in
+	// sidecar.Proxy.LocalServiceAddress, in the hope that the proxy is also accessible on that address
+	// (which in most cases it is because it's running as a sidecar in the same network).
+	// We could instead fall back to the address of the service as set by (ns.Address), but I've kept it using
+	// sidecar.Proxy.LocalServiceAddress so as to not change things too much in the
+	// process of fixing #14433.
+	checkAddress := sidecarAddress
+	if checkAddress == "" {
+		checkAddress = proxyServiceAddress
+	}
+	serviceID := serviceIDFromSidecarID(sidecarID)
 	return []*structs.CheckType{
 		{
 			Name:     "Connect Sidecar Listening",
-			TCP:      ipaddr.FormatAddressPort(address, port),
+			TCP:      ipaddr.FormatAddressPort(checkAddress, port),
 			Interval: 10 * time.Second,
 		},
 		{
