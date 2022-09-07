@@ -9,12 +9,12 @@ module.exports = {
     },
   },
   plugins: ['ember'],
-  extends: ['eslint:recommended', 'plugin:ember/recommended'],
+  extends: ['eslint:recommended', 'plugin:ember/recommended', 'plugin:prettier/recommended'],
   env: {
     browser: true,
   },
   rules: {
-    'no-console': ['error', {allow: ['error', 'info']}],
+    'no-console': ['error', { allow: ['error', 'info'] }],
     'no-unused-vars': ['error', { args: 'none' }],
     'ember/no-new-mixins': ['warn'],
     'ember/no-jquery': 'warn',
@@ -25,8 +25,8 @@ module.exports = {
     {
       files: [
         '.eslintrc.js',
-        '.dev.eslintrc.js',
         '.docfy-config.js',
+        '.prettierrc.js',
         '.template-lintrc.js',
         'ember-cli-build.js',
         'testem.js',

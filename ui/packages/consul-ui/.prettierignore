@@ -1,7 +1,5 @@
-app/utils/dom/event-target/event-target-shim/event.js
 # unconventional js
 /blueprints/*/files/
-/blueprints/*/*-files/
 /vendor/
 
 # compiled output
