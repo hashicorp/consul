@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
 	autopilot "github.com/hashicorp/raft-autopilot"
 
 	"github.com/hashicorp/consul/acl"
@@ -26,6 +28,7 @@ type ReadyServerInfo struct {
 	ID              string
 	Address         string
 	TaggedAddresses map[string]string
+	ExtGRPCPort     int
 	Version         string
 }
 
@@ -122,6 +125,7 @@ func NewReadyServersEventPublisher(config Config) *ReadyServersEventPublisher {
 //go:generate mockery --name StateStore --inpackage --filename mock_StateStore_test.go
 type StateStore interface {
 	GetNodeID(types.NodeID, *acl.EnterpriseMeta, string) (uint64, *structs.Node, error)
+	NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error)
 }
 
 //go:generate mockery --name Publisher --inpackage --filename mock_Publisher_test.go
@@ -226,6 +230,7 @@ func (r *ReadyServersEventPublisher) autopilotStateToReadyServers(state *autopil
 				Address:         host,
 				Version:         srv.Server.Version,
 				TaggedAddresses: r.getTaggedAddresses(srv),
+				ExtGRPCPort:     r.getGRPCPort(srv),
 			})
 		}
 	}
@@ -254,7 +259,7 @@ func (r *ReadyServersEventPublisher) getTaggedAddresses(srv *autopilot.ServerSta
 	// code and reason about and having those addresses be updated within 30s is good enough.
 	_, node, err := r.GetStore().GetNodeID(types.NodeID(srv.Server.ID), structs.NodeEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil || node == nil {
-		// no catalog information means we should return a nil addres map
+		// no catalog information means we should return a nil address map
 		return nil
 	}
 
@@ -274,6 +279,38 @@ func (r *ReadyServersEventPublisher) getTaggedAddresses(srv *autopilot.ServerSta
 	}
 
 	return addrs
+}
+
+// getGRPCPort will get the external gRPC port for a Consul server.
+// Returns 0 if there is none assigned or if an error is encountered.
+func (r *ReadyServersEventPublisher) getGRPCPort(srv *autopilot.ServerState) int {
+	if r.GetStore == nil {
+		return 0
+	}
+
+	_, n, err := r.GetStore().GetNodeID(types.NodeID(srv.Server.ID), structs.NodeEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
+	if err != nil || n == nil {
+		return 0
+	}
+
+	_, ns, err := r.GetStore().NodeService(
+		nil,
+		n.Node,
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	)
+	if err != nil || ns == nil || ns.Meta == nil {
+		return 0
+	}
+	if str, ok := ns.Meta["grpc_port"]; ok {
+		grpcPort, err := strconv.Atoi(str)
+		if err == nil {
+			return grpcPort
+		}
+	}
+
+	return 0
 }
 
 // newReadyServersEvent will create a stream.Event with the provided ready server info.

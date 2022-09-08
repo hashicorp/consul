@@ -15,7 +15,7 @@ Feature: dc / services / show-routing: Show Routing for Service
       service: service-0
     ---
     And the title should be "service-0 - Consul"
-    And I see routing on the tabs
+    And I see routingIsVisible on the tabs
   Scenario: Given connect is disabled, the Routing tab should not display or error
     Given 2 datacenter models from yaml
     ---
@@ -51,14 +51,7 @@ Feature: dc / services / show-routing: Show Routing for Service
       dc: dc2
       service: service-1
     ---
-    And I see routing on the tabs
-    # something weird is going on with this test
-    # without waiting we issue a url reload that
-    # will make the test timeout.
-    # waiting will "fix" this - we should look into
-    # the underlying reason for this soon. This is
-    # only a quick-fix to land ember-qunit v5.
-    And pause for 1000
+    And I see routingIsVisible on the tabs
     And I visit the service page for yaml
     ---
       dc: dc1

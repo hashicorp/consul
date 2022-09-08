@@ -4,6 +4,8 @@ package autopilotevents
 
 import (
 	acl "github.com/hashicorp/consul/acl"
+	memdb "github.com/hashicorp/go-memdb"
+
 	mock "github.com/stretchr/testify/mock"
 
 	structs "github.com/hashicorp/consul/agent/structs"
@@ -41,6 +43,36 @@ func (_m *MockStateStore) GetNodeID(_a0 types.NodeID, _a1 *acl.EnterpriseMeta, _
 	var r2 error
 	if rf, ok := ret.Get(2).(func(types.NodeID, *acl.EnterpriseMeta, string) error); ok {
 		r2 = rf(_a0, _a1, _a2)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// NodeService provides a mock function with given fields: ws, nodeName, serviceID, entMeta, peerName
+func (_m *MockStateStore) NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
+	ret := _m.Called(ws, nodeName, serviceID, entMeta, peerName)
+
+	var r0 uint64
+	if rf, ok := ret.Get(0).(func(memdb.WatchSet, string, string, *acl.EnterpriseMeta, string) uint64); ok {
+		r0 = rf(ws, nodeName, serviceID, entMeta, peerName)
+	} else {
+		r0 = ret.Get(0).(uint64)
+	}
+
+	var r1 *structs.NodeService
+	if rf, ok := ret.Get(1).(func(memdb.WatchSet, string, string, *acl.EnterpriseMeta, string) *structs.NodeService); ok {
+		r1 = rf(ws, nodeName, serviceID, entMeta, peerName)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*structs.NodeService)
+		}
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(memdb.WatchSet, string, string, *acl.EnterpriseMeta, string) error); ok {
+		r2 = rf(ws, nodeName, serviceID, entMeta, peerName)
 	} else {
 		r2 = ret.Error(2)
 	}

@@ -974,7 +974,7 @@ func NewTestDataSources() *TestDataSources {
 		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
-		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
+		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
@@ -1000,7 +1000,7 @@ type TestDataSources struct {
 	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
-	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
+	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
 	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]

@@ -184,7 +184,9 @@ export default function(scenario, assert, find, currentPage, $) {
         }
       }
       assert[isNegative ? 'notOk' : 'ok'](target, message);
-      return Promise.resolve();
+
+      // always return promise and handle the fact that `target` could be async
+      return Promise.resolve().then(() => target);
     })
     .then(
       [

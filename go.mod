@@ -6,6 +6,8 @@ replace github.com/hashicorp/consul/api => ./api
 
 replace github.com/hashicorp/consul/sdk => ./sdk
 
+replace github.com/hashicorp/consul/proto-public => ./proto-public
+
 replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
 require (
@@ -28,6 +30,7 @@ require (
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20220307172752-3602954411b4
 	github.com/hashicorp/consul/api v1.13.1
+	github.com/hashicorp/consul/proto-public v0.1.0
 	github.com/hashicorp/consul/sdk v0.10.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
