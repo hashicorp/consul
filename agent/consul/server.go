@@ -253,7 +253,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServers has a gRPC server exposed on the dedicated gRPC ports, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -376,9 +376,6 @@ type Server struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
-}
-type GRPCService interface {
-	Register(*grpc.Server)
 }
 type connHandler interface {
 	Run() error
@@ -698,7 +695,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		PrimaryDatacenter:         s.config.PrimaryDatacenter,
 		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
 	})
-	s.externalACLServer.Register(externalGRPCServer)
+	s.externalACLServer.Register(s.externalGRPCServer)
 
 	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
 		Publisher:   s.publisher,
@@ -711,22 +708,20 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		},
 		ConnectEnabled: s.config.ConnectEnabled,
 	})
-	s.externalConnectCAServer.Register(externalGRPCServer)
+	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
-	dataplaneServer := dataplane.NewServer(dataplane.Config{
+	dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
 		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
-	})
-	dataplaneServer.Register(externalGRPCServer)
+	}).Register(s.externalGRPCServer)
 
-	serverDiscoveryServer := serverdiscovery.NewServer(serverdiscovery.Config{
+	serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
-	})
-	serverDiscoveryServer.Register(externalGRPCServer)
+	}).Register(s.externalGRPCServer)
 
 	s.peeringBackend = NewPeeringBackend(s)
 	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
@@ -744,7 +739,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})
-	s.peerStreamServer.Register(externalGRPCServer)
+	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	// Initialize internal gRPC server.
 	//

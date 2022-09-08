@@ -213,7 +213,7 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// externalGRPCServer is the gRPC server exposed on a dedicated gRPC port (as
+	// externalGRPCServer is the gRPC server exposed on dedicated gRPC ports (as
 	// opposed to the multiplexed "server" port).
 	externalGRPCServer *grpc.Server
 
@@ -702,7 +702,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	// Start gRPC and gRPC+TLS servers.
+	// Start grpc and grpc_tls servers.
 	if err := a.listenAndServeGRPC(); err != nil {
 		return err
 	}

@@ -706,7 +706,7 @@ type RuntimeConfig struct {
 	// go-sockaddr templates. UNIX socket paths must be written as
 	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
 	//
-	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
+	// If 'addresses.grpc_tls' was not provided the 'client_addr' addresses are
 	// used.
 	//
 	// hcl: client_addr = string addresses { grpc_tls = string } ports { grpc_tls = int }
