@@ -600,6 +600,9 @@ func (a *Agent) Start(ctx context.Context) error {
 				}
 				return true, nil
 			})
+			if err != nil {
+				return fmt.Errorf("failed to generate server management token: %w", err)
+			}
 			a.tokens.UpdateServerManagementToken(accessor, secret)
 
 			d := servercert.Deps{
