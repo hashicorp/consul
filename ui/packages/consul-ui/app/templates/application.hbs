@@ -16,6 +16,9 @@ as |route|>
 {{#if (can "use partitions")}}
   {{document-attrs class="has-partitions"}}
 {{/if}}
+{{#if (can "use peers")}}
+  {{document-attrs class="has-peerings"}}
+{{/if}}
 
 {{! Listen out for blocking query/client setting changes }}
 <DataSource
