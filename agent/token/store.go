@@ -78,7 +78,7 @@ type Store struct {
 	// serverToken is used by Consul servers for authn/authz when making
 	// requests to themselves through public APIs such as the agent cache.
 	// This token is only used for internally-managed activities.
-	serverToken *structs.ServerManagementToken
+	serverToken structs.ServerManagementToken
 
 	watchers     map[int]watcher
 	watcherIndex int
@@ -225,7 +225,7 @@ func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 // UpdateServerManagementToken replaces the current server management token in the store.
 func (t *Store) UpdateServerManagementToken(accessorID, secretID string) {
 	t.l.Lock()
-	t.serverToken = &structs.ServerManagementToken{
+	t.serverToken = structs.ServerManagementToken{
 		AccessorID: accessorID,
 		SecretID:   secretID,
 	}
@@ -314,8 +314,14 @@ func (t *Store) ServerManagementToken(token string) *structs.ServerManagementTok
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	if (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.serverToken.SecretID)) == 1) {
-		return t.serverToken
+	if token == "" {
+		return nil
+	}
+	if t.serverToken.SecretID == "" {
+		return nil
+	}
+	if subtle.ConstantTimeCompare([]byte(token), []byte(t.serverToken.SecretID)) == 1 {
+		return &t.serverToken
 	}
 	return nil
 }
