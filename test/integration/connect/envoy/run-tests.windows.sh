@@ -557,10 +557,6 @@ function suite_setup {
         --net=none \
         "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
-
-    # pre-build the test-sds-server container
-    echo "Rebuilding 'test-sds-server' image..."
-    docker.exe build -t test-sds-server -f Dockerfile-test-sds-server-windows test-sds-server
 }
 
 function suite_teardown {
@@ -811,6 +807,8 @@ function run_container_zipkin {
 }
 
 function run_container_jaeger {
+  echo "Starting Jaeger service..."
+
   local DC=${1:-primary}
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
 
@@ -819,10 +817,13 @@ function run_container_jaeger {
 }
 
 function run_container_test-sds-server {
-  docker.exe run -d --name $(container_name) \
-    $WORKDIR_SNIPPET \
-    $(network_snippet primary) \
-    "test-sds-server"
+  echo "Starting test-sds-server"
+  
+  local DC=${1:-primary}
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
+
+  docker.exe exec -d $CONTAINER_NAME bash -c "cd /c/test-sds-server &&
+                                              ./test-sds-server.exe"
 }
 
 function container_name {

@@ -3,6 +3,6 @@ FROM golang:1.18.1-nanoserver-1809
 WORKDIR /go/src
 COPY ./ .
 
-RUN go build -v -o test-sds-server sds.go
+RUN go build -v -o test-sds-server.exe sds.go
 
-CMD ["/go/src/test-sds-server"]
+CMD ["test-sds-server.exe"]

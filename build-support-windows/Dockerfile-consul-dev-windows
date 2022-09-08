@@ -17,9 +17,9 @@ COPY --from=envoy ["C:/Program Files/envoy/", "C:/envoy/"]
 RUN choco install openssl -yf
 RUN choco install jq -yf
 
+# Install Bats
 ENV BATS_URL=https://github.com/bats-core/bats-core/archive/refs/tags/v1.7.0.zip
 RUN curl %BATS_URL% -L -o bats.zip
-
 RUN mkdir bats-core
 RUN tar -xf bats.zip -C bats-core --strip-components=1
 RUN cd "C:\\Program Files\\Git\\bin" && bash.exe -c "/c/bats-core/install.sh /c/bats"
@@ -29,6 +29,9 @@ ENV JAEGER_URL=https://github.com/jaegertracing/jaeger/releases/download/v1.11.0
 RUN curl %JAEGER_URL% -L -o jaeger.tar.gz
 RUN mkdir jaeger
 RUN tar -xf jaeger.tar.gz -C jaeger --strip-components=1
+
+# Copy test-sds-server binary and certs
+COPY --from=test-sds-server ["C:/go/src/", "C:/test-sds-server/"]
 
 EXPOSE 8300
 EXPOSE 8301 8301/udp 8302 8302/udp

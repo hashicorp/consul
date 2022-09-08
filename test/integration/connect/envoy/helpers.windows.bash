@@ -155,7 +155,9 @@ function assert_cert_signed_by_ca {
   if [ -n "$SERVER_NAME" ]; then
     SNI_FLAG="-servername $SERVER_NAME"
   fi
-  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -CAfile $CA_FILE -showcerts </dev/null)
+
+  # Fix in the CA_FILE parameter: for Windows environments, the root path starts with "/c"
+  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -CAfile "/c/$CA_FILE" -showcerts </dev/null)
 
   echo "GOT CERT:"
   echo "$CERT"
@@ -255,7 +257,7 @@ function assert_envoy_network_rbac_policy_count {
 }
 
 function get_envoy_network_rbac_once {
-  local HOSTPORT=$1  
+  local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
@@ -887,7 +889,8 @@ function get_upstream_fortio_name {
   if [ "${HOST:0:8}" = "https://" ]; then
     HOST="${HOST:8}"
     PROTO="https://"
-    extra_args="${extra_args} --cacert /workdir/test-sds-server/certs/ca-root.crt"
+    # Fix in the CA_FILE parameter: for Windows environments, the root path starts with "/c"
+    extra_args="${extra_args} --cacert /c/workdir/test-sds-server/certs/ca-root.crt"
   fi
   # We use --resolve instead of setting a Host header since we need the right
   # name to be sent for SNI in some cases too.
@@ -905,7 +908,7 @@ function get_upstream_fortio_name {
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
-  local HOST=${2:-"localhost"} $2
+  local HOST=${2:-"localhost"}
   local PORT=${3:-5000}
   local URL_PREFIX=${4:-""}
   local DEBUG_HEADER_VALUE="${5:-""}"
