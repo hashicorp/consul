@@ -1057,8 +1057,10 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)
 
-	// Configure alpn protocols on CommonTLSContext
-	tlsContext.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
+	if tlsContext != nil {
+		// Configure alpn protocols on CommonTLSContext
+		tlsContext.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
+	}
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
 	if len(peerBundles) > 0 {
