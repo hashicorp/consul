@@ -1279,6 +1279,16 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/nia/installation/run',
+    destination: '/docs/nia/usage/run',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/installation/requirements',
+    destination: '/docs/nia/usage/requirements',
+    permanent: true,
+  },
+  {
     source: '/docs/k8s/installation/install#consul-k8s-cli-installation',
     destination: '/docs/k8s/installation/install-cli',
     permanent: true,
@@ -1532,6 +1542,16 @@ module.exports = [
   {
     source: '/docs/k8s/installation/vault/wan-federation',
     destination: '/docs/k8s/deployment-configurations/vault/wan-federation',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/installation/run',
+    destination: '/docs/nia/usage/run',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/installation/requirements',
+    destination: '/docs/nia/usage/requirements',
     permanent: true,
   },
 ]
