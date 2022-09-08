@@ -48,6 +48,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsParams": {
                   "tlsMinimumProtocolVersion": "TLSv1_2"
                 },
@@ -121,6 +124,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsParams": {
                   "tlsMinimumProtocolVersion": "TLSv1_2"
                 },
@@ -194,6 +200,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsParams": {
                   "tlsMinimumProtocolVersion": "TLSv1_2"
                 },
@@ -267,6 +276,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsParams": {
 
                 },
@@ -340,6 +352,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsParams": {
                   "tlsMinimumProtocolVersion": "TLSv1_2"
                 },

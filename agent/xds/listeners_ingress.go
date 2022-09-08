@@ -149,6 +149,9 @@ func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.Config
 	}
 
 	if tlsContext != nil {
+		// Configure alpn protocols on TLSContext
+		tlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
+
 		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
 			RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -325,8 +328,14 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			return nil, err
 		}
 
+		commonTlsContext := makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS)
+		if commonTlsContext != nil {
+			// Configure alpn protocols on TLSContext
+			commonTlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
+		}
+
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS),
+			CommonTlsContext:         commonTlsContext,
 			RequireClientCertificate: &wrappers.BoolValue{Value: false},
 		}
 
