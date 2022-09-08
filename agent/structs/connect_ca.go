@@ -442,10 +442,6 @@ func (c CommonCAProviderConfig) Validate() error {
 		return nil
 	}
 
-	// todo(kyhavlov): should we output some kind of warning here (or in a Warnings() func)
-	// if the intermediate TTL is set in a secondary DC? allowing it to be set and do nothing
-	// seems bad.
-
 	// it's sufficient to check that the root cert ttl >= intermediate cert ttl
 	// since intermediate cert ttl >= 3* leaf cert ttl; so root cert ttl >= 3 * leaf cert ttl > leaf cert ttl
 	if c.RootCertTTL < c.IntermediateCertTTL {
