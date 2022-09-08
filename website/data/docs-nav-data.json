@@ -794,16 +794,29 @@
             "path": "nia/installation/install"
           },
           {
-            "title": "Requirements",
-            "path": "nia/installation/requirements"
-          },
-          {
-            "title": "Configure",
+            "title": "Configuration",
             "path": "nia/installation/configure"
+          }
+        ]
+      },
+      {
+        "title": "Usage",
+        "routes": [
+          {
+            "title": "Requirements",
+            "path": "nia/usage/requirements"
           },
           {
             "title": "Run Consul-Terraform-Sync",
-            "path": "nia/installation/run"
+            "path": "nia/usage/run"
+          },
+          {
+            "title": "Run Consul-Terraform-Sync with High Availability",
+            "path": "nia/usage/run-ha"
+          },
+          {
+            "title": "Error Messages",
+            "path": "nia/usage/errors-ref"
           }
         ]
       },
