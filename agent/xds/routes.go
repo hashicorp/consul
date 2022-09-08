@@ -518,7 +518,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
 	if err != nil && !forMeshGateway {
-		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", cfgSnap.Kind)
+		return nil, err
 	}
 
 	switch startNode.Type {
@@ -612,41 +612,43 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
-		if err == nil {
-			var lb *structs.LoadBalancer
-			if startNode.LoadBalancer != nil {
-				lb = startNode.LoadBalancer
-			}
-			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-			}
-
-			defaultRoute := &envoy_route_v3.Route{
-				Match:  makeDefaultRouteMatch(),
-				Action: routeAction,
-			}
-
-			routes = []*envoy_route_v3.Route{defaultRoute}
+		if err != nil {
+			return nil, err
 		}
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
+
+		defaultRoute := &envoy_route_v3.Route{
+			Match:  makeDefaultRouteMatch(),
+			Action: routeAction,
+		}
+
+		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
-		if ok {
-			var lb *structs.LoadBalancer
-			if startNode.LoadBalancer != nil {
-				lb = startNode.LoadBalancer
-			}
-			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-			}
-
-			defaultRoute := &envoy_route_v3.Route{
-				Match:  makeDefaultRouteMatch(),
-				Action: routeAction,
-			}
-
-			routes = []*envoy_route_v3.Route{defaultRoute}
+		if !ok {
+			break
 		}
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
+
+		defaultRoute := &envoy_route_v3.Route{
+			Match:  makeDefaultRouteMatch(),
+			Action: routeAction,
+		}
+
+		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	default:
 		return nil, fmt.Errorf("unknown first node in discovery chain of type: %s", startNode.Type)

@@ -98,11 +98,7 @@ load helpers
   reset_envoy_metrics 127.0.0.1:19000
 }
 
-@test "s1 upstream should have healthy endpoints for virtual-s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary-to-alpha.external HEALTHY 1
-}
-
-@test "s1 upstream should have healthy endpoints for s2 in the cluster peer" {
+@test "s1 upstream should have healthy endpoints for s2 (virtual-s2) in the cluster peer" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary-to-alpha.external HEALTHY 1
 }
 

@@ -462,7 +462,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	// Mesh gateways are exempt because upstreamsSnapshot is only used for
 	// cluster peering targets and transative failover/redirects are unsupported.
 	if err != nil && !forMeshGateway {
-		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", cfgSnap.Kind)
+		return nil, err
 	}
 
 	var resources []proto.Message
