@@ -771,6 +771,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		Director: func(r *http.Request) {
 			r.URL = u
 		},
+		Transport: s.proxyTransport,
 		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		}),
