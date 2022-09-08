@@ -10,12 +10,31 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func sidecarServiceID(serviceID string) string {
-	return serviceID + "-sidecar-proxy"
+const sidecarIDSuffix string = "-sidecar-proxy"
+
+func sidecarIDFromServiceID(serviceID string) string {
+	return serviceID + sidecarIDSuffix
 }
 
+// reverses the sidecarIDFromServiceID operation
 func serviceIDFromSidecarID(sidecarServiceID string) string {
-	return strings.Split(sidecarServiceID, "-")[0]
+	// we only want to un-append "-sidecar-proxy" from the very end
+	// so we reverse the string, remove only the first suffix match
+	// and then reverse the string again to get the result
+	revID := ""
+	for _, v := range sidecarServiceID {
+		revID = string(v) + revID
+	}
+	revSuffix := ""
+	for _, v := range sidecarIDSuffix {
+		revSuffix = string(v) + revSuffix
+	}
+	revSvcID := strings.Replace(revID, revSuffix, "", 1)
+	serviceID := ""
+	for _, v := range revSvcID {
+		serviceID = string(v) + serviceID
+	}
+	return serviceID
 }
 
 // sidecarServiceFromNodeService returns a *structs.NodeService representing a
@@ -48,7 +67,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 
 	// Override the ID which must always be consistent for a given outer service
 	// ID. We rely on this for lifecycle management of the nested definition.
-	sidecar.ID = sidecarServiceID(ns.ID)
+	sidecar.ID = sidecarIDFromServiceID(ns.ID)
 
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
