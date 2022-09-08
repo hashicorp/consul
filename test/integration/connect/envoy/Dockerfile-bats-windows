@@ -1,6 +1,0 @@
-FROM docker.mirror.hashicorp.services/windows/bats:1.7.0
-
-RUN choco install openssl -yf
-RUN choco install jq -yf
-
-RUN SETX /M path "%PATH%;C:\ProgramData\chocolatey\lib\jq\tools;C:\Program Files\OpenSSL-Win64\bin"

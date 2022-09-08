@@ -818,14 +818,6 @@ function register_services {
   docker_consul_exec ${DC} bash -c "consul services register workdir/${DC}/register/service_*.hcl"
 }
 
-function getIP {
-    docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' envoy_consul-primary_1
-}
-
-function getIP_container {
-  docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
-}
-
 function setup_upsert_l4_intention {
   local SOURCE=$1
   local DESTINATION=$2
