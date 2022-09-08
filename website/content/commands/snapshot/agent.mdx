@@ -168,7 +168,8 @@ Usage: `consul snapshot agent [options]`
       "s3_bucket": "",
       "s3_key_prefix": "consul-snapshot",
       "s3_server_side_encryption": false,
-      "s3_static_snapshot_name": ""
+      "s3_static_snapshot_name": "",
+      "s3_force_path_style": false
     },
     "azure_blob_storage": {
       "account_name": "",
@@ -274,6 +275,10 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or version snapshots, and will save them with the same name each time.
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
+
+- `-aws-s3-force-path-style` - Enables the use of legacy path-based addressing instead of virtual addressing. This flag is required by minio
+  and other 3rd party S3 compatible object storage platforms where DNS or TLS requirements for virtual addressing are prohibitive. 
+For more information, refer to the AWS documentation on [Methods for accessing a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html)
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
 

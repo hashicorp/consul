@@ -52,7 +52,7 @@ There are fundamentally two types of queries: node lookups and service lookups.
 A node lookup, a simple query for the address of a named node, looks like this:
 
 ```text
-<node>.node[.datacenter].<domain>
+<node>.node[.<datacenter>].<domain>
 ```
 
 For example, if we have a `foo` node with default settings, we could
@@ -79,22 +79,39 @@ $ dig @127.0.0.1 -p 8600 foo.node.consul ANY
 ;; WARNING: recursion requested but not available
 
 ;; QUESTION SECTION:
-;foo.node.consul.		IN	ANY
+;foo.node.consul.   IN  ANY
 
 ;; ANSWER SECTION:
-foo.node.consul.	0	IN	A	10.1.10.12
-foo.node.consul.	0	IN	TXT	"meta_key=meta_value"
-foo.node.consul.	0	IN	TXT	"value only"
+foo.node.consul.  0 IN  A 10.1.10.12
+foo.node.consul.  0 IN  TXT "meta_key=meta_value"
+foo.node.consul.  0 IN  TXT "value only"
 
 
 ;; AUTHORITY SECTION:
-consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
+consul.     0 IN  SOA ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 ```
 
 By default the TXT records value will match the node's metadata key-value
 pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
 Alternatively, the TXT record will only include the node's metadata value when the
 node's metadata key starts with `rfc1035-`.
+
+
+### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+Consul nodes exist at the admin partition level within a datacenter.
+By default, the partition and datacenter used in a [node lookup](#node-lookups) are
+the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a partition for a node lookup:
+```text
+<node>.node.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+node lookups to non-`default` partitions must explicitly specify
+the partition of the target node.
 
 ## Service Lookups
 
@@ -121,7 +138,7 @@ it is recommended to use the HTTP API to retrieve the list of nodes.
 The format of a standard service lookup is:
 
 ```text
-[tag.]<service>.service[.datacenter].<domain>
+[<tag>.]<service>.service[.<datacenter>].<domain>
 ```
 
 The `tag` is optional, and, as with node lookups, the `datacenter` is as
@@ -157,26 +174,37 @@ $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
 ;; WARNING: recursion requested but not available
 
 ;; QUESTION SECTION:
-;consul.service.consul.		IN	SRV
+;consul.service.consul.   IN  SRV
 
 ;; ANSWER SECTION:
-consul.service.consul.	0	IN	SRV	1 1 8300 foobar.node.dc1.consul.
+consul.service.consul.  0 IN  SRV 1 1 8300 foobar.node.dc1.consul.
 
 ;; ADDITIONAL SECTION:
-foobar.node.dc1.consul.	0	IN	A	10.1.10.12
+foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 ```
 
 ### RFC 2782 Lookup
 
-The format for RFC 2782 SRV lookups is:
+Valid formats for RFC 2782 SRV lookups depend on
+whether you want to filter results based on a service tag:
 
-    _<service>._<protocol>[.service][.datacenter][.domain]
+- No filtering on service tag
 
-Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries should use
-underscores, `_`, as a prefix to the `service` and `protocol` values in a query to
-prevent DNS collisions. The `protocol` value can be any of the tags for a
-service. If the service has no tags, `tcp` should be used. If `tcp`
-is specified as the protocol, the query will not perform any tag filtering.
+   ```text
+  _<service>._tcp[.service][.<datacenter>].<domain>
+  ```
+
+- Filtering on service tag specified in the RFC 2782 protocol field
+
+   ```text
+  _<service>._<tag>[.service][.<datacenter>].<domain>
+  ```
+
+Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must
+prepend an underscore (`_`) to the `service` and `protocol` values in a query to
+prevent DNS collisions.
+To perform no tag-based filtering, specify `tcp` in the RFC 2782 protocol field.
+To filter results on a service tag, specify the tag in the RFC 2782 protocol field.
 
 Other than the query format and default `tcp` protocol/tag value, the behavior
 of the RFC style lookup is the same as the standard style of lookup.
@@ -196,13 +224,13 @@ $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
 ;; WARNING: recursion requested but not available
 
 ;; QUESTION SECTION:
-;_rabbitmq._amqp.service.consul.	IN	SRV
+;_rabbitmq._amqp.service.consul.  IN  SRV
 
 ;; ANSWER SECTION:
-_rabbitmq._amqp.service.consul.	0	IN	SRV	1 1 5672 rabbitmq.node1.dc1.consul.
+_rabbitmq._amqp.service.consul. 0 IN  SRV 1 1 5672 rabbitmq.node1.dc1.consul.
 
 ;; ADDITIONAL SECTION:
-rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
+rabbitmq.node1.dc1.consul.  0 IN  A 10.1.11.20
 ```
 
 Again, note that the SRV record returns the port of the service as well as its IP.
@@ -323,12 +351,34 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 </Tabs>
 
+### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, all service lookups use the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a namespace, partition, and/or datacenter
+for all service lookup types except `.query`,
+including `.service`, `.connect`, `.virtual`, and `.ingress`.
+At least two of those three fields (`namespace`, `partition`, `datacenter`)
+must be specified.
+```text
+[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+service lookups to non-`default` partitions must explicitly specify
+the partition of the target service.
+
+To lookup services imported from a cluster peer,
+use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
 
 ```text
-<query or name>.query[.datacenter].<domain>
+<query or name>.query[.<datacenter>].<domain>
 ```
 
 The `datacenter` is optional, and if not provided, the datacenter of this Consul
@@ -376,7 +426,7 @@ If you need more complex behavior, please use the
 To find the unique virtual IP allocated for a service:
 
 ```text
-<service>.virtual[.peer].<domain>
+<service>.virtual[.<peer>].<domain>
 ```
 
 This will return the unique virtual IP for any [Connect-capable](/docs/connect)
@@ -387,7 +437,21 @@ of a service imported from that peer.
 
 The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
 under the `consul-virtual` tag.
+ 
+#### Service Virtual IP Lookups for Consul Enterprise <EnterpriseAlert inline />
 
+By default, a service virtual IP lookup uses the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+To lookup services imported from a cluster peered partition or open-source datacenter,
+specify the namespace and peer name in the lookup:
+```text
+<service>.virtual[.<namespace>].<peer>.<domain>
+```
+
+To lookup services not imported from a cluster peer,
+refer to [service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
+ 
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -439,14 +503,14 @@ The following responses are returned:
 
 ```
 ;; QUESTION SECTION:
-;consul.service.test-domain.	IN	SRV
+;consul.service.test-domain.  IN  SRV
 
 ;; ANSWER SECTION:
-consul.service.test-domain. 0	IN	SRV	1 1 8300 machine.node.dc1.test-domain.
+consul.service.test-domain. 0 IN  SRV 1 1 8300 machine.node.dc1.test-domain.
 
 ;; ADDITIONAL SECTION:
-machine.node.dc1.test-domain. 0	IN	A	127.0.0.1
-machine.node.dc1.test-domain. 0	IN	TXT	"consul-network-segment="
+machine.node.dc1.test-domain. 0 IN  A 127.0.0.1
+machine.node.dc1.test-domain. 0 IN  TXT "consul-network-segment="
 ```
 
 -> **PTR queries:** Responses to PTR queries (`<ip>.in-addr.arpa.`) will always use the
@@ -468,38 +532,6 @@ to reach a node from outside its datacenter, you can configure this behavior
 using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
 options.
-
-## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
-
-Consul Enterprise supports resolving namespaced and partitioned services via DNS.
-The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
-The DNS server can also resolve nodes assigned to partitions.
-To maintain backwards compatibility existing queries can be used and these will
-resolve services within the `default` namespace and partition. However, for resolving
-services from other namespaces or partitions the following form can be used:
-
-```text
-[tag.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-This sequence is the canonical naming convention of a Consul Enterprise service. At least two of the following
-fields must be present:
-* `namespace`
-* `partition`
-* `datacenter`
-
-For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
-
-```text
-<service>.virtual[.namespace][.peer].<domain>
-```
-
-For node lookups, only the partition and datacenter need to be specified as nodes cannot be
-namespaced.
-
-```text
-[tag.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
-```
 
 ## DNS with ACLs
 

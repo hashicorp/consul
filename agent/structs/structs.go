@@ -353,7 +353,7 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 			q.MaxQueryTime = defaultQueryTime
 		}
 		// Timeout after maximum jitter has elapsed.
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}
@@ -1257,8 +1257,9 @@ type NodeService struct {
 	// a pointer so that we never have to nil-check this.
 	Connect ServiceConnect
 
+	// TODO: rename to reflect that this is used to express future intent to register.
 	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
-	// state to track if the service was registered from a nested sidecar_service
+	// state to track if the service was or will be registered from a nested sidecar_service
 	// block. We need to track that so we can know whether we need to deregister
 	// it automatically too if it's removed from the service definition or if the
 	// parent service is deregistered. Relying only on ID would cause us to

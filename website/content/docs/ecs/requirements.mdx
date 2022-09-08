@@ -10,6 +10,7 @@ description: >-
 The following requirements must be met in order to install Consul on ECS:
 
 * **Launch Type:** Fargate and EC2 launch types are supported.
+* **Network Mode:** Only `awsvpc` mode is supported.
 * **Subnets:** ECS Tasks can run in private or public subnets. Tasks must have [network access](https://aws.amazon.com/premiumsupport/knowledge-center/ecs-pull-container-api-error-ecr/) to Amazon ECR or other public container registries to pull images.
 * **Consul Servers:** You can use your own Consul servers running on virtual machines or use [HashiCorp Cloud Platform Consul](https://www.hashicorp.com/cloud-platform) to host the servers for you. For development purposes or testing, you may use the `dev-server` [Terraform module](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main) that runs the Consul server as an ECS task. The `dev-server` does not support persistent storage.
 * **ACL Controller:** If you are running a secure Consul installation with ACLs enabled, configure the ACL controller.

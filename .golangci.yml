@@ -8,6 +8,8 @@ linters:
     - ineffassign
     - unparam
     - forbidigo
+    - gomodguard
+    - depguard
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -75,6 +77,30 @@ linters-settings:
     # Exclude godoc examples from forbidigo checks.
     # Default: true
     exclude_godoc_examples: false
+  gomodguard:
+    blocked:
+      # List of blocked modules.
+      modules:
+        # Blocked module.
+        - github.com/hashicorp/net-rpc-msgpackrpc:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc
+        - github.com/hashicorp/go-msgpack:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/go-msgpack
+
+  depguard:
+    list-type: denylist
+    include-go-root: true
+    # A list of packages for the list type specified.
+    # Default: []
+    packages:
+      - net/rpc
+    # A list of packages for the list type specified.
+    # Specify an error message to output when a denied package is used.
+    # Default: []
+    packages-with-error-message:
+      - net/rpc: 'only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc'
 
 run:
   timeout: 10m

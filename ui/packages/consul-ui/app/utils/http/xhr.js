@@ -27,6 +27,7 @@ export default function(parseHeaders, XHR) {
     };
     Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
     options.beforeSend(xhr);
+    xhr.withCredentials = true;
     xhr.send(options.body);
     return xhr;
   };

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerIngressGateway struct {
@@ -66,6 +68,9 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	snap.IngressGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.IngressGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
+	snap.IngressGateway.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
+	snap.IngressGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
+	snap.IngressGateway.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 	return snap, nil
 }
 
@@ -152,6 +157,12 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 					delete(snap.IngressGateway.WatchedUpstreams[uid], targetID)
 					delete(snap.IngressGateway.WatchedUpstreamEndpoints[uid], targetID)
 					cancelUpstreamFn()
+
+					targetUID := NewUpstreamIDFromTargetID(targetID)
+					if targetUID.Peer != "" {
+						snap.IngressGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
+						snap.IngressGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+					}
 				}
 
 				cancelFn()

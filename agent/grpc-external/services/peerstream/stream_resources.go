@@ -161,8 +161,22 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	if p == nil {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
 	}
+	if !p.IsActive() {
+		// If peering is terminated, then our peer sent the termination message.
+		// For other non-active states, send the termination message.
+		if p.State != pbpeering.PeeringState_TERMINATED {
+			term := &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Terminated_{
+					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
+				},
+			}
+			logTraceSend(logger, term)
 
-	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
+			// we don't care if send fails; stream will be killed by termination message or grpc error
+			_ = stream.Send(term)
+		}
+		return grpcstatus.Error(codes.Aborted, "peering is marked as deleted: "+req.PeerID)
+	}
 
 	secrets, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
 	if err != nil {
@@ -347,6 +361,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
 			ResourceURL: resourceURL,
@@ -544,14 +559,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// At this point we have a valid ResourceURL and we are subscribed to it.
 
 				switch {
-				case req.ResponseNonce == "" && req.Error != nil:
-					return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
-
-				case req.ResponseNonce != "" && req.Error == nil: // ACK
+				case req.Error == nil: // ACK
 					// TODO(peering): handle ACK fully
 					status.TrackAck()
 
-				case req.ResponseNonce != "" && req.Error != nil: // NACK
+				case req.Error != nil: // NACK
 					// TODO(peering): handle NACK fully
 					logger.Warn("client peer was unable to apply resource", "code", req.Error.Code, "error", req.Error.Message)
 					status.TrackNack(fmt.Sprintf("client peer was unable to apply resource: %s", req.Error.Message))
@@ -567,7 +579,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			if resp := msg.GetResponse(); resp != nil {
 				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, logger)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackRecvError(err.Error())
@@ -575,6 +587,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					status.TrackRecvResourceSuccess()
 				}
 
+				// We are replying ACK or NACK depending on whether we successfully processed the response.
 				if err := streamSend(reply); err != nil {
 					return fmt.Errorf("failed to send to stream: %v", err)
 				}
@@ -612,7 +625,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(logger, status, update)
+				resp, err = makeServiceResponse(status, update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)
@@ -623,10 +636,17 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// TODO(Peering): figure out how to sync this separately
 
 			case update.CorrelationID == subCARoot:
-				resp, err = makeCARootsResponse(logger, update)
+				resp, err = makeCARootsResponse(update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create ca roots response", "error", err)
+					continue
+				}
+
+			case update.CorrelationID == subServerAddrs:
+				resp, err = makeServerAddrsResponse(update)
+				if err != nil {
+					logger.Error("failed to create server address response", "error", err)
 					continue
 				}
 
@@ -640,6 +660,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			replResp := makeReplicationResponse(resp)
 			if err := streamSend(replResp); err != nil {
+				// note: govet warns of context leak but it is cleaned up in a defer
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
 		}

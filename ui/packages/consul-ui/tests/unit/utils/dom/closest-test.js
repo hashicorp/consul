@@ -1,11 +1,11 @@
 import domClosest from 'consul-ui/utils/dom/closest';
-import test from 'ember-sinon-qunit/test-support/test';
-import { module, skip } from 'qunit';
+import { module, skip, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/closest', function() {
   test('it calls Element.closest with the specified selector', function(assert) {
     const el = {
-      closest: this.stub().returnsArg(0),
+      closest: sinon.stub().returnsArg(0),
     };
     const expected = 'selector';
     const actual = domClosest(expected, el);

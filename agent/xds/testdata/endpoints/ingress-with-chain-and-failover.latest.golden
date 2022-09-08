@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "failover-target~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -32,7 +32,13 @@
               "loadBalancingWeight": 1
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "failover-target~fail.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
         {
           "lbEndpoints": [
             {
@@ -59,13 +65,9 @@
               "healthStatus": "HEALTHY",
               "loadBalancingWeight": 1
             }
-          ],
-          "priority": 1
+          ]
         }
-      ],
-      "policy": {
-        "overprovisioningFactor": 100000
-      }
+      ]
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",

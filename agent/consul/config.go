@@ -584,6 +584,7 @@ func CloneSerfLANConfig(base *serf.Config) *serf.Config {
 	cfg.MemberlistConfig.ProbeTimeout = base.MemberlistConfig.ProbeTimeout
 	cfg.MemberlistConfig.SuspicionMult = base.MemberlistConfig.SuspicionMult
 	cfg.MemberlistConfig.RetransmitMult = base.MemberlistConfig.RetransmitMult
+	cfg.MemberlistConfig.MetricLabels = base.MemberlistConfig.MetricLabels
 
 	// agent/keyring.go
 	cfg.MemberlistConfig.Keyring = base.MemberlistConfig.Keyring
@@ -593,6 +594,7 @@ func CloneSerfLANConfig(base *serf.Config) *serf.Config {
 	cfg.ReapInterval = base.ReapInterval
 	cfg.TombstoneTimeout = base.TombstoneTimeout
 	cfg.MemberlistConfig.SecretKey = base.MemberlistConfig.SecretKey
+	cfg.MetricLabels = base.MetricLabels
 
 	return cfg
 }

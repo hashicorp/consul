@@ -108,6 +108,8 @@ as |after|}}
             There was an error saving your {{or label type}}.
         {{#if (and api.error.status api.error.detail)}}
             <br />{{api.error.status}}: {{api.error.detail}}
+        {{else if api.error.message}}
+            <br />{{api.error.message}}
         {{/if}}
           </p>
         </notice.Body>

@@ -37,8 +37,8 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
 | 1.13.x              | 1.23.0, 1.22.2, 1.21.4, 1.20.6                                                     |
-| 1.12.x              | 1.22.2, 1.21.3, 1.20.4, 1.19.5                                                     |
-| 1.11.x              | 1.20.2, 1.19.3, 1.18.6, 1.17.4<sup>1</sup>                                         |
+| 1.12.x              | 1.22.2, 1.21.4, 1.20.6, 1.19.5                                                     |
+| 1.11.x              | 1.20.6, 1.19.5, 1.18.6, 1.17.4<sup>1</sup>                                         |
 
 1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
 Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
@@ -309,6 +309,8 @@ definition](/docs/connect/registration/service-registration) or
     load balancer.
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
+  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
+    when an outlier status is detected through consecutive 5xx.
 
 ### Gateway Options
 
@@ -758,6 +760,45 @@ definition](/docs/connect/registration/service-registration) or
 
   </CodeTabs>
 
+
+- `envoy_listener_tracing_json` - Specifies a [tracing 
+  configuration](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-msg-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing)
+  to be inserted in the proxy's public and upstreams listeners.
+
+  <CodeBlockConfig heading="Example envoy_listener_tracing_json">
+
+  ```json
+  {
+    "@type" : "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+    "provider" : {
+      "name" : "envoy.tracers.zipkin",
+      "typed_config" : {
+        "@type" : "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+        "collector_cluster" : "otelcolector",
+        "collector_endpoint" : "/api/v2/spans",
+        "collector_endpoint_version" : "HTTP_JSON",
+        "shared_span_context" : false
+      }
+    },
+    "custom_tags" : [
+      {
+        "tag" : "custom_header",
+        "request_header" : {
+          "name" : "x-custom-traceid",
+          "default_value" : ""
+        }
+      },
+      {
+        "tag" : "alloc_id",
+        "environment" : {
+          "name" : "NOMAD_ALLOC_ID"
+        }
+      }
+    ]
+  }
+  ```
+
+  </CodeBlockConfig>
 
 - `envoy_local_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
   to be delivered in place of the local application cluster. This allows
