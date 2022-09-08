@@ -1542,6 +1542,9 @@ module.exports = [
   {
     source: '/docs/k8s/installation/vault/wan-federation',
     destination: '/docs/k8s/deployment-configurations/vault/wan-federation',
+    permanent: true,
+  },
+  {
     source: '/docs/nia/installation/run',
     destination: '/docs/nia/usage/run',
     permanent: true,
