@@ -84,6 +84,7 @@ module.exports = function(environment, $ = process.env) {
       SSOEnabled: false,
       PeeringEnabled: false,
       PartitionsEnabled: false,
+      HCPEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
       APIPrefix: env('CONSUL_API_PREFIX', '')
@@ -110,6 +111,7 @@ module.exports = function(environment, $ = process.env) {
           // in testing peering feature is on by default
           PeeringEnabled: env('CONSUL_PEERINGS_ENABLED', true),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
+          HCPEnabled: env('CONSUL_HCP_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', '')
@@ -163,6 +165,7 @@ module.exports = function(environment, $ = process.env) {
           SSOEnabled: env('CONSUL_SSO_ENABLED', true),
           PeeringEnabled: env('CONSUL_PEERINGS_ENABLED', true),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', true),
+          HCPEnabled: env('CONSUL_HCP_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', '')
