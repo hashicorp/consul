@@ -599,7 +599,7 @@ function common_run_container_service {
   local grpcPort="$4"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
 
-  docker.exe exec -d $CONTAINER_NAME bash -c "FORTIO_NAME=${service} &&
+  docker.exe exec -d $CONTAINER_NAME bash -c "FORTIO_NAME=${service} \
                                               fortio.exe server \
                                               -http-port ":$httpPort" \
                                               -grpc-port ":$grpcPort" \
@@ -811,11 +811,11 @@ function run_container_zipkin {
 }
 
 function run_container_jaeger {
-  docker.exe run -d --name $(container_name) \
-    $WORKDIR_SNIPPET \
-    $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/windows/jaegertracing" \
-    --collector.zipkin.http-port=9411
+  local DC=${1:-primary}
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
+
+  docker.exe exec -d $CONTAINER_NAME bash -c "jaeger-all-in-one.exe \
+                                              --collector.zipkin.http-port=9411"
 }
 
 function run_container_test-sds-server {
