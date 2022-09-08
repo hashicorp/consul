@@ -32,10 +32,13 @@ module.exports = {
     'ember/no-classic-components': ['warn'],
     'ember/no-component-lifecycle-hooks': ['warn'],
     'ember/require-tagless-components': ['warn'],
+    'ember/no-legacy-test-waiters': ['warn'],
+    'ember/no-empty-glimmer-component-classes': ['warn'],
     'ember/no-get': ['off'], // be careful with autofix, might change behavior
     'ember/require-computed-property-dependencies': ['off'], // be careful with autofix
     'ember/use-ember-data-rfc-395-imports': ['off'], // be carful with autofix
     'ember/require-super-in-lifecycle-hooks': ['off'], // be careful with autofix
+    'ember/require-computed-macros': ['off'], // be careful with autofix
   },
   overrides: [
     // node files
