@@ -6,7 +6,7 @@ description: Single Consul Datacenter deployed in multiple Kubernetes clusters
 
 # Single Consul Datacenter in Multiple Kubernetes Clusters
 
-~> **Note:** For running Consul across multiple Kubernetes, it is generally recommended to utilize [Admin Partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows for the ability to accommodate for multiple tenants without concerns of resource collisions when administering a cluster at scale, and for the ability to run Consul on Kubernetes clusters across a non-flat network. 
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network. 
  
 This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
 with servers and clients running in one cluster and only clients in the rest of the clusters.
@@ -76,7 +76,7 @@ which are likely going to change.
 
 To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
 
-```shell
+```shell-session
 $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
 ```
 
@@ -163,7 +163,7 @@ which can be seen by running `kubectl get nodes --output wide`.
 Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service.
 In our example, the port is `31557`.
 
-```shell
+```shell-session
 $ kubectl get service cluster1-consul-ui --context cluster1
 NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h

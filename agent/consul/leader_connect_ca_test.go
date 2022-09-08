@@ -1042,3 +1042,43 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	require.NoError(t, err, "failed to set signed intermediate")
 	return lib.EnsureTrailingNewline(buf.String())
 }
+
+func TestCAManager_Sign_SpiffeIDServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	roots := structs.IndexedCARoots{}
+
+	retry.Run(t, func(r *retry.R) {
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(r, err)
+		require.Len(r, roots.Roots, 1)
+	})
+
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	// Request a leaf certificate for a server.
+	spiffeID := &connect.SpiffeIDServer{
+		Host:       roots.TrustDomain,
+		Datacenter: "dc1",
+	}
+	csr, err := connect.CreateCSR(spiffeID, pk, nil, nil)
+	require.NoError(t, err)
+
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
+	require.NoError(t, err)
+
+	// Verify the chain of trust.
+	verifyLeafCert(t, roots.Roots[0], cert.CertPEM)
+
+	// Verify the Server's URI.
+	require.Equal(t, fmt.Sprintf("spiffe://%s/agent/server/dc/dc1", roots.TrustDomain), cert.ServerURI)
+}

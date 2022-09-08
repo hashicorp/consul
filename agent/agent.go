@@ -972,8 +972,9 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			}
 
 			srv := &HTTPHandlers{
-				agent:    a,
-				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
+				agent:          a,
+				denylist:       NewDenylist(a.config.HTTPBlockEndpoints),
+				proxyTransport: http.DefaultTransport,
 			}
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
@@ -2140,6 +2141,21 @@ func (a *Agent) AddService(req AddServiceRequest) error {
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
 func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
+	// Must auto-assign the port and default checks (if needed) here to avoid race collisions.
+	if req.Service.LocallyRegisteredAsSidecar {
+		if req.Service.Port < 1 {
+			port, err := a.sidecarPortFromServiceIDLocked(req.Service.CompoundServiceID())
+			if err != nil {
+				return err
+			}
+			req.Service.Port = port
+		}
+		// Setup default check if none given.
+		if len(req.chkTypes) < 1 {
+			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Address, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+		}
+	}
+
 	req.Service.EnterpriseMeta.Normalize()
 
 	if err := a.validateService(req.Service, req.chkTypes); err != nil {
@@ -3404,7 +3420,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		// Grab and validate sidecar if there is one too
-		sidecar, sidecarChecks, sidecarToken, err := a.sidecarServiceFromNodeService(ns, service.Token)
+		sidecar, sidecarChecks, sidecarToken, err := sidecarServiceFromNodeService(ns, service.Token)
 		if err != nil {
 			return fmt.Errorf("Failed to validate sidecar for service %q: %v", service.Name, err)
 		}
@@ -4304,7 +4320,10 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
+		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
+		sources.ResolvedServiceConfig = proxycfgglue.ServerResolvedServiceConfig(deps, proxycfgglue.CacheResolvedServiceConfig(a.cache))
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
 		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
 		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)

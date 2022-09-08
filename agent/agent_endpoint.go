@@ -1180,7 +1180,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 
 	// See if we have a sidecar to register too
-	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, token)
+	sidecar, sidecarChecks, sidecarToken, err := sidecarServiceFromNodeService(ns, token)
 	if err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
