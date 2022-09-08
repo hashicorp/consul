@@ -141,7 +141,7 @@ const consulPolicyList = consulPolicyListFactory(
 const page = pageFactory(collection, clickable, attribute, is, authForm, emptyState);
 
 // pages
-const create = function(appView) {
+const create = function (appView) {
   appView = {
     ...page(),
     ...appView,

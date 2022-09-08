@@ -16,7 +16,7 @@ module(`Integration | Service | policy`, function (hooks) {
     test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/policy');
 
-      get(subject, 'store').serializerFor('policy').timestamp = function () {
+      subject.store.serializerFor('policy').timestamp = function () {
         return now;
       };
       return repo(

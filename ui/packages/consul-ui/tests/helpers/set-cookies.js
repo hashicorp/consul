@@ -1,4 +1,4 @@
-export default function(type, value, doc = document) {
+export default function (type, value, doc = document) {
   const obj = {};
   if (type !== '*') {
     let key = '';

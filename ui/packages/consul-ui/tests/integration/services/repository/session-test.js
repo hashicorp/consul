@@ -16,7 +16,7 @@ module(`Integration | Service | session`, function (hooks) {
     test(`findByNode returns the correct data for list endpoint when the nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/session');
 
-      get(subject, 'store').serializerFor('session').timestamp = function () {
+      subject.store.serializerFor('session').timestamp = function () {
         return now;
       };
       return repo(

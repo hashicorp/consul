@@ -1,8 +1,8 @@
 import { filters } from 'consul-ui/components/search-bar/utils';
 import { module, test } from 'qunit';
 
-module('Unit | Component | search-bar/filters', function() {
-  test('it correctly reshapes the filter data', function(assert) {
+module('Unit | Component | search-bar/filters', function () {
+  test('it correctly reshapes the filter data', function (assert) {
     [
       // basic filter, returns a single filter button when clicked
       // resets selected/queryparam to empty
@@ -146,7 +146,7 @@ module('Unit | Component | search-bar/filters', function() {
           },
         ],
       },
-    ].forEach(item => {
+    ].forEach((item) => {
       const actual = filters(item.filters);
       assert.deepEqual(actual, item.expected);
     });

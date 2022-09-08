@@ -16,7 +16,7 @@ module(`Integration | Service | role`, function (hooks) {
     test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/role');
 
-      get(subject, 'store').serializerFor('role').timestamp = function () {
+      subject.store.serializerFor('role').timestamp = function () {
         return now;
       };
       return repo(

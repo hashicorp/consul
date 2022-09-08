@@ -1,4 +1,4 @@
-export default function(visitable, submitable, deletable, cancelable, clickable, tokenList) {
+export default function (visitable, submitable, deletable, cancelable, clickable, tokenList) {
   return {
     visit: visitable(['/:dc/acls/policies/:policy', '/:dc/acls/policies/create']),
     ...submitable({}, 'main form > div'),

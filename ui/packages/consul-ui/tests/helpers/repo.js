@@ -37,7 +37,7 @@ function recordAttributes(record) {
  */
 const stubAdapterResponse = function (cb, payload, adapter) {
   const payloadClone = JSON.parse(JSON.stringify(payload));
-  const client = get(adapter, 'client');
+  const client = adapter.client;
   set(adapter, 'client', {
     request: function (cb) {
       return cb(function () {
@@ -72,7 +72,7 @@ const stubAdapterResponse = function (cb, payload, adapter) {
  *                             opportunity to mutate it before returning for use in your assertion
  */
 export default function (name, method, service, stub, test, assert) {
-  const adapter = get(service, 'store').adapterFor(name.toLowerCase());
+  const adapter = service.store.adapterFor(name.toLowerCase());
   let tags = {};
   const requestHeaders = function (url, cookies = {}) {
     const key = Object.keys(cookies).find(function (item) {
@@ -103,7 +103,7 @@ export default function (name, method, service, stub, test, assert) {
     } else {
       // we are dealing with a single record
       if (typeof response.get === 'function') {
-        const data = get(response, 'data');
+        const data = response.data;
 
         if (data) {
           // we were dealing with a proxy

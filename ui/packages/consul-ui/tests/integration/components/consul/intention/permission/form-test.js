@@ -7,10 +7,10 @@ import { create } from 'ember-cli-page-object';
 import obj from 'consul-ui/components/consul/intention/permission/form/pageobject';
 
 const PermissionForm = create(obj());
-module('Integration | Component | consul/intention/permission/form', function(hooks) {
+module('Integration | Component | consul/intention/permission/form', function (hooks) {
   setupRenderingTest(hooks);
 
-  test('it renders', async function(assert) {
+  test('it renders', async function (assert) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
