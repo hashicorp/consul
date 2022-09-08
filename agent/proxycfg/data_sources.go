@@ -89,10 +89,10 @@ type DataSources struct {
 
 	// IntentionUpstreamsDestination provides intention-inferred upstream updates on a
 	// notification channel.
-	IntentionUpstreamsDestination IntentionUpstreamsDestination
+	IntentionUpstreamsDestination IntentionUpstreams
 
-	// InternalServiceDump provides updates about a (gateway) service on a
-	// notification channel.
+	// InternalServiceDump provides updates about services of a given kind (e.g.
+	// mesh gateways) on a notification channel.
 	InternalServiceDump InternalServiceDump
 
 	// LeafCertificate provides updates about the service's leaf certificate on a
@@ -197,14 +197,8 @@ type IntentionUpstreams interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// IntentionUpstreamsDestination is the interface used to consume updates about upstreams destination
-// inferred from service intentions.
-type IntentionUpstreamsDestination interface {
-	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
-}
-
-// InternalServiceDump is the interface used to consume updates about a (gateway)
-// service via the internal ServiceDump RPC.
+// InternalServiceDump is the interface used to consume updates about services
+// of a given kind (e.g. mesh gateways).
 type InternalServiceDump interface {
 	Notify(ctx context.Context, req *structs.ServiceDumpRequest, correlationID string, ch chan<- UpdateEvent) error
 }

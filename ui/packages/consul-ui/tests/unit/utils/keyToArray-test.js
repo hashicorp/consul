@@ -1,5 +1,4 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import keyToArray from 'consul-ui/utils/keyToArray';
 
 module('Unit | Utils | keyToArray', function() {

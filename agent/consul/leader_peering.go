@@ -112,7 +112,7 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 		if status.NeverConnected {
 			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
 		} else {
-			healthy := status.IsHealthy()
+			healthy := s.peerStreamServer.Tracker.IsHealthy(status)
 			healthyInt := 0
 			if healthy {
 				healthyInt = 1
@@ -305,7 +305,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 
 	logger.Trace("establishing stream to peer")
 
-	streamStatus, err := s.peerStreamTracker.Register(peer.ID)
+	streamStatus, err := s.peerStreamServer.Tracker.Register(peer.ID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
 	}

@@ -1,6 +1,6 @@
 import domEventSourceCache from 'consul-ui/utils/dom/event-source/cache';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/event-source/cache', function() {
   const createEventSource = function() {
@@ -66,8 +66,8 @@ module('Unit | Utility | dom/event-source/cache', function() {
     const Promise = createPromise(function() {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
@@ -92,14 +92,14 @@ module('Unit | Utility | dom/event-source/cache', function() {
   test('cache creates the default EventSource and keeps it open when there is a cursor', function(assert) {
     const EventSource = createEventSource();
     const stub = {
-      close: this.stub(),
+      close: sinon.stub(),
       configuration: { cursor: 1 },
     };
     const Promise = createPromise(function() {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
@@ -120,14 +120,14 @@ module('Unit | Utility | dom/event-source/cache', function() {
   test("cache creates the default EventSource and closes it when there isn't a cursor", function(assert) {
     const EventSource = createEventSource();
     const stub = {
-      close: this.stub(),
+      close: sinon.stub(),
       configuration: {},
     };
     const Promise = createPromise(function() {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);

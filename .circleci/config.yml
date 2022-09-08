@@ -816,7 +816,7 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      # Build the consul-dev image from the already built binary
+      # Build the consul:local image from the already built binary
       - run:
           command: |
             sudo rm -rf /usr/local/go
@@ -887,8 +887,8 @@ jobs:
       - attach_workspace:
           at: .
       - run: *install-gotestsum
-      # Build the consul-dev image from the already built binary
-      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
+      # Build the consul:local image from the already built binary
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
           command: |
@@ -902,6 +902,7 @@ jobs:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
             COMPOSE_INTERACTIVE_NO_CLI: 1
+            LAMBDA_TESTS_ENABLED: "true"
             # tput complains if this isn't set to something.
             TERM: ansi
       - store_artifacts:

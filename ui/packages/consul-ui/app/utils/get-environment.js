@@ -132,6 +132,16 @@ export default function(config = {}, win = window, doc = document) {
         return operatorConfig.LocalDatacenter;
       case 'CONSUL_DATACENTER_PRIMARY':
         return operatorConfig.PrimaryDatacenter;
+      case 'CONSUL_HCP_MANAGED_RUNTIME':
+        return operatorConfig.HCPManagedRuntime;
+      case 'CONSUL_API_PREFIX':
+        // we want API prefix to look like an env var for if we ever change
+        // operator config to be an API request, we need this variable before we
+        // make and API request so this specific variable should never be be
+        // retrived via an API request
+        return operatorConfig.APIPrefix;
+      case 'CONSUL_HCP_URL':
+        return operatorConfig.HCPURL;
       case 'CONSUL_UI_CONFIG':
         dashboards = {
           service: undefined,
@@ -184,7 +194,7 @@ export default function(config = {}, win = window, doc = document) {
     }
   };
   const ui = function(key) {
-    let $;
+    let $ = {};
     switch (config.environment) {
       case 'development':
       case 'staging':
@@ -219,15 +229,28 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_UI_CONFIG':
               prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
               break;
+            case 'TokenSecretID':
+              prev['CONSUL_HTTP_TOKEN'] = value;
+              break;
             default:
               prev[key] = value;
           }
           return prev;
         }, {});
-        if (typeof $[key] !== 'undefined') {
-          return $[key];
-        }
         break;
+      case 'production':
+        $ = dev().reduce(function(prev, [key, value]) {
+          switch (key) {
+            case 'TokenSecretID':
+              prev['CONSUL_HTTP_TOKEN'] = value;
+              break;
+          }
+          return prev;
+        }, {});
+        break;
+    }
+    if (typeof $[key] !== 'undefined') {
+      return $[key];
     }
     return config[key];
   };
@@ -246,6 +269,9 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_DATACENTER_LOCAL':
       case 'CONSUL_DATACENTER_PRIMARY':
+      case 'CONSUL_HCP_MANAGED_RUNTIME':
+      case 'CONSUL_API_PREFIX':
+      case 'CONSUL_HCP_URL':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_PEERINGS_ENABLED':

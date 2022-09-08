@@ -1,9 +1,12 @@
 import Application from '../app';
 import config from '../config/environment';
+import * as QUnit from 'qunit';
 import { setApplication } from '@ember/test-helpers';
+import { setup } from 'qunit-dom';
 import { registerWaiter } from '@ember/test';
 import './helpers/flash-message';
 import start from 'ember-exam/test-support/start';
+import setupSinon from 'ember-sinon-qunit';
 
 import ClientConnections from 'consul-ui/services/client/connections';
 
@@ -33,6 +36,10 @@ ClientConnections.reopen({
 });
 const application = Application.create(config.APP);
 application.inject('component:copy-button', 'clipboard', 'service:clipboard/local-storage');
+
 setApplication(application);
+
+setup(QUnit.assert);
+setupSinon();
 
 start();

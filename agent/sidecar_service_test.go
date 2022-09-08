@@ -54,7 +54,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
-				Port:                       2222,
+				Port:                       0,
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
@@ -63,18 +63,8 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServicePort:       1111,
 				},
 			},
-			wantChecks: []*structs.CheckType{
-				{
-					Name:     "Connect Sidecar Listening",
-					TCP:      "127.0.0.1:2222",
-					Interval: 10 * time.Second,
-				},
-				{
-					Name:         "Connect Sidecar Aliasing web1",
-					AliasService: "web1",
-				},
-			},
-			wantToken: "foo",
+			wantChecks: nil,
+			wantToken:  "foo",
 		},
 		{
 			name: "all the allowed overrides",
@@ -157,7 +147,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
-				Port:                       2222,
+				Port:                       0,
 				Tags:                       []string{"foo"},
 				Meta:                       map[string]string{"foo": "bar"},
 				LocallyRegisteredAsSidecar: true,
@@ -168,17 +158,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServicePort:       1111,
 				},
 			},
-			wantChecks: []*structs.CheckType{
-				{
-					Name:     "Connect Sidecar Listening",
-					TCP:      "127.0.0.1:2222",
-					Interval: 10 * time.Second,
-				},
-				{
-					Name:         "Connect Sidecar Aliasing web1",
-					AliasService: "web1",
-				},
-			},
+			wantChecks: nil,
 		},
 		{
 			name: "invalid check type",
@@ -218,20 +198,11 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hcl := `
-			ports {
-				sidecar_min_port = 2222
-				sidecar_max_port = 2222
-			}
-			`
-			a := StartTestAgent(t, TestAgent{Name: "jones", HCL: hcl})
-			defer a.Shutdown()
-
 			ns := tt.sd.NodeService()
 			err := ns.Validate()
 			require.NoError(t, err, "Invalid test case - NodeService must validate")
 
-			gotNS, gotChecks, gotToken, err := a.sidecarServiceFromNodeService(ns, tt.token)
+			gotNS, gotChecks, gotToken, err := sidecarServiceFromNodeService(ns, tt.token)
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
@@ -329,7 +300,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 				}
 				`
 			}
-			a := StartTestAgent(t, TestAgent{Name: "jones", HCL: hcl})
+			a := NewTestAgent(t, hcl)
 			defer a.Shutdown()
 
 			if tt.preRegister != nil {
@@ -337,7 +308,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			gotPort, err := a.sidecarPortFromServiceID(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
+			gotPort, err := a.sidecarPortFromServiceIDLocked(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
 
 			if tt.wantErr != "" {
 				require.Error(t, err)
@@ -347,6 +318,55 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.wantPort, gotPort)
+		})
+	}
+}
+
+func TestAgent_SidecarDefaultChecks(t *testing.T) {
+	tests := []struct {
+		name                 string
+		svcAddress           string
+		proxyLocalSvcAddress string
+		port                 int
+		wantChecks           []*structs.CheckType
+	}{{
+		name:                 "uses proxy address for check",
+		svcAddress:           "123.123.123.123",
+		proxyLocalSvcAddress: "255.255.255.255",
+		port:                 2222,
+		wantChecks: []*structs.CheckType{
+			{
+				Name:     "Connect Sidecar Listening",
+				TCP:      "123.123.123.123:2222",
+				Interval: 10 * time.Second,
+			},
+			{
+				Name:         "Connect Sidecar Aliasing web1",
+				AliasService: "web1",
+			},
+		},
+	},
+		{
+			name:                 "uses proxy.local_service_address for check if proxy address is empty",
+			proxyLocalSvcAddress: "1.2.3.4",
+			port:                 2222,
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "1.2.3.4:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotChecks := sidecarDefaultChecks("web1", tt.svcAddress, tt.proxyLocalSvcAddress, tt.port)
+			require.Equal(t, tt.wantChecks, gotChecks)
 		})
 	}
 }

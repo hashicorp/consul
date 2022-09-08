@@ -6,6 +6,8 @@ description: Single Consul Datacenter deployed in multiple Kubernetes clusters
 
 # Single Consul Datacenter in Multiple Kubernetes Clusters
 
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network. 
+ 
 This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
 with servers and clients running in one cluster and only clients in the rest of the clusters.
 This example uses two Kubernetes clusters, but this approach could be extended to using more than two.
@@ -19,16 +21,13 @@ to pods or nodes in another. In many hosted Kubernetes environments, this may ha
   * [Azure AKS CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking)
   * [AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html)
   * [GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
-
-If a flat network is unavailable across all Kubernetes clusters, follow the instructions for using [Admin Partitions](/docs/enterprise/admin-partitions), which is a Consul Enterprise feature.
-
+* Either the Helm release name for each Kubernetes cluster must be unique, or `global.name` for each Kubernetes cluster must be unique to prevent collisions of ACL resources with the same prefix. 
 
 ## Prepare Helm release name ahead of installs
 
 The Helm release name must be unique for each Kubernetes cluster.
 The Helm chart uses the Helm release name as a prefix for the
-ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
-are identical, subsequent Consul on Kubernetes clusters overwrite existing ACL resources and cause the clusters to fail.
+ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases are identical, or if `global.name` for each cluster is identical, subsequent Consul on Kubernetes clusters will overwrite existing ACL resources and cause the clusters to fail.
 
 Before proceeding with installation, prepare the Helm release names as environment variables for both the server and client install.
 
@@ -77,7 +76,7 @@ which are likely going to change.
 
 To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
 
-```shell
+```shell-session
 $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
 ```
 
@@ -164,7 +163,7 @@ which can be seen by running `kubectl get nodes --output wide`.
 Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service.
 In our example, the port is `31557`.
 
-```shell
+```shell-session
 $ kubectl get service cluster1-consul-ui --context cluster1
 NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h

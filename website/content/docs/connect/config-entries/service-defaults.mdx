@@ -503,6 +503,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: `The number of consecutive failures which cause a host to be
                       removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -634,6 +644,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   type: 'int: 0',
                   description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
+                },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
                 },
               ],
             },
