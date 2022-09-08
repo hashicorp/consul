@@ -3970,9 +3970,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
 
-	// Setup the external GRPC server.
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"))
-
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg, snap); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
