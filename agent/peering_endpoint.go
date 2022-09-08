@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -178,4 +179,33 @@ func (s *HTTPHandlers) peeringDelete(resp http.ResponseWriter, req *http.Request
 	}
 
 	return nil, nil
+}
+
+// PeeringHealth returns information about the health of a stream.
+func (s *HTTPHandlers) PeeringHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.PeerSpecificRequest{}
+	s.parseToken(req, &args.Token)
+	// RPC must always be forwarded to leader
+	args.AllowStale = false
+
+	// Extract peer name from URL
+	peer := strings.TrimPrefix(req.URL.Path, "/v1/peering-health/")
+	if peer == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing peer name"}
+	}
+	args.PeerName = peer
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	// Make the RPC request
+	var out structs.PeeringHealthResponse
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Internal.PeeringHealth", &args, &out); err != nil {
+		// This request must be served from the leader. No retries here.
+		return nil, err
+	}
+
+	return out, nil
 }

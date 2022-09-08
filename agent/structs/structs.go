@@ -2943,3 +2943,32 @@ func TimeToProto(s time.Time) *timestamp.Timestamp {
 func IsZeroProtoTime(t *timestamp.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
 }
+
+// PeerSpecificRequest is used to request the information about a single peer.
+type PeerSpecificRequest struct {
+	PeerName string
+
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	QueryOptions
+}
+
+func (r *PeerSpecificRequest) RequestDatacenter() string {
+	return ""
+}
+
+type PeeringHealthResponse struct {
+	Health PeeringHealth
+
+	QueryMeta
+}
+
+type PeeringHealth struct {
+	State string // matches pbpeering.PeeringState
+
+	// LastHeartbeat represents when the last heartbeat message was received.
+	LastHeartbeat time.Time
+	// LastReceive represents when any message was last received, regardless of success or error.
+	LastReceive time.Time
+	// LastSend represents when any message was last sent, regardless of success or error.
+	LastSend time.Time
+}

@@ -524,3 +524,33 @@ func TestHTTP_Peering_List(t *testing.T) {
 		}
 	})
 }
+
+func TestHTTP_PeeringHealth(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a1 := NewTestAgent(t, "")
+
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Second)
+	defer cancel()
+
+	_, err := a1.rpcClientPeering.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{
+		PeerName: "foo",
+	})
+	require.NoError(t, err)
+
+	req, err := http.NewRequest("GET", "/v1/peering-health/foo", nil)
+	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	var healthResp structs.PeeringHealthResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&healthResp))
+
+	require.Equal(t, "PENDING", healthResp.Health.State)
+}

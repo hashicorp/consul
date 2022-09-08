@@ -3500,3 +3500,52 @@ func testUUID() string {
 		buf[8:10],
 		buf[10:16])
 }
+
+func TestInternal_PeerStreamHealth(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	testID := testUUID()
+
+	require.NoError(t, s1.fsm.State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			Name: "foo",
+			ID:   testID,
+		},
+	}))
+
+	st, err := s1.peerStreamServer.Tracker.Connected(testID)
+	require.NoError(t, err)
+
+	codec := rpcClient(t, s1)
+
+	// Track some timestamps so we can assert for them later.
+	st.TrackSendSuccess()
+	st.TrackRecvHeartbeat()
+
+	args := structs.PeerSpecificRequest{
+		PeerName:       "foo",
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	var out *structs.PeeringHealthResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.PeeringHealth", &args, &out))
+
+	expect := &structs.PeeringHealthResponse{
+		Health: structs.PeeringHealth{
+			State:         "ACTIVE",
+			LastHeartbeat: st.LastRecvHeartbeat,
+			LastReceive:   st.LastRecvHeartbeat,
+			LastSend:      st.LastSendSuccess,
+		},
+		QueryMeta: structs.QueryMeta{
+			Index:       10,
+			KnownLeader: true,
+		},
+	}
+	require.Equal(t, expect, out)
+}

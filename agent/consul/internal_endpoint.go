@@ -2,8 +2,9 @@ package consul
 
 import (
 	"fmt"
+	"time"
 
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // Internal endpoint is used to query the miscellaneous info that
@@ -838,4 +840,67 @@ func (m *Internal) executeKeyringOpMgr(
 	}
 
 	return serfResp, err
+}
+
+func (m *Internal) PeeringHealth(args *structs.PeerSpecificRequest, reply *structs.PeeringHealthResponse) error {
+	if done, err := m.srv.ForwardRPC("Internal.PeeringHealth", args, reply); done {
+		return err
+	}
+
+	_, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, store *state.Store) error {
+			idx, p, err := store.PeeringRead(ws, state.Query{
+				Value:          args.PeerName,
+				EnterpriseMeta: args.EnterpriseMeta,
+			})
+			if err != nil {
+				return fmt.Errorf("error while fetching peer %q: %w", args.PeerName, err)
+			}
+			if p == nil {
+				reply.Health = structs.PeeringHealth{}
+				reply.Index = idx
+				return errNotFound
+			}
+			status, ok := m.srv.peerStreamServer.StreamStatus(p.ID)
+			if !ok {
+				// If stream has not been established yet, fall back to peer's state
+				reply.Health = structs.PeeringHealth{
+					State: p.State.String(),
+				}
+				reply.Index = idx
+				return nil
+			}
+			latest := func(tt ...time.Time) time.Time {
+				latest := time.Time{}
+				for _, t := range tt {
+					if t.After(latest) {
+						latest = t
+					}
+				}
+				return latest
+			}
+			health := structs.PeeringHealth{
+				State:         p.State.String(),
+				LastHeartbeat: status.LastRecvHeartbeat,
+				LastReceive:   latest(status.LastRecvHeartbeat, status.LastRecvError, status.LastRecvResourceSuccess),
+				LastSend:      latest(status.LastSendError, status.LastSendSuccess),
+			}
+			// this if-else-if block mirrors (*Server).reconcilePeering
+			if status.Connected {
+				health.State = pbpeering.PeeringState_ACTIVE.String()
+			} else if status.DisconnectErrorMessage != "" {
+				health.State = pbpeering.PeeringState_FAILING.String()
+			}
+			reply.Health = health
+			reply.Index = idx
+
+			return nil
+		})
 }
