@@ -1073,9 +1073,11 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 			},
 		}
 
-		grpcPortStr := member.Tags["grpc_port"]
-		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			service.Meta["grpc_port"] = grpcPortStr
+		if parts.ExternalGRPCPort > 0 {
+			service.Meta["grpc_port"] = strconv.Itoa(parts.ExternalGRPCPort)
+		}
+		if parts.ExternalGRPCTLSPort > 0 {
+			service.Meta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
 		}
 
 		// Attempt to join the consul server

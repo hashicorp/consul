@@ -253,7 +253,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -377,7 +377,6 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
-
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)

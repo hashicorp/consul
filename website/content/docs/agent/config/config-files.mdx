@@ -608,6 +608,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     automatically with this. This is set to `8502` by default when the agent runs
     in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
     proxies.
+  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502`** for `grpc_tls` by convention as some tooling will work
+    automatically with this. Usually only one of the `grpc_tls` or `grpc` ports should be defined.
+    Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](/docs/agent/config/cli-flags#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.
@@ -2003,7 +2007,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       interface.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
-    the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
+    the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

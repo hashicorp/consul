@@ -213,7 +213,7 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// externalGRPCServer is the gRPC server exposed on dedicated gRPC ports (as
 	// opposed to the multiplexed "server" port).
 	externalGRPCServer *grpc.Server
 
@@ -384,18 +384,18 @@ type Agent struct {
 
 // New process the desired options and creates a new Agent.
 // This process will
-//   * parse the config given the config Flags
-//   * setup logging
-//      * using predefined logger given in an option
-//        OR
-//      * initialize a new logger from the configuration
-//        including setting up gRPC logging
-//   * initialize telemetry
-//   * create a TLS Configurator
-//   * build a shared connection pool
-//   * create the ServiceManager
-//   * setup the NodeID if one isn't provided in the configuration
-//   * create the AutoConfig object for future use in fully
+//   - parse the config given the config Flags
+//   - setup logging
+//   - using predefined logger given in an option
+//     OR
+//   - initialize a new logger from the configuration
+//     including setting up gRPC logging
+//   - initialize telemetry
+//   - create a TLS Configurator
+//   - build a shared connection pool
+//   - create the ServiceManager
+//   - setup the NodeID if one isn't provided in the configuration
+//   - create the AutoConfig object for future use in fully
 //     resolving the configuration
 func New(bd BaseDeps) (*Agent, error) {
 	a := Agent{
@@ -539,7 +539,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.buildExternalGRPCServer()
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"))
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -702,7 +702,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	// Start gRPC server.
+	// Start grpc and grpc_tls servers.
 	if err := a.listenAndServeGRPC(); err != nil {
 		return err
 	}
@@ -760,15 +760,10 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) buildExternalGRPCServer() {
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator)
-}
-
 func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 {
+	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
 		return nil
 	}
-
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
@@ -787,7 +782,6 @@ func (a *Agent) listenAndServeGRPC() error {
 		}()
 		cfg = catalogCfg
 	}
-
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
@@ -800,22 +794,61 @@ func (a *Agent) listenAndServeGRPC() error {
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 
-	ln, err := a.startListeners(a.config.GRPCAddrs)
-	if err != nil {
-		return err
+	// Attempt to spawn listeners
+	var listeners []net.Listener
+	start := func(port_name string, addrs []net.Addr, tlsConf *tls.Config) error {
+		if len(addrs) < 1 {
+			return nil
+		}
+
+		ln, err := a.startListeners(addrs)
+		if err != nil {
+			return err
+		}
+		for i := range ln {
+			// Wrap with TLS, if provided.
+			if tlsConf != nil {
+				ln[i] = tls.NewListener(ln[i], tlsConf)
+			}
+			listeners = append(listeners, ln[i])
+		}
+
+		for _, l := range ln {
+			go func(innerL net.Listener) {
+				a.logger.Info("Started gRPC listeners",
+					"port_name", port_name,
+					"address", innerL.Addr().String(),
+					"network", innerL.Addr().Network(),
+				)
+				err := a.externalGRPCServer.Serve(innerL)
+				if err != nil {
+					a.logger.Error("gRPC server failed", "port_name", port_name, "error", err)
+				}
+			}(l)
+		}
+		return nil
 	}
 
-	for _, l := range ln {
-		go func(innerL net.Listener) {
-			a.logger.Info("Started gRPC server",
-				"address", innerL.Addr().String(),
-				"network", innerL.Addr().Network(),
-			)
-			err := a.externalGRPCServer.Serve(innerL)
-			if err != nil {
-				a.logger.Error("gRPC server failed", "error", err)
-			}
-		}(l)
+	// The original grpc port may spawn in either plain-text or TLS mode (for backwards compatibility).
+	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
+	if a.config.GRPCPort > 0 {
+		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
+		var tlsConf *tls.Config = nil
+		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
+			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
+			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
+		}
+		if err := start("grpc", a.config.GRPCAddrs, tlsConf); err != nil {
+			closeListeners(listeners)
+			return err
+		}
+	}
+	// Only allow grpc_tls to spawn with a TLS listener.
+	if a.config.GRPCTLSPort > 0 {
+		if err := start("grpc_tls", a.config.GRPCTLSAddrs, a.tlsConfigurator.IncomingGRPCConfig()); err != nil {
+			closeListeners(listeners)
+			return err
+		}
 	}
 	return nil
 }
@@ -1203,6 +1236,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
 	cfg.GRPCPort = runtimeCfg.GRPCPort
+	cfg.GRPCTLSPort = runtimeCfg.GRPCTLSPort
 
 	cfg.Segment = runtimeCfg.SegmentName
 	if len(runtimeCfg.Segments) > 0 {
@@ -1506,7 +1540,9 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	a.externalGRPCServer.Stop()
+	if a.externalGRPCServer != nil {
+		a.externalGRPCServer.Stop()
+	}
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -355,8 +357,10 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
 	t.Parallel()
+
+	ports := freeport.GetN(t, 2) // s3 grpc, s3 grpc_tls
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -383,6 +387,8 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
+		c.GRPCPort = ports[0]
+		c.GRPCTLSPort = ports[1]
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -455,6 +461,14 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
 			r.Fatalf("Expected version to be updated to %s, was %s", versionToExpect, newVersion)
+		}
+		grpcPort := service.Meta["grpc_port"]
+		if grpcPort != strconv.Itoa(ports[0]) {
+			r.Fatalf("Expected grpc port to be %d, was %s", ports[0], grpcPort)
+		}
+		grpcTLSPort := service.Meta["grpc_tls_port"]
+		if grpcTLSPort != strconv.Itoa(ports[1]) {
+			r.Fatalf("Expected grpc tls port to be %d, was %s", ports[1], grpcTLSPort)
 		}
 	})
 }

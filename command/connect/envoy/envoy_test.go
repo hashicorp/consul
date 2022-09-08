@@ -117,8 +117,8 @@ type generateConfigTestCase struct {
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
 	NamespacesEnabled bool
-	XDSPort           int  // only used for testing custom-configured grpc port
-	AgentSelf110      bool // fake the agent API from versions v1.10 and earlier
+	XDSPorts          agent.GRPCPorts // only used for testing custom-configured grpc port
+	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 }
@@ -447,9 +447,9 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:    "xds-addr-config",
-			Flags:   []string{"-proxy-id", "test-proxy"},
-			XDSPort: 9999,
+			Name:     "xds-addr-config",
+			Flags:    []string{"-proxy-id", "test-proxy"},
+			XDSPorts: agent.GRPCPorts{Plaintext: 9999, TLS: 0},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -471,9 +471,35 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name:         "grpc-tls-addr-config",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			XDSPorts:     agent.GRPCPorts{Plaintext: 9997, TLS: 9998},
+			AgentSelf110: false,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9998",
+					AgentTLS:     true,
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
 			Name:         "deprecated-grpc-addr-config",
 			Flags:        []string{"-proxy-id", "test-proxy"},
-			XDSPort:      9999,
+			XDSPorts:     agent.GRPCPorts{Plaintext: 9999, TLS: 0},
 			AgentSelf110: true,
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
@@ -1138,7 +1164,7 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 		case strings.Contains(r.URL.Path, "/agent/service"):
 			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
 		case strings.Contains(r.URL.Path, "/agent/self"):
-			testMockAgentSelf(tc.XDSPort, tc.AgentSelf110)(w, r)
+			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110)(w, r)
 		case strings.Contains(r.URL.Path, "/catalog/node-services"):
 			testMockCatalogNodeServiceList()(w, r)
 		default:
@@ -1378,7 +1404,7 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
 // port is filled in to match the given wantXDSPort argument.
-func testMockAgentSelf(wantXDSPort int, agentSelf110 bool) http.HandlerFunc {
+func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
@@ -1388,10 +1414,17 @@ func testMockAgentSelf(wantXDSPort int, agentSelf110 bool) http.HandlerFunc {
 
 		if agentSelf110 {
 			resp.DebugConfig = map[string]interface{}{
-				"GRPCPort": wantXDSPort,
+				"GRPCPort": wantXDSPorts.Plaintext,
 			}
 		} else {
-			resp.XDS = &agent.XDSSelf{Port: wantXDSPort}
+			resp.XDS = &agent.XDSSelf{
+				// The deprecated Port field should default to TLS if it's available.
+				Port:  wantXDSPorts.TLS,
+				Ports: wantXDSPorts,
+			}
+			if wantXDSPorts.TLS <= 0 {
+				resp.XDS.Port = wantXDSPorts.Plaintext
+			}
 		}
 
 		selfJSON, err := json.Marshal(resp)
