@@ -531,9 +531,9 @@ spec:
           type: 'string: ""',
           description:
             `Specifies the destination cluster peer to resolve the service
-                from. When peer is specified, the failover target relies on Envoy's
+                from. When the peer is specified, the failover target relies on Envoy's
                 outlier detection for health checks. Consul relies on outlier
-                detection because imported service health checks don't account
+                detection because imported service health checks do not account
                 for service routers, splitters and resolvers.`,
         },
       ],
@@ -631,9 +631,9 @@ spec:
               type: 'string: ""',
               description:
               `Specifies the destination cluster peer to resolve the service
-                  from. When peer is specified, the failover target relies on Envoy's
+                  from. When the peer is specified, the failover target relies on Envoy's
                   outlier detection for health checks. Consul relies on outlier
-                  detection because imported service health checks don't account
+                  detection because imported service health checks do not account
                   for service routers, splitters and resolvers.`,
             },
           ],
