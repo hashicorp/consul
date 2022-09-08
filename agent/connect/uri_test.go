@@ -157,3 +157,9 @@ func TestSpiffeIDServer_URI(t *testing.T) {
 
 	require.Equal(t, "spiffe://1234.consul/agent/server/dc/dc1", srv.URI().String())
 }
+
+func TestServerSAN(t *testing.T) {
+	san := PeeringServerSAN("dc1", TestTrustDomain)
+	expect := "server.dc1.peering." + TestTrustDomain
+	require.Equal(t, expect, san)
+}

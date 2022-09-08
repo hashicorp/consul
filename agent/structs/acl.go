@@ -104,6 +104,7 @@ type ACLIdentity interface {
 	IsLocal() bool
 	EnterpriseMetadata() *acl.EnterpriseMeta
 }
+
 type ACLTokenPolicyLink struct {
 	ID   string
 	Name string `hash:"ignore"`
@@ -1837,4 +1838,57 @@ func (id *AgentRecoveryTokenIdentity) IsLocal() bool {
 
 func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return nil
+}
+
+type ACLServerIdentity struct {
+	accessorID string
+	secretID   string
+}
+
+func (i *ACLServerIdentity) ID() string {
+	return i.accessorID
+}
+
+func (i *ACLServerIdentity) SecretToken() string {
+	return i.secretID
+}
+
+func (i *ACLServerIdentity) PolicyIDs() []string {
+	return nil
+}
+
+func (i *ACLServerIdentity) RoleIDs() []string {
+	return nil
+}
+
+func (i *ACLServerIdentity) ServiceIdentityList() []*ACLServiceIdentity {
+	return nil
+}
+
+func (i *ACLServerIdentity) NodeIdentityList() []*ACLNodeIdentity {
+	return nil
+}
+
+func (i *ACLServerIdentity) IsExpired(asOf time.Time) bool {
+	return false
+}
+
+func (i *ACLServerIdentity) IsLocal() bool {
+	return true
+}
+
+func (i *ACLServerIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
+	return acl.DefaultEnterpriseMeta()
+}
+
+type ServerManagementToken struct {
+	AccessorID string `json:"accessor_id,omitempty" hcl:"accessor_id" mapstructure:"accessor_id"`
+	SecretID   string `json:"secret_id,omitempty" hcl:"secret_id" mapstructure:"secret_id"`
+}
+
+func (t *ServerManagementToken) ToACLServerIdentity() *ACLServerIdentity {
+	return &ACLServerIdentity{
+		accessorID: t.AccessorID,
+		secretID:   t.SecretID,
+	}
 }

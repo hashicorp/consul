@@ -980,6 +980,10 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 		return structs.NewAgentRecoveryTokenIdentity(r.config.NodeName, token), r.agentRecoveryAuthz, true
 	}
 
+	if mgmt := r.tokens.ServerManagementToken(token); mgmt != nil {
+		return mgmt.ToACLServerIdentity(), acl.ManageAll(), true
+	}
+
 	return r.resolveLocallyManagedEnterpriseToken(token)
 }
 

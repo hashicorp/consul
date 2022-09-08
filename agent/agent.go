@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/local"
@@ -353,6 +354,9 @@ type Agent struct {
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 
+	// certManager manages the lifecycle of the internally-managed server certificate.
+	certManager *servercert.CertManager
+
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
@@ -583,6 +587,37 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
+
+		if a.config.PeeringEnabled {
+			secret, err := lib.GenerateUUID(nil)
+			if err != nil {
+				return fmt.Errorf("failed to generate server management token: %w", err)
+			}
+			accessor, err := lib.GenerateUUID(func(input string) (bool, error) {
+				// Avoid collision between accessor and secret IDs.
+				if input == secret {
+					return false, nil
+				}
+				return true, nil
+			})
+			a.tokens.UpdateServerManagementToken(accessor, secret)
+
+			d := servercert.Deps{
+				Logger: a.logger.Named("server.cert-manager"),
+				Config: servercert.Config{
+					Datacenter: a.config.Datacenter,
+					Token:      secret,
+				},
+				Cache:           a.cache,
+				Store:           server.FSM().State(),
+				TlsConfigurator: a.tlsConfigurator,
+			}
+			a.certManager = servercert.NewCertManager(d)
+			if err := a.certManager.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+				return fmt.Errorf("failed to start server cert manager: %w", err)
+			}
+		}
+
 	} else {
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {

@@ -1,9 +1,10 @@
 package token
 
 import (
+	"crypto/subtle"
 	"sync"
 
-	"crypto/subtle"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type TokenSource bool
@@ -73,6 +74,11 @@ type Store struct {
 
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
+
+	// serverToken is used by Consul servers for authn/authz when making
+	// requests to themselves through public APIs such as the agent cache.
+	// This token is only used for internally-managed activities.
+	serverToken *structs.ServerManagementToken
 
 	watchers     map[int]watcher
 	watcherIndex int
@@ -216,6 +222,16 @@ func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 	return changed
 }
 
+// UpdateServerManagementToken replaces the current server management token in the store.
+func (t *Store) UpdateServerManagementToken(accessorID, secretID string) {
+	t.l.Lock()
+	t.serverToken = &structs.ServerManagementToken{
+		AccessorID: accessorID,
+		SecretID:   secretID,
+	}
+	t.l.Unlock()
+}
+
 // UserToken returns the best token to use for user operations.
 func (t *Store) UserToken() string {
 	t.l.RLock()
@@ -292,4 +308,14 @@ func (t *Store) IsAgentRecoveryToken(token string) bool {
 	defer t.l.RUnlock()
 
 	return (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.agentRecoveryToken)) == 1)
+}
+
+func (t *Store) ServerManagementToken(token string) *structs.ServerManagementToken {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	if (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.serverToken.SecretID)) == 1) {
+		return t.serverToken
+	}
+	return nil
 }
