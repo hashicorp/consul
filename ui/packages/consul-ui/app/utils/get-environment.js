@@ -132,6 +132,8 @@ export default function(config = {}, win = window, doc = document) {
         return operatorConfig.LocalDatacenter;
       case 'CONSUL_DATACENTER_PRIMARY':
         return operatorConfig.PrimaryDatacenter;
+      case 'CONSUL_HCP_MANAGED_RUNTIME':
+        return operatorConfig.HCPManagedRuntime;
       case 'CONSUL_API_PREFIX':
         // we want API prefix to look like an env var for if we ever change
         // operator config to be an API request, we need this variable before we
@@ -267,6 +269,7 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_DATACENTER_LOCAL':
       case 'CONSUL_DATACENTER_PRIMARY':
+      case 'CONSUL_HCP_MANAGED_RUNTIME':
       case 'CONSUL_API_PREFIX':
       case 'CONSUL_HCP_URL':
       case 'CONSUL_ACLS_ENABLED':
