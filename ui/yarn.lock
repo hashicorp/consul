@@ -6798,10 +6798,10 @@ ember-basic-dropdown@3.0.21, ember-basic-dropdown@^3.0.16:
     ember-style-modifier "^0.6.0"
     ember-truth-helpers "^2.1.0 || ^3.0.0"
 
-ember-can@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/ember-can/-/ember-can-4.1.0.tgz#af3bb7838eab381e56977772dbb75bf5e16e77a9"
-  integrity sha512-8s0bR+rmwQ/A4kj6E7AaIAlsPs/oenQVOVgfiUTdbZO2ek57PFWMoSg6mWxDKbozoW2fSEgdhcBv/eaSflh9lQ==
+ember-can@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/ember-can/-/ember-can-4.2.0.tgz#08bfec3b2b57aad3dc6e4dc36fe9692bd1794dab"
+  integrity sha512-hiaWZspmI4zWeWmmFWgyw1+yEStSo6edGRHHUXCUPR+vBoqlT/hEfmndlfDGso2GFP8IV59DORMVY0KReMcO+w==
   dependencies:
     ember-cli-babel "^7.26.6"
     ember-cli-htmlbars "^6.0.0"
