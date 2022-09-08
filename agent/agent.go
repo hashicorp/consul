@@ -939,8 +939,9 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			}
 
 			srv := &HTTPHandlers{
-				agent:    a,
-				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
+				agent:          a,
+				denylist:       NewDenylist(a.config.HTTPBlockEndpoints),
+				proxyTransport: http.DefaultTransport,
 			}
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
