@@ -104,6 +104,7 @@ type ACLIdentity interface {
 	IsLocal() bool
 	EnterpriseMetadata() *acl.EnterpriseMeta
 }
+
 type ACLTokenPolicyLink struct {
 	ID   string
 	Name string `hash:"ignore"`
@@ -1837,4 +1838,52 @@ func (id *AgentRecoveryTokenIdentity) IsLocal() bool {
 
 func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return nil
+}
+
+const ServerManagementToken = "server-management-token"
+
+type ACLServerIdentity struct {
+	secretID string
+}
+
+func NewACLServerIdentity(secretID string) *ACLServerIdentity {
+	return &ACLServerIdentity{
+		secretID: secretID,
+	}
+}
+
+func (i *ACLServerIdentity) ID() string {
+	return ServerManagementToken
+}
+
+func (i *ACLServerIdentity) SecretToken() string {
+	return i.secretID
+}
+
+func (i *ACLServerIdentity) PolicyIDs() []string {
+	return nil
+}
+
+func (i *ACLServerIdentity) RoleIDs() []string {
+	return nil
+}
+
+func (i *ACLServerIdentity) ServiceIdentityList() []*ACLServiceIdentity {
+	return nil
+}
+
+func (i *ACLServerIdentity) NodeIdentityList() []*ACLNodeIdentity {
+	return nil
+}
+
+func (i *ACLServerIdentity) IsExpired(asOf time.Time) bool {
+	return false
+}
+
+func (i *ACLServerIdentity) IsLocal() bool {
+	return true
+}
+
+func (i *ACLServerIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
+	return acl.DefaultEnterpriseMeta()
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -1295,6 +1296,13 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
+
+			serverToken, err := s1.getSystemMetadata(structs.ServerManagementToken)
+			require.NoError(t, err)
+			require.NotEmpty(t, serverToken)
+
+			_, err = uuid.ParseUUID(serverToken)
+			require.NoError(t, err)
 		})
 	}
 }

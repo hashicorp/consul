@@ -438,6 +438,8 @@ type ACLResolverTestDelegate struct {
 	// testRoles is used by plainRoleResolveFn if not nil
 	testRoles map[string]*structs.ACLRole
 
+	testServerManagementToken string
+
 	localTokenResolutions   int32
 	remoteTokenResolutions  int32
 	localPolicyResolutions  int32
@@ -454,6 +456,10 @@ type ACLResolverTestDelegate struct {
 	roleCached bool
 
 	EnterpriseACLResolverTestDelegate
+}
+
+func (d *ACLResolverTestDelegate) IsServerManagementToken(token string) bool {
+	return token == d.testServerManagementToken
 }
 
 // UseTestLocalData will force delegate-local maps to be used in lieu of the
@@ -2185,6 +2191,27 @@ func TestACLResolver_AgentRecovery(t *testing.T) {
 	require.Equal(t, acl.Allow, authz.AgentWrite("foo", nil))
 	require.Equal(t, acl.Allow, authz.NodeRead("bar", nil))
 	require.Equal(t, acl.Deny, authz.NodeWrite("bar", nil))
+}
+
+func TestACLResolver_ServerManagementToken(t *testing.T) {
+	const testToken = "1bb0900e-3683-46a5-b04c-4882d7773b83"
+
+	d := &ACLResolverTestDelegate{
+		datacenter:                "dc1",
+		enabled:                   true,
+		testServerManagementToken: testToken,
+	}
+	r := newTestACLResolver(t, d, func(cfg *ACLResolverConfig) {
+		cfg.Tokens = &token.Store{}
+		cfg.Config.NodeName = "foo"
+	})
+
+	authz, err := r.ResolveToken(testToken)
+	require.NoError(t, err)
+	require.NotNil(t, authz.ACLIdentity)
+	require.Equal(t, structs.ServerManagementToken, authz.ACLIdentity.ID())
+	require.NotNil(t, authz.Authorizer)
+	require.Equal(t, acl.ManageAll(), authz.Authorizer)
 }
 
 func TestACLResolver_ACLsEnabled(t *testing.T) {
