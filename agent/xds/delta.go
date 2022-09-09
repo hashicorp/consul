@@ -229,6 +229,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
+			// TODO remove s.serverlessPluginEnabled field
 			if s.serverlessPluginEnabled {
 				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
 				if err != nil {

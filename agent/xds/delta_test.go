@@ -68,6 +68,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 			})
 
 			testutil.RunStep(t, "first sync", func(t *testing.T) {
+
 				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 					TypeUrl: xdscommon.ClusterType,
 					Nonce:   hexString(1),

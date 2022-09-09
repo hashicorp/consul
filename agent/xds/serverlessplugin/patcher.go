@@ -28,14 +28,17 @@ type patcher interface {
 	// PatchFilter patches an Envoy filter to include the custom Envoy
 	// configuration required to integrate with the serverless integration.
 	PatchFilter(*envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error)
+
+	// PatchListener patches an Envoy filter to include the custom Envoy
+	// configuration required to integrate with the serverless integration.
+	PatchListener(*envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error)
 }
 
 type patchers map[api.CompoundServiceName]patcher
 
-// getPatcherBySNI gets the patcher for the associated SNI.
-func getPatcherBySNI(config xdscommon.PluginConfiguration, sni string) patcher {
+// getPatchersBySNI gets the patcher for the associated SNI.
+func getPatchersBySNI(config xdscommon.PluginConfiguration, sni string) []patcher {
 	serviceName, ok := config.SNIToServiceName[sni]
-
 	if !ok {
 		return nil
 	}
@@ -45,18 +48,12 @@ func getPatcherBySNI(config xdscommon.PluginConfiguration, sni string) patcher {
 		return nil
 	}
 
-	p := makePatcher(serviceConfig)
-	if p == nil || !p.CanPatch(config.Kind) {
-		return nil
-	}
-
-	return p
+	return makePatchers(config.Kind, serviceConfig)
 }
 
-// getPatcherByEnvoyID gets the patcher for the associated envoy id.
-func getPatcherByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) patcher {
+// getPatchersByEnvoyID gets the patcher for the associated envoy id.
+func getPatchersByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) []patcher {
 	serviceName, ok := config.EnvoyIDToServiceName[envoyID]
-
 	if !ok {
 		return nil
 	}
@@ -66,23 +63,19 @@ func getPatcherByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) p
 		return nil
 	}
 
-	p := makePatcher(serviceConfig)
-	if p == nil || !p.CanPatch(config.Kind) {
-		return nil
-	}
-
-	return p
+	// TODO can we just use serviceConfig.Kind instead?
+	return makePatchers(config.Kind, serviceConfig)
 }
 
-func makePatcher(serviceConfig xdscommon.ServiceConfig) patcher {
+func makePatchers(kind api.ServiceKind, serviceConfig xdscommon.ServiceConfig) []patcher {
+	var patchers []patcher
 	for _, constructor := range patchConstructors {
 		patcher, ok := constructor(serviceConfig)
-		if ok {
-			return patcher
+		if ok && patcher.CanPatch(kind) {
+			patchers = append(patchers, patcher)
 		}
 	}
-
-	return nil
+	return patchers
 }
 
 // patchConstructor is used to construct patchers based on
@@ -91,4 +84,7 @@ func makePatcher(serviceConfig xdscommon.ServiceConfig) patcher {
 type patchConstructor func(xdscommon.ServiceConfig) (patcher, bool)
 
 // patchConstructors contains all patchers that getPatchers tries to create.
-var patchConstructors = []patchConstructor{makeLambdaPatcher}
+var patchConstructors = map[string]patchConstructor{
+	"aws-lambda":              makeLambdaPatcher,
+	"connection-load-balance": makeLoadBalancePatcher,
+}

@@ -14,7 +14,7 @@ func TestGetPatcherBySNI(t *testing.T) {
 		name     string
 		sni      string
 		kind     api.ServiceKind
-		expected patcher
+		expected []patcher
 		config   *xdscommon.PluginConfiguration
 	}{
 		{
@@ -35,11 +35,13 @@ func TestGetPatcherBySNI(t *testing.T) {
 			name: "full match",
 			sni:  "lambda-sni",
 			kind: api.ServiceKindTerminatingGateway,
-			expected: lambdaPatcher{
-				arn:                "arn",
-				region:             "region",
-				payloadPassthrough: false,
-				kind:               api.ServiceKindTerminatingGateway,
+			expected: []patcher{
+				lambdaPatcher{
+					arn:                "arn",
+					region:             "region",
+					payloadPassthrough: false,
+					kind:               api.ServiceKindTerminatingGateway,
+				},
 			},
 		},
 	}
@@ -51,12 +53,12 @@ func TestGetPatcherBySNI(t *testing.T) {
 			if tc.config != nil {
 				config = *tc.config
 			}
-			patcher := getPatcherBySNI(config, tc.sni)
+			patchers := getPatchersBySNI(config, tc.sni)
 
 			if tc.expected == nil {
-				require.Empty(t, patcher)
+				require.Empty(t, patchers)
 			} else {
-				require.Equal(t, tc.expected, patcher)
+				require.Equal(t, tc.expected, patchers)
 			}
 		})
 	}

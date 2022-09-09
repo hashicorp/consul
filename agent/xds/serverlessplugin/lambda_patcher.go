@@ -79,6 +79,10 @@ func (p lambdaPatcher) CanPatch(kind api.ServiceKind) bool {
 	return kind == p.kind
 }
 
+func (p lambdaPatcher) PatchListener(l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	return l, false, nil
+}
+
 func (p lambdaPatcher) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	if p.kind != api.ServiceKindTerminatingGateway {
 		return route, false, nil

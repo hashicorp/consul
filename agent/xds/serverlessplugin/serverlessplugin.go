@@ -7,7 +7,6 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -29,63 +28,73 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 		return resources, resultErr
 	}
 
-	for _, indexType := range []string{
-		xdscommon.ClusterType,
-		xdscommon.ListenerType,
-		xdscommon.RouteType,
-	} {
-		for nameOrSNI, msg := range resources.Index[indexType] {
-			switch resource := msg.(type) {
-			case *envoy_cluster_v3.Cluster:
-				patcher := getPatcherBySNI(config, nameOrSNI)
-				if patcher == nil {
-					continue
-				}
-
-				newCluster, patched, err := patcher.PatchCluster(resource)
-				if err != nil {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
-					continue
-				}
-				if patched {
-					resources.Index[xdscommon.ClusterType][nameOrSNI] = newCluster
-				}
-
-			case *envoy_listener_v3.Listener:
-				newListener, patched, err := patchListener(config, resource)
-				if err != nil {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
-					continue
-				}
-				if patched {
-					resources.Index[xdscommon.ListenerType][nameOrSNI] = newListener
-				}
-
-			case *envoy_route_v3.RouteConfiguration:
-				patcher := getPatcherBySNI(config, nameOrSNI)
-				if patcher == nil {
-					continue
-				}
-
-				newRoute, patched, err := patcher.PatchRoute(resource)
-				if err != nil {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
-					continue
-				}
-				if patched {
-					resources.Index[xdscommon.RouteType][nameOrSNI] = newRoute
-				}
-
-			default:
-				resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped: %T", resource))
+	// Patch clusters
+	for sni, msg := range resources.Index[xdscommon.ClusterType] {
+		patched := false
+		cluster, ok := msg.(*envoy_cluster_v3.Cluster)
+		if !ok {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped. Not a cluster: %T", msg))
+			continue
+		}
+		for _, patcher := range getPatchersBySNI(config, sni) {
+			c, ok, err := patcher.PatchCluster(cluster)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
+				continue
 			}
+			cluster = c
+			patched = patched || ok
+
+		}
+		if patched {
+			resources.Index[xdscommon.ClusterType][sni] = cluster
+		}
+	}
+
+	// Patch listeners
+	for name, msg := range resources.Index[xdscommon.ListenerType] {
+		patched := false
+		listener, ok := msg.(*envoy_listener_v3.Listener)
+		if !ok {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped. Not a listener: %T", msg))
+			continue
+		}
+		listener, patched, err := patchListener(config, listener)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
+			continue
+		}
+		if patched {
+			resources.Index[xdscommon.ListenerType][name] = listener
+		}
+	}
+
+	// Patch routes
+	for sni, msg := range resources.Index[xdscommon.RouteType] {
+		patched := false
+		route, ok := msg.(*envoy_route_v3.RouteConfiguration)
+		if !ok {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped. Not a route: %T", msg))
+			continue
+		}
+		for _, patcher := range getPatchersBySNI(config, sni) {
+			r, ok, err := patcher.PatchRoute(route)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
+				continue
+			}
+			route = r
+			patched = patched || ok
+		}
+		if patched {
+			resources.Index[xdscommon.RouteType][sni] = route
 		}
 	}
 
 	return resources, resultErr
 }
 
-func patchListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func patchListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway:
 		return patchTerminatingGatewayListener(config, l)
@@ -95,76 +104,98 @@ func patchListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Li
 	return l, false, nil
 }
 
-func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
 	var resultErr error
-	patched := false
-	for _, filterChain := range l.FilterChains {
-		sni := getSNI(filterChain)
+	var patched bool
 
+	for _, filterChain := range listener.FilterChains {
+		sni := getSNI(filterChain)
 		if sni == "" {
 			continue
 		}
 
-		patcher := getPatcherBySNI(config, sni)
-
-		if patcher == nil {
+		patchers := getPatchersBySNI(config, sni)
+		if len(patchers) == 0 {
 			continue
 		}
 
-		var filters []*envoy_listener_v3.Filter
-
-		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := patcher.PatchFilter(filter)
-
+		for _, patcher := range patchers {
+			l, ok, err := patcher.PatchListener(listener)
 			if err != nil {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
-				filters = append(filters, filter)
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
 			}
 			if ok {
-				filters = append(filters, newFilter)
 				patched = true
+				listener = l
 			}
+
+			var filters []*envoy_listener_v3.Filter
+			for _, filter := range filterChain.Filters {
+				newFilter, ok, err := patcher.PatchFilter(filter)
+
+				if err != nil {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+				}
+				if ok {
+					patched = true
+					filters = append(filters, newFilter)
+				} else {
+					filters = append(filters, filter)
+				}
+			}
+			filterChain.Filters = filters
 		}
-		filterChain.Filters = filters
 	}
 
-	return l, patched, resultErr
+	return listener, patched, resultErr
 }
 
-func patchConnectProxyListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func patchConnectProxyListener(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
 	var resultErr error
 
 	envoyID := ""
-	if i := strings.IndexByte(l.Name, ':'); i != -1 {
-		envoyID = l.Name[:i]
-	}
-
-	patcher := getPatcherByEnvoyID(config, envoyID)
-	if patcher == nil {
-		return l, false, nil
+	if i := strings.IndexByte(listener.Name, ':'); i != -1 {
+		envoyID = listener.Name[:i]
 	}
 
 	var patched bool
+	patchers := getPatchersByEnvoyID(config, envoyID)
 
-	for _, filterChain := range l.FilterChains {
-		var filters []*envoy_listener_v3.Filter
-
-		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := patcher.PatchFilter(filter)
-			if err != nil {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
-				filters = append(filters, filter)
-			}
-
-			if ok {
-				filters = append(filters, newFilter)
-				patched = true
-			}
+	// Patch listeners first
+	for _, patcher := range patchers {
+		l, ok, err := patcher.PatchListener(listener)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
+			continue
 		}
-		filterChain.Filters = filters
+		if ok {
+			patched = true
+			listener = l
+		}
 	}
 
-	return l, patched, resultErr
+	// Patch filters second
+	for _, patcher := range patchers {
+		for _, filterChain := range listener.FilterChains {
+			var filters []*envoy_listener_v3.Filter
+
+			for _, filter := range filterChain.Filters {
+				newFilter, ok, err := patcher.PatchFilter(filter)
+				if err != nil {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+				}
+				if ok {
+					patched = true
+					filters = append(filters, newFilter)
+				} else {
+					filters = append(filters, filter)
+				}
+			}
+			filterChain.Filters = filters
+		}
+	}
+
+	return listener, patched, resultErr
 }
 
 func getSNI(chain *envoy_listener_v3.FilterChain) string {
