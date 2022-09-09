@@ -688,19 +688,21 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ConnectCALeafRequest struct {
-	Token          string
-	Datacenter     string
-	Service        string              // Service name, not ID
-	Agent          string              // Agent name, not ID
-	Kind           structs.ServiceKind // only mesh-gateway for now
-	Server         bool
-	DNSSAN         []string
-	IPSAN          []net.IP
-	MinQueryIndex  uint64
-	MaxQueryTime   time.Duration
+	Token         string
+	Datacenter    string
+	DNSSAN        []string
+	IPSAN         []net.IP
+	MinQueryIndex uint64
+	MaxQueryTime  time.Duration
+	acl.EnterpriseMeta
 	MustRevalidate bool
 
-	acl.EnterpriseMeta
+	// The following flags indicate the entity we are requesting a cert for.
+	// Only one of these must be specified.
+	Service string              // Given a Service name, not ID, the request is for a SpiffeIDService.
+	Agent   string              // Given an Agent name, not ID, the request is for a SpiffeIDAgent.
+	Kind    structs.ServiceKind // Given "mesh-gateway", the request is for a SpiffeIDMeshGateway. No other kinds supported.
+	Server  bool                // If true, the request is for a SpiffeIDServer.
 }
 
 func (r *ConnectCALeafRequest) Key() string {

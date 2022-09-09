@@ -2209,7 +2209,7 @@ func TestACLResolver_ServerManagementToken(t *testing.T) {
 	authz, err := r.ResolveToken(testToken)
 	require.NoError(t, err)
 	require.NotNil(t, authz.ACLIdentity)
-	require.Equal(t, structs.ServerManagementToken, authz.ACLIdentity.ID())
+	require.Equal(t, structs.ServerManagementTokenAccessorID, authz.ACLIdentity.ID())
 	require.NotNil(t, authz.Authorizer)
 	require.Equal(t, acl.ManageAll(), authz.Authorizer)
 }

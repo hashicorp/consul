@@ -538,7 +538,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
 		}
-		if err := s.setSystemMetadataKey(structs.ServerManagementToken, secretID); err != nil {
+		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
 			return fmt.Errorf("failed to persist server management token: %w", err)
 		}
 

@@ -1297,7 +1297,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, policy)
 
-			serverToken, err := s1.getSystemMetadata(structs.ServerManagementToken)
+			serverToken, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
 			require.NoError(t, err)
 			require.NotEmpty(t, serverToken)
 

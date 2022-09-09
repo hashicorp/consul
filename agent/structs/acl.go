@@ -1840,7 +1840,7 @@ func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return nil
 }
 
-const ServerManagementToken = "server-management-token"
+const ServerManagementTokenAccessorID = "server-management-token"
 
 type ACLServerIdentity struct {
 	secretID string
@@ -1853,7 +1853,7 @@ func NewACLServerIdentity(secretID string) *ACLServerIdentity {
 }
 
 func (i *ACLServerIdentity) ID() string {
-	return ServerManagementToken
+	return ServerManagementTokenAccessorID
 }
 
 func (i *ACLServerIdentity) SecretToken() string {
