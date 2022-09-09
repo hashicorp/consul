@@ -21,6 +21,9 @@ func TestController(t *testing.T) {
 
 	store := state.NewStateStore(nil)
 
+	// This loop generates:
+	//
+	//	4 (service kind) * 5 (service) * 5 * (node) = 100 proxy services. And 25 non-proxy services.
 	for _, kind := range []structs.ServiceKind{
 		// These will be included in the count.
 		structs.ServiceKindConnectProxy,
