@@ -5,7 +5,6 @@ package limiter
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
 	"sort"
 	"sync"
@@ -166,7 +165,7 @@ func (l *SessionLimiter) terminateSession() {
 	idx := rand.Intn(len(l.sessionIDs))
 	id := l.sessionIDs[idx]
 	l.sessions[id].terminate()
-	l.deleteSessionLocked(idx)
+	l.deleteSessionLocked(idx, id)
 }
 
 func (l *SessionLimiter) createSessionLocked() *session {
@@ -185,14 +184,33 @@ func (l *SessionLimiter) createSessionLocked() *session {
 	return session
 }
 
-func (l *SessionLimiter) deleteSessionLocked(idx int) {
-	delete(l.sessions, l.sessionIDs[idx])
+func (l *SessionLimiter) deleteSessionLocked(idx int, id uint64) {
+	delete(l.sessions, id)
 
 	// Note: it's important that we preserve the order here (which most allocation
 	// free deletion tricks don't) because we binary search the slice.
 	l.sessionIDs = append(l.sessionIDs[:idx], l.sessionIDs[idx+1:]...)
 
 	atomic.AddUint32(&l.inFlight, ^uint32(0))
+}
+
+func (l *SessionLimiter) deleteSessionWithID(id uint64) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	idx := sort.Search(len(l.sessionIDs), func(i int) bool {
+		return l.sessionIDs[i] >= id
+	})
+
+	if idx == len(l.sessionIDs) || l.sessionIDs[idx] != id {
+		// It's possible that we weren't able to find the id because the session has
+		// already been deleted. This could be because the session-holder called End
+		// more than once, or because the session was drained. In either case there's
+		// nothing more to do.
+		return
+	}
+
+	l.deleteSessionLocked(idx, id)
 }
 
 // Session allows its holder to perform an operation (e.g. serve a gRPC stream)
@@ -218,37 +236,10 @@ type session struct {
 
 	id     uint64
 	termCh chan struct{}
-
-	// done ensures that if both End and terminate are called on a session, only
-	// the first call will have effect - this is important as both will attempt to
-	// clean up the session's state. It also ensures calling End more than once is
-	// a no-op.
-	done uint32
 }
 
-func (s *session) End() {
-	if !atomic.CompareAndSwapUint32(&s.done, 0, 1) {
-		return
-	}
-
-	s.l.mu.Lock()
-	defer s.l.mu.Unlock()
-
-	idx := sort.Search(len(s.l.sessionIDs), func(i int) bool {
-		return s.l.sessionIDs[i] >= s.id
-	})
-
-	if idx == len(s.l.sessionIDs) || s.l.sessionIDs[idx] != s.id {
-		panic(fmt.Sprintf("could not find session id: %d", s.id))
-	}
-
-	s.l.deleteSessionLocked(idx)
-}
+func (s *session) End() { s.l.deleteSessionWithID(s.id) }
 
 func (s *session) Terminated() <-chan struct{} { return s.termCh }
 
-func (s *session) terminate() {
-	if atomic.CompareAndSwapUint32(&s.done, 0, 1) {
-		close(s.termCh)
-	}
-}
+func (s *session) terminate() { close(s.termCh) }
