@@ -116,8 +116,8 @@ To configure redirection, the container requires elevated `CAP_NET_ADMIN` privil
 Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection.
 Because the plugin is executed by the local Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network.
 
-The Consul Helm Chart is responsible for installation of the Consul CNI plugin.
-To install and configure the plugin add the following configuration to your `config.yaml` file:
+The Consul Helm Chart is responsible for installing the Consul CNI plugin.
+To install and configure the plugin, add the following configuration to your `config.yaml` file:
 
 <CodeTabs tabs={[ "Reference configuration","GKE configuration" ]}>
 
