@@ -374,7 +374,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrEmpty()); err != nil {
+	if err := s.validatePeeringLocality(tok, entMeta.PartitionOrEmpty()); err != nil {
 		return nil, err
 	}
 
@@ -463,13 +463,21 @@ func (s *Server) Establish(
 	return resp, nil
 }
 
-// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We validate by looking at
-// the remotePeerID from the PeeringToken and looking up for a peering in the partition. If there is one and the
-// request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
-func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
-	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
+// validatePeeringLocality makes sure that we don't create a peering in the cluster/partition it was generated.
+// We validate by looking at the remote PeerID from the PeeringToken and looking up that peering in the partition.
+// If there is one and the request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
+// We also perform a check to verify if the ServerName of the PeeringToken overlaps with our own, we do not process it
+// unless we've been able to find the peering in the store, i.e. this peering is between two local partitions.
+func (s *Server) validatePeeringLocality(token *structs.PeeringToken, partition string) error {
+	_, peering, err := s.Backend.Store().PeeringReadByID(nil, token.PeerID)
 	if err != nil {
 		return fmt.Errorf("cannot read peering by ID: %w", err)
+	}
+
+	// If the token has the same server name as this cluster, but we can't find the peering
+	// in our store, it indicates a naming conflict.
+	if s.Backend.GetServerName() == token.ServerName && peering == nil {
+		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", s.Backend.GetServerName())
 	}
 
 	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
