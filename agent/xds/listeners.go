@@ -121,12 +121,23 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
-	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
+	if err != nil {
+		return nil, err
+	}
 
-		explicit := upstreamCfg.HasLocalPortOrSocket()
+	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
+		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstream.HasLocalPortOrSocket()
 		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		if !implicit && !explicit {
+		return upstream, !implicit && !explicit
+	}
+
+	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg, skip := getUpstream(uid)
+
+		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
@@ -146,7 +157,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 		useRDS := chain.Protocol != "tcp" && !chain.Default
 
-		var clusterName string
+		var targetClusterData targetClusterData
 		if !useRDS {
 			// When not using RDS we must generate a cluster name to attach to the filter chain.
 			// With RDS, cluster names get attached to the dynamic routes instead.
@@ -154,7 +165,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			if err != nil {
 				return nil, err
 			}
-			clusterName = CustomizeClusterName(target.Name, chain)
+
+			td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, target.ID, false, false)
+			if !ok {
+				continue
+			}
+			targetClusterData = td
 		}
 
 		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -163,7 +179,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:   uid.EnvoyID(),
-				clusterName: clusterName,
+				clusterName: targetClusterData.clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
 				useRDS:      useRDS,
@@ -189,7 +205,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
+			clusterName: targetClusterData.clusterName,
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
 			useRDS:      useRDS,
@@ -319,11 +335,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// Looping over explicit and implicit upstreams is only needed for cross-peer
 	// because they do not have discovery chains.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+		upstreamCfg, skip := getUpstream(uid)
 
-		explicit := upstreamCfg.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		if !implicit && !explicit {
+		if skip {
 			// Not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
