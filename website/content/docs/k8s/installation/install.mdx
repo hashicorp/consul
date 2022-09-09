@@ -13,7 +13,7 @@ This topic describes how to install Consul on Kubernetes using the official Cons
 
 We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. The configuration enables you to run a server cluster, a client cluster, or both.
 
-Consul can run directly on Kubernetes in server or client mode so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [architecture section](/docs/k8s/architecture) to learn more about the general architecture of Consul on Kubernetes. 
+Consul can run directly on Kubernetes in server or client mode so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [architecture section](/docs/k8s/architecture) to learn more about the general architecture of Consul on Kubernetes.
 
 The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, and upgrade the Consul cluster.
 
@@ -60,20 +60,20 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
     kube-system       Active   18h
     ```
 
-1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment. After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent. 
+1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment. After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent.
     1. To install the latest version of Consul on Kubernetes, issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
        ```shell-session
        $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
        ```
-   
-    1. To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag to install the specified version with the default configuration using Helm.  
-   
+
+    1. To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag to install the specified version with the default configuration using Helm.
+
        ```shell-session
        $ export VERSION=0.43.0
        $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
        ```
-  
+
 
 ## Custom installation
 
@@ -109,11 +109,15 @@ NAME: consul
 
 ### Enable the Consul CNI plugin
 
-By default, Consul generates a `connect-inject init` container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy). The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated `CAP_NET_ADMIN` privileges, which may not be compatible with security policies in your organization. 
+By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/docs/connect/transparent-proxy).
+The container configures traffic redirection in the service mesh through the sidecar proxy.
+To configure redirection, the container requires elevated `CAP_NET_ADMIN` privileges, which may not be compatible with security policies in your organization.
 
-Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection. Because the plugin is executed by the Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network. 
+Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection.
+Because the plugin is executed by the local Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network.
 
-Add the following configuration to your `config.yaml` file to enable the Consul CNI plugin:
+The Consul Helm Chart is responsible for installing the Consul CNI plugin.
+To configure the plugin to be installed, add the following configuration to your `config.yaml` file:
 
 <CodeTabs tabs={[ "Reference configuration","GKE configuration" ]}>
 
@@ -177,13 +181,13 @@ connectInject:
 controller:
   enabled: true
 ```
-  
+
 </CodeBlockConfig>
 
-Label the namespace(s), where you would like to enable Consul Service Mesh. 
+Label the namespace(s), where you would like to enable Consul Service Mesh.
 
 ```shell-session
-$ kubectl create ns foo 
+$ kubectl create ns foo
 $ kubectl label namespace foo connect-inject=enabled
 ```
 
@@ -195,7 +199,7 @@ NAME: consul
 ...
 ```
 
-### Update your Consul on Kubernetes configuration 
+### Update your Consul on Kubernetes configuration
 
 If you've already installed Consul and want to make changes, you'll need to run
 `helm upgrade`. See [Upgrading](/docs/k8s/upgrade) for more details.
