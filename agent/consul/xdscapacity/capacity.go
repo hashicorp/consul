@@ -6,13 +6,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"golang.org/x/time/rate"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -178,19 +176,13 @@ func (a *Controller) countProxies() (memdb.WatchSet, uint32, error) {
 	ws.Add(store.AbandonCh())
 
 	var count uint32
-	_, csns, err := store.ServiceDump(
-		ws,
-		"",
-		false,
-		structs.WildcardEnterpriseMetaInPartition(acl.WildcardName),
-		structs.DefaultPeerKeyword,
-	)
+	_, usage, err := store.ServiceUsage(ws)
 	if err != nil {
 		return ws, 0, err
 	}
-	for _, csn := range csns {
-		if csn.Service.Kind.IsProxy() {
-			count++
+	for kind, kindCount := range usage.ConnectServiceInstances {
+		if structs.ServiceKind(kind).IsProxy() {
+			count += uint32(kindCount)
 		}
 	}
 	return ws, count, nil
@@ -198,6 +190,5 @@ func (a *Controller) countProxies() (memdb.WatchSet, uint32, error) {
 
 type Store interface {
 	AbandonCh() <-chan struct{}
-	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
-	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
+	ServiceUsage(ws memdb.WatchSet) (uint64, state.ServiceUsage, error)
 }
