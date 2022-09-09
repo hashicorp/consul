@@ -10,31 +10,15 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const sidecarIDSuffix string = "-sidecar-proxy"
+const sidecarIDSuffix = "-sidecar-proxy"
 
 func sidecarIDFromServiceID(serviceID string) string {
 	return serviceID + sidecarIDSuffix
 }
 
 // reverses the sidecarIDFromServiceID operation
-func serviceIDFromSidecarID(sidecarServiceID string) string {
-	// we only want to un-append "-sidecar-proxy" from the very end
-	// so we reverse the string, remove only the first suffix match
-	// and then reverse the string again to get the result
-	revID := ""
-	for _, v := range sidecarServiceID {
-		revID = string(v) + revID
-	}
-	revSuffix := ""
-	for _, v := range sidecarIDSuffix {
-		revSuffix = string(v) + revSuffix
-	}
-	revSvcID := strings.Replace(revID, revSuffix, "", 1)
-	serviceID := ""
-	for _, v := range revSvcID {
-		serviceID = string(v) + serviceID
-	}
-	return serviceID
+func serviceIDFromSidecarID(sidecarID string) string {
+	return strings.TrimSuffix(sidecarID, sidecarIDSuffix)
 }
 
 // sidecarServiceFromNodeService returns a *structs.NodeService representing a
