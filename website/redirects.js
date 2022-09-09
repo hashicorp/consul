@@ -1332,7 +1332,7 @@ module.exports = [
   {
     source: '/docs/k8s/installation/multi-cluster/vms-and-kubernetes',
     destination:
-      '/docs/k8s/deployent-configurations/multi-cluster/vms-and-kubernetes',
+      '/docs/k8s/deployment-configurations/multi-cluster/vms-and-kubernetes',
     permanent: true,
   },
   {
@@ -1465,7 +1465,7 @@ module.exports = [
   {
     source: '/docs/k8s/installation/multi-cluster/vms-and-kubernetes',
     destination:
-      '/docs/k8s/deployent-configurations/multi-cluster/vms-and-kubernetes',
+      '/docs/k8s/deployment-configurations/multi-cluster/vms-and-kubernetes',
     permanent: true,
   },
   {
