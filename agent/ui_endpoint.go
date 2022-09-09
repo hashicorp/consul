@@ -211,7 +211,9 @@ func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -769,6 +771,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		Director: func(r *http.Request) {
 			r.URL = u
 		},
+		Transport: s.proxyTransport,
 		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		}),

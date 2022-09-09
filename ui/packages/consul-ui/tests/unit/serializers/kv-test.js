@@ -1,8 +1,8 @@
-import { module, skip } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, skip, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { run } from '@ember/runloop';
 import { set } from '@ember/object';
+import sinon from 'sinon';
 
 module('Unit | Serializer | kv', function(hooks) {
   setupTest(hooks);
@@ -101,7 +101,7 @@ module('Unit | Serializer | kv', function(hooks) {
   test('serialize decodes Value if its a string', function(assert) {
     const serializer = this.owner.lookup('serializer:kv');
     set(serializer, 'decoder', {
-      execute: this.stub().returnsArg(0),
+      execute: sinon.stub().returnsArg(0),
     });
     //
     const expected = 'value';

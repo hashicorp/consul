@@ -670,12 +670,17 @@ type RuntimeConfig struct {
 	// flag: -encrypt string
 	EncryptKey string
 
-	// GRPCPort is the port the gRPC server listens on. Currently this only
-	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
+	// GRPCPort is the port the gRPC server listens on. It is disabled by default.
 	//
 	// hcl: ports { grpc = int }
 	// flags: -grpc-port int
 	GRPCPort int
+
+	// GRPCTLSPort is the port the gRPC server listens on. It is disabled by default.
+	//
+	// hcl: ports { grpc_tls = int }
+	// flags: -grpc-tls-port int
+	GRPCTLSPort int
 
 	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
 	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
@@ -691,6 +696,21 @@ type RuntimeConfig struct {
 	//
 	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
 	GRPCAddrs []net.Addr
+
+	// GRPCTLSAddrs contains the list of TCP addresses and UNIX sockets the gRPC
+	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
+	// the list is empty.
+	//
+	// The addresses are taken from 'addresses.grpc_tls' which should contain a
+	// space separated list of ip addresses, UNIX socket paths and/or
+	// go-sockaddr templates. UNIX socket paths must be written as
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
+	//
+	// If 'addresses.grpc_tls' was not provided the 'client_addr' addresses are
+	// used.
+	//
+	// hcl: client_addr = string addresses { grpc_tls = string } ports { grpc_tls = int }
+	GRPCTLSAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)

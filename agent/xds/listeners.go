@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	"net"
 	"net/url"
 	"regexp"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -107,6 +108,19 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
+	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
+	if proxyCfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		}
+	}
+
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
@@ -153,6 +167,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
 				useRDS:      useRDS,
+				tracing:     tracing,
 			})
 			if err != nil {
 				return nil, err
@@ -178,6 +193,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
 			useRDS:      useRDS,
+			tracing:     tracing,
 		})
 		if err != nil {
 			return nil, err
@@ -249,6 +265,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				filterName: routeName,
 				protocol:   svcConfig.Protocol,
 				useRDS:     true,
+				tracing:    tracing,
 			})
 			if err != nil {
 				return err
@@ -265,6 +282,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					clusterName: clusterName,
 					filterName:  clusterName,
 					protocol:    svcConfig.Protocol,
+					tracing:     tracing,
 				})
 				if err != nil {
 					return err
@@ -376,6 +394,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			protocol:   cfg.Protocol,
 			useRDS:     false,
 			statPrefix: "upstream_peered.",
+			tracing:    tracing,
 		})
 		if err != nil {
 			return nil, err
@@ -533,6 +552,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterName:  uid.EnvoyID(),
 			routeName:   uid.EnvoyID(),
 			protocol:    cfg.Protocol,
+			tracing:     tracing,
 		})
 		if err != nil {
 			return nil, err
@@ -1188,12 +1208,20 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
 
+	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
+	if cfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(cfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		}
+	}
+
 	filterOpts := listenerFilterOpts{
 		protocol:         cfg.Protocol,
 		filterName:       name,
 		routeName:        name,
 		cluster:          LocalAppClusterName,
 		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+		tracing:          tracing,
 	}
 	if useHTTPFilter {
 		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
@@ -1310,6 +1338,7 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 		statPrefix:      "",
 		routePath:       path.Path,
 		httpAuthzFilter: nil,
+		// in the exposed check listener we don't set the tracing configuration
 	}
 	f, err := makeListenerFilter(opts)
 	if err != nil {
@@ -1542,6 +1571,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		filterChain.Filters = append(filterChain.Filters, authFilter)
 	}
 
+	proxyCfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
+	if proxyCfg.ListenerTracingJSON != "" {
+		if tracing, err = makeTracingFromUserConfig(proxyCfg.ListenerTracingJSON); err != nil {
+			s.Logger.Warn("failed to parse ListenerTracingJSON config", "error", err)
+		}
+	}
+
 	// Lastly we setup the actual proxying component. For L4 this is a straight
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
@@ -1552,6 +1594,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		cluster:    tgtwyOpts.cluster,
 		statPrefix: "upstream.",
 		routePath:  "",
+		tracing:    tracing,
 	}
 
 	if useHTTPFilter {
@@ -1798,6 +1841,7 @@ type filterChainOpts struct {
 	statPrefix           string
 	forwardClientDetails bool
 	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	tracing              *envoy_http_v3.HttpConnectionManager_Tracing
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -1813,6 +1857,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		statPrefix:           opts.statPrefix,
 		forwardClientDetails: opts.forwardClientDetails,
 		forwardClientPolicy:  opts.forwardClientPolicy,
+		tracing:              opts.tracing,
 	})
 	if err != nil {
 		return nil, err
@@ -1955,6 +2000,7 @@ type listenerFilterOpts struct {
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
 	forwardClientDetails bool
 	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	tracing              *envoy_http_v3.HttpConnectionManager_Tracing
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -2014,6 +2060,19 @@ func makeStatPrefix(prefix, filterName string) string {
 	return fmt.Sprintf("%s%s", prefix, strings.Replace(filterName, ":", "_", -1))
 }
 
+func makeTracingFromUserConfig(configJSON string) (*envoy_http_v3.HttpConnectionManager_Tracing, error) {
+	// Type field is present so decode it as a any.Any
+	var any any.Any
+	if err := jsonpb.UnmarshalString(configJSON, &any); err != nil {
+		return nil, err
+	}
+	var t envoy_http_v3.HttpConnectionManager_Tracing
+	if err := proto.Unmarshal(any.Value, &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
 	router, err := makeEnvoyHTTPFilter("envoy.filters.http.router", &envoy_http_router_v3.Router{})
 	if err != nil {
@@ -2032,6 +2091,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			// sampled.
 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
 		},
+	}
+
+	if opts.tracing != nil {
+		cfg.Tracing = opts.tracing
 	}
 
 	if opts.useRDS {

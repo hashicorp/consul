@@ -27,6 +27,12 @@ type ProxyConfig struct {
 	// Note: This escape hatch is compatible with the discovery chain.
 	PublicListenerJSON string `mapstructure:"envoy_public_listener_json"`
 
+	// ListenerTracingJSON is a complete override ("escape hatch") for the
+	// listeners tracing configuration.
+	//
+	// Note: This escape hatch is compatible with the discovery chain.
+	ListenerTracingJSON string `mapstructure:"envoy_listener_tracing_json"`
+
 	// LocalClusterJSON is a complete override ("escape hatch") for the
 	// local application cluster.
 	//
@@ -168,5 +174,10 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 	if p.MaxFailures != 0 {
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 	}
+
+	if p.EnforcingConsecutive5xx != nil {
+		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+	}
+
 	return od
 }

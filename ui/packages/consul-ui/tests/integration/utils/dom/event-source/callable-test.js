@@ -1,16 +1,16 @@
 import domEventSourceCallable from 'consul-ui/utils/dom/event-source/callable';
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 
-import { module, skip } from 'qunit';
+import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import sinon from 'sinon';
 
 module('Integration | Utility | dom/event-source/callable', function(hooks) {
   setupTest(hooks);
   test('it dispatches messages', function(assert) {
     assert.expect(1);
     const EventSource = domEventSourceCallable(EventTarget);
-    const listener = this.stub();
+    const listener = sinon.stub();
     const source = new EventSource(
       function(configuration) {
         return new Promise(resolve => {
@@ -45,7 +45,7 @@ module('Integration | Utility | dom/event-source/callable', function(hooks) {
   skip('it dispatches a single open event and closes when called with no callable', function(assert) {
     assert.expect(4);
     const EventSource = domEventSourceCallable(EventTarget, Promise);
-    const listener = this.stub();
+    const listener = sinon.stub();
     const source = new EventSource();
     source.addEventListener('open', function(e) {
       assert.deepEqual(e.target, this);
@@ -60,7 +60,7 @@ module('Integration | Utility | dom/event-source/callable', function(hooks) {
   test('it dispatches a single open event, and calls the specified callable that can dispatch an event', function(assert) {
     assert.expect(1);
     const EventSource = domEventSourceCallable(EventTarget);
-    const listener = this.stub();
+    const listener = sinon.stub();
     const source = new EventSource(function() {
       return new Promise(resolve => {
         setTimeout(() => {
@@ -87,7 +87,7 @@ module('Integration | Utility | dom/event-source/callable', function(hooks) {
   test("it can be closed before the first tick, and therefore doesn't run", function(assert) {
     assert.expect(4);
     const EventSource = domEventSourceCallable(EventTarget);
-    const listener = this.stub();
+    const listener = sinon.stub();
     const source = new EventSource();
     assert.equal(source.readyState, 0);
     source.close();

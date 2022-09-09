@@ -8,9 +8,8 @@
   @extend %main-nav-vertical-item;
 }
 /**/
-
 /* actual clickable button-y things plus states */
-%main-nav-vertical > ul > li > a {
+%main-nav-vertical a {
   @extend %main-nav-vertical-action;
 }
 %main-nav-vertical > ul > li.is-active > a {

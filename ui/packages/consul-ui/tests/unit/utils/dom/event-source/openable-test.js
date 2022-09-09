@@ -1,6 +1,6 @@
 import domEventSourceOpenable from 'consul-ui/utils/dom/event-source/openable';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/event-source/openable', function() {
   const createEventSource = function() {
@@ -23,7 +23,7 @@ module('Unit | Utility | dom/event-source/openable', function() {
     assert.ok(source instanceof EventSource);
   });
   test('it reopens the event source when open is called', function(assert) {
-    const callable = this.stub();
+    const callable = sinon.stub();
     const EventSource = createEventSource();
     const OpenableEventSource = domEventSourceOpenable(EventSource);
     const source = new OpenableEventSource(callable);
