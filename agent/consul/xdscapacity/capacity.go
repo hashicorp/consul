@@ -3,11 +3,13 @@ package xdscapacity
 import (
 	"context"
 	"math"
+	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"golang.org/x/time/rate"
@@ -77,9 +79,9 @@ func NewController(cfg Config) *Controller {
 func (c *Controller) Run(ctx context.Context) {
 	defer close(c.doneCh)
 
-	ws, numProxies, err := c.countProxies()
+	ws, numProxies, err := c.countProxies(ctx)
 	if err != nil {
-		c.cfg.Logger.Error("failed to count proxy services", "error", err)
+		return
 	}
 
 	var numServers uint32
@@ -89,15 +91,12 @@ func (c *Controller) Run(ctx context.Context) {
 			numServers = s
 			c.updateMaxSessions(numServers, numProxies)
 		case <-ws.WatchCh(ctx):
-			var count uint32
-			ws, count, err = c.countProxies()
-			if err == nil {
-				numProxies = count
-				c.updateDrainRateLimit(numProxies)
-				c.updateMaxSessions(numServers, numProxies)
-			} else {
-				c.cfg.Logger.Error("failed to count proxy services", "error", err)
+			ws, numProxies, err = c.countProxies(ctx)
+			if err != nil {
+				return
 			}
+			c.updateDrainRateLimit(numProxies)
+			c.updateMaxSessions(numServers, numProxies)
 		case <-ctx.Done():
 			return
 		}
@@ -169,23 +168,40 @@ func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 	c.prevMaxSessions = maxSessions
 }
 
-func (c *Controller) countProxies() (memdb.WatchSet, uint32, error) {
-	store := c.cfg.GetStore()
-
-	ws := memdb.NewWatchSet()
-	ws.Add(store.AbandonCh())
-
-	var count uint32
-	_, usage, err := store.ServiceUsage(ws)
-	if err != nil {
-		return ws, 0, err
+// countProxies counts the number of registered proxy services, retrying on
+// error until the given context is cancelled.
+func (c *Controller) countProxies(ctx context.Context) (memdb.WatchSet, uint32, error) {
+	retryWaiter := &retry.Waiter{
+		MinFailures: 1,
+		MinWait:     1 * time.Second,
+		MaxWait:     1 * time.Minute,
 	}
-	for kind, kindCount := range usage.ConnectServiceInstances {
-		if structs.ServiceKind(kind).IsProxy() {
-			count += uint32(kindCount)
+
+	for {
+		store := c.cfg.GetStore()
+
+		ws := memdb.NewWatchSet()
+		ws.Add(store.AbandonCh())
+
+		var count uint32
+		_, usage, err := store.ServiceUsage(ws)
+
+		// Query failed? Wait for a while, and then go to the top of the loop to
+		// retry (unless the context is cancelled).
+		if err != nil {
+			if err := retryWaiter.Wait(ctx); err != nil {
+				return nil, 0, err
+			}
+			continue
 		}
+
+		for kind, kindCount := range usage.ConnectServiceInstances {
+			if structs.ServiceKind(kind).IsProxy() {
+				count += uint32(kindCount)
+			}
+		}
+		return ws, count, nil
 	}
-	return ws, count, nil
 }
 
 type Store interface {
