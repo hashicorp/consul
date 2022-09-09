@@ -225,6 +225,67 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 	}
 }
 
+func TestConfigurator_IncomingGRPCConfig_Peering(t *testing.T) {
+	// Manually configure Alice's certificates
+	cfg := Config{
+		GRPC: ProtocolConfig{
+			CertFile: "../test/hostname/Alice.crt",
+			KeyFile:  "../test/hostname/Alice.key",
+		},
+	}
+	c := makeConfigurator(t, cfg)
+
+	// Set Bob's certificate via auto TLS.
+	bobCert := loadFile(t, "../test/hostname/Bob.crt")
+	bobKey := loadFile(t, "../test/hostname/Bob.key")
+	require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+
+	peeringServerName := "server.dc1.peering.1234"
+	c.UpdateAutoTLSPeeringServerName(peeringServerName)
+
+	testutil.RunStep(t, "with peering name", func(t *testing.T) {
+		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+		tlsClient := tls.Client(client, &tls.Config{
+			// When the peering server name is provided the server should present
+			// the certificates configured via AutoTLS (Bob).
+			ServerName:         peeringServerName,
+			InsecureSkipVerify: true,
+		})
+		require.NoError(t, tlsClient.Handshake())
+
+		certificates := tlsClient.ConnectionState().PeerCertificates
+		require.NotEmpty(t, certificates)
+		require.Equal(t, "Bob", certificates[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
+
+	testutil.RunStep(t, "without name", func(t *testing.T) {
+		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		tlsClient := tls.Client(client, &tls.Config{
+			// ServerName:         peeringServerName,
+			InsecureSkipVerify: true,
+		})
+		require.NoError(t, tlsClient.Handshake())
+
+		certificates := tlsClient.ConnectionState().PeerCertificates
+		require.NotEmpty(t, certificates)
+
+		// Should default to presenting the manually configured certificates.
+		require.Equal(t, "Alice", certificates[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
+}
 func TestConfigurator_IncomingInsecureRPCConfig(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
