@@ -37,6 +37,10 @@ import (
 var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"consul", "cache", "entries_count"},
+		Help: "Deprecated - please use cache_entries_count instead.",
+	},
+	{
+		Name: []string{"cache", "entries_count"},
 		Help: "Represents the number of entries in this cache.",
 	},
 }
@@ -45,18 +49,34 @@ var Gauges = []prometheus.GaugeDefinition{
 var Counters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"consul", "cache", "bypass"},
+		Help: "Deprecated - please use cache_bypass instead.",
+	},
+	{
+		Name: []string{"cache", "bypass"},
 		Help: "Counts how many times a request bypassed the cache because no cache-key was provided.",
 	},
 	{
 		Name: []string{"consul", "cache", "fetch_success"},
+		Help: "Deprecated - please use cache_fetch_success instead.",
+	},
+	{
+		Name: []string{"cache", "fetch_success"},
 		Help: "Counts the number of successful fetches by the cache.",
 	},
 	{
 		Name: []string{"consul", "cache", "fetch_error"},
+		Help: "Deprecated - please use cache_fetch_error instead.",
+	},
+	{
+		Name: []string{"cache", "fetch_error"},
 		Help: "Counts the number of failed fetches by the cache.",
 	},
 	{
 		Name: []string{"consul", "cache", "evict_expired"},
+		Help: "Deprecated - please use cache_evict_expired instead.",
+	},
+	{
+		Name: []string{"cache", "evict_expired"},
 		Help: "Counts the number of expired entries that are evicted.",
 	},
 }
@@ -397,6 +417,7 @@ func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
 func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, ResultMeta, error) {
 	if r.Info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
+		metrics.IncrCounter([]string{"cache", "bypass"}, 1)
 
 		// If no key is specified, then we do not cache this request.
 		// Pass directly through to the backend.
@@ -443,6 +464,7 @@ RETRY_GET:
 		meta := ResultMeta{Index: entry.Index}
 		if first {
 			metrics.IncrCounter([]string{"consul", "cache", r.TypeEntry.Name, "hit"}, 1)
+			metrics.IncrCounter([]string{"cache", r.TypeEntry.Name, "hit"}, 1)
 			meta.Hit = true
 		}
 
@@ -496,6 +518,7 @@ RETRY_GET:
 			missKey = "miss_new"
 		}
 		metrics.IncrCounter([]string{"consul", "cache", r.TypeEntry.Name, missKey}, 1)
+		metrics.IncrCounter([]string{"cache", r.TypeEntry.Name, missKey}, 1)
 	}
 
 	// Set our timeout channel if we must
@@ -588,6 +611,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	entry.Fetching = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
@@ -694,7 +718,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
 			// TODO(kit): move tEntry.Name to a label on the first write here and deprecate the second write
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", "fetch_success"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_success"}, 1, labels)
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
@@ -728,7 +754,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			// TODO(kit): Add tEntry.Name to label on fetch_error and deprecate second write
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", "fetch_error"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
 			attempt++
@@ -858,7 +886,9 @@ func (c *Cache) runExpiryLoop() {
 
 			// Set some metrics
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
+			metrics.IncrCounter([]string{"cache", "evict_expired"}, 1)
 			metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+			metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 			c.entriesLock.Unlock()
 		}
