@@ -74,29 +74,29 @@ func NewController(cfg Config) *Controller {
 
 // Run the control-loop until the given context is canceled or reaches its
 // deadline.
-func (a *Controller) Run(ctx context.Context) {
-	defer close(a.doneCh)
+func (c *Controller) Run(ctx context.Context) {
+	defer close(c.doneCh)
 
-	ws, numProxies, err := a.countProxies()
+	ws, numProxies, err := c.countProxies()
 	if err != nil {
-		a.cfg.Logger.Error("failed to count proxy services", "error", err)
+		c.cfg.Logger.Error("failed to count proxy services", "error", err)
 	}
 
 	var numServers uint32
 	for {
 		select {
-		case s := <-a.serverCh:
+		case s := <-c.serverCh:
 			numServers = s
-			a.updateMaxSessions(numServers, numProxies)
+			c.updateMaxSessions(numServers, numProxies)
 		case <-ws.WatchCh(ctx):
 			var count uint32
-			ws, count, err = a.countProxies()
+			ws, count, err = c.countProxies()
 			if err == nil {
 				numProxies = count
-				a.updateDrainRateLimit(numProxies)
-				a.updateMaxSessions(numServers, numProxies)
+				c.updateDrainRateLimit(numProxies)
+				c.updateMaxSessions(numServers, numProxies)
 			} else {
-				a.cfg.Logger.Error("failed to count proxy services", "error", err)
+				c.cfg.Logger.Error("failed to count proxy services", "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -106,10 +106,10 @@ func (a *Controller) Run(ctx context.Context) {
 
 // SetServerCount updates the number of healthy servers that is used when
 // determining capacity. It is called by the autopilot delegate.
-func (a *Controller) SetServerCount(count uint32) {
+func (c *Controller) SetServerCount(count uint32) {
 	select {
-	case a.serverCh <- count:
-	case <-a.doneCh:
+	case c.serverCh <- count:
+	case <-c.doneCh:
 	}
 }
 
@@ -148,29 +148,29 @@ func calcRateLimit(numProxies uint32) rate.Limit {
 	return rate.Limit(perSecond)
 }
 
-func (a *Controller) updateMaxSessions(numServers, numProxies uint32) {
+func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 	if numServers == 0 || numProxies == 0 {
 		return
 	}
 
 	maxSessions := uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
-	if maxSessions == a.prevMaxSessions {
+	if maxSessions == c.prevMaxSessions {
 		return
 	}
 
-	a.cfg.Logger.Debug(
+	c.cfg.Logger.Debug(
 		"updating max sessions",
 		"max_sessions", maxSessions,
 		"num_servers", numServers,
 		"num_proxies", numProxies,
 	)
 	metrics.SetGauge([]string{"xds", "server", "idealStreamsMax"}, float32(maxSessions))
-	a.cfg.SessionLimiter.SetMaxSessions(maxSessions)
-	a.prevMaxSessions = maxSessions
+	c.cfg.SessionLimiter.SetMaxSessions(maxSessions)
+	c.prevMaxSessions = maxSessions
 }
 
-func (a *Controller) countProxies() (memdb.WatchSet, uint32, error) {
-	store := a.cfg.GetStore()
+func (c *Controller) countProxies() (memdb.WatchSet, uint32, error) {
+	store := c.cfg.GetStore()
 
 	ws := memdb.NewWatchSet()
 	ws.Add(store.AbandonCh())
