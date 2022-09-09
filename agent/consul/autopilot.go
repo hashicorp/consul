@@ -55,6 +55,14 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 	}
 
 	d.readyServersPublisher.PublishReadyServersEvents(state)
+
+	var readyServers uint32
+	for _, server := range state.Servers {
+		if autopilotevents.IsServerReady(server) {
+			readyServers++
+		}
+	}
+	d.server.xdsCapacityController.SetServerCount(readyServers)
 }
 
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {

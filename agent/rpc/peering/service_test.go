@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1446,6 +1447,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
+		XDSStreamLimiter:         limiter.NewSessionLimiter(),
 	}
 }
 

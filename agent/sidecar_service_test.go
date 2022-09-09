@@ -325,12 +325,14 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 func TestAgent_SidecarDefaultChecks(t *testing.T) {
 	tests := []struct {
 		name                 string
+		serviceID            string
 		svcAddress           string
 		proxyLocalSvcAddress string
 		port                 int
 		wantChecks           []*structs.CheckType
 	}{{
 		name:                 "uses proxy address for check",
+		serviceID:            "web1-1-sidecar-proxy",
 		svcAddress:           "123.123.123.123",
 		proxyLocalSvcAddress: "255.255.255.255",
 		port:                 2222,
@@ -341,13 +343,14 @@ func TestAgent_SidecarDefaultChecks(t *testing.T) {
 				Interval: 10 * time.Second,
 			},
 			{
-				Name:         "Connect Sidecar Aliasing web1",
-				AliasService: "web1",
+				Name:         "Connect Sidecar Aliasing web1-1",
+				AliasService: "web1-1",
 			},
 		},
 	},
 		{
 			name:                 "uses proxy.local_service_address for check if proxy address is empty",
+			serviceID:            "web1-1-sidecar-proxy",
 			proxyLocalSvcAddress: "1.2.3.4",
 			port:                 2222,
 			wantChecks: []*structs.CheckType{
@@ -357,15 +360,33 @@ func TestAgent_SidecarDefaultChecks(t *testing.T) {
 					Interval: 10 * time.Second,
 				},
 				{
-					Name:         "Connect Sidecar Aliasing web1",
-					AliasService: "web1",
+					Name:         "Connect Sidecar Aliasing web1-1",
+					AliasService: "web1-1",
+				},
+			},
+		},
+		{
+			name:                 "redundant name",
+			serviceID:            "1-sidecar-proxy-web1-sidecar-proxy",
+			svcAddress:           "123.123.123.123",
+			proxyLocalSvcAddress: "255.255.255.255",
+			port:                 2222,
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "123.123.123.123:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing 1-sidecar-proxy-web1",
+					AliasService: "1-sidecar-proxy-web1",
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotChecks := sidecarDefaultChecks("web1", tt.svcAddress, tt.proxyLocalSvcAddress, tt.port)
+			gotChecks := sidecarDefaultChecks(tt.serviceID, tt.svcAddress, tt.proxyLocalSvcAddress, tt.port)
 			require.Equal(t, tt.wantChecks, gotChecks)
 		})
 	}

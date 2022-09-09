@@ -29,7 +29,7 @@ func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
 func addEnterpriseConfigEntryUsage(map[string]int, memdb.Change) {}
 
-func compileEnterpriseServiceUsage(tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
+func compileEnterpriseServiceUsage(ws memdb.WatchSet, tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
 	return usage, nil
 }
 
