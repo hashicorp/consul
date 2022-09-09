@@ -194,8 +194,6 @@ func (s *Server) GenerateToken(
 		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
-	defer metrics.MeasureSince([]string{"peering", "generate_token"}, time.Now())
-
 	resp := &pbpeering.GenerateTokenResponse{}
 	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
@@ -206,6 +204,8 @@ func (s *Server) GenerateToken(
 	if handled || err != nil {
 		return resp, err
 	}
+
+	defer metrics.MeasureSince([]string{"peering", "generate_token"}, time.Now())
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
