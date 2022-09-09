@@ -51,20 +51,31 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 		}
 	}
 
-	// Patch listeners
+	// Patch listeners and filters
 	for name, msg := range resources.Index[xdscommon.ListenerType] {
-		patched := false
 		listener, ok := msg.(*envoy_listener_v3.Listener)
 		if !ok {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped. Not a listener: %T", msg))
 			continue
 		}
-		listener, patched, err := patchListener(config, listener)
+
+		// Patch listeners
+		l, ok, err := patchListener(config, listener)
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
-			continue
 		}
-		if patched {
+		if ok {
+			listener = l
+			resources.Index[xdscommon.ListenerType][name] = listener
+		}
+
+		// Patch filters
+		l, ok, err = patchFilters(config, listener)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter: %w", err))
+		}
+		if ok {
+			listener = l
 			resources.Index[xdscommon.ListenerType][name] = listener
 		}
 	}
@@ -104,6 +115,35 @@ func patchListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Li
 	return l, false, nil
 }
 
+func patchFilters(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	switch config.Kind {
+	case api.ServiceKindTerminatingGateway:
+		return patchTerminatingGatewayFilters(config, l)
+	case api.ServiceKindConnectProxy:
+		return patchConnectProxyFilters(config, l)
+	}
+	return l, false, nil
+}
+
+func patchConnectProxyListener(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	var resultErr error
+	var patched bool
+
+	envoyID := getEnvoyIDFromListenerName(listener)
+	for _, patcher := range getPatchersByEnvoyID(config, envoyID) {
+		l, ok, err := patcher.PatchListener(listener)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
+			continue
+		}
+		if ok {
+			patched = true
+			listener = l
+		}
+	}
+	return listener, patched, resultErr
+}
+
 func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
 	var resultErr error
 	var patched bool
@@ -128,11 +168,23 @@ func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, liste
 				patched = true
 				listener = l
 			}
+		}
+	}
 
+	return listener, patched, resultErr
+}
+
+func patchConnectProxyFilters(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	var resultErr error
+	var patched bool
+
+	envoyID := getEnvoyIDFromListenerName(listener)
+	for _, patcher := range getPatchersByEnvoyID(config, envoyID) {
+		for _, filterChain := range listener.FilterChains {
 			var filters []*envoy_listener_v3.Filter
+
 			for _, filter := range filterChain.Filters {
 				newFilter, ok, err := patcher.PatchFilter(filter)
-
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				}
@@ -150,37 +202,26 @@ func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, liste
 	return listener, patched, resultErr
 }
 
-func patchConnectProxyListener(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+func patchTerminatingGatewayFilters(config xdscommon.PluginConfiguration, listener *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
 	var resultErr error
-
-	envoyID := ""
-	if i := strings.IndexByte(listener.Name, ':'); i != -1 {
-		envoyID = listener.Name[:i]
-	}
-
 	var patched bool
-	patchers := getPatchersByEnvoyID(config, envoyID)
 
-	// Patch listeners first
-	for _, patcher := range patchers {
-		l, ok, err := patcher.PatchListener(listener)
-		if err != nil {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
+	for _, filterChain := range listener.FilterChains {
+		sni := getSNI(filterChain)
+		if sni == "" {
 			continue
 		}
-		if ok {
-			patched = true
-			listener = l
+
+		patchers := getPatchersBySNI(config, sni)
+		if len(patchers) == 0 {
+			continue
 		}
-	}
 
-	// Patch filters second
-	for _, patcher := range patchers {
-		for _, filterChain := range listener.FilterChains {
+		for _, patcher := range patchers {
 			var filters []*envoy_listener_v3.Filter
-
 			for _, filter := range filterChain.Filters {
 				newFilter, ok, err := patcher.PatchFilter(filter)
+
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				}
@@ -214,4 +255,11 @@ func getSNI(chain *envoy_listener_v3.FilterChain) string {
 	}
 
 	return chain.FilterChainMatch.ServerNames[0]
+}
+
+func getEnvoyIDFromListenerName(l *envoy_listener_v3.Listener) string {
+	if i := strings.IndexByte(l.Name, ':'); i != -1 {
+		return l.Name[:i]
+	}
+	return ""
 }

@@ -38,6 +38,9 @@ type patchers map[api.CompoundServiceName]patcher
 
 // getPatchersBySNI gets the patcher for the associated SNI.
 func getPatchersBySNI(config xdscommon.PluginConfiguration, sni string) []patcher {
+	if sni == "" {
+		return nil
+	}
 	serviceName, ok := config.SNIToServiceName[sni]
 	if !ok {
 		return nil
@@ -53,6 +56,9 @@ func getPatchersBySNI(config xdscommon.PluginConfiguration, sni string) []patche
 
 // getPatchersByEnvoyID gets the patcher for the associated envoy id.
 func getPatchersByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) []patcher {
+	if envoyID == "" {
+		return nil
+	}
 	serviceName, ok := config.EnvoyIDToServiceName[envoyID]
 	if !ok {
 		return nil
@@ -69,6 +75,7 @@ func getPatchersByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) 
 
 func makePatchers(kind api.ServiceKind, serviceConfig xdscommon.ServiceConfig) []patcher {
 	var patchers []patcher
+	// TODO iterating over a map is random order. Should we be worried about that now?
 	for _, constructor := range patchConstructors {
 		patcher, ok := constructor(serviceConfig)
 		if ok && patcher.CanPatch(kind) {
@@ -85,6 +92,6 @@ type patchConstructor func(xdscommon.ServiceConfig) (patcher, bool)
 
 // patchConstructors contains all patchers that getPatchers tries to create.
 var patchConstructors = map[string]patchConstructor{
-	"aws-lambda":              makeLambdaPatcher,
-	"connection-load-balance": makeLoadBalancePatcher,
+	"v1alpha1/aws-lambda":              makeLambdaPatcher,
+	"v1alpha1/connection-load-balance": makeLoadBalancePatcher,
 }
