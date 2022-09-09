@@ -17,7 +17,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=0
@@ -46,6 +46,23 @@ readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir"
 function network_snippet {
     local DC="$1"
     echo "--net=envoy-tests"
+}
+
+function aws_snippet {
+  LAMBDA_TESTS_ENABLED=${LAMBDA_TESTS_ENABLED:-false}
+  if [ "$LAMBDA_TESTS_ENABLED" != false ]; then
+    local snippet=""
+
+    # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
+    # The AWS credentials must have permission to invoke the Lambda function.
+    [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+    [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+    [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+    [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
+    [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
+
+    echo "$snippet"
+  fi
 }
 
 function init_workdir {
@@ -213,11 +230,11 @@ function start_consul {
       --hostname "consul-${DC}-server" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
-      windows/consul-dev \
+      windows/consul:local \
       agent -dev -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
       -config-dir "C:\\workdir\\${DC}\\consul-server" \
-      -grpc-port -1 \
+      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
@@ -228,7 +245,7 @@ function start_consul {
       --network-alias "consul-${DC}-client" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      windows/consul-dev \
+      windows/consul:local \
       agent -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
       -data-dir "/tmp/consul" \
@@ -242,12 +259,14 @@ function start_consul {
     docker.exe run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
+      --memory 4096m \
+      --cpus 2 \
       --hostname "consul-${DC}" \
       --network-alias "consul-${DC}-client" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      windows/consul-dev \
+      windows/consul:local \
       agent -dev -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
       -config-dir "C:\\workdir\\${DC}\\consul-server" \
@@ -281,7 +300,7 @@ function start_partitioned_client {
     --hostname "consul-${PARTITION}-client" \
     --network-alias "consul-${PARTITION}-client" \
     -e "CONSUL_LICENSE=$license" \
-    windows/consul-dev agent \
+    windows/consul:local agent \
     -datacenter "primary" \
     -retry-join "consul-primary-server" \
     -grpc-port 8502 \
@@ -292,6 +311,7 @@ function start_partitioned_client {
 
 function pre_service_setup {
   local CLUSTER=${1:-primary}
+
   # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
   if [ -f "${CASE_DIR}/${CLUSTER}/setup.sh" ]
   then
@@ -543,10 +563,9 @@ function workdir_cleanup {
 function suite_setup {
     # Cleanup from any previous unclean runs.
     suite_teardown
-    # docker.exe network create -d transparent envoy-tests
-    # docker.exe network create -d transparent --subnet=10.244.0.0/24 -o com.docker.network.windowsshim.interface="Ethernet" envoy-tests
-    # docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
+
     docker.exe network create -d "nat" envoy-tests &>/dev/null
+
     # Start the volume container
     #
     # This is a dummy container that we use to create volume and keep it
@@ -557,6 +576,7 @@ function suite_setup {
         --net=none \
         "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
+
 }
 
 function suite_teardown {
@@ -669,11 +689,6 @@ function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
-  # if [ $1=="s1" ] ; then
-  #   IPSERV=10.244.0.170
-  # else
-  #   IPSERV=10.244.0.180
-  # fi
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite

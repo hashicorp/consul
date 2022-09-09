@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -109,7 +110,7 @@ function get_cert {
   if [ -n "$SERVER_NAME" ]; then
     SNI_FLAG="-servername $SERVER_NAME"
   fi
-  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)  
+  CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -119,6 +120,7 @@ function assert_proxy_presents_cert_uri {
   local DC=${3:-primary}
   local NS=${4:-default}
   local PARTITION=${5:default}
+
   CERT=$(retry_default get_cert $HOSTPORT)
 
   echo "WANT SERVICE: ${PARTITION}/${NS}/${SERVICENAME}"
@@ -167,8 +169,7 @@ function assert_cert_signed_by_ca {
 
 function assert_envoy_version {
   local ADMINPORT=$1
-  local HOSTPORT="localhost:$ADMINPORT"    
-  run retry_default curl -f -s $HOSTPORT/server_info
+  run retry_default curl -f -s localhost:$ADMINPORT/server_info
   [ "$status" -eq 0 ]
   # Envoy 1.8.0 returns a plain text line like
   # envoy 5d25f466c3410c0dfa735d7d4358beb76b2da507/1.8.0/Clean/DEBUG live 3 3 0
@@ -198,7 +199,6 @@ function assert_envoy_version {
 }
 
 function assert_envoy_expose_checks_listener_count {
-  check_hostport $1
   local HOSTPORT=$1
   local EXPECT_PATH=$2
 
@@ -568,13 +568,14 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker.exe run -i --rm --network envoy-tests windows/consul-dev "$@"
+  docker.exe run -i --rm --network envoy-tests windows/consul:local "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
-  docker.exe run -i --rm --network envoy-tests windows/consul-dev "$@"
+
+  docker.exe run -i --rm --network envoy-tests windows/consul:local "$@"
 }
 
 function docker_wget {
@@ -586,7 +587,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker.exe run --rm --network envoy-tests --entrypoint curl.exe windows/consul-dev "$@"
+  docker.exe run --rm --network envoy-tests --entrypoint curl.exe windows/consul:local "$@"
 }
 
 function docker_exec {
@@ -654,8 +655,7 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  local HOSTPORT=$1
-  run curl --no-keepalive -s -v -f -d hello $HOSTPORT
+  run curl --no-keepalive -s -v -f -d hello $1
 
   echo "OUTPUT $output"
 
@@ -678,9 +678,8 @@ function must_pass_tcp_connection {
 # must_fail_http_connection see must_fail_tcp_connection but this expects Envoy
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
-  local HOSTPORT=$1
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -i -d hello "$HOSTPORT"
+  run curl --no-keepalive -s -i -d hello "$1"
 
   echo "OUTPUT $output"
 
@@ -778,7 +777,6 @@ function gen_envoy_bootstrap {
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
     -admin-bind 127.0.0.1:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS}); then
-    
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
@@ -794,6 +792,7 @@ function read_config_entry {
   local KIND=$1
   local NAME=$2
   local DC=${3:-primary}
+
   docker_consul "$DC" config read -kind $KIND -name $NAME -http-addr="consul-$DC:8500"
 }
 
@@ -815,7 +814,14 @@ function delete_config_entry {
 
 function register_services {
   local DC=${1:-primary}
+  wait_for_leader "$DC"
   docker_consul_exec ${DC} bash -c "consul services register workdir/${DC}/register/service_*.hcl"
+}
+
+# wait_for_leader waits until a leader is elected.
+# Its first argument must be the datacenter name.
+function wait_for_leader {
+  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://consul-primary:8500/v1/status/leader) ]]'
 }
 
 function setup_upsert_l4_intention {
@@ -974,4 +980,56 @@ function create_peering {
   run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
+}
+
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+}
+
+function register_lambdas {
+  local DC=${1:-primary}
+  # register lambdas to the catalog
+  for f in $(find workdir/${DC}/register -type f -name 'lambda_*.json'); do
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
+      echo "Registered Lambda: $(jq -r .Service.Service $f)"
+  done
+  # write service-defaults config entries for lambdas
+  for f in $(find workdir/${DC}/register -type f -name 'service_defaults_*.json'); do
+    varsub ${f} AWS_LAMBDA_REGION AWS_LAMBDA_ARN
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
+      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
+  done
+}
+
+function assert_lambda_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+
+  local BODY=$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)
+  [ -n "$BODY" ]
+
+  [ "$(echo $BODY | jq -r '.cluster.transport_socket.typed_config.sni')" == '*.amazonaws.com' ]
+}
+
+function assert_lambda_envoy_dynamic_http_filter_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local ARN=$3
+
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
+  [ -n "$FILTER" ]
+
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
+}
+
+function varsub {
+  local file=$1 ; shift
+  for v in "$@"; do
+    sed -i "s/\${$v}/${!v}/g" $file
+  done
 }
