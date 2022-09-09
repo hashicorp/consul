@@ -78,15 +78,15 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 ## Custom installation
 
 If you want to customize your installation,
-create a `config.yaml` file to override the default settings.
+create a `values.yaml` file to override the default settings.
 You can learn what settings are available by running `helm inspect values hashicorp/consul`
 or by reading the [Helm Chart Reference](/docs/k8s/helm).
 
-### Minimal `config.yaml` for Consul service mesh
+### Minimal `values.yaml` for Consul service mesh
 
-The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `config.yaml` config file:
+The minimal settings to enable [Consul Service Mesh]((/docs/k8s/connect)) would be captured in the following `values.yaml` config file:
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -99,10 +99,10 @@ controller:
 
 </CodeBlockConfig>
 
-Once you've created your `config.yaml` file, run `helm install` with the `--values` flag:
+Once you've created your `values.yaml` file, run `helm install` with the `--values` flag:
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
 NAME: consul
 ...
 ```
@@ -117,11 +117,11 @@ Instead, you can enable the Consul container network interface (CNI) plugin to p
 Because the plugin is executed by the local Kubernetes kubelet, the plugin already has the elevated privileges necessary to configure the network.
 
 The Consul Helm Chart is responsible for installing the Consul CNI plugin.
-To configure the plugin to be installed, add the following configuration to your `config.yaml` file:
+To configure the plugin to be installed, add the following configuration to your `values.yaml` file:
 
 <CodeTabs tabs={[ "Reference configuration","GKE configuration" ]}>
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -136,7 +136,7 @@ connectInject:
 ```
 </CodeBlockConfig>
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -167,7 +167,7 @@ The following table describes the available CNI plugin options:
 
 By default, Consul Service Mesh is enabled on almost all namespaces (with the exception of `kube-system` and `local-path-storage`) within a Kubernetes cluster. You can restrict this to a subset of namespaces by specifying a `namespaceSelector` that matches a label attached to each namespace denoting whether to enable Consul service mesh. In order to default to enabling service mesh on select namespaces by label, the `connectInject.default` value must be set to `true`.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -194,9 +194,8 @@ $ kubectl label namespace foo connect-inject=enabled
 Next, run `helm install` with the `--values` flag:
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace --namespace consul --values config.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
 NAME: consul
-...
 ```
 
 ### Update your Consul on Kubernetes configuration
