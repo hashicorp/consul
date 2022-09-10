@@ -1,23 +1,43 @@
 ---
 layout: docs
-page_title: Installing the Consul K8s CLI
+page_title: Install Consul from the Consul K8s CLI
 description: >-
-  Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
+  This topic describes how to install Consul on Kubernetes using the Consul K8s CLI tool.
 ---
 
-# Installing the Consul K8s CLI 
 
-Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. Ensure that you are installing the correct version of the CLI for your Consul on Kubernetes deployment, as the CLI and the control plane are version dependent. 
+# Install Consul on Kubernetes from Consul K8s CLI 
+
+This topic describes how to install Consul on Kubernetes using the Consul K8s CLI tool. The Consul K8s CLI tool enables you to quickly install and interact with Consul on Kubernetes. Use the Consul K8s CLI tool to install Consul on Kubernetes if you are deploying a single cluster. We recommend using the [Helm chart installation method](/docs/k8s/installation/install) if you are installing Consul on Kubernetes for multi-cluster deployments that involve cross-partition or cross datacenter communication.
+
+## Introduction
+
+If it is your first time installing Consul on Kubernetes, then you must first install the Consul K8s CLI tool. You can install Consul on Kubernetes using the Consul K8s tool after installing the CLI.
+
+## Requirements
+
+- The `kubectl` client must already be configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file.
+- Install one of the following package managers so that you can install the Consul K8s CLI tool. The installation instructions also provide commands for installing and using the package managers:
+   - MacOS: [Homebrew](https://brew.sh) 
+   - Ubuntu/Debian: apt 
+   - CentOS/RHEL: yum
+
+You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/docs/k8s/compatibility) for details.
+
 
 ## Install the CLI 
 
-These instructions describe how to install the latest version of the CLI depending on your Operating System, and are suited for fresh installations of Consul on Kubernetes. 
+The following instructions describe how to install the latest version of the Consul K8s CLI tool, as well as earlier versions, so that you can install an appropriate version of tool for your control plane.
+
+### Install the latest version
+
+Complete the following instructions for a fresh installation of Consul on Kubernetes. 
 
 <Tabs>
 
 <Tab heading="MacOS">
 
-The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. The Homebrew formulae will always install the latest version of a binary. If you are looking to install a specific version of the CLI please follow [Install a specific version of Consul K8s CLI](#install-a-specific-version-of-the-cli).
+The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions. The Homebrew formulae always installs the latest version of a binary. 
 
 1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
     ```shell-session
@@ -104,17 +124,15 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 </Tabs>
 
-## Install a specific version of the CLI
+### Install a previous version
 
-These instructions describe how to install a specific version of the CLI and are best suited for installing or managing specific versions of the Consul on Kubernetes control plane. 
+Complete the following instructions to install a specific version of the CLI so that your tool is compatible with your Consul on Kubernetes control plane. Refer to the [compatibility matrix](/docs/k8s/compatibility) for additional information. 
 
 <Tabs>
 
 <Tab heading="MacOS">
 
-Homebrew does not provide a method to install previous versions of a package. The Consul K8s CLI will need to be installed manually. Previous versions of the Consul K8s CLI could be used to install a specific version of Consul on the Kubernetes control plane. Manual upgrades to the Consul K8s CLI is also performed in the same manner, provided that the Consul K8s CLI was manually installed before. 
-
-1. Download the desired Consul K8s CLI using the following `curl` command. Enter the appropriate version for your deployment via the `$VERSION` environment variable.
+1. Download the appropriate version of Consul K8s CLI using the following `curl` command. Set the `$VERSION` environment variable to the appropriate version for your deployment.
 
    ```shell-session
    $ export VERSION=0.39.0 && \
@@ -203,3 +221,61 @@ Homebrew does not provide a method to install previous versions of a package. Th
 </Tab>
 
 </Tabs>
+
+## Install Consul on Kubernetes
+
+After installing the Consul K8s CLI tool (`consul-k8s`), issue the `install` subcommand and any additional options to install Consul on Kubernetes. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. If you do not include any additional options, the `consul-k8s` CLI installs Consul on Kubernetes using the default settings form the Consul Helm chart values. The following example installs Consul on Kubernetes with service mesh and CRDs enabled. 
+
+```shell-session
+$ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
+
+==> Pre-Install Checks
+No existing installations found.
+ ✓ No previous persistent volume claims found
+ ✓ No previous secrets found
+==> Consul Installation Summary
+   Installation name: consul
+   Namespace: consul
+   Overrides:
+   connectInject:
+      enabled: true
+   controller:
+      enabled: true
+
+   Proceed with installation? (y/N) y
+   
+==> Running Installation
+   ✓ Downloaded charts
+--> creating 1 resource(s)
+--> creating 45 resource(s)
+--> beginning wait for 45 resources with timeout of 10m0s
+   ✓ Consul installed into namespace "consul"
+```
+
+You can include the `-auto-approve` option set to `true` to proceed with the installation if the pre-install checks pass.
+
+The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/docs/k8s/operations/uninstall#uninstall-consul) for information about removing PVCs.
+
+## Check the Consul cluster status
+
+Issue the `consul-k8s status` command to view the status of the installed Consul cluster. 
+
+```shell-session
+$ consul-k8s status
+
+==> Consul-K8s Status Summary
+   NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
+---------+-----------+----------+--------------+------------+----------+--------------------------
+   consul | consul    | deployed | 0.40.0       | 1.11.2     |        1 | 2022/01/31 16:58:51 PST
+
+==> Config:
+   connectInject:
+      enabled: true
+   controller:
+      enabled: true
+   global:
+      name: consul
+
+✓ Consul servers healthy (3/3)
+✓ Consul clients healthy (3/3)
+```

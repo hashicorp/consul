@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -30,14 +31,24 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
-var leaderExportedServicesCountKey = []string{"consul", "peering", "exported_services"}
-var leaderHealthyPeeringKey = []string{"consul", "peering", "healthy"}
+var leaderExportedServicesCountKeyDeprecated = []string{"consul", "peering", "exported_services"}
+var leaderExportedServicesCountKey = []string{"peering", "exported_services"}
+var leaderHealthyPeeringKeyDeprecated = []string{"consul", "peering", "healthy"}
+var leaderHealthyPeeringKey = []string{"peering", "healthy"}
 var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
+	{
+		Name: leaderExportedServicesCountKeyDeprecated,
+		Help: fmt.Sprint("Deprecated - please use ", strings.Join(leaderExportedServicesCountKey, "_")),
+	},
 	{
 		Name: leaderExportedServicesCountKey,
 		Help: "A gauge that tracks how many services are exported for the peering. " +
 			"The labels are \"peer_name\", \"peer_id\" and, for enterprise, \"partition\". " +
 			"We emit this metric every 9 seconds",
+	},
+	{
+		Name: leaderHealthyPeeringKeyDeprecated,
+		Help: fmt.Sprint("Deprecated - please use ", strings.Join(leaderExportedServicesCountKey, "_")),
 	},
 	{
 		Name: leaderHealthyPeeringKey,
@@ -75,6 +86,7 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 
 			// "Zero-out" the metric on exit so that when prometheus scrapes this
 			// metric from a non-leader, it does not get a stale value.
+			metrics.SetGauge(leaderExportedServicesCountKeyDeprecated, float32(0))
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
@@ -105,11 +117,13 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 		if found {
 			// exported services count metric
 			esc := status.GetExportedServicesCount()
+			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKeyDeprecated, float32(esc), labels)
 			metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
 		}
 
 		// peering health metric
 		if status.NeverConnected {
+			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(math.NaN()), labels)
 			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
 		} else {
 			healthy := s.peerStreamServer.Tracker.IsHealthy(status)
@@ -118,6 +132,7 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 				healthyInt = 1
 			}
 
+			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthyInt), labels)
 			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthyInt), labels)
 		}
 	}

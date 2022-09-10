@@ -13,8 +13,8 @@ description: >-
 [Consul Service Mesh](/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
 your Consul services. Consul Service Mesh can be used with Kubernetes to secure pod
-communication with other pods and external Kubernetes services. Consul Connect is used interchangeably with the name 
-Consul Service Mesh and is what will be used to refer to for Service Mesh functionality within Consul. 
+communication with other pods and external Kubernetes services. "Consul Connect" refers to the service mesh functionality within Consul and is used interchangeably with the name
+"Consul Service Mesh." 
 
 The Connect sidecar running Envoy can be automatically injected into pods in
 your cluster, making configuration for Kubernetes automatic.
@@ -273,6 +273,27 @@ spec:
 `web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
 `9090` and will also select the same pods.
 
+~> Kubernetes 1.24+ only
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web
+  annotations:
+    kubernetes.io/service-account.name: web
+  type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-admin
+  annotations:
+    kubernetes.io/service-account.name: web-admin
+  type: kubernetes.io/service-account-token
+```
+
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
 consul.hashicorp.com/connect-inject: true
@@ -354,6 +375,7 @@ to see the output `hello world from 9090`.
 The way this works is that a Consul service instance is being registered per port on the Pod, so there are 2 Consul
 services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
 the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
+
 
 #### Caveats for Multi-port Pods
 * Transparent proxy is not supported for multi-port Pods.

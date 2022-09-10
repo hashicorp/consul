@@ -107,6 +107,9 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	if s.config.GRPCPort > 0 {
 		conf.Tags["grpc_port"] = fmt.Sprintf("%d", s.config.GRPCPort)
 	}
+	if s.config.GRPCTLSPort > 0 {
+		conf.Tags["grpc_tls_port"] = fmt.Sprintf("%d", s.config.GRPCTLSPort)
+	}
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}

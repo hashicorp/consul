@@ -31,10 +31,10 @@ If you haven't installed Consul on your cluster, continue reading below. If you'
 already installed Consul on a cluster and want to upgrade it to
 support federation, see [Upgrading An Existing Cluster](#upgrading-an-existing-cluster).
 
-You will need to use the following `config.yaml` file for your primary cluster,
+You will need to use the following `values.yaml` file for your primary cluster,
 with the possible modifications listed below.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -114,7 +114,7 @@ Modifications:
    mesh gateway, for example using a Node Port service or a custom DNS entry,
    see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
-With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
+With your `values.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your primary cluster.
 
 -> **NOTE:** You must be using consul-helm 0.21.0+. To update, run `helm repo update`.
@@ -124,7 +124,7 @@ to install Consul on your primary cluster.
 If you have an existing cluster, you will need to upgrade it to ensure it has
 the following config:
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -316,7 +316,7 @@ With the primary cluster up and running, and the [federation secret](#federation
 into the secondary cluster, we can now install Consul into the secondary
 cluster.
 
-You will need to use the following `config.yaml` file for your secondary cluster(s),
+You will need to use the following `values.yaml` file for your secondary cluster(s),
 with the modifications listed below.
 
 -> **NOTE: ** You must use a separate Helm config file for each cluster (primary and secondaries) since their
@@ -414,7 +414,7 @@ Modifications:
    mesh gateway, for example using a Node Port service or a custom DNS entry,
    see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
-With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
+With your `values.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).
 
 ## Verifying Federation

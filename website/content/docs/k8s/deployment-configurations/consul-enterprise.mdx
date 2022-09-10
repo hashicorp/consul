@@ -21,9 +21,9 @@ kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
 
 -> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
 
-In your `config.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
+In your `values.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
 
-<CodeBlockConfig filename="config.yaml" highlight="2">
+<CodeBlockConfig filename="values.yaml" highlight="2">
 
 ```yaml
 global:
@@ -34,7 +34,7 @@ global:
 
 Add the name and key of the secret you just created to `server.enterpriseLicense`, if using Consul version 1.10+.
 
-<CodeBlockConfig filename="config.yaml" highlight="4-6">
+<CodeBlockConfig filename="values.yaml" highlight="4-6">
 
 ```yaml
 global:
@@ -51,7 +51,7 @@ If the version of Consul is < 1.10, use the following config with the name and k
 
 -> **Note:** The value of `server.enterpriseLicense.enableLicenseAutoload` must be set to `false`.
 
-<CodeBlockConfig filename="config.yaml" highlight="7">
+<CodeBlockConfig filename="values.yaml" highlight="7">
 
 ```yaml
 global:
@@ -67,7 +67,7 @@ global:
 Now run `helm install`:
 
 ```shell-session
-$ helm install --wait hashicorp hashicorp/consul --values config.yaml
+$ helm install --wait hashicorp hashicorp/consul --values values.yaml
 ```
 
 Once the cluster is up, you can verify the nodes are running Consul Enterprise by

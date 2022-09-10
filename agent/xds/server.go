@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -26,6 +27,13 @@ var StatsGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"xds", "server", "streams"},
 		Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
+	},
+}
+
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"xds", "server", "streamDrained"},
+		Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
 	},
 }
 
@@ -97,17 +105,24 @@ type ProxyConfigSource interface {
 	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
 }
 
+// SessionLimiter is the interface exposed by limiter.SessionLimiter. We depend
+// on an interface rather than the concrete type so we can mock it in tests.
+type SessionLimiter interface {
+	BeginSession() (limiter.Session, error)
+}
+
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
 // of it's public members must be set before the gRPC server is started.
 //
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName     string
-	Logger       hclog.Logger
-	CfgSrc       ProxyConfigSource
-	ResolveToken ACLResolverFunc
-	CfgFetcher   ConfigFetcher
+	NodeName       string
+	Logger         hclog.Logger
+	CfgSrc         ProxyConfigSource
+	ResolveToken   ACLResolverFunc
+	CfgFetcher     ConfigFetcher
+	SessionLimiter SessionLimiter
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -159,6 +174,7 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
+	limiter SessionLimiter,
 ) *Server {
 	return &Server{
 		NodeName:                nodeName,
@@ -166,6 +182,7 @@ func NewServer(
 		CfgSrc:                  cfgMgr,
 		ResolveToken:            resolveToken,
 		CfgFetcher:              cfgFetcher,
+		SessionLimiter:          limiter,
 		AuthCheckFrequency:      DefaultAuthCheckFrequency,
 		activeStreams:           &activeStreamCounters{},
 		serverlessPluginEnabled: serverlessPluginEnabled,

@@ -69,11 +69,29 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
 	case "failover-to-cluster-peer":
+		events = append(events, UpdateEvent{
+			CorrelationID: "peer-trust-bundle:cluster-01",
+			Result: &pbpeering.TrustBundleReadResponse{
+				Bundle: &pbpeering.PeeringTrustBundle{
+					PeerName:          "peer1",
+					TrustDomain:       "peer1.domain",
+					ExportedPartition: "peer1ap",
+					RootPEMs:          []string{"peer1-root-1"},
+				},
+			},
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodesPeerCluster01(t),
+			},
+		})
+	case "redirect-to-cluster-peer":
 		events = append(events, UpdateEvent{
 			CorrelationID: "peer-trust-bundle:cluster-01",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -114,13 +132,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC3(t),
 			},
 		})
@@ -141,7 +159,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
@@ -168,7 +186,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
@@ -286,6 +304,17 @@ func setupTestVariationDiscoveryChain(
 							{Peer: "cluster-01"},
 						},
 					},
+				},
+			},
+		)
+	case "redirect-to-cluster-peer":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Redirect: &structs.ServiceResolverRedirect{
+					Peer: "cluster-01",
 				},
 			},
 		)

@@ -772,6 +772,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 		},
+		{
+			name: "custom-trace-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
+				}, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -945,6 +954,40 @@ func customHTTPListenerJSON(t testinf.T, opts customHTTPListenerJSONOptions) str
 	var buf bytes.Buffer
 	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))
 	return buf.String()
+}
+
+func customTraceJSON(t testinf.T) string {
+	t.Helper()
+	return `
+	{
+        "@type" : "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.Tracing",
+        "provider" : {
+          "name" : "envoy.tracers.zipkin",
+          "typed_config" : {
+            "@type" : "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+            "collector_cluster" : "otelcolector",
+            "collector_endpoint" : "/api/v2/spans",
+            "collector_endpoint_version" : "HTTP_JSON",
+            "shared_span_context" : false
+          }
+        },
+        "custom_tags" : [
+          {
+            "tag" : "custom_header",
+            "request_header" : {
+              "name" : "x-custom-traceid",
+              "default_value" : ""
+            }
+          },
+          {
+            "tag" : "alloc_id",
+            "environment" : {
+              "name" : "NOMAD_ALLOC_ID"
+            }
+          }
+        ]
+      }
+	`
 }
 
 type configFetcherFunc func() string

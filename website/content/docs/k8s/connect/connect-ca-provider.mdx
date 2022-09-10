@@ -98,7 +98,7 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
-<CodeBlockConfig filename="config.yaml" highlight="4-13">
+<CodeBlockConfig filename="values.yaml" highlight="4-13">
 
   ```yaml
   global:
@@ -123,7 +123,7 @@ We will provide this secret and the Vault CA secret, to the Consul server via th
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
-$ helm install consul --values config.yaml hashicorp/consul
+$ helm install consul --values values.yaml hashicorp/consul
 ```
 
 Verify that the CA provider is set correctly:

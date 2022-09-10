@@ -2,8 +2,8 @@ import domEventSourceBlocking, {
   validateCursor,
   createErrorBackoff,
 } from 'consul-ui/utils/dom/event-source/blocking';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
 module('Unit | Utility | dom/event-source/blocking', function() {
   const createEventSource = function() {
@@ -74,8 +74,8 @@ module('Unit | Utility | dom/event-source/blocking', function() {
       { errors: [{ status: '504' }] },
       { errors: [{ status: '524' }] },
     ].forEach(item => {
-      const timeout = this.stub().callsArg(0);
-      const resolve = this.stub().withArgs(item);
+      const timeout = sinon.stub().callsArg(0);
+      const resolve = sinon.stub().withArgs(item);
       const Promise = createPromise(resolve);
       const backoff = createErrorBackoff(undefined, Promise, timeout);
       const promise = backoff(item);

@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -28,6 +29,8 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
 )
+
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
 
 type deltaRecvResponse int
 
@@ -85,6 +88,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	if _, err := s.authenticate(stream.Context()); err != nil {
 		return err
 	}
+
+	session, err := s.SessionLimiter.BeginSession()
+	if err != nil {
+		return errOverwhelmed
+	}
+	defer session.End()
 
 	// Loop state
 	var (
@@ -159,6 +168,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-session.Terminated():
+			generator.Logger.Debug("draining stream to rebalance load")
+			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {

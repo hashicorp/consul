@@ -1,5 +1,4 @@
-import { module, skip } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, skip, test } from 'qunit';
 import promisedTimeout from 'consul-ui/utils/promisedTimeout';
 
 module('Unit | Utils | promisedTimeout', function() {
