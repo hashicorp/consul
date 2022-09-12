@@ -17,7 +17,7 @@ export default class TopologyMetricsUpLines extends Component {
     const view = this.args.view;
     const lines = [...document.querySelectorAll('#upstream-lines path')];
 
-    this.iconPositions = lines.map(item => {
+    this.iconPositions = lines.map((item) => {
       const pathLen = parseFloat(item.getTotalLength());
       const partLen = item.getPointAtLength(Math.ceil(pathLen * 0.666));
       return {

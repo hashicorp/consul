@@ -1,4 +1,4 @@
-export default function(e, value, target = {}) {
+export default function (e, value, target = {}) {
   if (typeof e.target !== 'undefined') {
     return e;
   }

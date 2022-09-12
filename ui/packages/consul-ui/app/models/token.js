@@ -37,7 +37,7 @@ export default class Token extends Model {
 
   @computed('Policies.[]')
   get isGlobalManagement() {
-    return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
+    return (this.Policies || []).find((item) => item.ID === MANAGEMENT_ID);
   }
 
   @computed('SecretID')

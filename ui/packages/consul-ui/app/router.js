@@ -10,7 +10,9 @@ const doc = document;
 const appName = config.modulePrefix;
 
 export const routes = merge.all(
-  [...doc.querySelectorAll(`script[data-routes]`)].map($item => JSON.parse($item.dataset[`routes`]))
+  [...doc.querySelectorAll(`script[data-routes]`)].map(($item) =>
+    JSON.parse($item.dataset[`routes`])
+  )
 );
 
 runInDebug(() => {
@@ -27,7 +29,7 @@ runInDebug(() => {
           _options: { path: page.name },
         };
       }
-      page.pages.forEach(page => {
+      page.pages.forEach((page) => {
         const url = page.relativeUrl;
         if (typeof url === 'string') {
           if (url !== '') {
@@ -37,7 +39,7 @@ runInDebug(() => {
           }
         }
       });
-      page.children.forEach(child => {
+      page.children.forEach((child) => {
         addPage(route, child);
       });
     })(routes, output.default.nested);

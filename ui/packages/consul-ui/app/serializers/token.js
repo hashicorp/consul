@@ -38,7 +38,7 @@ export default class TokenSerializer extends Serializer.extend(WithPolicies, Wit
 
   respondForUpdateRecord(respond, serialized, data) {
     return super.respondForUpdateRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           // Sometimes we get `Policies: null`, make null equal an empty array
           if (typeof body.Policies === 'undefined' || body.Policies === null) {

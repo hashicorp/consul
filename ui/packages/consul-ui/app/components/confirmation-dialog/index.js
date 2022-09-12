@@ -10,14 +10,14 @@ export default Component.extend(Slotted, {
   confirming: false,
   permanent: false,
   actions: {
-    cancel: function() {
+    cancel: function () {
       set(this, 'confirming', false);
     },
-    execute: function() {
+    execute: function () {
       set(this, 'confirming', false);
       this.sendAction(...['actionName', ...this['arguments']]);
     },
-    confirm: function() {
+    confirm: function () {
       const [action, ...args] = arguments;
       set(this, 'actionName', action);
       set(this, 'arguments', args);

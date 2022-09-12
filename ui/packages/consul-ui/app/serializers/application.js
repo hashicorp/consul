@@ -14,17 +14,17 @@ import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import { PARTITION_KEY } from 'consul-ui/models/partition';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
 
-const map = function(obj, cb) {
+const map = function (obj, cb) {
   if (!Array.isArray(obj)) {
     return [obj].map(cb)[0];
   }
   return obj.map(cb);
 };
 
-const attachHeaders = function(headers, body, query = {}) {
+const attachHeaders = function (headers, body, query = {}) {
   // lowercase everything incase we get browser inconsistencies
   const lower = {};
-  Object.keys(headers).forEach(function(key) {
+  Object.keys(headers).forEach(function (key) {
     lower[key.toLowerCase()] = headers[key];
   });
   //
@@ -200,7 +200,7 @@ export default class ApplicationSerializer extends Serializer {
     }
     if (requestType === 'query') {
       meta.date = this.timestamp();
-      payload.forEach(function(item) {
+      payload.forEach(function (item) {
         set(item, 'SyncTime', meta.date);
       });
     }

@@ -6,8 +6,8 @@ export default class DiscoveryChainSerializer extends Serializer {
   slugKey = SLUG_KEY;
 
   respondForQueryRecord(respond, query) {
-    return super.respondForQueryRecord(function(cb) {
-      return respond(function(headers, body) {
+    return super.respondForQueryRecord(function (cb) {
+      return respond(function (headers, body) {
         return cb(headers, {
           ...body,
           [SLUG_KEY]: body.Chain[SLUG_KEY],

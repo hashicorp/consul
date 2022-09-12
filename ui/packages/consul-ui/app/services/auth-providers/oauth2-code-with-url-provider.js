@@ -15,14 +15,14 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
       responseType = 'code';
     return this.get('popup')
       .open(url, responseParams, options)
-      .then(function(authData) {
+      .then(function (authData) {
         // the same as the parent class but with an authorizationState added
         const creds = {
           authorizationState: authData.state,
           authorizationCode: decodeURIComponent(authData[responseType]),
           provider: name,
         };
-        runInDebug(_ =>
+        runInDebug((_) =>
           console.info('Retrieved the following creds from the OAuth Provider', creds)
         );
         return creds;

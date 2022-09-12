@@ -8,7 +8,7 @@ export function initialize(application) {
   );
   // configure syntax highlighting for CodeMirror
   CodeMirror.modeURL = {
-    replace: function(n, mode) {
+    replace: function (n, mode) {
       switch (mode.trim()) {
         case 'javascript':
           return fs.get(['codemirror', 'mode', 'javascript', 'javascript.js'].join('/'));

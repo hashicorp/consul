@@ -15,6 +15,6 @@ export default class FuzzySearch {
   }
 
   search(s) {
-    return this.fuse.search(s).map(item => item.item);
+    return this.fuse.search(s).map((item) => item.item);
   }
 }

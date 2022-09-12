@@ -37,10 +37,7 @@ export default class PolicyService extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form
-      .form(this.getModelName())
-      .setData(item)
-      .getData();
+    return this.form.form(this.getModelName()).setData(item).getData();
   }
 
   persist(item) {

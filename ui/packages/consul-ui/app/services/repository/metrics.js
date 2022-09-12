@@ -60,7 +60,7 @@ export default class MetricsService extends RepositoryService {
         {}
       ),
     ];
-    return Promise.all(promises).then(results => {
+    return Promise.all(promises).then((results) => {
       return {
         meta: {
           interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
@@ -78,7 +78,7 @@ export default class MetricsService extends RepositoryService {
     }
     return this.provider
       .upstreamRecentSummaryStats(params.slug, params.dc, params.ns, {})
-      .then(result => {
+      .then((result) => {
         result.meta = {
           interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
         };
@@ -93,7 +93,7 @@ export default class MetricsService extends RepositoryService {
     }
     return this.provider
       .downstreamRecentSummaryStats(params.slug, params.dc, params.ns, {})
-      .then(result => {
+      .then((result) => {
         result.meta = {
           interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
         };
