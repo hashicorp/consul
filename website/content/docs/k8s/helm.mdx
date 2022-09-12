@@ -655,13 +655,18 @@ Use these links to navigate to a particular top-level stanza.
 
   - `storageClass` ((#v-server-storageclass)) (`string: null`) - The StorageClass to use for the servers' StatefulSet storage. It must be
     able to be dynamically provisioned if you want the storage
-    to be automatically created. For example, to use local
+    to be automatically created. For example, to use [local]
     (https://kubernetes.io/docs/concepts/storage/storage-classes/#local)
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    See https://www.consul.io/docs/install/performance#read-write-tuning for considerations around choosing a
-    performant storage class.
+    Refer to the [Read/Write Tuning)(https://www.consul.io/docs/install/performance#read-write-tuning) 
+    section of the Server Performance Requirements documentation for considerations 
+    around choosing a performant storage class.
+    
+      -> **Tip:** The [Reference Architecture](https://learn.hashicorp.com/tutorials/consul/reference-architecture#hardware-sizing-for-consul-servers)
+      contains best practices and recommendations for selecting suitable
+      hardware sizes for your Consul servers.
 
   - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable Connect (https://consul.io/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
