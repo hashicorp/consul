@@ -11,7 +11,7 @@ const utils = require('./config/utils');
 // const BroccoliDebug = require('broccoli-debug');
 // const debug = BroccoliDebug.buildDebugCallback(`app:consul-ui`)
 
-module.exports = function(defaults, $ = process.env) {
+module.exports = function (defaults, $ = process.env) {
   // available environments
   // ['production', 'development', 'staging', 'test'];
 
@@ -34,7 +34,7 @@ module.exports = function(defaults, $ = process.env) {
     'consul-partitions',
     'consul-nspaces',
     'consul-hcp',
-  ].map(item => {
+  ].map((item) => {
     return {
       name: item,
       path: path.dirname(require.resolve(`${item}/package.json`)),
@@ -100,24 +100,24 @@ module.exports = function(defaults, $ = process.env) {
   }
 
   //
-  (function(apps) {
+  (function (apps) {
     trees.app = mergeTrees(
       [new Funnel('app', { exclude: excludeFiles })].concat(
         apps
-          .filter(item => exists(`${item.path}/app`))
-          .map(item => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
+          .filter((item) => exists(`${item.path}/app`))
+          .map((item) => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
       ),
       {
         overwrite: true,
       }
     );
     trees.vendor = mergeTrees(
-      [new Funnel('vendor')].concat(apps.map(item => new Funnel(`${item.path}/vendor`)))
+      [new Funnel('vendor')].concat(apps.map((item) => new Funnel(`${item.path}/vendor`)))
     );
   })(
     // consul-ui will eventually be a separate app just like the others
     // at which point we can remove this filter/extra scope
-    apps.filter(item => item.name !== 'consul-ui')
+    apps.filter((item) => item.name !== 'consul-ui')
   );
   //
 
@@ -174,13 +174,13 @@ module.exports = function(defaults, $ = process.env) {
       },
     }
   );
-  const build = function(path, options) {
+  const build = function (path, options) {
     const { root, ...rest } = options;
     if (exists(`${root}/${path}`)) {
       app.import(path, rest);
     }
   };
-  apps.forEach(item => {
+  apps.forEach((item) => {
     build(`vendor/${item.name}/routes.js`, {
       root: item.path,
       outputFile: `assets/${item.name}/routes.js`,

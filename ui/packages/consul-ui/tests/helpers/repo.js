@@ -1,5 +1,5 @@
 import { get as httpGet } from 'consul-ui/tests/helpers/api';
-import { get, getProperties, set } from '@ember/object';
+import { getProperties, set } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';
 
 /**

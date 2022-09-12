@@ -17,7 +17,7 @@ export default ChildSelectorComponent.extend({
   policy: alias('policyForm.data'),
   init: function () {
     this._super(...arguments);
-    this.policyForm = this.formContainer.form('policy');
+    set(this, 'policyForm', this.formContainer.form('policy'));
     this.source = new EventSource();
   },
   actions: {

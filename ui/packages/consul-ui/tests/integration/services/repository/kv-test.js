@@ -2,7 +2,6 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { env } from '../../../../env';
-import { get } from '@ember/object';
 
 module(`Integration | Service | kv`, function (hooks) {
   setupTest(hooks);

@@ -1,6 +1,5 @@
 import { module, skip, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-import { get } from '@ember/object';
 import repo from 'consul-ui/tests/helpers/repo';
 import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
 

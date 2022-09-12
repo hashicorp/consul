@@ -1,7 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-import { get } from '@ember/object';
 
 module(`Integration | Service | service`, function (hooks) {
   setupTest(hooks);

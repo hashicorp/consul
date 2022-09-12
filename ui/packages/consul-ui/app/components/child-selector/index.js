@@ -24,7 +24,7 @@ export default Component.extend(Slotted, {
   init: function () {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    this.form = this.formContainer.form(this.type);
+    set(this, 'form', this.formContainer.form(this.type));
     this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
   },
   willDestroyElement: function () {
