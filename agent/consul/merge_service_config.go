@@ -166,6 +166,19 @@ func computeResolvedServiceConfig(
 			thisReply.ProxyConfig["max_inbound_connections"] = serviceConf.MaxInboundConnections
 		}
 
+		if serviceConf.LocalConnectTimeoutMs > 0 {
+			if thisReply.ProxyConfig == nil {
+				thisReply.ProxyConfig = map[string]interface{}{}
+			}
+			thisReply.ProxyConfig["local_connect_timeout_ms"] = serviceConf.LocalConnectTimeoutMs
+		}
+
+		if serviceConf.LocalRequestTimeoutMs > 0 {
+			if thisReply.ProxyConfig == nil {
+				thisReply.ProxyConfig = map[string]interface{}{}
+			}
+			thisReply.ProxyConfig["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
+		}
 		thisReply.Meta = serviceConf.Meta
 	}
 
