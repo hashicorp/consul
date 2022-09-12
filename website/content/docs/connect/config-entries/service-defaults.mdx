@@ -712,6 +712,18 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       yaml: true,
     },
     {
+      name: 'LocalConnectTimeoutMs',
+      description: ' The number of milliseconds allowed to make connections to the local application instance before timing out. Defaults to 5000.',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'LocalRequestTimeoutMs',
+      description: ' In milliseconds, the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts (15s).',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
