@@ -52,6 +52,9 @@ export default function(type, value, doc = document) {
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
         break;
+      case 'peer':
+        key = 'CONSUL_PEER_COUNT';
+        break;
     }
     if (key) {
       obj[key] = value;

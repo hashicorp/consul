@@ -46,6 +46,9 @@ export default function(type) {
     case 'nspace':
       requests = ['/v1/namespaces', '/v1/namespace/'];
       break;
+    case 'peer':
+      requests = ['/v1/peers', '/v1/peer/'];
+      break;
     case 'topology':
       requests = ['/v1/internal/ui/service-topology'];
       break;
