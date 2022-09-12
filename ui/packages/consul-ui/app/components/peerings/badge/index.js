@@ -20,9 +20,11 @@ const BADGE_LOOKUP = {
   TERMINATED: {
     tooltip: 'Someone in the other peer may have deleted this peering connection.',
   },
-  UNDEFINED: {},
+  UNDEFINED: {
+    tooltip: ''
+  },
 };
-export default class PeeingsBadge extends Component {
+export default class PeeringsBadge extends Component {
   get styles() {
     const {
       peering: { State },
