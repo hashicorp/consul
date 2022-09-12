@@ -113,7 +113,8 @@ const consulNspaceList = consulNspaceListFactory(
 );
 const consulPeerList = consulPeerListFactory(
   collection,
-  isPresent
+  isPresent,
+  attribute
 );
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
