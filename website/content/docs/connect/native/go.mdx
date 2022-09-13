@@ -1,14 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Native Application Integration - Go
+page_title: Service Mesh Native App Integration: Go Apps
 description: >-
-  We provide a library that makes it drop-in simple to integrate Connect with
-  most Go applications. For most Go applications, Connect can be natively
-  integrated in just a single line of code excluding imports and struct
-  initialization.
+Consul's service mesh supports custom applications written in Go as Consul-Native Integrations. Example code demonstrates how to connect custom apps to your service mesh.
 ---
 
-# Connect-Native Integration with Go
+# Service Mesh Native App Integration with Go
 
 -> **Note:** When calling `ConnectAuthorize()` on incoming connections this library
 will return _deny_ if `Permissions` are defined on the matching intention.
