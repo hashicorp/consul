@@ -74,8 +74,8 @@ func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
 	q.StaleIfError = staleIfError
 }
 
-func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
 func (q *QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
@@ -140,8 +140,8 @@ func (w WriteRequest) AllowStaleRead() bool {
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
 // Timeout implements structs.RPCInfo
@@ -171,8 +171,8 @@ func (r *ReadRequest) SetTokenSecret(token string) {
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > r.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return time.Since(start) > r.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
 // Timeout implements structs.RPCInfo
