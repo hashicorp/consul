@@ -65,11 +65,10 @@ type VaultProvider struct {
 
 	stopWatcher func()
 
-	isPrimary                    bool
-	clusterID                    string
-	spiffeID                     *connect.SpiffeIDSigning
-	setupIntermediatePKIPathDone bool
-	logger                       hclog.Logger
+	isPrimary bool
+	clusterID string
+	spiffeID  *connect.SpiffeIDSigning
+	logger    hclog.Logger
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
@@ -171,6 +170,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 		v.stopWatcher = cancel
 		go v.renewToken(ctx, lifetimeWatcher)
+	}
+
+	// Update the intermediate (managed) PKI mount and role
+	if err := v.setupIntermediatePKIPath(); err != nil {
+		return err
 	}
 
 	return nil
@@ -362,8 +366,8 @@ func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
 }
 
 func (v *VaultProvider) setupIntermediatePKIPath() error {
-	if v.setupIntermediatePKIPathDone {
-		return nil
+	mountConfig := vaultapi.MountConfigInput{
+		MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
 	}
 
 	_, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
@@ -372,9 +376,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			err := v.mountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &vaultapi.MountInput{
 				Type:        "pki",
 				Description: "intermediate CA backend for Consul Connect",
-				Config: vaultapi.MountConfigInput{
-					MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
-				},
+				Config:      mountConfig,
 			})
 			if err != nil {
 				return err
@@ -382,39 +384,28 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		} else {
 			return err
 		}
-	}
-
-	// Create the role for issuing leaf certs if it doesn't exist yet
-	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
-	role, err := v.readNamespaced(v.config.IntermediatePKINamespace, rolePath)
-
-	if err != nil {
-		return err
-	}
-	if role == nil {
-		_, err := v.writeNamespaced(v.config.IntermediatePKINamespace, rolePath, map[string]interface{}{
-			"allow_any_name":   true,
-			"allowed_uri_sans": "spiffe://*",
-			"key_type":         "any",
-			"max_ttl":          v.config.LeafCertTTL.String(),
-			"no_store":         true,
-			"require_cn":       false,
-		})
-
+	} else {
+		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
 		if err != nil {
 			return err
 		}
 	}
-	v.setupIntermediatePKIPathDone = true
-	return nil
+
+	// Create the role for issuing leaf certs if it doesn't exist yet
+	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
+	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, rolePath, map[string]interface{}{
+		"allow_any_name":   true,
+		"allowed_uri_sans": "spiffe://*",
+		"key_type":         "any",
+		"max_ttl":          v.config.LeafCertTTL.String(),
+		"no_store":         true,
+		"require_cn":       false,
+	})
+
+	return err
 }
 
 func (v *VaultProvider) generateIntermediateCSR() (string, error) {
-	err := v.setupIntermediatePKIPath()
-	if err != nil {
-		return "", err
-	}
-
 	// Generate a new intermediate CSR for the root to sign.
 	uid, err := connect.CompactUID()
 	if err != nil {
@@ -464,10 +455,6 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 
 // ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
-	if err := v.setupIntermediatePKIPath(); err != nil {
-		return "", err
-	}
-
 	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -727,6 +714,19 @@ func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vault
 	defer v.setNamespace(namespace)()
 	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
 	if err := r.SetJSONBody(mountInfo); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
+	defer v.setNamespace(namespace)()
+	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s/tune", path))
+	if err := r.SetJSONBody(mountConfig); err != nil {
 		return err
 	}
 	resp, err := v.client.RawRequest(r)
