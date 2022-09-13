@@ -691,6 +691,71 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCAManager_Initialize_Vault_KeepOldRoots_Primary(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	dir1pre, s1pre := testServer(t)
+	defer os.RemoveAll(dir1pre)
+	defer s1pre.Shutdown()
+	codec := rpcClient(t, s1pre)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1pre.RPC, "dc1")
+
+	// Update the CA config to use Vault - this should force the generation of a new root cert.
+	vaultCAConf := &structs.CAConfiguration{
+		Provider: "vault",
+		Config: map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		},
+	}
+
+	args := &structs.CARequest{
+		Datacenter: "dc1",
+		Config:     vaultCAConf,
+	}
+	var reply interface{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+
+	// Should have 2 roots now.
+	_, roots, err := s1pre.fsm.State().CARoots(nil)
+	require.NoError(t, err)
+	require.Len(t, roots, 2)
+
+	// Shutdown s1pre and restart it to trigger the primary CA init.
+	s1pre.Shutdown()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DataDir = s1pre.config.DataDir
+		c.NodeName = s1pre.config.NodeName
+		c.NodeID = s1pre.config.NodeID
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Roots should be unchanged
+	_, rootsAfterRestart, err := s1.fsm.State().CARoots(nil)
+	require.NoError(t, err)
+	require.Len(t, rootsAfterRestart, 2)
+	require.Equal(t, roots[0].ID, rootsAfterRestart[0].ID)
+	require.Equal(t, roots[1].ID, rootsAfterRestart[1].ID)
+}
+
 func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
