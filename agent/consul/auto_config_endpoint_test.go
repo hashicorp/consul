@@ -879,7 +879,6 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	backend.AssertExpectations(t)
 }
 
-
 func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 	// createCSR copies the behavior of connect.CreateCSR with some
 	// customizations to allow for better unit testing.
@@ -998,7 +997,7 @@ func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 
 		})
 	}
-
+}
 
 func TestAutoConfig_invalidSegmentName(t *testing.T) {
 	invalid := []string{
