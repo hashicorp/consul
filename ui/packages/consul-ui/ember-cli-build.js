@@ -161,13 +161,6 @@ module.exports = function (defaults, $ = process.env) {
           'mode/loadmode.js',
         ],
       },
-      'ember-cli-uglify': {
-        uglify: {
-          compress: {
-            keep_fargs: false,
-          },
-        },
-      },
       sassOptions: {
         implementation: require('sass'),
         sourceMapEmbed: sourcemaps,
