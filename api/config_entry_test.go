@@ -452,7 +452,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
-								"Interval": "2s"
+								"Interval": "2s",
+								"EnforcingConsecutive5xx": 60
 							}
 						},
 						{
@@ -502,8 +503,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uint32Pointer(60),
 							},
 						},
 						{
@@ -1379,5 +1381,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+
+func uint32Pointer(v uint32) *uint32 {
 	return &v
 }
