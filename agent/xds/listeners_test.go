@@ -787,6 +787,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGateway_MultiTLSListener_MixedHTTP2gRPC,
 		},
 		{
+			name:   "ingress-with-http2-and-grpc-multiple-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC,
+		},
+		{
 			name:   "transparent-proxy-http-upstream",
 			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
 		},
