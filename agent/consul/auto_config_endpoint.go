@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/consul/acl"
 
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/proto/pbautoconf"
@@ -51,6 +53,11 @@ type jwtAuthorizer struct {
 	claimAssertions []string
 }
 
+// Invalidate any quote or whitespace characters that could cause an escape with bexpr.
+// This includes an extra single-quote character not specified in the grammar for safety in case it is later added.
+// https://github.com/hashicorp/go-bexpr/blob/v0.1.11/grammar/grammar.peg#L188-L191
+var invalidSegmentName = regexp.MustCompile("[`'\"\\s]+")
+
 func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
 	identity, err := a.validator.ValidateLogin(context.Background(), req.JWT)
@@ -59,6 +66,21 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 		return AutoConfigOptions{}, acl.PermissionDenied("Failed JWT authorization: %v", err)
 	}
 
+	// Ensure provided data cannot escape the RHS of a bexpr for security.
+	// This is not the cleanest way to prevent this behavior. Ideally, the bexpr would allow us to
+	// inject a variable on the RHS for comparison as well, but it would be a complex change to implement
+	// that would likely break backwards-compatibility in certain circumstances.
+	if dns.InvalidNameRe.MatchString(req.Node) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "node", req.Node)
+	}
+	if invalidSegmentName.MatchString(req.Segment) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "segment", req.Segment)
+	}
+	if req.Partition != "" && !dns.IsValidLabel(req.Partition) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "partition", req.Partition)
+	}
+
+	// Ensure that every value in this mapping is safe to interpolate before using it.
 	varMap := map[string]string{
 		"node":      req.Node,
 		"segment":   req.Segment,
