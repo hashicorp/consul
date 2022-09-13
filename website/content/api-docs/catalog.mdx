@@ -537,8 +537,15 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
+- `merge-central-config` - If set on the request, the response will include a fully resolved service
+  definition which is merged with the [proxy-defaults/global](/docs/connect/config-entries/proxy-defaults) 
+  and [service-defaults/:service](/docs/connect/config-entries/service-defaults) config entries. This can be useful to view
+  the full service definition for a mesh service (connect-proxy kind or gateway kind) which might not be merged before being
+  registered into the catalog.
+
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
 
 ### Sample Request
 
@@ -873,6 +880,12 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+
+- `merge-central-config` - If set on the request, the response will include a fully resolved service
+  definition which is merged with the [proxy-defaults/global](/docs/connect/config-entries/proxy-defaults) 
+  and [service-defaults/:service](/docs/connect/config-entries/service-defaults) config entries. This can be useful to view
+  the full service definition for a mesh service (connect-proxy kind or gateway kind) which might not be merged before being
+  registered into the catalog.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   The namespace may be specified as '\*' to return results for all namespaces.
