@@ -575,7 +575,9 @@ function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker.exe run -i --rm --network envoy-tests windows/consul:local "$@"
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
+
+  docker.exe exec -i $CONTAINER_NAME bash.exe -c "$@"
 }
 
 function docker_wget {
@@ -773,13 +775,14 @@ function gen_envoy_bootstrap {
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi
 
-  if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
+  if output=$(docker_consul_for_proxy_bootstrap $DC "consul connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
     -http-addr envoy_consul-${DC}_1:8500 \
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
-    -admin-bind 127.0.0.1:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS}); then
+    -admin-bind 127.0.0.1:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
+    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json 2>&1"); then
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
@@ -795,8 +798,7 @@ function read_config_entry {
   local KIND=$1
   local NAME=$2
   local DC=${3:-primary}
-
-  docker_consul "$DC" config read -kind $KIND -name $NAME -http-addr="consul-$DC:8500"
+  docker_consul_exec "$DC" bash -c "consul config read -kind $KIND -name $NAME -http-addr="consul-$DC:8500""
 }
 
 function wait_for_namespace {
@@ -832,7 +834,7 @@ function setup_upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default docker_curl primary -sL -X PUT -d"{\"Action\": \"${ACTION}\"}" "http://consul-primary:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}"
+  retry_default docker_consul_exec primary bash -c "curl -sL -X PUT -d '{\"Action\": \"${ACTION}\"}' 'http://consul-primary:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}'"
 }
 
 function upsert_l4_intention {

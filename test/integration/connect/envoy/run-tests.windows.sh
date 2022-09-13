@@ -529,8 +529,6 @@ function run_tests {
     pre_service_setup alpha
   fi
 
-  stop_and_copy_files
-
   echo "Starting services"
   start_services
 
