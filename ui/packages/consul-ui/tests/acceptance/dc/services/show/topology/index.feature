@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / show-topology: Show Topology tab for Service
+Feature: dc / services / show / topology / index: Show Topology tab for Service
   Scenario: Given a service, the Topology tab should display
     Given 1 datacenter model with the value "dc1"
     And 1 node models
@@ -35,6 +35,6 @@ Feature: dc / services / show-topology: Show Topology tab for Service
       dc: dc1
       service: service-0
     ---
-    And I don't see topology on the tabs
+    And I don't see topologyIsVisible on the tabs
     Then the url should be /dc1/services/service-0/instances
 
