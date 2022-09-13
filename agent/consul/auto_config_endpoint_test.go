@@ -233,14 +233,14 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
 		},
 		"bad-req-node": {
-			request: &pbautoconf.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node: "bad node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
 			},
 			err: "Invalid request field. node =",
 		},
 		"bad-req-segment": {
-			request: &pbautoconf.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node:    "test-node",
 				Segment: "bad segment",
 				JWT:     signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
@@ -248,7 +248,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			err: "Invalid request field. segment =",
 		},
 		"bad-req-partition": {
-			request: &pbautoconf.AutoConfigRequest{
+			request: pbautoconf.AutoConfigRequest{
 				Node:      "test-node",
 				Partition: "bad partition",
 				JWT:       signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
