@@ -394,9 +394,12 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 		return nil, nil, fmt.Errorf("Failed to parse CSR: %w", err)
 	}
 
-	// ensure that a URI SAN is present
-	if len(x509CSR.URIs) < 1 {
-		return nil, nil, fmt.Errorf("CSR didn't include any URI SANs")
+	// ensure that exactly one URI SAN is present
+	if len(x509CSR.URIs) != 1 {
+		return nil, nil, fmt.Errorf("CSR SAN contains an invalid number of URIs: %v", len(x509CSR.URIs))
+	}
+	if len(x509CSR.EmailAddresses) > 0 {
+		return nil, nil, fmt.Errorf("CSR SAN does not allow specifying email addresses")
 	}
 
 	// Parse the SPIFFE ID
