@@ -241,6 +241,29 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			},
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
 		},
+		"bad-req-node": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node: "bad node",
+				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. node =",
+		},
+		"bad-req-segment": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:    "test-node",
+				Segment: "bad segment",
+				JWT:     signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. segment =",
+		},
+		"bad-req-partition": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:      "test-node",
+				Partition: "bad partition",
+				JWT:       signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. partition =",
+		},
 		"claim-assertion-failed": {
 			request: &pbautoconf.AutoConfigRequest{
 				Node: "test-node",
@@ -856,6 +879,7 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	backend.AssertExpectations(t)
 }
 
+
 func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 	// createCSR copies the behavior of connect.CreateCSR with some
 	// customizations to allow for better unit testing.
@@ -975,4 +999,39 @@ func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 		})
 	}
 
+
+func TestAutoConfig_invalidSegmentName(t *testing.T) {
+	invalid := []string{
+		"\n",
+		"\r",
+		"\t",
+		"`",
+		`'`,
+		`"`,
+		` `,
+		`a b`,
+		`a'b`,
+		`a or b`,
+		`a and b`,
+		`segment name`,
+		`segment"name`,
+		`"segment"name`,
+		`"segment" name`,
+		`segment'name'`,
+	}
+	valid := []string{
+		``,
+		`a`,
+		`a.b`,
+		`a.b.c`,
+		`a-b-c`,
+		`segment.name`,
+	}
+
+	for _, s := range invalid {
+		require.True(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
+	for _, s := range valid {
+		require.False(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
 }
