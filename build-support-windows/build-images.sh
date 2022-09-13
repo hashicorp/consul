@@ -39,9 +39,4 @@ docker tag mcr.microsoft.com/oss/kubernetes/pause:3.6 "${HASHICORP_DOCKER_PROXY}
 # Build Windows Openzipkin Image
 docker build -t "${HASHICORP_DOCKER_PROXY}/windows/openzipkin" -f Dockerfile-openzipkin-windows .
 
-# Build Windows Socat Image
-echo " "
-echo "Build Windows Socat Image"
-docker build -t "${HASHICORP_DOCKER_PROXY}/windows/socat" -f Dockerfile-socat-windows .
-
 echo "Building Complete!"
