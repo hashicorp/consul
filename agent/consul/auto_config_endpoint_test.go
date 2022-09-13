@@ -92,9 +92,9 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 // TestAutoConfigInitialConfiguration is really an integration test of all the moving parts of the AutoConfig.InitialConfiguration RPC.
 // Full testing of the individual parts will not be done in this test:
 //
-//  * Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
-//  * Each of the individual config generation functions. These can be unit tested separately and should NOT
-//    require running test servers
+//   - Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
+//   - Each of the individual config generation functions. These can be unit tested separately and should NOT
+//     require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -235,6 +235,29 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 				JWT: signJWTWithStandardClaims(t, altpriv, map[string]interface{}{"consul_node_name": "test-node"}),
 			},
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
+		},
+		"bad-req-node": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node: "bad node",
+				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. node =",
+		},
+		"bad-req-segment": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:    "test-node",
+				Segment: "bad segment",
+				JWT:     signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. segment =",
+		},
+		"bad-req-partition": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:      "test-node",
+				Partition: "bad partition",
+				JWT:       signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. partition =",
 		},
 		"claim-assertion-failed": {
 			request: &pbautoconf.AutoConfigRequest{
@@ -849,4 +872,40 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	require.ElementsMatch(t, addrs, actual.Config.Gossip.RetryJoinLAN)
 
 	backend.AssertExpectations(t)
+}
+
+func TestAutoConfig_invalidSegmentName(t *testing.T) {
+	invalid := []string{
+		"\n",
+		"\r",
+		"\t",
+		"`",
+		`'`,
+		`"`,
+		` `,
+		`a b`,
+		`a'b`,
+		`a or b`,
+		`a and b`,
+		`segment name`,
+		`segment"name`,
+		`"segment"name`,
+		`"segment" name`,
+		`segment'name'`,
+	}
+	valid := []string{
+		``,
+		`a`,
+		`a.b`,
+		`a.b.c`,
+		`a-b-c`,
+		`segment.name`,
+	}
+
+	for _, s := range invalid {
+		require.True(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
+	for _, s := range valid {
+		require.False(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
 }
