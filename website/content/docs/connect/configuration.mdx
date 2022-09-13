@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Configuration
+page_title: Service Mesh Configuration: Overview
 description: >-
-  A Connect-aware proxy enables unmodified applications to use Connect. A
-  per-service proxy sidecar transparently handles inbound and outbound service
-  connections, automatically wrapping and verifying TLS connections.
+Consul's service mesh must be enabled before use. Learn how to enable service mesh in agent configurations, the features you can configure, and how schedulers like Kubernetes and Nomad impact configuration. Consul Connect is another name for Consul’s service mesh functions.
 ---
 
-# Service Mesh Configuration
+# Service Mesh Configuration Overview
 
 There are many configuration options exposed for Consul service mesh. The only option
 that must be set is the `connect.enabled` option on Consul servers to enable Consul service mesh.
