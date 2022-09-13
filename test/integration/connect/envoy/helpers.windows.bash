@@ -610,10 +610,9 @@ function kill_envoy {
   local BOOTSTRAP_NAME=$1
   local DC=${2:-primary}
 
-
   PORT=$( cat /c/workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json | jq .admin.address.socket_address.port_value )
   PID=$( netstat -qo | grep "127.0.0.1:$PORT" | sed -r "s/.* //g" )
-  KILL=$( tskill $PID )
+  tskill $PID
 }
 
 function must_match_in_statsd_logs {
@@ -853,7 +852,8 @@ function get_ca_root {
 function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
-  retry_default docker_curl "$DC" -sLf "http://consul-${DC}:8500/v1/agent/service/${SERVICE_ID}" >/dev/null
+
+  retry_default docker_consul_exec "$DC" bash -c "curl -sLf 'http://consul-${DC}:8500/v1/agent/service/${SERVICE_ID}' >/dev/null"
 }
 
 function set_ttl_check_state {
@@ -873,7 +873,7 @@ function set_ttl_check_state {
       return 1
   esac
 
-  retry_default docker_curl "${DC}" -sL -XPUT "http://consul-${DC}:8500/v1/agent/check/warn/${CHECK_ID}"
+  retry_default docker_consul_exec "$DC" bash -c "curl -sL -XPUT 'http://consul-${DC}:8500/v1/agent/check/warn/${CHECK_ID}' >/dev/null"
 }
 
 function get_upstream_fortio_name {

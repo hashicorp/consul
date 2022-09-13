@@ -77,6 +77,7 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${CLUSTER}
+  rm -rf workdir/logs
   mkdir -p workdir/${CLUSTER}/{consul,consul-server,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
@@ -451,12 +452,12 @@ function stop_and_copy_files {
     # Create CMD file to execute within the container
     echo "XCOPY C:\workdir_bak C:\workdir /e /h /c /i /y" > copy.cmd
     # Stop dummy container to copy local workdir to container's workdir_bak
-    docker.exe stop envoy_workdir_1
+    docker.exe stop envoy_workdir_1 > /dev/null
     docker.exe cp workdir/. envoy_workdir_1:/workdir_bak
     # Copy CMD file into container
     docker.exe cp copy.cmd envoy_workdir_1:/
     # Start dummy container and execute the CMD file
-    docker.exe start envoy_workdir_1
+    docker.exe start envoy_workdir_1 > /dev/null
     docker.exe exec envoy_workdir_1 copy.cmd
     # Delete local CMD file after execution
     rm copy.cmd
@@ -470,7 +471,7 @@ function run_tests {
 
   init_vars
 
-  # Initialize the workdir
+  echo "Initialize the workdir"
   init_workdir primary
 
   if is_set $REQUIRE_SECONDARY
@@ -494,12 +495,13 @@ function run_tests {
     return 0
   fi
 
-  # Wipe state
+  echo "Wipe volumes"
   wipe_volumes
 
-  # Use this function to populate the shared volume
+  echo "Copying base files to shared volume"
   stop_and_copy_files
 
+  echo "Starting Consul primary cluster"
   start_consul primary
 
   if is_set $REQUIRE_SECONDARY; then
