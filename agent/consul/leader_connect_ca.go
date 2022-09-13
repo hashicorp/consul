@@ -564,22 +564,9 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return nil
 	}
 
-	// Get the highest index
-	idx, _, err := state.CARoots(nil)
-	if err != nil {
+	if err := c.persistNewRootAndConfig(provider, rootCA, conf); err != nil {
 		return err
 	}
-
-	// Store the root cert in raft
-	_, err = c.delegate.ApplyCARequest(&structs.CARequest{
-		Op:    structs.CAOpSetRoots,
-		Index: idx,
-		Roots: []*structs.CARoot{rootCA},
-	})
-	if err != nil {
-		return fmt.Errorf("raft apply failed: %w", err)
-	}
-
 	c.setCAProvider(provider, rootCA)
 
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
