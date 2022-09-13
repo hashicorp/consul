@@ -1397,6 +1397,15 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: no root certificate")
 	}
 
+	// Note that only one spiffe id is allowed currently. If more than one is desired
+	// in future implmentations, then each ID should have authorization checks.
+	if len(csr.URIs) != 1 {
+		return nil, fmt.Errorf("CSR SAN contains an invalid number of URIs: %v", len(csr.URIs))
+	}
+	if len(csr.EmailAddresses) > 0 {
+		return nil, fmt.Errorf("CSR SAN does not allow specifying email addresses")
+	}
+
 	// Verify that the CSR entity is in the cluster's trust domain
 	state := c.delegate.State()
 	_, config, err := state.CAConfig(nil)
