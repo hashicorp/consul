@@ -1,4 +1,4 @@
-ARG ENVOY_VERSION=v1.23.0
+ARG ENVOY_VERSION=v1.19.5
 ARG CONSUL_IMAGE_VERSION=latest
 
 FROM envoyproxy/envoy-windows:${ENVOY_VERSION} as envoy

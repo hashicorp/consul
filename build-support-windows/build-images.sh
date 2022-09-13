@@ -12,12 +12,11 @@ echo " "
 echo "Build Windows Consul Image"
 docker build -t "windows/consul" -f ../Dockerfile-windows ../
 
-# Build Windows Consul-Dev Image
+# Build Windows Consul:local Image
 echo " "
-echo "Build Windows Consul-Dev Image"
-./Dockerfile-consul-dev-windows.sh
+echo "Build Windows Consul:local Image"
+./Dockerfile-consul-local-windows.sh
 
-# TODO: Check if this image is required
 # Pull Windows Nanoserver image
 echo " "
 echo "Pull Windows Nanoserver image"
@@ -25,7 +24,8 @@ docker pull mcr.microsoft.com/windows/nanoserver:1809
 # Tag Windows Nanoserver image
 echo " "
 echo "Tag Windows Nanoserver image"
-# docker tag mcr.microsoft.com/windows/nanoserver:1809 "${HASHICORP_DOCKER_PROXY}/windows/nanoserver"
+docker tag mcr.microsoft.com/windows/nanoserver:1809 "${HASHICORP_DOCKER_PROXY}/windows/nanoserver"
+
 
 # Pull Kubernetes/pause image
 echo " "

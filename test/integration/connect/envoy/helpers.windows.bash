@@ -608,7 +608,10 @@ function kill_envoy {
   local BOOTSTRAP_NAME=$1
   local DC=${2:-primary}
 
-  pkill -TERM -f "envoy -c /workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json"
+
+  PORT=$( cat /c/workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json | jq .admin.address.socket_address.port_value )
+  PID=$( netstat -qo | grep "127.0.0.1:$PORT" | sed -r "s/.* //g" )
+  KILL=$( tskill $PID )
 }
 
 function must_match_in_statsd_logs {
