@@ -1018,7 +1018,7 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	//    with acl:read privileges for all policy and role resolution requests. Once you have
 	//    all the associated policies and roles it would be easy enough to recreate the effective
 	//    policy.
-	const maxRequests = 128
+	const maxRequests = 64
 
 	if s.checkACLDisabled() {
 		return nil, aclDisabled
