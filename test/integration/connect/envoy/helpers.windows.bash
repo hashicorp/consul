@@ -623,8 +623,13 @@ function kill_envoy {
 function split_lines_in_stats {
   local MATCH=$1
   local FILE=$2
-
-  sed -i "s/$MATCH/\n$MATCH/g" $FILE
+  local LINE_COUNT=$( sed -n '$=' $FILE )
+  if [[ $LINE_COUNT == "1" ]]
+  then
+    sed -i "s/$MATCH/\n$MATCH/g" $FILE
+  else
+    return 0
+  fi    
 }
 
 function must_match_in_statsd_logs {
