@@ -26,7 +26,7 @@ module "my_task" {
 
 ## Licensing
 
-\~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
+!> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
 
 Consul Enterprise [requires a license](/docs/enterprise/license/overview). If running
 Consul on ECS with ACLs enabled, the license will be automatically pulled down from Consul servers.
@@ -71,7 +71,7 @@ The ACL controller manages configuration of the AWS IAM auth method on the Consu
 ensures unused tokens created by tasks are cleaned up. It also creates admin partitions and
 namespaces if they do not already exist.
 
-\-> **NOTE:** The ACL controller does not delete admin partitions or namespaces once they are created.
+~> **Note:** The ACL controller does not delete admin partitions or namespaces once they are created.
 
 Each ACL controller manages a single admin partition. Consul on ECS supports one ACL controller per ECS cluster;
 therefore, the administrative boundary for admin partitions is one admin partition per ECS cluster.
