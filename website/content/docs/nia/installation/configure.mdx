@@ -32,7 +32,7 @@ task {
 
 ## Terraform Providers
 
-Configuring Terraform providers within CTS requires 2 config components. The first component is required within the [`driver.terraform` block](/docs/nia/configuration#terraform-driver). All providers configured for CTS must be listed within the `required_providers` stanza to satisfy a [Terraform v0.13+ requirement](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) for Terraform to discover and install them. The providers listed are later organized by CTS to be included in the appropriate Terraform configuration files for each task.
+Configuring Terraform providers within CTS requires 2 config components. The first component is required within the [`driver.terraform` block](/docs/nia/configuration#terraform-driver). All providers configured for CTS must be listed within the `required_providers` stanza to satisfy a [Terraform v0.13+ requirement](https://www.terraform.io/language/providers/requirements#requiring-providers) for Terraform to discover and install them. The providers listed are later organized by CTS to be included in the appropriate Terraform configuration files for each task.
 
 ```hcl
 driver "terraform" {

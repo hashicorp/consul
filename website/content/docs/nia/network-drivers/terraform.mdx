@@ -7,13 +7,13 @@ description: >-
 
 # Terraform Driver
 
-Consul-Terraform-Sync (CTS) extends the Consul ecosystem to include Terraform as an officially supported tooling project. With the Terraform driver, CTS installs the [Terraform CLI](https://www.terraform.io/downloads.html) locally and runs Terraform commands based on monitored Consul changes. This page details how the Terraform driver operates using local workspaces and templated files.
+Consul-Terraform-Sync (CTS) extends the Consul ecosystem to include Terraform as an officially supported tooling project. With the Terraform driver, CTS installs the [Terraform CLI](https://www.terraform.io/downloads) locally and runs Terraform commands based on monitored Consul changes. This page details how the Terraform driver operates using local workspaces and templated files.
 
 ## Terraform CLI Automation
 
 On startup, CTS:
 1. Downloads and installs Terraform
-2. Prepares local workspace directories. Terraform configuration and execution for each task is organized as separate [Terraform workspaces](https://www.terraform.io/docs/state/workspaces.html). The state files for tasks are independent of each other.
+2. Prepares local workspace directories. Terraform configuration and execution for each task is organized as separate [Terraform workspaces](https://www.terraform.io/language/state/workspaces). The state files for tasks are independent of each other.
 3. Generates Terraform configuration files that make up the root module for each task.
 
 Once all workspaces are set up, CTS monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform driver dynamically updates input variables for that task using a template to render them to a file named [`terraform.tfvars`](/docs/nia/network-drivers#terraform-tfvars). This file is passed as a parameter to the Terraform CLI when executing `terraform plan` and `terraform apply` to update your network infrastructure with the latest Consul service details.
