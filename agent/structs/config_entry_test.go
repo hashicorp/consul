@@ -2789,7 +2789,6 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	}
 }
 
-
 func TestProxyConfigEntry(t *testing.T) {
 	cases := map[string]configEntryTestcase{
 		"proxy config name provided is not global": {
