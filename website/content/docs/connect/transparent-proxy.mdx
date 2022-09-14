@@ -234,7 +234,7 @@ The following example configures the service to dial an upstream service called 
   "consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"
 ```
 
-If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s),
+If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/docs/k8s/deployment-configurations/single-dc-multi-k8s),
 then you must configure services in one Kubernetes cluster to explicitly dial a service in another Kubernetes cluster using the 
 [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. 
 The following example configures the service to dial an upstream service called `my-service` in another Kubernetes cluster on port `1234`:

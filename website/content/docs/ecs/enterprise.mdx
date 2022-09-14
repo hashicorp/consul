@@ -26,7 +26,7 @@ module "my_task" {
 
 ## Licensing
 
-~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
+!> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
 
 Consul Enterprise [requires a license](/docs/enterprise/license/overview). If running
 Consul on ECS with ACLs enabled, the license will be automatically pulled down from Consul servers.
@@ -46,7 +46,7 @@ If client support is required for any of the features, then you must use a Consu
 
 | Feature                           | Supported     | Description                                                                                                                                                                                  |
 |-----------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Automated Backups/Snapshot Agent  | Yes*          | Running the snapshot agent on ECS is not currently supported but you are able to run the snapshot agent alongside your Consul servers on VMs.                                                |
+| Automated Backups/Snapshot Agent  | Yes\*          | Running the snapshot agent on ECS is not currently supported but you are able to run the snapshot agent alongside your Consul servers on VMs.                                                |
 | Automated Upgrades                | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
 | Enhanced Read Scalability         | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
 | Single Sign-On/OIDC               | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
@@ -71,7 +71,7 @@ The ACL controller manages configuration of the AWS IAM auth method on the Consu
 ensures unused tokens created by tasks are cleaned up. It also creates admin partitions and
 namespaces if they do not already exist.
 
--> **NOTE:** The ACL controller does not delete admin partitions or namespaces once they are created.
+~> **Note:** The ACL controller does not delete admin partitions or namespaces once they are created.
 
 Each ACL controller manages a single admin partition. Consul on ECS supports one ACL controller per ECS cluster;
 therefore, the administrative boundary for admin partitions is one admin partition per ECS cluster.
@@ -123,6 +123,7 @@ module "my_task" {
 </CodeBlockConfig>
 
 ### Audit Logging
+
 Consul on ECS supports [audit logging](/docs/enterprise/audit-logging) when using Consul Enterprise clients.
 This feature has the following requirements:
 
