@@ -1,12 +1,17 @@
 package consul
 
 import (
+	"bytes"
+	"crypto"
+	crand "crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/url"
 	"path"
 	"testing"
 	"time"
@@ -92,9 +97,9 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 // TestAutoConfigInitialConfiguration is really an integration test of all the moving parts of the AutoConfig.InitialConfiguration RPC.
 // Full testing of the individual parts will not be done in this test:
 //
-//  * Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
-//  * Each of the individual config generation functions. These can be unit tested separately and should NOT
-//    require running test servers
+//   - Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
+//   - Each of the individual config generation functions. These can be unit tested separately and should NOT
+//     require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -235,6 +240,29 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 				JWT: signJWTWithStandardClaims(t, altpriv, map[string]interface{}{"consul_node_name": "test-node"}),
 			},
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
+		},
+		"bad-req-node": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node: "bad node",
+				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. node =",
+		},
+		"bad-req-segment": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:    "test-node",
+				Segment: "bad segment",
+				JWT:     signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. segment =",
+		},
+		"bad-req-partition": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:      "test-node",
+				Partition: "bad partition",
+				JWT:       signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. partition =",
 		},
 		"claim-assertion-failed": {
 			request: &pbautoconf.AutoConfigRequest{
@@ -849,4 +877,160 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	require.ElementsMatch(t, addrs, actual.Config.Gossip.RetryJoinLAN)
 
 	backend.AssertExpectations(t)
+}
+
+func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
+	// createCSR copies the behavior of connect.CreateCSR with some
+	// customizations to allow for better unit testing.
+	createCSR := func(tmpl *x509.CertificateRequest, privateKey crypto.Signer) (string, error) {
+		connect.HackSANExtensionForCSR(tmpl)
+		bs, err := x509.CreateCertificateRequest(crand.Reader, tmpl, privateKey)
+		require.NoError(t, err)
+		var csrBuf bytes.Buffer
+		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+		require.NoError(t, err)
+		return csrBuf.String(), nil
+	}
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	agentURI := connect.SpiffeIDAgent{
+		Host:       "test-host",
+		Datacenter: "tdc1",
+		Agent:      "test-agent",
+	}.URI()
+
+	tests := []struct {
+		name      string
+		setup     func() string
+		expectErr string
+	}{
+		{
+			name:      "err_garbage_data",
+			expectErr: "Failed to parse CSR",
+			setup:     func() string { return "garbage" },
+		},
+		{
+			name:      "err_not_one_uri",
+			expectErr: "CSR SAN contains an invalid number of URIs",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI, agentURI},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_email",
+			expectErr: "CSR SAN does not allow specifying email addresses",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI},
+					EmailAddresses:     []string{"test@example.com"},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_spiffe_parse_uri",
+			expectErr: "Failed to parse the SPIFFE URI",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{connect.SpiffeIDAgent{}.URI()},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_not_agent",
+			expectErr: "SPIFFE ID is not an Agent ID",
+			setup: func() string {
+				spiffe := connect.SpiffeIDService{
+					Namespace:  "tns",
+					Datacenter: "tdc1",
+					Service:    "test-service",
+				}
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{spiffe.URI()},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name: "success",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req, spif, err := parseAutoConfigCSR(tc.setup())
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				// TODO better verification of these
+				require.NotNil(t, req)
+				require.NotNil(t, spif)
+			}
+
+		})
+	}
+}
+
+func TestAutoConfig_invalidSegmentName(t *testing.T) {
+	invalid := []string{
+		"\n",
+		"\r",
+		"\t",
+		"`",
+		`'`,
+		`"`,
+		` `,
+		`a b`,
+		`a'b`,
+		`a or b`,
+		`a and b`,
+		`segment name`,
+		`segment"name`,
+		`"segment"name`,
+		`"segment" name`,
+		`segment'name'`,
+	}
+	valid := []string{
+		``,
+		`a`,
+		`a.b`,
+		`a.b.c`,
+		`a-b-c`,
+		`segment.name`,
+	}
+
+	for _, s := range invalid {
+		require.True(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
+	for _, s := range valid {
+		require.False(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
 }
