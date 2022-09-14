@@ -7,7 +7,7 @@ description: >-
 
 # Installation with Terraform
 
-This topic describes how to use HashiCorp’s Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
+This topic describes how to use HashiCorp's Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
 
 This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete and runnable examples.
 
@@ -88,7 +88,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `container_definitions` | list     | This is the list of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) for the task definition. This is where you include your application containers. |
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
-| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/options#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
+| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/config/config-files#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
 ### Configure an ECS service for the mesh task module
 
 [ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
