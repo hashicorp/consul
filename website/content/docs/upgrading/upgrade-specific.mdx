@@ -255,9 +255,7 @@ The `consul acl set-agent-token master` subcommand has been replaced with
 
 The legacy ACL system that was deprecated in Consul 1.4.0 has been removed.
 Before upgrading you should verify that nothing is still using the legacy ACL
-system. See the [Migrate Legacy ACL Tokens Learn
-Guide](https://learn.hashicorp.com/tutorials/consul/access-control-token-migration)
-for more information.
+system. Complete the [Migrate Legacy ACL Tokens](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens) tutorial to learn more.
 
 Due to this removal the following endpoints no longer function:
 
@@ -709,7 +707,7 @@ for more details.
 During upgrades from 1.0.6 or lower to 1.0.7 or higher, watchers are likely to
 see `X-Consul-Index` for these endpoints decrease between blocking calls.
 
-Consul’s watch feature and `consul-template` should gracefully handle this case.
+Consul's watch feature and `consul-template` should gracefully handle this case.
 Other tools relying on blocking service or health queries are also likely to
 work; some may require a restart. It is possible external tools could break and
 either stop working or continually re-request data without blocking if they
@@ -1173,7 +1171,7 @@ and the agents need to be running version 0.7 or later in order to use this
 feature.
 
 These translated addresses could break HTTP endpoint consumers that are
-expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api#translated-addresses)
+expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api-docs#translated-addresses)
 header was added to allow clients to detect if translation is enabled for HTTP
 responses. A "lan" tag was added to `TaggedAddresses` for clients that need
 the local address regardless of translation.
@@ -1307,7 +1305,7 @@ this:
 This automatic upgrade will only exist in Consul 0.5.1+ and it will
 be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly
 from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
-[Consul Tools page](/docs/download-tools).
+[Consul Tools page](/docs/integrate/download-tools).
 
 ## Consul 0.5
 
