@@ -7,7 +7,7 @@ export default class TopologyAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/internal/ui/service-topology/${id}?${{ dc, kind }}
+      GET /v1/internal/ui/service-topology/${id}?${{ dc, kind, ['merge-central-config']: null }}
       X-Request-ID: ${uri}
 
       ${{

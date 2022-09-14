@@ -21,7 +21,7 @@ export default class ServiceInstanceAdapter extends Adapter {
     }
 
     return request`
-      GET /v1/health/service/${id}?${{ dc }}
+      GET /v1/health/service/${id}?${{ dc, ['merge-central-config']: null }}
       X-Request-ID: ${uri}
       X-Range: ${id}
 

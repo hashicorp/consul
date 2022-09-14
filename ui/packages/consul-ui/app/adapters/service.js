@@ -4,7 +4,7 @@ export default class ServiceAdapter extends Adapter {
   requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
     if (typeof gateway !== 'undefined') {
       return request`
-        GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
+        GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc , ['merge-central-config']: null}}
         X-Range: ${gateway}
         X-Request-ID: ${uri}
 
@@ -16,7 +16,7 @@ export default class ServiceAdapter extends Adapter {
       `;
     } else {
       return request`
-        GET /v1/internal/ui/services?${{ dc }}
+        GET /v1/internal/ui/services?${{ dc , ['merge-central-config']: null}}
         X-Request-ID: ${uri}
 
         ${{
@@ -33,7 +33,7 @@ export default class ServiceAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/health/service/${id}?${{ dc }}
+      GET /v1/health/service/${id}?${{ dc, ['merge-central-config']: null }}
       X-Request-ID: ${uri}
 
       ${{
@@ -42,5 +42,5 @@ export default class ServiceAdapter extends Adapter {
         index,
       }}
     `;
-  }
+    }
 }
