@@ -169,7 +169,7 @@ Snapshots are artifacts created with the [snapshot API](/api-docs/snapshot) for 
 The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), though if the `acl.tokens.agent` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
 
 1. Updating the agent's node entry using the [Catalog API](/api-docs/catalog), including updating its node metadata, tagged addresses, and network coordinates
-2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
+2. Performing [anti-entropy](/docs/architecture/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
