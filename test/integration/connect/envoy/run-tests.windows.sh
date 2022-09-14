@@ -803,15 +803,11 @@ function run_container_terminating-gateway-primary {
 }
 
 function run_container_fake-statsd {
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"primary"_1
   # This magic SYSTEM incantation is needed since Envoy doesn't add newlines and so
   # we need each packet to be passed to echo to add a new line before
-  # appending.
-  docker.exe run -d --name $(container_name) \
-    $WORKDIR_SNIPPET \
-    $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/windows/socat" \
-    -u UDP-RECVFROM:8125,fork,reuseaddr \
-    SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
+  # appending. But it does not work on Windows.   
+  docker.exe exec -d $CONTAINER_NAME bash -c "socat -u UDP-RECVFROM:8125,fork,reuseaddr OPEN:/workdir/primary/statsd/statsd.log,create,append"                                            
 }
 
 function run_container_zipkin {

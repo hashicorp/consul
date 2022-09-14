@@ -49,4 +49,4 @@ EXPOSE 19000 19001 19002 19003 19004
 EXPOSE 21000 21001 21002 21003 21004
 EXPOSE 5000 1234 2345
 
-RUN SETX /M path "%PATH%;C:\consul;C:\envoy;C:\fortio;C:\jaeger;C:\Program Files\Git\bin;C:\Program Files\OpenSSL-Win64\bin;C:\bats\bin\bats;C:\ProgramData\chocolatey\lib\jq\tools;C:\socat;"
+RUN SETX /M path "%PATH%;C:\consul;C:\envoy;C:\fortio;C:\jaeger;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;C:\Program Files\OpenSSL-Win64\bin;C:\bats\bin\;C:\ProgramData\chocolatey\lib\jq\tools;C:\socat;"
