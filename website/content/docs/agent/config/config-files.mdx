@@ -608,7 +608,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     tools to work automatically. This parameter is set to `8502` by default when the agent runs
     in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
     backwards-compatibility, but TLS support is deprecated and will be removed in a future
-    release. See `grpc_tls` to configure a TLS-enabled port in the recommended way.
+    release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
   - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
     **We recommend using `8502` for `grpc_tls`** as your conventional gRPC port number, as it allows some 
     tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
