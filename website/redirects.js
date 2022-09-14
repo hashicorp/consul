@@ -1422,7 +1422,6 @@ module.exports = [
     permanent: true,
   },
   {
-<<<<<<< HEAD
     source: '/docs/api-gateway/upgrade-specific-versions',
     destination: '/docs/api-gateway/upgrades',
     permanent: true,
@@ -1441,8 +1440,8 @@ module.exports = [
     source: '/docs/download-tools',
     destination: '/docs/integrate/download-tools',
     permanent: true,
-  }
-=======
+  },
+  {
     source: '/docs/k8s/installation/install#consul-k8s-cli-installation',
     destination: '/docs/k8s/installation/install-cli',
     permanent: true,
@@ -1575,5 +1574,4 @@ module.exports = [
     destination: '/docs/nia/usage/requirements',
     permanent: true,
   },
->>>>>>> main
 ]
