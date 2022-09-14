@@ -25,15 +25,15 @@
       },
       {
         "title": "Learn HCP Consul",
-        "href": "https://learn.hashicorp.com/tutorials/cloud/get-started-consul"
+        "href": "/consul/tutorials/cloud-get-started/get-started-consul"
       },
       {
         "title": "Learn Consul on Kubernetes",
-        "href": "https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy"
+        "href": "/consul/tutorials/gs-consul-service-mesh/service-mesh-deploy"
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://learn.hashicorp.com/tutorials/consul/get-started-install"
+        "href": "/consul/tutorials/getting-started/get-started-install"
       },
       {
         "title": "Manual Bootstrap",
@@ -858,27 +858,27 @@
         "routes": [
           {
             "title": "Minikube",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-minikube"
           },
           {
             "title": "Kind",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-minikube"
           },
           {
             "title": "AKS (Azure)",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-aks-azure"
           },
           {
             "title": "EKS (AWS)",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-eks-aws"
           },
           {
             "title": "GKE (Google Cloud)",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-gke-google"
           },
           {
             "title": "Red Hat OpenShift",
-            "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift"
+            "href": "/consul/tutorials/kubernetes-deploy/kubernetes-openshift-red-hat"
           },
           {
             "title": "Self Hosted Kubernetes",
