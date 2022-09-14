@@ -16,7 +16,7 @@ Feature: dc / services / list
       dc: dc-1
     ---
     Then the url should be /dc-1/services
-    And a GET request was made to "/v1/internal/ui/services?dc=dc-1&ns=@namespace"
+    And a GET request was made to "/v1/internal/ui/services?dc=dc-1&merge-central-config&ns=@namespace"
 
     Then I see 3 service models
 
