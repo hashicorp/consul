@@ -127,7 +127,7 @@ The following steps need only be performed once in any single datacenter if your
     </Tab>
     <Tab heading="Vault">
 
-    -> **Note:** These Vault instructions assume that you have integrated your [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) using [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+    -> **Note:** These Vault instructions assume that you have integrated your [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) using [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 
     Update the gossip encryption Vault Secret with the value of the new gossip encryption key to ensure that subsequent `helm upgrades` commands execute successfully.
     The name of the secret that stores the value of the gossip encryption key can be found in the Helm values file:

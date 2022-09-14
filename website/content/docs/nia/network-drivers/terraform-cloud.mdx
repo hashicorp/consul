@@ -115,7 +115,7 @@ This section captures requirements for setting up CTS to integrate with your [Te
 
 1. Hostname of your Terraform Cloud, self-hosted distribution
 1. Name of your organization
-1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Cloud
+1. [Team API token](https://www.terraform.io/cloud-docs/users-teams-organizations/api-tokens) used for authentication with Terraform Cloud
 
 Prior to running CTS with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
 
@@ -127,7 +127,7 @@ After creating a dedicated team, update the team's permissions with "Manage Work
 
 [![CTS Terraform Team Setup](/img/nia/cts-tfc-team-setup.png)](/img/nia/cts-tfc-team-setup.png)
 
-After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token) on the Terraform Cloud driver.
+After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/cloud-docs/users-teams-organizations/api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token) on the Terraform Cloud driver.
 
 ### Recommendations
 
