@@ -84,38 +84,56 @@ func (s *snapshot) Release() {
 	s.state.Close()
 }
 
-func RegisteredRestorer() map[structs.MessageType]restorer {
-	registry := map[structs.MessageType]restorer{
-		structs.RegisterRequestType:          restoreRegistration,
-		structs.KVSRequestType:               restoreKV,
-		structs.TombstoneRequestType:         restoreTombstone,
-		structs.SessionRequestType:           restoreSession,
-		structs.DeprecatedACLRequestType:     restoreACL,
-		structs.ACLBootstrapRequestType:      restoreACLBootstrap,
-		structs.CoordinateBatchUpdateType:    restoreCoordinates,
-		structs.PreparedQueryRequestType:     restorePreparedQuery,
-		structs.AutopilotRequestType:         restoreAutopilot,
-		structs.IntentionRequestType:         restoreLegacyIntention,
-		structs.ConnectCARequestType:         restoreConnectCA,
-		structs.ConnectCAProviderStateType:   restoreConnectCAProviderState,
-		structs.ConnectCAConfigType:          restoreConnectCAConfig,
-		structs.IndexRequestType:             restoreIndex,
-		structs.ACLTokenSetRequestType:       restoreToken,
-		structs.ACLPolicySetRequestType:      restorePolicy,
-		structs.ConfigEntryRequestType:       restoreConfigEntry,
-		structs.ACLRoleSetRequestType:        restoreRole,
-		structs.ACLBindingRuleSetRequestType: restoreBindingRule,
-		structs.ACLAuthMethodSetRequestType:  restoreAuthMethod,
-		structs.FederationStateRequestType:   restoreFederationState,
-		structs.SystemMetadataRequestType:    restoreSystemMetadata,
-		structs.ServiceVirtualIPRequestType:  restoreServiceVirtualIP,
-		structs.FreeVirtualIPRequestType:     restoreFreeVirtualIP,
-		structs.PeeringWriteType:             restorePeering,
-		structs.PeeringTrustBundleWriteType:  restorePeeringTrustBundle,
-		structs.PeeringSecretsWriteType:      restorePeeringSecrets,
+func RegisteredRestorers() map[structs.MessageType]restorer {
+	registry := make(map[structs.MessageType]restorer)
+	entries := []struct {
+		msg  structs.MessageType
+		rest restorer
+	}{
+		{structs.RegisterRequestType, restoreRegistration},
+		{structs.KVSRequestType, restoreKV},
+		{structs.TombstoneRequestType, restoreTombstone},
+		{structs.SessionRequestType, restoreSession},
+		{structs.DeprecatedACLRequestType, restoreACL},
+		{structs.ACLBootstrapRequestType, restoreACLBootstrap},
+		{structs.CoordinateBatchUpdateType, restoreCoordinates},
+		{structs.PreparedQueryRequestType, restorePreparedQuery},
+		{structs.AutopilotRequestType, restoreAutopilot},
+		{structs.IntentionRequestType, restoreLegacyIntention},
+		{structs.ConnectCARequestType, restoreConnectCA},
+		{structs.ConnectCAProviderStateType, restoreConnectCAProviderState},
+		{structs.ConnectCAConfigType, restoreConnectCAConfig},
+		{structs.IndexRequestType, restoreIndex},
+		{structs.ACLTokenSetRequestType, restoreToken},
+		{structs.ACLPolicySetRequestType, restorePolicy},
+		{structs.ConfigEntryRequestType, restoreConfigEntry},
+		{structs.ACLRoleSetRequestType, restoreRole},
+		{structs.ACLBindingRuleSetRequestType, restoreBindingRule},
+		{structs.ACLAuthMethodSetRequestType, restoreAuthMethod},
+		{structs.FederationStateRequestType, restoreFederationState},
+		{structs.SystemMetadataRequestType, restoreSystemMetadata},
+		{structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP},
+		{structs.FreeVirtualIPRequestType, restoreFreeVirtualIP},
+		{structs.PeeringWriteType, restorePeering},
+		{structs.PeeringTrustBundleWriteType, restorePeeringTrustBundle},
+		{structs.PeeringSecretsWriteType, restorePeeringSecrets},
 	}
+	registerRestorers(registry, entries...)
 	registerEnterpriseRestorers(registry)
 	return registry
+}
+
+func registerRestorers(registry map[structs.MessageType]restorer,
+	rstEntry ...struct {
+		msg  structs.MessageType
+		rest restorer
+	}) {
+	for _, cmd := range rstEntry {
+		if registry[cmd.msg] != nil {
+			panic(fmt.Errorf("message %d is already registered", cmd.msg))
+		}
+		registry[cmd.msg] = cmd.rest
+	}
 }
 
 func RegisteredPersisters(s *snapshot) []persister {
