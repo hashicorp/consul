@@ -17,6 +17,10 @@ function retry {
     set +E
   fi
 
+  if [[ $1 == "curl" ]]; then
+    set -- ${@} -m 10
+  fi
+
   # This if block, was added to check if curl is being executed directly on a test, 
   # if so, we replace the url parameter with the correct one.
 
@@ -226,7 +230,7 @@ function assert_envoy_expose_checks_listener_count {
 
 function get_envoy_expose_checks_listener_once {
   local HOSTPORT=$1
-  run curl -s -f $HOSTPORT/config_dump
+  run curl -m 5 -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
 }
@@ -242,7 +246,7 @@ function assert_envoy_http_rbac_policy_count {
 
 function get_envoy_http_rbac_once {
   local HOSTPORT=$1
-  run curl -s -f $HOSTPORT/config_dump
+  run curl -m 5 -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
 }
@@ -258,7 +262,7 @@ function assert_envoy_network_rbac_policy_count {
 
 function get_envoy_network_rbac_once {
   local HOSTPORT=$1
-  run curl -s -f $HOSTPORT/config_dump
+  run curl -m 5 -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
 }
@@ -280,7 +284,7 @@ function get_envoy_http_filters {
 function get_envoy_dynamic_cluster_once {
   local HOSTPORT=$1
   local NAME_PREFIX=$2
-  run curl -s -f $HOSTPORT/config_dump
+  run curl -m 5 -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output ".configs[] | select (.[\"@type\"] == \"type.googleapis.com/envoy.admin.v3.ClustersConfigDump\") | .dynamic_active_clusters[] | select(.cluster.name | startswith(\"${NAME_PREFIX}\"))"
 }
@@ -340,13 +344,13 @@ function snapshot_envoy_admin {
 
 function reset_envoy_metrics {
   local HOSTPORT=$1
-  curl -s -f -XPOST $HOSTPORT/reset_counters
+  curl -m 5 -s -f -XPOST $HOSTPORT/reset_counters
   return $?
 }
 
 function get_all_envoy_metrics {
   local HOSTPORT=$1
-  curl -s -f $HOSTPORT/stats
+  curl -m 5 -s -f $HOSTPORT/stats
   return $?
 }
 
@@ -361,7 +365,7 @@ function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   local HEALTH_STATUS=$3
-  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  run curl -m 5 -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output "
 .cluster_statuses[]
@@ -485,7 +489,7 @@ function get_healthy_service_count {
   local AP=$4
   local PEER_NAME=$5
 
-  run curl -s -f ${HEADERS} "consul-${DC}-client:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
+  run curl -m 5 -s -f ${HEADERS} "consul-${DC}-client:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
 
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
@@ -544,7 +548,7 @@ function check_intention {
   local SOURCE=$1
   local DESTINATION=$2
 
-  curl -s -f "consul-primary:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
+  curl -m 5 -s -f "consul-primary:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
 }
 
 function assert_intention_allowed {
@@ -640,7 +644,7 @@ function must_match_in_statsd_logs {
 }
 
 function must_match_in_prometheus_response {
-  run curl -f -s $1/metrics
+  run curl -m 5 -f -s $1/metrics
   COUNT=$( echo "$output" | grep -Ec $2 )
 
   echo "OUTPUT head -n 10"
@@ -652,7 +656,7 @@ function must_match_in_prometheus_response {
 }
 
 function must_match_in_stats_proxy_response {
-  run curl -f -s $1/$2
+  run curl -m 5 -f -s $1/$2
   COUNT=$( echo "$output" | grep -Ec $3 )
 
   echo "OUTPUT head -n 10"
@@ -670,7 +674,7 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -v -f -d hello $1
+  run curl -m 5 --no-keepalive -s -v -f -d hello $1
 
   echo "OUTPUT $output"
 
@@ -682,7 +686,7 @@ function must_fail_tcp_connection {
 }
 
 function must_pass_tcp_connection {
-  run curl --no-keepalive -s -f -d hello $1
+  run curl -m 5 --no-keepalive -s -f -d hello $1
 
   echo "OUTPUT $output"
 
@@ -694,7 +698,7 @@ function must_pass_tcp_connection {
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -i -d hello "$1"
+  run curl -m 5 --no-keepalive -s -i -d hello "$1"
 
   echo "OUTPUT $output"
 
@@ -731,7 +735,7 @@ function must_pass_http_request {
       ;;
   esac
 
-  run curl --no-keepalive -v -s -f $extra_args "$URL"
+  run curl -m 5 --no-keepalive -v -s -f $extra_args "$URL"
   [ "$status" == 0 ]
 }
 
@@ -765,7 +769,7 @@ function must_fail_http_request {
   esac
 
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -i $extra_args "$URL"
+  run curl -m 5 --no-keepalive -s -i $extra_args "$URL"
 
   echo "OUTPUT $output"
 
@@ -985,7 +989,7 @@ function assert_expected_fortio_host_header {
 function create_peering {
   local GENERATE_PEER=$1
   local ESTABLISH_PEER=$2
-  run curl -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
+  run curl -m 5 -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 
@@ -993,7 +997,7 @@ function create_peering {
   token="$(echo "$output" | jq -r .PeeringToken)"
   [ -n "$token" ]
 
-  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  run curl -m 5 -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 }

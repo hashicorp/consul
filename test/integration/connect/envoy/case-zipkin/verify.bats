@@ -38,7 +38,7 @@ load helpers
   # use to get the traceID generated (no way to force one I can find with Envoy
   # currently?)
   # Fixed from /Debug -> /debug. Reason: /Debug return null
-  run curl -s -f -H 'x-client-trace-id:test-sentinel' localhost:5000/debug
+  run curl -s -f -H 'x-client-trace-id:test-sentinel' localhost:5000/debug -m 5
 
   echo "OUTPUT $output"
 
