@@ -105,55 +105,56 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 	// },
 }
 
-// entry represents a message type alongside the associated FSM command.
-type entry struct {
-	msgType structs.MessageType
-	cmd     unboundCommand
-}
-
 func RegisteredCommands(fsm *FSM) map[structs.MessageType]command {
 	commands := make(map[structs.MessageType]command)
-	registerCommands(commands, fsm,
-		entry{structs.RegisterRequestType, (*FSM).applyRegister},
-		entry{structs.DeregisterRequestType, (*FSM).applyDeregister},
-		entry{structs.KVSRequestType, (*FSM).applyKVSOperation},
-		entry{structs.SessionRequestType, (*FSM).applySessionOperation},
-		// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
-		entry{structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation},
-		entry{structs.TombstoneRequestType, (*FSM).applyTombstoneOperation},
-		entry{structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate},
-		entry{structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation},
-		entry{structs.TxnRequestType, (*FSM).applyTxn},
-		entry{structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate},
-		entry{structs.IntentionRequestType, (*FSM).applyIntentionOperation},
-		entry{structs.ConnectCARequestType, (*FSM).applyConnectCAOperation},
-		entry{structs.ACLTokenSetRequestType, (*FSM).applyACLTokenSetOperation},
-		entry{structs.ACLTokenDeleteRequestType, (*FSM).applyACLTokenDeleteOperation},
-		entry{structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap},
-		entry{structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation},
-		entry{structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation},
-		entry{structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation},
-		entry{structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation},
-		entry{structs.ACLRoleSetRequestType, (*FSM).applyACLRoleSetOperation},
-		entry{structs.ACLRoleDeleteRequestType, (*FSM).applyACLRoleDeleteOperation},
-		entry{structs.ACLBindingRuleSetRequestType, (*FSM).applyACLBindingRuleSetOperation},
-		entry{structs.ACLBindingRuleDeleteRequestType, (*FSM).applyACLBindingRuleDeleteOperation},
-		entry{structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation},
-		entry{structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation},
-		entry{structs.FederationStateRequestType, (*FSM).applyFederationStateOperation},
-		entry{structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation},
-		entry{structs.PeeringWriteType, (*FSM).applyPeeringWrite},
-		entry{structs.PeeringDeleteType, (*FSM).applyPeeringDelete},
-		entry{structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate},
-		entry{structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite},
-		entry{structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete},
-		entry{structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite},
-	)
+	entries := []struct {
+		msgType structs.MessageType
+		cmd     unboundCommand
+	}{
+		{structs.RegisterRequestType, (*FSM).applyRegister},
+		{structs.DeregisterRequestType, (*FSM).applyDeregister},
+		{structs.KVSRequestType, (*FSM).applyKVSOperation},
+		{structs.SessionRequestType, (*FSM).applySessionOperation},
+		{structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation},
+		{structs.TombstoneRequestType, (*FSM).applyTombstoneOperation},
+		{structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate},
+		{structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation},
+		{structs.TxnRequestType, (*FSM).applyTxn},
+		{structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate},
+		{structs.IntentionRequestType, (*FSM).applyIntentionOperation},
+		{structs.ConnectCARequestType, (*FSM).applyConnectCAOperation},
+		{structs.ACLTokenSetRequestType, (*FSM).applyACLTokenSetOperation},
+		{structs.ACLTokenDeleteRequestType, (*FSM).applyACLTokenDeleteOperation},
+		{structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap},
+		{structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation},
+		{structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation},
+		{structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation},
+		{structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation},
+		{structs.ACLRoleSetRequestType, (*FSM).applyACLRoleSetOperation},
+		{structs.ACLRoleDeleteRequestType, (*FSM).applyACLRoleDeleteOperation},
+		{structs.ACLBindingRuleSetRequestType, (*FSM).applyACLBindingRuleSetOperation},
+		{structs.ACLBindingRuleDeleteRequestType, (*FSM).applyACLBindingRuleDeleteOperation},
+		{structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation},
+		{structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation},
+		{structs.FederationStateRequestType, (*FSM).applyFederationStateOperation},
+		{structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation},
+		{structs.PeeringWriteType, (*FSM).applyPeeringWrite},
+		{structs.PeeringDeleteType, (*FSM).applyPeeringDelete},
+		{structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate},
+		{structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite},
+		{structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete},
+		{structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite},
+	}
+	registerCommands(commands, fsm, entries...)
 	registerEnterpriseCommands(commands, fsm)
 	return commands
 }
 
-func registerCommands(registry map[structs.MessageType]command, fsm *FSM, cmdEntries ...entry) {
+func registerCommands(registry map[structs.MessageType]command, fsm *FSM,
+	cmdEntries ...struct {
+		msgType structs.MessageType
+		cmd     unboundCommand
+	}) {
 	for _, cmd := range cmdEntries {
 		if registry[cmd.msgType] != nil {
 			panic(fmt.Errorf("message %d is already registered", cmd.msgType))
