@@ -152,7 +152,7 @@ information.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
-  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/docs/upgrade-specific#raft-protocol-version-compatibility) for more details.
+  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility) for more details.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
@@ -390,7 +390,7 @@ information.
   As of Consul 0.9.1, `retry-join` accepts a unified interface using the
   [go-discover](https://github.com/hashicorp/go-discover) library for doing
   automatic cluster joining using cloud metadata. For more information, see
-  the [Cloud Auto-join page](/docs/agent/cloud-auto-join).
+  the [Cloud Auto-join page](/docs/install/cloud-auto-join).
 
   <CodeBlockConfig heading="Using Cloud Auto-Joining">
 

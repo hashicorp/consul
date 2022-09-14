@@ -9,7 +9,7 @@ description: >-
 
 Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul Terraform Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul's catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.
 
-The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) 
+The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=docs) 
 tutorial contains a checklist of best practices to secure your 
 Consul-Terraform-Sync installation for a production environment.
 
@@ -29,14 +29,14 @@ When considering Consul NIA's security model, it helps to think of the following
   connected, or configured with Consul. In some cases they may have no access, or limited capabilities
   to view Consul information, such as through metrics, or logs.
 - **User** - The end-user using the applications and other services managed by the NIA daemon, and should
-  have no knowledge or access to the daemon’s API endpoints, ACL tokens, certificates, or any other
+  have no knowledge or access to the daemon's API endpoints, ACL tokens, certificates, or any other
   piece of the system.
 
 ### Secure Configuration
 
-Consul NIA’s security model is applicable only if all parts of the system are running with a secure
+Consul NIA's security model is applicable only if all parts of the system are running with a secure
 configuration; `consul-terraform-sync` is not secure-by-default. Without the following mechanisms enabled in the
-daemon’s configuration, it may be possible to abuse access to the daemon. Like all security
+daemon's configuration, it may be possible to abuse access to the daemon. Like all security
 considerations, one must determine what concerns are appropriate for their environment, and adapt these
 security concerns accordingly.
 
@@ -70,7 +70,7 @@ security concerns accordingly.
 
 #### Recommendations
 
-- **Use Dedicated Host** - The NIA daemon will potentially have access to critical secrets for your environment’s
+- **Use Dedicated Host** - The NIA daemon will potentially have access to critical secrets for your environment's
   network infrastructure. Using a hardened, dedicated host, for supporting these sensitive operations is highly recommended.
 
 - **Run without Root** - The NIA daemon does not require root or other administrative privileges to operate.
@@ -81,8 +81,8 @@ security concerns accordingly.
 - **Use a centralized logging solution** - Export log entries within [syslog](https://en.wikipedia.org/wiki/Syslog)
   generated from `consul-terraform-sync` to a centralized logging solution.
 
-- **Audit used Terraform providers** - [Terraform providers](https://www.terraform.io/docs/providers/index.html) that
-  are configured with the NIA daemon should be audited to ensure you’re only using providers from sources that
+- **Audit used Terraform providers** - [Terraform providers](https://www.terraform.io/language/providers) that
+  are configured with the NIA daemon should be audited to ensure you're only using providers from sources that
   you trust.
 
 ### Threat Model
@@ -90,10 +90,10 @@ security concerns accordingly.
 The following are the parts of the NIA threat model:
 
 - **Consul agent communication** - In order to monitor the Consul Catalog for changes, the NIA daemon interacts with
-  Consul’s HTTP API on a local or remote server agent. This communication requires TLS transport encryption, preferably
+  Consul's HTTP API on a local or remote server agent. This communication requires TLS transport encryption, preferably
   using mTLS for mutual authentication.
 
-- **NIA Terraform communication** - Network connectivity to downstream infrastructure APIs managed by the NIA daemon’s
+- **NIA Terraform communication** - Network connectivity to downstream infrastructure APIs managed by the NIA daemon's
   Terraform runs will need to be properly configured for secure access.
 
 - **Tampering of data in transit** - Any tampering should be detectable and cause the daemon to avoid processing the
@@ -116,7 +116,7 @@ a production deployment:
   process can be loaded from a single file or a directory of files. These configurations may contain secrets and can
   enable/disable insecure features, or Terraform providers.
 
-- **Access (read or write) to the Consul NIA Consul KV Path** - Access to the daemon’s Consul KV path may leak sensitive
+- **Access (read or write) to the Consul NIA Consul KV Path** - Access to the daemon's Consul KV path may leak sensitive
   information such as usernames, passwords, certificates, and tokens used by Terraform to provision infrastructure.
 
 - **Memory Access to a Running Consul-Terraform-Sync Process** - Direct access to the memory of running the daemon process
@@ -133,14 +133,14 @@ a production deployment:
 
 #### Internal Threats
 
-- **NIA Operator** - Someone with access to the NIA Host, and it’s related binaries or configuration files may be a
+- **NIA Operator** - Someone with access to the NIA Host, and it's related binaries or configuration files may be a
   threat to your deployment, especially considering multi-team deployments. They may accidentally or intentionally use a
   malicious Terraform provider, or extract various secrets to cause harm to the network. Access to the NIA host should
   be guarded.
 
 - **Consul Operator** - Someone with access to the backend Consul cluster, similar to the NIA Operator, which can
   perform actions that may trigger Terraform runs. They may also have access to the namespace and KV path of the NIA
-  daemon, which could give unintended access to Terraform’s state file, which contains sensitive information. ACL
+  daemon, which could give unintended access to Terraform's state file, which contains sensitive information. ACL
   permissions for Consul should be carefully audited to ensure that no policies may be leaking the state file containing
   sensitive information to other Consul operators unintentionally within the cluster.
 
@@ -162,5 +162,5 @@ a production deployment:
   endpoints. This can lead to larger security concerns when able to pivot to internal resources from an external one.
 
 - **Leaking Secrets** - TLS certificates and tokens used by the Consul NIA daemon can enable external attackers to
-  access Consul, or Terraform resources. These secrets shouldn’t be hardcoded into configs uploaded to public
+  access Consul, or Terraform resources. These secrets shouldn't be hardcoded into configs uploaded to public
   places like GitHub.

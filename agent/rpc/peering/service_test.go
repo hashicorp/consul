@@ -345,8 +345,8 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 	}
 }
 
-// We define a valid peering by a peering that does not occur over the same server addresses
-func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
+// Loopback peering within the same cluster/partion should throw an error
+func TestPeeringService_Establish_invalidPeeringInSamePartition(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
@@ -369,12 +369,48 @@ func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
 	require.Nil(t, respE)
 }
 
+// When tokens have the same name as the dialing cluster but are unknown by ID, we
+// should be throwing an error to note the server name conflict.
+func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	// Manufacture token to have the same server name but a PeerID not in the store.
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err, "could not generate uuid")
+	peeringToken := structs.PeeringToken{
+		ServerAddresses:     []string{"1.2.3.4:8502"},
+		ServerName:          s.Server.GetPeeringBackend().GetServerName(),
+		EstablishmentSecret: "foo",
+		PeerID:              id,
+	}
+
+	jsonToken, err := json.Marshal(peeringToken)
+	require.NoError(t, err, "could not marshal peering token")
+	base64Token := base64.StdEncoding.EncodeToString(jsonToken)
+
+	establishReq := &pbpeering.EstablishRequest{
+		PeerName:     "peerTwo",
+		PeeringToken: base64Token,
+	}
+
+	respE, errE := client.Establish(ctx, establishReq)
+	require.Error(t, errE)
+	require.Contains(t, errE.Error(), "conflict - peering token's server name matches the current cluster's server name")
+	require.Nil(t, respE)
+}
+
 func TestPeeringService_Establish(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s1 := newTestServer(t, nil)
 	client1 := pbpeering.NewPeeringServiceClient(s1.ClientConn(t))
 
 	s2 := newTestServer(t, func(conf *consul.Config) {
+		conf.Datacenter = "dc2"
 		conf.GRPCPort = 5301
 	})
 	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
@@ -1070,6 +1106,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 
 	s2 := newTestServer(t, func(conf *consul.Config) {
 		conf.GRPCPort = 5301
+		conf.Datacenter = "dc2"
 	})
 	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
 

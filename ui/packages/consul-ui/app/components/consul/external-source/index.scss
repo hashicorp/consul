@@ -22,6 +22,7 @@
 .consul-external-source.vault::before {
   @extend %with-vault-300;
 }
+.consul-external-source.lambda::before,
 .consul-external-source.aws::before {
   @extend %with-aws-300;
 }
