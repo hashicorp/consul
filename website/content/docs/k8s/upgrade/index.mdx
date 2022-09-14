@@ -18,7 +18,7 @@ for those changes to take effect.
 
 For example, if you've installed Consul with the following:
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -26,7 +26,7 @@ global:
 connectInject:
   enabled: false
 ```
-  
+
 </CodeBlockConfig>
 
 And you wish to set `connectInject.enabled` to `true`:
@@ -44,7 +44,7 @@ To update your deployment configuration using Helm, perform the following steps.
 1. Determine your current installed chart version.
 
   ```shell-session
-  $ helm list --filter consul --namespace consul 
+  $ helm list --filter consul --namespace consul
   NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
   consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.40.0	1.11.2
   ```
@@ -251,8 +251,8 @@ To initiate the upgrade:
    By default there are 3 servers, so you would set this value to `3`
 1. Set the `updateStrategy` for clients to `OnDelete`
 
-  <CodeBlockConfig filename="config.yaml">
-  
+  <CodeBlockConfig filename="values.yaml">
+
   ```yaml
   global:
     image: 'consul:123.456'
@@ -262,7 +262,7 @@ To initiate the upgrade:
     updateStrategy: |
       type: OnDelete
   ```
-  
+
   </CodeBlockConfig>
 
   The `updatePartition` value controls how many instances of the server

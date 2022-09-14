@@ -1,13 +1,43 @@
 import Route from 'consul-ui/routing/route';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import { runInDebug } from '@ember/debug';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
 export default class ApplicationRoute extends Route.extend(WithBlockingActions) {
   @service('client/http') client;
+  @service('env') env;
+  @service('repository/token') tokenRepo;
+  @service('settings') settings;
 
   data;
+
+  async model() {
+    if(this.env.var('CONSUL_ACLS_ENABLED')) {
+      const secret = this.env.var('CONSUL_HTTP_TOKEN');
+      const existing = await this.settings.findBySlug('token');
+      if(!existing.AccessorID && secret) {
+        try {
+          const token = await this.tokenRepo.self({
+            secret: secret,
+            dc: this.env.var('CONSUL_DATACENTER_LOCAL')
+          });
+          await this.settings.persist({
+            token: {
+              AccessorID: token.AccessorID,
+              SecretID: token.SecretID,
+              Namespace: token.Namespace,
+              Partition: token.Partition,
+            }
+          });
+        } catch(e) {
+          runInDebug(_ => console.error(e));
+        }
+      }
+    }
+    return {};
+  }
 
   @action
   onClientChanged(e) {

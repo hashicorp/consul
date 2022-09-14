@@ -17,5 +17,8 @@ export default function(scenario, respondWith, set, oidc) {
     })
     .given('a network latency of $number', function(number) {
       set('CONSUL_LATENCY', number);
+    })
+    .given('an API prefix of "$prefix"', function(prefix) {
+      set('CONSUL_API_PREFIX', prefix);
     });
 }

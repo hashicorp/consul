@@ -1,5 +1,4 @@
-import test from 'ember-sinon-qunit/test-support/test';
-import { module, skip } from 'qunit';
+import { module, skip, test } from 'qunit';
 import atob from 'consul-ui/utils/atob';
 
 module('Unit | Utils | atob', function() {

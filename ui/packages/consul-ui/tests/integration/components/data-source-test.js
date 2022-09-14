@@ -1,13 +1,13 @@
-import { module } from 'qunit';
+import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import { clearRender, render, waitUntil } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-import test from 'ember-sinon-qunit/test-support/test';
 import Service, { inject as service } from '@ember/service';
 
 import DataSourceComponent from 'consul-ui/components/data-source/index';
 import { BlockingEventSource as RealEventSource } from 'consul-ui/utils/dom/event-source';
+import sinon from 'sinon';
 
 const createFakeBlockingEventSource = function() {
   const EventSource = function(cb) {
@@ -39,10 +39,10 @@ module('Integration | Component | data-source', function(hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
     assert.expect(9);
-    const close = this.stub();
-    const open = this.stub();
-    const addEventListener = this.stub();
-    const removeEventListener = this.stub();
+    const close = sinon.stub();
+    const open = sinon.stub();
+    const addEventListener = sinon.stub();
+    const removeEventListener = sinon.stub();
     let count = 0;
     const fakeService = class extends Service {
       close = close;
@@ -98,8 +98,8 @@ module('Integration | Component | data-source', function(hooks) {
   });
   test('error actions are triggered when errors are dispatched', async function(assert) {
     const source = new RealEventSource();
-    const error = this.stub();
-    const close = this.stub();
+    const error = sinon.stub();
+    const close = sinon.stub();
     const fakeService = class extends Service {
       close = close;
       open(uri, obj) {

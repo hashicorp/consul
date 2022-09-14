@@ -1,0 +1,3 @@
+```release-note:feature
+peering: Add support to redirect to services running on cluster peers with service resolvers.
+```

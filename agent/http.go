@@ -81,6 +81,10 @@ type HTTPHandlers struct {
 	configReloaders []ConfigReloader
 	h               http.Handler
 	metricsProxyCfg atomic.Value
+
+	// proxyTransport is used by UIMetricsProxy to keep
+	// a managed pool of connections.
+	proxyTransport http.RoundTripper
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in

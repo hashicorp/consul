@@ -491,7 +491,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			}
 
 		case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
-			resp, ok := u.Result.(*structs.IndexedNodesWithGateways)
+			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
 				return fmt.Errorf("invalid type for response: %T", u.Result)
 			}

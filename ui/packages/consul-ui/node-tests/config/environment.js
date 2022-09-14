@@ -11,7 +11,9 @@ test(
       {
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
-        operatorConfig: {}
+        operatorConfig: {
+          APIPrefix: '',
+        }
       },
       {
         environment: 'test',
@@ -22,8 +24,10 @@ test(
           SSOEnabled: false,
           PartitionsEnabled: false,
           PeeringEnabled: true,
+          HCPEnabled: false,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -38,8 +42,10 @@ test(
           SSOEnabled: false,
           PartitionsEnabled: false,
           PeeringEnabled: true,
+          HCPEnabled: false,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -54,8 +60,10 @@ test(
           SSOEnabled: true,
           PartitionsEnabled: false,
           PeeringEnabled: true,
+          HCPEnabled: false,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       },
       {
@@ -67,8 +75,10 @@ test(
           SSOEnabled: true,
           PartitionsEnabled: true,
           PeeringEnabled: true,
+          HCPEnabled: false,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
+          APIPrefix: '',
         }
       }
     ].forEach(

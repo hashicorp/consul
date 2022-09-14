@@ -332,10 +332,11 @@ type Consul struct {
 }
 
 type Addresses struct {
-	DNS   *string `mapstructure:"dns"`
-	HTTP  *string `mapstructure:"http"`
-	HTTPS *string `mapstructure:"https"`
-	GRPC  *string `mapstructure:"grpc"`
+	DNS     *string `mapstructure:"dns"`
+	HTTP    *string `mapstructure:"http"`
+	HTTPS   *string `mapstructure:"https"`
+	GRPC    *string `mapstructure:"grpc"`
+	GRPCTLS *string `mapstructure:"grpc_tls"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -694,6 +695,7 @@ type Ports struct {
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
 	GRPC           *int `mapstructure:"grpc"`
+	GRPCTLS        *int `mapstructure:"grpc_tls"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`

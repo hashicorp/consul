@@ -40,6 +40,7 @@ message MeshConfig {
   MeshTLSConfig TLS = 2;
   MeshHTTPConfig HTTP = 3;
   map<string, string> Meta = 4;
+  PeeringMeshConfig Peering = 5;
 }
 
 // mog annotation:
@@ -82,6 +83,15 @@ message MeshDirectionalTLSConfig {
 // name=Structs
 message MeshHTTPConfig {
   bool SanitizeXForwardedClientCert = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.PeeringMeshConfig
+// output=config_entry.gen.go
+// name=Structs
+message PeeringMeshConfig {
+  bool PeerThroughMeshGateways = 1;
 }
 
 // mog annotation:

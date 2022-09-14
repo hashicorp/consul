@@ -224,6 +224,10 @@ type IssuedCert struct {
 	// AgentURI is the cert URI value.
 	AgentURI string `json:",omitempty"`
 
+	// ServerURI is the URI value of a cert issued for a server agent.
+	// The same URI is shared by all servers in a Consul datacenter.
+	ServerURI string `json:",omitempty"`
+
 	// Kind is the kind of service for which the cert was issued.
 	Kind ServiceKind `json:",omitempty"`
 	// KindURI is the cert URI value.
@@ -378,9 +382,12 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 }
 
 type CommonCAProviderConfig struct {
-	LeafCertTTL         time.Duration
+	LeafCertTTL time.Duration
+	RootCertTTL time.Duration
+
+	// IntermediateCertTTL is only valid in the primary datacenter, and determines
+	// the duration that any signed intermediates are valid for.
 	IntermediateCertTTL time.Duration
-	RootCertTTL         time.Duration
 
 	SkipValidate bool
 

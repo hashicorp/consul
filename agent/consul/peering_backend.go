@@ -66,11 +66,19 @@ func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
 	}
 	var addrs []string
 	for _, node := range nodes {
-		grpcPortStr := node.ServiceMeta["grpc_port"]
-		if v, err := strconv.Atoi(grpcPortStr); err != nil || v < 1 {
-			continue // skip server that isn't exporting public gRPC properly
+		// Prefer the TLS port if it is defined.
+		grpcPortStr := node.ServiceMeta["grpc_tls_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			continue
 		}
-		addrs = append(addrs, node.Address+":"+grpcPortStr)
+		// Fallback to the standard port if TLS is not defined.
+		grpcPortStr = node.ServiceMeta["grpc_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			continue
+		}
+		// Skip node if neither defined.
 	}
 	if len(addrs) == 0 {
 		return nil, fmt.Errorf("a grpc bind port must be specified in the configuration for all servers")

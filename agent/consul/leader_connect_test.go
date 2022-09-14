@@ -401,6 +401,18 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(t, err)
 	verifyLeafCert(t, activeRoot, cert.CertPEM)
+
+	// Wait for the primary's old intermediate to be pruned after expiring.
+	oldIntermediate := activeRoot.IntermediateCerts[0]
+	retry.Run(t, func(r *retry.R) {
+		store := s1.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
+		r.Check(err)
+
+		if storedRoot.IntermediateCerts[0] == oldIntermediate {
+			r.Fatal("old intermediate should be gone")
+		}
+	})
 }
 
 func patchIntermediateCertRenewInterval(t *testing.T) {
@@ -516,6 +528,18 @@ func TestCAManager_RenewIntermediate_Secondary(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
 	require.NoError(t, err)
 	verifyLeafCert(t, activeRoot, cert.CertPEM)
+
+	// Wait for dc2's old intermediate to be pruned after expiring.
+	oldIntermediate := activeRoot.IntermediateCerts[0]
+	retry.Run(t, func(r *retry.R) {
+		store := s2.caManager.delegate.State()
+		_, storedRoot, err := store.CARootActive(nil)
+		r.Check(err)
+
+		if storedRoot.IntermediateCerts[0] == oldIntermediate {
+			r.Fatal("old intermediate should be gone")
+		}
+	})
 }
 
 func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
