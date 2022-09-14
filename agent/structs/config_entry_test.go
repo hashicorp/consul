@@ -2789,6 +2789,29 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	}
 }
 
+func TestProxyConfigEntry(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"proxy config name provided is not global": {
+			entry: &ProxyConfigEntry{
+				Name: "foo",
+			},
+			normalizeErr: `invalid name ("foo"), only "global" is supported`,
+		},
+		"proxy config has no name": {
+			entry: &ProxyConfigEntry{
+				Name: "",
+			},
+			expected: &ProxyConfigEntry{
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
 func uintPointer(v uint32) *uint32 {
 	return &v
+
 }
