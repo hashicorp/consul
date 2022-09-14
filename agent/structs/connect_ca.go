@@ -382,9 +382,12 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 }
 
 type CommonCAProviderConfig struct {
-	LeafCertTTL         time.Duration
+	LeafCertTTL time.Duration
+	RootCertTTL time.Duration
+
+	// IntermediateCertTTL is only valid in the primary datacenter, and determines
+	// the duration that any signed intermediates are valid for.
 	IntermediateCertTTL time.Duration
-	RootCertTTL         time.Duration
 
 	SkipValidate bool
 

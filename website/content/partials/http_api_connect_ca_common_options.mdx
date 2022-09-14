@@ -43,6 +43,15 @@ The following configuration options are supported by all CA providers:
 
   For the Vault provider, this value is only used if the backend is not initialized at first.
 
+- `IntermediateCertTTL` / `intermediate_cert_ttl` (`duration: "8760h"`) The time to live (TTL) for
+  any intermediate certificates signed by root certificate of the primary datacenter. *This field is only
+  valid in the primary datacenter*.
+  Defaults to 1 year as `8760h`.
+
+  This setting applies to all Consul CA providers.
+
+  For the Vault provider, this value is only used if the backend is not initialized at first.
+
 - `PrivateKeyType` / `private_key_type` (`string: "ec"`) - The type of key to generate
   for this CA. This is only used when the provider is generating a new key. If
   `private_key` is set for the Consul provider, or existing root or intermediate
