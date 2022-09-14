@@ -2287,7 +2287,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			intervalStr = chkType.Interval.String()
 		}
 		if chkType.Timeout != 0 {
-			timeoutStr = chkType.Interval.String()
+			timeoutStr = chkType.Timeout.String()
 		}
 
 		check := &structs.HealthCheck{
