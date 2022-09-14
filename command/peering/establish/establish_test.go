@@ -32,11 +32,11 @@ func TestEstablishCommand(t *testing.T) {
 	acceptor := agent.NewTestAgent(t, ``)
 	t.Cleanup(func() { _ = acceptor.Shutdown() })
 
-	dialer := agent.NewTestAgent(t, ``)
+	dialer := agent.NewTestAgent(t, `datacenter = "dc2"`)
 	t.Cleanup(func() { _ = dialer.Shutdown() })
 
 	testrpc.WaitForTestAgent(t, acceptor.RPC, "dc1")
-	testrpc.WaitForTestAgent(t, dialer.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, dialer.RPC, "dc2")
 
 	acceptingClient := acceptor.Client()
 	dialingClient := dialer.Client()
