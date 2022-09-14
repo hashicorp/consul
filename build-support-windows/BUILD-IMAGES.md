@@ -6,7 +6,6 @@
 - [Consul-windows](#consul-windows)
 - [Dockerfile-consul-local-windows](#dockerfile-consul-local-windows)
 - [Dockerfile-openzipkin-windows](#dockerfile-openzipkin-windows)
-- [Dockerfile-socat-windows](#dockerfile-socat-windows)
 - [Build images](#build-images)
 
 ## About this File
@@ -73,32 +72,6 @@ If everything works as it should, you will see the zipkin logo being displayed, 
 :: version 2.23.18 :: commit 4b71677 ::
 
 20XX-XX-XX XX:XX:XX.XXX  INFO [/] 1252 --- [oss-http-*:9411] c.l.a.s.Server                           : Serving HTTP at /[0:0:0:0:0:0:0:0]:9411 - http://127.0.0.1:9411/
-```
-
-## Dockerfile-socat-windows
-
-The alpine:socat image was replaced by a windows core image to which a precompiled version of Socat was installed.
-
-The windows base used was: `mcr.microsoft.com/windows/servercore:1809`
-
-The compiled windows version of Socat can be found in the repository [https://github.com/tech128/socat-1.7.3.0-windows](https://github.com/tech128/socat-1.7.3.0-windows)
-
-To build this image you need to run the following command on your terminal:
-
-```shell
-docker build -t socat -f Dockerfile-socat-windows .
-```
-
-You can test the built file by running the following command:
-
-```shell
-docker run --rm --name socat socat
-```
-
-If everything works properly you should get the following output:
-
-```shell
-20XX/XX/XX XX:XX:XX socat[1292] E exactly 2 addresses required (there are 0); use option "-h" for help
 ```
 
 ## Build images

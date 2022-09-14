@@ -16,6 +16,7 @@ COPY --from=envoy ["C:/Program Files/envoy/", "C:/envoy/"]
 
 RUN choco install openssl -yf
 RUN choco install jq -yf
+RUN choco install netcat -yf
 
 # Install Bats
 ENV BATS_URL=https://github.com/bats-core/bats-core/archive/refs/tags/v1.7.0.zip
