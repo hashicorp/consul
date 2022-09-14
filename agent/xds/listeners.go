@@ -193,6 +193,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
+			injectConnectionBalanceConfig(&cfg, upstreamListener)
 			resources = append(resources, upstreamListener)
 
 			// Avoid creating filter chains below for upstreams that have dedicated listeners
@@ -388,6 +389,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
+			injectConnectionBalanceConfig(&cfg, upstreamListener)
 			resources = append(resources, upstreamListener)
 
 			// Avoid creating filter chains below for upstreams that have dedicated listeners
@@ -574,6 +576,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 			filterChain,
 		}
+		injectConnectionBalanceConfig(&cfg, upstreamListener)
 		resources = append(resources, upstreamListener)
 	}
 
@@ -903,6 +906,14 @@ func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener,
 		return nil, err
 	}
 	return &l, nil
+}
+
+func injectConnectionBalanceConfig(cfg *structs.UpstreamConfig, listener *envoy_listener_v3.Listener) {
+	if cfg.EnvoyConnectionBalanceType == "exact_balance" {
+		listener.ConnectionBalanceConfig = &envoy_listener_v3.Listener_ConnectionBalanceConfig{
+			BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+		}
+	}
 }
 
 // Ensure that the first filter in each filter chain of a public listener is

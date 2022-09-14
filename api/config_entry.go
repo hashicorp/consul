@@ -142,6 +142,12 @@ type UpstreamConfig struct {
 	// Namespace is only accepted within a service-defaults config entry.
 	Namespace string `json:",omitempty"`
 
+	// EnvoyConnectionBalanceType specifies how envoy connections should
+	// be distributed across worker threads. Currently, only the "exact_balance"
+	// type is accepted.
+	// https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig
+	EnvoyConnectionBalanceType string `json:",omitempty" alias:"envoy_connection_balance_type"`
+
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
