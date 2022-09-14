@@ -19,7 +19,7 @@ a health check. A health check associated with a service is considered to be an
 application-level check. Define services in a configuration file or add it at
 runtime using the HTTP interface.
 
-Complete the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
+Complete the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?utm_source=docs) to get hands-on experience registering a simple service with a health check on your local machine.
 
 ## Service Definition
 
@@ -30,7 +30,7 @@ Consul can load service definitions saved as `.json` or `.hcl` files.
 
 Send a `SIGHUP` to the running agent or use [`consul reload`](/commands/reload) to check for new service definitions or to
 update existing services. Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
-using the [HTTP API](/api).
+using the [HTTP API](/api-docs).
 
 A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network.
 All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
@@ -269,7 +269,7 @@ The following roles are supported for service entries:
 
 - `connect-proxy`: Defines the configuration for a connect proxy
 - `ingress-gateway`: Defines the configuration for an [ingress gateway](/docs/connect/config-entries/ingress-gateway)
-- `mesh-gateway`: Defines the configuration for a [mesh gateway](/docs/connect/gateways/mesh-gateway#mesh-gateway-configuration)
+- `mesh-gateway`: Defines the configuration for a [mesh gateway](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#mesh-gateway-configuration)
 - `terminating-gateway`: Defines the configuration for a [terminating gateway](/docs/connect/config-entries/terminating-gateway#terminating-gateway)
 
 In the service definition example described above, the service is registered as a proxy because the `kind` property is set to `connect-proxy`.

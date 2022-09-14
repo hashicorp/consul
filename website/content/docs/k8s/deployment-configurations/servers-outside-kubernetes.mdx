@@ -23,7 +23,7 @@ their pod IPs (`false`).
 
 Finally, `client.join` is set to an array of valid
 [`-retry-join` values](/docs/agent/config/cli-flags#retry-join). In the
-example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join)
+example above, a fake [cloud auto-join](/docs/install/cloud-auto-join)
 value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
@@ -46,7 +46,7 @@ client:
 
 -> **Networking:** Note that for the Kubernetes nodes to join an existing
 cluster, the nodes (and specifically the agent pods) must be able to connect
-to all other server and client agents inside and _outside_ of Kubernetes over [LAN](/docs/glossary#lan-gossip).
+to all other server and client agents inside and _outside_ of Kubernetes over [LAN](/docs/install/glossary#lan-gossip).
 If this isn't possible, consider running a separate Consul cluster inside Kubernetes
 and federating it with your cluster outside Kubernetes.
 You may also consider adopting Consul Enterprise for

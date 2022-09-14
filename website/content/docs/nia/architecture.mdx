@@ -51,7 +51,7 @@ The following types of state information are associated with CTS.
 
 ### Terraform state information 
 
-By default, CTS stores [Terraform state data](https://www.terraform.io/docs/state/index.html) in the Consul KV, but you can specify where this information is stored by configuring the `backend` setting in the [Terraform driver configuration](/docs/nia/configuration#backend). The data persists if CTS stops and the backend is configured to a remote location.  
+By default, CTS stores [Terraform state data](https://www.terraform.io/language/state) in the Consul KV, but you can specify where this information is stored by configuring the `backend` setting in the [Terraform driver configuration](/docs/nia/configuration#backend). The data persists if CTS stops and the backend is configured to a remote location.  
 
 ### CTS task and event data 
 

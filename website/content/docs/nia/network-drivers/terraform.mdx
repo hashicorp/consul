@@ -48,7 +48,7 @@ The following files of the root module are generated for each task. An [example 
 - `main.tf` - The main file contains the terraform block, provider blocks, and a module block calling the module configured for the task.
   - `terraform` block - The corresponding provider source and versions for the task from the configuration files are placed into this block for the root module. The Terraform backend from the configuration is also templated here.
   - `provider` blocks - The provider blocks generated in the root module resemble the `terraform_provider` blocks from the configuration for CTS. They have identical arguments present and are set from the intermediate variable created per provider.
-  - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/docs/configuration/modules.html#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
+  - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/language/modules). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
 - `variables.tf` - This file contains three types of variable declarations.
     -  `services` input variable (required) determines module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details).
     - Any additional [optional input variables](/docs/nia/terraform-modules#optional-input-variables) provided by CTS that the module may use.
