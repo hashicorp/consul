@@ -72,7 +72,7 @@ Issue the following commands to enable and configure the PKI Secrets Engine to s
   ```
 ## Create Vault Policies
 1. Create a policy that allows `["create", "update"]` access to the
-[certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`.
+[certificate issuing URL](https://www.vaultproject.io/api-docs/secret/pki) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`.
 
     The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.secretsBackend.vault.controller.tlsCert.secretName` and `global.secretsBackend.vault.connectInject.tlsCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
