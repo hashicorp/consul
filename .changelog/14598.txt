@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster.
+```
