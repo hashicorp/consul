@@ -1,10 +1,8 @@
 ---
 layout: docs
-page_title: Configuration
+page_title: Agents: Configuration File Reference
 description: >-
-  The agent has various configuration options that can be specified via the
-  command-line or via configuration files. All of the configuration options are
-  completely optional. Defaults are specified with their descriptions.
+Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
 ---
 
 # Configuration
@@ -587,8 +585,6 @@ The agent configuration options below are all specified on the command-line.
   By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics,
   `-`, and `_` are allowed in a custom path.`/v1/` is not allowed as it would overwrite
   the API endpoint.
-
-## Configuration Files ((#configuration_files))
 
 In addition to the command-line options, configuration for the Consul agent can be put into
 files. This may be easier in certain situations, for example when Consul is

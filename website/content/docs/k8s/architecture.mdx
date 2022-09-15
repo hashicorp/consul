@@ -1,8 +1,8 @@
 ---
 layout: docs
-page_title: Consul on Kubernetes Architecture
+page_title: Consul on Kubernetes Control Plane Architecture
 description: >-
- A high level overview of Consul on Kubernetes Architecture 
+When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents run as a k8s DaemonSet with an exposed API port.
 ---
 
 
