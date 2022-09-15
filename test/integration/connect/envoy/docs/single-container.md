@@ -9,10 +9,12 @@
     - [Fortio](#fortio)
     - [Jaegertracing](#jaegertracing)
     - [Openzipkin](#openzipkin)
+    - [Socat](#socat)
   - Additional tools:
-    - [JQ](#jq)
-    - [Openssl](#openssl)
     - [Git Bash](#git-bash)
+    - [JQ](#jq)
+    - [Netcat](#netcat)
+    - [Openssl](#openssl)
 
 ## About
 
@@ -27,10 +29,12 @@ The Docker image used for the Consul - Envoy integration tests has several compo
   - [Fortio](#fortio)
   - [Jaegertracing](#jaegertracing)
   - [Openzipkin](#openzipkin)
+  - [Socat](#socat)
 - Additional tools:
-  - [JQ](#jq)
-  - [Openssl](#openssl)
   - [Git Bash](#git-bash)
+  - [JQ](#jq)
+  - [Netcat](#netcat)
+  - [Openssl](#openssl)
 
 ### Bats
 
@@ -46,16 +50,24 @@ Jaeger is open source software for tracing transactions between distributed serv
 
 ### Openzipkin
 
-Zipkin is also a tracing software.  
+Zipkin is also a tracing software.
+
+### Socat
+
+Socat is a command line based utility that establishes two bidirectional byte streams and transfers data between them. On this integration tests it is used to redirect Envoy's stats. There is no official Windows version. We are using this unofficial release available [here](https://github.com/tech128/socat-1.7.3.0-windows).
+
+### Git Bash
+
+This tool is only used in Windows tests, it was added to the Docker image to be able to use some Linux commands during test execution.  
 
 ### JQ
 
 Jq is a lightweight and flexible command-line JSON processor. It is used in several tests to modify and filter JSON outputs.
 
+### Netcat
+
+Netcat is a simple program that reads and writes data across networks, much the same way that cat reads and writes data to files.
+
 ### Openssl
 
 Open SSL is an all-around cryptography library that offers open-source application of the TLS protocol. It is used to verify that the correct tls certificates are being provisioned during tests.
-
-### Git Bash
-
-This tool is only used in Windows tests, it was added to the Docker image to be able to use some Linux commands during test execution.  
