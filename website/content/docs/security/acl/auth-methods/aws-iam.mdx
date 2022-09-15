@@ -8,7 +8,6 @@ description: >-
 
 # AWS IAM Auth Method
 
-
 The AWS Identity and Access Management (IAM) auth method type allows for AWS
 IAM Roles and Users to be used to authenticate to Consul in order to obtain
 a Consul token.
@@ -27,7 +26,7 @@ provided pre-signed AWS API requests.
 
 An IAM role or user authenticates by presenting certain signed AWS API requests in a specific JSON
 format. The client signs the necessary AWS API requests with its AWS credentials using the [AWS
-Signature v4 algorithm](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html). When the
+Signature v4 algorithm](https://docs.aws.amazon.com/general/latest/gr/sigv4\_signing.html). When the
 auth method receives the signed AWS API requests, it forwards the requests to AWS. AWS validates the
 client's signature and, if the signature is valid, responds with the client's identity details. The
 signature validation performed by AWS on the `sts:GetCallerIdentity` request provides the auth
@@ -43,16 +42,16 @@ parameters for an auth method of type `aws-iam`:
 - `BoundIAMPrincipalARNs` `(array<string>: <required>)` - The list of IAM role or IAM user ARNs
   which are permitted to login. A client authenticating to Consul must have an ARN that matches one
   of the ARNs in this list.
-   - If `EnableIAMEntityDetails=false`, then bound ARNs must not contain the full path of the role
-     or user, and wildcards are not supported. For example,
-     `arn:aws:iam::123456789012:user/MyUserName` will permit the IAM user named "MyUserName" to log
-     in, and `arn:aws:iam::123456789012:role/MyRoleName` will permit the IAM role named "MyRoleName"
-     to log in.
-   - If `EnableIAMEntityDetails=true`, then bound ARNs with the full path must be used, such as,
-     `arn:aws:iam::123456789012:role/path/to/MyRoleName`. Additionally, ARNs may contain a single
-     trailing wildcard. For example, `arn:aws:iam::123456789012:*` will permit any role or user in
-     the account `123456789012` to login, while `arn:aws:iam::123456789012:role/path/to/roles/*`
-     will permit only roles at the path `/path/to/roles/`.
+  - If `EnableIAMEntityDetails=false`, then bound ARNs must not contain the full path of the role
+    or user, and wildcards are not supported. For example,
+    `arn:aws:iam::123456789012:user/MyUserName` will permit the IAM user named "MyUserName" to log
+    in, and `arn:aws:iam::123456789012:role/MyRoleName` will permit the IAM role named "MyRoleName"
+    to log in.
+  - If `EnableIAMEntityDetails=true`, then bound ARNs with the full path must be used, such as,
+    `arn:aws:iam::123456789012:role/path/to/MyRoleName`. Additionally, ARNs may contain a single
+    trailing wildcard. For example, `arn:aws:iam::123456789012:*` will permit any role or user in
+    the account `123456789012` to login, while `arn:aws:iam::123456789012:role/path/to/roles/*`
+    will permit only roles at the path `/path/to/roles/`.
 - `EnableIAMEntityDetails` `(bool: <false>)` - This enables the auth method to fetch the IAM role or
   IAM user details, including tags and the full role or user path. If enabled, clients must pass the
   `-aws-include-entity` option to `consul login`. Additionally, an IAM role or user attempting to

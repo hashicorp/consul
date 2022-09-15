@@ -21,8 +21,8 @@ specified within it.
 Configuration files are used for more than just setting up the agent.
 They are also used to provide check and service definitions that
 announce the availability of system servers to the rest of the cluster.
-These definitions are documented separately under [check configuration](/docs/agent/checks) and
-[service configuration](/docs/agent/services) respectively. Service and check
+These definitions are documented separately under [check configuration](/docs/discovery/checks) and
+[service configuration](/docs/discovery/services) respectively. Service and check
 definitions support being updated during a reload.
 
 <CodeTabs heading="Example Configuration File">
@@ -604,14 +604,16 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     (disabled). **We recommend using `8501`** for `https` by convention as some tooling
     will work automatically with this.
   - `grpc` ((#grpc_port)) - The gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `grpc` by convention as some tooling will work
-    automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
-    proxies.
+    **We recommend using `8502` for `grpc`** as your conventional gRPC port number, as it allows some
+    tools to work automatically. This parameter is set to `8502` by default when the agent runs
+    in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
+    backwards-compatibility, but TLS support is deprecated and will be removed in a future
+    release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
   - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `grpc_tls` by convention as some tooling will work
-    automatically with this. Usually only one of the `grpc_tls` or `grpc` ports should be defined.
-    Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+    **We recommend using `8502` for `grpc_tls`** as your conventional gRPC port number, as it allows some 
+    tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
+    can be configured at the same time, but they may not utilize the same port number. If both `grpc` and
+    `grpc_tls` are defined, then `grpc` will always be plaintext. This field was added in Consul 1.14.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](/docs/agent/config/cli-flags#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.

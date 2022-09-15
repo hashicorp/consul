@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -180,7 +180,7 @@ function start_consul {
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
   #
-  # This is nessasary because servers and clients source configuration data in
+  # This is necessary because servers and clients source configuration data in
   # different ways (client agents use an RPC-backed cache and servers use their
   # own local data) and we want to catch regressions in both.
   #
