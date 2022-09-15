@@ -301,7 +301,7 @@ task {
 - `source` - (string: required) **Deprecated in CTS 0.5.0 and will be removed in a future major release. See the `module` field instead.**
 - `module` - (string: required) Module is the location the driver uses to discover the Terraform module used for automation. The module's source can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/language/modules/sources).
 
-  - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting CTS.
+  - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](/terraform/tutorials/cloud/cloud-login?utm_source=docs) to authenticate the local Terraform CLI prior to starting CTS.
   - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
 
     ```hcl
