@@ -15,7 +15,7 @@ import (
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.Server {
+func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator, httpsEnabled bool) *grpc.Server {
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
@@ -35,7 +35,7 @@ func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.S
 			MinTime: 15 * time.Second,
 		}),
 	}
-	if tls != nil && tls.GRPCServerUseTLS() {
+	if tls != nil && tls.GRPCServerUseTLS(httpsEnabled) {
 		creds := credentials.NewTLS(tls.IncomingGRPCConfig())
 		opts = append(opts, grpc.Creds(creds))
 	}

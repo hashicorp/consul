@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
@@ -30,6 +31,10 @@ type FileSource struct {
 	Name   string
 	Format string
 	Data   string
+
+	// FromUser indicates whether the the file source was provided by the user.
+	// This distinguishes from synthetic file sources that Consul will generate.
+	FromUser bool
 }
 
 func (f FileSource) Source() string {
@@ -79,7 +84,7 @@ func (f FileSource) Parse() (Config, Metadata, error) {
 		return Config{}, m, err
 	}
 
-	c, warns := applyDeprecatedConfig(&target)
+	c, warns := applyDeprecatedConfig(&target, f.FromUser)
 	m.Unused = md.Unused
 	m.Keys = md.Keys
 	m.Warnings = warns
@@ -870,11 +875,27 @@ type TLSProtocolConfig struct {
 	UseAutoCert          *bool   `mapstructure:"use_auto_cert"`
 }
 
+func (c TLSProtocolConfig) IsZero() bool {
+	v := reflect.ValueOf(c)
+
+	hasValues := false
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).IsNil() {
+			hasValues = true
+		}
+	}
+	return !hasValues
+}
+
 type TLS struct {
 	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
 	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
 	HTTPS       TLSProtocolConfig `mapstructure:"https"`
 	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+
+	// SpecifiedTLSStanza indicates whether the per-protocol tls stanza from configuration was used.
+	// If unspecified, and TLS is configured, that implies that the deprecated flags were used.
+	SpecifiedTLSStanza *bool
 
 	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
 	// modified by the deprecated field mapping (as apposed to a user-provided
@@ -888,6 +909,11 @@ type TLS struct {
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
 	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+// ContainsDefaults indicates whether the user-settable values in this type are the defaults.
+func (t *TLS) ContainsDefaults() bool {
+	return t.Defaults.IsZero() && t.InternalRPC.IsZero() && t.HTTPS.IsZero() && t.GRPC.IsZero()
 }
 
 type Peering struct {

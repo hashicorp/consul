@@ -43,6 +43,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
 		serverConfig.Ports.GRPC = 5300
+		serverConfig.Ports.HTTPS = -1
 	})
 	defer s1.Stop()
 
@@ -51,6 +52,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
 		serverConfig.Ports.GRPC = 5301
+		serverConfig.Ports.HTTPS = -1
 		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
@@ -263,7 +265,10 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t) // this is "dc1"
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Datacenter = "dc1"
+		conf.Ports.HTTPS = -1
+	})
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 

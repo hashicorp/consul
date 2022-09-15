@@ -189,9 +189,10 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 	b.Tail = append(b.Tail, LiteralSource{Name: "flags.values", Config: values})
 	for i, s := range opts.HCL {
 		b.Tail = append(b.Tail, FileSource{
-			Name:   fmt.Sprintf("flags-%d.hcl", i),
-			Format: "hcl",
-			Data:   s,
+			Name:     fmt.Sprintf("flags-%d.hcl", i),
+			Format:   "hcl",
+			Data:     s,
+			FromUser: true,
 		})
 	}
 	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), defaultVersionSource())
@@ -282,7 +283,7 @@ func newSourceFromFile(path string, format string) (Source, error) {
 	if format == "" {
 		format = formatFromFileExtension(path)
 	}
-	return FileSource{Name: path, Data: string(data), Format: format}, nil
+	return FileSource{Name: path, Data: string(data), Format: format, FromUser: true}, nil
 }
 
 // shouldParse file determines whether the file to be read is of a supported extension
@@ -2516,6 +2517,12 @@ func validateAbsoluteURLPath(p string) error {
 
 func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error) {
 	var c tlsutil.Config
+
+	// This flag indicates whether any of the per-listener configuration was set.
+	// The flag was populated earlier when applying deprecated options.
+	if t.SpecifiedTLSStanza != nil {
+		c.SpecifiedTLSStanza = *t.SpecifiedTLSStanza
+	}
 
 	// Consul makes no outgoing connections to the public gRPC port (internal gRPC
 	// traffic goes through the multiplexed internal RPC port) so return an error
