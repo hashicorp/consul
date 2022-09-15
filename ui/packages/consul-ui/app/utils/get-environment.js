@@ -124,9 +124,7 @@ export default function (config = {}, win = window, doc = document) {
           ? false
           : operatorConfig.PeeringEnabled;
       case 'CONSUL_HCP_ENABLED':
-        return typeof operatorConfig.HCPEnabled === 'undefined'
-          ? false
-          : operatorConfig.HCPEnabled;
+        return typeof operatorConfig.HCPEnabled === 'undefined' ? false : operatorConfig.HCPEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
         return operatorConfig.LocalDatacenter;
       case 'CONSUL_DATACENTER_PRIMARY':
