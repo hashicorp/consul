@@ -58,7 +58,7 @@ The partition in which [`proxy-defaults`](/docs/connect/config-entries/proxy-def
 
 ### Cross-partition Networking
 
-You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by dowstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
+You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
 
 ## Requirements
 
@@ -72,12 +72,12 @@ Your Consul configuration must meet the following requirements to use admin part
 
 All Consul clients must be able to initiate Gossip, HTTPS, and RPC connections to the servers. All servers must also be able to initiate Gossip connections to the clients.
 
-For Consul on Kubernetes, a dedicated `partition` Kubernetes `LoadBalancer` service is deployed to allow communication from clients to servers for admin partitions support (refer to [Kubernetes Requirements](#kubernetes-requirements) for additional information). 
+For Consul on Kubernetes, a dedicated `partition` Kubernetes `LoadBalancer` service is deployed to allow communication from clients to servers for admin partitions support (refer to [Kubernetes Requirements](#kubernetes-requirements) for additional information).
 
 For other runtimes, refer to the documentation for your infrastructure environment for instructions on how to allow communication on the following ports:
-- 8300 (RPC)  
+- 8300 (RPC)
 - 8301 (Gossip)
-- 443 (HTTPS API requests)  
+- 443 (HTTPS API requests)
 
 ### Security Configurations
 
@@ -107,11 +107,11 @@ One of the primary use cases for admin partitions is for enabling a service mesh
 - The helm chart for consul-k8s v0.39.0 or greater.
 - Consul 1.11.1-ent or greater.
 - A designated Kubernetes `LoadBalancer` service must be exposed on the Consul server cluster. This enable the following communication channels to the Consul servers:
-  - RPC on port 8300 
+  - RPC on port 8300
   - Gossip on port 8301
-  - HTTPS API requests on port 443 API requests 
+  - HTTPS API requests on port 443 API requests
 - Mesh gateways must be deployed as a Kubernetes `LoadBalancer` service on port 443 across all Kubernetes clusters.
-- Cross-partition networking must be implemented as described in [Cross-Partition Networking](#cross-partition-networking). 
+- Cross-partition networking must be implemented as described in [Cross-Partition Networking](#cross-partition-networking).
 
 ## Usage
 
@@ -128,7 +128,7 @@ The following procedure will result in an admin partition in each Kubernetes clu
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
 1. Verify that your VPC is configured to enable connectivity between the pods running Consul clients and servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity.
-1. Set environment variables to use with shell commands. 
+1. Set environment variables to use with shell commands.
 
   ```shell-session
   $ export HELM_RELEASE_SERVER=server
@@ -136,24 +136,24 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ export SERVER_CONTEXT=<context for server, run `kubectl config current-context` for cluster provisioned for servers>
   $ export CLIENT_CONTEXT=<context for workload partition, run `kubectl config current-context` for cluster provisioned for workload partition>
   ```
-  
+
 1. Create the license secret in server cluster.
 
   ```shell-session
-  $ kubectl create --context ${SERVER_CONTEXT} ns consul 
+  $ kubectl create --context ${SERVER_CONTEXT} ns consul
   $ kubectl create secret --context ${SERVER_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
 
-1. Create the license secret in the workload client cluster. This step must be repeated for every additional workload client cluster. 
+1. Create the license secret in the workload client cluster. This step must be repeated for every additional workload client cluster.
 
   ```shell-session
-  $ kubectl create --context ${CLIENT_CONTEXT} ns consul 
+  $ kubectl create --context ${CLIENT_CONTEXT} ns consul
   $ kubectl create secret --context ${CLIENT_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
-  
+
 #### Install the Consul server cluster
 
-1. Set your context to the server cluster. 
+1. Set your context to the server cluster.
 
   ```shell-session
   $ kubectl config use-context ${SERVER_CONTEXT}
@@ -237,13 +237,13 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
-  
-#### Install the workload client cluster 
-  
+
+#### Install the workload client cluster
+
 1. Switch to the workload client clusters:
 
   ```shell-session
-  $ kubectl config use-context ${CLIENT_CONTEXT}  
+  $ kubectl config use-context ${CLIENT_CONTEXT}
   ```
 
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
@@ -307,19 +307,19 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the workload client clusters:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace --namespace consul --values client.yaml 
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace --namespace consul --values client.yaml
   ```
 
 ### Verifying the Deployment
 
 You can log into the Consul UI to verify that the partitions appear as expected.
 
-1. Set your context to the server cluster. 
+1. Set your context to the server cluster.
 
   ```shell-session
-  $ kubectl config use-context ${SERVER_CONTEXT} 
+  $ kubectl config use-context ${SERVER_CONTEXT}
   ```
-  
+
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
   ```shell-session
