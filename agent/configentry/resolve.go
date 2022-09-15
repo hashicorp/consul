@@ -59,7 +59,7 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.Protocol != "" {
 			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
 		}
-		if serviceConf.BalanceInboundConnections {
+		if serviceConf.BalanceInboundConnections != "" {
 			thisReply.ProxyConfig["balance_inbound_connections"] = serviceConf.BalanceInboundConnections
 		}
 		if serviceConf.Expose.Checks {

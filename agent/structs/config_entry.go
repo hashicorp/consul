@@ -111,7 +111,7 @@ type ServiceConfigEntry struct {
 	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
-	BalanceInboundConnections bool                   `json:",omitempty" alias:"balance_inbound_connections"`
+	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -766,10 +766,6 @@ type UpstreamConfig struct {
 	// EnterpriseMeta is only accepted within a service-defaults config entry.
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
-	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
-	// outbound connections across worker threads. Only used by envoy proxies.
-	BalanceOutboundConnections bool `json:",omitempty" alias:"balance_outbound_connections"`
-
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
@@ -805,6 +801,10 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates how the proxy should attempt to distribute
+	// connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 func (cfg UpstreamConfig) Clone() UpstreamConfig {
@@ -853,7 +853,7 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	if cfg.PassiveHealthCheck != nil {
 		dst["passive_health_check"] = cfg.PassiveHealthCheck
 	}
-	if cfg.BalanceOutboundConnections {
+	if cfg.BalanceOutboundConnections != "" {
 		dst["balance_outbound_connections"] = cfg.BalanceOutboundConnections
 	}
 }

@@ -340,7 +340,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-                  "balance_inbound_connections"= true
+                  "balance_inbound_connections" = "exact_balance"
 				}
 				mesh_gateway {
 					mode = "remote"
@@ -359,7 +359,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-                  "balance_inbound_connections"= true
+                  "balance_inbound_connections" = "exact_balance"
 				}
 				MeshGateway {
 					Mode = "remote"
@@ -378,7 +378,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"moreconfig": map[string]interface{}{
 						"moar": "config",
 					},
-					"balance_inbound_connections": true,
+					"balance_inbound_connections": "exact_balance",
 				},
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
@@ -418,7 +418,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					defaults {
 						connect_timeout_ms = 5
 						protocol = "http"
-						balance_outbound_connections = true
+						balance_outbound_connections = "exact_balance"
 						envoy_listener_json = "foo"
 						envoy_cluster_json = "bar"
 						limits {
@@ -467,7 +467,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests = 4
 							MaxConcurrentRequests = 5
 						}
-						BalanceOutboundConnections = true
+						BalanceOutboundConnections = "exact_balance"
 					}
 				}
 			`,
@@ -507,7 +507,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests:    intPointer(4),
 							MaxConcurrentRequests: intPointer(5),
 						},
-						BalanceOutboundConnections: true,
+						BalanceOutboundConnections: "exact_balance",
 					},
 				},
 			},
@@ -2671,7 +2671,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink",
 			source: UpstreamConfig{
-				BalanceOutboundConnections: true,
+				BalanceOutboundConnections: "exact_balance",
 				EnvoyListenerJSON:          "foo",
 				EnvoyClusterJSON:           "bar",
 				ConnectTimeoutMs:           5,
@@ -2689,7 +2689,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			},
 			destination: make(map[string]interface{}),
 			want: map[string]interface{}{
-				"balance_outbound_connections": true,
+				"balance_outbound_connections": "exact_balance",
 				"envoy_listener_json":          "foo",
 				"envoy_cluster_json":           "bar",
 				"connect_timeout_ms":           5,
@@ -2709,7 +2709,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink override of destination",
 			source: UpstreamConfig{
-				BalanceOutboundConnections: true,
+				BalanceOutboundConnections: "exact_balance",
 				EnvoyListenerJSON:          "foo",
 				EnvoyClusterJSON:           "bar",
 				ConnectTimeoutMs:           5,
@@ -2726,7 +2726,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
 			destination: map[string]interface{}{
-				"balance_outbound_connections": false,
+				"balance_outbound_connections": "",
 				"envoy_listener_json":          "zip",
 				"envoy_cluster_json":           "zap",
 				"connect_timeout_ms":           10,
@@ -2743,7 +2743,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"balance_outbound_connections": true,
+				"balance_outbound_connections": "exact_balance",
 				"envoy_listener_json":          "foo",
 				"envoy_cluster_json":           "bar",
 				"connect_timeout_ms":           5,
@@ -2764,7 +2764,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			name:   "empty source leaves destination intact",
 			source: UpstreamConfig{},
 			destination: map[string]interface{}{
-				"balance_outbound_connections": true,
+				"balance_outbound_connections": "exact_balance",
 				"envoy_listener_json":          "zip",
 				"envoy_cluster_json":           "zap",
 				"connect_timeout_ms":           10,
@@ -2782,7 +2782,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"balance_outbound_connections": true,
+				"balance_outbound_connections": "exact_balance",
 				"envoy_listener_json":          "zip",
 				"envoy_cluster_json":           "zap",
 				"connect_timeout_ms":           10,

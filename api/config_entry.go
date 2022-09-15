@@ -180,7 +180,7 @@ type UpstreamConfig struct {
 
 	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
 	// outbound connections across worker threads. Only used by envoy proxies.
-	BalanceOutboundConnections bool `json:",omitempty" alias:"balance_outbound_connections"`
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul
@@ -242,7 +242,7 @@ type ServiceConfigEntry struct {
 	MaxInboundConnections     int                     `json:",omitempty" alias:"max_inbound_connections"`
 	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
-	BalanceInboundConnections bool                    `json:",omitempty" alias:"balance_inbound_connections"`
+	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
 	ModifyIndex               uint64

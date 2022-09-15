@@ -190,9 +190,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
-			if cfg.BalanceOutboundConnections {
-				injectConnectionBalanceConfig(upstreamListener)
-			}
+			injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -388,9 +386,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
-			if cfg.BalanceOutboundConnections {
-				injectConnectionBalanceConfig(upstreamListener)
-			}
+			injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
+
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -565,9 +562,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		upstreamListener := makeListener(uid.EnvoyID(), u, envoy_core_v3.TrafficDirection_OUTBOUND)
-		if cfg.BalanceOutboundConnections {
-			injectConnectionBalanceConfig(upstreamListener)
-		}
+		injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
@@ -914,9 +909,11 @@ func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener,
 	return &l, nil
 }
 
-func injectConnectionBalanceConfig(listener *envoy_listener_v3.Listener) {
-	listener.ConnectionBalanceConfig = &envoy_listener_v3.Listener_ConnectionBalanceConfig{
-		BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+func injectConnectionBalanceConfig(balanceType string, listener *envoy_listener_v3.Listener) {
+	if balanceType == "exact_balance" {
+		listener.ConnectionBalanceConfig = &envoy_listener_v3.Listener_ConnectionBalanceConfig{
+			BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+		}
 	}
 }
 
@@ -1236,9 +1233,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
-	if cfg.BalanceInboundConnections {
-		injectConnectionBalanceConfig(l)
-	}
+	injectConnectionBalanceConfig(cfg.BalanceInboundConnections, l)
 
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
 	if cfg.ListenerTracingJSON != "" {
