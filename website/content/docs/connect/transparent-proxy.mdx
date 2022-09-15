@@ -78,7 +78,7 @@ kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
 ```
 #### Individual service
 
-Apply the `consul.hashicorp.com/transparent-proxy=true` annotation to eanble transparent proxy on the Pod for each service. The annotation overrides the Helm value and the namespace label. The following example enables transparent proxy for the `static-server` service: 
+Apply the `consul.hashicorp.com/transparent-proxy=true` annotation to enable transparent proxy on the Pod for each service. The annotation overrides the Helm value and the namespace label. The following example enables transparent proxy for the `static-server` service:
 
 ```yaml
 apiVersion: v1
@@ -243,7 +243,7 @@ The following example configures the service to dial an upstream service called 
 "consul.hashicorp.com/connect-service-upstreams": "my-service:1234"
 ```
 
-You do not need to configure services to explicitlly dial upstream services if your Consul clusters are connected with a [peering connection](/docs/connect/cluster-peering). 
+You do not need to configure services to explicitly dial upstream services if your Consul clusters are connected with a [peering connection](/docs/connect/cluster-peering).
 
 ## Usage
 

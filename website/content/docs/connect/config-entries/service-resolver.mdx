@@ -534,7 +534,7 @@ spec:
               `Specifies the destination cluster peer to resolve the target service name from.
                   Ensure that [intentions are defined](/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this redirect target service as an upstream. When
-                  the peer name is specified, Consul uses Envoy'services outlier detection to determine
+                  the peer name is specified, Consul uses Envoy's outlier detection to determine
                   the health of the redirect target based on whether communication attempts to the
                   redirect target are generally successful. Service health checks imported from a peer
                   are not considered in the health of a redirect target because they do not account for service
