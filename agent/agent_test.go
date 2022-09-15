@@ -418,6 +418,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
+	duration3s, _ := time.ParseDuration("3s")
+	duration10s, _ := time.ParseDuration("10s")
+
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -463,6 +466,50 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		},
+		{
+			"one http check with interval and duration",
+			&structs.NodeService{
+				ID:             "svcid1",
+				Service:        "svcname1",
+				Tags:           []string{"tag1"},
+				Weights:        nil, // nil weights...
+				Port:           8100,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+			// ... should be populated to avoid "IsSame" returning true during AE.
+			func(ns *structs.NodeService) {
+				ns.Weights = &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				}
+			},
+			[]*structs.CheckType{
+				{
+					CheckID:  "check1",
+					Name:     "name1",
+					HTTP:     "http://localhost:8100/",
+					Interval: duration10s,
+					Timeout:  duration3s,
+					Notes:    "note1",
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": {
+					Node:           "node1",
+					CheckID:        "check1",
+					Name:           "name1",
+					Interval:       "10s",
+					Timeout:        "3s",
+					Status:         "critical",
+					Notes:          "note1",
+					ServiceID:      "svcid1",
+					ServiceName:    "svcname1",
+					ServiceTags:    []string{"tag1"},
+					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
