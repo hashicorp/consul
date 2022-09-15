@@ -75,7 +75,7 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
     $ vault policy write consul-server consul-server-policy.hcl
     ```
 
-1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate),
+1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api-docs/secret/pki),
 this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
     
     The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.tls.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).

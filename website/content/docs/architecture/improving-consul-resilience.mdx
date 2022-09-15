@@ -80,7 +80,7 @@ to protect your Consul datacenter from a single zone-level failure.
 For example, if deploying 5 Consul servers across 3 availability zones, place no more than 2 servers in each zone.
 If one zone fails, at most 2 servers are lost and quorum will be maintained by the 3 remaining servers.
 
-To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server’s agent configuration.
+To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server's agent configuration.
 
 Additionally, you should leverage resources that can automatically restore your compute instance,
 such as autoscaling groups, virtual machine scale sets, or compute engine autoscaler.
