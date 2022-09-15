@@ -2,11 +2,11 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 
-module('Integration | Service | discovery-chain', function(hooks) {
+module('Integration | Service | discovery-chain', function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'slug';
-  test('findBySlug returns the correct data for item endpoint', function(assert) {
+  test('findBySlug returns the correct data for item endpoint', function (assert) {
     return repo(
       'Service',
       'findBySlug',
@@ -20,7 +20,7 @@ module('Integration | Service | discovery-chain', function(hooks) {
         return service.findBySlug({ id, dc });
       },
       function performAssertion(actual, expected) {
-        const result = expected(function(payload) {
+        const result = expected(function (payload) {
           return Object.assign(
             {},
             {

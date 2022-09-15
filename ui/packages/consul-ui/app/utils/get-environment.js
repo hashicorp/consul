@@ -7,25 +7,20 @@ import { runInDebug } from '@ember/debug';
 // 3. Those that can be set only during development by adding cookie values
 // via the browsers Web Inspector, or via the browsers hash (#COOKIE_NAME=1),
 // which is useful for showing the UI with various settings enabled/disabled
-export default function(config = {}, win = window, doc = document) {
+export default function (config = {}, win = window, doc = document) {
   // look at the hash in the URL and transfer anything after the hash into
   // cookies to enable linking of the UI with various settings enabled
   runInDebug(() => {
-    const cookies = function(str) {
+    const cookies = function (str) {
       return str
         .split(';')
-        .map(item => item.trim())
-        .filter(item => item !== '')
-        .filter(item =>
-          item
-            .split('=')
-            .shift()
-            .startsWith('CONSUL_')
-        );
+        .map((item) => item.trim())
+        .filter((item) => item !== '')
+        .filter((item) => item.split('=').shift().startsWith('CONSUL_'));
     };
-    win['Scenario'] = function(str = '') {
+    win['Scenario'] = function (str = '') {
       if (str.length > 0) {
-        cookies(str).forEach(item => {
+        cookies(str).forEach((item) => {
           // this current outlier is the only one that
           // 1. Toggles
           // 2. Uses localStorage
@@ -68,23 +63,23 @@ export default function(config = {}, win = window, doc = document) {
       win['Scenario'](win.location.hash.substr(1));
     }
   });
-  const dev = function(str = doc.cookie) {
+  const dev = function (str = doc.cookie) {
     return str
       .split(';')
-      .filter(item => item !== '')
-      .map(item => {
+      .filter((item) => item !== '')
+      .map((item) => {
         const [key, ...rest] = item.trim().split('=');
         return [key, rest.join('=')];
       });
   };
-  const user = function(str) {
+  const user = function (str) {
     const item = win.localStorage.getItem(str);
     return item === null ? undefined : item;
   };
-  const getResourceFor = function(src) {
+  const getResourceFor = function (src) {
     try {
       return (
-        win.performance.getEntriesByType('resource').find(item => {
+        win.performance.getEntriesByType('resource').find((item) => {
           return item.initiatorType === 'script' && src === item.name;
         }) || {}
       );
@@ -107,7 +102,7 @@ export default function(config = {}, win = window, doc = document) {
   // turning off blocking queries if its a busy cluster
   // forcing/providing amount of possible HTTP connections
   // re-setting the base url for the API etc
-  const operator = function(str, env) {
+  const operator = function (str, env) {
     let protocol, dashboards, provider, proxy;
     switch (str) {
       case 'CONSUL_NSPACES_ENABLED':
@@ -164,10 +159,7 @@ export default function(config = {}, win = window, doc = document) {
         }
         return ui_config;
       case 'CONSUL_BASE_UI_URL':
-        return currentSrc
-          .split('/')
-          .slice(0, -2)
-          .join('/');
+        return currentSrc.split('/').slice(0, -2).join('/');
       case 'CONSUL_HTTP_PROTOCOL':
         if (typeof resource === 'undefined') {
           // resource needs to be retrieved lazily as entries aren't guaranteed
@@ -197,14 +189,14 @@ export default function(config = {}, win = window, doc = document) {
         }
     }
   };
-  const ui = function(key) {
+  const ui = function (key) {
     let $ = {};
     switch (config.environment) {
       case 'development':
       case 'staging':
       case 'coverage':
       case 'test':
-        $ = dev().reduce(function(prev, [key, value]) {
+        $ = dev().reduce(function (prev, [key, value]) {
           switch (key) {
             case 'CONSUL_INTL_LOCALE':
               prev['CONSUL_INTL_LOCALE'] = String(value).toLowerCase();
@@ -246,7 +238,7 @@ export default function(config = {}, win = window, doc = document) {
         }, {});
         break;
       case 'production':
-        $ = dev().reduce(function(prev, [key, value]) {
+        $ = dev().reduce(function (prev, [key, value]) {
           switch (key) {
             case 'TokenSecretID':
               prev['CONSUL_HTTP_TOKEN'] = value;

@@ -1,8 +1,8 @@
 import { module, skip, test } from 'qunit';
 import atob from 'consul-ui/utils/atob';
 
-module('Unit | Utils | atob', function() {
-  skip('it decodes non-strings properly', function(assert) {
+module('Unit | Utils | atob', function () {
+  skip('it decodes non-strings properly', function (assert) {
     [
       {
         test: '        ',
@@ -36,12 +36,12 @@ module('Unit | Utils | atob', function() {
         test: null,
         expected: '��e',
       },
-    ].forEach(function(item) {
+    ].forEach(function (item) {
       const actual = atob(item.test);
       assert.equal(actual, item.expected);
     });
   });
-  test('it decodes strings properly', function(assert) {
+  test('it decodes strings properly', function (assert) {
     [
       {
         test: '',
@@ -51,14 +51,14 @@ module('Unit | Utils | atob', function() {
         test: 'MTIzNA==',
         expected: '1234',
       },
-    ].forEach(function(item) {
+    ].forEach(function (item) {
       const actual = atob(item.test);
       assert.equal(actual, item.expected);
     });
   });
-  test('throws when passed the wrong value', function(assert) {
-    [{}, ['MTIz', 'NA=='], new Number(), 'hi'].forEach(function(item) {
-      assert.throws(function() {
+  test('throws when passed the wrong value', function (assert) {
+    [{}, ['MTIz', 'NA=='], new Number(), 'hi'].forEach(function (item) {
+      assert.throws(function () {
         atob(item);
       });
     });

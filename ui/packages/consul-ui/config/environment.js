@@ -12,7 +12,7 @@ const repositoryYear = utils.repositoryYear;
 const repositorySHA = utils.repositorySHA;
 const binaryVersion = utils.binaryVersion(repositoryRoot);
 
-module.exports = function(environment, $ = process.env) {
+module.exports = function (environment, $ = process.env) {
   // available environments
   // ['production', 'development', 'staging', 'test'];
   const env = utils.env($);
@@ -87,7 +87,7 @@ module.exports = function(environment, $ = process.env) {
       HCPEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
-      APIPrefix: env('CONSUL_API_PREFIX', '')
+      APIPrefix: env('CONSUL_API_PREFIX', ''),
     },
 
     // Static variables used in multiple places throughout the UI
@@ -114,7 +114,7 @@ module.exports = function(environment, $ = process.env) {
           HCPEnabled: env('CONSUL_HCP_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
-          APIPrefix: env('CONSUL_API_PREFIX', '')
+          APIPrefix: env('CONSUL_API_PREFIX', ''),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -168,7 +168,7 @@ module.exports = function(environment, $ = process.env) {
           HCPEnabled: env('CONSUL_HCP_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
-          APIPrefix: env('CONSUL_API_PREFIX', '')
+          APIPrefix: env('CONSUL_API_PREFIX', ''),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -184,7 +184,7 @@ module.exports = function(environment, $ = process.env) {
         // in production operatorConfig is populated at consul runtime from
         // operator configuration
         operatorConfig: {
-          APIPrefix: ''
+          APIPrefix: '',
         },
       });
       break;

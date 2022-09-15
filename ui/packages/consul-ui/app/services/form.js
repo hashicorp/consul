@@ -39,10 +39,10 @@ export default class FormService extends Service {
       // only do special things for our new things for the moment
       if (name === 'role' || name === 'policy') {
         const repo = this[name];
-        form.clear(function(obj) {
+        form.clear(function (obj) {
           return repo.create(obj);
         });
-        form.submit(function(obj) {
+        form.submit(function (obj) {
           return repo.persist(obj);
         });
       }

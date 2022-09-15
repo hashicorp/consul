@@ -16,7 +16,7 @@ import assertForm from './steps/assertions/form';
 
 // const dont = `( don't| shouldn't| can't)?`;
 
-export default function({
+export default function ({
   assert,
   utils,
   library,
@@ -26,16 +26,14 @@ export default function({
   Inflector = {},
   $ = {},
 }) {
-  const pluralize = function(str) {
+  const pluralize = function (str) {
     return Inflector.inflector.pluralize(str);
   };
-  const getLastNthRequest = function(getRequests) {
-    return function(n, method) {
-      let requests = getRequests()
-        .slice(0)
-        .reverse();
+  const getLastNthRequest = function (getRequests) {
+    return function (n, method) {
+      let requests = getRequests().slice(0).reverse();
       if (method) {
-        requests = requests.filter(function(item) {
+        requests = requests.filter(function (item) {
           return item.method === method;
         });
       }
@@ -45,26 +43,26 @@ export default function({
       return requests[n];
     };
   };
-  const pauseUntil = function(run, message = 'assertion timed out') {
-    return new Promise(function(r) {
+  const pauseUntil = function (run, message = 'assertion timed out') {
+    return new Promise(function (r) {
       let count = 0;
       let resolved = false;
-      const retry = function() {
+      const retry = function () {
         return Promise.resolve();
       };
-      const reject = function() {
+      const reject = function () {
         return Promise.reject();
       };
-      const resolve = function(str = message) {
+      const resolve = function (str = message) {
         resolved = true;
         assert.ok(resolved, str);
         r();
         return Promise.resolve();
       };
       (function tick() {
-        run(resolve, reject, retry).then(function() {
+        run(resolve, reject, retry).then(function () {
           if (!resolved) {
-            setTimeout(function() {
+            setTimeout(function () {
               if (++count >= 50) {
                 assert.ok(false, message);
                 reject();
@@ -78,36 +76,36 @@ export default function({
     });
   };
   const lastNthRequest = getLastNthRequest(() => api.server.history);
-  const create = function(number, name, value) {
+  const create = function (number, name, value) {
     // don't return a promise here as
     // I don't need it to wait
     api.server.createList(name, number, value);
   };
-  const respondWith = function(url, data) {
+  const respondWith = function (url, data) {
     api.server.respondWith(url.split('?')[0], data);
   };
-  const setCookie = function(key, value) {
+  const setCookie = function (key, value) {
     document.cookie = `${key}=${value}`;
     api.server.setCookie(key, value);
   };
 
-  const reset = function() {
+  const reset = function () {
     api.server.clearHistory();
   };
 
-  const clipboard = function() {
+  const clipboard = function () {
     return window.localStorage.getItem('clipboard');
   };
-  const currentURL = function() {
+  const currentURL = function () {
     const context = helpers.getContext();
     const locationType = context.owner.lookup('service:env').var('locationType');
     let location = context.owner.lookup(`location:${locationType}`);
     return location.getURLFrom();
   };
-  const oidcProvider = function(name, response) {
+  const oidcProvider = function (name, response) {
     const context = helpers.getContext();
     const provider = context.owner.lookup('torii-provider:oidc-with-url');
-    provider.popup.open = async function() {
+    provider.popup.open = async function () {
       return response;
     };
   };
@@ -124,7 +122,7 @@ export default function({
   assertDom(library, assert, pauseUntil, helpers.find, currentURL, clipboard);
   assertForm(library, assert, utils.find, utils.getCurrentPage);
 
-  return library.given(["I'm using a legacy token"], function(number, model, data) {
+  return library.given(["I'm using a legacy token"], function (number, model, data) {
     window.localStorage['consul:token'] = JSON.stringify({
       Namespace: 'default',
       AccessorID: null,

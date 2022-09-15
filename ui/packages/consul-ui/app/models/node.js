@@ -28,11 +28,11 @@ export default class Node extends Model {
   @fragmentArray('health-check') Checks;
   // MeshServiceInstances are all instances that aren't connect-proxies this
   // currently includes gateways as these need to show up in listings
-  @filter('Services', item => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
+  @filter('Services', (item) => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
   // ProxyServiceInstances are all instances that are connect-proxies
-  @filter('Services', item => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
+  @filter('Services', (item) => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
-  @filter('Checks', item => item.ServiceID === '') NodeChecks;
+  @filter('Checks', (item) => item.ServiceID === '') NodeChecks;
 
   @computed('ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
@@ -50,16 +50,16 @@ export default class Node extends Model {
 
   @computed('NodeChecks.[]')
   get ChecksCritical() {
-    return this.NodeChecks.filter(item => item.Status === 'critical').length;
+    return this.NodeChecks.filter((item) => item.Status === 'critical').length;
   }
 
   @computed('NodeChecks.[]')
   get ChecksPassing() {
-    return this.NodeChecks.filter(item => item.Status === 'passing').length;
+    return this.NodeChecks.filter((item) => item.Status === 'passing').length;
   }
 
   @computed('NodeChecks.[]')
   get ChecksWarning() {
-    return this.NodeChecks.filter(item => item.Status === 'warning').length;
+    return this.NodeChecks.filter((item) => item.Status === 'warning').length;
   }
 }

@@ -1,4 +1,4 @@
-export default function(visitable, creatable, items, popoverSelect) {
+export default function (visitable, creatable, items, popoverSelect) {
   return creatable({
     visit: visitable('/:dc/peers'),
     peers: items(),

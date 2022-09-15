@@ -3,10 +3,10 @@ import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 import { render } from '@ember/test-helpers';
 
-module('Integration | Component | consul datacenter selector', function(hooks) {
+module('Integration | Component | consul datacenter selector', function (hooks) {
   setupRenderingTest(hooks);
 
-  test('it does not display a dropdown when only one dc is available', async function(assert) {
+  test('it does not display a dropdown when only one dc is available', async function (assert) {
     const dcs = [
       {
         Name: 'dc-1',
@@ -26,7 +26,7 @@ module('Integration | Component | consul datacenter selector', function(hooks) {
       .hasText('dc-1', 'Datecenter name is displayed in nav');
   });
 
-  test('it does displays a dropdown when more than one dc is available', async function(assert) {
+  test('it does displays a dropdown when more than one dc is available', async function (assert) {
     const dcs = [
       {
         Name: 'dc-1',

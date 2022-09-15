@@ -1,17 +1,17 @@
 import domIsOutside from 'consul-ui/utils/dom/is-outside';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | dom/is-outside', function() {
-  test('it is outside when its in the document but not in the element', function(assert) {
+module('Unit | Utility | dom/is-outside', function () {
+  test('it is outside when its in the document but not in the element', function (assert) {
     // is in the document
     const doc = {
-      contains: function(el) {
+      contains: function (el) {
         return true;
       },
     };
     // is NOT in the element
     const el = {
-      contains: function(el) {
+      contains: function (el) {
         return false;
       },
     };
@@ -19,16 +19,16 @@ module('Unit | Utility | dom/is-outside', function() {
     const result = domIsOutside(el, target, doc);
     assert.ok(result);
   });
-  test('it is not outside when its not in the document', function(assert) {
+  test('it is not outside when its not in the document', function (assert) {
     // is NOT in the document
     const doc = {
-      contains: function(el) {
+      contains: function (el) {
         return false;
       },
     };
     // is NOT in the element
     const el = {
-      contains: function(el) {
+      contains: function (el) {
         return false;
       },
     };
@@ -36,16 +36,16 @@ module('Unit | Utility | dom/is-outside', function() {
     const result = domIsOutside(el, target, doc);
     assert.notOk(result);
   });
-  test('it is not outside when its in the document but in the element', function(assert) {
+  test('it is not outside when its in the document but in the element', function (assert) {
     // is in the document
     const doc = {
-      contains: function(el) {
+      contains: function (el) {
         return true;
       },
     };
     // is in the element
     const el = {
-      contains: function(el) {
+      contains: function (el) {
         return true;
       },
     };
@@ -53,16 +53,16 @@ module('Unit | Utility | dom/is-outside', function() {
     const result = domIsOutside(el, target, doc);
     assert.notOk(result);
   });
-  test('it is not outside when its in the document but in the element', function(assert) {
+  test('it is not outside when its in the document but in the element', function (assert) {
     // is in the document
     const doc = {
-      contains: function(el) {
+      contains: function (el) {
         return true;
       },
     };
     // is NOT in the element
     const el = {
-      contains: function(el) {
+      contains: function (el) {
         return false;
       },
     };
@@ -71,16 +71,16 @@ module('Unit | Utility | dom/is-outside', function() {
     const result = domIsOutside(el, target, doc);
     assert.notOk(result);
   });
-  test('it is not outside when target is nullish', function(assert) {
+  test('it is not outside when target is nullish', function (assert) {
     // is in the document
     const doc = {
-      contains: function(el) {
+      contains: function (el) {
         return true;
       },
     };
     // is NOT in the element
     const el = {
-      contains: function(el) {
+      contains: function (el) {
         return false;
       },
     };

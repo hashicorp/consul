@@ -111,10 +111,7 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
-const consulPeerList = consulPeerListFactory(
-  collection,
-  isPresent
-);
+const consulPeerList = consulPeerListFactory(collection, isPresent);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
   collection,
@@ -141,7 +138,7 @@ const consulPolicyList = consulPolicyListFactory(
 const page = pageFactory(collection, clickable, attribute, is, authForm, emptyState);
 
 // pages
-const create = function(appView) {
+const create = function (appView) {
   appView = {
     ...page(),
     ...appView,

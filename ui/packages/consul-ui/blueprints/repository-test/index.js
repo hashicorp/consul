@@ -19,7 +19,7 @@ module.exports = useTestFrameworkDetector({
 
   locals(options) {
     return {
-      screamingSnakeCaseModuleName: options.entity.name.replace('-', '_').toUpperCase()
+      screamingSnakeCaseModuleName: options.entity.name.replace('-', '_').toUpperCase(),
     };
   },
 });
