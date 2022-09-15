@@ -24,17 +24,17 @@ export default Component.extend({
   data: null,
   empty: false,
   actions: {
-    redraw: function(evt) {
+    redraw: function (evt) {
       this.drawGraphs();
     },
-    change: function(evt) {
+    change: function (evt) {
       this.set('data', evt.data.series);
       this.drawGraphs();
       this.rerender();
     },
   },
 
-  drawGraphs: function() {
+  drawGraphs: function () {
     if (!this.data) {
       set(this, 'empty', true);
       return;
@@ -56,7 +56,7 @@ export default Component.extend({
     let series = maybeData.data || [];
     let labels = maybeData.labels || {};
     let unitSuffix = maybeData.unitSuffix || '';
-    let keys = Object.keys(labels).filter(l => l != 'Total');
+    let keys = Object.keys(labels).filter((l) => l != 'Total');
 
     if (series.length == 0 || keys.length == 0) {
       // Put the graph in an error state that might get fixed if metrics show up
@@ -67,9 +67,7 @@ export default Component.extend({
       set(this, 'empty', false);
     }
 
-    let st = stack()
-      .keys(keys)
-      .order(stackOrderReverse);
+    let st = stack().keys(keys).order(stackOrderReverse);
 
     let stackData = st(series);
 
@@ -77,16 +75,16 @@ export default Component.extend({
     // stackData contains this but I didn't find reliable documentation on
     // whether we can rely on the highest stacked area to always be first/last
     // in array etc. so this is simpler.
-    let summed = series.map(d => {
+    let summed = series.map((d) => {
       let sum = 0;
-      keys.forEach(l => {
+      keys.forEach((l) => {
         sum = sum + d[l];
       });
       return sum;
     });
 
     let x = scaleTime()
-      .domain(extent(series, d => d.time))
+      .domain(extent(series, (d) => d.time))
       .range([0, w]);
 
     let y = scaleLinear()
@@ -94,9 +92,9 @@ export default Component.extend({
       .range([h, 0]);
 
     let a = area()
-      .x(d => x(d.data.time))
-      .y1(d => y(d[0]))
-      .y0(d => y(d[1]));
+      .x((d) => x(d.data.time))
+      .y1((d) => y(d[0]))
+      .y0((d) => y(d[1]));
 
     // Use the grey/red we prefer by default but have more colors available in
     // case user adds extra series with a custom provider.
@@ -136,11 +134,7 @@ export default Component.extend({
         .attr('class', 'sparkline-tt-legend-color')
         .style('background-color', color(k));
 
-      legend
-        .append('span')
-        .text(k)
-        .append('span')
-        .attr('class', 'sparkline-tt-legend-value');
+      legend.append('span').text(k).append('span').attr('class', 'sparkline-tt-legend-value');
     }
 
     let tipVals = tooltip.selectAll('.sparkline-tt-legend-value');
@@ -158,7 +152,7 @@ export default Component.extend({
 
     let self = this;
     svg
-      .on('mouseover', function(e) {
+      .on('mouseover', function (e) {
         tooltip.style('visibility', 'visible');
         cursor.style('visibility', 'visible');
         // We update here since we might redraw the graph with user's cursor
@@ -166,26 +160,26 @@ export default Component.extend({
         // mousemove but the tooltip and cursor are wrong (based on old data).
         self.updateTooltip(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor);
       })
-      .on('mousemove', function(e) {
+      .on('mousemove', function (e) {
         self.updateTooltip(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor);
       })
-      .on('mouseout', function(e) {
+      .on('mouseout', function (e) {
         tooltip.style('visibility', 'hidden');
         cursor.style('visibility', 'hidden');
       });
   },
-  willDestroyElement: function() {
+  willDestroyElement: function () {
     this._super(...arguments);
     if (typeof this.svg !== 'undefined') {
       this.svg.on('mouseover mousemove mouseout', null);
     }
   },
-  updateTooltip: function(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor) {
+  updateTooltip: function (e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor) {
     let [mouseX] = pointer(e);
     cursor.attr('x', mouseX);
 
     let mouseTime = x.invert(mouseX);
-    var bisectTime = bisector(function(d) {
+    var bisectTime = bisector(function (d) {
       return d.time;
     }).left;
     let tipIdx = bisectTime(series, mouseTime);

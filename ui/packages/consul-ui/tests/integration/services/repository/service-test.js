@@ -1,19 +1,18 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-import { get } from '@ember/object';
 
-module(`Integration | Service | service`, function(hooks) {
+module(`Integration | Service | service`, function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const now = new Date().getTime();
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findGatewayBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findGatewayBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/service');
-      get(subject, 'store').serializerFor('service').timestamp = function() {
+      subject.store.serializerFor('service').timestamp = function () {
         return now;
       };
       const gateway = 'gateway';
@@ -46,15 +45,16 @@ module(`Integration | Service | service`, function(hooks) {
           );
         },
         function performAssertion(actual, expected) {
-          const result = expected(function(payload) {
-            return payload.map(item =>
+          const result = expected(function (payload) {
+            return payload.map((item) =>
               Object.assign({}, item, {
                 SyncTime: now,
                 Datacenter: dc,
                 Namespace: item.Namespace || undefinedNspace,
                 Partition: item.Partition || undefinedPartition,
-                uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                  undefinedNspace}","${dc}","${item.Name}"]`,
+                uid: `["${item.Partition || undefinedPartition}","${
+                  item.Namespace || undefinedNspace
+                }","${dc}","${item.Name}"]`,
               })
             );
           });

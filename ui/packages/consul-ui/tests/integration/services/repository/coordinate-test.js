@@ -1,19 +1,18 @@
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-import { get } from '@ember/object';
 
 const dc = 'dc-1';
 const nspace = 'default';
 const partition = 'default';
 const now = new Date().getTime();
-module(`Integration | Service | coordinate`, function(hooks) {
+module(`Integration | Service | coordinate`, function (hooks) {
   setupTest(hooks);
 
-  test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
+  test('findAllByDatacenter returns the correct data for list endpoint', function (assert) {
     const subject = this.owner.lookup('service:repository/coordinate');
 
-    get(subject, 'store').serializerFor('coordinate').timestamp = function() {
+    subject.store.serializerFor('coordinate').timestamp = function () {
       return now;
     };
     return repo(
@@ -36,8 +35,8 @@ module(`Integration | Service | coordinate`, function(hooks) {
       function performAssertion(actual, expected) {
         assert.deepEqual(
           actual,
-          expected(function(payload) {
-            return payload.map(item =>
+          expected(function (payload) {
+            return payload.map((item) =>
               Object.assign({}, item, {
                 SyncTime: now,
                 Datacenter: dc,
@@ -52,14 +51,14 @@ module(`Integration | Service | coordinate`, function(hooks) {
       }
     );
   });
-  test('findAllByNode calls findAllByDatacenter with the correct arguments', function(assert) {
+  test('findAllByNode calls findAllByDatacenter with the correct arguments', function (assert) {
     assert.expect(3);
     const datacenter = 'dc-1';
     const conf = {
       cursor: 1,
     };
     const service = this.owner.lookup('service:repository/coordinate');
-    service.findAllByDatacenter = function(params, configuration) {
+    service.findAllByDatacenter = function (params, configuration) {
       assert.equal(
         arguments.length,
         2,

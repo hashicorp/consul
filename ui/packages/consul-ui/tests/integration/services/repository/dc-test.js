@@ -2,10 +2,10 @@ import { setupTest } from 'ember-qunit';
 import { module, skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 
-module(`Integration | Service | dc`, function(hooks) {
+module(`Integration | Service | dc`, function (hooks) {
   setupTest(hooks);
   skip("findBySlug (doesn't interact with the API) but still needs an int test");
-  skip('findAll returns the correct data for list endpoint', function(assert) {
+  skip('findAll returns the correct data for list endpoint', function (assert) {
     const subject = this.owner.lookup('service:repository/dc');
 
     return repo(

@@ -1,4 +1,4 @@
-export default function(type) {
+export default function (type) {
   let requests = null;
   switch (type) {
     case 'dc':
@@ -54,11 +54,11 @@ export default function(type) {
       break;
   }
   // TODO: An instance of URL should come in here (instead of 2 args)
-  return function(url, method) {
+  return function (url, method) {
     if (requests === null) {
       return false;
     }
-    return requests.some(function(item) {
+    return requests.some(function (item) {
       return method.toUpperCase() === 'GET' && url.indexOf(item) === 0;
     });
   };

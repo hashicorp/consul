@@ -16,10 +16,10 @@
  *
  * @returns {function}
  */
-export default function(obj, stub) {
+export default function (obj, stub) {
   const _super =
     typeof stub === 'undefined'
-      ? function() {
+      ? function () {
           return arguments;
         }
       : stub;
@@ -28,23 +28,23 @@ export default function(obj, stub) {
    * @param {function} cb - Callback that performs the test, will use the stubbed `_super`
    * @returns The result of `cb`, and therefore maintain the same API
    */
-  return function(message, _cb) {
+  return function (message, _cb) {
     const cb = typeof message === 'function' ? message : _cb;
 
     let orig = obj._super;
     Object.defineProperty(Object.getPrototypeOf(obj), '_super', {
-      set: function() {},
-      get: function() {
+      set: function () {},
+      get: function () {
         return _super;
       },
     });
     // TODO: try/catch this?
     const actual = cb();
     Object.defineProperty(Object.getPrototypeOf(obj), '_super', {
-      set: function(val) {
+      set: function (val) {
         orig = val;
       },
-      get: function() {
+      get: function () {
         return orig;
       },
     });

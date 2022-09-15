@@ -200,7 +200,7 @@ type PassiveHealthCheck struct {
 	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly.
-	EnforcingConsecutive5xx uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific
@@ -236,6 +236,8 @@ type ServiceConfigEntry struct {
 	UpstreamConfig        *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
 	Destination           *DestinationConfig      `json:",omitempty"`
 	MaxInboundConnections int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	Meta                  map[string]string       `json:",omitempty"`
 	CreateIndex           uint64
 	ModifyIndex           uint64

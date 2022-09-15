@@ -8,7 +8,7 @@ export default class PeeredResourceController extends Controller {
     const { searchProperties } = this;
 
     if (!this.abilities.can('use peers')) {
-      return searchProperties.filter(propertyName => propertyName !== 'PeerName');
+      return searchProperties.filter((propertyName) => propertyName !== 'PeerName');
     } else {
       return searchProperties;
     }

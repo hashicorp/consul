@@ -2,9 +2,8 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { env } from '../../../../env';
-import { get } from '@ember/object';
 
-module(`Integration | Service | kv`, function(hooks) {
+module(`Integration | Service | kv`, function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'key-name';
@@ -12,11 +11,11 @@ module(`Integration | Service | kv`, function(hooks) {
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findAllBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findAllBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/kv');
 
-      get(subject, 'store').serializerFor('kv').timestamp = function() {
+      subject.store.serializerFor('kv').timestamp = function () {
         return now;
       };
       return repo(
@@ -48,7 +47,7 @@ module(`Integration | Service | kv`, function(hooks) {
           const expectedPartition = env('CONSUL_PARTITIONS_ENABLED')
             ? partition || undefinedPartition
             : 'default';
-          actual.forEach(item => {
+          actual.forEach((item) => {
             assert.equal(
               item.uid,
               `["${expectedPartition}","${expectedNspace}","${dc}","${item.Key}"]`
@@ -58,21 +57,21 @@ module(`Integration | Service | kv`, function(hooks) {
         }
       );
     });
-    test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+    test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/kv');
 
       return repo(
         'Kv',
         'findBySlug',
         subject,
-        function(stub) {
+        function (stub) {
           return stub(
             `/v1/kv/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
               typeof partition !== 'undefined' ? `&partition=${partition}` : ``
             }`
           );
         },
-        function(service) {
+        function (service) {
           return service.findBySlug({
             id,
             dc,
@@ -80,13 +79,14 @@ module(`Integration | Service | kv`, function(hooks) {
             partition: partition || undefinedPartition,
           });
         },
-        function(actual, expected) {
-          expected(function(payload) {
+        function (actual, expected) {
+          expected(function (payload) {
             const item = payload[0];
             assert.equal(
               actual.uid,
-              `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                undefinedNspace}","${dc}","${item.Key}"]`
+              `["${item.Partition || undefinedPartition}","${
+                item.Namespace || undefinedNspace
+              }","${dc}","${item.Key}"]`
             );
             assert.equal(actual.Datacenter, dc);
           });

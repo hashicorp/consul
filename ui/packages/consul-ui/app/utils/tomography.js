@@ -1,15 +1,15 @@
 // TODO: Istanbul is ignored for the moment as it's not mine,
 // once I come here properly and 100% follow unignore
 /* istanbul ignore file */
-export default function(distance) {
-  return function(name, coordinates) {
+export default function (distance) {
+  return function (name, coordinates) {
     var min = 999999999;
     var max = -999999999;
     var distances = [];
-    coordinates.forEach(function(node) {
+    coordinates.forEach(function (node) {
       if (name == node.Node) {
         var segment = node.Segment;
-        coordinates.forEach(function(other) {
+        coordinates.forEach(function (other) {
           if (node.Node != other.Node && other.Segment == segment) {
             var dist = distance(node, other);
             distances.push({ node: other.Node, distance: dist, segment: segment });
@@ -21,7 +21,7 @@ export default function(distance) {
             }
           }
         });
-        distances.sort(function(a, b) {
+        distances.sort(function (a, b) {
           return a.distance - b.distance;
         });
       }

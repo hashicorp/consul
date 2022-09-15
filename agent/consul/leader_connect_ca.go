@@ -1406,10 +1406,15 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 // identified by the SPIFFE ID in the given CSR's SAN. It performs authorization
 // using the given acl.Authorizer.
 func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
-	// Parse the SPIFFE ID from the CSR SAN.
-	if len(csr.URIs) == 0 {
-		return nil, connect.InvalidCSRError("CSR SAN does not contain a SPIFFE ID")
+	// Note that only one spiffe id is allowed currently. If more than one is desired
+	// in future implmentations, then each ID should have authorization checks.
+	if len(csr.URIs) != 1 {
+		return nil, connect.InvalidCSRError("CSR SAN contains an invalid number of URIs: %v", len(csr.URIs))
 	}
+	if len(csr.EmailAddresses) > 0 {
+		return nil, connect.InvalidCSRError("CSR SAN does not allow specifying email addresses")
+	}
+	// Parse the SPIFFE ID from the CSR SAN.
 	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return nil, err
@@ -1465,7 +1470,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 				"we are %s", v.Datacenter, dc)
 		}
 	default:
-		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, mesh-gateway, or agent ID")
 	}
 
 	return c.SignCertificate(csr, spiffeID)

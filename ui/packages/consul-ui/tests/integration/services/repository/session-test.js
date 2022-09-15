@@ -1,9 +1,8 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-import { get } from '@ember/object';
 
-module(`Integration | Service | session`, function(hooks) {
+module(`Integration | Service | session`, function (hooks) {
   setupTest(hooks);
 
   const dc = 'dc-1';
@@ -12,11 +11,11 @@ module(`Integration | Service | session`, function(hooks) {
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findByNode returns the correct data for list endpoint when the nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findByNode returns the correct data for list endpoint when the nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/session');
 
-      get(subject, 'store').serializerFor('session').timestamp = function() {
+      subject.store.serializerFor('session').timestamp = function () {
         return now;
       };
       return repo(
@@ -42,17 +41,18 @@ module(`Integration | Service | session`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(item =>
+            expected(function (payload) {
+              return payload.map((item) =>
                 Object.assign({}, item, {
                   SyncTime: now,
                   Datacenter: dc,
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.ID}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.ID}"]`,
                 })
               );
             })
@@ -60,20 +60,20 @@ module(`Integration | Service | session`, function(hooks) {
         }
       );
     });
-    test(`findByKey returns the correct data for item endpoint when the nspace is ${nspace}`, function(assert) {
+    test(`findByKey returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/session');
       return repo(
         'Session',
         'findByKey',
         subject,
-        function(stub) {
+        function (stub) {
           return stub(
             `/v1/session/info/${id}?dc=${dc}${
               typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
             }${typeof partition !== 'undefined' ? `&partition=${partition}` : ``}`
           );
         },
-        function(service) {
+        function (service) {
           return service.findByKey({
             id,
             dc,
@@ -81,17 +81,18 @@ module(`Integration | Service | session`, function(hooks) {
             partition: partition || undefinedPartition,
           });
         },
-        function(actual, expected) {
-          assert.deepEqual(
+        function (actual, expected) {
+          assert.propContains(
             actual,
-            expected(function(payload) {
+            expected(function (payload) {
               const item = payload[0];
               return Object.assign({}, item, {
                 Datacenter: dc,
                 Namespace: item.Namespace || undefinedNspace,
                 Partition: item.Partition || undefinedPartition,
-                uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                  undefinedNspace}","${dc}","${item.ID}"]`,
+                uid: `["${item.Partition || undefinedPartition}","${
+                  item.Namespace || undefinedNspace
+                }","${dc}","${item.ID}"]`,
               });
             })
           );

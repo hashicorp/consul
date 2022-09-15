@@ -1815,6 +1815,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				http {
 					sanitize_x_forwarded_client_cert = true
 				}
+				peering {
+					peer_through_mesh_gateways = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1845,7 +1848,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				HTTP {
 					SanitizeXForwardedClientCert = true
-				}	
+				}
+				Peering {
+					PeerThroughMeshGateways = true
+				}
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1875,6 +1881,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},

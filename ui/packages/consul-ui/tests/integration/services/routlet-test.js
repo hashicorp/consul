@@ -1,9 +1,9 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
-module('Integration | Routlet', function(hooks) {
+module('Integration | Routlet', function (hooks) {
   setupTest(hooks);
-  test('outletFor works', function(assert) {
+  test('outletFor works', function (assert) {
     const routlet = this.owner.lookup('service:routlet');
     routlet.addOutlet('application', {
       name: 'application',

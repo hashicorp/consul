@@ -12,8 +12,8 @@ const hbs = (path, attrs = {}) =>
     .replace('{{yield}}', '')
     .replace(hbsRe, (match, prop) => attrs[prop.substr(1)]);
 
-const BrandLoader = attrs => hbs('brand-loader/index.hbs', attrs);
-const Enterprise = attrs => hbs('brand-loader/enterprise.hbs', attrs);
+const BrandLoader = (attrs) => hbs('brand-loader/index.hbs', attrs);
+const Enterprise = (attrs) => hbs('brand-loader/enterprise.hbs', attrs);
 
 module.exports = ({ appName, environment, rootURL, config, env }) => `
   <noscript>

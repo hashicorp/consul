@@ -8,28 +8,28 @@ export default class ServiceSerializer extends Serializer {
 
   respondForQuery(respond, query) {
     return super.respondForQuery(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           // Services and proxies all come together in the same list. Here we
           // map the proxies to their related services on a Service.Proxy
           // property for easy access later on
           const services = {};
           body
-            .filter(function(item) {
+            .filter(function (item) {
               return item.Kind !== 'connect-proxy';
             })
-            .forEach(item => {
+            .forEach((item) => {
               services[item.Name] = item;
             });
           body
-            .filter(function(item) {
+            .filter(function (item) {
               return item.Kind === 'connect-proxy';
             })
-            .forEach(item => {
+            .forEach((item) => {
               // Iterating to cover the usecase of a proxy being used by more
               // than one service
               if (item.ProxyFor) {
-                item.ProxyFor.forEach(service => {
+                item.ProxyFor.forEach((service) => {
                   if (typeof services[service] !== 'undefined') {
                     services[service].Proxy = item;
                   }
@@ -47,7 +47,7 @@ export default class ServiceSerializer extends Serializer {
     // Name is added here from the query, which is used to make the uid
     // Datacenter gets added in the ApplicationSerializer
     return super.respondForQueryRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           return cb(headers, {
             Name: query.id,
