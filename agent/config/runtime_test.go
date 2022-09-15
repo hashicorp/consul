@@ -3051,6 +3051,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -3082,6 +3083,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.TLS.GRPC.VerifyIncoming = true
 			rt.TLS.HTTPS.VerifyIncoming = true
 
@@ -3112,6 +3114,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 			rt.TLS.InternalRPC.VerifyIncoming = true
+			rt.TLS.SpecifiedTLSStanza = true
 
 			// server things
 			rt.ServerMode = true
@@ -4509,7 +4512,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Defaults sanity checks
 
 	run(t, testCase{
@@ -4532,7 +4535,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Auto Config related tests
 	run(t, testCase{
 		desc: "auto config and auto encrypt error",
@@ -4767,6 +4770,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.TLS.InternalRPC.VerifyOutgoing = true
 			rt.TLS.AutoTLS = true
+			rt.TLS.SpecifiedTLSStanza = true
 		},
 	})
 
@@ -5025,6 +5029,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
+			rt.TLS.SpecifiedTLSStanza = true
 			rt.RPCConfig.EnableStreaming = true
 		},
 	})
@@ -5462,6 +5467,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
+			rt.TLS.SpecifiedTLSStanza = true
 
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
@@ -5510,6 +5516,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
+			rt.TLS.SpecifiedTLSStanza = true
 
 			rt.TLS.InternalRPC.VerifyServerHostname = true
 			rt.TLS.InternalRPC.VerifyOutgoing = true
@@ -5537,6 +5544,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = false // TLS stanza was defined but is empty.
 		},
 	})
 	run(t, testCase{
@@ -5558,6 +5566,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = false // TLS stanza was defined but is empty.
 		},
 	})
 	run(t, testCase{
@@ -5604,6 +5613,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = true
+			rt.TLS.SpecifiedTLSStanza = true
 		},
 	})
 	run(t, testCase{
@@ -5632,6 +5642,37 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 			rt.TLS.GRPC.UseAutoCert = false
+			rt.TLS.SpecifiedTLSStanza = true
+		},
+	})
+	run(t, testCase{
+		desc: "SpecifiedTLSStanza is not set if tls stanza was not defined",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"cert_file": "foo",
+				"key_file": "bar"
+			}
+		`},
+		hcl: []string{`
+			cert_file = "foo"
+			key_file = "bar"
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.SpecifiedTLSStanza = false
+			rt.TLS.HTTPS.CertFile = "foo"
+			rt.TLS.HTTPS.KeyFile = "bar"
+			rt.TLS.InternalRPC.CertFile = "foo"
+			rt.TLS.InternalRPC.KeyFile = "bar"
+			rt.TLS.GRPC.CertFile = "foo"
+			rt.TLS.GRPC.KeyFile = "bar"
+		},
+		expectedWarnings: []string{
+			"The 'cert_file' field is deprecated. Use the 'tls.defaults.cert_file' field instead.",
+			"The 'key_file' field is deprecated. Use the 'tls.defaults.key_file' field instead.",
 		},
 	})
 }
@@ -5655,9 +5696,10 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 
 		for i, data := range tc.source(format) {
 			opts.sources = append(opts.sources, FileSource{
-				Name:   fmt.Sprintf("src-%d.%s", i, format),
-				Format: format,
-				Data:   data,
+				Name:     fmt.Sprintf("src-%d.%s", i, format),
+				Format:   format,
+				Data:     data,
+				FromUser: true,
 			})
 		}
 
@@ -6443,6 +6485,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ServerName:              "Oerr9n1G",
 			Domain:                  "7W1xXSqd",
 			EnableAgentTLSForChecks: true,
+			SpecifiedTLSStanza:      true,
 		},
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",

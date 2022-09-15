@@ -70,7 +70,7 @@ type DeprecatedConfig struct {
 	TLSPreferServerCipherSuites *bool `mapstructure:"tls_prefer_server_cipher_suites"`
 }
 
-func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
+func applyDeprecatedConfig(d *decodeTarget, fromUser bool) (Config, []string) {
 	dep := d.DeprecatedConfig
 	var warns []string
 
@@ -172,15 +172,26 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
 	}
 
-	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config)...)
+	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config, fromUser)...)
 
 	return d.Config, warns
 }
 
-func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
+func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config, fromUser bool) []string {
 	var warns []string
 
 	tls := &cfg.TLS
+
+	// If the TLS stanza was specified by the user then we set a flag to indicate that.
+	// This check MUST happen before applying the deprecated options below, or else
+	// the tls struct will never be empty.
+	//
+	// This check was added for compatibility with Consul 1.11 style TLS configuration.
+	// Associated code can be removed once 1.14 is out and 1.11 is no longer supported.
+	if fromUser && !tls.ContainsDefaults() {
+		tls.SpecifiedTLSStanza = pBool(true)
+	}
+
 	defaults := &tls.Defaults
 	internalRPC := &tls.InternalRPC
 	https := &tls.HTTPS

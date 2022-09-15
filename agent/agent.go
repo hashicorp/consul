@@ -838,7 +838,7 @@ func (a *Agent) listenAndServeGRPC() error {
 	if a.config.GRPCPort > 0 {
 		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
 		var tlsConf *tls.Config = nil
-		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
+		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS(a.config.HTTPSPort > 0) {
 			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
 			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
 		}

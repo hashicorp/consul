@@ -75,10 +75,10 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "json", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b"},
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: paths[1], Format: "json", Data: "content b", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b", FromUser: true},
 	}
 	require.Equal(t, expected, b.Sources)
 	require.Len(t, b.Warnings, 2)
@@ -91,12 +91,12 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.
 	require.NoError(t, err)
 
 	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-		FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c"},
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: paths[1], Format: "hcl", Data: "content b", FromUser: true},
+		FileSource{Name: paths[2], Format: "hcl", Data: "content c", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c", FromUser: true},
 	}
 	require.Equal(t, expected, b.Sources)
 }
