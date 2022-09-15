@@ -12,7 +12,7 @@ module('Integration | Adapter | topology', function(hooks) {
     const adapter = this.owner.lookup('adapter:topology');
     const client = this.owner.lookup('service:client/http');
     const request = client.requestParams.bind(client);
-    const expected = `GET /v1/internal/ui/service-topology/${id}?dc=${dc}&kind=${kind}&merge-central-config`;
+    const expected = `GET /v1/internal/ui/service-topology/${id}?dc=${dc}&kind=${kind}`;
     const actual = adapter.requestForQueryRecord(request, {
       dc: dc,
       id: id,

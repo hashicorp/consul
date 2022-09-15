@@ -14,7 +14,7 @@ module('Integration | Adapter | service', function(hooks) {
       const adapter = this.owner.lookup('adapter:service');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
-      const expected = `GET /v1/internal/ui/services?dc=${dc}&merge-central-config${
+      const expected = `GET /v1/internal/ui/services?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter.requestForQuery(request, {
@@ -28,7 +28,7 @@ module('Integration | Adapter | service', function(hooks) {
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
       const gateway = 'gateway';
-      const expected = `GET /v1/internal/ui/gateway-services-nodes/${gateway}?dc=${dc}&merge-central-config${
+      const expected = `GET /v1/internal/ui/gateway-services-nodes/${gateway}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter.requestForQuery(request, {

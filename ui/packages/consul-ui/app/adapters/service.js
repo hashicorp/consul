@@ -4,7 +4,7 @@ export default class ServiceAdapter extends Adapter {
   requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
     if (typeof gateway !== 'undefined') {
       return request`
-        GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc , ['merge-central-config']: null}}
+        GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
         X-Range: ${gateway}
         X-Request-ID: ${uri}
 
@@ -16,7 +16,7 @@ export default class ServiceAdapter extends Adapter {
       `;
     } else {
       return request`
-        GET /v1/internal/ui/services?${{ dc , ['merge-central-config']: null}}
+        GET /v1/internal/ui/services?${{ dc }}
         X-Request-ID: ${uri}
 
         ${{
