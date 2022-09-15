@@ -2,7 +2,6 @@ package xds
 
 import (
 	"bytes"
-	"fmt"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -19,98 +18,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
-
-func TestListenersFromSnapshot2(t *testing.T) {
-	// TODO: we should move all of these to TestAllResourcesFromSnapshot
-	// eventually to test all of the xDS types at once with the same input,
-	// just as it would be triggered by our xDS server.
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	tests := []struct {
-		name   string
-		create func(t testinf.T) *proxycfg.ConfigSnapshot
-		// Setup is called before the test starts. It is passed the snapshot from
-		// TestConfigSnapshot and is allowed to modify it in any way to setup the
-		// test input.
-		setup              func(snap *proxycfg.ConfigSnapshot)
-		overrideGoldenName string
-		generatorSetup     func(*ResourceGenerator)
-	}{
-		{
-			name: "http-upstream-local-request-timeout-rs",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
-					ns.Proxy.Config["protocol"] = "http"
-				}, structs.ConnectProxyConfig{
-					Config: map[string]interface{}{
-						"local_request_timeout_ms": float64(9000),
-						"protocol":                 "grpc",
-					},
-				}, nil)
-			},
-		},
-	}
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
-		require.NoError(t, err)
-		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
-			for _, tt := range tests {
-				t.Run(tt.name, func(t *testing.T) {
-					// Sanity check default with no overrides first
-					snap := tt.create(t)
-
-					// TODO: it would be nice to be able to ensure these snapshots are always valid before we use them in a test.
-					// require.True(t, snap.Valid())
-
-					// We need to replace the TLS certs with deterministic ones to make golden
-					// files workable. Note we don't update these otherwise they'd change
-					// golder files for every test case and so not be any use!
-					setupTLSRootsAndLeaf(t, snap)
-
-					if tt.setup != nil {
-						tt.setup(snap)
-					}
-
-					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, false)
-					g.ProxyFeatures = sf
-					if tt.generatorSetup != nil {
-						tt.generatorSetup(g)
-					}
-
-					listeners, err := g.listenersFromSnapshot(snap)
-					require.NoError(t, err)
-
-					// The order of listeners returned via LDS isn't relevant, so it's safe
-					// to sort these for the purposes of test comparisons.
-					sort.Slice(listeners, func(i, j int) bool {
-						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
-					})
-
-					r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
-					require.NoError(t, err)
-
-					t.Run("current", func(t *testing.T) {
-						gotJSON := protoToJSON(t, r)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
-						require.JSONEq(t, expectedJSON, gotJSON)
-					})
-				})
-			}
-		})
-		break
-	}
-}
 
 func TestListenersFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
@@ -298,6 +205,20 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
 				}, structs.ConnectProxyConfig{}, nil)
+			},
+		},
+		{
+			name: "http-upstream-local-request-timeout-rs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+					ns.Proxy.Config["protocol"] = "http"
+				}, structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"local_request_timeout_ms": float64(9000),
+						"protocol":                 "grpc",
+					},
+				}, nil)
 			},
 		},
 		{
