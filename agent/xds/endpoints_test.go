@@ -285,12 +285,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "connect-proxy-with-chain-and-failover-to-cluster-peer",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
-			},
-		},
-		{
 			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", nil, nil)

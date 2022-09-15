@@ -980,7 +980,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	// Mesh gateways are exempt because upstreamsSnapshot is only used for
 	// cluster peering targets and transative failover/redirects are unsupported.
 	if err != nil && !forMeshGateway {
-		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", cfgSnap.Kind)
+		return nil, err
 	}
 
 	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
@@ -1038,11 +1038,11 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		// These variables are prefixed with primary to avoid shaddowing bugs.
 		primaryTargetID := node.Resolver.Target
 		primaryTarget := chain.Targets[primaryTargetID]
-		primaryClusterName := CustomizeClusterName(primaryTarget.Name, chain)
-		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, node.Resolver.ConnectTimeout)
-		if forMeshGateway {
-			primaryClusterName = meshGatewayExportedClusterNamePrefix + primaryClusterName
+		primaryTargetClusterData, ok := s.getTargetClusterData(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
+		if !ok {
+			continue
 		}
+		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, node.Resolver.ConnectTimeout)
 
 		if forMeshGateway && !cfgSnap.Locality.Matches(primaryTarget.Datacenter, primaryTarget.Partition) {
 			s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
@@ -1052,54 +1052,28 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			continue
 		}
 
-		type targetClusterOption struct {
-			targetID    string
-			clusterName string
-		}
-
 		// Construct the information required to make  target clusters. When
 		// failover is configured, create the aggregate cluster.
-		var targetClustersOptions []targetClusterOption
+		var targetClustersData []targetClusterData
 		if failover != nil && !forMeshGateway {
 			var failoverClusterNames []string
 			for _, tid := range append([]string{primaryTargetID}, failover.Targets...) {
-				target := chain.Targets[tid]
-				clusterName := target.Name
-				targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
-				if targetUID.Peer != "" {
-					tbs, ok := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
-					// We can't generate cluster on peers without the trust bundle. The
-					// trust bundle should be ready soon.
-					if !ok {
-						s.Logger.Debug("peer trust bundle not ready for discovery chain target",
-							"peer", targetUID.Peer,
-							"target", tid,
-						)
-						continue
-					}
-
-					clusterName = generatePeeredClusterName(targetUID, tbs)
+				if td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, tid, forMeshGateway, true); ok {
+					targetClustersData = append(targetClustersData, td)
+					failoverClusterNames = append(failoverClusterNames, td.clusterName)
 				}
-				clusterName = CustomizeClusterName(clusterName, chain)
-				clusterName = failoverClusterNamePrefix + clusterName
-
-				targetClustersOptions = append(targetClustersOptions, targetClusterOption{
-					targetID:    tid,
-					clusterName: clusterName,
-				})
-				failoverClusterNames = append(failoverClusterNames, clusterName)
 			}
 
 			aggregateClusterConfig, err := anypb.New(&envoy_aggregate_cluster_v3.ClusterConfig{
 				Clusters: failoverClusterNames,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to construct the aggregate cluster %q: %v", primaryClusterName, err)
+				return nil, fmt.Errorf("failed to construct the aggregate cluster %q: %v", primaryTargetClusterData.clusterName, err)
 			}
 
 			c := &envoy_cluster_v3.Cluster{
-				Name:           primaryClusterName,
-				AltStatName:    primaryClusterName,
+				Name:           primaryTargetClusterData.clusterName,
+				AltStatName:    primaryTargetClusterData.clusterName,
 				ConnectTimeout: durationpb.New(node.Resolver.ConnectTimeout),
 				LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
@@ -1112,15 +1086,12 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 			out = append(out, c)
 		} else {
-			targetClustersOptions = append(targetClustersOptions, targetClusterOption{
-				targetID:    primaryTargetID,
-				clusterName: primaryClusterName,
-			})
+			targetClustersData = append(targetClustersData, primaryTargetClusterData)
 		}
 
 		// Construct the target clusters.
-		for _, targetInfo := range targetClustersOptions {
-			target := chain.Targets[targetInfo.targetID]
+		for _, targetData := range targetClustersData {
+			target := chain.Targets[targetData.targetID]
 			sni := target.SNI
 			var additionalSpiffeIDs []string
 
@@ -1131,8 +1102,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				Datacenter: target.Datacenter,
 				Service:    target.Service,
 			}.URI().String()
-			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetInfo.targetID)
-			s.Logger.Debug("generating cluster for", "cluster", targetInfo.clusterName)
+			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetData.targetID)
 			if targetUID.Peer != "" {
 				peerMeta := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
 				upstreamCluster, err := s.makeUpstreamClusterForPeerService(targetUID, upstreamConfig, peerMeta, cfgSnap)
@@ -1140,14 +1110,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					continue
 				}
 				// Override the cluster name to include the failover-target~ prefix.
-				upstreamCluster.Name = targetInfo.clusterName
+				upstreamCluster.Name = targetData.clusterName
 				out = append(out, upstreamCluster)
 				continue
 			}
 
+			s.Logger.Debug("generating cluster for", "cluster", targetData.clusterName)
 			c := &envoy_cluster_v3.Cluster{
-				Name:                 targetInfo.clusterName,
-				AltStatName:          targetInfo.clusterName,
+				Name:                 targetData.clusterName,
+				AltStatName:          targetData.clusterName,
 				ConnectTimeout:       durationpb.New(node.Resolver.ConnectTimeout),
 				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
 				CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
@@ -1175,7 +1146,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				lb = node.LoadBalancer
 			}
 			if err := injectLBToCluster(lb, c); err != nil {
-				return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", targetInfo.clusterName, err)
+				return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", targetData.clusterName, err)
 			}
 
 			if upstreamConfig.Protocol == "http2" || upstreamConfig.Protocol == "grpc" {
@@ -1674,4 +1645,40 @@ func generatePeeredClusterName(uid proxycfg.UpstreamID, tb *pbpeering.PeeringTru
 		"external",
 		tb.TrustDomain,
 	}, ".")
+}
+
+type targetClusterData struct {
+	targetID    string
+	clusterName string
+}
+
+func (s *ResourceGenerator) getTargetClusterData(upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams, chain *structs.CompiledDiscoveryChain, tid string, forMeshGateway bool, failover bool) (targetClusterData, bool) {
+	target := chain.Targets[tid]
+	clusterName := target.Name
+	targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
+	if targetUID.Peer != "" {
+		tbs, ok := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
+		// We can't generate cluster on peers without the trust bundle. The
+		// trust bundle should be ready soon.
+		if !ok {
+			s.Logger.Debug("peer trust bundle not ready for discovery chain target",
+				"peer", targetUID.Peer,
+				"target", tid,
+			)
+			return targetClusterData{}, false
+		}
+
+		clusterName = generatePeeredClusterName(targetUID, tbs)
+	}
+	clusterName = CustomizeClusterName(clusterName, chain)
+	if failover {
+		clusterName = failoverClusterNamePrefix + clusterName
+	}
+	if forMeshGateway {
+		clusterName = meshGatewayExportedClusterNamePrefix + clusterName
+	}
+	return targetClusterData{
+		targetID:    tid,
+		clusterName: clusterName,
+	}, true
 }

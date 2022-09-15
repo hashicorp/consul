@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Removed Overview page from HCP instalations
+```

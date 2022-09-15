@@ -540,6 +540,8 @@ These metrics are used to monitor the health of the Consul servers.
 | `consul.grpc.server.stream.count`                   | Counts the number of new gRPC streams received by the server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | streams                           | counter |
 | `consul.grpc.server.streams`                        | Measures the number of active gRPC streams handled by the server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | streams                           | gauge   |
 | `consul.xds.server.streams`                         | Measures the number of active xDS streams handled by the server split by protocol version.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | streams                           | gauge   |
+| `consul.xds.server.idealStreamsMax`                 | The maximum number of xDS streams per server, chosen to achieve a roughly even spread of load across servers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | streams                           | gauge   |
+| `consul.xds.server.streamDrained`                   | Counts the number of xDS streams that are drained when rebalancing the load between servers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | streams                           | counter |
 
 
 ## Server Workload
@@ -552,8 +554,6 @@ Label based RPC metrics were added in Consul 1.12.0 as a Beta feature to better 
 | Metric                                | Description                                               | Unit   | Type      |
 | ------------------------------------- | --------------------------------------------------------- | ------ | --------- |
 | `consul.rpc.server.call`              | Measures the elapsed time taken to complete an RPC call.  | ms     | summary   |
-
-Note that values of the `consul.rpc.server.call` may emit as `0 ms`. That means that the elapsed time < `1 ms`.
 
 ### Labels
 
@@ -598,7 +598,7 @@ Here is a Prometheus style example of an RPC metric and its labels:
 
 </CodeBlockConfig>
 
-Any metric in this section can be turned off with the [`prefix_filter`](/docs/agent/options#telemetry-prefix_filter).
+Any metric in this section can be turned off with the [`prefix_filter`](/docs/agent/config/config-files#telemetry-prefix_filter).
 
 ## Cluster Health
 

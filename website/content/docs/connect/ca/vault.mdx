@@ -120,7 +120,7 @@ The configuration options are listed below.
   If the path does not
   exist, Consul will mount a new PKI secrets engine at the specified path with the
   `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
-  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  a [`max_lease_ttl`](https://www.vaultproject.io/api-docs/system/mounts)
   of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11,
   the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable.
   The root certificate will expire at the end of the specified period.

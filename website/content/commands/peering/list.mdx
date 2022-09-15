@@ -1,0 +1,47 @@
+---
+layout: commands
+page_title: 'Commands: Peering List'
+---
+
+# Consul Peering List
+
+Command: `consul peering List`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/peerings](/api-docs/peering#list-all-peerings)
+
+The `peering list` lists all peering connections.
+The results are filtered according to ACL policy configuration.
+
+The table below shows this command's [required ACLs](/api-docs#authentication).
+
+| ACL Required |
+| ------------ |
+| `peering:read`  |
+
+## Usage
+
+Usage: `consul peering list [options]`
+
+#### Command Options
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+The following example lists all peering connections associated with the cluster:
+
+```shell-session hideClipboard
+$ consul peering list
+Name        State    Imported Svcs  Exported Svcs  Meta
+cluster-02  ACTIVE   0              2              env=production
+cluster-03  PENDING  0              0
+```
+

@@ -349,7 +349,7 @@ ACL policies can have the following attributes:
 | `namespace`   | <EnterpriseAlert inline /> Namespace in which the policy is valid. Added in Consul Enterprise 1.7.0.                                                                                             | Optional | `default` |
 | `partition`   | <EnterpriseAlert inline /> Admin partition in which the policy is valid. Added in Consul Enterprise 1.11.0                                                                                       | Optional | `default` |
 
--> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/docs/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/docs/acl/acl-rules#admin-partition-rules) for additional information.
+-> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/docs/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 
 You can view the current ACL policies on the command line or through the API. The following example demonstrates the command line usage:
 

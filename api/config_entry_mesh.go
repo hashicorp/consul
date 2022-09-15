@@ -23,6 +23,8 @@ type MeshConfigEntry struct {
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`
 
+	Peering *PeeringMeshConfig `json:",omitempty"`
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
@@ -52,6 +54,10 @@ type MeshDirectionalTLSConfig struct {
 
 type MeshHTTPConfig struct {
 	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
+}
+
+type PeeringMeshConfig struct {
+	PeerThroughMeshGateways bool `json:",omitempty" alias:"peer_through_mesh_gateways"`
 }
 
 func (e *MeshConfigEntry) GetKind() string            { return MeshConfig }

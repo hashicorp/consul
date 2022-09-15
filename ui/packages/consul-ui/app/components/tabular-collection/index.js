@@ -15,13 +15,13 @@ export default CollectionComponent.extend(Slotted, {
   maxHeight: 500,
   checked: null,
   hasCaption: false,
-  init: function() {
+  init: function () {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
     // TODO: The row height should auto calculate properly from the CSS
     const o = this;
     this['cell-layout'] = new Grid(get(this, 'width'), get(this, 'rowHeight'));
-    this['cell-layout'].formatItemStyle = function(itemIndex) {
+    this['cell-layout'].formatItemStyle = function (itemIndex) {
       let style = formatItemStyle.apply(this, arguments);
       if (o.checked === itemIndex) {
         style = `${style};z-index: 1`;
@@ -29,12 +29,12 @@ export default CollectionComponent.extend(Slotted, {
       return style;
     };
   },
-  didInsertElement: function() {
+  didInsertElement: function () {
     this._super(...arguments);
     this.$element = this.dom.element(`#${this.guid}`);
     this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
-  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
+  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function () {
     const maxRows = get(this, 'rows');
     let height = get(this, 'maxHeight');
     if (maxRows) {
@@ -46,14 +46,14 @@ export default CollectionComponent.extend(Slotted, {
       height: height,
     };
   }),
-  willRender: function() {
+  willRender: function () {
     this._super(...arguments);
     set(this, 'hasCaption', this._isRegistered('caption'));
     set(this, 'hasActions', this._isRegistered('actions'));
   },
   // `ember-collection` bug workaround
   // https://github.com/emberjs/ember-collection/issues/138
-  _needsRevalidate: function() {
+  _needsRevalidate: function () {
     if (this.isDestroyed || this.isDestroying) {
       return;
     }
@@ -64,7 +64,7 @@ export default CollectionComponent.extend(Slotted, {
     }
   },
   actions: {
-    resize: function(e) {
+    resize: function (e) {
       const $tbody = this.$element;
       const $appContent = this.dom.element('.app-view');
       if ($appContent) {
@@ -77,7 +77,7 @@ export default CollectionComponent.extend(Slotted, {
         // TODO: The row height should auto calculate properly from the CSS
         this['cell-layout'] = new Grid($appContent.clientWidth, get(this, 'rowHeight'));
         const o = this;
-        this['cell-layout'].formatItemStyle = function(itemIndex) {
+        this['cell-layout'].formatItemStyle = function (itemIndex) {
           let style = formatItemStyle.apply(this, arguments);
           if (o.checked === itemIndex) {
             style = `${style};z-index: 1`;
@@ -88,10 +88,10 @@ export default CollectionComponent.extend(Slotted, {
         this.updateScrollPosition();
       }
     },
-    click: function(e) {
+    click: function (e) {
       return this.dom.clickFirstAnchor(e);
     },
-    change: function(index, e = {}) {
+    change: function (index, e = {}) {
       if (this.$tr) {
         this.$tr.style.zIndex = null;
       }

@@ -41,6 +41,13 @@ may also be licensed in the very same manner.
 However, to avoid the need to configure the license on many client agents and snapshot agents,
 those agents have the capability to retrieve the license automatically under the conditions described below.
 
+Updating the license for an agent depends on the method you used to apply the license.
+- **If you used the `CONSUL_LICENSE`
+environment variable**: After updating the environment variable, restart the affected agents. 
+- **If you used the
+`CONSUL_LICENSE_PATH` environment variable**: Update the license file first. Then, restart the affected agents. 
+- **If you used the `license_path` configuration item**: Update the license file first. Then, run [`consul reload`](/commands/reload) for the affected agents.
+
 #### Client Agent License Retrieval
 
 When a client agent starts without a license in its configuration or environment, it will try to retrieve the

@@ -1,6 +1,6 @@
 import getEnvironment from 'consul-ui/utils/get-environment';
 import { module, test } from 'qunit';
-const getEntriesByType = function(type) {
+const getEntriesByType = function (type) {
   return [
     {
       initiatorType: 'script',
@@ -9,8 +9,8 @@ const getEntriesByType = function(type) {
     },
   ];
 };
-const makeGetElementsBy = function(str) {
-  return function(name) {
+const makeGetElementsBy = function (str) {
+  return function (name) {
     return [
       {
         src: str,
@@ -19,7 +19,7 @@ const makeGetElementsBy = function(str) {
     ];
   };
 };
-const makeOperatorConfig = function(json) {
+const makeOperatorConfig = function (json) {
   return {
     textContent: JSON.stringify(json),
   };
@@ -32,7 +32,7 @@ const win = {
     hash: '',
   },
   localStorage: {
-    getItem: function(key) {},
+    getItem: function (key) {},
   },
 };
 const doc = {
@@ -41,25 +41,25 @@ const doc = {
   getElementsByName: makeGetElementsBy('{}'),
   querySelector: () => makeOperatorConfig({}),
 };
-module('Unit | Utility | getEnvironment', function() {
-  test('it returns a function', function(assert) {
+module('Unit | Utility | getEnvironment', function () {
+  test('it returns a function', function (assert) {
     const config = {};
     const env = getEnvironment(config, win, doc);
     assert.ok(typeof env === 'function');
   });
-  test('it returns the correct operator value', function(assert) {
+  test('it returns the correct operator value', function (assert) {
     const config = {};
     const env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_HTTP_PROTOCOL'), 'spdy');
   });
-  test('it returns the correct operator value when set via config', function(assert) {
+  test('it returns the correct operator value when set via config', function (assert) {
     const config = {
       CONSUL_HTTP_PROTOCOL: 'hq',
     };
     const env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_HTTP_PROTOCOL'), 'hq');
   });
-  test('it returns the correct URL for the root of the UI', function(assert) {
+  test('it returns the correct URL for the root of the UI', function (assert) {
     let config = {
       environment: 'production',
     };
@@ -83,7 +83,7 @@ module('Unit | Utility | getEnvironment', function() {
     assert.equal(env('CONSUL_BASE_UI_URL'), expected);
   });
 
-  test('it returns the correct max connections depending on protocol', function(assert) {
+  test('it returns the correct max connections depending on protocol', function (assert) {
     let config = {
       CONSUL_HTTP_PROTOCOL: 'hq',
     };
@@ -95,7 +95,7 @@ module('Unit | Utility | getEnvironment', function() {
     env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
   });
-  test('it returns the correct max connections if performance.getEntriesByType is not available', function(assert) {
+  test('it returns the correct max connections if performance.getEntriesByType is not available', function (assert) {
     const config = {};
     let win = {};
     let env = getEnvironment(config, win, doc);
@@ -106,11 +106,11 @@ module('Unit | Utility | getEnvironment', function() {
     env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
   });
-  test('it returns the correct user value', function(assert) {
+  test('it returns the correct user value', function (assert) {
     const config = {};
     let win = {
       localStorage: {
-        getItem: function(key) {
+        getItem: function (key) {
           return '1';
         },
       },
@@ -119,7 +119,7 @@ module('Unit | Utility | getEnvironment', function() {
     assert.ok(env('CONSUL_UI_DISABLE_REALTIME'));
     win = {
       localStorage: {
-        getItem: function(key) {
+        getItem: function (key) {
           return '0';
         },
       },
@@ -128,7 +128,7 @@ module('Unit | Utility | getEnvironment', function() {
     assert.notOk(env('CONSUL_UI_DISABLE_REALTIME'));
     win = {
       localStorage: {
-        getItem: function(key) {
+        getItem: function (key) {
           return null;
         },
       },
@@ -136,14 +136,14 @@ module('Unit | Utility | getEnvironment', function() {
     env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_UI_DISABLE_REALTIME'));
   });
-  test('it returns the correct user value when set via config', function(assert) {
+  test('it returns the correct user value when set via config', function (assert) {
     const config = {
       CONSUL_UI_DISABLE_REALTIME: true,
     };
     const env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_UI_DISABLE_REALTIME'));
   });
-  test('it returns the correct dev value (via cookies)', function(assert) {
+  test('it returns the correct dev value (via cookies)', function (assert) {
     let config = {
       environment: 'test',
       CONSUL_NSPACES_ENABLED: false,
@@ -169,7 +169,7 @@ module('Unit | Utility | getEnvironment', function() {
     env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
   });
-  test('it returns the correct dev value when set via config', function(assert) {
+  test('it returns the correct dev value when set via config', function (assert) {
     let config = {
       CONSUL_NSPACES_ENABLED: true,
     };
@@ -181,7 +181,7 @@ module('Unit | Utility | getEnvironment', function() {
     env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
   });
-  test("it returns the correct dev value (ignoring cookies when the environment doesn't allow it)", function(assert) {
+  test("it returns the correct dev value (ignoring cookies when the environment doesn't allow it)", function (assert) {
     let config = {
       environment: 'production',
       CONSUL_NSPACES_ENABLED: false,

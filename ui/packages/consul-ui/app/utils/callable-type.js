@@ -1,6 +1,6 @@
-export default function(obj) {
+export default function (obj) {
   if (typeof obj !== 'function') {
-    return function() {
+    return function () {
       return obj;
     };
   } else {

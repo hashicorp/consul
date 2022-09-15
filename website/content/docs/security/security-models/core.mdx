@@ -83,7 +83,7 @@ environment and adapt these configurations accordingly.
   - [`tls.internal_rpc.verify_incoming`](/docs/agent/config/config-files#tls_internal_rpc_verify_incoming) - By default this is false,
     and should almost always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
-  - [`tls.grpc.verify_incoming`](/docs/agent/options#tls_grpc_verify_incoming) - By default this is false, and should
+  - [`tls.grpc.verify_incoming`](/docs/agent/config/config-files#tls_grpc_verify_incoming) - By default this is false, and should
     be set to true to require clients to provide a valid TLS certificate when the Consul gRPC API is enabled. TLS for
     the API may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 

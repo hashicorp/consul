@@ -96,7 +96,7 @@ Consul snapshot agents will attempt to retrieve the license from servers if cert
 
 ## Q: Where can users get a trial license for Consul Enterprise?
 
-Visit [consul.io/trial](/trial) for a free 30-day trial license.
+Visit [consul.io/trial](https://www.hashicorp.com/products/consul/trial) for a free 30-day trial license.
 
 ~> **Trial install will cease operation 24 hours after 30-day license expiration**:
    Trial licenses are not meant to be used in production.
@@ -152,10 +152,10 @@ Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 1. In order to use Consul Enterprise 1.10.0 or greater on Kubernetes you must use version 0.32.0 or greater of the Helm chart.
 1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, refer to [how to obtain a copy of your license](/docs/enterprise/license/faq#q-i-m-an-existing-enterprise-customer-but-don-t-have-my-license-how-can-i-get-it).
-Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise).
+Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/docs/k8s/deployment-configurations/consul-enterprise).
 1. Follow the [Kubernetes Upgrade Docs](/docs/k8s/upgrade) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
 
-~> **WARNING:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise) for more details.
+!> **Warning:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/docs/k8s/deployment-configurations/consul-enterprise) for more details.
 
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 

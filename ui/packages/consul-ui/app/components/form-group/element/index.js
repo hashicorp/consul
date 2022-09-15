@@ -21,15 +21,12 @@ export default class Element extends Component {
     }
   }
   get prop() {
-    return `${this.args.name
-      .toLowerCase()
-      .split('.')
-      .join('-')}`;
+    return `${this.args.name.toLowerCase().split('.').join('-')}`;
   }
   get state() {
     const error = this.touched && this.args.error;
     return {
-      matches: name => name === 'error' && error,
+      matches: (name) => name === 'error' && error,
     };
   }
 

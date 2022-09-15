@@ -19,7 +19,7 @@ for those changes to take effect.
 
 For example, if you've installed Consul with the following:
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -27,7 +27,7 @@ global:
 connectInject:
   enabled: false
 ```
-  
+
 </CodeBlockConfig>
 
 And you wish to set `connectInject.enabled` to `true`:
@@ -45,7 +45,7 @@ To update your deployment configuration using Helm, perform the following steps.
 1. Determine your current installed chart version.
 
   ```shell-session
-  $ helm list --filter consul --namespace consul 
+  $ helm list --filter consul --namespace consul
   NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
   consul	consul   	2       	2022-02-02 21:49:45.647678 -0800 PST	deployed	consul-0.40.0	1.11.2
   ```
@@ -119,7 +119,7 @@ to update to the new version.
 1. Ensure you've read the [Upgrading Consul](/docs/upgrading) documentation.
 1. Ensure you've read any [specific instructions](/docs/upgrading/upgrade-specific) for the version you're upgrading
    to and the Consul [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md) for that version.
-1. Read our [Compatibility Matrix](/docs/k8s/installation/compatibility) to ensure
+1. Read our [Compatibility Matrix](/docs/k8s/compatibility) to ensure
    your current Helm chart version supports this Consul version. If it does not,
    you may need to also upgrade your Helm chart version at the same time.
 1. Set `global.image` in your `values.yaml` to the desired version:
@@ -252,8 +252,8 @@ To initiate the upgrade:
    By default there are 3 servers, so you would set this value to `3`
 1. Set the `updateStrategy` for clients to `OnDelete`
 
-  <CodeBlockConfig filename="config.yaml">
-  
+  <CodeBlockConfig filename="values.yaml">
+
   ```yaml
   global:
     image: 'consul:123.456'
@@ -263,7 +263,7 @@ To initiate the upgrade:
     updateStrategy: |
       type: OnDelete
   ```
-  
+
   </CodeBlockConfig>
 
   The `updatePartition` value controls how many instances of the server

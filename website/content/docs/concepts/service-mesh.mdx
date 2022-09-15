@@ -25,7 +25,7 @@ Some of the benefits of a service mesh include;
 - authentication and authorization,
 - network automation
 
-A common use case for leveraging a service mesh is to achieve a [_zero trust_ model](/use-cases/zero-trust-networking).
+A common use case for leveraging a service mesh is to achieve a [_zero trust_ model](https://www.consul.io/use-cases/zero-trust-networking).
 In a zero trust model, applications require identity-based access to ensure all communication within the service mesh is authenticated with TLS certificates and encrypted in transit.
 
 In traditional security strategies, protection is primarily focused at the perimeter of a network.
@@ -43,7 +43,7 @@ The control plane is responsible for securing the mesh, facilitating service dis
 The data plane handles communication between services.
 Many service mesh solutions employ a sidecar proxy to handle data plane communications, and thus limit the level of awareness the services need to have about the network environment.
 
-![Overview of a service mesh](/img/what_is_service_mesh_1.png)
+![Overview of a service mesh](/img/what_is_service_mesh\_1.png)
 
 ## API gateway vs service mesh
 
@@ -59,7 +59,7 @@ The mesh reduces the load balancer footprint as routing responsibilities are han
 
 API gateways can be used with a service mesh to bridge external networks (non-mesh) with a service mesh.
 
--> **API gateways and traffic direction**: API gateways are often used to accept north-south traffic. North-south traffic is networking traffic that either enters or exits a data center or a virtual private network (VPC).
+-> **API gateways and traffic direction:** API gateways are often used to accept north-south traffic. North-south traffic is networking traffic that either enters or exits a data center or a virtual private network (VPC).
 A service mesh is primarily used for handling east-west traffic. East-west traffic traditionally remains inside a data center or a VPC.
 A service mesh can be connected to another service mesh in another data center or VPC to form a federated mesh.
 

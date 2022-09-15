@@ -1,4 +1,4 @@
-export default function(visitable, submitable, deletable, cancelable, clickable) {
+export default function (visitable, submitable, deletable, cancelable, clickable) {
   return submitable(
     cancelable(
       deletable({

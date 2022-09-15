@@ -1,5 +1,5 @@
 export default (css) => {
-/*%visually-hidden {*/
+  /*%visually-hidden {*/
   return css`
     @keyframes visually-hidden {
       100% {
@@ -14,5 +14,5 @@ export default (css) => {
       }
     }
   `;
-/*}*/
-}
+  /*}*/
+};

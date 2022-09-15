@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -253,7 +254,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -374,10 +375,13 @@ type Server struct {
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer *peering.Server
 
+	// xdsCapacityController controls the number of concurrent xDS streams the
+	// server is able to handle.
+	xdsCapacityController *xdscapacity.Controller
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
-
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)
@@ -749,6 +753,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
+
+	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
+		Logger:         s.logger.Named(logging.XDSCapacityController),
+		GetStore:       func() xdscapacity.Store { return s.fsm.State() },
+		SessionLimiter: flat.XDSStreamLimiter,
+	})
+	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -1357,6 +1368,11 @@ func (s *Server) WANMembers() []serf.Member {
 		return nil
 	}
 	return s.serfWAN.Members()
+}
+
+// GetPeeringBackend is a test helper.
+func (s *Server) GetPeeringBackend() peering.Backend {
+	return s.peeringBackend
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster.

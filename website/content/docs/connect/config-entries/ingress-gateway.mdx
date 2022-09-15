@@ -15,7 +15,7 @@ You can define an `ingress-gateway` configuration entry to connect the Consul se
 
 Refer to the [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
 
-For other platforms, see [Ingress Gateway](/docs/connect/ingress-gateway).
+For other platforms, see [Ingress Gateway](/docs/connect/gateways/ingress-gateway).
 
 ## Requirements
 
@@ -161,7 +161,7 @@ Refer to the [Available Fields](#available-fields) section for complete informat
 
 ### Scope
 
-[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/gateways/ingress-gateway) for more information.
 
 ### Wildcard Service Specification
 

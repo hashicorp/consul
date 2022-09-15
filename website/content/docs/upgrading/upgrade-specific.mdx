@@ -14,6 +14,28 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.14.x
+
+### Service Mesh Compatibility
+
+##### Changes to gRPC TLS configuration
+
+**Make configuration changes** if using sidecar proxies or gateways that include any of the following configuration file values:
+1. [`ports.https`](/docs/agent/config/config-files#https_port) - Encrypts gRPC in Consul 1.12 and prior
+1. [`auto_encrypt`](/docs/agent/config/config-files#auto_encrypt) - Encrypts gRPC in Consul 1.13 and prior
+1. [`auto_config`](/docs/agent/config/config-files#auto_config) - Encrypts gRPC in Consul 1.13 and prior
+
+Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
+
+Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration 
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config- 
+files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14, 
+`ports.grpc_tls` is the recommended configuration to encrypt gRPC traffic.
+
+For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
+
+If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility with future releases.
+
 ## Consul 1.13.x
 
 ### Service Mesh Compatibility
@@ -1149,7 +1171,7 @@ and the agents need to be running version 0.7 or later in order to use this
 feature.
 
 These translated addresses could break HTTP endpoint consumers that are
-expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api#translated-addresses)
+expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api-docs#translated-addresses)
 header was added to allow clients to detect if translation is enabled for HTTP
 responses. A "lan" tag was added to `TaggedAddresses` for clients that need
 the local address regardless of translation.
@@ -1283,7 +1305,7 @@ this:
 This automatic upgrade will only exist in Consul 0.5.1+ and it will
 be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly
 from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
-[Consul Tools page](/docs/download-tools).
+[Consul Tools page](/docs/integrate/download-tools).
 
 ## Consul 0.5
 

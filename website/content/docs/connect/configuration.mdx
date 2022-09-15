@@ -44,7 +44,7 @@ This will enable Connect and configure your Consul cluster to use the
 built-in certificate authority for creating and managing certificates.
 You may also configure Consul to use an external
 [certificate management system](/docs/connect/ca), such as
-[Vault](https://vaultproject.io).
+[Vault](https://www.vaultproject.io/).
 
 Services and proxies may always register with Connect settings, but they will
 fail to retrieve or verify any TLS certificates. This causes all Connect-based
@@ -110,4 +110,4 @@ The Consul Helm chart can automate much of Consul Connect's configuration, and
 makes it easy to automatically inject Envoy sidecars into new pods when they are
 deployed. Learn about the [Helm chart](/docs/platform/k8s/helm) in general,
 or if you are already familiar with it, check out its
-[connect specific configurations](/docs/platform/k8s/connect).
+[connect specific configurations](/docs/k8s/connect).

@@ -151,7 +151,7 @@ $ consul agent -data-dir=/tmp/consul
   specify a `-http-addr` whenever you run commands such as
   [`consul members`](/commands/members) to indicate how to reach the
   agent. Other applications can also use the HTTP address and port
-  [to control Consul](/api).
+  [to control Consul](/api-docs).
 
 - **Cluster Addr**: This is the address and set of ports used for communication
   between Consul agents in a cluster. Not all Consul agents in a cluster have to
@@ -375,9 +375,9 @@ service {
 
 The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
 
-The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/docs/agent/options#bind_addr)).
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/docs/agent/config/config-files#bind_addr)).
 
-The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/docs/agent/options#client_addr)).
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/docs/agent/config/config-files#client_addr)).
 
 <CodeTabs>
 

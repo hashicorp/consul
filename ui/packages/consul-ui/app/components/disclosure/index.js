@@ -17,7 +17,7 @@ export default class DisclosureComponent extends Component {
   remove(id) {
     this.ids = this.ids
       .split(' ')
-      .filter(item => item !== id)
+      .filter((item) => item !== id)
       .join(' ');
   }
 }

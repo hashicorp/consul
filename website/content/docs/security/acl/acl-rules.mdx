@@ -338,7 +338,7 @@ A token with `write` access on a prefix also has `list` access. A token with `li
 #### Sentinel Integration <EnterpriseAlert inline />
 
 Consul Enterprise supports additional optional fields for key write policies for
-[Sentinel](https://docs.hashicorp.com/sentinel/consul/) integration.
+[Sentinel](https://docs.hashicorp.com/sentinel/consul) integration.
 
 ```hcl
 key "foo" {
@@ -586,7 +586,7 @@ These actions may required an ACL token to complete. Use the following methods t
   This allows a single token to be used during all check registration operations.
 * Provide an ACL token with `service` and `check` definitions at registration time.
   This allows for greater flexibility and enables the use of multiple tokens on the same agent.
-  Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
+  Refer to the [services](/docs/agent/services) and [checks](/docs/discovery/checks) documentation for examples.
   Tokens may also be passed to the [HTTP API](/api-docs) for operations that require them.
 
 ## Operator Rules

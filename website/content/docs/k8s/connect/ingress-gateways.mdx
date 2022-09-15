@@ -27,7 +27,7 @@ Adding an ingress gateway is a multi-step process that consists of the following
 
 When deploying the Helm chart you must provide Helm with a custom YAML file that contains your environment configuration.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -261,7 +261,7 @@ leaving an open and unauthenticated load balancer alive in your cluster.
 
 To delete the ingress gateway, set enabled to `false` in your Helm configuration:
 
-<CodeBlockConfig filename="config.yaml" highlight="8">
+<CodeBlockConfig filename="values.yaml" highlight="8">
 
 ```yaml
 global:
@@ -283,5 +283,5 @@ ingressGateways:
 And run Helm upgrade:
 
 ```shell-session
-$ helm upgrade consul hashicorp/consul --values config.yaml
+$ helm upgrade consul hashicorp/consul --values values.yaml
 ```

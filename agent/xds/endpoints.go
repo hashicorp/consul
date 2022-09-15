@@ -462,7 +462,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	// Mesh gateways are exempt because upstreamsSnapshot is only used for
 	// cluster peering targets and transative failover/redirects are unsupported.
 	if err != nil && !forMeshGateway {
-		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", cfgSnap.Kind)
+		return nil, err
 	}
 
 	var resources []proto.Message
@@ -505,65 +505,38 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			targetID    string
 			clusterName string
 		}
-		var targetLoadAssignmentOptions []targetLoadAssignmentOption
+		var targetsClustersData []targetClusterData
 
 		var numFailoverTargets int
 		if failover != nil {
 			numFailoverTargets = len(failover.Targets)
 		}
-		clusterNamePrefix := ""
 		if numFailoverTargets > 0 && !forMeshGateway {
-			clusterNamePrefix = failoverClusterNamePrefix
 			for _, targetID := range append([]string{primaryTargetID}, failover.Targets...) {
-				target := chain.Targets[targetID]
-				clusterName := target.Name
-				targetUID := proxycfg.NewUpstreamIDFromTargetID(targetID)
-				if targetUID.Peer != "" {
-					tbs, ok := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
-					// We can't generate cluster on peers without the trust bundle. The
-					// trust bundle should be ready soon.
-					if !ok {
-						s.Logger.Debug("peer trust bundle not ready for discovery chain target",
-							"peer", targetUID.Peer,
-							"target", targetID,
-						)
-						continue
-					}
-
-					clusterName = generatePeeredClusterName(targetUID, tbs)
+				targetData, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, true)
+				if !ok {
+					continue
 				}
-				clusterName = CustomizeClusterName(clusterName, chain)
-				clusterName = failoverClusterNamePrefix + clusterName
 				if escapeHatchCluster != nil {
-					clusterName = escapeHatchCluster.Name
+					targetData.clusterName = escapeHatchCluster.Name
 				}
 
-				targetLoadAssignmentOptions = append(targetLoadAssignmentOptions, targetLoadAssignmentOption{
-					targetID:    targetID,
-					clusterName: clusterName,
-				})
+				targetsClustersData = append(targetsClustersData, targetData)
 			}
 		} else {
-			target := chain.Targets[primaryTargetID]
-			clusterName := CustomizeClusterName(target.Name, chain)
-			clusterName = clusterNamePrefix + clusterName
-			if escapeHatchCluster != nil {
-				clusterName = escapeHatchCluster.Name
+			if td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false); ok {
+				if escapeHatchCluster != nil {
+					td.clusterName = escapeHatchCluster.Name
+				}
+				targetsClustersData = append(targetsClustersData, td)
 			}
-			if forMeshGateway {
-				clusterName = meshGatewayExportedClusterNamePrefix + clusterName
-			}
-			targetLoadAssignmentOptions = append(targetLoadAssignmentOptions, targetLoadAssignmentOption{
-				targetID:    primaryTargetID,
-				clusterName: clusterName,
-			})
 		}
 
-		for _, targetInfo := range targetLoadAssignmentOptions {
-			s.Logger.Debug("generating endpoints for", "cluster", targetInfo.clusterName)
-			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetInfo.targetID)
+		for _, targetOpt := range targetsClustersData {
+			s.Logger.Debug("generating endpoints for", "cluster", targetOpt.clusterName)
+			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetOpt.targetID)
 			if targetUID.Peer != "" {
-				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetInfo.clusterName, targetUID)
+				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID)
 				if err != nil {
 					return nil, err
 				}
@@ -577,7 +550,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				chain.Targets,
 				upstreamEndpoints,
 				gatewayEndpoints,
-				targetInfo.targetID,
+				targetOpt.targetID,
 				gatewayKey,
 				forMeshGateway,
 			)
@@ -586,7 +559,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 
 			la := makeLoadAssignment(
-				targetInfo.clusterName,
+				targetOpt.clusterName,
 				[]loadAssignmentEndpointGroup{endpointGroup},
 				gatewayKey,
 			)

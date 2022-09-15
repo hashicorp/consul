@@ -50,6 +50,7 @@ Available commands are:
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
     operator       Provides cluster-level tools for Consul operators
+    peering        Create and manage peering connections between Consul clusters
     reload         Triggers the agent to reload configuration files
     rtt            Estimates network round trip time between nodes
     services       Interact with services
@@ -93,7 +94,7 @@ Command Options
 
 ## Authentication
 
-When the [ACL system is enabled](/docs/agent/options#acl_enabled) the Consul CLI will
+When the [ACL system is enabled](/docs/agent/config/config-files#acl) the Consul CLI will
 require an [ACL token](/docs/security/acl#tokens) to perform API requests.
 
 The ACL token can be provided directly on the command line using the `-token` command line flag,

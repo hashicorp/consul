@@ -226,14 +226,14 @@ Use these links to navigate to a particular top-level stanza.
         ```
         and check the name of `metadata.name`.
 
-      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's 
+      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's
         CA and issue a certificate and private key.
-        A Vault policy must be created which grants issue capabilities to 
+        A Vault policy must be created which grants issue capabilities to
         `global.secretsBackend.vault.controller.tlsCert.secretName`.
 
       - `connectInjectRole` ((#v-global-secretsbackend-vault-connectinjectrole)) (`string: ""`) - The Vault role to read Consul connect-injector webhook's CA
         and issue a certificate and private key.
-        A Vault policy must be created which grants issue capabilities to 
+        A Vault policy must be created which grants issue capabilities to
         `global.secretsBackend.vault.connectInject.tlsCert.secretName`.
 
       - `consulCARole` ((#v-global-secretsbackend-vault-consulcarole)) (`string: ""`) - The Vault role for all Consul components to read the Consul's server's CA Certificate (unauthenticated).
@@ -271,10 +271,10 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-           For more details, [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
           Please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#configuration)
@@ -287,8 +287,8 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "leaf_cert_ttl": "36h",
-                     "namespace": "my-vault-ns"
+                     "namespace": "my-vault-ns",
+                     "leaf_cert_ttl": "36h"
                   }]
               }]
             }
@@ -296,14 +296,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `controller` ((#v-global-secretsbackend-vault-controller))
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
+        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes CRD creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the controller.
 
           - `secretName` ((#v-global-secretsbackend-vault-controller-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for controller
             webhooks.
 
-        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
+        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes CRD creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the controller.
 
@@ -312,14 +312,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
 
-        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
+        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes pod creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the ConnectInject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
             Connect Inject webhooks.
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
+        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes pod creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the ConnectInject.
 
@@ -506,8 +506,7 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.  This should only be set for datacenters
-      that are not the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
@@ -517,7 +516,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
+      Please see the [Kubernetes Auth Method documentation](/docs/security/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -566,7 +565,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
 
-  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
+  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from
     the API before cancelling the request.
 
 ### server ((#h-server))
@@ -1424,8 +1423,8 @@ Use these links to navigate to a particular top-level stanza.
       already exist, it will be created. Turning this on overrides the
       `consulDestinationNamespace` setting.
       `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
-      If mirroring is enabled, avoid creating any Consul resources in the following 
-      Kubernetes namespaces, as Consul currently reserves these namespaces for 
+      If mirroring is enabled, avoid creating any Consul resources in the following
+      Kubernetes namespaces, as Consul currently reserves these namespaces for
       system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-synccatalog-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
@@ -1567,7 +1566,7 @@ Use these links to navigate to a particular top-level stanza.
   - `disruptionBudget` ((#v-connectinject-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
     for the service mesh sidecar injector.
 
-    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the 
+    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the
       service mesh sidecar injector. If this is enabled, it will only register the budget so long as
       the service mesh is enabled.
 
@@ -1576,6 +1575,47 @@ Use these links to navigate to a particular top-level stanza.
       If you need to set this to `0`, you will need to add a
       --set 'connectInject.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
+
+  - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
+
+    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin.
+      Requires connectInject.enabled to also be true.
+
+    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
+
+    - `cniBinDir` ((#v-connectinject-cni-cnibindir)) (`string: /opt/cni/bin`) - Location on the kubernetes node where the CNI plugin is installed. Shoud be the absolute path and start with a '/'
+      Example on GKE:
+
+      ```yaml
+      cniBinDir: "/home/kubernetes/bin"
+      ```
+
+    - `cniNetDir` ((#v-connectinject-cni-cninetdir)) (`string: /etc/cni/net.d`) - Location on the kubernetes node of all CNI configuration. Should be the absolute path and start with a '/'
+
+    - `resources` ((#v-connectinject-cni-resources)) (`map`) - The resource settings for CNI installer daemonset.
+
+    - `resourceQuota` ((#v-connectinject-cni-resourcequota)) - Resource quotas for running the daemonset as system critical pods
+
+      - `pods` ((#v-connectinject-cni-resourcequota-pods)) (`integer: 5000`)
+
+    - `securityContext` ((#v-connectinject-cni-securitycontext)) (`map`) - The security context for the CNI installer daemonset. This should be a YAML map corresponding to a
+      Kubernetes [SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) object.
+      By default, servers will run as root, with user ID `0` and group ID `0`.
+      Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
+      by the OpenShift platform.
+
+    - `updateStrategy` ((#v-connectinject-cni-updatestrategy)) (`string: null`) - updateStrategy for the CNI installer DaemonSet.
+      See https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy.
+      This should be a multi-line string mapping directly to the updateStrategy
+
+      Example:
+
+      ```yaml
+      updateStrategy: |
+        rollingUpdate:
+          maxUnavailable: 5
+        type: RollingUpdate
+      ```
 
   - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.
@@ -1654,7 +1694,7 @@ Use these links to navigate to a particular top-level stanza.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces. 
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces.
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
@@ -1710,8 +1750,8 @@ Use these links to navigate to a particular top-level stanza.
       of the same name as their k8s namespace, optionally prefixed if
       `mirroringK8SPrefix` is set below. If the Consul namespace does not
       already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul 
-      resources in the following Kubernetes namespaces, as Consul currently reserves these 
+      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul
+      resources in the following Kubernetes namespaces, as Consul currently reserves these
       namespaces for system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
@@ -2345,10 +2385,10 @@ Use these links to navigate to a particular top-level stanza.
 
 ## Helm Chart Examples
 
-The below `config.yaml` results in a single server Consul cluster with a `LoadBalancer` to allow external access to the UI and API.
+The below `values.yaml` results in a single server Consul cluster with a `LoadBalancer` to allow external access to the UI and API.
 
 ```yaml
-# config.yaml
+# values.yaml
 server:
   replicas: 1
   bootstrapExpect: 1
@@ -2358,12 +2398,12 @@ ui:
     type: LoadBalancer
 ```
 
-The below `config.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
+The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
 
 Note, this would require a secret that contains the enterprise license key.
 
 ```yaml
-# config.yaml
+# values.yaml
 global:
   image: 'hashicorp/consul-enterprise:1.4.2-ent'
 

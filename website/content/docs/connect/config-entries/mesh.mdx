@@ -65,8 +65,6 @@ The `mesh` configuration entry can only be created in the `default` namespace an
 
 ```hcl
 Kind      = "mesh"
-Namespace = "default" # Can only be set to "default".
-Partition = "default"
 
 TLS {
   Incoming {
@@ -153,8 +151,6 @@ The `mesh` configuration entry can only be created in the `default` namespace an
 
 ```hcl
 Kind      = "mesh"
-Namespace = "default" # Can only be set to "default".
-Partition = "default"
 
 TransparentProxy {
   MeshDestinationsOnly = true
@@ -189,6 +185,87 @@ spec:
 </Tabs>
 
 Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+
+###  Peer Through Mesh Gateways
+
+Set the `PeerThroughMeshGateways` parameter to `true` to route peering control plane traffic through mesh gateways.
+
+<Tabs>
+<Tab heading="Consul OSS">
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "mesh"
+Peering {
+  PeerThroughMeshGateways = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+spec:
+  peering:
+    peerThroughMeshGateways: true
+```
+
+```json
+{
+  "Kind": "mesh",
+  "Peering": {
+    "PeerThroughMeshGateways": true
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+You can only set the `PeerThroughMeshGateways` attribute on `mesh` configuration entries in the `default` partition.
+The `default` partition owns the traffic routed through the mesh gateway control plane to Consul servers.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "mesh"
+
+Peering {
+  PeerThroughMeshGateways = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+  namespace: default
+spec:
+  peering:
+    peerThroughMeshGateways: true
+```
+
+```json
+{
+  "Kind": "mesh",
+  "Peering": {
+    "PeerThroughMeshGateways": true
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+
 
 ## Available Fields
 
@@ -359,6 +436,21 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\`
                         for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
                         If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
+        },
+      ],
+    },
+    {
+      name: 'Peering',
+      type: 'PeeringMeshConfig: <optional>',
+      description:
+        'Controls configuration specific to [peering connections](/docs/connect/cluster-peering).',
+      children: [
+        {
+          name: 'PeerThroughMeshGateways',
+          type: 'bool: <optional>',
+          description: `Determines if peering control-plane traffic should be routed through mesh gateways.
+                        When enabled, dialing cluster attempt to contact peers through their mesh gateway.
+                        Clusters that accept calls advertise the address of their mesh gateways, rather than the address of their Consul servers.`,
         },
       ],
     },

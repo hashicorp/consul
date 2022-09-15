@@ -1,5 +1,5 @@
-export default function(clickable, is) {
-  return function(obj = {}, scope = '') {
+export default function (clickable, is) {
+  return function (obj = {}, scope = '') {
     if (scope !== '') {
       scope = scope + ' ';
     }

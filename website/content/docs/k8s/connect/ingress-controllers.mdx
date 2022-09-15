@@ -7,15 +7,12 @@ Ingress controllers are pluggable components that must be configured in k8s in o
 
 # Configure Ingress Controllers for Consul on Kubernetes
 
--> This topic requires familiarity with [Ingress Controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)
+-> This topic requires Consul 1.10+, Consul-k8s 0.26+, Consul-helm 0.32+ configured with [Transparent Proxy](/docs/connect/transparent-proxy) mode enabled. In addition, this topic assumes that the reader is familiar with [Ingress Controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/) on Kubernetes. 
 
--> The following information requires Consul 1.10+, Consul-k8s 0.26+, Consul-helm 0.32+ configured with
-[Transparent Proxy](/docs/connect/transparent-proxy) mode enabled.
+~> If you are looking for a fully supported solution for ingress traffic into Consul Service Mesh, please visit [Consul API Gateway](/docs/api-gateway) for instruction on how to install Consul API Gateway along with Consul on Kubernetes.
 
 This page describes a general approach for integrating Ingress Controllers with Consul on Kubernetes to secure traffic from the Controller
 to the backend services by deploying sidecars along with your Ingress Controller. This allows Consul to transparently secure traffic from the ingress point through the entire traffic flow of the service.
-
-If you are looking for a fully supported solution for ingress traffic into Consul Service Mesh, please visit [Consul API Gateway](/docs/api-gateway) for instruction on how to install Consul API Gateway along with Consul on Kubernetes.
 
 A few steps are generally required to enable an Ingress controller to join the mesh and pass traffic through to a service:
 
@@ -92,5 +89,6 @@ These were used in dev environments and are not intended to be fully supported b
 above to your own uses cases.
 
 - [Traefik Consul example - kschoche](https://github.com/kschoche/traefik-consul)
-- [Consul K8s Ingress Controllers examples - joatmon08](https://github.com/joatmon08/consul-k8s-ingress-controllers)
+- [Kong and Traefik Ingress Controller examples - joatmon08](https://github.com/joatmon08/consul-k8s-ingress-controllers)
+- [NGINX Ingress Controller example - dhiaayahci](https://github.com/dhiaayachi/eks-consul-ingressnginx)
 

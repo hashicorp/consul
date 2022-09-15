@@ -133,6 +133,9 @@ type Config struct {
 	// GRPCPort is the port the public gRPC server listens on.
 	GRPCPort int
 
+	// GRPCTLSPort is the port the public gRPC TLS server listens on.
+	GRPCTLSPort int
+
 	// (Enterprise-only) The network segment this agent is part of.
 	Segment string
 

@@ -18,7 +18,6 @@ module.exports = useTestFrameworkDetector({
   },
 
   locals(options) {
-    return {
-    };
+    return {};
   },
 });

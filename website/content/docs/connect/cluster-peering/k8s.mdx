@@ -61,7 +61,7 @@ You must implement the following requirements to create and use cluster peering 
       enableRedirection: true
     server:
       exposeService:
-        enabeld: true
+        enabled: true
     controller:
       enabled: true
     meshGateway:
@@ -166,14 +166,14 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 1. For the service in "cluster-02" that you want to export, add the following [annotation](/docs/k8s/annotations-and-labels) to your service's pods.
 
-    <CodeBlockConfig filename="backend-service.yaml">
+    <CodeBlockConfig filename="backend.yaml">
 
     ```yaml
     # Service to expose backend
     apiVersion: v1
     kind: Service
     metadata:
-      name: backend-service
+      name: backend
     spec:
       selector:
         app: backend
@@ -235,7 +235,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       name: default ## The name of the partition containing the service
     spec:
       services:
-        - name: backend-service ## The name of the service you want to export
+        - name: backend ## The name of the service you want to export
           consumers:
           - peer: cluster-01 ## The name of the peer that receives the service
     ```
@@ -245,7 +245,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 1. Apply the service file and the `ExportedServices` resource for the second cluster.
 
     ```shell-session
-    $ kubectl apply --context $CLUSTER2_CONTEXT --filename backend-service.yaml --filename exportedsvc.yaml
+    $ kubectl apply --context $CLUSTER2_CONTEXT --filename backend.yaml --filename exportedsvc.yaml
     ```
 
 ## Authorize services for peers
@@ -261,11 +261,11 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       name: backend-deny
     spec:
       destination:
-        name: backend-service
+        name: backend
       sources:
        - name: "*"
          action: deny
-       - name: frontend-service
+       - name: frontend
          action: allow
     ```
 
@@ -277,16 +277,16 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yml
     ```
 
-1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). 
+1. For the services in `cluster-01` that you want to access the "backend," add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). 
 
-    <CodeBlockConfig filename="frontend-service.yaml">
+    <CodeBlockConfig filename="frontend.yaml">
 
     ```yaml
     # Service to expose frontend
     apiVersion: v1
     kind: Service
     metadata:
-      name: frontend-service
+      name: frontend
     spec:
       selector:
         app: frontend
@@ -332,7 +332,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
             - name: "LISTEN_ADDR"
               value: "0.0.0.0:9090"
             - name: "UPSTREAM_URIS"
-              value: "http://backend-service.virtual.cluster-02.consul"
+              value: "http://backend.virtual.cluster-02.consul"
             - name: "NAME"
               value: "frontend"
             - name: "MESSAGE"
@@ -346,10 +346,10 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 1. Apply the service file to the first cluster.
 
     ```shell-session
-    $ kubectl --context $CLUSTER1_CONTEXT apply --filename frontend-service.yaml
+    $ kubectl --context $CLUSTER1_CONTEXT apply --filename frontend.yaml
     ```
 
-1. Run the following command in `frontend-service` and check the output to confirm that you peered your clusters successfully.
+1. Run the following command in `frontend` and check the output to confirm that you peered your clusters successfully.
 
     ```shell-session
     $ kubectl --context $CLUSTER1_CONTEXT exec -it $(kubectl --context $CLUSTER1_CONTEXT get pod -l app=frontend -o name) -- curl localhost:9090
@@ -365,9 +365,9 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       "duration": "59.752279ms",
       "body": "Hello World",
       "upstream_calls": {
-        "http://backend-service.virtual.cluster-02.consul": {
+        "http://backend.virtual.cluster-02.consul": {
           "name": "backend",
-          "uri": "http://backend-service.virtual.cluster-02.consul",
+          "uri": "http://backend.virtual.cluster-02.consul",
           "type": "HTTP",
           "ip_addresses": [
             "10.32.2.10"

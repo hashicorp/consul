@@ -415,6 +415,11 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		MeshHTTPConfigToStructs(s.HTTP, &x)
 		t.HTTP = &x
 	}
+	if s.Peering != nil {
+		var x structs.PeeringMeshConfig
+		PeeringMeshConfigToStructs(s.Peering, &x)
+		t.Peering = &x
+	}
 	t.Meta = s.Meta
 }
 func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
@@ -435,6 +440,11 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		var x MeshHTTPConfig
 		MeshHTTPConfigFromStructs(t.HTTP, &x)
 		s.HTTP = &x
+	}
+	if t.Peering != nil {
+		var x PeeringMeshConfig
+		PeeringMeshConfigFromStructs(t.Peering, &x)
+		s.Peering = &x
 	}
 	s.Meta = t.Meta
 }
@@ -495,6 +505,18 @@ func MeshTLSConfigFromStructs(t *structs.MeshTLSConfig, s *MeshTLSConfig) {
 		MeshDirectionalTLSConfigFromStructs(t.Outgoing, &x)
 		s.Outgoing = &x
 	}
+}
+func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	t.PeerThroughMeshGateways = s.PeerThroughMeshGateways
+}
+func PeeringMeshConfigFromStructs(t *structs.PeeringMeshConfig, s *PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	s.PeerThroughMeshGateways = t.PeerThroughMeshGateways
 }
 func RingHashConfigToStructs(s *RingHashConfig, t *structs.RingHashConfig) {
 	if s == nil {

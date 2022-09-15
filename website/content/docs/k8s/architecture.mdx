@@ -16,7 +16,7 @@ Refer to the standard [production deployment guide](https://learn.hashicorp.com/
 
 The server agents are deployed as a `StatefulSet` and use persistent volume
 claims to store the server state. This also ensures that the
-[node ID](/docs/agent/options#_node_id) is persisted so that servers
+[node ID](/docs/agent/config/config-files#node_id) is persisted so that servers
 can be rescheduled onto new IP addresses without causing issues. The server agents
 are configured with
 [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
