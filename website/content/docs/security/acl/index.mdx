@@ -13,10 +13,10 @@ Refer to the following tutorials for step-by-step instructions on how to get sta
 
 - [Bootstrap and Explore ACLs]
 - [Secure Consul with ACLs]
-- [Troubleshoot the ACL System](https://learn.hashicorp.com/tutorials/consul/access-control-troubleshoot)
+- [Troubleshoot the ACL System](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=docs)
 
-[bootstrap and explore acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=consul.io&utm_medium=docs
-[secure consul with acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=consul.io&utm_medium=docs
+[bootstrap and explore acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production?utm_source=docs
+[secure consul with acls]: https://learn.hashicorp.com/tutorials/consul/access-control-setup-production
 
 Refer to the [ACL API reference](/api-docs/acl) and [ACL CLI reference](/commands/acl) for additional usage information.
 
@@ -80,7 +80,7 @@ Refer to the following topics for additional information about service identitie
 
 ## Node Identities
 
-Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific nodes. When you configure the agent, you can specify the token linked to the policy with [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent).
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific nodes. When you configure the agent, you can specify the token linked to the policy with [`acl_tokens_agent`](/docs/agent/config/config-files#acl_tokens_agent).
 
 Use node identities to quickly construct policies for multiple nodes, rather than creating identical polices for each individual node.
 
