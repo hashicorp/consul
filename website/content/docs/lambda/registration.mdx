@@ -88,11 +88,11 @@ You can deploy the Lambda registrator to your environment to automatically regis
 
 The registrator runs as a Lambda function that is invoked by AWS EventBridge. Refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information.
 
-EventBridge invokes the registrator using either [AWS CloudTrail](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) to syncronize with Consul in real-time or in [scheduled intervals](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html).
+EventBridge invokes the registrator using either [AWS CloudTrail](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) to synchronize with Consul in real-time or in [scheduled intervals](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html).
 
 CloudTrail events typically synchronize updates, registration, and deregistration within one minute, but events may occasionally be delayed.
 
-Scheduled events fully synchronize functions betwen Lambda and Consul to prevent entropy. By default, EventBridge triggers a full sync every five minutes.
+Scheduled events fully synchronize functions between Lambda and Consul to prevent entropy. By default, EventBridge triggers a full sync every five minutes.
 
 The following diagram shows the flow of events from EventBridge into Consul:
 

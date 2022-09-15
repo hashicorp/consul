@@ -14,7 +14,7 @@ The Consul HTTP API is a RESTful interface that allows you leverage Consul funct
 Use the following API endpoints to configure and connect your services.
 
 - [`/catalog`](/api-docs/catalog): Register and deregister nodes, services, and health checks.
-- [`/health`](/api-docs/health): Query node health when health checks are enabled. 
+- [`/health`](/api-docs/health): Query node health when health checks are enabled.
 - [`/query`](/api-docs/query): Create and manage prepared queries in Consul. Prepared queries allow you to register a complex service query and send it later.
 - [`/coordinate`](/api-docs/coordinate): Query the network coordinates for nodes in the local datacenter and Consul servers in the local datacenter and remote datacenters.
 
@@ -29,15 +29,15 @@ The following endpoints are specific to service mesh:
 
 The following API endpoints give you control over access to services in your network and access to the Consul API.
 
-- [`/acl`](/api-docs/acl): Create and manage tokens that authenticate requests and authorize access to resources in the network. We recommend enabling access control lists (ACL) to secure access to the Consul API, UI, and CLI.  
+- [`/acl`](/api-docs/acl): Create and manage tokens that authenticate requests and authorize access to resources in the network. We recommend enabling access control lists (ACL) to secure access to the Consul API, UI, and CLI.
 - [`/connect/intentions`](/api-docs/connect/intentions): Create and manage service intentions.
 
 ## Observe your network
 
 Use the following API endpoints enable network observability.
 
-- [`/status`](/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers. 
-- [`/agent/metrics`](/api-docs/agent#view-metrics): Retrieve metrics for the most recent finished intervals. For more information about metrics, refere to [Telemetry](/docs/agent/telemetry).
+- [`/status`](/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers.
+- [`/agent/metrics`](/api-docs/agent#view-metrics): Retrieve metrics for the most recent finished intervals. For more information about metrics, refer to [Telemetry](/docs/agent/telemetry).
 
 
 ## Manage consul
@@ -54,6 +54,6 @@ The following API endpoints help you manage Consul operations.
 
 The following API endpoints enable you to dynamically configure your services.
 
-- [`/event`](/api-docs/event): Start a custom event that you can use to build scripts and automations. 
+- [`/event`](/api-docs/event): Start a custom event that you can use to build scripts and automations.
 - [`/kv`](/api-docs/kv): Add, remove, and update metadata stored in the Consul KV store.
 - [`/session`](/api-docs/session): Create and manage [sessions](/docs/dynamic-app-config/sessions) in Consul. You can use sessions to build distributed and granular locks to ensure nodes are properly writing to the Consul KV store.

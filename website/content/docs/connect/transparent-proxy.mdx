@@ -15,9 +15,9 @@ This topic describes how to use Consul’s transparent proxy feature, which allo
 
 When transparent proxy is enabled, Consul is able to perform the following actions automatically:
 
-- Infer the location of upstream services using service intentions. 
-- Redirect outbound connections that point to KubeDNS through the proxy. 
-- Force traffic through the proxy to prevent unauthorized direct access to the application. 
+- Infer the location of upstream services using service intentions.
+- Redirect outbound connections that point to KubeDNS through the proxy.
+- Force traffic through the proxy to prevent unauthorized direct access to the application.
 
 The following diagram shows how transparent proxy routes traffic:
 
@@ -28,7 +28,7 @@ When transparent proxy is disabled, you must manually specify the following conf
 * Explicitly configure upstream services by specifying a local port to access them.
 * Change application to access `localhost:<chosen port>`.
 * Configure applications to only listen on the loopback interface to prevent unauthorized traffic from bypassing the mesh.
-    
+
 The following diagram shows how traffic flows through the mesh without transparent proxy enabled:
 
 ![Diagram demonstrating that without transparent proxy, applications must "opt in" to connecting to their dependencies through the mesh](/img/consul-connect/without-transparent-proxy.png)
@@ -42,10 +42,10 @@ Your network must meet the following environment and software requirements to us
 * Transparent proxy is available for Kubernetes environments.
 * Consul 1.10.0+
 * Consul Helm chart 0.32.0+. If you want to use the Consul CNI plugin to redirect traffic, Helm chart 0.48.0+ is required. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for additional information.
-* [Service intentions](/docs/connect/intentions) must be configured to allow communication between intended services. 
-* The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command: 
+* [Service intentions](/docs/connect/intentions) must be configured to allow communication between intended services.
+* The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command:
 
-  `$ modprobe ip_tables`  
+  `$ modprobe ip_tables`
 
 ~> **Upgrading to a supported version**: Always follow the [proper upgrade path](/docs/upgrading/upgrade-specific/#transparent-proxy-on-kubernetes) when upgrading to a supported version of Consul, Consul on Kubernetes (`consul-k8s`), and the Consul Helm chart.
 
@@ -78,7 +78,7 @@ kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
 ```
 #### Individual service
 
-Apply the `consul.hashicorp.com/transparent-proxy=true` annotation to eanble transparent proxy on the Pod for each service. The annotation overrides the Helm value and the namespace label. The following example enables transparent proxy for the `static-server` service: 
+Apply the `consul.hashicorp.com/transparent-proxy=true` annotation to enable transparent proxy on the Pod for each service. The annotation overrides the Helm value and the namespace label. The following example enables transparent proxy for the `static-server` service:
 
 ```yaml
 apiVersion: v1
@@ -130,19 +130,19 @@ spec:
 
 ### Enable the Consul CNI plugin
 
-By default, Consul generates a `connect-inject init` container as part of the Kubernetes Pod startup process. The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization. 
+By default, Consul generates a `connect-inject init` container as part of the Kubernetes Pod startup process. The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization.
 
 Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection. Because the plugin is executed by the Kubernetes kubelet, it already has the elevated privileges necessary to configure the network. Additionally, you do not need to specify annotations that automatically overwrite Kubernetes HTTP health probes when the plugin is enabled (see [Overwrite Kubernetes HTTP health probes](#overwrite-kubernetes-http-health-probes)).
 
-The Consul Helm chart installs the CNI plugin, but it is disabled by default. Refer to the [instructions for enabling the CNI plugin](/docs/k8s/installation/install#enable-the-consul-cni-plugin) in the Consul on Kubernetes installation documentation for additional information. 
+The Consul Helm chart installs the CNI plugin, but it is disabled by default. Refer to the [instructions for enabling the CNI plugin](/docs/k8s/installation/install#enable-the-consul-cni-plugin) in the Consul on Kubernetes installation documentation for additional information.
 
 ### Traffic redirection
 
-There are two mechanisms for redirecting traffic through the sidecar proxies. By default, Consul injects an init container that redirects all inbound and outbound traffic. The default mechanism requires elevated permissions (CAP_NET_ADMIN) in order to redirect traffic to the service mesh. 
+There are two mechanisms for redirecting traffic through the sidecar proxies. By default, Consul injects an init container that redirects all inbound and outbound traffic. The default mechanism requires elevated permissions (CAP_NET_ADMIN) in order to redirect traffic to the service mesh.
 
-Alternatively, you can enable the Consul CNI plugin to handle traffic redirection. Because the Kubernetes kubelet runs CNI plugins, the Consul CNI plugin has the necessary privileges to apply routing tables in the network.   
+Alternatively, you can enable the Consul CNI plugin to handle traffic redirection. Because the Kubernetes kubelet runs CNI plugins, the Consul CNI plugin has the necessary privileges to apply routing tables in the network.
 
-Both mechanisms redirect all inbound and outbound traffic, but you can configure exceptions for specific Pods or groups of Pods. The following annotations enable you to exclude certain traffic from being redirected to sidecar proxies. 
+Both mechanisms redirect all inbound and outbound traffic, but you can configure exceptions for specific Pods or groups of Pods. The following annotations enable you to exclude certain traffic from being redirected to sidecar proxies.
 
 #### Exclude inbound ports
 
@@ -177,8 +177,8 @@ The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/
 
 #### Exclude outbound CIDR blocks
 
-The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) annotation 
-defines a comma-separated list of outbound CIDR blocks to exclude from traffic redirection when running in transparent proxy mode. The CIDR blocks are string data values. 
+The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) annotation
+defines a comma-separated list of outbound CIDR blocks to exclude from traffic redirection when running in transparent proxy mode. The CIDR blocks are string data values.
 In the following example, services in the `3.3.3.3/24` IP range are not redirected through the transparent proxy:
 
 <CodeBlockConfig heading="Exclude outbound CIDR blocks from redirection">
@@ -194,8 +194,8 @@ In the following example, services in the `3.3.3.3/24` IP range are not redirect
 
 #### Exclude user IDs
 
-The [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids) annotation 
-defines a comma-separated list of additional user IDs to exclude from traffic redirection when running in transparent proxy mode. The user IDs are string data values. 
+The [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids) annotation
+defines a comma-separated list of additional user IDs to exclude from traffic redirection when running in transparent proxy mode. The user IDs are string data values.
 In the following example, services with the IDs `4444 ` and `44444 ` are not redirected through the transparent proxy:
 
 <CodeBlockConfig heading="Exclude user IDs from redirection">
@@ -215,7 +215,7 @@ In the following example, services with the IDs `4444 ` and `44444 ` are not red
 By default, `connect-inject` is disabled. As a result, Consul on Kubernetes uses a mechanism for traffic redirection that interferes with [Kubernetes HTTP health
 probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). This is because probes expect the kubelet to reach the application container on the probe's endpoint. Instead, traffic is redirected through the sidecar proxy. As a result, health probes return errors because the kubelet does not encrypt that traffic using a mesh proxy.
 
-There are two methods for solving this issue. The first method is to set the `connectInject.transparentProxy.defaultOverwriteProbes` annotation to overwrite the Kubernetes HTTP health probes so that they point to the proxy. The second method is to [enable the Consul container network interface (CNI) plugin](#enable-the-consul-cni-plugin) to perform traffic redirection. Refer to the [Consul on Kubernetes installation instructions](/docs/k8s/installation/install) for additional information. 
+There are two methods for solving this issue. The first method is to set the `connectInject.transparentProxy.defaultOverwriteProbes` annotation to overwrite the Kubernetes HTTP health probes so that they point to the proxy. The second method is to [enable the Consul container network interface (CNI) plugin](#enable-the-consul-cni-plugin) to perform traffic redirection. Refer to the [Consul on Kubernetes installation instructions](/docs/k8s/installation/install) for additional information.
 
 #### Overwrite Kubernetes HTTP health probes
 
@@ -225,9 +225,9 @@ Refer to [Kubernetes Health Checks in Consul on Kubernetes](/docs/k8s/connect/he
 
 ### Dial services across Kubernetes cluster
 
-If your [Consul servers are federated between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes), 
-then you must configure services in one Kubernetes cluster to explicitly dial a service in the datacenter of another Kubernetes cluster using the 
-[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. 
+If your [Consul servers are federated between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes),
+then you must configure services in one Kubernetes cluster to explicitly dial a service in the datacenter of another Kubernetes cluster using the
+[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 The following example configures the service to dial an upstream service called `my-service` in datacenter `dc2` on port `1234`:
 
 ```yaml
@@ -235,27 +235,27 @@ The following example configures the service to dial an upstream service called 
 ```
 
 If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/docs/k8s/deployment-configurations/single-dc-multi-k8s),
-then you must configure services in one Kubernetes cluster to explicitly dial a service in another Kubernetes cluster using the 
-[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. 
+then you must configure services in one Kubernetes cluster to explicitly dial a service in another Kubernetes cluster using the
+[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 The following example configures the service to dial an upstream service called `my-service` in another Kubernetes cluster on port `1234`:
 
 ```yaml
 "consul.hashicorp.com/connect-service-upstreams": "my-service:1234"
 ```
 
-You do not need to configure services to explicitlly dial upstream services if your Consul clusters are connected with a [peering connection](/docs/connect/cluster-peering). 
+You do not need to configure services to explicitly dial upstream services if your Consul clusters are connected with a [peering connection](/docs/connect/cluster-peering).
 
 ## Usage
 
-When transparent proxy is enabled, traffic sent to [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) 
-or Pod IP addresses is redirected through the proxy. You must use a selector to bind Kubernetes Services to Pods as you define Kubernetes Services in the mesh. 
-The Kubernetes Service name must match the Consul service name to use KubeDNS. This is the default behavior unless you have applied the `consul.hashicorp.com/connect-service` 
+When transparent proxy is enabled, traffic sent to [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/)
+or Pod IP addresses is redirected through the proxy. You must use a selector to bind Kubernetes Services to Pods as you define Kubernetes Services in the mesh.
+The Kubernetes Service name must match the Consul service name to use KubeDNS. This is the default behavior unless you have applied the `consul.hashicorp.com/connect-service`
 Kubernetes annotation to the service pods. The annotation overrides the Consul service name.
 
 Consul configures redirection for each Pod bound to the Kubernetes Service using  `iptables` rules. The rules redirect all inbound and outbound traffic through an inbound and outbound listener on the sidecar proxy. Consul configures the proxy to route traffic to the appropriate upstream services based on [service
 intentions](/docs/connect/config-entries/service-intentions), which address the upstream services using KubeDNS.
 
-In the following example, the Kubernetes service selects `sample-app` application Pods so that they can be reached within the mesh. 
+In the following example, the Kubernetes service selects `sample-app` application Pods so that they can be reached within the mesh.
 
 <CodeBlockConfig heading="Example service selector">
 
@@ -285,5 +285,5 @@ Note that when dialing individual instances, Consul ignores the HTTP routing rul
 ## Known Limitations
 
 - Deployment configurations with federation across or a single datacenter spanning multiple clusters must explicitly dial a service in another datacenter or cluster using annotations.
-  
+
 - When dialing headless services, the request is proxied using a plain TCP proxy. Consul does not take into consideration the upstream's protocol.
