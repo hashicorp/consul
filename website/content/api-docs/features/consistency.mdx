@@ -33,7 +33,7 @@ followers may have a slightly outdated, or "stale", view of Consul's state.
 If a read request is handled by the current leader, the response is guaranteed to be
 fully _consistent_ (as up-to-date as possible).
 If the same request were handled by a follower, the response may be less consistent:
-based on a _stale_ (outdated) copy of the leader's state. 
+based on a _stale_ (outdated) copy of the leader's state.
 Consistency is highest if the response comes from the leader.
 But ensuring only the leader can respond to the request prevents spreading
 read request load across all Consul servers.
@@ -56,7 +56,7 @@ Each HTTP API endpoint documents its support for the three read consistency mode
 
 - `default` -
   [Consul HTTP API queries use `default` mode by default](#consul-http-api-queries).
-  It is strongly consistent in almost all cases. 
+  It is strongly consistent in almost all cases.
   However, there is a small window in which a new leader may be elected
   during which the old leader may respond with stale values.
   The trade-off is fast reads but potentially stale values.
