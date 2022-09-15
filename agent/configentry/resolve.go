@@ -53,6 +53,15 @@ func ComputeResolvedServiceConfig(
 		structs.NewServiceID(args.Name, &args.EnterpriseMeta),
 	)
 	if serviceConf != nil {
+		if thisReply.ProxyConfig == nil {
+			thisReply.ProxyConfig = make(map[string]interface{})
+		}
+		if serviceConf.Protocol != "" {
+			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
+		}
+		if serviceConf.BalanceInboundConnections {
+			thisReply.ProxyConfig["balance_inbound_connections"] = serviceConf.BalanceInboundConnections
+		}
 		if serviceConf.Expose.Checks {
 			thisReply.Expose.Checks = true
 		}
@@ -61,12 +70,6 @@ func ComputeResolvedServiceConfig(
 		}
 		if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
 			thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
-		}
-		if serviceConf.Protocol != "" {
-			if thisReply.ProxyConfig == nil {
-				thisReply.ProxyConfig = make(map[string]interface{})
-			}
-			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
 		}
 		if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
 			thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort

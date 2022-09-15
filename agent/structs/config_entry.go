@@ -98,19 +98,20 @@ type WarningConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind                  string
-	Name                  string
-	Protocol              string
-	Mode                  ProxyMode              `json:",omitempty"`
-	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose                ExposeConfig           `json:",omitempty"`
-	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Destination           *DestinationConfig     `json:",omitempty"`
-	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
-	LocalConnectTimeoutMs int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
-	LocalRequestTimeoutMs int                    `json:",omitempty" alias:"local_request_timeout_ms"`
+	Kind                      string
+	Name                      string
+	Protocol                  string
+	Mode                      ProxyMode              `json:",omitempty"`
+	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig           `json:",omitempty"`
+	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig     `json:",omitempty"`
+	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections bool                   `json:",omitempty" alias:"balance_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -765,11 +766,9 @@ type UpstreamConfig struct {
 	// EnterpriseMeta is only accepted within a service-defaults config entry.
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
-	// EnvoyConnectionBalanceType specifies how envoy connections should
-	// be distributed across worker threads. Currently, only the "exact_balance"
-	// type is accepted.
-	// https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig
-	EnvoyConnectionBalanceType string `json:",omitempty" alias:"envoy_connection_balance_type"`
+	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
+	// outbound connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections bool `json:",omitempty" alias:"balance_outbound_connections"`
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
@@ -833,9 +832,6 @@ func (cfg *UpstreamConfig) ServiceName() ServiceName {
 
 func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	// Avoid storing empty values in the map, since these can act as overrides
-	if cfg.EnvoyConnectionBalanceType != "" {
-		dst["envoy_connection_balance_type"] = cfg.EnvoyConnectionBalanceType
-	}
 	if cfg.EnvoyListenerJSON != "" {
 		dst["envoy_listener_json"] = cfg.EnvoyListenerJSON
 	}
@@ -856,6 +852,9 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	}
 	if cfg.PassiveHealthCheck != nil {
 		dst["passive_health_check"] = cfg.PassiveHealthCheck
+	}
+	if cfg.BalanceOutboundConnections {
+		dst["balance_outbound_connections"] = cfg.BalanceOutboundConnections
 	}
 }
 

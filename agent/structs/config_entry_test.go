@@ -340,6 +340,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
+                  "balance_inbound_connections"= true
 				}
 				mesh_gateway {
 					mode = "remote"
@@ -358,6 +359,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
+                  "balance_inbound_connections"= true
 				}
 				MeshGateway {
 					Mode = "remote"
@@ -376,6 +378,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"moreconfig": map[string]interface{}{
 						"moar": "config",
 					},
+					"balance_inbound_connections": true,
 				},
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
@@ -415,7 +418,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					defaults {
 						connect_timeout_ms = 5
 						protocol = "http"
-						envoy_connection_balance_type = "something"
+						balance_outbound_connections = true
 						envoy_listener_json = "foo"
 						envoy_cluster_json = "bar"
 						limits {
@@ -455,7 +458,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					]
 					Defaults {
-						EnvoyConnectionBalanceType = "something"
 						EnvoyListenerJSON = "foo"
 						EnvoyClusterJSON = "bar"
 						ConnectTimeoutMs = 5
@@ -465,6 +467,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests = 4
 							MaxConcurrentRequests = 5
 						}
+						BalanceOutboundConnections = true
 					}
 				}
 			`,
@@ -495,16 +498,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					},
 					Defaults: &UpstreamConfig{
-						EnvoyConnectionBalanceType: "something",
-						EnvoyListenerJSON:          "foo",
-						EnvoyClusterJSON:           "bar",
-						ConnectTimeoutMs:           5,
-						Protocol:                   "http",
+						EnvoyListenerJSON: "foo",
+						EnvoyClusterJSON:  "bar",
+						ConnectTimeoutMs:  5,
+						Protocol:          "http",
 						Limits: &UpstreamLimits{
 							MaxConnections:        intPointer(3),
 							MaxPendingRequests:    intPointer(4),
 							MaxConcurrentRequests: intPointer(5),
 						},
+						BalanceOutboundConnections: true,
 					},
 				},
 			},
@@ -2668,7 +2671,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink",
 			source: UpstreamConfig{
-				EnvoyConnectionBalanceType: "something",
+				BalanceOutboundConnections: true,
 				EnvoyListenerJSON:          "foo",
 				EnvoyClusterJSON:           "bar",
 				ConnectTimeoutMs:           5,
@@ -2686,11 +2689,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			},
 			destination: make(map[string]interface{}),
 			want: map[string]interface{}{
-				"envoy_connection_balance_type": "something",
-				"envoy_listener_json":           "foo",
-				"envoy_cluster_json":            "bar",
-				"connect_timeout_ms":            5,
-				"protocol":                      "http",
+				"balance_outbound_connections": true,
+				"envoy_listener_json":          "foo",
+				"envoy_cluster_json":           "bar",
+				"connect_timeout_ms":           5,
+				"protocol":                     "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2706,7 +2709,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink override of destination",
 			source: UpstreamConfig{
-				EnvoyConnectionBalanceType: "something",
+				BalanceOutboundConnections: true,
 				EnvoyListenerJSON:          "foo",
 				EnvoyClusterJSON:           "bar",
 				ConnectTimeoutMs:           5,
@@ -2723,11 +2726,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
 			destination: map[string]interface{}{
-				"envoy_connection_balance_type": "zup",
-				"envoy_listener_json":           "zip",
-				"envoy_cluster_json":            "zap",
-				"connect_timeout_ms":            10,
-				"protocol":                      "grpc",
+				"balance_outbound_connections": false,
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -2740,11 +2743,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"envoy_connection_balance_type": "something",
-				"envoy_listener_json":           "foo",
-				"envoy_cluster_json":            "bar",
-				"connect_timeout_ms":            5,
-				"protocol":                      "http",
+				"balance_outbound_connections": true,
+				"envoy_listener_json":          "foo",
+				"envoy_cluster_json":           "bar",
+				"connect_timeout_ms":           5,
+				"protocol":                     "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2761,11 +2764,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			name:   "empty source leaves destination intact",
 			source: UpstreamConfig{},
 			destination: map[string]interface{}{
-				"envoy_connection_balance_type": "something",
-				"envoy_listener_json":           "zip",
-				"envoy_cluster_json":            "zap",
-				"connect_timeout_ms":            10,
-				"protocol":                      "grpc",
+				"balance_outbound_connections": true,
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -2779,11 +2782,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"envoy_connection_balance_type": "something",
-				"envoy_listener_json":           "zip",
-				"envoy_cluster_json":            "zap",
-				"connect_timeout_ms":            10,
-				"protocol":                      "grpc",
+				"balance_outbound_connections": true,
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),

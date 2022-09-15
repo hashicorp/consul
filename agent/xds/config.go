@@ -27,6 +27,10 @@ type ProxyConfig struct {
 	// Note: This escape hatch is compatible with the discovery chain.
 	PublicListenerJSON string `mapstructure:"envoy_public_listener_json"`
 
+	// BalanceInboundConnections indicates that the proxy should attempt to evenly distribute
+	// inbound connections across worker threads. Only used by envoy proxies.
+	BalanceInboundConnections bool `json:",omitempty" alias:"balance_inbound_connections"`
+
 	// ListenerTracingJSON is a complete override ("escape hatch") for the
 	// listeners tracing configuration.
 	//
