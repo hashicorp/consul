@@ -1,10 +1,11 @@
----
+"---
 layout: docs
-page_title: Configuring a Connect CA Provider
-description: Configuring a Connect CA Provider
----
+page_title: Configure Certificate Authority (CA) for Consul on Kubernetes
+description: >-
+Consul includes a built-in CA, but when bootstrapping a cluster on k8s, you can configure your service mesh to use a custom certificate provider instead. Learn how to configure Vault as an external CA in primary and secondary datacenters and manually rotate Vault tokens.
+---"
 
-# Configuring a Connect CA Provider
+#  Configure Certificate Authority (CA) for Consul on Kubernetes
 
 ~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
 To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
