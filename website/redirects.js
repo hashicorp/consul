@@ -1279,8 +1279,6 @@ module.exports = [
     permanent: true,
   },
   {
-<<<<<<< HEAD
-=======
     source: '/docs/nia/installation/run',
     destination: '/docs/nia/usage/run',
     permanent: true,
@@ -1414,7 +1412,6 @@ module.exports = [
     permanent: true,
   },
   {
->>>>>>> 02f0617b60 (Merge pull request #14353 from hashicorp/nia/docs-0.7.0)
     source: '/docs/api-gateway/common-errors',
     destination: '/docs/api-gateway/usage#error-messages',
     permanent: true,
@@ -1424,8 +1421,6 @@ module.exports = [
     destination: '/docs/api-gateway/upgrades',
     permanent: true,
   },
-<<<<<<< HEAD
-=======
   {
     source: '/docs/k8s/installation/install#consul-k8s-cli-installation',
     destination: '/docs/k8s/installation/install-cli',
@@ -1559,5 +1554,4 @@ module.exports = [
     destination: '/docs/nia/usage/requirements',
     permanent: true,
   },
->>>>>>> 02f0617b60 (Merge pull request #14353 from hashicorp/nia/docs-0.7.0)
 ]
