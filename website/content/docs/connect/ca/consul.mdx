@@ -1,11 +1,14 @@
 ---
 layout: docs
-page_title: Certificate Authority: Built-in Service Mesh CA
+page_title: Connect - Certificate Management
 description: >-
-Consul has a built-in service mesh certificate authority that can be used to secure your service mesh without needing a separate CA system. Learn how to configure the built-in service mesh CA as a root CA or an intermediate CA connected to an existing PKI system.
+  Consul ships with a built-in CA system so that Connect can be easily enabled
+  out of the box. The built-in CA generates and stores the root certificate and
+  private key on Consul servers. It can also be configured with a custom
+  certificate and private key if needed.
 ---
 
-# Built-In Certificate Authority for Service Mesh
+# Built-In CA
 
 Consul ships with a built-in CA system so that Connect can be
 easily enabled out of the box. The built-in CA generates and stores the

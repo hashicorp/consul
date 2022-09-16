@@ -1,11 +1,13 @@
 ---
 layout: docs
-page_title: Register a Service Mesh Proxy Outside of a Service Registration
+page_title: Connect - Service Registration
 description: >-
-You can register a service mesh sidecar proxy separately from the registration of the service instance it fronts. Learn about proxy configuration options and how to format them with examples.
+  A per-service proxy sidecar transparently handles inbound and outbound service
+  connections. You can register these sidecars with reasonable defaults by nesting
+  their definitions in the service definition.
 ---
 
-# Register a Service Mesh Proxy Outside of a Service Registration
+# Proxy Service Registration
 
 This topic describes how to declare a proxy as a `connect-proxy` in service definitions. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
 
