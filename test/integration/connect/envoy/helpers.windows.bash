@@ -1,5 +1,16 @@
 #!/bin/bash
 
+MOD_ARG=""
+
+function split_hostport {
+  local HOSTPORT="$@"
+
+  if [[ $HOSTPORT == *":"* ]]
+  then
+    MOD_ARG=$( <<< $HOSTPORT  sed 's/:/ /' )
+  fi
+}
+
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -18,7 +29,11 @@ function retry {
   fi
 
   if [[ $1 == "curl" ]]; then
-    set -- ${@} -m 10
+    set -- "${@}" -m 10
+  elif [[ $1 == "nc" ]]
+  then
+    split_hostport $3
+    set -- "${@:1:2}" $MOD_ARG "${@:4}"
   fi
 
   # This if block, was added to check if curl is being executed directly on a test, 
