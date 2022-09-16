@@ -40,6 +40,7 @@ message MeshConfig {
   MeshTLSConfig TLS = 2;
   MeshHTTPConfig HTTP = 3;
   map<string, string> Meta = 4;
+  PeeringMeshConfig Peering = 5;
 }
 
 // mog annotation:
@@ -86,6 +87,15 @@ message MeshHTTPConfig {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.PeeringMeshConfig
+// output=config_entry.gen.go
+// name=Structs
+message PeeringMeshConfig {
+  bool PeerThroughMeshGateways = 1;
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.ServiceResolverConfigEntry
 // output=config_entry.gen.go
 // name=Structs
@@ -122,6 +132,7 @@ message ServiceResolverRedirect {
   string Namespace = 3;
   string Partition = 4;
   string Datacenter = 5;
+  string Peer = 6;
 }
 
 // mog annotation:
@@ -134,6 +145,21 @@ message ServiceResolverFailover {
   string ServiceSubset = 2;
   string Namespace = 3;
   repeated string Datacenters = 4;
+  repeated ServiceResolverFailoverTarget Targets = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverFailoverTarget
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverFailoverTarget {
+  string Service = 1;
+  string ServiceSubset = 2;
+  string Partition = 3;
+  string Namespace = 4;
+  string Datacenter = 5;
+  string Peer = 6;
 }
 
 // mog annotation:

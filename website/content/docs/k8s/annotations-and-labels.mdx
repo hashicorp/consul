@@ -2,7 +2,7 @@
 layout: docs
 page_title: Annotations and Labels
 description: >-
-  The list of available labels and annotations for running Consul on Kubernetes.
+  Annotations and labels configure Consul sidecar properties and injection behavior when scheduling Kubernetes clusters. Learn about the annotations and labels that enable Consul’s service mesh and secure upstream communication on k8s in this reference guide.
 ---
 
 # Annotations and Labels
@@ -79,8 +79,10 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
+
       - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in a different namespace. Place
       the upstream namespace after the service name. For additional details about configuring the injector, refer to 
+
       [Consul Enterprise Namespaces](#consul-enterprise-namespaces) .
         ```yaml
         annotations:
@@ -202,7 +204,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
   - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
 
 - `consul.hashicorp.com/consul-envoy-proxy-concurrency` - Override the default envoy worker thread count. This should be set low for sidecar
-  usecases and can be raised for edge proxies like gateways.
+  use cases and can be raised for edge proxies like gateways.
 
 - `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
   the `consul-sidecar` container.
@@ -233,12 +235,12 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
 - `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
 - `consul.hashicorp.com/connect-inject-mount-volume` - Comma separated list of container names to mount the connect-inject volume into. The volume will be mounted at `/consul/connect-inject`. The connect-inject volume contains Consul internals data needed by the other sidecar containers, for example the `consul` binary, and the Pod's Consul ACL token. This data can be valuable for advanced use-cases, such as making requests to the Consul API from within application containers.
-- `consul.hashicorp.com/consul-sidecar-user-volume` - JSON objects as specified by the [Volume pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volume-v1-core), that define volumes to add to the Envoy sidecar. 
+- `consul.hashicorp.com/consul-sidecar-user-volume` - JSON objects as specified by the [Volume pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volume-v1-core), that define volumes to add to the Envoy sidecar.
   ```yaml
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume": "[{\"name\": \"secrets-data\", \"hostPath\": "[{\"path\": \"/mnt/secrets-path\"}]"}]"
   ```
-- `consul.hashicorp.com/consul-sidecar-user-volume-mount` - JSON objects as specified by the [Volume mount pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volumemount-v1-core), that define volumeMounts to add to the Envoy sidecar. 
+- `consul.hashicorp.com/consul-sidecar-user-volume-mount` - JSON objects as specified by the [Volume mount pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volumemount-v1-core), that define volumeMounts to add to the Envoy sidecar.
   ```yaml
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"

@@ -9,10 +9,167 @@ description: >-
 
 This topic describes how to upgrade Consul API Gateway.
 
+## Upgrade to v0.4.0
+
+Consul API Gateway v0.4.0 adds support for [Gateway API v0.5.0](https://github.com/kubernetes-sigs/gateway-api/releases/tag/v0.5.0) and the following resources:
+
+- The graduated v1beta1 `GatewayClass`, `Gateway` and `HTTPRoute` resources.
+
+- The [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant) resource, which replaces the identical [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) resource.
+
+Consul API Gateway v0.4.0 is backward-compatible with existing `ReferencePolicy` resources, but we will remove support for `ReferencePolicy` resources in a future release. We recommend that you migrate to `ReferenceGrant` after upgrading.
+
+### Requirements
+
+Ensure that the following requirements are met prior to upgrading:
+
+- Consul API Gateway should be running version v0.3.0.
+
+### Procedure
+
+1. Complete the [standard upgrade](#standard-upgrade).
+
+1. After completing the upgrade, complete the [post-upgrade configuration changes](#v0.4.0-post-upgrade-configuration-changes). The post-upgrade procedure describes how to replace your `ReferencePolicy` resources with `ReferenceGrant` resources and how to upgrade your `GatewayClass`, `Gateway`, and `HTTPRoute` resources from v1alpha2 to v1beta1.
+
+<a name="v0.4.0-post-upgrade-configuration-changes"/>
+
+### Post-upgrade configuration changes
+Complete the following steps after performing standard upgrade procedure.
+#### Requirements
+
+- Consul API Gateway should be running version v0.4.0.
+- Consul Helm chart should be v0.47.0 or later.
+- You should have the ability to run `kubectl` CLI commands.
+- `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
+- You should have the following permissions for your Kubernetes cluster:
+  - `Gateway.read`
+  - `ReferenceGrant.create` (Added in Consul Helm chart v0.47.0)
+  - `ReferencePolicy.delete`
+
+#### Procedure
+
+1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
+
+  ```shell-session
+  $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath="{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
+  ```
+
+  You should receive a response similar to the following:
+
+  ```log
+  "hashicorp/consul-api-gateway:0.4.0"
+  ```
+
+  <a name="referencegrant"/>
+
+1. Issue the following command to get all `ReferencePolicy` resources across all namespaces.
+
+  ```shell-session
+  $ kubectl get referencepolicy --all-namespaces
+  ```
+If you have any active `ReferencePolicy` resources, you will receive output similar to the response below.
+
+  ```log
+  Warning: ReferencePolicy has been renamed to ReferenceGrant. ReferencePolicy will be removed in v0.6.0 in favor of the identical ReferenceGrant resource.
+  NAMESPACE   NAME
+  default     example-reference-policy
+  ```
+
+  If your output is empty, upgrade your `GatewayClass`, `Gateway` and `HTTPRoute` resources to v1beta1 as described in [step 7](#v1beta1-gatewayclass-gateway-httproute).
+
+1. For each `ReferencePolicy` in the source YAML files, change the `kind` field to `ReferenceGrant`. You can optionally update the `metadata.name` field or filename if they include the term "policy". In the following example, the `kind` and `metadata.name` fields and filename have been changed to reflect the new resource. Note that updating the `kind` field prevents you from using the `kubectl edit` command to edit the remote state directly.
+
+  <CodeBlockConfig hideClipboard filename="referencegrant.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferenceGrant
+  metadata:
+    name: reference-grant
+    namespace: web-namespace
+  spec:
+    from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: example-namesapce
+    to:
+    - group: ""
+      kind: Service
+      name: web-backend
+  ```
+
+  </CodeBlockConfig>
+
+1. For each file, apply the updated YAML to your cluster to create a new `ReferenceGrant` resource.
+
+  ```shell-session
+  $ kubectl apply --filename <file>
+  ```
+
+1. Check to confirm that each new `ReferenceGrant` was created successfully.
+
+  ```shell-session
+  $ kubectl get referencegrant <name> --namespace <namespace>
+  NAME
+  example-reference-grant
+  ```
+
+1. Finally, delete each corresponding old `ReferencePolicy` resource. Because replacement `ReferenceGrant` resources have already been created, there should be no interruption in the availability of any referenced `Service` or `Secret`.
+
+  ```shell-session
+  $ kubectl delete referencepolicy <name> --namespace <namespace>
+  Warning: ReferencePolicy has been renamed to ReferenceGrant. ReferencePolicy will be removed in v0.6.0 in favor of the identical ReferenceGrant resource.
+  referencepolicy.gateway.networking.k8s.io "example-reference-policy" deleted
+  ```
+
+  <a name="v1beta1-gatewayclass-gateway-httproute"/>
+
+1. For each `GatewayClass`, `Gateway`, and `HTTPRoute` in the source YAML, update the `apiVersion` field to `gateway.networking.k8s.io/v1beta1`. Note that updating the `apiVersion` field prevents you from using the `kubectl edit` command to edit the remote state directly.
+
+  <CodeBlockConfig hideClipboard>
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1beta1
+  kind: Gateway
+  metadata:
+    name: example-gateway
+    namespace: gateway-namespace
+  spec:
+    ...
+  ```
+
+  </CodeBlockConfig>
+
+1. For each file, apply the updated YAML to your cluster to update the existing `GatewayClass`, `Gateway` or `HTTPRoute` resources.
+
+  ```shell-session
+  $ kubectl apply --filename <file>
+  gateway.gateway.networking.k8s.io/example-gateway configured
+  ```
+
+<!--
+1. Deploy [kube-storage-version-migrator](https://github.com/kubernetes-sigs/kube-storage-version-migrator) to your cluster. following the steps in the [user guide](https://github.com/kubernetes-sigs/kube-storage-version-migrator/blob/master/USER_GUIDE.md#deploy-the-storage-version-migrator-in-your-cluster), but set the `REGISTRY` and `VERSION` environment variable explicitly when building the manifests with `REGISTRY=us.gcr.io/k8s-artifacts-prod/storage-migrator VERSION=v0.0.5 make local-manifests`.
+
+  > If you don't explicitly set the `REGISTRY` and `VERSION` env vars, `make local-manifests` will default to values for local development, causing an `ErrImagePull` error when deploying the `migrator` and `trigger` storage version migrator deployments.
+
+  Confirm that the `migrator` and `trigger` storage version migrator deployments are running.
+
+  ```shell-session
+  $ kubectl get deployment migrator --namespace kube-system
+  NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+  migrator   1/1     1            1           1m
+  ```
+
+  ```shell-session
+  $ kubectl get deployment trigger --namespace kube-system
+  NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+  trigger    1/1     1            1           1m
+  ```
+-->
 
 ## Upgrade to v0.3.0 from v0.2.0 or lower
 
-Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listeners` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
+Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listeners` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namespace to use `certificateRef` in the `certificateRef`'s namespace.
 
 ### Requirements
 
@@ -32,7 +189,7 @@ Ensure that the following requirements are met prior to upgrading:
 1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
 
   ```shell-session
-  $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
+  $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath="{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
   ```
 
   You should receive a response similar to the following:

@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -253,7 +254,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -370,14 +371,17 @@ type Server struct {
 
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
+
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
-	peeringServer     *peering.Server
-	peerStreamTracker *peerstream.Tracker
+	peeringServer *peering.Server
+
+	// xdsCapacityController controls the number of concurrent xDS streams the
+	// server is able to handle.
+	xdsCapacityController *xdscapacity.Controller
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
-
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)
@@ -724,11 +728,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.externalGRPCServer)
 
-	s.peerStreamTracker = peerstream.NewTracker()
 	s.peeringBackend = NewPeeringBackend(s)
 	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
 		Backend:        s.peeringBackend,
-		Tracker:        s.peerStreamTracker,
 		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
 		Logger:         logger.Named("grpc-api.peerstream"),
 		ACLResolver:    s.ACLResolver,
@@ -751,6 +753,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
+
+	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
+		Logger:         s.logger.Named(logging.XDSCapacityController),
+		GetStore:       func() xdscapacity.Store { return s.fsm.State() },
+		SessionLimiter: flat.XDSStreamLimiter,
+	})
+	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -790,7 +799,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 
 	p := peering.NewServer(peering.Config{
 		Backend: s.peeringBackend,
-		Tracker: s.peerStreamTracker,
+		Tracker: s.peerStreamServer.Tracker,
 		Logger:  deps.Logger.Named("grpc-api.peering"),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			// Only forward the request if the dc in the request matches the server's datacenter.
@@ -1361,6 +1370,11 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
+// GetPeeringBackend is a test helper.
+func (s *Server) GetPeeringBackend() peering.Backend {
+	return s.peeringBackend
+}
+
 // RemoveFailedNode is used to remove a failed node from the cluster.
 func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
@@ -1574,12 +1588,12 @@ func (s *Server) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.

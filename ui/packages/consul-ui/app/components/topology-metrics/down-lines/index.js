@@ -16,7 +16,7 @@ export default class TopoloyMetricsDownLines extends Component {
     const view = this.args.view;
     const lines = [...document.querySelectorAll('#downstream-lines path')];
 
-    this.iconPositions = lines.map(item => {
+    this.iconPositions = lines.map((item) => {
       const pathLen = parseFloat(item.getTotalLength());
       const thirdLen = item.getPointAtLength(Math.ceil(pathLen / 3));
 

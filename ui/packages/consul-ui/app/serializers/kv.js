@@ -16,7 +16,7 @@ export default class KvSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           // If item.Session is not set make sure we overwrite any existing one.
           // Using @replace, defaultValue or similar model apporaches does not work
@@ -34,11 +34,11 @@ export default class KvSerializer extends Serializer {
 
   respondForQuery(respond, query) {
     return super.respondForQuery(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => {
+            body.map((item) => {
               return {
                 [this.slugKey]: item,
               };

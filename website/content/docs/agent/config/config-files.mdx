@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Consul Agent Configuration Reference
+page_title: Agents - Configuration File Reference
 description: >-
-  This topic describes the supported parameters for configuring Consul agents in HCL and JSON configuration files.
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
 ---
 
-# Configuration Files ((#configuration_files))
+# Agents Configuration File Reference ((#configuration_files))
 
 You can create one or more files to configure the Consul agent on startup. We recommend
 grouping similar configurations into separate files, such as ACL parameters, to make it
@@ -21,8 +21,8 @@ specified within it.
 Configuration files are used for more than just setting up the agent.
 They are also used to provide check and service definitions that
 announce the availability of system servers to the rest of the cluster.
-These definitions are documented separately under [check configuration](/docs/agent/checks) and
-[service configuration](/docs/agent/services) respectively. Service and check
+These definitions are documented separately under [check configuration](/docs/discovery/checks) and
+[service configuration](/docs/discovery/services) respectively. Service and check
 definitions support being updated during a reload.
 
 <CodeTabs heading="Example Configuration File">
@@ -604,10 +604,16 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     (disabled). **We recommend using `8501`** for `https` by convention as some tooling
     will work automatically with this.
   - `grpc` ((#grpc_port)) - The gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `grpc` by convention as some tooling will work
-    automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
-    proxies.
+    **We recommend using `8502` for `grpc`** as your conventional gRPC port number, as it allows some
+    tools to work automatically. This parameter is set to `8502` by default when the agent runs
+    in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
+    backwards-compatibility, but TLS support is deprecated and will be removed in a future
+    release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
+  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502` for `grpc_tls`** as your conventional gRPC port number, as it allows some 
+    tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
+    can be configured at the same time, but they may not utilize the same port number. If both `grpc` and
+    `grpc_tls` are defined, then `grpc` will always be plaintext. This field was added in Consul 1.14.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](/docs/agent/config/cli-flags#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.
@@ -1998,12 +2004,12 @@ specially crafted certificate signed by the CA can be used to gain full access t
       Certificate Authority from the [`ca_file`](#tls_defaults_ca_file) or
       [`ca_path`](#tls_defaults_ca_path). By default, this is false, and Consul
       will not make use of TLS for outgoing connections. This applies to clients
-      and servers as both will make outgoing connections. This setting *does not*
+      and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
       interface.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
-    the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
+    the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -2018,6 +2024,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
     - `tls_cipher_suites` ((#tls_grpc_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
 
     - `verify_incoming` - ((#tls_grpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+    - `use_auto_cert` - (Defaults to `false`) Enables or disables TLS on gRPC servers. Set to `true` to allow `auto_encrypt` TLS settings to apply to gRPC listeners. We recommend disabling TLS on gRPC servers if you are using `auto_encrypt` for other TLS purposes, such as enabling HTTPS.
 
   - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
     the HTTPS interface you must define a port via [`ports.https`](#https_port).
@@ -2071,7 +2079,9 @@ specially crafted certificate signed by the CA can be used to gain full access t
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
-      is signed by a trusted CA. This setting *must* be enabled to prevent a
+      is signed by a trusted CA.
+
+      ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and Connect CA root keys*.
 
@@ -2082,7 +2092,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
 ### Deprecated Options ((#tls_deprecated_options))
 
 The following options were deprecated in Consul 1.12, please use the
-[`tls`](#tls) stanza instead.
+[`tls`](#tls-1) stanza instead.
 
 - `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

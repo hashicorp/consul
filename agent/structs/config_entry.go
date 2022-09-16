@@ -3,11 +3,12 @@ package structs
 import (
 	"errors"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -108,6 +109,8 @@ type ServiceConfigEntry struct {
 	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
 	Destination           *DestinationConfig     `json:",omitempty"`
 	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs int                    `json:",omitempty" alias:"local_request_timeout_ms"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -362,6 +365,13 @@ func (e *ProxyConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ProxyDefaults
+
+	// proxy default config only accepts global configs
+	// this check is replicated in normalize() and validate(),
+	// since validate is not called by all the endpoints (e.g., delete)
+	if e.Name != "" && e.Name != ProxyConfigGlobal {
+		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
 	e.Name = ProxyConfigGlobal
 
 	e.EnterpriseMeta.Normalize()
@@ -961,6 +971,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {

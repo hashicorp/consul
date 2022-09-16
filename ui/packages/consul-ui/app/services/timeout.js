@@ -12,7 +12,7 @@ export default class TimeoutService extends Service {
   }
 
   tick() {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
       next(resolve);
     });
   }

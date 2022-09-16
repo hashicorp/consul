@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -42,6 +44,7 @@ type subscriptionManager struct {
 	getStore             func() StateStore
 	serviceSubReady      <-chan struct{}
 	trustBundlesSubReady <-chan struct{}
+	serverAddrsSubReady  <-chan struct{}
 }
 
 // TODO(peering): Maybe centralize so that there is a single manager per datacenter, rather than per peering.
@@ -67,6 +70,7 @@ func newSubscriptionManager(
 		getStore:             getStore,
 		serviceSubReady:      remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLExportedService),
 		trustBundlesSubReady: remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLPeeringTrustBundle),
+		serverAddrsSubReady:  remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLPeeringServerAddresses),
 	}
 }
 
@@ -83,6 +87,7 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 
 	// Wrap our bare state store queries in goroutines that emit events.
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
+	go m.notifyServerAddrUpdates(ctx, state.updateCh)
 	if m.config.ConnectEnabled {
 		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
 		// If connect is enabled, watch for updates to CA roots.
@@ -262,6 +267,17 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		state.sendPendingEvents(ctx, m.logger, pending)
 
+	case u.CorrelationID == subServerAddrs:
+		addrs, ok := u.Result.(*pbpeering.PeeringServerAddresses)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		pending := &pendingPayload{}
+		if err := pending.Add(serverAddrsPayloadID, u.CorrelationID, addrs); err != nil {
+			return err
+		}
+
+		state.sendPendingEvents(ctx, m.logger, pending)
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -332,6 +348,8 @@ func (m *subscriptionManager) notifyRootCAUpdatesForPartition(
 		}
 	}
 }
+
+const subCARoot = "roots"
 
 // subscribeCARoots subscribes to state.EventTopicCARoots for changes to CA roots.
 // Upon receiving an event it will send the payload in updateCh.
@@ -413,8 +431,6 @@ func (m *subscriptionManager) subscribeCARoots(
 		}
 	}
 }
-
-const subCARoot = "roots"
 
 func (m *subscriptionManager) syncNormalServices(
 	ctx context.Context,
@@ -720,4 +736,113 @@ const syntheticProxyNameSuffix = "-sidecar-proxy"
 
 func generateProxyNameForDiscoveryChain(sn structs.ServiceName) structs.ServiceName {
 	return structs.NewServiceName(sn.Name+syntheticProxyNameSuffix, &sn.EnterpriseMeta)
+}
+
+const subServerAddrs = "server-addrs"
+
+func (m *subscriptionManager) notifyServerAddrUpdates(
+	ctx context.Context,
+	updateCh chan<- cache.UpdateEvent,
+) {
+	// Wait until this is subscribed-to.
+	select {
+	case <-m.serverAddrsSubReady:
+	case <-ctx.Done():
+		return
+	}
+
+	var idx uint64
+	// TODO(peering): retry logic; fail past a threshold
+	for {
+		var err error
+		// Typically, this function will block inside `m.subscribeServerAddrs` and only return on error.
+		// Errors are logged and the watch is retried.
+		idx, err = m.subscribeServerAddrs(ctx, idx, updateCh)
+		if errors.Is(err, stream.ErrSubForceClosed) {
+			m.logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
+		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			m.logger.Warn("failed to subscribe to server addresses, will attempt resume", "error", err.Error())
+		} else {
+			m.logger.Trace(err.Error())
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+func (m *subscriptionManager) subscribeServerAddrs(
+	ctx context.Context,
+	idx uint64,
+	updateCh chan<- cache.UpdateEvent,
+) (uint64, error) {
+	// following code adapted from serverdiscovery/watch_servers.go
+	sub, err := m.backend.Subscribe(&stream.SubscribeRequest{
+		Topic:   autopilotevents.EventTopicReadyServers,
+		Subject: stream.SubjectNone,
+		Token:   "", // using anonymous token for now
+		Index:   idx,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to subscribe to ReadyServers events: %w", err)
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		event, err := sub.Next(ctx)
+		switch {
+		case errors.Is(err, context.Canceled):
+			return 0, err
+		case err != nil:
+			return idx, err
+		}
+
+		// We do not send framing events (e.g. EndOfSnapshot, NewSnapshotToFollow)
+		// because we send a full list of ready servers on every event, rather than expecting
+		// clients to maintain a state-machine in the way they do for service health.
+		if event.IsFramingEvent() {
+			continue
+		}
+
+		// Note: this check isn't strictly necessary because the event publishing
+		// machinery will ensure the index increases monotonically, but it can be
+		// tricky to faithfully reproduce this in tests (e.g. the EventPublisher
+		// garbage collects topic buffers and snapshots aggressively when streams
+		// disconnect) so this avoids a bunch of confusing setup code.
+		if event.Index <= idx {
+			continue
+		}
+
+		idx = event.Index
+
+		payload, ok := event.Payload.(autopilotevents.EventPayloadReadyServers)
+		if !ok {
+			return 0, fmt.Errorf("unexpected event payload type: %T", payload)
+		}
+
+		var serverAddrs = make([]string, 0, len(payload))
+
+		for _, srv := range payload {
+			if srv.ExtGRPCPort == 0 {
+				continue
+			}
+			grpcAddr := srv.Address + ":" + strconv.Itoa(srv.ExtGRPCPort)
+			serverAddrs = append(serverAddrs, grpcAddr)
+		}
+
+		if len(serverAddrs) == 0 {
+			m.logger.Warn("did not find any server addresses with external gRPC ports to publish")
+			continue
+		}
+
+		updateCh <- cache.UpdateEvent{
+			CorrelationID: subServerAddrs,
+			Result: &pbpeering.PeeringServerAddresses{
+				Addresses: serverAddrs,
+			},
+		}
+	}
 }

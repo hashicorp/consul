@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -106,6 +107,9 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	if s.config.GRPCPort > 0 {
 		conf.Tags["grpc_port"] = fmt.Sprintf("%d", s.config.GRPCPort)
 	}
+	if s.config.GRPCTLSPort > 0 {
+		conf.Tags["grpc_tls_port"] = fmt.Sprintf("%d", s.config.GRPCTLSPort)
+	}
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}
@@ -177,9 +181,10 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 
 	if opts.WAN {
 		nt, err := memberlist.NewNetTransport(&memberlist.NetTransportConfig{
-			BindAddrs: []string{conf.MemberlistConfig.BindAddr},
-			BindPort:  conf.MemberlistConfig.BindPort,
-			Logger:    conf.MemberlistConfig.Logger,
+			BindAddrs:    []string{conf.MemberlistConfig.BindAddr},
+			BindPort:     conf.MemberlistConfig.BindPort,
+			Logger:       conf.MemberlistConfig.Logger,
+			MetricLabels: []metrics.Label{{Name: "network", Value: "wan"}},
 		})
 		if err != nil {
 			return nil, err
@@ -229,6 +234,8 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	}
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
+
+	addSerfMetricsLabels(conf, opts.WAN, opts.Segment, s.config.AgentEnterpriseMeta().PartitionOrDefault(), "")
 
 	addEnterpriseSerfTags(conf.Tags, s.config.AgentEnterpriseMeta())
 

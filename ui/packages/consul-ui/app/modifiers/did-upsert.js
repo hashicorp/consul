@@ -1,7 +1,7 @@
 import { setModifierManager, capabilities } from '@ember/modifier';
 import { gte } from 'ember-compatibility-helpers';
 
-const createEventLike = state => {
+const createEventLike = (state) => {
   return {
     target: state.element,
     currentTarget: state.element,

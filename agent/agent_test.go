@@ -418,6 +418,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
+	duration3s, _ := time.ParseDuration("3s")
+	duration10s, _ := time.ParseDuration("10s")
+
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -463,6 +466,50 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		},
+		{
+			"one http check with interval and duration",
+			&structs.NodeService{
+				ID:             "svcid1",
+				Service:        "svcname1",
+				Tags:           []string{"tag1"},
+				Weights:        nil, // nil weights...
+				Port:           8100,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+			// ... should be populated to avoid "IsSame" returning true during AE.
+			func(ns *structs.NodeService) {
+				ns.Weights = &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				}
+			},
+			[]*structs.CheckType{
+				{
+					CheckID:  "check1",
+					Name:     "name1",
+					HTTP:     "http://localhost:8100/",
+					Interval: duration10s,
+					Timeout:  duration3s,
+					Notes:    "note1",
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": {
+					Node:           "node1",
+					CheckID:        "check1",
+					Name:           "name1",
+					Interval:       "10s",
+					Timeout:        "3s",
+					Status:         "critical",
+					Notes:          "note1",
+					ServiceID:      "svcid1",
+					ServiceName:    "svcname1",
+					ServiceTags:    []string{"tag1"},
+					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
@@ -2095,7 +2142,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := StartTestAgent(t, TestAgent{
-			UseTLS: true,
+			UseHTTPS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
 
@@ -2786,7 +2833,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 	}
 
-	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	connectSrv, _, _, err := sidecarServiceFromNodeService(srv, "")
 	require.NoError(t, err)
 
 	// First persist the check
@@ -2959,9 +3006,22 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
-	requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
+	sidecarSvc := requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq-sidecar-proxy", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
+	}
+
+	// Verify default checks have been added
+	wantChecks := sidecarDefaultChecks(sidecarSvc.ID, sidecarSvc.Address, sidecarSvc.Proxy.LocalServiceAddress, sidecarSvc.Port)
+	gotChecks := a.State.ChecksForService(sidecarSvc.CompoundServiceID(), true)
+	gotChkNames := make(map[string]types.CheckID)
+	for _, check := range gotChecks {
+		requireCheckExists(t, a, check.CheckID)
+		gotChkNames[check.Name] = check.CheckID
+	}
+	for _, check := range wantChecks {
+		chkName := check.Name
+		require.NotNil(t, gotChkNames[chkName])
 	}
 
 	// Sanity check rabbitmq service should NOT have sidecar info in state since
@@ -3860,7 +3920,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := TestAgent{UseTLS: true}
+	a := TestAgent{UseHTTPS: true}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -5207,7 +5267,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
 		}
 		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
-		UseTLS: true,
+		UseHTTPS: true,
 	})
 
 	defer client.Shutdown()

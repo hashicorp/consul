@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: Connectivity Tasks
+page_title: Gateway Types
 description: >-
-  Tasks related to connectivity into, out of, and between Consul service meshes.
+  Ingress, terminating, and mesh gateways are proxies that direct traffic into, out of, and inside of Consul's service mesh. Learn how these gateways enable different kinds of service-to-service communication.
 ---
 
-# Connectivity Tasks
+# Types of Gateway Connections in a Service Mesh
 
-~> **Note**: The features shown below are extensions of Consul’s service mesh capabilities. If you are not utilizing
+~> **Note**: The features shown below are extensions of Consul's service mesh capabilities. If you are not utilizing
 Consul service mesh then these features will not be relevant to your task.
 
 ## Service-to-service traffic between Consul datacenters
@@ -40,7 +40,7 @@ services outside the Consul service mesh to services inside the service mesh.
 These gateways allow you to define what services should be exposed, on what port, and by what hostname. You configure
 an ingress gateway by defining a set of listeners that can map to different sets of backing services.
 
-Ingress gateways are tightly integrated with Consul’s L7 configuration and enable dynamic routing of HTTP requests by
+Ingress gateways are tightly integrated with Consul's L7 configuration and enable dynamic routing of HTTP requests by
 attributes like the request path.
 
 For more information about ingress gateways, review the [complete documentation](/docs/connect/gateways/ingress-gateway)
@@ -60,7 +60,7 @@ infrastructure you do not control.
 Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
 mTLS connections, enforce Consul intentions, and forward requests to the appropriate destination.
 
-These gateways also simplify authorization from dynamic service addresses. Consul’s intentions determine whether
+These gateways also simplify authorization from dynamic service addresses. Consul's intentions determine whether
 connections through the gateway are authorized. Then traditional tools like firewalls or IAM roles can authorize the
 connections from the known gateway nodes to the destination services.
 

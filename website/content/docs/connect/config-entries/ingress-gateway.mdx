@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Ingress Gateway'
+page_title: Ingress Gateway - Configuration Entry Reference
 description: >-
-  The `ingress-gateway` config entry kind allows for configuring Ingress gateways
-  with listeners that expose a set of services outside the Consul service mesh.
+  The ingress gateway configuration entry kind defines behavior to secure incoming communication between the service mesh and external sources. Use the reference guide to learn about `""ingress-gateway""` config entry parameters and exposing TCP and HTTP listeners.
 ---
 
-# Ingress Gateway
+# Ingress Gateway Configuration Entry
 
 This topic provides reference information for the `ingress-gateway` configuration entry.
 
@@ -16,7 +15,7 @@ You can define an `ingress-gateway` configuration entry to connect the Consul se
 
 Refer to the [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
 
-For other platforms, see [Ingress Gateway](/docs/connect/ingress-gateway).
+For other platforms, see [Ingress Gateway](/docs/connect/gateways/ingress-gateway).
 
 ## Requirements
 
@@ -162,7 +161,7 @@ Refer to the [Available Fields](#available-fields) section for complete informat
 
 ### Scope
 
-[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/gateways/ingress-gateway) for more information.
 
 ### Wildcard Service Specification
 
@@ -991,14 +990,12 @@ You can specify the following parameters to configure ingress gateway configurat
         },
         {
           name: 'TLSMinVersion',
-          yaml: false,
           type: 'string: ""',
           description:
             "Set the default minimum TLS version supported for the gateway's listeners. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
         },
         {
           name: 'TLSMaxVersion',
-          yaml: false,
           type: 'string: ""',
           description: {
             hcl:
@@ -1009,7 +1006,6 @@ You can specify the following parameters to configure ingress gateway configurat
         },
         {
           name: 'CipherSuites',
-          yaml: false,
           type: 'array<string>: <optional>',
           description: `Set the default list of TLS cipher suites for the gateway's
                         listeners to support when negotiating connections using
@@ -1179,21 +1175,18 @@ You can specify the following parameters to configure ingress gateway configurat
             },
             {
               name: 'TLSMinVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 'Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.',
             },
             {
               name: 'TLSMaxVersion',
-              yaml: false,
               type: 'string: ""',
               description:
                 'Set the maximum TLS version supported for this listener. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.',
             },
             {
               name: 'CipherSuites',
-              yaml: false,
               type: 'array<string>: <optional>',
               description: `Set the list of TLS cipher suites to support when negotiating
                             connections using TLS 1.2 or earlier. If unspecified,

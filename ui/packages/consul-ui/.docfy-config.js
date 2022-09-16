@@ -13,16 +13,16 @@ const exists = fs.existsSync;
 const chalk = require('chalk'); // comes with ember
 
 // allow extra docfy config
-let user = {sources: [], labels: {}};
+let user = { sources: [], labels: {} };
 const $CONSUL_DOCFY_CONFIG = process.env.CONSUL_DOCFY_CONFIG || '';
-if($CONSUL_DOCFY_CONFIG.length > 0) {
+if ($CONSUL_DOCFY_CONFIG.length > 0) {
   try {
-      if(exists($CONSUL_DOCFY_CONFIG)) {
-        user = JSON.parse(read($CONSUL_DOCFY_CONFIG));
-      } else {
-        throw new Error(`Unable to locate ${$CONSUL_DOCFY_CONFIG}`);
-      }
-  } catch(e) {
+    if (exists($CONSUL_DOCFY_CONFIG)) {
+      user = JSON.parse(read($CONSUL_DOCFY_CONFIG));
+    } else {
+      throw new Error(`Unable to locate ${$CONSUL_DOCFY_CONFIG}`);
+    }
+  } catch (e) {
     console.error(chalk.yellow(`Docfy: ${e.message}`));
   }
 }
@@ -33,24 +33,20 @@ refractor.register(handlebars);
 
 refractor.alias({
   handlebars: ['hbs'],
-  shell: ['sh']
+  shell: ['sh'],
 });
-
-
 
 module.exports = {
   remarkHbsOptions: {
-    escapeCurliesCode: false
+    escapeCurliesCode: false,
   },
   remarkPlugins: [
     autolinkHeadings,
     {
-      behavior: 'wrap'
-    }
+      behavior: 'wrap',
+    },
   ],
-  rehypePlugins: [
-    prism
-  ],
+  rehypePlugins: [prism],
   sources: [
     {
       root: path.resolve(__dirname, 'docs'),
@@ -129,10 +125,10 @@ module.exports = {
       pattern: '**/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/consul-nspaces',
-    }
+    },
   ].concat(user.sources),
   labels: {
-    "consul": "Consul Components",
-    ...user.labels
-  }
+    consul: 'Consul Components',
+    ...user.labels,
+  },
 };

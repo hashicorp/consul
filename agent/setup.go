@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/local"
@@ -150,6 +152,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
+	d.XDSStreamLimiter = limiter.NewSessionLimiter()
+
 	return d, nil
 }
 
@@ -232,7 +236,9 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		gauges = append(gauges,
 			consul.AutopilotGauges,
 			consul.LeaderCertExpirationGauges,
-			consul.LeaderPeeringMetrics)
+			consul.LeaderPeeringMetrics,
+			xdscapacity.StatsGauges,
+		)
 	}
 
 	// Flatten definitions
@@ -275,6 +281,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		consul.RPCCounters,
 		grpc.StatsCounters,
 		local.StateCounters,
+		xds.StatsCounters,
 		raftCounters,
 	}
 	// Flatten definitions

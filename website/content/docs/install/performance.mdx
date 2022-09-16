@@ -1,10 +1,8 @@
 ---
 layout: docs
-page_title: Server Performance
+page_title: Server Performance Requirements
 description: >-
-  Consul requires different amounts of compute resources, depending on cluster
-  size and expected workload. This guide provides guidance on choosing compute
-  resources.
+  Consul servers require sufficient compute resources to communicate and process data quickly. Learn about Consul's minimum server requirements and recommendations for different workloads. 
 ---
 
 # Server Performance
@@ -146,7 +144,7 @@ set size. You can determine the working set size by noting the value of
 
 ## Read/Write Tuning
 
-Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key’s value size is `512KB`.
+Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key's value size is `512KB`.
 
 -> Consul is write limited by disk I/O and read limited by CPU.
 
@@ -166,7 +164,7 @@ It should be noted that `stale` is not appropriate for coordination where strong
 
 **Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
-Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
+Consul's agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
 To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/docs/agent/config/config-files#limits)
 

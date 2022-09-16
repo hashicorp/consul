@@ -192,6 +192,8 @@
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
     "GRPCPort": 0,
+    "GRPCTLSAddrs": [],
+    "GRPCTLSPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -374,7 +376,8 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
+            "UseAutoCert": false
         },
         "HTTPS": {
             "CAFile": "",
@@ -385,7 +388,8 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
+            "UseAutoCert": false
         },
         "InternalRPC": {
             "CAFile": "",
@@ -396,7 +400,8 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
+            "UseAutoCert": false
         },
         "NodeName": "",
         "ServerName": ""

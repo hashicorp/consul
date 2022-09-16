@@ -31,16 +31,10 @@ as |select name|}}
   >
     <Action
       {{on 'click'
-        (if (not-eq @onclick undefined)
-          (fn @onclick (uppercase item.label))
-          (noop)
-        )
+          (fn this.onClick (uppercase item.label))
       }}
       {{on 'click'
-        (if @onTabClicked
-          (fn @onTabClicked item)
-          (noop)
-        )
+          (fn this.onTabClicked item)
       }}
       @href={{item.href}}
     >

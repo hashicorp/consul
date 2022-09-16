@@ -2,16 +2,20 @@
 layout: docs
 page_title: Consul API Gateway Basic Usage
 description:  >-
-  Consul API Gateway Basic Usage
+  This topic describes how to use Consul API Gateway.
 ---
 
 
-# Basic Usage
+# Usage
 
-This topic describes the basic workflow for implementing Consul API Gateway configurations.
+This topic describes how to use Consul API Gateway.
+
+## Basic usage
+
+Complete the following steps to use Consul API Gateway in your network.
 
 1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
-1. Verify that the Consul API Gateway CRDs and controller have been installed and applied (see [Installation](/docs/api-gateway/consul-api-gateway-install)).
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied (see [Installation](/docs/api-gateway/install)).
 1. Configure your [`Gateway`](/docs/api-gateway/configuration/gateway) and [`Routes`](/docs/api-gateway/configuration/routes) . as describe in the [Configuration](/docs/api-gateway/configuration) section.
 
   <CodeBlockConfig hideClipboard filename="values.yaml">
@@ -29,6 +33,50 @@ This topic describes the basic workflow for implementing Consul API Gateway conf
   ```shell-session
     $ kubectl apply -f gateway.yaml routes.yaml
   ```
+
+## Reroute HTTP requests
+
+Configure the following fields in your `Route` configuration to use this feature. Refer to the [Route configuration reference](/docs/api-gateway/configuration/routes) for details about the parameters.
+
+* [`rules.filters.type`](/docs/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
+* [`rules.filters.urlRewrite`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.
+* [`rules.filters.urlRewrite.path`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite-path): Contains the paths that incoming requests should be rewritten to based on the match conditions.  
+
+Note that if the route is configured to accept paths with and without a trailing slash, you must make two separate routes to handle each case.
+
+### Example
+
+In the following example, requests to` /incoming-request-prefix/` are forwarded to the `backendRef` as `/prefix-backend-receives/`. A request to `/incoming-request-prefix/request-path`, for instance, is received by the `backendRef` as `/prefix-backend-receives/request-path`.
+
+<CodeBlockConfig filename="route.yaml">
+
+```yaml hideClipboard
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+ name: example-route
+ ##...
+spec:
+ parentRefs:
+   - group: gateway.networking.k8s.io
+     kind: Gateway
+     name: api-gateway
+ rules:
+   - backendRefs:
+     . . .
+     filters:
+       - type: URLRewrite
+         urlRewrite:
+           path:
+             replacePrefixMatch: /prefix-backend-receives/
+             type: ReplacePrefixMatch
+     matches:
+       - path:
+           type: PathPrefix
+           value: /incoming–request-prefix/
+```
+</CodeBlockConfig>
+
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 

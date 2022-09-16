@@ -15,7 +15,7 @@ export const Collection = class Collection {
   }
 
   get ExternalSources() {
-    const sources = this.items.reduce(function(prev, item) {
+    const sources = this.items.reduce(function (prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
@@ -99,17 +99,17 @@ export default class ServiceInstance extends Model {
 
   @computed('Checks.[]')
   get ChecksPassing() {
-    return this.Checks.filter(item => item.Status === 'passing');
+    return this.Checks.filter((item) => item.Status === 'passing');
   }
 
   @computed('Checks.[]')
   get ChecksWarning() {
-    return this.Checks.filter(item => item.Status === 'warning');
+    return this.Checks.filter((item) => item.Status === 'warning');
   }
 
   @computed('Checks.[]')
   get ChecksCritical() {
-    return this.Checks.filter(item => item.Status === 'critical');
+    return this.Checks.filter((item) => item.Status === 'critical');
   }
 
   @computed('Checks.[]', 'ChecksPassing')

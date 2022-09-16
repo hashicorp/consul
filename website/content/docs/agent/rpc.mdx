@@ -1,17 +1,14 @@
 ---
 layout: docs
-page_title: RPC
+page_title: Legacy RPC Protocol
 description: >-
-  The Consul agent provides a complete RPC mechanism that can be used to control
-  the agent programmatically. This RPC mechanism is the same one used by the CLI
-  but can be used by other applications to easily leverage the power of Consul
-  without directly embedding.
+  Consul agents originally could be controlled through the RPC protocol. This feature was deprecated in version 0.8 in favor of the HTTP API. Learn about agent RPC interactions and how they worked.
 ---
 
 # RPC Protocol
 
 ~> The RPC Protocol is deprecated and support was removed in Consul
-0.8. Please use the [HTTP API](/api), which has
+0.8. Please use the [HTTP API](/api-docs), which has
 support for all features of the RPC Protocol.
 
 The Consul agent provides a complete RPC mechanism that can
@@ -21,7 +18,7 @@ used by other applications to easily leverage the power
 of Consul without directly embedding.
 
 It is important to note that the RPC protocol does not support
-all the same operations as the [HTTP API](/api).
+all the same operations as the [HTTP API](/api-docs).
 
 ## Implementation Details
 

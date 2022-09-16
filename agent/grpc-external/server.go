@@ -1,20 +1,19 @@
 package external
 
 import (
+	"time"
+
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"time"
 
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.Server {
+func NewServer(logger agentmiddleware.Logger) *grpc.Server {
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
@@ -33,10 +32,6 @@ func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.S
 			// Currently the client param is set to 30s.
 			MinTime: 15 * time.Second,
 		}),
-	}
-	if tls != nil && tls.GRPCTLSConfigured() {
-		creds := credentials.NewTLS(tls.IncomingGRPCConfig())
-		opts = append(opts, grpc.Creds(creds))
 	}
 	return grpc.NewServer(opts...)
 }

@@ -16,14 +16,13 @@ similarities to one.
 The Consul KV datastore is located on the servers, but can be accessed by any
 agent (client or server). The natively integrated [RPC
 functionality](/docs/architecture) allows clients to forward
-requests to servers, including key/value reads and writes. Part of Consul’s
+requests to servers, including key/value reads and writes. Part of Consul's
 core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
 occurs.
 
-If you have not used Consul KV, check out this [Getting Started
-tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-key-value-store?utm_source=consul.io&utm_medium=docs) on HashiCorp
-Learn.
+If you have not used Consul KV, complete this [Getting Started
+tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-key-value-store?utm_source=docs) on HashiCorp.
 
 ## Accessing the KV store
 
@@ -67,7 +66,7 @@ using the API and in shell scripts.
 
 If you plan to use Consul KV as part of your configuration management process
 review the [Consul
-Template](https://learn.hashicorp.com/tutorials/consul/consul-template)
+Template](https://learn.hashicorp.com/tutorials/consul/consul-template?utm_source=docs)
 tutorial on how to update configuration based on value updates in the KV. Consul
 Template is based on Go Templates and allows for a series of scripted actions
 to be initiated on value changes to a Consul key.
@@ -90,9 +89,9 @@ session holding the lock. Review the session documentation for more information
 on the [integration](/docs/dynamic-app-config/sessions#k-v-integration).
 
 Review the following tutorials to learn how to use Consul sessions for [application leader election](https://learn.hashicorp.com/tutorials/consul/application-leader-elections) and
-to [build distributed semaphores](https://learn.hashicorp.com/tutorials/consul/distributed-semaphore).
+to [build distributed semaphores](https://learn.hashicorp.com/consul/developer-configuration/semaphore).
 
 ### Vault
 
 If you plan to use Consul KV as a backend for Vault, please review [this
-tutorial](https://learn.hashicorp.com/tutorials/vault/ha-with-consul).
+tutorial](/vault/tutorials/day-one-consul/ha-with-consul?utm_source=docs).

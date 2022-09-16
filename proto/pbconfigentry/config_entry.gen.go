@@ -415,6 +415,11 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		MeshHTTPConfigToStructs(s.HTTP, &x)
 		t.HTTP = &x
 	}
+	if s.Peering != nil {
+		var x structs.PeeringMeshConfig
+		PeeringMeshConfigToStructs(s.Peering, &x)
+		t.Peering = &x
+	}
 	t.Meta = s.Meta
 }
 func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
@@ -435,6 +440,11 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		var x MeshHTTPConfig
 		MeshHTTPConfigFromStructs(t.HTTP, &x)
 		s.HTTP = &x
+	}
+	if t.Peering != nil {
+		var x PeeringMeshConfig
+		PeeringMeshConfigFromStructs(t.Peering, &x)
+		s.Peering = &x
 	}
 	s.Meta = t.Meta
 }
@@ -495,6 +505,18 @@ func MeshTLSConfigFromStructs(t *structs.MeshTLSConfig, s *MeshTLSConfig) {
 		MeshDirectionalTLSConfigFromStructs(t.Outgoing, &x)
 		s.Outgoing = &x
 	}
+}
+func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	t.PeerThroughMeshGateways = s.PeerThroughMeshGateways
+}
+func PeeringMeshConfigFromStructs(t *structs.PeeringMeshConfig, s *PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	s.PeerThroughMeshGateways = t.PeerThroughMeshGateways
 }
 func RingHashConfigToStructs(s *RingHashConfig, t *structs.RingHashConfig) {
 	if s == nil {
@@ -630,6 +652,14 @@ func ServiceResolverFailoverToStructs(s *ServiceResolverFailover, t *structs.Ser
 	t.ServiceSubset = s.ServiceSubset
 	t.Namespace = s.Namespace
 	t.Datacenters = s.Datacenters
+	{
+		t.Targets = make([]structs.ServiceResolverFailoverTarget, len(s.Targets))
+		for i := range s.Targets {
+			if s.Targets[i] != nil {
+				ServiceResolverFailoverTargetToStructs(s.Targets[i], &t.Targets[i])
+			}
+		}
+	}
 }
 func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *ServiceResolverFailover) {
 	if s == nil {
@@ -639,6 +669,38 @@ func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *S
 	s.ServiceSubset = t.ServiceSubset
 	s.Namespace = t.Namespace
 	s.Datacenters = t.Datacenters
+	{
+		s.Targets = make([]*ServiceResolverFailoverTarget, len(t.Targets))
+		for i := range t.Targets {
+			{
+				var x ServiceResolverFailoverTarget
+				ServiceResolverFailoverTargetFromStructs(&t.Targets[i], &x)
+				s.Targets[i] = &x
+			}
+		}
+	}
+}
+func ServiceResolverFailoverTargetToStructs(s *ServiceResolverFailoverTarget, t *structs.ServiceResolverFailoverTarget) {
+	if s == nil {
+		return
+	}
+	t.Service = s.Service
+	t.ServiceSubset = s.ServiceSubset
+	t.Partition = s.Partition
+	t.Namespace = s.Namespace
+	t.Datacenter = s.Datacenter
+	t.Peer = s.Peer
+}
+func ServiceResolverFailoverTargetFromStructs(t *structs.ServiceResolverFailoverTarget, s *ServiceResolverFailoverTarget) {
+	if s == nil {
+		return
+	}
+	s.Service = t.Service
+	s.ServiceSubset = t.ServiceSubset
+	s.Partition = t.Partition
+	s.Namespace = t.Namespace
+	s.Datacenter = t.Datacenter
+	s.Peer = t.Peer
 }
 func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.ServiceResolverRedirect) {
 	if s == nil {
@@ -649,6 +711,7 @@ func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.Ser
 	t.Namespace = s.Namespace
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
+	t.Peer = s.Peer
 }
 func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *ServiceResolverRedirect) {
 	if s == nil {
@@ -659,6 +722,7 @@ func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *S
 	s.Namespace = t.Namespace
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
+	s.Peer = t.Peer
 }
 func ServiceResolverSubsetToStructs(s *ServiceResolverSubset, t *structs.ServiceResolverSubset) {
 	if s == nil {

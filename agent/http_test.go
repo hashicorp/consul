@@ -148,7 +148,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -1549,7 +1549,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -1621,7 +1621,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 
 			// Fire up an agent with TLS enabled.
 			a := StartTestAgent(t, TestAgent{
-				UseTLS: tc.tlsEnabled,
+				UseHTTPS: tc.tlsEnabled,
 				HCL: hclPrefix + `
 					limits {
 						http_max_conns_per_client = 2

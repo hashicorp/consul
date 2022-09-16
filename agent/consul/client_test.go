@@ -18,6 +18,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -553,6 +554,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
+		XDSStreamLimiter:         limiter.NewSessionLimiter(),
 	}
 }
 
@@ -893,8 +895,8 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		}
 	})
 
-	// waiter will sleep for 50ms
-	require.NoError(t, s1.RegisterEndpoint("Wait", &waiter{duration: 50 * time.Millisecond}))
+	// waiter will sleep for 101ms which is 1ms more than the DefaultQueryTime
+	require.NoError(t, s1.RegisterEndpoint("Wait", &waiter{duration: 101 * time.Millisecond}))
 
 	// Requests with QueryOptions have a default timeout of RPCHoldTimeout (10ms)
 	// so we expect the RPC call to timeout.
@@ -903,7 +905,8 @@ func TestClient_RPC_Timeout(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
 
-	// Blocking requests have a longer timeout (100ms) so this should pass
+	// Blocking requests have a longer timeout (100ms) so this should pass since we
+	// add the maximum jitter which should be 16ms
 	out = struct{}{}
 	err = c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
 		QueryOptions: structs.QueryOptions{

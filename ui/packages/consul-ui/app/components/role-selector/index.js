@@ -15,20 +15,20 @@ export default ChildSelectorComponent.extend({
   // You have to alias data.
   // If you just set it, it loses its reference?
   policy: alias('policyForm.data'),
-  init: function() {
+  init: function () {
     this._super(...arguments);
-    this.policyForm = this.formContainer.form('policy');
+    set(this, 'policyForm', this.formContainer.form('policy'));
     this.source = new EventSource();
   },
   actions: {
-    reset: function(e) {
+    reset: function (e) {
       this._super(...arguments);
       this.policyForm.clear({ Datacenter: this.dc });
     },
-    dispatch: function(type, data) {
+    dispatch: function (type, data) {
       this.source.dispatchEvent({ type: type, data: data });
     },
-    change: function() {
+    change: function () {
       const event = this.dom.normalizeEvent(...arguments);
       const target = event.target;
       switch (target.name) {

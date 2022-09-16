@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Service Defaults'
+page_title: Service Defaults - Configuration Entry Reference
 description: >-
-  The service-defaults config entry kind controls default global values for a
-  service, such as its protocol.
+  The service defaults configuration entry kind defines sets of default configurations that apply to all services in the mesh. Use the examples learn how to define a default protocol, default upstream configuration, and default terminating gateway.
 ---
 
-# Service Defaults
+# Service Defaults Configuration Entry
 
 -> **v1.8.4+:** On Kubernetes, the `ServiceDefaults` custom resource is supported in Consul versions 1.8.4+.<br />
 **v1.5.0+:** On other platforms, this config entry is supported in Consul versions 1.5.0+.
@@ -366,7 +365,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'UpstreamConfig',
@@ -504,6 +502,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: `The number of consecutive failures which cause a host to be
                       removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -636,6 +644,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -652,7 +670,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
@@ -686,6 +703,24 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           description: `Port number associated with the destination.`,
         },
       ]
+    },
+    {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
+    },
+    {
+      name: 'LocalConnectTimeoutMs',
+      description: ' The number of milliseconds allowed to make connections to the local application instance before timing out. Defaults to 5000.',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'LocalRequestTimeoutMs',
+      description: ' In milliseconds, the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts (15s).',
+      type: 'int: 0',
+      yaml: false,
     },
     {
       name: 'MeshGateway',

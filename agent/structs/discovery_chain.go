@@ -53,28 +53,15 @@ type CompiledDiscoveryChain struct {
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
 }
 
-func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryGraphNode) bool {
-	if node.Type != DiscoveryGraphNodeTypeResolver {
-		return false
-	}
-	failover := node.Resolver.Failover
-
-	if failover != nil && len(failover.Targets) > 0 {
-		for _, failTargetID := range failover.Targets {
-			failTarget := c.Targets[failTargetID]
-			switch failTarget.MeshGateway.Mode {
-			case MeshGatewayModeLocal, MeshGatewayModeRemote:
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
-	return chainID("", c.ServiceName, c.Namespace, c.Partition, c.Datacenter)
+	return chainID(DiscoveryTargetOpts{
+		Service:    c.ServiceName,
+		Namespace:  c.Namespace,
+		Partition:  c.Partition,
+		Datacenter: c.Datacenter,
+	})
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
@@ -203,6 +190,7 @@ type DiscoveryTarget struct {
 	Namespace     string `json:",omitempty"`
 	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`
 	Subset      ServiceResolverSubset `json:",omitempty"`
@@ -258,28 +246,52 @@ func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter string) *DiscoveryTarget {
+type DiscoveryTargetOpts struct {
+	Service       string
+	ServiceSubset string
+	Namespace     string
+	Partition     string
+	Datacenter    string
+	Peer          string
+}
+
+func NewDiscoveryTarget(opts DiscoveryTargetOpts) *DiscoveryTarget {
 	t := &DiscoveryTarget{
-		Service:       service,
-		ServiceSubset: serviceSubset,
-		Namespace:     namespace,
-		Partition:     partition,
-		Datacenter:    datacenter,
+		Service:       opts.Service,
+		ServiceSubset: opts.ServiceSubset,
+		Namespace:     opts.Namespace,
+		Partition:     opts.Partition,
+		Datacenter:    opts.Datacenter,
+		Peer:          opts.Peer,
 	}
 	t.setID()
 	return t
 }
 
-func chainID(subset, service, namespace, partition, dc string) string {
-	// NOTE: this format is similar to the SNI syntax for simplicity
-	if subset == "" {
-		return fmt.Sprintf("%s.%s.%s.%s", service, namespace, partition, dc)
+func (t *DiscoveryTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+		Partition:     t.Partition,
+		Datacenter:    t.Datacenter,
+		Peer:          t.Peer,
 	}
-	return fmt.Sprintf("%s.%s.%s.%s.%s", subset, service, namespace, partition, dc)
+}
+
+func chainID(opts DiscoveryTargetOpts) string {
+	// NOTE: this format is similar to the SNI syntax for simplicity
+	if opts.Peer != "" {
+		return fmt.Sprintf("%s.%s.default.external.%s", opts.Service, opts.Namespace, opts.Peer)
+	}
+	if opts.ServiceSubset == "" {
+		return fmt.Sprintf("%s.%s.%s.%s", opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)
+	}
+	return fmt.Sprintf("%s.%s.%s.%s.%s", opts.ServiceSubset, opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)
 }
 
 func (t *DiscoveryTarget) setID() {
-	t.ID = chainID(t.ServiceSubset, t.Service, t.Namespace, t.Partition, t.Datacenter)
+	t.ID = chainID(t.ToDiscoveryTargetOpts())
 }
 
 func (t *DiscoveryTarget) String() string {

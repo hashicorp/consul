@@ -1,11 +1,11 @@
-export default function(P = Promise, timeout = setTimeout) {
+export default function (P = Promise, timeout = setTimeout) {
   // var interval;
-  return function(milliseconds, cb = function() {}) {
+  return function (milliseconds, cb = function () {}) {
     // clearInterval(interval);
     // const cb = typeof _cb !== 'function' ? (i) => { clearInterval(interval);interval = i; } : _cb;
     return new P((resolve, reject) => {
       cb(
-        timeout(function() {
+        timeout(function () {
           resolve(milliseconds);
         }, milliseconds)
       );
