@@ -253,6 +253,15 @@ defaults that are inherited by all services.
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
 
+- `balance_inbound_connections` - The strategy used for balancing inbound connections
+  across Envoy worker threads. Connect's Envoy integration currently supports the
+  following `balance_inbound_connections` values:
+
+  - `""` - The default (empty) value. No connection balancing strategy will be used. 
+  - `exact_balance` - If set to this value, inbound connections to the service will
+    use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
 ### Proxy Upstream Config Options
 
 The following configuration items may be overridden directly in the
@@ -311,6 +320,15 @@ definition](/docs/connect/registration/service-registration) or
     removed from the load balancer.
   -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
     when an outlier status is detected through consecutive 5xx.
+
+- `balance_outbound_connections` - The strategy used for balancing outbound connections
+  across Envoy worker threads. Connect's Envoy integration currently supports the
+  following `balance_inbound_connections` values:
+
+  - `""` - The default (empty) value. No connection balancing strategy will be used. 
+  - `exact_balance` - If set to this value, outbound connections from the upstream will
+    use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
 ### Gateway Options
 
