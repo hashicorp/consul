@@ -359,7 +359,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
     {
       name: 'BalanceInboundConnections',
       type: `string: ""`,
-      description: `Sets the strategy for allocating inbound connections to the service to proxy threads.
+      description: `Sets the strategy for allocating inbound connections to the service across proxy threads.
                       The only supported value is \`exact_balance\` for Enovy proxies or undefined
                       (no connection balancing) behavior. Refer to the
                       [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
@@ -458,7 +458,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
             {
               name: 'BalanceOutboundConnections',
               type: `string: ""`,
-              description: `Sets the strategy for allocating outbound connections from the upstream to proxy threads.
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
                   The only supported value is \`exact_balance\` for Enovy proxies or undefined
                   (no connection balancing) behavior. Refer to the
                   [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
@@ -609,7 +609,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
             {
               name: 'BalanceOutboundConnections',
               type: `string: ""`,
-              description: `Sets the strategy for allocating outbound connections from the upstream to proxy threads.
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
                   The only supported value is \`exact_balance\` for Enovy proxies or undefined
                   (no connection balancing) behavior. Refer to the
                   [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
