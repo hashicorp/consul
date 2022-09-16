@@ -24,177 +24,177 @@ type mockAuthorizer struct {
 	mock.Mock
 }
 
-func (m mockAuthorizer) ACLRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ACLRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ACLWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ACLWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) AgentRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) AgentRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) AgentWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) AgentWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) EventRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) EventRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) EventWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) EventWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) IntentionDefaultAllow(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) IntentionDefaultAllow(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) IntentionRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) IntentionRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) IntentionWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) IntentionWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyList(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyList(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyWritePrefix(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyWritePrefix(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyringRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyringRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) KeyringWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) KeyringWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) MeshRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) MeshRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) MeshWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) MeshWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) PeeringRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) PeeringRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) PeeringWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) PeeringWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) NodeRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) NodeRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) NodeReadAll(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) NodeReadAll(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) NodeWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) NodeWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) OperatorRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) OperatorRead(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) OperatorWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) OperatorWrite(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	called := m.Called(authorizerContext)
 	return acl.EnforcementDecision(called.Int(0))
 }
 
-func (m mockAuthorizer) PreparedQueryRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) PreparedQueryRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) PreparedQueryWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) PreparedQueryWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ServiceRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ServiceRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ServiceReadAll(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ServiceReadAll(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ServiceWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ServiceWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ServiceWriteAny(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) ServiceWriteAny(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) SessionRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) SessionRead(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) SessionWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) SessionWrite(s string, authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) Snapshot(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
+func (m *mockAuthorizer) Snapshot(authorizerContext *acl.AuthorizerContext) acl.EnforcementDecision {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m mockAuthorizer) ToAllowAuthorizer() acl.AllowAuthorizer {
+func (m *mockAuthorizer) ToAllowAuthorizer() acl.AllowAuthorizer {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m MockBackend) TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {
+func (m *MockBackend) TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {
 	called := m.Called(ctx, request)
 	ret := called.Get(0)
 	if ret == nil {
@@ -203,14 +203,14 @@ func (m MockBackend) TransferLeader(ctx context.Context, request *pboperator.Tra
 	return ret.(*pboperator.TransferLeaderResponse), called.Error(1)
 }
 
-func (m MockBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
+func (m *MockBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
 	return resolver.Result{Authorizer: m.authorizer}, nil
 }
 
 func TestLeaderTransfer_ACL_NotAllowed(t *testing.T) {
 	authorizer := mockAuthorizer{}
 	authorizer.On("OperatorWrite", mock.Anything).Return(0)
-	server := NewServer(Config{Datacenter: "dc1", Backend: MockBackend{authorizer: authorizer}, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
+	server := NewServer(Config{Datacenter: "dc1", Backend: &MockBackend{authorizer: &authorizer}, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
 
 	_, err := server.TransferLeader(context.Background(), &pboperator.TransferLeaderRequest{})
 	require.Error(t, err)
@@ -218,10 +218,10 @@ func TestLeaderTransfer_ACL_NotAllowed(t *testing.T) {
 }
 
 func TestLeaderTransfer_ACL_Allowed(t *testing.T) {
-	authorizer := mockAuthorizer{}
+	authorizer := &mockAuthorizer{}
 	authorizer.On("OperatorWrite", mock.Anything).Return(1)
 
-	backend := MockBackend{authorizer: authorizer}
+	backend := &MockBackend{authorizer: authorizer}
 	backend.On("TransferLeader", mock.Anything, mock.Anything).Return(nil, nil)
 	server := NewServer(Config{Datacenter: "dc1", Backend: backend, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
 
@@ -230,10 +230,10 @@ func TestLeaderTransfer_ACL_Allowed(t *testing.T) {
 }
 
 func TestLeaderTransfer_LeaderTransfer_Fail(t *testing.T) {
-	authorizer := mockAuthorizer{}
+	authorizer := &mockAuthorizer{}
 	authorizer.On("OperatorWrite", mock.Anything).Return(1)
 
-	backend := MockBackend{authorizer: authorizer}
+	backend := &MockBackend{authorizer: authorizer}
 	backend.On("TransferLeader", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("test"))
 	server := NewServer(Config{Datacenter: "dc1", Backend: backend, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
 
@@ -243,10 +243,10 @@ func TestLeaderTransfer_LeaderTransfer_Fail(t *testing.T) {
 }
 
 func TestLeaderTransfer_LeaderTransfer_Success(t *testing.T) {
-	authorizer := mockAuthorizer{}
+	authorizer := &mockAuthorizer{}
 	authorizer.On("OperatorWrite", mock.Anything).Return(1)
 
-	backend := MockBackend{authorizer: authorizer}
+	backend := &MockBackend{authorizer: authorizer}
 	backend.On("TransferLeader", mock.Anything, mock.Anything).Return(&pboperator.TransferLeaderResponse{Success: true}, nil)
 	server := NewServer(Config{Datacenter: "dc1", Backend: backend, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
 
@@ -257,10 +257,10 @@ func TestLeaderTransfer_LeaderTransfer_Success(t *testing.T) {
 }
 
 func TestLeaderTransfer_LeaderTransfer_ForwardRPC(t *testing.T) {
-	authorizer := mockAuthorizer{}
+	authorizer := &mockAuthorizer{}
 	authorizer.On("OperatorWrite", mock.Anything).Return(1)
 
-	backend := MockBackend{authorizer: authorizer}
+	backend := &MockBackend{authorizer: authorizer}
 	backend.On("TransferLeader", mock.Anything, mock.Anything).Return(&pboperator.TransferLeaderResponse{}, nil)
 	server := NewServer(Config{Datacenter: "dc1", Backend: backend, Logger: hclog.New(nil), ForwardRPC: noopForwardRPC})
 
