@@ -161,6 +161,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "listener-balance-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["balance_inbound_connections"] = "exact_balance"
+				}, nil)
+			},
+		},
+		{
+			name: "listener-balance-outbound-connections-bind-port",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["balance_outbound_connections"] = "exact_balance"
+				}, nil)
+			},
+		},
+		{
 			name: "http-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {

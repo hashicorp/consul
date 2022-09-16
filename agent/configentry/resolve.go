@@ -53,15 +53,7 @@ func ComputeResolvedServiceConfig(
 		structs.NewServiceID(args.Name, &args.EnterpriseMeta),
 	)
 	if serviceConf != nil {
-		if thisReply.ProxyConfig == nil {
-			thisReply.ProxyConfig = make(map[string]interface{})
-		}
-		if serviceConf.Protocol != "" {
-			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
-		}
-		if serviceConf.BalanceInboundConnections != "" {
-			thisReply.ProxyConfig["balance_inbound_connections"] = serviceConf.BalanceInboundConnections
-		}
+
 		if serviceConf.Expose.Checks {
 			thisReply.Expose.Checks = true
 		}
@@ -84,25 +76,29 @@ func ComputeResolvedServiceConfig(
 			thisReply.Destination = *serviceConf.Destination
 		}
 
+		// Populate values for the proxy config map
+		proxyConf := thisReply.ProxyConfig
+		if proxyConf == nil {
+			proxyConf = make(map[string]interface{})
+		}
+		if serviceConf.Protocol != "" {
+			proxyConf["protocol"] = serviceConf.Protocol
+		}
+		if serviceConf.BalanceInboundConnections != "" {
+			proxyConf["balance_inbound_connections"] = serviceConf.BalanceInboundConnections
+		}
 		if serviceConf.MaxInboundConnections > 0 {
-			if thisReply.ProxyConfig == nil {
-				thisReply.ProxyConfig = map[string]interface{}{}
-			}
-			thisReply.ProxyConfig["max_inbound_connections"] = serviceConf.MaxInboundConnections
+			proxyConf["max_inbound_connections"] = serviceConf.MaxInboundConnections
 		}
-
 		if serviceConf.LocalConnectTimeoutMs > 0 {
-			if thisReply.ProxyConfig == nil {
-				thisReply.ProxyConfig = map[string]interface{}{}
-			}
-			thisReply.ProxyConfig["local_connect_timeout_ms"] = serviceConf.LocalConnectTimeoutMs
+			proxyConf["local_connect_timeout_ms"] = serviceConf.LocalConnectTimeoutMs
 		}
-
 		if serviceConf.LocalRequestTimeoutMs > 0 {
-			if thisReply.ProxyConfig == nil {
-				thisReply.ProxyConfig = map[string]interface{}{}
-			}
-			thisReply.ProxyConfig["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
+			proxyConf["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
+		}
+		// Add the proxy conf to the response if any fields were populated
+		if len(proxyConf) > 0 {
+			thisReply.ProxyConfig = proxyConf
 		}
 
 		thisReply.Meta = serviceConf.Meta

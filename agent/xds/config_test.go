@@ -158,7 +158,7 @@ func TestParseProxyConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "balance inbound connections override, bool",
+			name: "balance inbound connections override, string",
 			input: map[string]interface{}{
 				"balance_inbound_connections": "exact_balance",
 			},
