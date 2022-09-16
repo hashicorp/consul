@@ -1,3 +1,3 @@
 ```release-note:bug
 connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring.
-``
+```
