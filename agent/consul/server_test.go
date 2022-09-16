@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -218,9 +219,10 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var dir string
 	var srv *Server
 
+	var config *Config
+	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		var config *Config
 		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
@@ -234,7 +236,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		srv, err = newServer(t, config)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -245,9 +248,14 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
 		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-
 		ln, err := net.Listen("tcp", externalGRPCAddr)
 		require.NoError(t, err)
+
+		// Wrap the listener with TLS
+		if deps.TLSConfigurator.GRPCServerUseTLS() {
+			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+		}
+
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
 		}()
@@ -300,8 +308,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"))
+	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
 	}

@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Certificate Management
+page_title: Service Mesh Certificate Authority - Vault
 description: >-
-  Consul can be used with Vault to manage and sign certificates. The Vault CA
-  provider uses the Vault PKI secrets engine to generate and sign certificates.
+  You can use a Vault PKI secrets engine as the Consul service mesh's certificate authority to secure your service mesh. Learn how to configure the Vault CA as a root CA or an intermediate CA connected to an existing PKI system, and how to manage PKI paths with either Vault or Consul.
 ---
 
-# Vault as a Connect CA
+# Vault as a Service Mesh Certificate Authority
 
 Consul can be used with [Vault](https://www.vaultproject.io) to
 manage and sign certificates.
@@ -19,7 +18,7 @@ Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
--> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul Connect service mesh Certification Authority.
+-> **Tip:** Complete the [tutorial]https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) to learn how to configure Vault as the Consul Connect service mesh Certification Authority.
 
 ## Requirements
 
@@ -121,7 +120,7 @@ The configuration options are listed below.
   If the path does not
   exist, Consul will mount a new PKI secrets engine at the specified path with the
   `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
-  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  a [`max_lease_ttl`](https://www.vaultproject.io/api-docs/system/mounts)
   of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11,
   the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable.
   The root certificate will expire at the end of the specified period.
@@ -200,6 +199,8 @@ initialize it. This requires additional privileges by the Vault token in use.
 If the paths already exist, Consul will use them as configured.
 
 ## Vault ACL Policies
+
+Vault PKI can be managed by either Consul or by Vault. If you want to manually create and tune the PKI secret engines used to store the root and intermediate certificates, use Vault Managed PKI Paths. If you want to have the PKI automatically managed for you, use Consul Managed PKI Paths.
 
 ### Vault Managed PKI Paths
 

@@ -192,7 +192,7 @@
     <button
       data-test-create-permission
       type="button"
-      {{on "click" (optional this.modal.open)}}
+      {{on "click" (action this.openModal)}}
     >
       Add permission
     </button>
@@ -201,7 +201,7 @@
     <Consul::Intention::Notice::Permissions />
     <Consul::Intention::Permission::List
       @items={{item.Permissions}}
-      @onclick={{queue (action (mut permission)) (action (optional this.modal.open))}}
+      @onclick={{queue (action (mut permission)) (action this.openModal)}}
       @ondelete={{action 'delete' 'Permissions' item}}
     />
 {{else}}

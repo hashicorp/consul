@@ -14,7 +14,7 @@ Feature: dc / services / show-topology: Show Topology tab for Service
       dc: dc1
       service: service-0
     ---
-    And I see topology on the tabs
+    And I see topologyIsVisible on the tabs
     Then the url should be /dc1/services/service-0/topology
   Scenario: Given connect is disabled, the Topology tab should not display or error
     Given 1 datacenter model with the value "dc1"

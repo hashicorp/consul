@@ -1,4 +1,4 @@
-export default function(visitable, deletable, creatable, clickable, attribute, collection) {
+export default function (visitable, deletable, creatable, clickable, attribute, collection) {
   return creatable({
     visit: visitable('/:dc/acls'),
     acls: collection(

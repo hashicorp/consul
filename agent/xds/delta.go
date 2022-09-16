@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -28,6 +29,8 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
 )
+
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
 
 type deltaRecvResponse int
 
@@ -81,6 +84,17 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	// Handle invalid ACL tokens up-front.
+	if _, err := s.authenticate(stream.Context()); err != nil {
+		return err
+	}
+
+	session, err := s.SessionLimiter.BeginSession()
+	if err != nil {
+		return errOverwhelmed
+	}
+	defer session.End()
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -154,6 +168,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-session.Terminated():
+			generator.Logger.Debug("draining stream to rebalance load")
+			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {
@@ -200,7 +218,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 			}
 
-		case cfgSnap = <-stateCh:
+		case cs, ok := <-stateCh:
+			if !ok {
+				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
+				// or by the proxycfg.Manager when an irrecoverable error is encountered
+				// such as the ACL token getting deleted.
+				//
+				// We know for sure that this is the latter case, because in the former we
+				// would've already exited this loop.
+				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
+			}
+			cfgSnap = cs
+
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)

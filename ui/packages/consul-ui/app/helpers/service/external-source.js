@@ -9,7 +9,16 @@ export function serviceExternalSource(params, hash) {
   const prefix = typeof hash.prefix === 'undefined' ? '' : hash.prefix;
   if (
     source &&
-    ['consul-api-gateway', 'vault', 'kubernetes', 'terraform', 'nomad', 'consul', 'aws'].includes(
+    [
+      'consul-api-gateway',
+      'vault',
+      'kubernetes',
+      'terraform',
+      'nomad',
+      'consul',
+      'aws',
+      'lambda'
+    ].includes(
       source
     )
   ) {

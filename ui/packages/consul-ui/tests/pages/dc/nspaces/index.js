@@ -1,4 +1,4 @@
-export default function(visitable, creatable, nspaces, popoverSelect) {
+export default function (visitable, creatable, nspaces, popoverSelect) {
   return creatable({
     visit: visitable('/:dc/namespaces'),
     nspaces: nspaces(),

@@ -1,16 +1,11 @@
 ---
 layout: docs
-page_title: Improving Consul Resilience
+page_title: Fault Tolerance in Consul
 description: >-
-  Fault tolerance is the ability of a system to continue operating without interruption
-  despite the failure of one or more components. Consul's resilience, or fault tolerance,
-  is determined by the configuring of its voting server agents. Recommended strategies for
-  increasing Consul's fault tolerance include using 3 or 5 voting server agents, spreading
-  server agents across infrastructure availability zones, and using Consul Enterprise
-  redundancy zones to enable backup voting servers to automatically replace lost voters.
+  Fault tolerance is a system's ability to operate without interruption despite component failure. Learn how a set of Consul servers provide fault tolerance through use of a quorum, and how to further improve control plane resilience through use of infrastructure zones and Enterprise redundancy zones.
 ---
 
-# Improving Consul Resilience
+# Fault Tolerance
 
 Fault tolerance is the ability of a system to continue operating without interruption
 despite the failure of one or more components.
@@ -80,7 +75,7 @@ to protect your Consul datacenter from a single zone-level failure.
 For example, if deploying 5 Consul servers across 3 availability zones, place no more than 2 servers in each zone.
 If one zone fails, at most 2 servers are lost and quorum will be maintained by the 3 remaining servers.
 
-To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server’s agent configuration.
+To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server's agent configuration.
 
 Additionally, you should leverage resources that can automatically restore your compute instance,
 such as autoscaling groups, virtual machine scale sets, or compute engine autoscaler.

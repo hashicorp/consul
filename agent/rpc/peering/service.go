@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -194,8 +194,6 @@ func (s *Server) GenerateToken(
 		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
-	defer metrics.MeasureSince([]string{"peering", "generate_token"}, time.Now())
-
 	resp := &pbpeering.GenerateTokenResponse{}
 	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
@@ -206,6 +204,8 @@ func (s *Server) GenerateToken(
 	if handled || err != nil {
 		return resp, err
 	}
+
+	defer metrics.MeasureSince([]string{"peering", "generate_token"}, time.Now())
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
@@ -374,11 +374,12 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrEmpty()); err != nil {
+	if err := s.validatePeeringLocality(tok, entMeta.PartitionOrEmpty()); err != nil {
 		return nil, err
 	}
 
 	var id string
+	serverAddrs := tok.ServerAddresses
 	if existing == nil {
 		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
 		if err != nil {
@@ -386,6 +387,11 @@ func (s *Server) Establish(
 		}
 	} else {
 		id = existing.ID
+		// If there is a connected stream, assume that the existing ServerAddresses
+		// are up to date and do not try to overwrite them with the token's addresses.
+		if status, ok := s.Tracker.StreamStatus(id); ok && status.Connected {
+			serverAddrs = existing.PeerServerAddresses
+		}
 	}
 
 	// validate that this peer name is not being used as an acceptor already
@@ -397,7 +403,7 @@ func (s *Server) Establish(
 		ID:                  id,
 		Name:                req.PeerName,
 		PeerCAPems:          tok.CA,
-		PeerServerAddresses: tok.ServerAddresses,
+		PeerServerAddresses: serverAddrs,
 		PeerServerName:      tok.ServerName,
 		PeerID:              tok.PeerID,
 		Meta:                req.Meta,
@@ -418,9 +424,9 @@ func (s *Server) Establish(
 	}
 	var exchangeResp *pbpeerstream.ExchangeSecretResponse
 
-	// Loop through the token's addresses once, attempting to fetch the long-lived stream secret.
+	// Loop through the known server addresses once, attempting to fetch the long-lived stream secret.
 	var dialErrors error
-	for _, addr := range peering.PeerServerAddresses {
+	for _, addr := range serverAddrs {
 		exchangeResp, err = exchangeSecret(ctx, addr, tlsOption, &exchangeReq)
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret with %q: %w", addr, err))
@@ -457,13 +463,21 @@ func (s *Server) Establish(
 	return resp, nil
 }
 
-// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We validate by looking at
-// the remotePeerID from the PeeringToken and looking up for a peering in the partition. If there is one and the
-// request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
-func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
-	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
+// validatePeeringLocality makes sure that we don't create a peering in the cluster/partition it was generated.
+// We validate by looking at the remote PeerID from the PeeringToken and looking up that peering in the partition.
+// If there is one and the request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
+// We also perform a check to verify if the ServerName of the PeeringToken overlaps with our own, we do not process it
+// unless we've been able to find the peering in the store, i.e. this peering is between two local partitions.
+func (s *Server) validatePeeringLocality(token *structs.PeeringToken, partition string) error {
+	_, peering, err := s.Backend.Store().PeeringReadByID(nil, token.PeerID)
 	if err != nil {
 		return fmt.Errorf("cannot read peering by ID: %w", err)
+	}
+
+	// If the token has the same server name as this cluster, but we can't find the peering
+	// in our store, it indicates a naming conflict.
+	if s.Backend.GetServerName() == token.ServerName && peering == nil {
+		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", s.Backend.GetServerName())
 	}
 
 	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
@@ -720,11 +734,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 		return nil, err
 	}
 
-	if existing == nil || !existing.IsActive() {
+	if existing == nil || existing.State == pbpeering.PeeringState_DELETING {
 		// Return early when the Peering doesn't exist or is already marked for deletion.
 		// We don't return nil because the pb will fail to marshal.
 		return &pbpeering.PeeringDeleteResponse{}, nil
 	}
+
 	// We are using a write request due to needing to perform a deferred deletion.
 	// The peering gets marked for deletion by setting the DeletedAt field,
 	// and a leader routine will handle deleting the peering.

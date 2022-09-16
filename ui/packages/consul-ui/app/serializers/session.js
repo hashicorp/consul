@@ -7,7 +7,7 @@ export default class SessionSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           if (body.length === 0) {
             const e = new Error();

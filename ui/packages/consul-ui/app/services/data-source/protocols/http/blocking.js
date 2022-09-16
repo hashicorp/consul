@@ -21,7 +21,7 @@ export default class BlockingService extends Service {
       return maybeCall(deleteCursor, ifNotBlocking(this.settings))().then(() => {
         return find(configuration)
           .then(maybeCall(close, ifNotBlocking(this.settings)))
-          .then(function(res = {}) {
+          .then(function (res = {}) {
             const meta = get(res, 'meta') || {};
             if (typeof meta.cursor === 'undefined' && typeof meta.interval === 'undefined') {
               close();

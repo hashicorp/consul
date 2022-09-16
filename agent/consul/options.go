@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -15,14 +16,15 @@ import (
 )
 
 type Deps struct {
-	EventPublisher  *stream.EventPublisher
-	Logger          hclog.InterceptLogger
-	TLSConfigurator *tlsutil.Configurator
-	Tokens          *token.Store
-	Router          *router.Router
-	ConnPool        *pool.ConnPool
-	GRPCConnPool    GRPCClientConner
-	LeaderForwarder LeaderForwarder
+	EventPublisher   *stream.EventPublisher
+	Logger           hclog.InterceptLogger
+	TLSConfigurator  *tlsutil.Configurator
+	Tokens           *token.Store
+	Router           *router.Router
+	ConnPool         *pool.ConnPool
+	GRPCConnPool     GRPCClientConner
+	LeaderForwarder  LeaderForwarder
+	XDSStreamLimiter *limiter.SessionLimiter
 	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
 	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
 	// the rpc server.

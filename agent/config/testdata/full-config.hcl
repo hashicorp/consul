@@ -44,6 +44,7 @@ addresses = {
     http = "83.39.91.39"
     https = "95.17.17.19"
     grpc = "32.31.61.91"
+    grpc_tls = "23.14.88.19"
 }
 advertise_addr = "17.99.29.16"
 advertise_addr_wan = "78.63.37.19"
@@ -320,6 +321,7 @@ ports {
     https = 15127
     server = 3757
     grpc = 4881
+    grpc_tls = 5201
     proxy_min_port = 2000
     proxy_max_port = 3000
     sidecar_min_port = 8888
@@ -697,6 +699,7 @@ tls {
         tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
         tls_min_version = "TLSv1_0"
         verify_incoming = true
+        use_auto_cert   = true
     }
 }
 tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"

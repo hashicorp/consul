@@ -46,6 +46,7 @@ import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pag
 import consulAuthMethodListFactory from 'consul-ui/components/consul/auth-method/list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul/intention/list/pageobject';
 import consulNspaceListFactory from 'consul-ui/components/consul/nspace/list/pageobject';
+import consulPeerListFactory from 'consul-ui/components/consul/peer/list/test-support';
 import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject';
 
 // pages
@@ -73,6 +74,7 @@ import intentions from 'consul-ui/tests/pages/dc/intentions/index';
 import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
 import nspace from 'consul-ui/tests/pages/dc/nspaces/edit';
+import peers from 'consul-ui/tests/pages/dc/peers/index';
 
 // utils
 const deletable = createDeletable(clickable);
@@ -109,6 +111,7 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
+const consulPeerList = consulPeerListFactory(collection, isPresent);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
   collection,
@@ -135,7 +138,7 @@ const consulPolicyList = consulPolicyListFactory(
 const page = pageFactory(collection, clickable, attribute, is, authForm, emptyState);
 
 // pages
-const create = function(appView) {
+const create = function (appView) {
   appView = {
     ...page(),
     ...appView,
@@ -230,6 +233,7 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
+  peers: create(peers(visitable, creatable, consulPeerList, popoverSelect)),
   settings: create(settings(visitable, submitable, isPresent)),
   routingConfig: create(routingConfig(visitable, text)),
 };

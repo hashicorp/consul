@@ -1,0 +1,101 @@
+---
+layout: docs
+page_title: Storing the ACL Partition Token in Vault
+description: >-
+  Configuring the Consul Helm chart to use an ACL partition token stored in Vault.
+---
+
+# Storing the ACL Partition Token in Vault
+
+This topic describes how to configure the Consul Helm chart to use an ACL partition token stored in Vault.
+
+## Overview
+Complete the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section to use an ACL partition token stored in Vault.
+
+Complete the following steps once:
+  1. Store the secret in Vault.
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+
+Repeat the following steps for each datacenter in the cluster:
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Update the Consul on Kubernetes helm chart.
+
+## Prerequisites
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+
+## Store the Secret in Vault
+
+First, generate and store the ACL partition token in Vault. You will only need to perform this action once:
+
+```shell-session
+$ vault kv put secret/consul/partition-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+```
+
+## Create Vault policy
+
+Next, you will need to create a policy that allows read access to this secret.
+
+The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.acls.partitionToken.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
+
+<CodeBlockConfig filename="partition-token-policy.hcl">
+
+```HCL
+path "secret/data/consul/partition-token" {
+  capabilities = ["read"]
+}
+```
+
+</CodeBlockConfig>
+
+Apply the Vault policy by issuing the `vault policy write` CLI command:
+
+```shell-session
+$ vault policy write partition-token-policy partition-token-policy.hcl
+```
+
+## Create Vault Authorization Roles for Consul
+
+Next, you will create Kubernetes auth roles for the Consul `server-acl-init` job:
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-server-acl-init \
+    bound_service_account_names=<Consul server service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=partition-token-policy \
+    ttl=1h
+```
+
+To find out the service account name of the Consul server,
+you can run the following `helm template` command with your Consul on Kubernetes values file:
+
+```shell-session
+$ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serviceaccount.yaml hashicorp/consul
+```
+
+## Update Consul on Kubernetes Helm chart
+
+Now that you have configured Vault, you can configure the Consul Helm chart to
+use the  ACL partition token key in Vault:
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  secretsBackend:
+    vault:
+      enabled: true
+      manageSystemACLsRole: consul-server-acl-init
+  acls:
+    partitionToken:
+      secretName: secret/data/consul/partition-token
+      secretKey: token
+```
+
+</CodeBlockConfig>
+
+Note that `global.acls.partitionToken.secretName` is the path of the secret in Vault.
+This should be the same path as the one you included in your Vault policy.
+`global.acls.partitionToken.secretKey` is the key inside the secret data. This should be the same
+as the key you passed when creating the  ACL partition token secret in Vault.

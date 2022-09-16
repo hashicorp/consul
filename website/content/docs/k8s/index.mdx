@@ -1,17 +1,14 @@
 ---
 layout: docs
-page_title: Kubernetes
+page_title: Consul on Kubernetes
 description: >-
-  Consul has many integrations with Kubernetes. You can deploy Consul to
-  Kubernetes using the Helm chart, sync services between Consul and Kubernetes,
-  automatically secure Pod communication with Connect, and more. This section
-  documents the official integrations between Consul and Kubernetes.
+  Consul supports Kubernetes natively, allowing you to deploy Consul sidecars to a Kubernetes service mesh and sync the k8s service registry with non-k8s services. Learn how to install Consul on Kubernetes with Helm or the Consul K8s CLI and get started with tutorials.
 ---
 
-# Kubernetes
+# Consul on Kubernetes
 
 Consul has many integrations with Kubernetes. You can deploy Consul
-to Kubernetes using the [Helm chart](/docs/k8s/installation/install#helm-chart-installation) or [Consul K8s CLI](/docs/k8s/installation/install#consul-k8s-cli-installation), sync services between Consul and
+to Kubernetes using the [Helm chart](/docs/k8s/installation/install#helm-chart-installation) or [Consul K8s CLI](/docs/k8s/installation/install-cli#consul-k8s-cli-installation), sync services between Consul and
 Kubernetes, run Consul Service Mesh, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
@@ -40,33 +37,33 @@ There are several ways to try Consul with Kubernetes in different environments.
 
 **Tutorials**
 
-- The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+- The [Getting Started with Consul Service Mesh track](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=docs)
   provides guidance for installing Consul as service mesh for Kubernetes using the Helm
   chart, deploying services in the service mesh, and using intentions to secure service
   communications.
 
-- The [Migrate to Microservices with Consul Service Mesh on Kubernetes](https://learn.hashicorp.com/collections/consul/microservices?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+- The [Migrate to Microservices with Consul Service Mesh on Kubernetes](https://learn.hashicorp.com/collections/consul/microservices?utm_source=docs)
   collection uses an example application written by a fictional company to illustrate why and how organizations can
   migrate from monolith to microservices using Consul service mesh on Kubernetes. The case study in this collection
   should provide information valuable for understanding how to develop services that leverage Consul during any stage
   of your microservices journey.
 
-- The [Consul and Minikube guide](https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs) is a quick step-by-step guide for deploying Consul with the official Helm chart on a local instance of Minikube.
+- The [Consul and Minikube guide](https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=docs) is a quick step-by-step guide for deploying Consul with the official Helm chart on a local instance of Minikube.
 
 - Review production best practices and cloud-specific configurations for deploying Consul on managed Kubernetes runtimes.
 
-  - The [Consul on Azure Kubernetes Service (AKS) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs) is a complete step-by-step guide on how to deploy Consul on AKS. The guide also allows you to practice deploying two microservices.
-  - The [Consul on Amazon Elastic Kubernetes Service (EKS) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs) is a complete step-by-step guide on how to deploy Consul on EKS. Additionally, it provides guidance on interacting with your datacenter with the Consul UI, CLI, and API.
-  - The [Consul on Google Kubernetes Engine (GKE) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs) is a complete step-by-step guide on how to deploy Consul on GKE. Additionally, it provides guidance on interacting with your datacenter with the Consul UI, CLI, and API.
+  - The [Consul on Azure Kubernetes Service (AKS) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=docs) is a complete step-by-step guide on how to deploy Consul on AKS. The guide also allows you to practice deploying two microservices.
+  - The [Consul on Amazon Elastic Kubernetes Service (EKS) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=docs) is a complete step-by-step guide on how to deploy Consul on EKS. Additionally, it provides guidance on interacting with your datacenter with the Consul UI, CLI, and API.
+  - The [Consul on Google Kubernetes Engine (GKE) tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=docs) is a complete step-by-step guide on how to deploy Consul on GKE. Additionally, it provides guidance on interacting with your datacenter with the Consul UI, CLI, and API.
 
-- The [Consul and Kubernetes Reference Architecture](https://learn.hashicorp.com/tutorials/consul/kubernetes-reference-architecture?utm_source=consul.io&utm_medium=docs) guide provides recommended practices for production.
+- The [Consul and Kubernetes Reference Architecture](https://learn.hashicorp.com/tutorials/consul/kubernetes-reference-architecture?utm_source=docs) guide provides recommended practices for production.
 
-- The [Consul and Kubernetes Deployment](https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide?utm_source=consul.io&utm_medium=docs) tutorial covers the necessary steps to install and configure a new Consul cluster on Kubernetes in production.
+- The [Consul and Kubernetes Deployment](https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide?utm_source=docs) tutorial covers the necessary steps to install and configure a new Consul cluster on Kubernetes in production.
 
-- The [Secure Consul and Registered Services on Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes) tutorial covers
+- The [Secure Consul and Registered Services on Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?utm_source=docs) tutorial covers
   the necessary steps to secure a Consul cluster running on Kubernetes in production.
 
-- The [Layer 7 Observability with Consul Service Mesh](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability) tutorial covers monitoring a
+- The [Layer 7 Observability with Consul Service Mesh](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes) tutorial covers monitoring a
   Consul service mesh running on Kubernetes with Prometheus and Grafana.
 
 **Documentation**

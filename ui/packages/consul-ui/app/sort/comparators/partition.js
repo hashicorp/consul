@@ -1,3 +1,4 @@
-export default ({ properties }) => key => {
-  return properties(['Name'])(key);
-};
+export default ({ properties }) =>
+  (key) => {
+    return properties(['Name'])(key);
+  };

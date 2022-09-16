@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -136,6 +137,7 @@ func newTestServerDeltaScenario(
 	token string,
 	authCheckFrequency time.Duration,
 	serverlessPluginEnabled bool,
+	sessionLimiter SessionLimiter,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -154,6 +156,10 @@ func newTestServerDeltaScenario(
 		metrics.NewGlobal(cfg, sink)
 	})
 
+	if sessionLimiter == nil {
+		sessionLimiter = limiter.NewSessionLimiter()
+	}
+
 	s := NewServer(
 		"node-123",
 		testutil.Logger(t),
@@ -161,6 +167,7 @@ func newTestServerDeltaScenario(
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
+		sessionLimiter,
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency

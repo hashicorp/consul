@@ -1,10 +1,8 @@
 ---
 layout: docs
-page_title: Consul Enterprise Automated Upgrades
+page_title: Automated Upgrades (Enterprise)
 description: >-
-  Consul Enterprise supports an upgrade pattern that allows operators to deploy
-  a complete cluster of new servers and then just wait for the upgrade to
-  complete.
+  Automated upgrades simplify the process for updating Consul. Learn how Consul can gracefully transition from existing server agents to a new set of server agents without Consul downtime.
 ---
 
 # Automated Upgrades
@@ -13,7 +11,7 @@ description: >-
   This feature requires
   HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
   Refer to the{' '}
-  <a href="/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
+  <a href="/consul/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
   {' '}for additional information.
 </EnterpriseAlert>
 
@@ -23,4 +21,4 @@ currently in a cluster. When an equal amount of new server nodes are joined runn
 will be demoted to non voting members. Demotion of legacy server nodes will not occur until the voting members on the new version match.
 Once this demotion occurs, the previous versioned servers can be removed from the cluster safely.
 
-You can review more information about this functionality in the [Consul operator autopilot](/commands/operator/autopilot) documentation as well as on the HashiCorp Learn [Automated Upgrade](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations#upgrade-migrations) tutorial.
+Review the [Consul operator autopilot](/commands/operator/autopilot) documentation and complete the [Automated Upgrade](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations#upgrade-migrations) tutorial to learn more about automated upgrades.

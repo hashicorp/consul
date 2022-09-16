@@ -3,8 +3,8 @@
  *
  * @param {Class} eventSource - EventSource class to extend from
  */
-export default function(eventSource = EventSource) {
-  const OpenableEventSource = function(source, configuration = {}) {
+export default function (eventSource = EventSource) {
+  const OpenableEventSource = function (source, configuration = {}) {
     eventSource.apply(this, arguments);
     this.configuration = configuration;
   };
@@ -17,7 +17,7 @@ export default function(eventSource = EventSource) {
       },
     }),
     {
-      open: function() {
+      open: function () {
         switch (this.readyState) {
           case 3: // CLOSING
             this.readyState = 1;

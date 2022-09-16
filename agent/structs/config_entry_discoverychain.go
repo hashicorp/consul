@@ -964,11 +964,18 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		// TODO(rb): prevent subsets and default subsets from being defined?
 
-		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" {
+		if r.isEmpty() {
 			return fmt.Errorf("Redirect is empty")
 		}
 
-		if r.Service == "" {
+		switch {
+		case r.Peer != "" && r.ServiceSubset != "":
+			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.ServiceSubset")
+		case r.Peer != "" && r.Partition != "":
+			return fmt.Errorf("Redirect.Partition cannot be set with Redirect.Peer")
+		case r.Peer != "" && r.Datacenter != "":
+			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.Datacenter")
+		case r.Service == "":
 			if r.ServiceSubset != "" {
 				return fmt.Errorf("Redirect.ServiceSubset defined without Redirect.Service")
 			}
@@ -978,9 +985,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			if r.Partition != "" {
 				return fmt.Errorf("Redirect.Partition defined without Redirect.Service")
 			}
-		} else if r.Service == e.Name {
-			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
-				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, r.Service)
+			if r.Peer != "" {
+				return fmt.Errorf("Redirect.Peer defined without Redirect.Service")
+			}
+		case r.ServiceSubset != "" && (r.Service == "" || r.Service == e.Name):
+			if !isSubset(r.ServiceSubset) {
+				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, e.Name)
 			}
 		}
 	}
@@ -1231,6 +1241,25 @@ type ServiceResolverRedirect struct {
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
+
+	// Peer is the name of the cluster peer to resolve the service from instead
+	// of the current one (optional).
+	Peer string `json:",omitempty"`
+}
+
+func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       r.Service,
+		ServiceSubset: r.ServiceSubset,
+		Namespace:     r.Namespace,
+		Partition:     r.Partition,
+		Datacenter:    r.Datacenter,
+		Peer:          r.Peer,
+	}
+}
+
+func (r *ServiceResolverRedirect) isEmpty() bool {
+	return r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" && r.Peer == ""
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1275,6 +1304,14 @@ type ServiceResolverFailover struct {
 	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
 }
 
+func (t *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+	}
+}
+
 func (f *ServiceResolverFailover) isEmpty() bool {
 	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
 }
@@ -1297,6 +1334,17 @@ type ServiceResolverFailoverTarget struct {
 
 	// Peer specifies the name of the cluster peer to try during failover.
 	Peer string `json:",omitempty"`
+}
+
+func (t *ServiceResolverFailoverTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+		Partition:     t.Partition,
+		Datacenter:    t.Datacenter,
+		Peer:          t.Peer,
+	}
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

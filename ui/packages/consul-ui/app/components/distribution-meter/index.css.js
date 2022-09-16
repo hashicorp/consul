@@ -22,11 +22,11 @@ export default (css) => {
       border-radius: var(--decor-radius-999);
       transition-property: transform;
       transition-timing-function: ease-out;
-      transition-duration: .1s;
+      transition-duration: 0.1s;
     }
     :host([type='linear']) dl:hover {
       transform: scaleY(3);
       box-shadow: var(--decor-elevation-200);
     }
   `;
-}
+};

@@ -26,6 +26,6 @@ export default class IntentionPermission extends Fragment {
 
   @computed(...schema.HeaderType.allowedValues)
   get HeaderType() {
-    return schema.HeaderType.allowedValues.find(prop => typeof this[prop] !== 'undefined');
+    return schema.HeaderType.allowedValues.find((prop) => typeof this[prop] !== 'undefined');
   }
 }

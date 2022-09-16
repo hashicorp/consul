@@ -397,6 +397,13 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-with-chain-and-failover-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-to-cluster-peer", nil, nil, nil)
+			},
+		},
+		{
 			name: "ingress-with-tcp-chain-failover-through-remote-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",

@@ -104,6 +104,9 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			MaxInboundConnections: 5,
+			LocalConnectTimeoutMs: 5000,
+			LocalRequestTimeoutMs: 7000,
 		}
 
 		dest := &DestinationConfig{
@@ -144,6 +147,9 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Protocol, readService.Protocol)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
+		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
+		require.Equal(t, service.LocalConnectTimeoutMs, readService.LocalConnectTimeoutMs)
+		require.Equal(t, service.LocalRequestTimeoutMs, readService.LocalRequestTimeoutMs)
 
 		// update it
 		service.Protocol = "tcp"
@@ -213,8 +219,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: splitDefaultPartition,
-			Namespace: splitDefaultNamespace,
+			Partition: defaultPartition,
+			Namespace: defaultNamespace,
 		}
 		ce := c.ConfigEntries()
 
@@ -446,7 +452,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
-								"Interval": "2s"
+								"Interval": "2s",
+								"EnforcingConsecutive5xx": 60
 							}
 						},
 						{
@@ -496,8 +503,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uint32Pointer(60),
 							},
 						},
 						{
@@ -1308,6 +1316,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"HTTP": {
 					"SanitizeXForwardedClientCert": true
+				},
+				"Peering": {
+					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -1339,6 +1350,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
@@ -1373,5 +1387,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+
+func uint32Pointer(v uint32) *uint32 {
 	return &v
 }

@@ -59,7 +59,7 @@ export default class Outlet extends Component {
         }
         break;
       case 'model':
-        if(typeof this.route !== 'undefined') {
+        if (typeof this.route !== 'undefined') {
           this.route._model = value;
         }
         break;

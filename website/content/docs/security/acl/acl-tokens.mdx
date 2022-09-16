@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Tokens
+page_title: ACL Tokens
 description: >-
-  This topic describes access control list (ACL) tokens. Tokens are the core method of authentication in Consul.
+  Tokens are used to authenticate users, services, and agents and authorize their access to resources in Consul. Learn about token attributes, special-purpose and built-in tokens, and how to pass a token’s SecretID in the CLI and API.
 ---
 
-# Tokens
+# ACL Tokens
 
 This topic describes access control list (ACL) tokens, which are the core method of authentication in Consul.
 
@@ -153,7 +153,7 @@ system or accessing Consul under specific conditions. The following table descri
 
 | Token                                                                                | Servers    | Clients    | Description                                                                                                                                                                                                                                       |
 | ------------------------------------------------------------------------------------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | `OPTIONAL` | `OPTIONAL` | Enables access to the [Agent API](/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>See [ACL Agent Recovery Token](#acl-agent-recovery-token) for details. |
+| [`acl.tokens.agent_recovery`](/docs/agent/config/config-files#acl_tokens_agent_recovery)         | `OPTIONAL` | `OPTIONAL` | Enables access to the [Agent API](/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>See [ACL Agent Recovery Token](#acl-agent-recovery-token) for details. |
 | [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)                           | `OPTIONAL` | `OPTIONAL` | Used for internal agent operations. See [ACL Agent Token](#acl-agent-token) for details.                                                                                                                                                          |
 | [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Used to bootstrap the ACL system. See [Initial Management Token](#initial-management-token).                                                                                                                                                      |
 | [`acl.tokens.default`](/docs/agent/options#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Specifies a default token to use for client requests if no token is supplied. This is commonly configured with read-only access to services to enable DNS service discovery on agents.                                                            |
@@ -169,7 +169,7 @@ Snapshots are artifacts created with the [snapshot API](/api-docs/snapshot) for 
 The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/docs/agent/options#acl_tokens_default), though if the `acl.tokens.agent` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
 
 1. Updating the agent's node entry using the [Catalog API](/api-docs/catalog), including updating its node metadata, tagged addresses, and network coordinates
-2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
+2. Performing [anti-entropy](/docs/architecture/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
@@ -221,7 +221,7 @@ In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `ini
 
 ### ACL Agent Recovery Token
 
-The [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it
+The [`acl.tokens.agent_recovery`](/docs/agent/config/config-files#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it
 
 <!-- Consider removing this content now that we have versioned docs
 In Consul 1.4 - 1.10, this was called the `agent_master` token. It was renamed to `agent_recovery` token in Consul 1.11.
