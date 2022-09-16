@@ -476,7 +476,7 @@ func (s *Server) validatePeeringLocality(token *structs.PeeringToken, partition 
 
 	// If the token has the same server name as this cluster, but we can't find the peering
 	// in our store, it indicates a naming conflict.
-	if s.Backend.GetServerName() == token.ServerName && peering == nil {
+	if s.Backend.GetServerName() == token.ServerName && peering == nil && partition == "" {
 		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", s.Backend.GetServerName())
 	}
 
