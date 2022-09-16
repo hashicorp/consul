@@ -227,7 +227,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -301,7 +301,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
+	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator, false))
 	if err != nil {
 		return nil, err
 	}

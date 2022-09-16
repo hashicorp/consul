@@ -139,6 +139,10 @@ type Config struct {
 	// AutoTLS opts the agent into provisioning agent
 	// TLS certificates.
 	AutoTLS bool
+
+	// SpecifiedTLSStanza indicates whether the supplied configuration
+	// specified TLS config using the post-Consul v1.12 tls stanza.
+	SpecifiedTLSStanza bool
 }
 
 // SpecificDC is used to invoke a static datacenter
@@ -633,10 +637,19 @@ func (c *Configurator) Cert() *tls.Certificate {
 // (external) gRPC (either manually or by auto-config/auto-encrypt), and use
 // of TLS for gRPC has not been explicitly disabled at auto-encrypt.
 //
+// NOTE: For compatibility with Consul 1.11 we also preserve the old logic
+// of checking whether HTTPS was enabled.
+//
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) GRPCServerUseTLS() bool {
+func (c *Configurator) GRPCServerUseTLS(httpsEnabled bool) bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+
+	// This change preserves backward compatibility with Consul 1.11 style configuration
+	// so that TLS can still be specified for gRPC without the new per-listener settings.
+	if !c.base.SpecifiedTLSStanza && httpsEnabled {
+		return true
+	}
 	return c.grpc.cert != nil || (c.grpc.useAutoCert && c.autoTLS.cert != nil)
 }
 

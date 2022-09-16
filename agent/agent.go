@@ -761,7 +761,7 @@ func (a *Agent) Failed() <-chan struct{} {
 }
 
 func (a *Agent) buildExternalGRPCServer() {
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator)
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator, a.config.HTTPSPort > 0)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
