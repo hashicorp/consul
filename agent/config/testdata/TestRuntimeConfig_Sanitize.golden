@@ -374,10 +374,10 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false,
-            "UseAutoCert": false
+            "VerifyServerHostname": false
         },
         "HTTPS": {
             "CAFile": "",
@@ -386,10 +386,10 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false,
-            "UseAutoCert": false
+            "VerifyServerHostname": false
         },
         "InternalRPC": {
             "CAFile": "",
@@ -398,12 +398,13 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false,
-            "UseAutoCert": false
+            "VerifyServerHostname": false
         },
         "NodeName": "",
+        "ServerMode": false,
         "ServerName": ""
     },
     "TaggedAddresses": {},

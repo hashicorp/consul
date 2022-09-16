@@ -110,6 +110,10 @@ type ProtocolConfig struct {
 
 // Config configures the Configurator.
 type Config struct {
+	// ServerMode indicates whether the configurator is attached to a server
+	// or client agent.
+	ServerMode bool
+
 	// InternalRPC is used to configure the internal multiplexed RPC protocol.
 	InternalRPC ProtocolConfig
 
@@ -597,9 +601,12 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	// to a server requesting a certificate. Return the autoEncrypt certificate
 	// if possible, otherwise default to the manually provisioned one.
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		cert := c.autoTLS.cert
-		if cert == nil {
-			cert = state.cert
+		cert := state.cert
+
+		// In the general case we only prefer to dial out with the autoTLS cert if we are a client.
+		// The server's autoTLS cert is exclusively for peering control plane traffic.
+		if !c.base.ServerMode && c.autoTLS.cert != nil {
+			cert = c.autoTLS.cert
 		}
 
 		if cert == nil {

@@ -177,6 +177,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Bootstrap = true
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -194,6 +195,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.BootstrapExpect = 3
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -208,6 +210,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
+			rt.TLS.ServerMode = false
 			rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4")}
 			rt.DNSAddrs = []net.Addr{tcpAddr("1.2.3.4:8600"), udpAddr("1.2.3.4:8600")}
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:8500")}
@@ -319,6 +322,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfBindAddrLAN = tcpAddr("127.0.0.1:8301")
 			rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "127.0.0.1",
@@ -659,6 +663,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -841,6 +846,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -1881,6 +1887,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1898,6 +1905,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 2
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1918,6 +1926,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 4
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1937,6 +1946,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.LeaveOnTerm = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 			rt.SkipLeaveOnInt = false
 			rt.DataDir = dataDir
 		},
@@ -3056,6 +3066,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3087,6 +3098,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3115,6 +3127,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3140,6 +3153,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3162,6 +3176,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// rpc.enable_streaming make no sense in not-server mode
 			rt.RPCConfig.EnableStreaming = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 		},
 	})
 	run(t, testCase{
@@ -3185,6 +3200,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.UseStreamingBackend = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 		},
@@ -3602,6 +3618,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectMeshGatewayWANFederationEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -4509,7 +4526,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Defaults sanity checks
 
 	run(t, testCase{
@@ -4532,7 +4549,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Auto Config related tests
 	run(t, testCase{
 		desc: "auto config and auto encrypt error",
@@ -5023,6 +5040,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
@@ -6441,6 +6459,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			NodeName:                "otlLxGaI",
 			ServerName:              "Oerr9n1G",
+			ServerMode:              true,
 			Domain:                  "7W1xXSqd",
 			EnableAgentTLSForChecks: true,
 		},

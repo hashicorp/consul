@@ -2596,6 +2596,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	mapCommon("grpc", t.GRPC, &c.GRPC)
 	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
 
+	c.ServerMode = rt.ServerMode
 	c.ServerName = rt.ServerName
 	c.NodeName = rt.NodeName
 	c.Domain = rt.DNSDomain

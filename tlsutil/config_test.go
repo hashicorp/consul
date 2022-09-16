@@ -467,6 +467,98 @@ func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 	})
 }
 
+func TestConfigurator_OutgoingRPC_ServerMode(t *testing.T) {
+	type testCase struct {
+		clientConfig Config
+		expectName   string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+			ServerMode: true,
+		})
+
+		serverConn, errc, certc := startTLSServer(serverCfg.IncomingRPCConfig())
+		if serverConn == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, tc.clientConfig)
+
+		bettyCert := loadFile(t, "../test/hostname/Betty.crt")
+		bettyKey := loadFile(t, "../test/hostname/Betty.key")
+		require.NoError(t, clientCfg.UpdateAutoTLSCert(bettyCert, bettyKey))
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", serverConn)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
+
+		err = <-errc
+		require.NoError(t, err)
+
+		clientCerts := <-certc
+		require.NotEmpty(t, clientCerts)
+
+		require.Equal(t, tc.expectName, clientCerts[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeeded.
+		require.NoError(t, <-errc)
+	}
+
+	tt := map[string]testCase{
+		"server with manual cert": {
+			clientConfig: Config{
+				InternalRPC: ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Bob.crt",
+					KeyFile:        "../test/hostname/Bob.key",
+				},
+				ServerMode: true,
+			},
+			// Even though an AutoTLS cert is configured, the server will prefer the manually configured cert.
+			expectName: "Bob",
+		},
+		"client with manual cert": {
+			clientConfig: Config{
+				InternalRPC: ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Bob.crt",
+					KeyFile:        "../test/hostname/Bob.key",
+				},
+				ServerMode: false,
+			},
+			expectName: "Betty",
+		},
+		"client with auto-TLS": {
+			clientConfig: Config{
+				ServerMode: false,
+				AutoTLS:    true,
+			},
+			expectName: "Betty",
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
