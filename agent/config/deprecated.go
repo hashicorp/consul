@@ -186,8 +186,9 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config, fromUser bool) 
 	// This check MUST happen before applying the deprecated options below, or else
 	// the tls struct will never be empty.
 	//
-	// This check was added for compatibility with Consul 1.11 style TLS configuration.
-	// Associated code can be removed once 1.14 is out and 1.11 is no longer supported.
+	// This check was added exclusively to the 1.13 patch series for compatibility with
+	// Consul 1.11 style TLS configuration. Consul 1.14 does not require it since 1.12
+	// is the earliest major version supported once 1.14 is released.
 	if fromUser && !tls.ContainsDefaults() {
 		tls.SpecifiedTLSStanza = pBool(true)
 	}

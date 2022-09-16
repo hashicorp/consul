@@ -878,13 +878,12 @@ type TLSProtocolConfig struct {
 func (c TLSProtocolConfig) IsZero() bool {
 	v := reflect.ValueOf(c)
 
-	hasValues := false
 	for i := 0; i < v.NumField(); i++ {
 		if !v.Field(i).IsNil() {
-			hasValues = true
+			return false
 		}
 	}
-	return !hasValues
+	return true
 }
 
 type TLS struct {
@@ -895,7 +894,8 @@ type TLS struct {
 
 	// SpecifiedTLSStanza indicates whether the per-protocol tls stanza from configuration was used.
 	// If unspecified, and TLS is configured, that implies that the deprecated flags were used.
-	SpecifiedTLSStanza *bool
+	// The flag was added exclusively for the 1.13 patch series for backwards compatibility purposes.
+	SpecifiedTLSStanza *bool `mapstructure:"-"`
 
 	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
 	// modified by the deprecated field mapping (as apposed to a user-provided
