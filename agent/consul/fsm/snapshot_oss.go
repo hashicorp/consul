@@ -8,4 +8,4 @@ import (
 
 func registerEnterpriseRestorers(_ map[structs.MessageType]restorer) {}
 
-func registerEnterprisePersisters(_ []persister, _ *snapshot) {}
+func registerEnterprisePersisters(_ *snapshot) []persister { return []persister{} }

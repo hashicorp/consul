@@ -137,7 +137,7 @@ func registerRestorers(registry map[structs.MessageType]restorer,
 }
 
 func RegisteredPersisters(s *snapshot) []persister {
-	registry := []persister{
+	ossRegistry := []persister{
 		s.persistVirtualIPs,
 		s.persistVirtualIPs,
 		s.persistNodes,
@@ -159,8 +159,8 @@ func RegisteredPersisters(s *snapshot) []persister {
 		s.persistPeeringTrustBundles,
 		s.persistPeeringSecrets,
 	}
-	registerEnterprisePersisters(registry, s)
-	return registry
+	enterpriseRegistry := registerEnterprisePersisters(s)
+	return append(ossRegistry, enterpriseRegistry...)
 }
 
 func (s *snapshot) persistNodes(sink raft.SnapshotSink,
