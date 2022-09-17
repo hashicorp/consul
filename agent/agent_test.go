@@ -5984,6 +5984,71 @@ func TestAgent_startListeners(t *testing.T) {
 
 }
 
+func TestAgent_ServerCertificate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const expectURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/agent/server/dc/dc1"
+
+	// Leader should acquire a sever cert after bootstrapping.
+	a1 := NewTestAgent(t, `
+node_name = "a1"
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a1.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+
+	// Join a follower, and it should be able to acquire a server cert as well.
+	a2 := NewTestAgent(t, `
+node_name = "a2"
+bootstrap = false
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a2.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+}
+
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := ioutil.ReadFile("../test/ca/root.cer")
