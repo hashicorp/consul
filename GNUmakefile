@@ -155,7 +155,7 @@ dev-docker: linux
 	#  'consul:local' tag is needed to run the integration tests
 	@docker buildx use default && docker buildx build -t 'consul:local' \
        --platform linux/$(GOARCH) \
-	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
@@ -172,7 +172,7 @@ remote-docker: check-remote-dev-image-env
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
 	@docker buildx use default && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
-	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
