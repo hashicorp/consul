@@ -606,7 +606,7 @@ These metrics give insight into the health of the cluster as a whole.
 Query for the `consul.memberlist.*` and `consul.serf.*` metrics can be appended
 with certain labels to further distinguish data between different gossip pools.
 The supported label for OSS is `network`, while `segment`, `partition`, `area`
-are allowed for <EnterpriseAlert inline />.  
+are allowed for <EnterpriseAlert inline />.
 
 | Metric                                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Unit                                    | Type    |
 |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|---------|
@@ -693,14 +693,16 @@ agent. The table below describes the additional metrics exported by the proxy.
 **Requirements:**
 - Consul 1.13.0+
 
-[Cluster peering](/docs/connect/cluster-peering) refers to enabling communication between Consul clusters through a peer connection, as opposed to a federated connection. Consul collects metrics that describe the number of services exported to a peered cluster. Peering metrics are only emitted by the leader server.
+[Cluster peering](/docs/connect/cluster-peering) refers to Consul clusters that communicate through a peer connection, as opposed to a federated connection. Consul collects metrics that describe the number of services exported to a peered cluster. Peering metrics are only emitted by the leader server. These metrics are emitted every 9 seconds.
 
 | Metric                                | Description                                                           | Unit   | Type    |
 | ------------------------------------- | ----------------------------------------------------------------------| ------ | ------- |
-| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.  | count  | gauge   |
+| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.             | count  | gauge   |
+| `consul.peering.healthy`              | Tracks the health of a peering connection as reported by the server. If Consul detects errors while sending or receiving from a peer which do not recover within a reasonable time, this metric returns 0. Healthy connections return 1.  | health | gauge   |
 
 ### Labels
 Consul attaches the following labels to metric values.
+
 | Label Name                            | Description                                                            | Possible values                            |
 | ------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
 | `peer_name`                           | The name of the peering on the reporting cluster or leader.              | Any defined peer name in the cluster      |
