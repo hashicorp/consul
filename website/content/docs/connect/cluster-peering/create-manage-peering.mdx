@@ -13,7 +13,7 @@ A peering token enables cluster peering between different datacenters. Once you 
 
 ## Create a peering connection
 
-Cluster peering is not enabled by default on Consul servers. To peer clusters, you must first configure all Consul servers so that `peering` is `enabled`. For additional information, refer to [Configuration Files](/docs/agent/config/config-files).
+Cluster peering is not enabled by default on Consul servers. To peer clusters, you must first configure all Consul servers so that `peering` is `enabled` and the gRPC port(8502) accepts traffic from the peering cluster (e.g., `client_addr="0.0.0.0"`). For additional information, refer to [Configuration Files](/docs/agent/config/config-files).
 
 After enabling peering for all Consul servers, complete the following steps in order:
 
