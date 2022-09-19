@@ -1161,7 +1161,7 @@ func TestGetAlpnProtocols(t *testing.T) {
 		},
 		"http2": {
 			protocol: "http2",
-			want:     []string{"h2"},
+			want:     []string{"h2", "http/1.1"},
 		},
 		"grpc": {
 			protocol: "grpc",
