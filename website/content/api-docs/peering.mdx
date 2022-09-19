@@ -221,8 +221,11 @@ The table below shows this endpoint's support for
 ### Path Parameters
 
 - `name` `(string: <required>)` - Specifies the name of the peering to delete.
-- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition of the peering
-  to delete. Uses `default` when not specified.
+
+### Query Parameters
+
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition of the peerings
+  to delete. If not specified will default to `default`.
 
 ### Sample Request
 
@@ -269,6 +272,11 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `consistent`      | `none`        | `peering:read` |
+
+### Query Parameters
+
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition of the peerings
+  to list. If not specified will default to `default`.
 
 ### Sample Request
 
