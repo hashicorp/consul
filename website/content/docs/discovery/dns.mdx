@@ -353,15 +353,8 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 By default, all service lookups use the `default` namespace
 within the partition and datacenter of the Consul agent that received the DNS query.
-
-Use the following query format to specify a namespace, partition, and/or datacenter
-for all service lookup types except `.query`,
-including `.service`, `.connect`, `.virtual`, and `.ingress`.
-At least two of those three fields (`namespace`, `partition`, `datacenter`)
-must be specified.
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
+To lookup services in another namespace, partition, and/or datacenter,
+use the [canonical format](#canonical-format).
 
 Consul server agents are in the `default` partition.
 If DNS queries are addressed to Consul server agents,
@@ -369,7 +362,37 @@ service lookups to non-`default` partitions must explicitly specify
 the partition of the target service.
 
 To lookup services imported from a cluster peer,
-use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+refer to [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
+#### Canonical format
+
+Use the following query format to specify namespace, partition, and/or datacenter
+for all service lookup types except `.query`,
+including `.service`, `.connect`, `.virtual`, and `.ingress`.
+All three fields (`namespace`, `partition`, `datacenter`) are optional.
+```text
+[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
+```
+
+#### Alternative formats for specifying namespace
+
+Though the [canonical format](#canonical-format) is recommended for readability,
+the following query formats may be used to specify namespace-only:
+
+- Specify namespace and datacenter pair
+
+  ```text
+  [<tag>.]<service>.service.<namespace>.<datacenter>.<domain>
+  ```
+
+- **Deprecated in Consul 1.11:**
+  Specify namespace-only if DNS queries are addressed to a Consul agent with
+  [`dns_config.prefer_namespace`](/docs/agent/config/config-files#dns_prefer_namespace)
+  set to true
+
+   ```text
+  [<tag>.]<service>.service.<namespace>.<domain>
+  ```
 
 ### Prepared Query Lookups
 
