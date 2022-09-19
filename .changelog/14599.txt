@@ -1,0 +1,3 @@
+```release-note:improvement
+api: Increase max number of operations inside a transaction for requests to /v1/txn (128)
+```
