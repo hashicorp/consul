@@ -354,6 +354,7 @@ function verify {
   # need to tell the PID 1 inside of the container that it won't be actual PID
   # 1 because we're using --pid=host so we use TINI_SUBREAPER
   if docker.exe exec -i ${SINGLE_CONTAINER_BASE_NAME}-${CLUSTER}_1 bash -c "TINI_SUBREAPER=1 \
+                                                                            XDS_TARGET=${XDS_TARGET} \
                                                                             ENVOY_VERSION=${ENVOY_VERSION} \
                                                                             /c/bats/bin/bats \
                                                                             --pretty \
@@ -464,6 +465,10 @@ function stop_and_copy_files {
 }
 
 function run_tests {
+  local CONSUL_VERSION=$(docker image inspect --format='{{(index (.ContainerConfig.Env) 0)}}' \
+                        windows/consul:local | grep "VERSION=" | cut -c9-)
+  echo "Running Tests with Consul=$CONSUL_VERSION - Envoy=$ENVOY_VERSION - XDS_TARGET=$XDS_TARGET"
+
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
