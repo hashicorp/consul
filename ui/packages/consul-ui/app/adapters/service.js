@@ -33,7 +33,7 @@ export default class ServiceAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/health/service/${id}?${{ dc }}
+      GET /v1/health/service/${id}?${{ dc, ['merge-central-config']: null }}
       X-Request-ID: ${uri}
 
       ${{
@@ -42,5 +42,5 @@ export default class ServiceAdapter extends Adapter {
         index,
       }}
     `;
-  }
+    }
 }

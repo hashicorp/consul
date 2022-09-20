@@ -14,7 +14,7 @@ module('Integration | Adapter | service-instance', function (hooks) {
       const adapter = this.owner.lookup('adapter:service-instance');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
-      const expected = `GET /v1/health/service/${id}?dc=${dc}${
+      const expected = `GET /v1/health/service/${id}?dc=${dc}&merge-central-config${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter.requestForQueryRecord(request, {

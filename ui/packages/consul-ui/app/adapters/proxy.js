@@ -6,7 +6,7 @@ export default class ProxyAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/catalog/connect/${id}?${{ dc }}
+      GET /v1/catalog/connect/${id}?${{ dc, ['merge-central-config']: null }}
       X-Request-ID: ${uri}
       X-Range: ${id}
 
