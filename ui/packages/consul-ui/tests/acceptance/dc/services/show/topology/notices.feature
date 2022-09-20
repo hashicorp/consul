@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / show / topology / tproxy
+Feature: dc / services / show / topology / notices
   Background:
     Given 1 datacenter model with the value "datacenter"
     And the local datacenter is "datacenter"
@@ -18,7 +18,7 @@ Feature: dc / services / show / topology / tproxy
         Name: web
         Kind: ~
     ---
-  Scenario: Default allow is set to true
+  Scenario: default ACL policy is set to "allow"
     Given 1 topology model from yaml
     ---
       FilteredByACLs: false
@@ -47,7 +47,7 @@ Feature: dc / services / show / topology / tproxy
   Scenario: A Downstream service has a wildcard intention
     Given 1 topology model from yaml
     ---
-      FilteredByACLs: true
+      FilteredByACLs: false
       TransparentProxy: false
       Downstreams:
         - Name: db-1
@@ -69,9 +69,34 @@ Feature: dc / services / show / topology / tproxy
       service: web
     ---
     Then the url should be /datacenter/services/web/topology
-    And I see the tabs.topologyTab.filteredByACLs object
     And I see the tabs.topologyTab.wildcardIntention object
-  Scenario: TProxy for a downstream is set to false
+  Scenario: Response is filtered by ACLs
+    Given 1 topology model from yaml
+    ---
+      FilteredByACLs: true
+      TransparentProxy: false
+      Downstreams:
+        - Name: db-1
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: false
+      Upstreams:
+        - Name: db-2
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: false
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: datacenter
+      service: web
+    ---
+    Then the url should be /datacenter/services/web/topology
+    And I see the tabs.topologyTab.filteredByACLs object
+
+  Scenario: TProxy for a downstream is set to false and globally false
     Given 1 topology model from yaml
     ---
       FilteredByACLs: false
@@ -94,7 +119,7 @@ Feature: dc / services / show / topology / tproxy
     ---
     Then the url should be /datacenter/services/web/topology
     And I see the tabs.topologyTab.notDefinedIntention object
-  Scenario: TProxy for a downstream is set to true
+  Scenario: TProxy for a downstream is set to true and globally false
     Given 1 topology model from yaml
     ---
       FilteredByACLs: false

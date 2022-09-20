@@ -207,4 +207,17 @@ module('Unit | Utility | getEnvironment', function () {
     env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));
   });
+  test('it returns the correct dev value when already set via config and is reset to false', function (assert) {
+    const config = {
+      environment: 'test',
+    };
+    const doc = {
+      cookie: 'CONSUL_ACLS_ENABLE=0',
+      getElementsByTagName: makeGetElementsBy(''),
+      getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({ ACLsEnabled: true }),
+    };
+    let env = getEnvironment(config, win, doc);
+    assert.notOk(env('CONSUL_ACLS_ENABLED'));
+  });
 });

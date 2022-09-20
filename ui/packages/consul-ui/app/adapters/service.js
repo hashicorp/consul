@@ -42,5 +42,5 @@ export default class ServiceAdapter extends Adapter {
         index,
       }}
     `;
-    }
+  }
 }

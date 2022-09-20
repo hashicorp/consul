@@ -280,10 +280,12 @@ export default function (config = {}, win = window, doc = document) {
       case 'CONSUL_SERVICE_DASHBOARD_URL':
       case 'CONSUL_BASE_UI_URL':
       case 'CONSUL_HTTP_PROTOCOL':
-      case 'CONSUL_HTTP_MAX_CONNECTIONS':
+      case 'CONSUL_HTTP_MAX_CONNECTIONS': {
         // We allow the operator to set these ones via various methods
         // although UI developer config is preferred
-        return ui(str) || operator(str, env);
+        const _ui = ui(str);
+        return typeof _ui !== 'undefined' ? _ui : operator(str, env);
+      }
       default:
         return ui(str);
     }
