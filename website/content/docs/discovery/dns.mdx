@@ -186,13 +186,13 @@ foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 Valid formats for RFC 2782 SRV lookups depend on
 whether you want to filter results based on a service tag:
 
-- No filtering on service tag
+- No filtering on service tag:
 
    ```text
   _<service>._tcp[.service][.<datacenter>].<domain>
   ```
 
-- Filtering on service tag specified in the RFC 2782 protocol field
+- Filtering on service tag specified in the RFC 2782 protocol field:
 
    ```text
   _<service>._<tag>[.service][.<datacenter>].<domain>
@@ -367,8 +367,7 @@ refer to [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-
 #### Canonical format
 
 Use the following query format to specify namespace, partition, and/or datacenter
-for all service lookup types except `.query`,
-including `.service`, `.connect`, `.virtual`, and `.ingress`.
+for `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
 All three fields (`namespace`, `partition`, `datacenter`) are optional.
 ```text
 [<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
@@ -377,18 +376,19 @@ All three fields (`namespace`, `partition`, `datacenter`) are optional.
 #### Alternative formats for specifying namespace
 
 Though the [canonical format](#canonical-format) is recommended for readability,
-the following query formats may be used to specify namespace-only:
+you can use the following query formats specify namespace but not partition:
 
-- Specify namespace and datacenter pair
+- Specify both namespace and datacenter:
 
   ```text
   [<tag>.]<service>.service.<namespace>.<datacenter>.<domain>
   ```
 
 - **Deprecated in Consul 1.11:**
-  Specify namespace-only if DNS queries are addressed to a Consul agent with
+  Specify namespace without a datacenter,
+  which requires that DNS queries are addressed to a Consul agent with
   [`dns_config.prefer_namespace`](/docs/agent/config/config-files#dns_prefer_namespace)
-  set to true
+  set to `true`:
 
    ```text
   [<tag>.]<service>.service.<namespace>.<domain>

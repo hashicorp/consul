@@ -1346,9 +1346,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in Consul 1.11.
     Use the [canonical DNS format for enterprise service lookups](/docs/discovery/dns#service-lookups-for-consul-enterprise) instead.** -
-    When set to true, in a DNS query for a service, a single label between the domain
+    When set to `true`, in a DNS query for a service, a single label between the domain
     and the `service` label is treated as a namespace name instead of a datacenter.
-    When set to false, the default, the behavior is the same as non-Enterprise
+    When set to `false`, the default, the behavior is the same as non-Enterprise
     versions and treats the single label as the datacenter.
 
 - `domain` Equivalent to the [`-domain` command-line flag](/docs/agent/config/cli-flags#_domain).
