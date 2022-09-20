@@ -801,6 +801,16 @@ function get_ca_root {
   curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
 }
 
+function cacert_curl {
+  local RESOLVE_ADDR=$1
+  local ADDR=$2  
+  
+  run retry_default curl --cacert <(get_ca_root) -s -f -d hello --resolve $RESOLVE_ADDR $ADDR
+
+  [ "$status" -eq 0 ]
+  [ "$output" == *"hello"* ]
+}
+
 function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
