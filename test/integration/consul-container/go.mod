@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/docker/docker v20.10.11+incompatible
-	github.com/hashicorp/consul/api v1.11.0
-	github.com/hashicorp/consul/sdk v0.10.0
+	github.com/hashicorp/consul/api v1.15.2
+	github.com/hashicorp/consul/sdk v0.11.0
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/hashicorp/hcl v1.0.0
 	github.com/stretchr/testify v1.7.0
@@ -60,6 +60,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/hashicorp/consul/api => ../../../api
+// replace github.com/hashicorp/consul/api => ../../../api
 
-replace github.com/hashicorp/consul/sdk => ../../../sdk
+// replace github.com/hashicorp/consul/sdk => ../../../sdk
