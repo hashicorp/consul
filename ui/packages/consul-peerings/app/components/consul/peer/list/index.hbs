@@ -4,7 +4,9 @@
   @items={{@items}}
 as |item index|>
   <BlockSlot @name="header">
-    <p>
+    <p 
+      data-test-peer={{item.Name}}
+    >
       {{item.Name}}
     </p>
   </BlockSlot>

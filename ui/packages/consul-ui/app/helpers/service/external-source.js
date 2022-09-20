@@ -17,10 +17,8 @@ export function serviceExternalSource(params, hash) {
       'nomad',
       'consul',
       'aws',
-      'lambda'
-    ].includes(
-      source
-    )
+      'lambda',
+    ].includes(source)
   ) {
     return `${prefix}${source}`;
   }

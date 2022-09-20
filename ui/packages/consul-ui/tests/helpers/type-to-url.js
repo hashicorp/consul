@@ -47,7 +47,7 @@ export default function (type) {
       requests = ['/v1/namespaces', '/v1/namespace/'];
       break;
     case 'peer':
-      requests = ['/v1/peers', '/v1/peer/'];
+      requests = ['/v1/peerings', '/v1/peering/'];
       break;
     case 'topology':
       requests = ['/v1/internal/ui/service-topology'];
