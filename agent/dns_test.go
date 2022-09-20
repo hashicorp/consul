@@ -3557,40 +3557,48 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 		t.Fatalf("Bad: %#v", in)
 	}
 
-	m := new(dns.Msg)
-	m.SetQuestion("v1.primary.db.service.consul.", dns.TypeSRV)
-
-	c := new(dns.Client)
-	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	validQuestions := []string{
+		"v1.primary.db.service.consul.",       // Standard lookup
+		"_db._foo.v1.primary.service.consul.", // RFC 2782 lookup
 	}
 
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
+	for _, question := range validQuestions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err = c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "foo.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+
+		aRec, ok := in.Extra[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "foo.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
 	}
 
-	srvRec, ok := in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Port != 12345 {
-		t.Fatalf("Bad: %#v", srvRec)
-	}
-	if srvRec.Target != "foo.node.dc1.consul." {
-		t.Fatalf("Bad: %#v", srvRec)
-	}
-
-	aRec, ok := in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Name != "foo.node.dc1.consul." {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.A.String() != "127.0.0.1" {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
 }
 
 func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
@@ -6155,10 +6163,14 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 	}
 
 	questions := []string{
+		// Tag in the protocol field
 		"_db._primary.service.dc1.consul.",
 		"_db._primary.service.consul.",
 		"_db._primary.dc1.consul.",
 		"_db._primary.consul.",
+		// Tag after the protocol field (but before .service)
+		"_db._foo.primary.service.dc1.consul.",
+		"_db._foo.primary.service.consul.",
 	}
 
 	for _, question := range questions {

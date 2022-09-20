@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Allow RFC 2782 style service lookups to filter on a service tag specified separately from the RFC 2782 protocol field.
+```

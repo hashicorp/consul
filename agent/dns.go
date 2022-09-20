@@ -729,8 +729,17 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			queryKind = labels[i]
 			done = true
 		default:
-			// If this is a SRV query the "service" label is optional, we add it back to use the
-			// existing code-path.
+			// If this is a SRV query, the "service" label is optional for lookup format:
+			// 		_<service-name>._<tag or tcp>[.service][.<datacenter>].<domain>
+			// In this case, assume all labels after the final label prefixed with "_"
+			// are a part of the suffixes, and that the query kind is "service".
+
+			// The "service" label is still required for the alternate RFC 2782 lookup
+			// format that includes a service tag:
+			// 		_<service-name>._tcp.<tag>.service[.<datacenter>].<domain>
+			// That's because the "service" label is used to delineate the end of the
+			// query parts which may include a tag that includes "." and therefore
+			// spans multiple query parts.
 			if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
 				queryKind = "service"
 				queryParts = labels[:i+1]
@@ -764,26 +773,42 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			MaxRecursionLevel: maxRecursionLevel,
 			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
-		// Support RFC 2782 style syntax
-		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 
-			// Grab the tag since we make nuke it if it's tcp
-			tag := queryParts[1][1:]
+		tag := ""
 
-			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
-			if tag == "tcp" {
-				tag = ""
+		// If the first two query parts begin with _, this is an RFC 2782 style SRV lookup.
+		if n >= 2 && strings.HasPrefix(queryParts[0], "_") && strings.HasPrefix(queryParts[1], "_") {
+			// Support RFC 2782 style syntax in one of the following forms:
+			// 1) _<service-name>._<tag or tcp>[.service][.<datacenter>].<domain>    (n == 2)
+			// 2) _<service-name>._<protocol>.<tag>.service[.<datacenter>].<domain>  (n >= 2)
+			if n == 2 {
+				// If a protocol other than "tcp" is specified, treat that protocol as the tag.
+
+				// Grab the protocol to use for tag-based filtering if not "tcp"
+				tag = queryParts[1][1:]
+
+				// If the protocol is "tcp", do not perform tag-based filtering
+				if tag == "tcp" {
+					tag = ""
+				}
+			} else { // n >= 2
+				// Treat all query parts after the <protocol> (and before .service) as the tag.
+				// Ignore whatever value is contained in <protocol>.
+				tag = strings.Join(queryParts[2:], ".")
 			}
 
 			lookup.Tag = tag
+
+			// In both forms, service name is the first query part
 			lookup.Service = queryParts[0][1:]
-			// _name._tag.service.consul
+
 			return d.serviceLookup(cfg, lookup, req, resp)
 		}
 
+		// This is a standard service lookup (not RFC 2782)
+
 		// Consul 0.3 and prior format for SRV queries
 		// Support "." in the label, re-join all the parts
-		tag := ""
 		if n >= 2 {
 			tag = strings.Join(queryParts[:n-1], ".")
 		}
