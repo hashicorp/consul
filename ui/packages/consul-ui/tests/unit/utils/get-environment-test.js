@@ -207,7 +207,7 @@ module('Unit | Utility | getEnvironment', function () {
     env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));
   });
-  test('it returns the correct dev value when already set via config and is reset to false', function(assert) {
+  test('it returns the correct dev value when already set via config and is reset to false', function (assert) {
     const config = {
       environment: 'test',
     };
