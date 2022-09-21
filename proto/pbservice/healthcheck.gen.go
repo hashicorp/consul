@@ -144,6 +144,7 @@ func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthC
 	t.TCP = s.TCP
 	t.UDP = s.UDP
 	t.H2PING = s.H2PING
+	t.OSService = s.OSService
 	t.H2PingUseTLS = s.H2PingUseTLS
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.OutputMaxSize = uint(s.OutputMaxSize)
@@ -172,6 +173,7 @@ func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *Healt
 	s.TCP = t.TCP
 	s.UDP = t.UDP
 	s.H2PING = t.H2PING
+	s.OSService = t.OSService
 	s.H2PingUseTLS = t.H2PingUseTLS
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.OutputMaxSize = uint32(t.OutputMaxSize)

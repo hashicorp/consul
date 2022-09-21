@@ -275,6 +275,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							TCP:                            check.Definition.TCP,
 							GRPC:                           check.Definition.GRPC,
 							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
+							OSService:                      check.Definition.OSService,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
