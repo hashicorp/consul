@@ -1156,6 +1156,7 @@ func (c *CheckOSService) check() {
 		// The process returned before the timeout, proceed normally
 	}
 
+	out = fmt.Sprintf("Service \"%s\" is healthy", c.OSService)
 	if err != nil {
 		c.Logger.Debug("Check failed",
 			"check", c.CheckID.String(),
