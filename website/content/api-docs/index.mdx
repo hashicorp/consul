@@ -7,7 +7,7 @@ description: |-
 
 # Consul API Overview
 
-The Consul HTTP API is a RESTful interface that allows you leverage Consul functionality in your network. This topic provides guidance about the essential API endpoints for different workstreams. Refer to the [HTTP API structure](/api-docs/api-structure) docs to learn how to interact with and authenticate against the Consul HTTP API.
+The Consul HTTP API is a RESTful interface that allows you to leverage Consul functionality in your network. This topic provides guidance about the essential API endpoints for different workstreams. Refer to the [HTTP API structure](/api-docs/api-structure) docs to learn how to interact with and authenticate against the Consul HTTP API.
 
 ## Connect your services
 
@@ -22,7 +22,7 @@ The following endpoints are specific to service mesh:
 
 - [`/config`](/api-docs/config): Create, update, delete, and query central configuration entries registered with Consul. Configuration entries define the default behavior of resources in the service mesh.
 - [`/agent/connect`](/api-docs/agent/connect): Interact with local agents in the service mesh.
-- [`/connect`](/api-docs/connect): Manage service mesh-related operations, including service intentions ([`/connect/intentions`](/api-docs/connect/intentions)) and the service mesh Certificate Authority (CA) ([`/connect/ca`](/api-docs/connect/ca)).
+- [`/connect`](/api-docs/connect): Manage service mesh-related operations, including service intentions ([`/connect/intentions`](/api-docs/connect/intentions)) and the service mesh certificate authority (CA) ([`/connect/ca`](/api-docs/connect/ca)).
 
 
 ## Enable zero-trust network security
@@ -37,10 +37,10 @@ The following API endpoints give you control over access to services in your net
 Use the following API endpoints enable network observability.
 
 - [`/status`](/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers.
-- [`/agent/metrics`](/api-docs/agent#view-metrics): Retrieve metrics for the most recent finished intervals. For more information about metrics, refer to [Telemetry](/docs/agent/telemetry).
+- [`/agent/metrics`](/api-docs/agent#view-metrics): Retrieve metrics for the most recent intervals that have finished. For more information about metrics, refer to [Telemetry](/docs/agent/telemetry).
 
 
-## Manage consul
+## Manage Consul
 
 The following API endpoints help you manage Consul operations.
 
