@@ -441,11 +441,7 @@ function global_setup {
 }
 
 function wipe_volumes {
-  docker.exe run --rm -i \
-    $WORKDIR_SNIPPET \
-    --net=none \
-    "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
-    cmd rd /s /q "C:\\workdir"
+  docker.exe exec -w "C:\workdir" envoy_workdir_1 cmd /c "rd /s /q . 2>nul"
 }
 
 # Windows containers does not allow cp command while running.
