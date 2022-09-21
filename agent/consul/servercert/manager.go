@@ -150,7 +150,6 @@ func (m *CertManager) watchServerToken(ctx context.Context) {
 
 		// Cancel existing the leaf cert watch and spin up new one any time the server token changes.
 		// The watch needs the current token as set by the leader since certificate signing requests go to the leader.
-		fmt.Println("canceling and resetting")
 		cancel()
 		notifyCtx, cancel = context.WithCancel(ctx)
 

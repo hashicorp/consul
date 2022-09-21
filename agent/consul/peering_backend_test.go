@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
@@ -71,7 +72,7 @@ func TestPeeringBackend_GetServerAddresses(t *testing.T) {
 	}
 
 	_, cfg := testServerConfig(t)
-	cfg.GRPCTLSPort = 8505
+	cfg.GRPCTLSPort = freeport.GetOne(t)
 
 	srv, err := newServer(t, cfg)
 	require.NoError(t, err)
