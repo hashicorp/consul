@@ -186,13 +186,13 @@ foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 Valid formats for RFC 2782 SRV lookups depend on
 whether you want to filter results based on a service tag:
 
-- No filtering on service tag
+- No filtering on service tag:
 
    ```text
   _<service>._tcp[.service][.<datacenter>].<domain>
   ```
 
-- Filtering on service tag specified in the RFC 2782 protocol field
+- Filtering on service tag specified in the RFC 2782 protocol field:
 
    ```text
   _<service>._<tag>[.service][.<datacenter>].<domain>
@@ -353,15 +353,8 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 By default, all service lookups use the `default` namespace
 within the partition and datacenter of the Consul agent that received the DNS query.
-
-Use the following query format to specify a namespace, partition, and/or datacenter
-for all service lookup types except `.query`,
-including `.service`, `.connect`, `.virtual`, and `.ingress`.
-At least two of those three fields (`namespace`, `partition`, `datacenter`)
-must be specified.
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
+To lookup services in another namespace, partition, and/or datacenter,
+use the [canonical format](#canonical-format).
 
 Consul server agents are in the `default` partition.
 If DNS queries are addressed to Consul server agents,
@@ -369,7 +362,37 @@ service lookups to non-`default` partitions must explicitly specify
 the partition of the target service.
 
 To lookup services imported from a cluster peer,
-use a [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+refer to [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
+#### Canonical format
+
+Use the following query format to specify namespace, partition, and/or datacenter
+for `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
+All three fields (`namespace`, `partition`, `datacenter`) are optional.
+```text
+[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
+```
+
+#### Alternative formats for specifying namespace
+
+Though the [canonical format](#canonical-format) is recommended for readability,
+you can use the following query formats specify namespace but not partition:
+
+- Specify both namespace and datacenter:
+
+  ```text
+  [<tag>.]<service>.service.<namespace>.<datacenter>.<domain>
+  ```
+
+- **Deprecated in Consul 1.11:**
+  Specify namespace without a datacenter,
+  which requires that DNS queries are addressed to a Consul agent with
+  [`dns_config.prefer_namespace`](/docs/agent/config/config-files#dns_prefer_namespace)
+  set to `true`:
+
+   ```text
+  [<tag>.]<service>.service.<namespace>.<domain>
+  ```
 
 ### Prepared Query Lookups
 
