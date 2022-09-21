@@ -105,6 +105,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		}
 
 		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+			proxycfg.IngressListenerKey{},
 			uid,
 			upstream,
 			chain,
@@ -630,7 +631,7 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
-	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
+	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		for _, u := range upstreams {
 			uid := proxycfg.NewUpstreamID(&u)
 
@@ -647,6 +648,7 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 			}
 
 			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+				listenerKey,
 				uid,
 				&u,
 				chain,
@@ -956,6 +958,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 }
 
 func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
+	listenerKey proxycfg.IngressListenerKey,
 	uid proxycfg.UpstreamID,
 	upstream *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
@@ -1141,6 +1144,23 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck),
 			}
 
+			// Lookup listener and service config details from ingress gateway
+			// definition.
+			var svc *structs.IngressService
+			if lCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]; ok {
+				svc = findIngressServiceMatchingUpstream(lCfg, *upstream)
+			}
+
+			if svc != nil && svc.MaxConnections > 0 {
+				c.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
+					Thresholds: []*envoy_cluster_v3.CircuitBreakers_Thresholds{
+						{
+							MaxConnections: makeUint32Value(int(svc.MaxConnections)),
+						},
+					},
+				}
+			}
+
 			var lb *structs.LoadBalancer
 			if node.LoadBalancer != nil {
 				lb = node.LoadBalancer
@@ -1228,6 +1248,7 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
 		exportClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+			proxycfg.IngressListenerKey{},
 			proxycfg.NewUpstreamIDFromServiceName(svc),
 			nil,
 			chain,

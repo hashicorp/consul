@@ -227,6 +227,7 @@ func IngressServiceToStructs(s *IngressService, t *structs.IngressService) {
 		HTTPHeaderModifiersToStructs(s.ResponseHeaders, &x)
 		t.ResponseHeaders = &x
 	}
+	t.MaxConnections = s.MaxConnections
 	t.Meta = s.Meta
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
@@ -251,6 +252,7 @@ func IngressServiceFromStructs(t *structs.IngressService, s *IngressService) {
 		HTTPHeaderModifiersFromStructs(t.ResponseHeaders, &x)
 		s.ResponseHeaders = &x
 	}
+	s.MaxConnections = t.MaxConnections
 	s.Meta = t.Meta
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }

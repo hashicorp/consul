@@ -124,6 +124,9 @@ type IngressService struct {
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
+	// MaxConnections is the max connections that is allowed to a service
+	MaxConnections int `json:",omitempty" alias:"max_connections"`
 }
 
 func (i *IngressGatewayConfigEntry) GetKind() string            { return i.Kind }

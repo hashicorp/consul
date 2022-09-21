@@ -494,6 +494,16 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-with-service-max-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+					}, nil)
+			},
+		},
+		{
 			name: "ingress-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",

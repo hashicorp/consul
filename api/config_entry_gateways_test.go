@@ -93,6 +93,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 							CertResource: "bar",
 						},
 					},
+					MaxConnections: 5120,
 				},
 			},
 			TLS: &GatewayTLSConfig{
@@ -163,6 +164,8 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			readIngress.Listeners[0].Services[0].Partition = ""
 
 			require.Equal(t, ingress1.Listeners, readIngress.Listeners)
+			require.Equal(t, ingress1.Listeners[0].Services[0].MaxConnections,
+				readIngress.Listeners[0].Services[0].MaxConnections)
 		case "bar":
 			readIngress, ok = entry.(*IngressGatewayConfigEntry)
 			require.True(t, ok)

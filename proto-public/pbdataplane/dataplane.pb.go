@@ -296,6 +296,7 @@ type GetEnvoyBootstrapParamsRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to NodeSpec:
+	//
 	//	*GetEnvoyBootstrapParamsRequest_NodeId
 	//	*GetEnvoyBootstrapParamsRequest_NodeName
 	NodeSpec isGetEnvoyBootstrapParamsRequest_NodeSpec `protobuf_oneof:"node_spec"`
