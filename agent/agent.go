@@ -415,6 +415,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
+		checkOSServices: make(map[structs.CheckID]*checks.CheckOSService),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
