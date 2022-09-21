@@ -16,20 +16,19 @@ var (
 	win windowsSystem = windowsOS{}
 )
 
-type OSServiceClient struct {
-	scHandle windows.Handle
-}
+type OSServiceClient struct{}
 
 func NewOSServiceClient() (*OSServiceClient, error) {
-	scHandle, err := win.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
-	if err != nil {
-		return nil, fmt.Errorf("error connecting to service manager: %w", err)
-	}
-	return &OSServiceClient{scHandle: scHandle}, nil
+	return &OSServiceClient{}, nil
 }
 
 func (client *OSServiceClient) Check(serviceName string) (err error) {
-	m := win.getWindowsSvcMgr(client.scHandle)
+	h, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Windows service manager: %w", err)
+	}
+
+	m := win.getWindowsSvcMgr(h)
 	defer m.Disconnect()
 
 	svcNamePtr, err := syscall.UTF16PtrFromString(serviceName)
