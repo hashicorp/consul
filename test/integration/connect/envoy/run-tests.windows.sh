@@ -150,21 +150,23 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
-  ports=(
+  server_ports=(
     '-p=8500:8500'
     '-p=8502:8502'
+  )
+  agent_ports=(
     '-p=9411:9411'
     '-p=16686:16686'
   )
   case "$DC" in
     secondary)
-      ports=(
+      server_ports=(
         '-p=9500:8500'
         '-p=9502:8502'
       )
       ;;
     alpha)
-      ports=(
+      server_ports=(
         '-p=9510:8500'
         '-p=9512:8502'
       )
@@ -231,6 +233,7 @@ function start_consul {
       --hostname "consul-${DC}-server" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
+      ${server_ports[@]} \
       windows/consul:local \
       agent -dev -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
@@ -245,7 +248,7 @@ function start_consul {
       --hostname "consul-${DC}-client" \
       --network-alias "consul-${DC}-client" \
       -e "CONSUL_LICENSE=$license" \
-      ${ports[@]} \
+      ${agent_ports[@]} \
       windows/consul:local \
       agent -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
@@ -266,7 +269,7 @@ function start_consul {
       --network-alias "consul-${DC}-client" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
-      ${ports[@]} \
+      ${server_ports[@]} ${agent_ports[@]} \
       windows/consul:local \
       agent -dev -datacenter "${DC}" \
       -config-dir "C:\\workdir\\${DC}\\consul" \
