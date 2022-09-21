@@ -103,6 +103,7 @@ as |route|>
               <BlockSlot @name="body">
                 {{t 'routes.dc.nodes.index.empty.body'
                   items=items.length
+                  canUseACLs=(can 'use acls')
                   htmlSafe=true
                 }}
               </BlockSlot>

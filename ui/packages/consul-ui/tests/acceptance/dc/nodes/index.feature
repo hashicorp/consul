@@ -95,3 +95,16 @@ Feature: dc / nodes / index
     ---
     And I see 1 node model
     And I see 1 node model with the name "node-02"
+  Scenario: Viewing an empty nodes page with acl enabled
+    Given 1 datacenter model with the value "dc-1"
+    And 0 nodes models
+    When I visit the nodes page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/nodes
+    And the title should be "Nodes - Consul"
+    Then I see 0 node models
+    And I see the text "There don't seem to be any registered Nodes in this Consul cluster, or you may not have service:read and node:read permissions access to this view." in ".empty-state p"
+    And I see the "[data-test-empty-state-login]" element
+

@@ -34,4 +34,21 @@ Feature: dc / peers / index: Peers List
     ---
     And I see 1 peer model
     And I see 1 peer model with the name "a-peer"
-
+  Scenario: Empty state searching peers
+    Then I fill in with yaml
+    ---
+    s: no-match 
+    ---
+    And I see 0 peer model
+    Then I see the text "No peers found" in ".empty-state h2"
+    Then I see the text "Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this datacenter, or you may not have the peering:read permissions to access this view." in ".empty-state p"
+    And I see the "[data-test-empty-state-login]" element
+  Scenario: Empty state searching peers with ACLs disabled 
+    And ACLs are disabled
+    Then I fill in with yaml
+    ---
+    s: no-match 
+    ---
+    And I see 0 peer model
+    Then I see the text "No peers found" in ".empty-state h2"
+    Then I see the text "Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this datacenter." in ".empty-state p"

@@ -113,6 +113,7 @@ as |sort filters items partition nspace|}}
               <BlockSlot @name="body">
                 {{t 'routes.dc.services.index.empty.body'
                   items=items.length
+                  canUseACLs=(can "use acls")
                   htmlSafe=true
                 }}
               </BlockSlot>
