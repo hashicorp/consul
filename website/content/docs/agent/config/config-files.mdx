@@ -1269,13 +1269,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     UDP response, will set the truncated flag, indicating to clients that they should
     re-query using TCP to get the full set of records.
 
-  - `only_passing` - If set to true, any nodes whose
-    health checks are warning or critical will be excluded from DNS results. If false,
-    the default, only nodes whose health checks are failing as critical will be excluded.
-    For service lookups, the health checks of the node itself, as well as the service-specific
-    checks are considered. For example, if a node has a health check that is critical
-    then all services on that node will be excluded because they are also considered
-    critical.
+  - `only_passing` - (Defaults to `false`) Node / Service health status can be "passing", "warning", or 
+    "critical". 
+
+    When set to false, nodes whose health check status is "passing" or "warning" will be returned, but "critical" is ommitted.
+    If set to true, only nodes whose health check status is "passing" will be returned from DNS results. 
 
   - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
     order listed in the [`recursors`](#recursors) option. If set to `random`,
