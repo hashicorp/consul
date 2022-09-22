@@ -22,10 +22,10 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
 
-	token := external.TokenFromContext(ctx)
+	options := external.QueryOptionsFromContext(ctx)
 	var authzContext acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.GetPartition(), req.GetNamespace())
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzContext)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}

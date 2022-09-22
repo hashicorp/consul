@@ -25,7 +25,7 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 	logger := s.Logger.Named("sign").With("request_id", external.TraceID())
 	logger.Trace("request received")
 
-	token := external.TokenFromContext(ctx)
+	options := external.QueryOptionsFromContext(ctx)
 
 	if req.Csr == "" {
 		return nil, status.Error(codes.InvalidArgument, "CSR is required")
@@ -43,7 +43,7 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 		structs.WriteRequest
 		structs.DCSpecificRequest
 	}
-	rpcInfo.Token = token
+	rpcInfo.Token = options.Token
 
 	var rsp *pbconnectca.SignResponse
 	handled, err := s.ForwardRPC(&rpcInfo, func(conn *grpc.ClientConn) error {
@@ -62,7 +62,7 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, nil, nil)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}

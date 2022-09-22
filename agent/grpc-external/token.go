@@ -3,26 +3,35 @@ package external
 import (
 	"context"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"google.golang.org/grpc/metadata"
 )
 
 const metadataKeyToken = "x-consul-token"
+const metadataMinQueryIndex = "min-query-index"
+const metadataMaxQueryTime = "max-query-time"
+const metadataKeyAllowStale = "allow-stale"
+const metadataKeyRequireConsistent = "require-consistent"
+const metadataKeyUseCache = "use-cache"
+const metadataMaxStaleDuration = "max-stale-duration"
+const metadataFilter = "filter"
 
-// TokenFromContext returns the ACL token in the gRPC metadata attached to the
+// QueryOptionsFromContext returns the query options in the gRPC metadata attached to the
 // given context.
-func TokenFromContext(ctx context.Context) string {
+func QueryOptionsFromContext(ctx context.Context) structs.QueryOptions {
+	options := structs.QueryOptions{}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return ""
+		return options
 	}
 	toks, ok := md[metadataKeyToken]
 	if ok && len(toks) > 0 {
-		return toks[0]
+		options.Token = toks[0]
 	}
-	return ""
+	return options
 }
 
-// ContextWithToken returns a context with the given ACL token attached.
-func ContextWithToken(ctx context.Context, token string) context.Context {
-	return metadata.AppendToOutgoingContext(ctx, metadataKeyToken, token)
+// ContextWithQueryOptions returns a context with the given query options attached.
+func ContextWithQueryOptions(ctx context.Context, options structs.QueryOptions) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, metadataKeyToken, options.Token)
 }

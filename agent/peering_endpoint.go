@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -42,9 +43,10 @@ func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, 
 		Partition: entMeta.PartitionOrEmpty(),
 	}
 
-	var token string
-	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	var dc string
+	options := structs.QueryOptions{}
+	s.parse(resp, req, &dc, &options)
+	ctx := external.ContextWithQueryOptions(req.Context(), options)
 
 	result, err := s.agent.rpcClientPeering.PeeringRead(ctx, &args)
 	if err != nil {
@@ -67,9 +69,10 @@ func (s *HTTPHandlers) PeeringList(resp http.ResponseWriter, req *http.Request) 
 		Partition: entMeta.PartitionOrEmpty(),
 	}
 
-	var token string
-	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	var dc string
+	options := structs.QueryOptions{}
+	s.parse(resp, req, &dc, &options)
+	ctx := external.ContextWithQueryOptions(req.Context(), options)
 
 	pbresp, err := s.agent.rpcClientPeering.PeeringList(ctx, &args)
 	if err != nil {
@@ -106,7 +109,8 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 
 	var token string
 	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	options := structs.QueryOptions{Token: token}
+	ctx := external.ContextWithQueryOptions(req.Context(), options)
 
 	out, err := s.agent.rpcClientPeering.GenerateToken(ctx, args)
 	if err != nil {
@@ -146,7 +150,8 @@ func (s *HTTPHandlers) PeeringEstablish(resp http.ResponseWriter, req *http.Requ
 
 	var token string
 	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	options := structs.QueryOptions{Token: token}
+	ctx := external.ContextWithQueryOptions(req.Context(), options)
 
 	out, err := s.agent.rpcClientPeering.Establish(ctx, args)
 	if err != nil {
@@ -170,7 +175,8 @@ func (s *HTTPHandlers) peeringDelete(resp http.ResponseWriter, req *http.Request
 
 	var token string
 	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	options := structs.QueryOptions{Token: token}
+	ctx := external.ContextWithQueryOptions(req.Context(), options)
 
 	_, err := s.agent.rpcClientPeering.PeeringDelete(ctx, &args)
 	if err != nil {
