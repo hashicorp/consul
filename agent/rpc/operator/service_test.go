@@ -209,7 +209,7 @@ func (m *MockBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.Ente
 
 func TestLeaderTransfer_ACL_NotAllowed(t *testing.T) {
 	authorizer := mockAuthorizer{}
-	authorizer.On("OperatorWrite", mock.Anything).Return(0)
+	authorizer.On("OperatorWrite", mock.Anything).Return(int(acl.Deny))
 	server := NewServer(Config{Datacenter: "dc1", Backend: &MockBackend{authorizer: &authorizer}, Logger: hclog.New(nil), ForwardRPC: doForwardRPC})
 
 	_, err := server.TransferLeader(context.Background(), &pboperator.TransferLeaderRequest{})
