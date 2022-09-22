@@ -30,9 +30,13 @@ BUG FIXES:
 `QueryFailoverOptions` and marks it as deprecated. [[GH-14378](https://github.com/hashicorp/consul/issues/14378)]
 * ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
 * cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fix issue where `auto_config` and `auto_encrypt` could unintentionally enable TLS for gRPC xDS connections. [[GH-14269](https://github.com/hashicorp/consul/issues/14269)]
 * connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
 * connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
 * connect: Fixed some spurious issues during peering establishment when a follower is dialed [[GH-14119](https://github.com/hashicorp/consul/issues/14119)]
+* envoy: validate name before deleting proxy default configurations. [[GH-14290](https://github.com/hashicorp/consul/issues/14290)]
+* peering: Fix issue preventing deletion and recreation of peerings in TERMINATED state. [[GH-14364](https://github.com/hashicorp/consul/issues/14364)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
 * tls: undo breaking change that prevented setting TLS for gRPC when using config flags available in Consul v1.11. [[GH-14668](https://github.com/hashicorp/consul/issues/14668)]
 * ui: Removed Overview page from HCP instalations [[GH-14606](https://github.com/hashicorp/consul/issues/14606)]
 
