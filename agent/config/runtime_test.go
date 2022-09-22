@@ -6002,6 +6002,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSPort:                                7001,
 		DNSRecursorStrategy:                    "sequential",
 		DNSRecursorTimeout:                     4427 * time.Second,
+		DNSRecursorTTL:                         true,
 		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
 		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
