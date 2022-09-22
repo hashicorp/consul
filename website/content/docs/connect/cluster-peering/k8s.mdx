@@ -93,7 +93,7 @@ You must implement the following requirements to create and use cluster peering 
      ```shell-session
     $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "0.47.1" --values values.yaml --kube-context $CLUSTER2_CONTEXT
      ```
-
+     
 ## Create a peering token
 
 To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster. As part of the peering process, the peer names for each respective cluster within the peering are established by using the `metadata.name` values for the `PeeringAcceptor` and `PeeringDialer` CRDs. 
