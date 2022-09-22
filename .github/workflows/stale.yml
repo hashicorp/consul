@@ -9,7 +9,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/stale@v4
+      - uses: actions/stale@v6
         with:
           days-before-stale: -1
           days-before-close: -1
