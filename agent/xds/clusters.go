@@ -1152,12 +1152,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			if svc != nil && svc.MaxConnections > 0 {
-				c.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
-					Thresholds: []*envoy_cluster_v3.CircuitBreakers_Thresholds{
+				if c.CircuitBreakers.Thresholds == nil {
+					c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{
 						{
 							MaxConnections: makeUint32Value(int(svc.MaxConnections)),
 						},
-					},
+					}
+				} else {
+					// Overwrite the default upstream limit
+					c.CircuitBreakers.Thresholds[0].MaxConnections = makeUint32Value(int(svc.MaxConnections))
 				}
 			}
 
