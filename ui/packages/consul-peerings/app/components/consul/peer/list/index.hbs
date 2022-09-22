@@ -46,7 +46,7 @@ as |item index|>
     <Actions as |Action|>
 {{#if (can "write peer" item=item)}}
         <Action
-          data-test-edit-action
+          data-test-regenerate-action
           {{on 'click' (fn @onedit item)}}
         >
           <BlockSlot @name="label">

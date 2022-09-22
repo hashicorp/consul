@@ -10,9 +10,10 @@ export const selectors = {
     },
   }
 };
-export default (collection, isPresent, attribute) => () => {
+export default (collection, isPresent, attribute, actions) => () => {
   return collection(`${selectors.$} ${selectors.collection.$}`, {
     peer: isPresent(selectors.collection.peer.$),
     name: attribute('data-test-peer', selectors.collection.peer.name.$),
+    ...actions(['regenerate', 'delete']),
   });
 };
