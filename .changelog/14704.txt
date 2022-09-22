@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Add option to keep recursor TTL for external services.
+```
