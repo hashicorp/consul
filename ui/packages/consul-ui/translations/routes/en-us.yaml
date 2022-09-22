@@ -213,7 +213,7 @@ dc:
                 <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstream-configuration-reference" target="_blank" rel="noopener noreferrer">Read the documentation</a>
               </p>
           acls-disabled:
-            header: All service-to-service connections are allowed
+            header: Restrict which services can connect
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or enable ACLs and set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer: |
               <p>
