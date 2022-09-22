@@ -499,7 +499,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"simple", nil,
 					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.Listeners[0].Services[0].MaxConnections = 4096
+						svcMaxConnections := uint32(4096)
+						entry.Listeners[0].Services[0].MaxConnections = &svcMaxConnections
 					}, nil)
 			},
 		},

@@ -91,7 +91,7 @@ type IngressService struct {
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 
 	// MaxConnections is the max number of connections that is allowed to a service
-	MaxConnections int32 `json:",omitempty" alias:"max_connections"`
+	MaxConnections *uint32 `json:",omitempty" alias:"max_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
