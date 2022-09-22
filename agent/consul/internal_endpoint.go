@@ -3,7 +3,7 @@ package consul
 import (
 	"fmt"
 
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
@@ -613,6 +613,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 
 // ExportedPeeredServices is used to query the exported services for peers.
 // Returns services as a map of ServiceNames by peer.
+// To get exported services for a single peer, use ExportedServicesForPeer.
 func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply *structs.IndexedExportedServiceList) error {
 	if done, err := m.srv.ForwardRPC("Internal.ExportedPeeredServices", args, reply); done {
 		return err
@@ -638,6 +639,59 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 
 			reply.Index, reply.Services = index, serviceMap
 			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
+// ExportedServicesForPeer returns a list of Service names that are exported for a given peer.
+func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, reply *structs.IndexedServiceList) error {
+	if done, err := m.srv.ForwardRPC("Internal.ExportedServicesForPeer", args, reply); done {
+		return err
+	}
+
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+	if args.PeerName == "" {
+		return fmt.Errorf("must provide PeerName")
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, store *state.Store) error {
+
+			idx, p, err := store.PeeringRead(ws, state.Query{
+				Value:          args.PeerName,
+				EnterpriseMeta: args.EnterpriseMeta,
+			})
+			if err != nil {
+				return fmt.Errorf("error while fetching peer %q: %w", args.PeerName, err)
+			}
+			if p == nil {
+				reply.Index = idx
+				reply.Services = nil
+				return errNotFound
+			}
+			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, "")
+			if err != nil {
+				return fmt.Errorf("error while listing exported services for peer %q: %w", args.PeerName, err)
+			}
+
+			reply.Index = idx
+			reply.Services = exportedSvcs.Services
+
+			// If MeshWrite is allowed, we assume it is an operator role and
+			// return all the services. Otherwise, the results are filtered.
+			if authz.MeshWrite(&authzCtx) != acl.Allow {
+				m.srv.filterACLWithAuthorizer(authz, reply)
+			}
+
 			return nil
 		})
 }
