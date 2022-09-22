@@ -32,7 +32,10 @@ func (s *Server) WatchRoots(_ *pbconnectca.WatchRootsRequest, serverStream pbcon
 	logger.Trace("starting stream")
 	defer logger.Trace("stream closed")
 
-	options := external.QueryOptionsFromContext(serverStream.Context())
+	options, err := external.QueryOptionsFromContext(serverStream.Context())
+	if err != nil {
+		return err
+	}
 
 	// Serve the roots from an EventPublisher subscription. If the subscription is
 	// closed due to an ACL change, we'll attempt to re-authorize and resume it to

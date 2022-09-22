@@ -26,8 +26,10 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 	logger.Debug("starting stream")
 	defer logger.Trace("stream closed")
 
-	options := external.QueryOptionsFromContext(serverStream.Context())
-
+	options, err := external.QueryOptionsFromContext(serverStream.Context())
+	if err != nil {
+		return err
+	}
 	// Serve the ready servers from an EventPublisher subscription. If the subscription is
 	// closed due to an ACL change, we'll attempt to re-authorize and resume it to
 	// prevent unnecessarily terminating the stream.

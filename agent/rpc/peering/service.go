@@ -209,7 +209,11 @@ func (s *Server) GenerateToken(
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -361,7 +365,11 @@ func (s *Server) Establish(
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -530,7 +538,10 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -579,7 +590,11 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -661,7 +676,11 @@ func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRe
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Peering.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -721,7 +740,11 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -781,7 +804,10 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	var resp *pbpeering.TrustBundleReadResponse
 	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
@@ -853,7 +879,11 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err

@@ -282,7 +282,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Start watching config for that proxy
 			var err error
-			options := external.QueryOptionsFromContext(stream.Context())
+			options, err := external.QueryOptionsFromContext(stream.Context())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
+
 			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)

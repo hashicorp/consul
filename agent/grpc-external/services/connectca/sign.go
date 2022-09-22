@@ -25,7 +25,10 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 	logger := s.Logger.Named("sign").With("request_id", external.TraceID())
 	logger.Trace("request received")
 
-	options := external.QueryOptionsFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	if req.Csr == "" {
 		return nil, status.Error(codes.InvalidArgument, "CSR is required")

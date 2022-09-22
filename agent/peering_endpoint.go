@@ -46,7 +46,10 @@ func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, 
 	var dc string
 	options := structs.QueryOptions{}
 	s.parse(resp, req, &dc, &options)
-	ctx := external.ContextWithQueryOptions(req.Context(), options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := s.agent.rpcClientPeering.PeeringRead(ctx, &args)
 	if err != nil {
@@ -72,7 +75,10 @@ func (s *HTTPHandlers) PeeringList(resp http.ResponseWriter, req *http.Request) 
 	var dc string
 	options := structs.QueryOptions{}
 	s.parse(resp, req, &dc, &options)
-	ctx := external.ContextWithQueryOptions(req.Context(), options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
 
 	pbresp, err := s.agent.rpcClientPeering.PeeringList(ctx, &args)
 	if err != nil {
@@ -110,7 +116,10 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 	var token string
 	s.parseToken(req, &token)
 	options := structs.QueryOptions{Token: token}
-	ctx := external.ContextWithQueryOptions(req.Context(), options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
 
 	out, err := s.agent.rpcClientPeering.GenerateToken(ctx, args)
 	if err != nil {
@@ -151,7 +160,10 @@ func (s *HTTPHandlers) PeeringEstablish(resp http.ResponseWriter, req *http.Requ
 	var token string
 	s.parseToken(req, &token)
 	options := structs.QueryOptions{Token: token}
-	ctx := external.ContextWithQueryOptions(req.Context(), options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
 
 	out, err := s.agent.rpcClientPeering.Establish(ctx, args)
 	if err != nil {
@@ -176,9 +188,12 @@ func (s *HTTPHandlers) peeringDelete(resp http.ResponseWriter, req *http.Request
 	var token string
 	s.parseToken(req, &token)
 	options := structs.QueryOptions{Token: token}
-	ctx := external.ContextWithQueryOptions(req.Context(), options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err := s.agent.rpcClientPeering.PeeringDelete(ctx, &args)
+	_, err = s.agent.rpcClientPeering.PeeringDelete(ctx, &args)
 	if err != nil {
 		return nil, err
 	}
