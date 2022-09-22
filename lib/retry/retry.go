@@ -108,3 +108,10 @@ func (w *Waiter) Wait(ctx context.Context) error {
 		return nil
 	}
 }
+
+// NextWait returns the period the next call to Wait with block for assuming
+// it's context is not cancelled. It's useful for informing a user how long
+// it will be before the next attempt is made.
+func (w *Waiter) NextWait() time.Duration {
+	return w.delay()
+}

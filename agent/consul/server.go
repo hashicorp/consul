@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/hcp"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -60,6 +62,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	cslversion "github.com/hashicorp/consul/version"
 )
 
 // NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
@@ -379,6 +382,9 @@ type Server struct {
 	// server is able to handle.
 	xdsCapacityController *xdscapacity.Controller
 
+	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
+	hcpManager *hcp.Manager
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
@@ -447,6 +453,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 	}
+
+	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+		Client:   flat.HCP.Client,
+		StatusFn: s.hcpServerStatus(flat),
+		Logger:   logger.Named("hcp_manager"),
+	})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -788,6 +800,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 
 	// Start the metrics handlers.
 	go s.updateMetrics()
+
+	// Now we are setup, configure the HCP manager
+	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil
 }
@@ -1712,10 +1727,68 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+
+			// Trigger sending an update to HCP status
+			s.hcpManager.SendUpdate()
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
 		}
+	}
+}
+
+// hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
+// enabled.
+func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
+	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+		status.Name = s.config.NodeName
+		status.ID = string(s.config.NodeID)
+		status.Version = cslversion.GetHumanVersion()
+		status.LanAddress = s.config.RPCAdvertise.IP.String()
+		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
+		status.RPCPort = s.config.RPCAddr.Port
+
+		tlsCert := s.tlsConfigurator.Cert()
+		if tlsCert != nil {
+			status.TLS.Enabled = true
+			leaf := tlsCert.Leaf
+			if leaf == nil {
+				// Parse the leaf cert
+				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+				if err != nil {
+					// Shouldn't be possible
+					return
+				}
+			}
+			status.TLS.CertName = leaf.Subject.CommonName
+			status.TLS.CertSerial = leaf.SerialNumber.String()
+			status.TLS.CertExpiry = leaf.NotAfter
+			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
+			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
+			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		}
+
+		status.Raft.IsLeader = s.raft.State() == raft.Leader
+		_, leaderID := s.raft.LeaderWithID()
+		status.Raft.KnownLeader = leaderID != ""
+		status.Raft.AppliedIndex = s.raft.AppliedIndex()
+		if !status.Raft.IsLeader {
+			status.Raft.TimeSinceLastContact = time.Since(s.raft.LastContact())
+		}
+
+		apState := s.autopilot.GetState()
+		status.Autopilot.Healthy = apState.Healthy
+		status.Autopilot.FailureTolerance = apState.FailureTolerance
+		status.Autopilot.NumServers = len(apState.Servers)
+		status.Autopilot.NumVoters = len(apState.Voters)
+		status.Autopilot.MinQuorum = int(s.getAutopilotConfigOrDefault().MinQuorum)
+
+		status.ScadaStatus = "unknown"
+		if deps.HCP.Provider != nil {
+			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
+		}
+
+		return status, nil
 	}
 }
 
