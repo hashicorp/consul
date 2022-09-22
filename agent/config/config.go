@@ -636,6 +636,7 @@ type DNS struct {
 	OnlyPassing        *bool             `mapstructure:"only_passing"`
 	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
 	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
+	RecursorTTL        *bool             `mapstructure:"keep_recursor_ttl"`
 	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`
 	NodeMetaTXT        *bool             `mapstructure:"enable_additional_node_meta_txt"`

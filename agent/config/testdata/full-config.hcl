@@ -254,6 +254,7 @@ dns_config {
     node_ttl = "7084s"
     only_passing = true
     recursor_timeout = "4427s"
+    keep_recursor_ttl = true
     service_ttl = {
         "*" = "32030s"
     }
