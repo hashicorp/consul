@@ -18,6 +18,8 @@ BUG FIXES:
 * cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
 * connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
 * connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* envoy: validate name before deleting proxy default configurations. [[GH-14290](https://github.com/hashicorp/consul/issues/14290)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
 * ui: Removed Overview page from HCP instalations [[GH-14606](https://github.com/hashicorp/consul/issues/14606)]
 
 ## 1.12.4 (August 11, 2022)
