@@ -1,4 +1,4 @@
-FROM golang:1.18.1-nanoserver-1809
+FROM docker.mirror.hashicorp.services/windows/golang:1809
 
 WORKDIR /go/src
 COPY ./ .

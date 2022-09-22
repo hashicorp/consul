@@ -1,5 +1,5 @@
-FROM mcr.microsoft.com/windows/servercore:1809
-ENV VERSION=1.12.0
+FROM docker.mirror.hashicorp.services/windows/servercore:1809
+ARG VERSION=1.13.1
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
@@ -8,7 +8,8 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.version=$VERSION \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      version=${VERSION}
 
 RUN ["powershell", "Set-ExecutionPolicy", "Bypass", "-Scope", "Process", "-Force;"]
 RUN ["powershell", "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"]

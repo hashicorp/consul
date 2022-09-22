@@ -1,4 +1,4 @@
-FROM openjdk:jdk-windowsservercore
+FROM docker.mirror.hashicorp.services/windows/openjdk:1809
 
 RUN curl.exe -sSL 'https://search.maven.org/remote_content?g=io.zipkin&a=zipkin-server&v=LATEST&c=exec' -o zipkin.jar
 

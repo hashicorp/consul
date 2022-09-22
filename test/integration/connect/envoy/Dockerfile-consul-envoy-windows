@@ -1,0 +1,12 @@
+# From Consul Version 1.13.1 / 1.12.4 / 1.11.8
+ARG VERSION=1.13.1-local
+# From Envoy version 1.23.0 / 1.22.3 / 1.21.4 / 1.20.6 / 1.19.5
+ARG ENVOY_VERSION
+
+FROM docker.mirror.hashicorp.services/windows/envoy-windows:v${ENVOY_VERSION} as envoy
+FROM windows/consul:${VERSION}
+
+# Copy envoy.exe from FROM windows/envoy-windows:${ENVOY_VERSION}
+COPY --from=envoy ["C:/Program Files/envoy/", "C:/envoy/"]
+
+RUN SETX /M path "%PATH%;C:\envoy;"

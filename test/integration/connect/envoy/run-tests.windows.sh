@@ -17,7 +17,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.19.5"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=0
@@ -464,10 +464,6 @@ function stop_and_copy_files {
 }
 
 function run_tests {
-  local CONSUL_VERSION=$(docker image inspect --format='{{(index (.ContainerConfig.Env) 0)}}' \
-                        windows/consul:local | grep "VERSION=" | cut -c9-)
-  echo "Running Tests with Consul=$CONSUL_VERSION - Envoy=$ENVOY_VERSION - XDS_TARGET=$XDS_TARGET"
-
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
@@ -565,22 +561,31 @@ function workdir_cleanup {
 
 
 function suite_setup {
-    # Cleanup from any previous unclean runs.
-    suite_teardown
+  # Cleanup from any previous unclean runs.
+  suite_teardown
 
-    docker.exe network create -d "nat" envoy-tests &>/dev/null
+  docker.exe network create -d "nat" envoy-tests &>/dev/null
 
-    # Start the volume container
-    #
-    # This is a dummy container that we use to create volume and keep it
-    # accessible while other containers are down.
-    docker.exe volume create envoy_workdir &>/dev/null
-    docker.exe run -d --name envoy_workdir_1 \
-        $WORKDIR_SNIPPET \
-        --net=none \
-        "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
-    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
+  # Start the volume container
+  #
+  # This is a dummy container that we use to create volume and keep it
+  # accessible while other containers are down.
+  docker.exe volume create envoy_workdir &>/dev/null
+  docker.exe run -d --name envoy_workdir_1 \
+      $WORKDIR_SNIPPET \
+      --net=none \
+      "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause" &>/dev/null
 
+  # pre-build the consul+envoy container
+  echo "Rebuilding 'windows/consul:local' image with envoy $ENVOY_VERSION..."
+  retry_default docker.exe build -t windows/consul:local \
+      --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+      -f Dockerfile-consul-envoy-windows .
+
+
+  local CONSUL_VERSION=$(docker image inspect --format='{{.ContainerConfig.Labels.version}}' \
+                        windows/consul:local)
+  echo "Running Tests with Consul=$CONSUL_VERSION - Envoy=$ENVOY_VERSION - XDS_TARGET=$XDS_TARGET"
 }
 
 function suite_teardown {
@@ -854,7 +859,7 @@ function debug_dump_volumes {
     $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
-    "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
+    "${HASHICORP_DOCKER_PROXY}/windows/nanoserver:1809" \
     xcopy "\workdir" "\cwd\workdir" /E /H /C /I /Y
 }
 
