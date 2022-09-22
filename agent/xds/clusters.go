@@ -105,7 +105,6 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		}
 
 		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
-			proxycfg.IngressListenerKey{},
 			uid,
 			upstream,
 			chain,
@@ -648,7 +647,6 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 			}
 
 			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
-				listenerKey,
 				uid,
 				&u,
 				chain,
@@ -660,6 +658,26 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 			}
 
 			for _, c := range upstreamClusters {
+				// Adjust the limit for upstream service
+				// Lookup listener and service config details from ingress gateway
+				// definition.
+				var svc *structs.IngressService
+				if lCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]; ok {
+					svc = findIngressServiceMatchingUpstream(lCfg, u)
+				}
+
+				if svc != nil && svc.MaxConnections > 0 {
+					if c.CircuitBreakers.Thresholds == nil {
+						c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{
+							{
+								MaxConnections: makeUint32Value(int(svc.MaxConnections)),
+							},
+						}
+					} else {
+						// Overwrite the default upstream limit
+						c.CircuitBreakers.Thresholds[0].MaxConnections = makeUint32Value(int(svc.MaxConnections))
+					}
+				}
 				clusters = append(clusters, c)
 			}
 			createdClusters[uid] = true
@@ -958,7 +976,6 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 }
 
 func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
-	listenerKey proxycfg.IngressListenerKey,
 	uid proxycfg.UpstreamID,
 	upstream *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
@@ -1144,26 +1161,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck),
 			}
 
-			// Lookup listener and service config details from ingress gateway
-			// definition.
-			var svc *structs.IngressService
-			if lCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]; ok {
-				svc = findIngressServiceMatchingUpstream(lCfg, *upstream)
-			}
-
-			if svc != nil && svc.MaxConnections > 0 {
-				if c.CircuitBreakers.Thresholds == nil {
-					c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{
-						{
-							MaxConnections: makeUint32Value(int(svc.MaxConnections)),
-						},
-					}
-				} else {
-					// Overwrite the default upstream limit
-					c.CircuitBreakers.Thresholds[0].MaxConnections = makeUint32Value(int(svc.MaxConnections))
-				}
-			}
-
 			var lb *structs.LoadBalancer
 			if node.LoadBalancer != nil {
 				lb = node.LoadBalancer
@@ -1251,7 +1248,6 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
 		exportClusters, err := s.makeUpstreamClustersForDiscoveryChain(
-			proxycfg.IngressListenerKey{},
 			proxycfg.NewUpstreamIDFromServiceName(svc),
 			nil,
 			chain,
