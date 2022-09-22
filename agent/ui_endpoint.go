@@ -780,3 +780,49 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	proxy.ServeHTTP(resp, req)
 	return nil, nil
 }
+
+// UIExportedServices is used to list the exported services to a given peer. We return a
+// barebones ServiceListingSummary which only contains the name and enterprise meta of a service.
+// Currently, the request and response mirror UIServices but the API may change in the future.
+func (s *HTTPHandlers) UIExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.ServiceDumpRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceList
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.ExportedServicesForPeer", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+	// Ensure at least a zero length slice
+	result := make([]*ServiceListingSummary, 0)
+	for _, svc := range out.Services {
+		// We synthesize a minimal summary for the frontend.
+		// The shape of the data may change in the future but
+		// currently only the service name is required.
+		sum := ServiceListingSummary{
+			ServiceSummary: ServiceSummary{
+				Name:           svc.Name,
+				EnterpriseMeta: svc.EnterpriseMeta,
+				Datacenter:     args.Datacenter,
+			},
+		}
+		result = append(result, &sum)
+	}
+	return result, nil
+}
