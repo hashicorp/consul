@@ -127,10 +127,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if u.Datacenter != "" {
 			dc = u.Datacenter
 		}
-		if s.proxyCfg.Mode == structs.ProxyModeTransparent && (dc == "" || dc == s.source.Datacenter) {
-			// In transparent proxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
-			continue
-		}
 
 		// Default the partition and namespace to the namespace of this proxy service.
 		partition := s.proxyID.PartitionOrDefault()
