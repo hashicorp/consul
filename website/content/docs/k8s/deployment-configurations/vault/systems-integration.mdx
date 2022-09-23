@@ -128,11 +128,13 @@ A minimal valid installation of Vault Kubernetes must include the Agent Injector
 ```shell-session
 $ cat <<EOF >> vault-injector.yaml
 # vault-injector.yaml
+global:
+  enabled: true
+  externalVaultAddr: ${VAULT_ADDR}
 server:
   enabled: false
 injector:
   enabled: true
-  externalVaultAddr: ${VAULT_ADDR}
   authPath: auth/${VAULT_AUTH_METHOD_NAME}
 EOF
 ``` 
