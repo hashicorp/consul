@@ -1285,6 +1285,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `recursor_timeout` - Timeout used by Consul when
     recursively querying an upstream DNS server. See [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
 
+  - `keep_recursor_ttl` - If set to true, Consul keeps the TTL provided by the recursor on
+     queries made for external services.
+
   - `disable_compression` - If set to true, DNS
     responses will not be compressed. Compression was added and enabled by default
     in Consul 0.7.

@@ -252,6 +252,12 @@ type RuntimeConfig struct {
 	// hcl: dns_config { recursor_timeout = "duration" }
 	DNSRecursorTimeout time.Duration
 
+	// DNSRecursorTTL is used to keep the recursor TTL when
+	// resolving external services
+	//
+	// hcl: dns_config { keep_recursor_ttl = (true|false) }
+	DNSRecursorTTL bool
+
 	// DNSServiceTTL provides the TTL value for a service
 	// query for given service. The "*" wildcard can be used
 	// to set a default for all services.

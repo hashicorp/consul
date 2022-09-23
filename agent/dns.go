@@ -82,6 +82,7 @@ type dnsConfig struct {
 	OnlyPassing      bool
 	RecursorStrategy agentdns.RecursorStrategy
 	RecursorTimeout  time.Duration
+	RecursorTTL      bool
 	Recursors        []string
 	SegmentName      string
 	UDPAnswerLimit   int
@@ -169,6 +170,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		OnlyPassing:        conf.DNSOnlyPassing,
 		RecursorStrategy:   conf.DNSRecursorStrategy,
 		RecursorTimeout:    conf.DNSRecursorTimeout,
+		RecursorTTL:        conf.DNSRecursorTTL,
 		SegmentName:        conf.SegmentName,
 		UDPAnswerLimit:     conf.DNSUDPAnswerLimit,
 		NodeMetaTXT:        conf.DNSNodeMetaTXT,
@@ -1809,8 +1811,10 @@ MORE_REC:
 	for _, rr := range more {
 		switch rr.Header().Rrtype {
 		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
-			// set the TTL manually
-			rr.Header().Ttl = uint32(ttl / time.Second)
+			if !cfg.RecursorTTL {
+				// set the TTL manually
+				rr.Header().Ttl = uint32(ttl / time.Second)
+			}
 			additional = append(additional, rr)
 
 			extra++

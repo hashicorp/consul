@@ -158,6 +158,7 @@
     "DNSPort": 0,
     "DNSRecursorStrategy": "",
     "DNSRecursorTimeout": "0s",
+    "DNSRecursorTTL": false,
     "DNSRecursors": [],
     "DNSSOA": {
         "Expire": 86400,

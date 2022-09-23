@@ -883,6 +883,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DNSPort:               dnsPort,
 		DNSRecursorStrategy:   b.dnsRecursorStrategyVal(stringVal(c.DNS.RecursorStrategy)),
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
+		DNSRecursorTTL:        boolVal(c.DNS.RecursorTTL),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSSOA:                soa,

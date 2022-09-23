@@ -8049,6 +8049,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 			only_passing = false
 			recursor_strategy = "sequential"
 			recursor_timeout = "15s"
+			keep_recursor_ttl = false
 			disable_compression = false
 			a_record_limit = 1
 			enable_additional_node_meta_txt = false
@@ -8077,6 +8078,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 		require.False(t, cfg.EnableTruncate)
 		require.False(t, cfg.OnlyPassing)
 		require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
+		require.False(t, cfg.RecursorTTL)
 		require.False(t, cfg.DisableCompression)
 		require.Equal(t, 1, cfg.ARecordLimit)
 		require.False(t, cfg.NodeMetaTXT)
@@ -8099,6 +8101,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	newCfg.DNSOnlyPassing = true
 	newCfg.DNSRecursorStrategy = "random"
 	newCfg.DNSRecursorTimeout = 16 * time.Second
+	newCfg.DNSRecursorTTL = true
 	newCfg.DNSDisableCompression = true
 	newCfg.DNSARecordLimit = 2
 	newCfg.DNSNodeMetaTXT = true
@@ -8128,6 +8131,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 		require.True(t, cfg.EnableTruncate)
 		require.True(t, cfg.OnlyPassing)
 		require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
+		require.True(t, cfg.RecursorTTL)
 		require.True(t, cfg.DisableCompression)
 		require.Equal(t, 2, cfg.ARecordLimit)
 		require.True(t, cfg.NodeMetaTXT)
