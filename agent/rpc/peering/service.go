@@ -632,8 +632,10 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
+		// TODO(peering): this may be noise on non-leaders
 		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
+		peering.StreamStatus = &pbpeering.StreamStatus{}
 		return peering
 	} else {
 		cp := copyPeering(peering)
