@@ -666,16 +666,16 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 					svc = findIngressServiceMatchingUpstream(lCfg, u)
 				}
 
-				if svc != nil && svc.MaxConnections != nil {
+				if svc != nil && svc.MaxConnections > 0 {
 					if c.CircuitBreakers.Thresholds == nil {
 						c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{
 							{
-								MaxConnections: makeUint32Value(int(*svc.MaxConnections)),
+								MaxConnections: makeUint32Value(int(svc.MaxConnections)),
 							},
 						}
 					} else {
 						// Overwrite the default upstream limit
-						c.CircuitBreakers.Thresholds[0].MaxConnections = makeUint32Value(int(*svc.MaxConnections))
+						c.CircuitBreakers.Thresholds[0].MaxConnections = makeUint32Value(int(svc.MaxConnections))
 					}
 				}
 				clusters = append(clusters, c)
