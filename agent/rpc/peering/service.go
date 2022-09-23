@@ -645,11 +645,26 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		// add imported & exported services
-		cp.ImportedServices = streamState.ImportedServices
-		cp.ExportedServices = streamState.ExportedServices
-		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
-		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
+		latest := func(tt ...time.Time) time.Time {
+			latest := time.Time{}
+			for _, t := range tt {
+				if t.After(latest) {
+					latest = t
+				}
+			}
+			return latest
+		}
+
+		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
+		lastSend := latest(streamState.LastSendError, streamState.LastSendSuccess)
+
+		cp.StreamStatus = &pbpeering.StreamStatus{
+			ImportedServices: streamState.ImportedServices,
+			ExportedServices: streamState.ExportedServices,
+			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      structs.TimeToProto(lastRecv),
+			LastSend:         structs.TimeToProto(lastSend),
+		}
 
 		return cp
 	}

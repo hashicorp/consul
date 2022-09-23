@@ -183,17 +183,10 @@ message Peering {
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
   repeated string PeerServerAddresses = 10;
 
-  // ImportedServiceCount is the count of how many services are imported from this peering.
-  uint64 ImportedServiceCount = 13;
-
-  // ExportedServiceCount is the count of how many services are exported to this peering.
-  uint64 ExportedServiceCount = 14;
-
-  // ImportedServices is the list of services imported from this peering.
-  repeated string ImportedServices = 15;
-
-  // ExportedServices is the list of services exported to this peering.
-  repeated string ExportedServices = 16;
+  // StreamStatus contains information computed on read based on the state of the stream.
+  //
+  // mog: func-to=StreamStatusToAPI func-from=StreamStatusFromAPI
+  StreamStatus StreamStatus = 13;
 
   // CreateIndex is the Raft index at which the Peering was created.
   // @gotags: bexpr:"-"
@@ -202,6 +195,24 @@ message Peering {
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
   // @gotags: bexpr:"-"
   uint64 ModifyIndex = 12;
+}
+
+// StreamStatus represents information about an active peering stream.
+message StreamStatus {
+  // ImportedServices is the list of services imported from this peering.
+  repeated string ImportedServices = 1;
+
+  // ExportedServices is the list of services exported to this peering.
+  repeated string ExportedServices = 2;
+
+  // LastHeartbeat represents when the last heartbeat message was received.
+  google.protobuf.Timestamp LastHeartbeat = 3;
+
+  // LastReceive represents when any message was last received, regardless of success or error.
+  google.protobuf.Timestamp LastReceive = 4;
+
+  // LastSend represents when any message was last sent, regardless of success or error.
+  google.protobuf.Timestamp LastSend = 5;
 }
 
 // PeeringTrustBundle holds the trust information for validating requests from a peer.

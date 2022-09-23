@@ -353,6 +353,8 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 		if err != nil {
 			status.TrackSendError(err.Error())
+		} else {
+			status.TrackSendSuccess()
 		}
 		return err
 	}
