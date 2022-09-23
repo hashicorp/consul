@@ -14,6 +14,7 @@ import (
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
@@ -24,7 +25,11 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
+
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),
 		ACLResolver: aclResolver,
@@ -53,7 +58,11 @@ func TestSupportedDataplaneFeatures_Unauthenticated(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(resolver.Result{}, acl.ErrNotFound)
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
+
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),
 		ACLResolver: aclResolver,
@@ -70,7 +79,11 @@ func TestSupportedDataplaneFeatures_PermissionDenied(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerDenyAll(t), nil)
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
+
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),
 		ACLResolver: aclResolver,

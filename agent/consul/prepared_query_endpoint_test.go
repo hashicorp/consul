@@ -1499,7 +1499,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		t.Cleanup(cancel)
 
-		ctx = grpcexternal.ContextWithToken(ctx, "root")
+		options := structs.QueryOptions{Token: "root"}
+		ctx, err := grpcexternal.ContextWithQueryOptions(context.Background(), options)
+		require.NoError(t, err)
 
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),

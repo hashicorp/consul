@@ -28,10 +28,6 @@ func QueryOptionsFromContext(ctx context.Context) (structs.QueryOptions, error) 
 		return structs.QueryOptions{}, err
 	}
 
-	// // toks, ok := md[metadataKeyToken]
-	// // if ok && len(toks) > 0 {
-	// // 	options.Token = toks[0]
-	// }
 	return options, nil
 }
 
