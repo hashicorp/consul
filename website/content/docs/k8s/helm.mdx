@@ -226,14 +226,14 @@ Use these links to navigate to a particular top-level stanza.
         ```
         and check the name of `metadata.name`.
 
-      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's
+      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's 
         CA and issue a certificate and private key.
-        A Vault policy must be created which grants issue capabilities to
+        A Vault policy must be created which grants issue capabilities to 
         `global.secretsBackend.vault.controller.tlsCert.secretName`.
 
       - `connectInjectRole` ((#v-global-secretsbackend-vault-connectinjectrole)) (`string: ""`) - The Vault role to read Consul connect-injector webhook's CA
         and issue a certificate and private key.
-        A Vault policy must be created which grants issue capabilities to
+        A Vault policy must be created which grants issue capabilities to 
         `global.secretsBackend.vault.connectInject.tlsCert.secretName`.
 
       - `consulCARole` ((#v-global-secretsbackend-vault-consulcarole)) (`string: ""`) - The Vault role for all Consul components to read the Consul's server's CA Certificate (unauthenticated).
@@ -296,14 +296,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `controller` ((#v-global-secretsbackend-vault-controller))
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
           Kubernetes CRD creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the controller.
 
           - `secretName` ((#v-global-secretsbackend-vault-controller-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for controller
             webhooks.
 
-        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
           Kubernetes CRD creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the controller.
 
@@ -312,14 +312,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
 
-        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
           Kubernetes pod creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the ConnectInject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
             Connect Inject webhooks.
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
           Kubernetes pod creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the ConnectInject.
 
@@ -361,7 +361,7 @@ Use these links to navigate to a particular top-level stanza.
     See https://www.consul.io/docs/agent/config/cli-flags#_recursor for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
-  - `tls` ((#v-global-tls)) - Enables TLS (https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure?utm_source=docs)
+  - `tls` ((#v-global-tls)) - Enables TLS (https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure)
     across the cluster to verify authenticity of the Consul servers and clients.
     Requires Consul v1.4.1+.
 
@@ -516,7 +516,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](/docs/security/acl/auth-methods/kubernetes).
+      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -527,7 +527,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
-    - `enabled` ((#v-global-metrics-enabled)) (`boolean: false`) - Configures the Helm chart's components
+    - `enabled` ((#v-global-metrics-enabled)) (`boolean: false`) - Configures the Helm chart’s components
       to expose Prometheus metrics for the Consul service mesh. By default
       this includes gateway metrics and sidecar metrics.
 
@@ -565,7 +565,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
 
-  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from
+  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
     the API before cancelling the request.
 
 ### server ((#h-server))
@@ -621,7 +621,8 @@ Use these links to navigate to a particular top-level stanza.
     Vault Secrets backend:
     If you are using Vault as a secrets backend, a Vault Policy must be created which allows `["create", "update"]`
     capabilities on the PKI issuing endpoint, which is usually of the form `pki/issue/consul-server`. 
-    Please refer the [Consul and Vault tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-secure-tls?utm_source=docs) for steps to generate a compatible certificate.
+    Please see the following guide for steps to generate a compatible certificate:
+    https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-secure-tls
     Note: when using TLS, both the `server.serverCert` and `global.tls.caCert` which points to the CA endpoint of this PKI engine
     must be provided.
 
@@ -655,13 +656,18 @@ Use these links to navigate to a particular top-level stanza.
 
   - `storageClass` ((#v-server-storageclass)) (`string: null`) - The StorageClass to use for the servers' StatefulSet storage. It must be
     able to be dynamically provisioned if you want the storage
-    to be automatically created. For example, to use local
-    (https://kubernetes.io/docs/concepts/storage/storage-classes/#local)
+    to be automatically created. For example, to use 
+    local(https://kubernetes.io/docs/concepts/storage/storage-classes/#local)
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    See https://www.consul.io/docs/install/performance#read-write-tuning for considerations around choosing a
-    performant storage class.
+    Refer to the [Read/Write Tuning](https://www.consul.io/docs/install/performance#read-write-tuning) 
+    section of the Server Performance Requirements documentation for considerations 
+    around choosing a performant storage class.
+
+    ~> **Note:** The [Reference Architecture](https://learn.hashicorp.com/tutorials/consul/reference-architecture#hardware-sizing-for-consul-servers)
+    contains best practices and recommendations for selecting suitable
+    hardware sizes for your Consul servers.
 
   - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable Connect (https://consul.io/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
@@ -1423,8 +1429,8 @@ Use these links to navigate to a particular top-level stanza.
       already exist, it will be created. Turning this on overrides the
       `consulDestinationNamespace` setting.
       `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
-      If mirroring is enabled, avoid creating any Consul resources in the following
-      Kubernetes namespaces, as Consul currently reserves these namespaces for
+      If mirroring is enabled, avoid creating any Consul resources in the following 
+      Kubernetes namespaces, as Consul currently reserves these namespaces for 
       system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-synccatalog-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
@@ -1473,11 +1479,11 @@ Use these links to navigate to a particular top-level stanza.
 
   - `aclSyncToken` ((#v-synccatalog-aclsynctoken)) - Refers to a Kubernetes secret that you have created that contains
     an ACL token for your Consul cluster which allows the sync process the correct
-    permissions. This is only needed if ACLs are enabled on the Consul cluster.
+    permissions. This is only needed if ACLs are managed manually within the Consul cluster.
 
-    - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Vault secret that holds the acl sync token.
+    - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the acl sync token.
 
-    - `secretKey` ((#v-synccatalog-aclsynctoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the acl sync.
+    - `secretKey` ((#v-synccatalog-aclsynctoken-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the acl sync token.
 
   - `nodeSelector` ((#v-synccatalog-nodeselector)) (`string: null`) - This value defines `nodeSelector` (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
     labels for catalog sync pod assignment, formatted as a multi-line string.
@@ -1566,7 +1572,7 @@ Use these links to navigate to a particular top-level stanza.
   - `disruptionBudget` ((#v-connectinject-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
     for the service mesh sidecar injector.
 
-    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the
+    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the 
       service mesh sidecar injector. If this is enabled, it will only register the budget so long as
       the service mesh is enabled.
 
@@ -1578,7 +1584,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
 
-    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin.
+    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin. 
       Requires connectInject.enabled to also be true.
 
     - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
@@ -1694,7 +1700,7 @@ Use these links to navigate to a particular top-level stanza.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces.
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces. 
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
@@ -1750,8 +1756,8 @@ Use these links to navigate to a particular top-level stanza.
       of the same name as their k8s namespace, optionally prefixed if
       `mirroringK8SPrefix` is set below. If the Consul namespace does not
       already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul
-      resources in the following Kubernetes namespaces, as Consul currently reserves these
+      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul 
+      resources in the following Kubernetes namespaces, as Consul currently reserves these 
       namespaces for system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
