@@ -1493,14 +1493,14 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	acceptingPeerName := "my-peer-accepting-server"
 	dialingPeerName := "my-peer-dialing-server"
 
-	// Set up peering between dc1 (dailing) and dc3 (accepting) and export the foo service
+	// Set up peering between dc1 (dialing) and dc3 (accepting) and export the foo service
 	{
 		// Create a peering by generating a token.
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		t.Cleanup(cancel)
 
 		options := structs.QueryOptions{Token: "root"}
-		ctx, err := grpcexternal.ContextWithQueryOptions(context.Background(), options)
+		ctx, err := grpcexternal.ContextWithQueryOptions(ctx, options)
 		require.NoError(t, err)
 
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
