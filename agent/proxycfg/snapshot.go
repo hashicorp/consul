@@ -697,7 +697,7 @@ func (s *ConfigSnapshot) Valid() bool {
 			if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
 				return false
 			}
-			if cfg := s.MeshConfig(); cfg != nil && cfg.Peering != nil && cfg.Peering.PeerThroughMeshGateways {
+			if cfg := s.MeshConfig(); cfg.PeerThroughMeshGateways() {
 				return false
 			}
 		}

@@ -1751,10 +1751,37 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 
 			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
 				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-					ServerNames: []string{fmt.Sprintf("%s", clusterName)},
+					ServerNames: []string{clusterName},
 				},
 				Filters: []*envoy_listener_v3.Filter{
 					dcTCPProxy,
+				},
+			})
+		}
+	}
+
+	// Create a single cluster for local servers to be dialed by peers.
+	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
+	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+
+		// Peering control-plane traffic can only ever be handled by the local leader.
+		// We avoid routing to read replicas since they will never be Raft voters.
+		if haveVoters(servers) {
+			clusterName := connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)
+
+			filter, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peering_server.")
+			if err != nil {
+				return nil, err
+			}
+
+			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ServerNames: []string{clusterName},
+				},
+				Filters: []*envoy_listener_v3.Filter{
+					filter,
 				},
 			})
 		}

@@ -215,6 +215,12 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
 			},
 		},
+		{
+			name: "mesh-gateway-peering-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "control-plane", nil, nil)
+			},
+		},
 	}
 }
 

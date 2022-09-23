@@ -476,6 +476,106 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 	)
 
 	switch variant {
+	case "control-plane":
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: meshConfigEntryID,
+				Result: &structs.ConfigEntryResponse{
+					Entry: &structs.MeshConfigEntry{
+						Peering: &structs.PeeringMeshConfig{
+							PeerThroughMeshGateways: true,
+						},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: consulServerListWatchID,
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "replica",
+								Address:    "127.0.0.10",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								// Read replicas cannot handle peering requests.
+								Meta: map[string]string{"read_replica": "true"},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node1",
+								Address:    "127.0.0.1",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node2",
+								Address:    "127.0.0.2",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									"grpc_port":     "8502",
+									"grpc_tls_port": "8503",
+								},
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									// WAN address is not considered for traffic from local gateway to local servers.
+									structs.TaggedAddressWAN: {
+										Address: "consul.server.dc1.my-domain",
+										Port:    10101,
+									},
+								},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node3",
+								Address:    "127.0.0.3",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									// Peering is not allowed over deprecated non-TLS gRPC port.
+									"grpc_port": "8502",
+								},
+							},
+						},
+						{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+								Node:       "node4",
+								Address:    "127.0.0.4",
+							},
+							Service: &structs.NodeService{
+								ID:      structs.ConsulServiceID,
+								Service: structs.ConsulServiceName,
+								Meta: map[string]string{
+									// Must have valid gRPC port.
+									"grpc_tls_port": "bad",
+								},
+							},
+						},
+					},
+				},
+			},
+		)
 	case "default-services-http":
 		proxyDefaults := &structs.ProxyConfigEntry{
 			Config: map[string]interface{}{

@@ -396,6 +396,21 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		}
 	}
 
+	// Create a single cluster for local servers to be dialed by peers.
+	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
+	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+
+		// Peering control-plane traffic can only ever be handled by the local leader.
+		// We avoid routing to read replicas since they will never be Raft voters.
+		if haveVoters(servers) {
+			cluster := s.makeGatewayCluster(cfgSnap, clusterOpts{
+				name: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+			})
+			clusters = append(clusters, cluster)
+		}
+	}
+
 	// generate the per-service/subset clusters
 	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
 	if err != nil {
@@ -411,6 +426,16 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 	clusters = append(clusters, c...)
 
 	return clusters, nil
+}
+
+func haveVoters(servers structs.CheckServiceNodes) bool {
+	for _, srv := range servers {
+		if isReplica := srv.Service.Meta["read_replica"]; isReplica == "true" {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // clustersFromSnapshotTerminatingGateway returns the xDS API representation of the "clusters"

@@ -494,7 +494,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			return nil
 		}
 
-		if meshConf.Peering == nil || !meshConf.Peering.PeerThroughMeshGateways {
+		if !meshConf.PeerThroughMeshGateways() {
 			snap.MeshGateway.WatchedConsulServers.CancelWatch(structs.ConsulServiceName)
 			return nil
 		}
