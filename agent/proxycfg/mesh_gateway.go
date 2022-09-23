@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/logging"
@@ -21,6 +22,8 @@ type handlerMeshGateway struct {
 // initialize sets up the watches needed based on the current mesh gateway registration
 func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
+	snap.MeshGateway.WatchedConsulServers = watch.NewMap[string, structs.CheckServiceNodes]()
+
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
@@ -76,7 +79,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	if s.proxyID.InDefaultPartition() {
-		if err := s.initializeCrossDCWatches(ctx); err != nil {
+		if err := s.initializeCrossDCWatches(ctx, &snap); err != nil {
 			return snap, err
 		}
 	}
@@ -123,7 +126,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	return snap, err
 }
 
-func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context) error {
+func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context, snap *ConfigSnapshot) error {
 	if s.meta[structs.MetaWANFederationKey] == "1" {
 		// Conveniently we can just use this service meta attribute in one
 		// place here to set the machinery in motion and leave the conditional
@@ -145,6 +148,7 @@ func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context) error
 		if err != nil {
 			return err
 		}
+		snap.MeshGateway.WatchedConsulServers.InitWatch(structs.ConsulServiceName, nil)
 	}
 
 	err := s.dataSources.Datacenters.Notify(ctx, &structs.DatacentersRequest{
@@ -325,7 +329,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		// Do some initial sanity checks to avoid doing something dumb.
 		for _, csn := range resp.Nodes {
 			if csn.Service.Service != structs.ConsulServiceName {
 				return fmt.Errorf("expected service name %q but got %q",
@@ -337,7 +340,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			}
 		}
 
-		snap.MeshGateway.ConsulServers = resp.Nodes
+		snap.MeshGateway.WatchedConsulServers.Set(structs.ConsulServiceName, resp.Nodes)
 
 	case exportedServiceListWatchID:
 		exportedServices, ok := u.Result.(*structs.IndexedExportedServiceList)
@@ -463,16 +466,54 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		if resp.Entry != nil {
-			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
-			}
-			snap.MeshGateway.MeshConfig = meshConf
-		} else {
+		if resp.Entry == nil {
 			snap.MeshGateway.MeshConfig = nil
+
+			// We avoid managing server watches when WAN federation is enabled since it
+			// always requires server watches.
+			if s.meta[structs.MetaWANFederationKey] != "1" {
+				// If the entry was deleted we cancel watches that may have existed because of
+				// PeerThroughMeshGateways being set in the past.
+				snap.MeshGateway.WatchedConsulServers.CancelWatch(structs.ConsulServiceName)
+			}
+
+			snap.MeshGateway.MeshConfigSet = true
+			return nil
 		}
+
+		meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+		}
+		snap.MeshGateway.MeshConfig = meshConf
 		snap.MeshGateway.MeshConfigSet = true
+
+		// We avoid managing Consul server watches when WAN federation is enabled since it
+		// always requires server watches.
+		if s.meta[structs.MetaWANFederationKey] == "1" {
+			return nil
+		}
+
+		if meshConf.Peering == nil || !meshConf.Peering.PeerThroughMeshGateways {
+			snap.MeshGateway.WatchedConsulServers.CancelWatch(structs.ConsulServiceName)
+			return nil
+		}
+		if snap.MeshGateway.WatchedConsulServers.IsWatched(structs.ConsulServiceName) {
+			return nil
+		}
+
+		notifyCtx, cancel := context.WithCancel(ctx)
+		err := s.dataSources.Health.Notify(notifyCtx, &structs.ServiceSpecificRequest{
+			Datacenter:   s.source.Datacenter,
+			QueryOptions: structs.QueryOptions{Token: s.token},
+			ServiceName:  structs.ConsulServiceName,
+		}, consulServerListWatchID, s.ch)
+		if err != nil {
+			cancel()
+			return fmt.Errorf("failed to watch local consul servers: %w", err)
+		}
+
+		snap.MeshGateway.WatchedConsulServers.InitWatch(structs.ConsulServiceName, cancel)
 
 	default:
 		switch {

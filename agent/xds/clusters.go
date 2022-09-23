@@ -386,7 +386,8 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		}
 
 		// And for the current datacenter, send all flavors appropriately.
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			opts := clusterOpts{
 				name: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
 			}

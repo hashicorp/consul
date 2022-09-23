@@ -274,7 +274,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil
 			}
 			configuredPorts[svcConfig.Destination.Port] = struct{}{}
-			const name = "~http" //name used for the shared route name
+			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:  routeName,
@@ -1739,7 +1739,8 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		}
 
 		// Wildcard all flavors to each server.
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)

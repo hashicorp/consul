@@ -249,7 +249,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			_, addr, port := srv.BestAddress(false /*wan*/)
