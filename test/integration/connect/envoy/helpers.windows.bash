@@ -642,32 +642,13 @@ function kill_envoy {
   tskill $PID
 }
 
-# This function is needed since socats SYSTEM isn't working. 
-function split_lines_in_stats {
-  local MATCH=$1
-  local FILE=$2
-  local LINE_COUNT=$( sed -n '$=' $FILE )
-  if [[ $LINE_COUNT == "1" ]]
-  then
-    sed -i "s/$MATCH/\n$MATCH/g" $FILE
-  else
-    return 0
-  fi    
-}
-
 function must_match_in_statsd_logs {
   local DC=${2:-primary}
   local FILE="/c/workdir/${DC}/statsd/statsd.log"
-
-  split_lines_in_stats envoy $FILE 
-
-  run cat $FILE
-  echo "$output"
-  COUNT=$( echo "$output" | grep -Ec $1 )
-
+  
+  COUNT=$( grep -Ec $1 $FILE )  
   echo "COUNT of '$1' matches: $COUNT"
-
-  [ "$status" == 0 ]
+ 
   [ "$COUNT" -gt "0" ]
 }
 
