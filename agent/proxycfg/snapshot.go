@@ -619,6 +619,9 @@ type configSnapshotIngressGateway struct {
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
+
+	// Defaults is the default configuration for upstream service instances
+	Defaults structs.IngressServiceConfig
 }
 
 // isEmpty is a test helper

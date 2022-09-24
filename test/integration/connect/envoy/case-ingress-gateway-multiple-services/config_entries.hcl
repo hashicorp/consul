@@ -11,6 +11,11 @@ config_entries {
       kind = "ingress-gateway"
       name = "ingress-gateway"
 
+      Defaults {
+        MaxConnections = 10
+        MaxPendingRequests = 20
+        MaxConcurrentRequests = 30
+      }
       listeners = [
         {
           port     = 9999
@@ -28,6 +33,9 @@ config_entries {
             {
               name  = "s1"
               hosts = ["test.example.com"]
+              MaxConnections = 100
+              MaxPendingRequests = 200
+              MaxConcurrentRequests = 300
             }
           ]
         }

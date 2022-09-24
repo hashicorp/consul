@@ -29,6 +29,10 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			Enabled:       true,
 			TLSMinVersion: "TLSv1_2",
 		},
+		Defaults: &IngressServiceConfig{
+			MaxConnections:     intPointer(2048),
+			MaxPendingRequests: intPointer(4096),
+		},
 	}
 
 	global := &ProxyConfigEntry{
@@ -93,6 +97,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 							CertResource: "bar",
 						},
 					},
+					MaxConnections:        intPointer(5120),
+					MaxPendingRequests:    intPointer(512),
+					MaxConcurrentRequests: intPointer(2048),
 				},
 			},
 			TLS: &GatewayTLSConfig{
@@ -163,11 +170,20 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			readIngress.Listeners[0].Services[0].Partition = ""
 
 			require.Equal(t, ingress1.Listeners, readIngress.Listeners)
+			require.Equal(t, ingress1.Listeners[0].Services[0].MaxConnections,
+				readIngress.Listeners[0].Services[0].MaxConnections)
+			require.Equal(t, ingress1.Listeners[0].Services[0].MaxConcurrentRequests,
+				readIngress.Listeners[0].Services[0].MaxConcurrentRequests)
+			require.Equal(t, ingress1.Listeners[0].Services[0].MaxPendingRequests,
+				readIngress.Listeners[0].Services[0].MaxPendingRequests)
 		case "bar":
 			readIngress, ok = entry.(*IngressGatewayConfigEntry)
 			require.True(t, ok)
 			require.Equal(t, ingress2.Kind, readIngress.Kind)
 			require.Equal(t, ingress2.Name, readIngress.Name)
+			require.Equal(t, *ingress2.Defaults.MaxConnections, *readIngress.Defaults.MaxConnections)
+			require.Equal(t, 4096, *readIngress.Defaults.MaxPendingRequests)
+			require.Equal(t, 0, *readIngress.Defaults.MaxConcurrentRequests)
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
 			// Set namespace and partition to blank so that OSS and ent can utilize the same tests

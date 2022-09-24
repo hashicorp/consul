@@ -141,6 +141,11 @@ func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigE
 			}
 		}
 	}
+	if s.Defaults != nil {
+		var x structs.IngressServiceConfig
+		IngressServiceConfigToStructs(s.Defaults, &x)
+		t.Defaults = &x
+	}
 	t.Meta = s.Meta
 }
 func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressGateway) {
@@ -161,6 +166,11 @@ func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressG
 				s.Listeners[i] = &x
 			}
 		}
+	}
+	if t.Defaults != nil {
+		var x IngressServiceConfig
+		IngressServiceConfigFromStructs(t.Defaults, &x)
+		s.Defaults = &x
 	}
 	s.Meta = t.Meta
 }
@@ -227,6 +237,9 @@ func IngressServiceToStructs(s *IngressService, t *structs.IngressService) {
 		HTTPHeaderModifiersToStructs(s.ResponseHeaders, &x)
 		t.ResponseHeaders = &x
 	}
+	t.MaxConnections = s.MaxConnections
+	t.MaxPendingRequests = s.MaxPendingRequests
+	t.MaxConcurrentRequests = s.MaxConcurrentRequests
 	t.Meta = s.Meta
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
@@ -251,8 +264,27 @@ func IngressServiceFromStructs(t *structs.IngressService, s *IngressService) {
 		HTTPHeaderModifiersFromStructs(t.ResponseHeaders, &x)
 		s.ResponseHeaders = &x
 	}
+	s.MaxConnections = t.MaxConnections
+	s.MaxPendingRequests = t.MaxPendingRequests
+	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 	s.Meta = t.Meta
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func IngressServiceConfigToStructs(s *IngressServiceConfig, t *structs.IngressServiceConfig) {
+	if s == nil {
+		return
+	}
+	t.MaxConnections = s.MaxConnections
+	t.MaxPendingRequests = s.MaxPendingRequests
+	t.MaxConcurrentRequests = s.MaxConcurrentRequests
+}
+func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *IngressServiceConfig) {
+	if s == nil {
+		return
+	}
+	s.MaxConnections = t.MaxConnections
+	s.MaxPendingRequests = t.MaxPendingRequests
+	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
