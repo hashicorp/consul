@@ -632,6 +632,80 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				},
 			},
 		)
+	case "imported-services":
+		peerTrustBundles := TestPeerTrustBundles(t).Bundles
+		dbSN := structs.NewServiceName("db", nil)
+		altSN := structs.NewServiceName("alt", nil)
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: peeringTrustBundlesWatchID,
+				Result: &pbpeering.TrustBundleListByServiceResponse{
+					Bundles: peerTrustBundles,
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-a",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{altSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-b",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{dbSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-a:db",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								ID:       "test1",
+								Node:     "test1",
+								Address:  "10.40.1.1",
+								PeerName: "peer-a",
+							},
+							Service: structs.TestNodeServiceWithNameInPeer(t, "db", "peer-a"),
+						},
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								ID:       "test2",
+								Node:     "test2",
+								Address:  "10.40.1.2",
+								PeerName: "peer-a",
+							},
+							Service: structs.TestNodeServiceWithNameInPeer(t, "db", "peer-a"),
+						},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-b:alt",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								ID:       "test1",
+								Node:     "test1",
+								Address:  "10.40.2.1",
+								PeerName: "peer-b",
+							},
+							Service: structs.TestNodeServiceWithNameInPeer(t, "alt", "peer-b"),
+						},
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								ID:       "test2",
+								Node:     "test2",
+								Address:  "10.40.2.2",
+								PeerName: "peer-b",
+							},
+							Service: structs.TestNodeServiceWithNameInPeer(t, "alt", "peer-b"),
+						},
+					},
+				},
+			},
+		)
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{

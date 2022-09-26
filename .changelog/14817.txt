@@ -1,0 +1,3 @@
+```release-note:feature
+peering: Add mesh gateway local mode support for cluster peering.
+```

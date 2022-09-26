@@ -373,6 +373,19 @@ type configSnapshotMeshGateway struct {
 	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceName]structs.CheckServiceNodes
 
+	// PeeringServices is a map of peer name -> (map of
+	// service name -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of a service on a peer.
+	PeeringServices map[string]map[structs.ServiceName]structs.CheckServiceNodes
+
+	// WatchedPeeringServices is a map of peer name -> (map of service name ->
+	// cancel function) and is used to track watches on services within a peer.
+	WatchedPeeringServices map[string]map[structs.ServiceName]context.CancelFunc
+
+	// WatchedPeers is a map of peer name -> cancel functions. It is used to
+	// track watches on peers.
+	WatchedPeers map[string]context.CancelFunc
+
 	// ServiceResolvers is a map of service name to an associated
 	// service-resolver config entry for that service.
 	ServiceResolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
