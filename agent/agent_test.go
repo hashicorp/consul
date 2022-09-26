@@ -6089,8 +6089,8 @@ func TestAgent_scadaProvider(t *testing.T) {
 
 	// this listener is used when mocking out the scada provider
 	l, err := nettest.NewLocalListener("tcp")
-	defer l.Close()
 	require.NoError(t, err)
+	defer require.NoError(t, l.Close())
 
 	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
 	pvd.EXPECT().Start().Return(nil).Once()
