@@ -1069,12 +1069,6 @@ func rCodeFromError(err error) int {
 
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(cfg *dnsConfig, lookup nodeLookup, req, resp *dns.Msg) error {
-	// Only handle ANY, A, AAAA, and TXT type requests
-	qType := req.Question[0].Qtype
-	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
-		return nil
-	}
-
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
 		Datacenter: lookup.Datacenter,
@@ -1096,6 +1090,12 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, lookup nodeLookup, req, resp *dns
 		return errNameNotFound
 	}
 
+	// Only handle ANY, A, AAAA, and TXT type requests
+	qType := req.Question[0].Qtype
+	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
+		return errNoData
+	}
+
 	// Add the node record
 	n := out.NodeServices.Node
 
@@ -1114,6 +1114,10 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, lookup nodeLookup, req, resp *dns
 	if cfg.NodeMetaTXT || qType == dns.TypeTXT || qType == dns.TypeANY {
 		metas := d.generateMeta(q.Name, n, cfg.NodeTTL)
 		*metaTarget = append(*metaTarget, metas...)
+	}
+
+	if len(resp.Answer) == 0 {
+		return errNoData
 	}
 	return nil
 }
