@@ -37,7 +37,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/nettest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -6088,7 +6087,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 	pvd := scada.NewMockProvider(t)
 
 	// this listener is used when mocking out the scada provider
-	l, err := nettest.NewLocalListener("tcp")
+	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
 	require.NoError(t, err)
 	defer require.NoError(t, l.Close())
 
@@ -6111,9 +6110,7 @@ cloud {
 	defer a.Shutdown()
 	require.NoError(t, a.Start(t))
 
-	c, err := api.NewClient(&api.Config{Address: l.Addr().String()})
-	require.NoError(t, err)
-	_, err = c.Agent().Self()
+	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
 	require.NoError(t, err)
 }
 
