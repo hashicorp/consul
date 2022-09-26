@@ -15,7 +15,7 @@ func QueryOptionsFromContext(ctx context.Context) (structs.QueryOptions, error) 
 	options := structs.QueryOptions{}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return options, fmt.Errorf("could not get metadata from context")
+		return options, nil
 	}
 
 	m := map[string]string{}
