@@ -257,9 +257,8 @@ defaults that are inherited by all services.
   across Envoy worker threads. Consul service mesh Envoy integration supports the
   following `balance_inbound_connections` values:
 
-  - `""` - The default (empty) value. No connection balancing strategy will be used. 
-  - `exact_balance` - If set to this value, inbound connections to the service will
-    use the
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections. 
+  - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
 ### Proxy Upstream Config Options
