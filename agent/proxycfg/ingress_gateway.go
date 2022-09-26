@@ -201,7 +201,7 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 }
 
 func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
-	// Note that we DON'T test for TLS.Enabled because we need a leaf cert for the
+	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
 	// gateway even without TLS to use as a client cert.
 	if !snap.IngressGateway.GatewayConfigLoaded || !snap.IngressGateway.HostsSet {
 		return nil

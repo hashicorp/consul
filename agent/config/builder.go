@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -959,6 +960,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
+		Cloud:                                  b.cloudConfigVal(c.Cloud),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -2444,6 +2446,20 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 		}
 	}
 	return nil
+}
+
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
+	if v == nil {
+		return val
+	}
+
+	val.ResourceID = stringVal(v.ResourceID)
+	val.ClientID = stringVal(v.ClientID)
+	val.ClientSecret = stringVal(v.ClientSecret)
+	val.AuthURL = stringVal(v.AuthURL)
+	val.Hostname = stringVal(v.Hostname)
+
+	return val
 }
 
 // decodeBytes returns the encryption key decoded.
