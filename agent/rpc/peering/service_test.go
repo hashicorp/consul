@@ -818,6 +818,7 @@ func TestPeeringService_List(t *testing.T) {
 
 	expect := &pbpeering.PeeringListResponse{
 		Peerings: []*pbpeering.Peering{bar, foo},
+		Index:    15,
 	}
 	prototest.AssertDeepEqual(t, expect, resp)
 }
@@ -883,6 +884,7 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 			token: testTokenPeeringReadSecret,
 			expect: &pbpeering.PeeringListResponse{
 				Peerings: []*pbpeering.Peering{bar, foo},
+				Index:    15,
 			},
 		},
 	}

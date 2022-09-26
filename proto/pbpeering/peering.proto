@@ -254,6 +254,7 @@ message PeeringListRequest {
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
+  uint64 Index = 2;
 }
 
 message PeeringWriteRequest {
