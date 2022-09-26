@@ -38,6 +38,8 @@ const (
 	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
+
+	ConnectionExactBalance = "exact_balance"
 )
 
 var AllConfigEntryKinds = []string{
@@ -183,6 +185,10 @@ func (e *ServiceConfigEntry) Validate() error {
 	}
 
 	validationErr := validateConfigEntryMeta(e.Meta)
+
+	if !isValidConnectionBalance(e.BalanceInboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_inbound_connections: %v", e.BalanceInboundConnections))
+	}
 
 	// External endpoints are invalid with an existing service's upstream configuration
 	if e.UpstreamConfig != nil && e.Destination != nil {
@@ -925,6 +931,10 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		}
 	}
 
+	if !isValidConnectionBalance(cfg.BalanceOutboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_outbound_connections: %v", cfg.BalanceOutboundConnections))
+	}
+
 	return validationErr
 }
 
@@ -1229,4 +1239,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 
 type ConfigEntryDeleteResponse struct {
 	Deleted bool
+}
+
+func isValidConnectionBalance(s string) bool {
+	return s == "" || s == ConnectionExactBalance
 }

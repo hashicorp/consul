@@ -340,7 +340,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-                  "balance_inbound_connections" = "exact_balance"
+				  "balance_inbound_connections" = "exact_balance"
 				}
 				mesh_gateway {
 					mode = "remote"
@@ -359,7 +359,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-                  "balance_inbound_connections" = "exact_balance"
+				  "balance_inbound_connections" = "exact_balance"
 				}
 				MeshGateway {
 					Mode = "remote"
@@ -399,6 +399,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
 						{
@@ -441,6 +442,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
 						{
@@ -483,6 +485,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
@@ -2656,6 +2659,44 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: "Duplicate address",
+		},
+		"validate: invalid inbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:                      ServiceDefaults,
+				Name:                      "external",
+				Protocol:                  "http",
+				BalanceInboundConnections: "invalid",
+			},
+			validateErr: "invalid value for balance_inbound_connections",
+		},
+		"validate: invalid default outbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						BalanceOutboundConnections: "invalid",
+					},
+				},
+			},
+			validateErr: "invalid value for balance_outbound_connections",
+		},
+		"validate: invalid override outbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:                       "upstream",
+							BalanceOutboundConnections: "invalid",
+						},
+					},
+				},
+			},
+			validateErr: "invalid value for balance_outbound_connections",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
