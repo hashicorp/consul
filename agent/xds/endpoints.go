@@ -9,7 +9,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/golang/protobuf/proto"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -108,7 +108,6 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		clusterName := generatePeeredClusterName(uid, tbs)
 
 		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid)
-
 		if err != nil {
 			return nil, err
 		}
@@ -414,6 +413,25 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *pr
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
 	if err != nil {
 		return la, err
+	}
+
+	upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+	// If an upstream is configured with local mesh gw mode, we make a load assignment
+	// from the gateway endpoints instead of those of the upstreams.
+	if upstream != nil && upstream.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
+		if !ok {
+			// local GW is not ready; return early
+			return la, nil
+		}
+		la = makeLoadAssignment(
+			clusterName,
+			[]loadAssignmentEndpointGroup{
+				{Endpoints: localGw},
+			},
+			cfgSnap.Locality,
+		)
+		return la, nil
 	}
 
 	// Also skip peer instances with a hostname as their address. EDS

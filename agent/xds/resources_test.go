@@ -156,6 +156,10 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringTProxy,
 		},
+		{
+			name:   "local-mesh-gateway-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)

@@ -275,7 +275,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil
 			}
 			configuredPorts[svcConfig.Destination.Port] = struct{}{}
-			const name = "~http" //name used for the shared route name
+			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:  routeName,
@@ -2014,6 +2014,10 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 
 	if cfg.ConnectTimeoutMs == 0 {
 		cfg.ConnectTimeoutMs = 5000
+	}
+
+	if cfg.MeshGateway.Mode == "" && u != nil {
+		cfg.MeshGateway = u.MeshGateway
 	}
 
 	return cfg
