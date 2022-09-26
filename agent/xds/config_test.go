@@ -157,6 +157,17 @@ func TestParseProxyConfig(t *testing.T) {
 				Protocol:              "tcp",
 			},
 		},
+		{
+			name: "balance inbound connections override, string",
+			input: map[string]interface{}{
+				"balance_inbound_connections": "exact_balance",
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs:     5000,
+				Protocol:                  "tcp",
+				BalanceInboundConnections: "exact_balance",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

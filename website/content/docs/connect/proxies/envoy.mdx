@@ -254,6 +254,14 @@ defaults that are inherited by all services.
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
 
+- `balance_inbound_connections` - The strategy used for balancing inbound connections
+  across Envoy worker threads. Consul service mesh Envoy integration supports the
+  following `balance_inbound_connections` values:
+
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections. 
+  - `exact_balance` - Inbound connections to the service use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
 ### Proxy Upstream Config Options
 
 The following configuration items may be overridden directly in the
@@ -312,6 +320,14 @@ definition](/docs/connect/registration/service-registration) or
     removed from the load balancer.
   -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
     when an outlier status is detected through consecutive 5xx.
+
+- `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
+  across Envoy worker threads. Consul service mesh Envoy integration supports the
+  following `balance_outbound_connections` values:
+
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections. 
+  - `exact_balance` - Outbound connections from the upstream use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
 ### Gateway Options
 

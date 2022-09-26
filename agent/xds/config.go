@@ -68,6 +68,10 @@ type ProxyConfig struct {
 	// MaxInboundConnections is the maximum number of inbound connections to
 	// the proxy. If not set, the default is 0 (no limit).
 	MaxInboundConnections int `mapstructure:"max_inbound_connections"`
+
+	// BalanceInboundConnections indicates how the proxy should attempt to distribute
+	// connections across worker threads. Only used by envoy proxies.
+	BalanceInboundConnections string `json:",omitempty" alias:"balance_inbound_connections"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

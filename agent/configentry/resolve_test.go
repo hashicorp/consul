@@ -25,6 +25,26 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 		want *structs.ServiceConfigResponse
 	}{
 		{
+			name: "proxy with balanceinboundconnections",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							BalanceInboundConnections: "exact_balance",
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"balance_inbound_connections": "exact_balance",
+				},
+			},
+		},
+		{
 			name: "proxy with maxinboundsconnections",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
