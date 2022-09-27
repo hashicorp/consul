@@ -38,14 +38,14 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-login-bearer-token-path` - The path to a file containing the bearer token presented to the auth method.
 - `-login-datacenter` - The datacenter containing the auth method.
 - `-login-meta` - A set of key/value pairs to attach to the ACL token. Each pair is formatted as `<key>=<value>`. This flag may be passed multiple times.
-- `-login-namespace` <EnterpriseAlert /> - The Consul Enterprise namespace containing the auth method.
-- `-login-partition` <EnterpriseAlert /> - The Consul Enterprise partition containing the auth method.
+- `-login-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace containing the auth method.
+- `-login-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition containing the auth method.
 - `-proxy-service-id` - The proxy service instance's ID.
 - `-server-watch-disabled` - Prevent `consul-dataplane` from consuming the server update stream. Use this flag when Consul servers are behind a load balancer. Default is `false`.
-- `-service-namespace`  <EnterpriseAlert /> - The Consul Enterprise namespace in which the proxy service instance is registered.
+- `-service-namespace`  <EnterpriseAlert inline /> - The Consul Enterprise namespace in which the proxy service instance is registered.
 - `-service-node-id` - The ID of the Consul node to which the proxy service instance is registered.
 - `-service-node-name` - The name of the Consul node to which the proxy service instance is registered.
-- `-service-partition` <EnterpriseAlert /> - The Consul Enterprise partition in which the proxy service instance is registered.
+- `-service-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition in which the proxy service instance is registered.
 - `-static-token` - The ACL token used to authenticate requests to Consul servers when `-credential-type` is set to `"static"`.
 - `-telemetry-use-central-config` - Controls whether the proxy applies the central telemetry configuration. Default is `true`.
 - `-tls-cert` - The path to a client certificate file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server.
