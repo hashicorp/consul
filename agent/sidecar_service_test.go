@@ -234,15 +234,9 @@ func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 		wantErr           string
 	}{
 		{
-			name:      "port pre-specified",
-			serviceID: "web1",
-			wantPort:  2222,
-		},
-		{
 			name:      "use auto ports",
 			serviceID: "web1",
-			port:      1111,
-			wantPort:  1111,
+			wantPort:  2222,
 		},
 		{
 			name: "re-registering same sidecar with no port should pick same one",
