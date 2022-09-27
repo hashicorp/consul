@@ -176,7 +176,7 @@ The [Advanced Configuration](#advanced-configuration) section describes addition
 
 ### Bootstrap Consul on Windows VMs
 
-If you are running Consul on a Windows VM, the `consul connect envoy` command returns the following output:
+If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
 
 ```shell-session hideClipboard
 Directly running Envoy is only supported on linux and macOS since envoy itself doesn't build on other plataforms currently.
@@ -196,10 +196,10 @@ Then, open `bootstrap.json` and add your ACL token and log path to the file.
 To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
 
 ```shell-session
-envoy -c <C://path/to/bootstrap.json>
+envoy -c bootstrap.json
 ```
 
-~> **Tip**: The `bootstrap.json` file contains your ACL token. Because the file is no longer needed after bootstrapping is complete, delete it to protect your network.
+~> **Security Note**: The bootstrap JSON contains the ACL token and should be handled as a secret. Because this token authorizes the identity of any service it has `service:write` permissions for, it can be used to access upstream services.
 
 ## Dynamic Configuration
 
