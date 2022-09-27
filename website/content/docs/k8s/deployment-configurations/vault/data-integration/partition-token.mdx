@@ -7,7 +7,7 @@ description: >-
 
 # Storing the ACL Partition Token in Vault
 
-This topic describes how to configure the Consul Helm chart to use an ACL partition token stored in Vault.
+This topic describes how to configure the Consul Helm chart to use an ACL partition token stored in Vault when using [Admin Partitions](/docs/enterprise/admin-partitions) in Consul Enterprise.
 
 ## Overview
 Complete the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section to use an ACL partition token stored in Vault.
@@ -60,24 +60,24 @@ $ vault policy write partition-token-policy partition-token-policy.hcl
 Next, you will create Kubernetes auth roles for the Consul `server-acl-init` job:
 
 ```shell-session
-$ vault write auth/kubernetes/role/consul-server-acl-init \
+$ vault write auth/kubernetes/role/consul-partition-init \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
     policies=partition-token-policy \
     ttl=1h
 ```
 
-To find out the service account name of the Consul server,
+To find out the service account name of the `partition-init` job,
 you can run the following `helm template` command with your Consul on Kubernetes values file:
 
 ```shell-session
-$ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serviceaccount.yaml hashicorp/consul
+$ helm template --release-name ${RELEASE_NAME} -s templates/partition-init-serviceaccount.yaml hashicorp/consul
 ```
 
 ## Update Consul on Kubernetes Helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the  ACL partition token key in Vault:
+use the  ACL partition token key in Vault and the service account for the Partitions role.
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -87,6 +87,7 @@ global:
     vault:
       enabled: true
       manageSystemACLsRole: consul-server-acl-init
+      adminPartitionsRole: consul-partition-init
   acls:
     partitionToken:
       secretName: secret/data/consul/partition-token
