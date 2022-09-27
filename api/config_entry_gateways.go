@@ -41,9 +41,9 @@ type IngressGatewayConfigEntry struct {
 }
 
 type IngressServiceConfig struct {
-	MaxConnections        *int
-	MaxPendingRequests    *int
-	MaxConcurrentRequests *int
+	MaxConnections        *uint32
+	MaxPendingRequests    *uint32
+	MaxConcurrentRequests *uint32
 }
 
 type GatewayTLSConfig struct {
@@ -134,9 +134,9 @@ type IngressService struct {
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 
-	MaxConnections        *int `json:",omitempty" alias:"max_connections"`
-	MaxPendingRequests    *int `json:",omitempty" alias:"max_pending_requests"`
-	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
+	MaxConnections        *uint32 `json:",omitempty" alias:"max_connections"`
+	MaxPendingRequests    *uint32 `json:",omitempty" alias:"max_pending_requests"`
+	MaxConcurrentRequests *uint32 `json:",omitempty" alias:"max_concurrent_requests"`
 }
 
 func (i *IngressGatewayConfigEntry) GetKind() string            { return i.Kind }
