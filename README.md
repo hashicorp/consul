@@ -20,7 +20,7 @@ Consul provides several key features:
 * **Service Mesh** - Consul Service Mesh enables secure service-to-service
   communication with automatic TLS encryption and identity-based authorization. Applications
   can use sidecar proxies in a service mesh configuration to establish TLS
-  connections for inbound and outbound connections utilizing Transparent Proxy.
+  connections for inbound and outbound connections with Transparent Proxy.
 
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
