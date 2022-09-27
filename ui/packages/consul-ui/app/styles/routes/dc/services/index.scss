@@ -16,6 +16,21 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: var(--typo-weight-bold);
 }
+html[data-route^='dc.services.show'] .app-view > header .title, html[data-route^='dc.services.instance'] .app-view > header .title {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+html[data-route^='dc.services.show'] .app-view > header .title > h1, html[data-route^='dc.services.instance'] .app-view > header .title > h1 {
+  flex-basis: 100%;
+}
+html[data-route^='dc.services.show'] .app-view > header .title > :not(:first-child), html[data-route^='dc.services.instance'] .app-view > header .title > :not(:first-child) {
+  margin-bottom: 20.5px;
+  margin-top: 7.5px;
+}
+html[data-route^='dc.services.show'] .app-view > header .actions, html[data-route^='dc.services.instance'] .app-view > header .actions {
+  display: block;
+  margin-left: unset;
+}
 html[data-route^='dc.services.instance'] .tab-nav {
   border-top: var(--decor-border-100);
 }
