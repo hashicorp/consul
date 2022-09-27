@@ -224,6 +224,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {},
 						},
+						WatchedLocalGWEndpoints: watch.NewMap[string, structs.CheckServiceNodes](),
 						UpstreamConfig: map[UpstreamID]*structs.Upstream{
 							NewUpstreamID(&upstreams[0]): &upstreams[0],
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
@@ -287,6 +288,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						WatchedGatewayEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {},
 						},
+						WatchedLocalGWEndpoints: watch.NewMap[string, structs.CheckServiceNodes](),
 						UpstreamConfig: map[UpstreamID]*structs.Upstream{
 							NewUpstreamID(&upstreams[0]): &upstreams[0],
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
