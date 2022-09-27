@@ -79,12 +79,12 @@ you can run the following `helm template` commands with your Consul on Kubernete
 
 - Generate Consul server service account name
   ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul
+  $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul -f values.yaml
   ```
 
 - Generate Consul client service account name
   ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/client-serviceaccount.yaml hashicorp/consul
+  $ helm template --release-name ${RELEASE_NAME} -s templates/client-serviceaccount.yaml hashicorp/consul -f values.yaml
   ```
 
 ## Update Consul on Kubernetes Helm chart.
