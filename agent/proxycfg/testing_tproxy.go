@@ -456,27 +456,23 @@ func TestConfigSnapshotTransparentProxyResolverRedirectUpstream(t testing.T) *Co
 		googleUID   = NewUpstreamIDFromServiceName(google)
 		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
-	t.Log(dbUID, dbChain)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
 		ns.Proxy.Upstreams[0].DestinationName = "db-redir"
 	}, []UpdateEvent{
 		{
-			CorrelationID: intentionUpstreamsID,
-			Result: &structs.IndexedServiceList{
-				Services: structs.ServiceList{
-					// In transparent proxy mode, watches for
-					// upstreams in the local DC are handled by the
-					// IntentionUpstreams watch!
-					google,
-				},
-			},
-		},
-		{
 			CorrelationID: "discovery-chain:" + dbUID.String(),
 			Result: &structs.DiscoveryChainResponse{
 				Chain: dbChain,
+			},
+		},
+		{
+			CorrelationID: intentionUpstreamsID,
+			Result: &structs.IndexedServiceList{
+				Services: structs.ServiceList{
+					google,
+				},
 			},
 		},
 		{
