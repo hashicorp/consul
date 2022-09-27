@@ -1,0 +1,59 @@
+---
+layout: docs
+page_title: Simplified Service Mesh with Consul Dataplane
+description: >-
+  
+---
+
+# Simplified Service Mesh with Consul Dataplane
+
+~> **Consul Dataplane is currently in beta:** Functionality associated with Consul Dataplane is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.
+
+This topic provides an overview of Consul Dataplane, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers.
+
+## What is Consul Dataplane?
+
+In standard deployments, Consul uses a control plane that contains both *server agents* and *client agents*. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes already include components called *kubelets* that support health checking and service location functions typically provided by the client agent.
+
+Consul Dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every pod. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in Kubernetes deployments is no longer an issue.
+
+## Benefits
+
+**Fewer networking requirements**: Without client agents, Consul doesn’t need to ensure bidirectional network connectivity across multiple protocols to enable gossip communication. Instead, it requires a single gRPC connection to the Consul servers, which significantly simplifies requirements for the operator.
+
+**Simplified set up**: Because there are no client agents to engage in gossip, you do not have to generate and distribute a gossip encryption key to agents during the initial bootstrapping process. Securing agent communication also becomes simpler, with fewer tokens to track, distribute, and rotate.
+
+**Additional environment and runtime support**: Current Consul on Kubernetes deployments require using `hostPorts` and `DaemonSets` for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported. As a result, Consul Dataplane supports AWS Fargate and GKE Autopilot, as well as runtimes that mix Kubernetes and VM deployments.
+
+**Easier upgrades**: With Consul Dataplane, updating Consul to a new version no longer requires upgrading client agents. Consul Dataplane also has better compatibility across Consul server versions, so the process to upgrade Consul servers becomes easier.
+
+## Get started
+
+To get started with Consul Dataplane, use the following reference resources:
+
+- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to [the `consul-dataplane` CLI reference](/consul/commands/consul-dataplane).
+- For Helm chart information, refer to [the Helm Chart reference](/consul/docs/k8s/helm).
+- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/k8s/compatibility).
+
+## Beta release features
+
+The beta release of Consul Dataplane supports the following features:
+
+- Single and multi-cluster installations, including those with WAN federation, cluster peering, and admin partitions are supported.
+- Ingress, terminating, and mesh gateways are supported.
+- Running Consul service mesh in AWS Fargate and GKE Autopilot is supported.
+- xDS load balancing is supported.
+- Servers running in Kubernetes and servers external to Kubernetes are both supported.
+
+Integration with HCP Consul is being tested in an invitation-only closed beta. HCP Consul support for Dataplane will be available for all users in a future release.
+
+### Technical Constraints
+
+Be aware of the following limitations and recommendations for Consul Dataplane:
+
+- Metrics and telemetry are not currently available for services deployed with Dataplane.
+- Consul API Gateway is not currently supported.
+- Transparent proxies are not supported.
+- Secrets Discovery Service (SDS) is not supported.
+- If using EKS Fargate, we recommend that you use external Consul servers. 
+- Consul Dataplane is not supported on Windows.
