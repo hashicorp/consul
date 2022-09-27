@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Reuse connections for requests to /v1/internal/ui/metrics-proxy/
+```

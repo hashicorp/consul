@@ -1,0 +1,3 @@
+```release-note:bug
+ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed.
+```

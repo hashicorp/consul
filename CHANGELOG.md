@@ -1,3 +1,27 @@
+## 1.12.5 (September 20, 2022)
+
+SECURITY:
+
+* auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
+* connect: Added URI length checks to ConnectCA CSR requests. Prior to this change, it was possible for a malicious actor to designate multiple SAN URI values in a call to the `ConnectCA.Sign` endpoint. The endpoint now only allows for exactly one SAN URI to be specified. [[GH-14579](https://github.com/hashicorp/consul/issues/14579)]
+
+IMPROVEMENTS:
+
+* envoy: adds additional Envoy outlier ejection parameters to passive health check configurations. [[GH-14238](https://github.com/hashicorp/consul/issues/14238)]
+* metrics: add labels of segment, partition, network area, network (lan or wan) to serf and memberlist metrics [[GH-14161](https://github.com/hashicorp/consul/issues/14161)]
+* snapshot agent: **(Enterprise only)** Add support for path-based addressing when using s3 backend.
+* ui: Reuse connections for requests to /v1/internal/ui/metrics-proxy/ [[GH-14521](https://github.com/hashicorp/consul/issues/14521)]
+
+BUG FIXES:
+
+* ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
+* cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
+* connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* envoy: validate name before deleting proxy default configurations. [[GH-14290](https://github.com/hashicorp/consul/issues/14290)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
+* ui: Removed Overview page from HCP instalations [[GH-14606](https://github.com/hashicorp/consul/issues/14606)]
+
 ## 1.12.4 (August 11, 2022)
 
 BUG FIXES:

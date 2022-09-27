@@ -6,28 +6,27 @@ description: >-
 ---
 # Status
 
-The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
+The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/docs/nia/tasks#status-information).
 
-The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
+If CTS is configured [for high availability](/docs/nia/usage/run-ha), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information. 
 
-## Overall Status
+## Status for all tasks
 
-This endpoint currently returns the overall status information for all tasks.
+This endpoint returns the overall status information for all tasks.
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status` | `application/json` |
 
-### Request Parameters
-Currently no request parameters are offered for the overall status API.
+### Request parameters
 
-### Response Statuses
+No request parameters are available for this endpoint.
 
-| Status | Reason           |
-| ------ | ---------------- |
-| 200    | Successfully retrieved the status |
+### Response statuses
 
-### Response Fields
+- `200`: Successfully retrieved the status. 
+
+### Response fields
 
 | Name	| Type	 | Description        |
 | ----- | ------ | ------------------ |
@@ -65,7 +64,7 @@ Response:
 }
 ```
 
-## Task Status
+## Task status
 
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
@@ -79,7 +78,7 @@ Task health status value is determined by the success or failure of all stored [
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status/tasks/:task_name` | `application/json` |
 
-### Request Parameters
+### Request parameters
 
 | Name	   | Required | Type	 | Description        | Default |
 | -------- | -------- | ------ | ------------------ | ------- |
@@ -87,14 +86,12 @@ Task health status value is determined by the success or failure of all stored [
 |`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
 |`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
 
-### Response Statuses
+### Response statuses
 
-| Status | Reason           |
-| ------ | ---------------- |
-| 200  | Successfully retrieved the task status |
-| 404  | Task with the given name not found |
+- `200`: Successfully retrieved the task status 
+- `404`: Task with the given name not found 
 
-### Response Fields
+### Response fields
 
 The response is a JSON map of task name to a status information structure with the following fields.
 
@@ -126,7 +123,11 @@ Event represents the process of updating network infrastructure of a task. The d
 |`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Module configured for the task.
 |`config.providers` | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 
-### Example: All Task Statuses
+### Examples 
+
+The following examples call `status` endpoints to retrieve information about tasks. 
+
+#### All task statuses
 
 Request:
 ```shell-session
@@ -163,7 +164,7 @@ Response:
 }
 ```
 
-### Example: Individual Task Status with Events
+#### Individual task status with events
 
 Request:
 ```shell-session
@@ -223,5 +224,80 @@ Response:
       }
     ]
   }
+}
+```
+
+## Cluster status
+
+The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/docs/nia/usage/errors-ref) for information about CTS error messages. 
+
+| Method | Path              | Response format    |
+| ------ | ----------------- | ------------------ |
+| `GET`  | `/status/cluster` | `application/json` |
+
+### Request parameters
+
+Currently no request parameters are offered for the cluster status API.
+
+### Request statuses
+
+- `200`: Successfully retrieved the cluster status
+
+### Response fields
+
+The following table describes the responses that the `status/cluster` endpoint can send. 
+
+| Field | Type | Description |
+| --- | ---- | --- |
+| `cluster_name` | string | Identifies the name of the cluster. |
+| `members` | list[[member](#member-objects)] | Contains a list of [member objects](#member-objects). Each object in the `members` list represents a CTS instance. |
+
+#### Member objects
+
+The following table describes the fields available for objects in the `members` array.  
+
+| Field | Type | Description |
+| --- | ---- | --- |
+| `address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured on the leader instance. Refer to the [high availability instance configuration](/docs/nia/configuration#high-availability-instance) reference for additional information. |
+| `healthy` | boolean | Indicates the health of the service instance health. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
+| `id` | string | Indicates the service registration ID. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
+| `leader` | boolean | Identifies the cluster leader. |
+| `service_name` | string | Identifies the name of the service that the instance represents. The value is set by the `service_name` field in the [Service Registration](/docs/nia/configuration#service-registration) configuration.  |
+
+### Example
+
+The following command calls the `/status/cluster` endpoint:
+
+```shell-session
+$ curl –request GET http://localhost:8553/v1/status/cluster
+```
+
+The following example response shows three CTS instances. The cluster leader is `cts-02` and is advertising that its address is `cts-02.example.com`: 
+
+```json
+{
+  "cluster_name": "cluster-a",
+  "members": [
+    {
+      "address": "cts-02.example.com",
+      "healthy": true,
+      "id": "cts-02",
+      "leader": true,
+      "service_name": "consul-terraform-sync"
+    },
+    {
+      "healthy": true,
+      "id": "cts-03",
+      "leader": false,
+      "service_name": "consul-terraform-sync"
+    },
+    {
+      "healthy": true,
+      "id": "cts-01",
+      "leader": false,
+      "service_name": "consul-terraform-sync"
+    }
+  ],
+  "request_id": "e1bc2236-3d0e-5f5e-dc51-164a1cf6da88"
 }
 ```
