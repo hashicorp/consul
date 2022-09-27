@@ -300,6 +300,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 
 		seenUpstreams := make(map[UpstreamID]struct{})
+
 		for _, psn := range resp.Services {
 			uid := NewUpstreamIDFromPeeredServiceName(psn)
 
@@ -402,11 +403,16 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
 
+		// Contains the list of all implicit / explicit upstreams found.
 		seenUpstreams := make(map[UpstreamID]struct{})
+		// Contains only the implicit (intention-based) upstreams.
+		intentionUpstreams := make(map[UpstreamID]struct{})
+
 		for _, svc := range resp.Services {
 			uid := NewUpstreamIDFromServiceName(svc)
 
 			seenUpstreams[uid] = struct{}{}
+			intentionUpstreams[uid] = struct{}{}
 
 			cfgMap := make(map[string]interface{})
 			u, ok := snap.ConnectProxy.UpstreamConfig[uid]
@@ -456,7 +462,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", uid, err)
 			}
 		}
-		snap.ConnectProxy.IntentionUpstreams = seenUpstreams
+		snap.ConnectProxy.IntentionUpstreams = intentionUpstreams
+
+		for uid, upstream := range snap.ConnectProxy.UpstreamConfig {
+			// Prevent cleanup of discovery chains for explicit upstream definitions.
+			if !upstream.CentrallyConfigured {
+				seenUpstreams[uid] = struct{}{}
+			}
+		}
 
 		// Clean up data from services that were not in the update
 		for uid, targets := range snap.ConnectProxy.WatchedUpstreams {
