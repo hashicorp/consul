@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fixed a bug where transparent proxy does not correctly spawn listeners for upstreams to service-resolvers.
+```
