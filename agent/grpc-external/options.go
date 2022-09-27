@@ -23,7 +23,19 @@ func QueryOptionsFromContext(ctx context.Context) (structs.QueryOptions, error) 
 		m[k] = v[0]
 	}
 
-	err := mapstructure.Decode(m, &options)
+	config := &mapstructure.DecoderConfig{
+		Metadata:         nil,
+		Result:           &options,
+		WeaklyTypedInput: true,
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return structs.QueryOptions{}, err
+	}
+
+	err = decoder.Decode(m)
 	if err != nil {
 		return structs.QueryOptions{}, err
 	}

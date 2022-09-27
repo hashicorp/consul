@@ -3,6 +3,7 @@ package external
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,10 @@ import (
 func TestQueryOptionsFromContextRoundTrip(t *testing.T) {
 
 	expected := structs.QueryOptions{
-		Token: "123",
+		Token:         "123",
+		AllowStale:    true,
+		MinQueryIndex: uint64(10),
+		MaxAge:        1 * time.Hour,
 	}
 
 	ctx, err := ContextWithQueryOptions(context.Background(), expected)
