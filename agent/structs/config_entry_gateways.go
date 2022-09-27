@@ -40,9 +40,9 @@ type IngressGatewayConfigEntry struct {
 }
 
 type IngressServiceConfig struct {
-	MaxConnections        int32
-	MaxPendingRequests    int32
-	MaxConcurrentRequests int32
+	MaxConnections        uint32
+	MaxPendingRequests    uint32
+	MaxConcurrentRequests uint32
 }
 
 type IngressListener struct {
@@ -99,10 +99,9 @@ type IngressService struct {
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 
-	// MaxConnections is the max number of connections that is allowed to a service
-	MaxConnections        int32 `json:",omitempty" alias:"max_connections"`
-	MaxPendingRequests    int32 `json:",omitempty" alias:"max_pending_requests"`
-	MaxConcurrentRequests int32 `json:",omitempty" alias:"max_concurrent_requests"`
+	MaxConnections        uint32 `json:",omitempty" alias:"max_connections"`
+	MaxPendingRequests    uint32 `json:",omitempty" alias:"max_pending_requests"`
+	MaxConcurrentRequests uint32 `json:",omitempty" alias:"max_concurrent_requests"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

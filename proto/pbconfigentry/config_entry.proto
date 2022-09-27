@@ -237,9 +237,9 @@ message IngressGateway {
 // output=config_entry.gen.go
 // name=Structs
 message IngressServiceConfig {
-  int32 MaxConnections = 1;
-  int32 MaxPendingRequests = 2;
-  int32 MaxConcurrentRequests = 3;
+  uint32 MaxConnections = 1;
+  uint32 MaxPendingRequests = 2;
+  uint32 MaxConcurrentRequests = 3;
 }
 
 // mog annotation:
@@ -295,9 +295,9 @@ message IngressService {
   map<string, string> Meta = 6;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 7;
-  int32 MaxConnections = 8;
-  int32 MaxPendingRequests = 9;
-  int32 MaxConcurrentRequests = 10;
+  uint32 MaxConnections = 8;
+  uint32 MaxPendingRequests = 9;
+  uint32 MaxConcurrentRequests = 10;
 }
 
 // mog annotation:
