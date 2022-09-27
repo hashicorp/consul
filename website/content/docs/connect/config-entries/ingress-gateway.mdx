@@ -1056,14 +1056,16 @@ You can specify the following parameters to configure ingress gateway configurat
           type: 'int: 0',
           description: `The maximum number of connections a service instance
               will be allowed to establish against the given upstream. Use this to limit
-              HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
+              HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
         },
         {
           name: 'MaxPendingRequests',
           type: 'int: 0',
           description: `The maximum number of requests that will be queued
               while waiting for a connection to be established. For this configuration to
-              be respected, a L7 protocol must be defined in the \`protocol\` field.`,
+              be respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
         },
         {
           name: 'MaxConcurrentRequests',
@@ -1071,7 +1073,8 @@ You can specify the following parameters to configure ingress gateway configurat
           description: `The maximum number of concurrent requests that
               will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
               since HTTP/2 has many requests per connection. For this configuration to be
-              respected, a L7 protocol must be defined in the \`protocol\` field.`,
+              respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
         },
       ],
     },
@@ -1193,17 +1196,17 @@ You can specify the following parameters to configure ingress gateway configurat
             {
               name: 'MaxConnections',
               type: 'int: 0',
-              description: overrides for `Defaults` configuration,
+              description: overrides for the [`Defaults` field](#available-fields),
             },
             {
               name: 'MaxPendingRequests',
               type: 'int: 0',
-              description: overrides for `Defaults` configuration,
+              description: overrides for the [`Defaults` field](#available-fields),
             },
             {
               name: 'MaxConcurrentRequests',
               type: 'int: 0',
-              description:  overrides for `Defaults` configuration,
+              description: overrides for the [`Defaults` field](#available-fields),
             },
           ],
         },
