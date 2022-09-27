@@ -52,6 +52,7 @@ A few quick start guides are available on the Consul website:
 * **Minikube install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube
 * **Kind install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-kind
 * **Kubernetes install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide
+* **Deploy HCP Consul:** https://learn.hashicorp.com/tutorials/consul/hcp-gs-deploy 
 
 ## Documentation
 
