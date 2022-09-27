@@ -2786,7 +2786,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 	}
 
-	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	connectSrv, _, _, err := sidecarServiceFromNodeService(srv, "")
 	require.NoError(t, err)
 
 	// First persist the check
@@ -2959,9 +2959,22 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
-	requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
+	sidecarSvc := requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq-sidecar-proxy", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
+	}
+
+	// Verify default checks have been added
+	wantChecks := sidecarDefaultChecks(sidecarSvc.ID, sidecarSvc.Address, sidecarSvc.Proxy.LocalServiceAddress, sidecarSvc.Port)
+	gotChecks := a.State.ChecksForService(sidecarSvc.CompoundServiceID(), true)
+	gotChkNames := make(map[string]types.CheckID)
+	for _, check := range gotChecks {
+		requireCheckExists(t, a, check.CheckID)
+		gotChkNames[check.Name] = check.CheckID
+	}
+	for _, check := range wantChecks {
+		chkName := check.Name
+		require.NotNil(t, gotChkNames[chkName])
 	}
 
 	// Sanity check rabbitmq service should NOT have sidecar info in state since
