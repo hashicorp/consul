@@ -121,7 +121,7 @@ The registrator also requires the following IAM permissions to access the parame
 | Name | Description |
 | - | - |
 | `name` | Specifies the name name of the Lambda function associated with the Lambda registrator. The name is also used to construct the Identity and Access Management (IAM) role and policy names used by the Lambda function. |
-| `schedule_frequency_in_minutes` | Specifies the interval in minutes that EventBridge uses to trigger a full synchronization. Default is `10`. |
+| `sync_frequency_in_minutes` | Specifies the interval in minutes that EventBridge uses to trigger a full synchronization. Default is `10`. |
 | `timeout` | The maximum number of seconds Lambda registrator can run per invocation before timing out. |
 | `consul_http_addr` | Specifies the address of the Consul API client. |
 | `consul_datacenter` | Specifies the Consul datacenter to synchronize with AWS Lambda state data. By default, the Lambda registrator manages Lambda services for all Consul datacenters. When configured for a specific datacenter, Lambda registrator only manages Lambda services with a matching datacenter tag. Refer to [Supported tags](#supported-tags) for additional information. |
