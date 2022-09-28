@@ -204,7 +204,12 @@ func (s *Server) Register(srv *grpc.Server) {
 }
 
 func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
-	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
+	}
+
+	authz, err := s.ResolveToken(options.Token)
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

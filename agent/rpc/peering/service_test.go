@@ -217,7 +217,10 @@ func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err := client.GenerateToken(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.GenerateToken(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -491,7 +494,10 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err := client.Establish(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.Establish(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -626,7 +632,10 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.PeeringRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.PeeringRead(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -737,7 +746,10 @@ func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err = client.PeeringDelete(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.PeeringDelete(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -862,7 +874,10 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.PeeringList(external.ContextWithToken(ctx, tc.token), &pbpeering.PeeringListRequest{})
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{})
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -950,7 +965,10 @@ func TestPeeringService_TrustBundleRead_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.TrustBundleRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.TrustBundleRead(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -1283,7 +1301,10 @@ func TestPeeringService_TrustBundleListByService_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.TrustBundleListByService(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.TrustBundleListByService(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
