@@ -375,7 +375,7 @@ Next to the name of the peer, click **More** (three horizontal dots) and then **
 </Tab>
 </Tabs>
 
-## Traffic nanagement between peers
+## Traffic management between peers
 
 As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers. The following examples updates the [ServiceResolver config entry](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
