@@ -607,18 +607,6 @@ function docker_consul_for_proxy_bootstrap {
   docker.exe exec -i $CONTAINER_NAME bash.exe -c "$@"
 }
 
-function docker_wget {
-  local DC=$1
-  shift 1
-  docker.exe run --rm --network envoy-tests docker.mirror.hashicorp.services/windows/nanoserver:1809 curl "$@"
-}
-
-function docker_curl {
-  local DC=$1
-  shift 1
-  docker.exe run --rm --network envoy-tests --entrypoint curl.exe windows/consul:local "$@"
-}
-
 function docker_exec {
   if ! docker.exe exec -i "$@"
   then

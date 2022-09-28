@@ -81,7 +81,7 @@ function init_workdir {
   mkdir -p workdir/${CLUSTER}/{consul,consul-server,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
-  cp consul-windows-base-cfg/*.hcl workdir/${CLUSTER}/consul/
+  cp consul-base-cfg/*.hcl workdir/${CLUSTER}/consul/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${CLUSTER}/consul \;
