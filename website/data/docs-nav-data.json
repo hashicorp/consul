@@ -954,7 +954,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "k8s/dataplane/index"
+            "path": "k8s/dataplane"
           },
           {
             "title": "CLI Reference",
