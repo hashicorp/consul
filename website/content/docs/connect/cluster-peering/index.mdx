@@ -58,3 +58,5 @@ Not all features and functionality are available in the beta release. In particu
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
 - Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.
+- Cross-cluster traffic forwarding does not support `http` type services.
+- Cross-cluster mesh gateways are supported in `remote` mode only.
