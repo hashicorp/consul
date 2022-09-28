@@ -437,9 +437,9 @@ To recreate or reset the peering connection, you need to generate a new peering 
 
 ## Traffic management between peers
 
-As of Consul v1.14, you can use dynamic traffic management features to configure your service mesh so that services automatically failover and redirect between peers.
+As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers.
 
-To configure automatic service failovers and redirect, edit the `ServiceResolver` CRD so that traffic resolves to a backup service instance on a peer. The following example updates the `ServiceResolver` CRD in `cluster-02` so that Consul redirects traffic intended for the `backend` service to a backup instance in `cluster-01` when it detects multiple connection failures to the primary instance.
+To configure automatic service failovers and redirect, edit the `ServiceResolver` CRD so that traffic resolves to a backup service instance on a peer. The following example updates the `ServiceResolver` CRD in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in `cluster-02` when it detects multiple connection failures to the primary instance.
 
 <CodeBlockConfig filename="service-resolver.yaml" hideClipboard>
 
@@ -447,13 +447,13 @@ To configure automatic service failovers and redirect, edit the `ServiceResolver
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
 metadata:
-  name: backend
+  name: frontend
 spec:
   connectTimeout: 15s
   failover:
     '*':
       targets:
-        - peer: 'cluster-01'
+        - peer: 'cluster-02'
           service: 'backup'
           namespace: 'default'
 ```
