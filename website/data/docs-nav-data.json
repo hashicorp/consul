@@ -951,7 +951,16 @@
       },
       {
         "title": "Consul Dataplane",
-        "path": "k8s/dataplane"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/dataplane/index"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "k8s/dataplane/consul-dataplane"
+          }
+        ]
       },
       {
         "title": "Consul DNS",

@@ -253,10 +253,6 @@
     ]
   },
   {
-    "title": "consul-dataplane",
-    "path": "consul-dataplane"
-  },
-  {
     "title": "debug",
     "path": "debug"
   },
