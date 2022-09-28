@@ -134,7 +134,7 @@ commands:
       - run:
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile /tmp/coverage
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
             echo $PACKAGE_NAMES
@@ -154,14 +154,18 @@ commands:
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               ${GO_TEST_FLAGS-} \
-              -cover -coverprofile=coverage.txt
-
+              -cover -coverprofile=/tmp/coverage/test-coverage-$CIRCLE_NODE_INDEX || true
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
+      - run: ls /tmp/coverage
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - coverage
       - run: &rerun-fails-report
           name: "Re-run fails report"
           command: |
@@ -1036,6 +1040,61 @@ jobs:
     steps:
       - run: "echo ok"
 
+  show-coverage:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: collate coverage output into single file and convert to readable format
+          command: |
+            mkdir -p /tmp/output
+            echo "mode: set" > cov.txt
+            for f in /tmp/coverage/*; do tail -n +2 $f >> cov.txt; done
+            go tool cover -func=cov.txt -o /tmp/output/coverage_by_function.txt
+      - store_artifacts:
+          path: /tmp/output
+      - run:
+          name: get diff of test coverage from changes
+          command: |
+            git checkout skpratt/temp-debug .github/cover.out
+            echo "mode: set" > diff_cov.txt
+            comm -13 .github/go_test_coverage.txt cov.txt >> diff_cov.txt
+            go tool cover -html=comm_cov.out -o diff_coverage_heatmap.html
+      - run:
+          name: post results to GitHub PR
+          command: |
+            sudo apt-get install jq
+
+            pr_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/consul/pulls?head=hashicorp:$CIRCLE_BRANCH&state=open" \
+            -u $GH_USER:$GH_TOKEN)
+
+            if [ $(echo $pr_response | jq length) -eq 0 ]; then
+              echo "No PR found to update"
+            else
+              pr_comment_url=$(echo $pr_response | jq -r ".[]._links.comments.href")
+            fi
+            
+            new_cov_percent=$(tail -1 /tmp/output/coverage_by_function.txt | awk -F' ' '{print $NF}')
+            main_go_test_cov_percent=$(tail -1 .github/go_test_coverage.txt | awk -F' ' '{print $NF}')
+
+            artifacts=$(curl -X GET "https://circleci.com/api/v2/project/github/hashicorp/consul/$CIRCLE_BUILD_NUM/artifacts" \
+            -H "Accept: application/json" \
+            -u "$CIRCLE_API_TOKEN:") 
+            
+            heatmap_url=$(echo $artifacts | jq -r '.items|.[]|select(.path | endswith("heatmap.html"))|.url')
+            
+            message="All unit tests passed! Your changes bring test coverage to $cov_percent, from $main_go_test_cov_percent. [See coverage delta for your changes]($heatmap_url)"
+            
+            curl --location --request POST "$pr_comment_url" \
+            -u hc-github-team-consul-core:$HC_GITHUB_TEAM_CONSUL_CORE_GITHUB_TOKEN \
+            --header 'Content-Type: application/json' \
+            --data-raw '{
+             "body": "'"$message"'"
+            }'
+
 workflows:
   version: 2
   # verify-ci is a no-op workflow that must run on every PR. It is used in a
@@ -1089,6 +1148,9 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - show-coverage:
+          requires:
+            - go-test
       - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
