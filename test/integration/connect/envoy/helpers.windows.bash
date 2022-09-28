@@ -358,10 +358,10 @@ function snapshot_envoy_admin {
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
 
   mkdir -p "${OUTDIR}"
-  docker_wget "$DC" -s "http://${HOSTPORT}/config_dump" > "${OUTDIR}/config_dump.json"
-  docker_wget "$DC" -s "http://${HOSTPORT}/clusters?format=json" > "${OUTDIR}/clusters.json"
-  docker_wget "$DC" -s "http://${HOSTPORT}/stats" > "${OUTDIR}/stats.txt"
-  docker_wget "$DC" -s "http://${HOSTPORT}/stats/prometheus"  > "${OUTDIR}/stats_prometheus.txt"
+  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/config_dump" > "${OUTDIR}/config_dump.json"
+  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/clusters?format=json" > "${OUTDIR}/clusters.json"
+  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/stats" > "${OUTDIR}/stats.txt"
+  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/stats/prometheus"  > "${OUTDIR}/stats_prometheus.txt"
 }
 
 function reset_envoy_metrics {
@@ -830,7 +830,7 @@ function wait_for_namespace {
   local NS="${1}"
   local DC=${2:-primary}
   get_consul_hostname $DC
-  retry_default docker_curl "$DC" -sLf "http://${CONSUL_HOSTNAME}:8500/v1/namespace/${NS}" >/dev/null
+  retry_default docker_consul_exec "$DC" bash -c "curl -sLf http://${CONSUL_HOSTNAME}:8500/v1/namespace/${NS} >/dev/null"
 }
 
 function wait_for_config_entry {
