@@ -13,17 +13,18 @@ You can create peering connections between two or more independent clusters so t
 
 ## Overview
 
-Cluster peering allows Consul clusters in different datacenters to communicate with each other. The cluster peering process consists of the following steps:
+Cluster peering is a process that allows Consul clusters to communicate with each other. The cluster peering process consists of the following steps:
+
 1. Create a peering token in one cluster.
-1. Use the peering token to establish peering with a second cluster.
-1. Export services between clusters.
-1. Create intentions to authorize services for peers.
+2. Use the peering token to establish peering with a second cluster.
+3. Export services between clusters.
+4. Create intentions to authorize services for peers.
 
 For detailed instructions on setting up cluster peering, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
 ### Differences between WAN federation and cluster peering
 
-WAN federation and cluster peering are different ways to connect clusters. The most important distinction is that WAN federation assumes clusters are owned by the same operators, so it maintains and replicates global states such as ACLs and configuration entries. As a result, WAN federation requires a _primary datacenter_ to serve as an authority for replicated data.
+WAN federation and cluster peering are different ways to connect Consul deployments. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
 Regardless of whether you connect your clusters through WAN federation or cluster peering, human and machine users can use either method to discover services in other clusters or dial them through the service mesh.
 
@@ -34,14 +35,16 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
 | Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
 | Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
+| Gossip protocol: Requires LAN gossip only          |    &#10060;    |    &#9989;      |
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
 | Shares key/value stores                            |    &#9989;     |    &#10060;     |
-| Uses gossip protocol                               |    &#9989;     |    &#10060;     |
+
 
 ## Beta release features and constraints
 
 The cluster peering beta includes the following features and functionality:
 
+- Consul datacenters that are already federated stay federated. You do not need to migrate WAN federated clusters to cluster peering.
 - Mesh gateways for _service to service traffic_ between clusters are available. For more information on configuring mesh gateways across peers, refer to [Service-to-service Traffic Across Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers).
 - You can generate peering tokens, establish, list, read, and delete peerings, and manage intentions for peering connections with both the API and the UI.
 - You can configure [transparent proxies](/docs/connect/transparent-proxy) for peered services.
@@ -52,8 +55,6 @@ Not all features and functionality are available in the beta release. In particu
 - Mesh gateways for _server to server traffic_ are not available.
 - Services with node, instance, and check definitions totaling more than 4MB cannot be exported to a peer.
 - Dynamic routing features such as splits, custom routes, and redirects cannot target services in a peered cluster.
-- Configuring service failover across peers is not supported for service mesh.
-- Consul datacenters that are already federated stay federated. You do not need to migrate WAN federated clusters to cluster peering.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
 - Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.

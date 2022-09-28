@@ -94,8 +94,7 @@ In one of the client agents in "cluster-02," use `peering_token.json` and the [`
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
 ```
 
-When you connect server agents through cluster peering, they peer their default partitions. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
-
+When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
 
 You can dial the `peering/establish` endpoint once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
@@ -123,9 +122,9 @@ If you need to re-establish a connection, you must generate a new peering token.
 <Tab heading="Consul UI">
 
 1. In the Consul UI for the datacenter associated with `cluster 02`, click **Peers** and then **Add peer connection**.
-1. Click **Establish peering**.
-1. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
-1. Click **Add peer**.
+2. Click **Establish peering**.
+3. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
+4. Click **Add peer**.
 
 </Tab>
 </Tabs>
