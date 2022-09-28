@@ -28,7 +28,7 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20220307172752-3602954411b4
 	github.com/hashicorp/consul/api v1.15.2
