@@ -630,7 +630,7 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
-	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
+	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		for _, u := range upstreams {
 			uid := proxycfg.NewUpstreamID(&u)
 
@@ -658,12 +658,57 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 			}
 
 			for _, c := range upstreamClusters {
+				s.configIngressUpstreamCluster(c, cfgSnap, listenerKey, &u)
 				clusters = append(clusters, c)
 			}
 			createdClusters[uid] = true
 		}
 	}
 	return clusters, nil
+}
+
+func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {
+	var threshold *envoy_cluster_v3.CircuitBreakers_Thresholds
+	setThresholdLimit := func(limitType string, limit int) {
+		if limit <= 0 {
+			return
+		}
+
+		if threshold == nil {
+			threshold = &envoy_cluster_v3.CircuitBreakers_Thresholds{}
+		}
+
+		switch limitType {
+		case "max_connections":
+			threshold.MaxConnections = makeUint32Value(limit)
+		case "max_pending_requests":
+			threshold.MaxPendingRequests = makeUint32Value(limit)
+		case "max_requests":
+			threshold.MaxRequests = makeUint32Value(limit)
+		}
+	}
+
+	setThresholdLimit("max_connections", int(cfgSnap.IngressGateway.Defaults.MaxConnections))
+	setThresholdLimit("max_pending_requests", int(cfgSnap.IngressGateway.Defaults.MaxPendingRequests))
+	setThresholdLimit("max_requests", int(cfgSnap.IngressGateway.Defaults.MaxConcurrentRequests))
+
+	// Adjust the limit for upstream service
+	// Lookup listener and service config details from ingress gateway
+	// definition.
+	var svc *structs.IngressService
+	if lCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]; ok {
+		svc = findIngressServiceMatchingUpstream(lCfg, *u)
+	}
+
+	if svc != nil {
+		setThresholdLimit("max_connections", int(svc.MaxConnections))
+		setThresholdLimit("max_pending_requests", int(svc.MaxPendingRequests))
+		setThresholdLimit("max_requests", int(svc.MaxConcurrentRequests))
+	}
+
+	if threshold != nil {
+		c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
+	}
 }
 
 func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {

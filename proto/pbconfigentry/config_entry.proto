@@ -228,6 +228,18 @@ message IngressGateway {
   GatewayTLSConfig TLS = 1;
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
+  IngressServiceConfig Defaults = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressServiceConfig
+// output=config_entry.gen.go
+// name=Structs
+message IngressServiceConfig {
+  uint32 MaxConnections = 1;
+  uint32 MaxPendingRequests = 2;
+  uint32 MaxConcurrentRequests = 3;
 }
 
 // mog annotation:
@@ -283,6 +295,9 @@ message IngressService {
   map<string, string> Meta = 6;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 7;
+  uint32 MaxConnections = 8;
+  uint32 MaxPendingRequests = 9;
+  uint32 MaxConcurrentRequests = 10;
 }
 
 // mog annotation:

@@ -98,6 +98,9 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 
 		snap.IngressGateway.GatewayConfigLoaded = true
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
+		if gatewayConf.Defaults != nil {
+			snap.IngressGateway.Defaults = *gatewayConf.Defaults
+		}
 
 		// Load each listener's config from the config entry so we don't have to
 		// pass listener config through "upstreams" types as that grows.
