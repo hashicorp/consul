@@ -116,7 +116,7 @@ type Backend interface {
 
 	// GetTLSMaterials returns the TLS materials for the dialer to dial the acceptor using TLS.
 	// It returns the server name to validate, and the CA certificate to validate with.
-	GetTLSMaterials() (string, []string, error)
+	GetTLSMaterials(generatingToken bool) (string, []string, error)
 
 	// GetServerAddresses returns the addresses used for establishing a peering connection.
 	// These may be server addresses or mesh gateway addresses if peering through mesh gateways.
@@ -221,6 +221,11 @@ func (s *Server) GenerateToken(
 		return nil, err
 	}
 
+	serverName, caPEMs, err := s.Backend.GetTLSMaterials(true)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		peering  *pbpeering.Peering
 		secretID string
@@ -286,11 +291,6 @@ func (s *Server) GenerateToken(
 		}
 		// write succeeded, break loop early
 		break
-	}
-
-	serverName, caPEMs, err := s.Backend.GetTLSMaterials()
-	if err != nil {
-		return nil, err
 	}
 
 	// ServerExternalAddresses must be formatted as addr:port.
@@ -484,12 +484,12 @@ func (s *Server) validatePeeringLocality(token *structs.PeeringToken, partition 
 
 	// If the token has the same server name as this cluster, but we can't find the peering
 	// in our store, it indicates a naming conflict.
-	serverName, _, err := s.Backend.GetTLSMaterials()
+	serverName, _, err := s.Backend.GetTLSMaterials(false)
 	if err != nil {
 		return fmt.Errorf("failed to fetch TLS materials: %w", err)
 	}
 
-	if serverName != "" && token.ServerName != "" && serverName == token.ServerName && peering == nil {
+	if serverName == token.ServerName && peering == nil {
 		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", serverName)
 	}
 

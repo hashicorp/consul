@@ -21,12 +21,14 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1463,10 +1465,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
+	ca := connect.TestCA(t, nil)
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc3"
 		c.NodeName = "acceptingServer.dc3"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()

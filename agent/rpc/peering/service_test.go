@@ -398,7 +398,7 @@ func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
 	id, err := uuid.GenerateUUID()
 	require.NoError(t, err, "could not generate uuid")
 
-	serverName, _, err := s.Server.GetPeeringBackend().GetTLSMaterials()
+	serverName, _, err := s.Server.GetPeeringBackend().GetTLSMaterials(true)
 	require.NoError(t, err)
 
 	peeringToken := structs.PeeringToken{

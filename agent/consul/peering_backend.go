@@ -57,26 +57,21 @@ func (b *PeeringBackend) GetLeaderAddress() string {
 
 // GetTLSMaterials returns the TLS materials for the dialer to dial the acceptor using TLS.
 // It returns the server name to validate, and the CA certificate to validate with.
-func (b *PeeringBackend) GetTLSMaterials() (string, []string, error) {
-	// Do not send TLS materials to the dialer if we to not have TLS configured for gRPC.
-	if b.srv.config.GRPCTLSPort <= 0 && !b.srv.tlsConfigurator.GRPCServerUseTLS() {
-		return "", nil, nil
-	}
-
-	// If the Connect CA is not in use we rely on the manually configured certs.
-	// Otherwise we rely on the internally managed server certificate.
-	if !b.srv.config.ConnectEnabled {
-		serverName := b.srv.tlsConfigurator.ServerSNI(b.srv.config.Datacenter, "")
-		caPems := b.srv.tlsConfigurator.GRPCManualCAPems()
-
-		return serverName, caPems, nil
+func (b *PeeringBackend) GetTLSMaterials(generatingToken bool) (string, []string, error) {
+	if generatingToken {
+		if !b.srv.config.ConnectEnabled {
+			return "", nil, fmt.Errorf("connect.enabled must be set to true in the server's configuration when generating peering tokens")
+		}
+		if b.srv.config.GRPCTLSPort <= 0 && !b.srv.tlsConfigurator.GRPCServerUseTLS() {
+			return "", nil, fmt.Errorf("TLS for gRPC must be enabled when generating peering tokens")
+		}
 	}
 
 	roots, err := b.srv.getCARoots(nil, b.srv.fsm.State())
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to fetch roots: %w", err)
 	}
-	if len(roots.Roots) == 0 {
+	if len(roots.Roots) == 0 || roots.TrustDomain == "" {
 		return "", nil, fmt.Errorf("CA has not finished initializing")
 	}
 

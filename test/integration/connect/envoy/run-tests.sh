@@ -104,6 +104,13 @@ function init_workdir {
     mv workdir/${CLUSTER}/consul/server.hcl workdir/${CLUSTER}/consul-server/server.hcl
   fi
 
+  if test -f "workdir/${CLUSTER}/consul/peering_server.hcl" -a $REQUIRE_PEERS = "1"
+  then
+    mv workdir/${CLUSTER}/consul/peering_server.hcl workdir/${CLUSTER}/consul-server/peering_server.hcl
+  else
+    rm workdir/${CLUSTER}/consul/peering_server.hcl
+  fi
+
   # copy the ca-certs for SDS so we can verify the right ones are served
   mkdir -p workdir/test-sds-server/certs
   cp test-sds-server/certs/ca-root.crt workdir/test-sds-server/certs/ca-root.crt
@@ -216,11 +223,6 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
-    server_grpc_port="-1"
-    if is_set $REQUIRE_PEERS; then
-      server_grpc_port="8502"
-    fi
-
     docker run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -231,7 +233,6 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
