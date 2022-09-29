@@ -413,6 +413,16 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_mesh_gateway_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_time"] = 120
+					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_interval"] = 60
+				}, nil)
+			},
+		},
+		{
 			name: "ingress-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
