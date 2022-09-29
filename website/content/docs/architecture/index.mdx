@@ -77,7 +77,7 @@ Each Consul datacenter maintains its own catalog of services and their health. B
 
 ### WAN federation
 
-WAN federation refers to designating a _primary datacenter_ that contains authoritative information about all datacenters, including service mesh configurations and access control list (ACL) resources. 
+WAN federation is an approach for connecting multiple Consul datacenters. It requires you to designate a _primary datacenter_ that contains authoritative information about all datacenters, including service mesh configurations and access control list (ACL) resources. 
 
 In this model, when a client agent requests a resource in a remote secondary datacenter, a local Consul server forwards the RPC request to a remote Consul server that has access to the resource. A remote server sends the results to the local server. If the remote datacenter is unavailable, its resources are also unavailable. By default, WAN-federated servers send cross-datacenter requests over TCP on port `8300`.
 
@@ -105,7 +105,7 @@ In the following diagram, the servers in each data center participate in a WAN g
 </Tab>
 </Tabs>
 
-### Peering clusters (beta)
+### Cluster peering (beta)
 
 You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
 
