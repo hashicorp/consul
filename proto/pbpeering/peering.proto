@@ -225,6 +225,12 @@ message PeeringTrustBundle {
   uint64 ModifyIndex = 7;
 }
 
+// PeeringServerAddresses contains the latest snapshot of all known
+// server addresses for a peer.
+message PeeringServerAddresses {
+  repeated string Addresses = 1;
+}
+
 // @consul-rpc-glue: LeaderReadTODO
 message PeeringReadRequest {
   string Name = 1;

@@ -19,6 +19,16 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
+const pkiTestPolicy = `
+path "sys/mounts/*"
+{
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}
+path "pki-intermediate/*"
+{
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}`
+
 func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
@@ -653,7 +663,7 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 			authMethodType: "userpass",
 			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
 				_, err := vaultClient.Logical().Write("/auth/userpass/users/test",
-					map[string]interface{}{"password": "foo", "policies": "admins"})
+					map[string]interface{}{"password": "foo", "policies": "pki"})
 				require.NoError(t, err)
 				return map[string]interface{}{
 					"Type": "userpass",
@@ -667,7 +677,8 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 		{
 			authMethodType: "approle",
 			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
-				_, err := vaultClient.Logical().Write("auth/approle/role/my-role", nil)
+				_, err := vaultClient.Logical().Write("auth/approle/role/my-role",
+					map[string]interface{}{"token_policies": "pki"})
 				require.NoError(t, err)
 				resp, err := vaultClient.Logical().Read("auth/approle/role/my-role/role-id")
 				require.NoError(t, err)
@@ -693,6 +704,9 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 			testVault := NewTestVaultServer(t)
 
 			err := testVault.Client().Sys().EnableAuthWithOptions(c.authMethodType, &vaultapi.EnableAuthOptions{Type: c.authMethodType})
+			require.NoError(t, err)
+
+			err = testVault.Client().Sys().PutPolicy("pki", pkiTestPolicy)
 			require.NoError(t, err)
 
 			authMethodConf := c.configureAuthMethodFunc(t, testVault.Client())
@@ -726,11 +740,18 @@ func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
 
 	testVault := NewTestVaultServer(t)
 
-	err := testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
+	err := testVault.Client().Sys().PutPolicy("pki", pkiTestPolicy)
+	require.NoError(t, err)
+
+	err = testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
 	require.NoError(t, err)
 
 	_, err = testVault.Client().Logical().Write("auth/approle/role/my-role",
-		map[string]interface{}{"token_ttl": "2s", "token_explicit_max_ttl": "2s"})
+		map[string]interface{}{
+			"token_ttl":              "2s",
+			"token_explicit_max_ttl": "2s",
+			"token_policies":         "pki",
+		})
 	require.NoError(t, err)
 	resp, err := testVault.Client().Logical().Read("auth/approle/role/my-role/role-id")
 	require.NoError(t, err)

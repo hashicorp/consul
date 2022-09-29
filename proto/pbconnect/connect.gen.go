@@ -93,6 +93,7 @@ func IssuedCertToStructsIssuedCert(s *IssuedCert, t *structs.IssuedCert) {
 	t.ServiceURI = s.ServiceURI
 	t.Agent = s.Agent
 	t.AgentURI = s.AgentURI
+	t.ServerURI = s.ServerURI
 	t.Kind = structs.ServiceKind(s.Kind)
 	t.KindURI = s.KindURI
 	t.ValidAfter = structs.TimeFromProto(s.ValidAfter)
@@ -111,6 +112,7 @@ func IssuedCertFromStructsIssuedCert(t *structs.IssuedCert, s *IssuedCert) {
 	s.ServiceURI = t.ServiceURI
 	s.Agent = t.Agent
 	s.AgentURI = t.AgentURI
+	s.ServerURI = t.ServerURI
 	s.Kind = string(t.Kind)
 	s.KindURI = t.KindURI
 	s.ValidAfter = structs.TimeToProto(t.ValidAfter)

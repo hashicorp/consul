@@ -51,6 +51,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
 		serverConfig.Ports.GRPC = 5301
+		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
 

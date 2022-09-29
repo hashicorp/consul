@@ -17,6 +17,8 @@ type MeshConfigEntry struct {
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`
 
+	Peering *PeeringMeshConfig `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -46,6 +48,16 @@ type MeshDirectionalTLSConfig struct {
 
 type MeshHTTPConfig struct {
 	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
+}
+
+// PeeringMeshConfig contains cluster-wide options pertaining to peering.
+type PeeringMeshConfig struct {
+	// PeerThroughMeshGateways determines whether peering traffic between
+	// control planes should flow through mesh gateways. If enabled,
+	// Consul servers will advertise mesh gateway addresses as their own.
+	// Additionally, mesh gateways will configure themselves to expose
+	// the local servers using a peering-specific SNI.
+	PeerThroughMeshGateways bool `alias:"peer_through_mesh_gateways"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {

@@ -656,6 +656,41 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: `Redirect.ServiceSubset "gone" is not a valid subset of "test"`,
 		},
 		{
+			name: "redirect with peer and subset",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer:          "cluster-01",
+					ServiceSubset: "gone",
+				},
+			},
+			validateErr: `Redirect.Peer cannot be set with Redirect.ServiceSubset`,
+		},
+		{
+			name: "redirect with peer and datacenter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer:       "cluster-01",
+					Datacenter: "dc2",
+				},
+			},
+			validateErr: `Redirect.Peer cannot be set with Redirect.Datacenter`,
+		},
+		{
+			name: "redirect with peer and datacenter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer: "cluster-01",
+				},
+			},
+			validateErr: `Redirect.Peer defined without Redirect.Service`,
+		},
+		{
 			name: "self redirect with valid subset",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
@@ -666,6 +701,17 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 				Subsets: map[string]ServiceResolverSubset{
 					"v1": {Filter: "Service.Meta.version == v1"},
+				},
+			},
+		},
+		{
+			name: "redirect to peer",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Service: "other",
+					Peer:    "cluster-01",
 				},
 			},
 		},

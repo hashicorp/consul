@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: ACL Rules Reference
+page_title: ACL Rules
 description: >-
-  This topic provides reference information for the types of access control level (ACL) rules you can create and how they affect access to datacenter resources.
+  Rules define read, write, and deny access controls for datacenter resources. Learn about these resources and how to assign rules to them, as well as their restrictions and API interactions.
 ---
 
-# Rules Reference
+# ACL Rules
 
 This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, see [Policies](/docs/security/acl/acl-policies).
 
@@ -338,7 +338,7 @@ A token with `write` access on a prefix also has `list` access. A token with `li
 #### Sentinel Integration <EnterpriseAlert inline />
 
 Consul Enterprise supports additional optional fields for key write policies for
-[Sentinel](https://docs.hashicorp.com/sentinel/consul/) integration.
+[Sentinel](https://docs.hashicorp.com/sentinel/consul) integration.
 
 ```hcl
 key "foo" {
@@ -586,7 +586,7 @@ These actions may required an ACL token to complete. Use the following methods t
   This allows a single token to be used during all check registration operations.
 * Provide an ACL token with `service` and `check` definitions at registration time.
   This allows for greater flexibility and enables the use of multiple tokens on the same agent.
-  Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
+  Refer to the [services](/docs/agent/services) and [checks](/docs/discovery/checks) documentation for examples.
   Tokens may also be passed to the [HTTP API](/api-docs) for operations that require them.
 
 ## Operator Rules
@@ -722,7 +722,7 @@ prepared query was created, the behavior changes and now the captured
 ACL Token set by the definer of the query is used when looking up a service.
 
 Capturing ACL Tokens is analogous to
-[PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
+[PostgreSQL's](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
 `SECURITY DEFINER` attribute which can be set on functions, and using the client's ACL
 Token is similar to the complementary `SECURITY INVOKER` attribute.
 

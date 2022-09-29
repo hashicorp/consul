@@ -2,12 +2,10 @@
 layout: docs
 page_title: Consul Architecture
 description: >-
-  Consul is a complex system that has many different moving parts. To help users
-  and developers of Consul form a mental model of how it works, this page
-  documents the system architecture.
+  Consul datacenters consist of clusters of server agents (control plane) and client agents deployed alongside service instances (dataplane). Learn how these components and their different communication methods make Consul possible.
 ---
 
-# Consul Architecture
+# Consul Internals Overview
 
 Consul is a complex system that has many different moving parts. To help
 users and developers of Consul form a mental model of how it works, this
@@ -17,7 +15,7 @@ page documents the system architecture.
 [glossary](/docs/install/glossary) of terms to help
 clarify what is being discussed.
 
-The architecture concepts in this document can be used with the [Reference Architecture guide](https://learn.hashicorp.com/tutorials/consul/reference-architecture?utm_source=consul.io&utm_medium=docs) when deploying Consul in production.
+The architecture concepts in this document can be used with the [Reference Architecture guide](https://learn.hashicorp.com/tutorials/consul/reference-architecture?in=consul/production-deploy#deployment-system-requirements) when deploying Consul in production.
 
 ## 10,000 foot view
 
@@ -27,7 +25,7 @@ From a 10,000 foot altitude the architecture of Consul looks like this:
 
 Let's break down this image and describe each piece. First of all, we can see
 that there are two datacenters, labeled "one" and "two". Consul has first
-class support for [multiple datacenters](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan) and
+class support for [multiple datacenters](https://learn.hashicorp.com/consul/security-networking/datacenters) and
 expects this to be the common case.
 
 Within each datacenter, we have a mixture of clients and servers. It is expected

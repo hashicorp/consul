@@ -153,6 +153,7 @@ type Config struct {
 	CheckUpdateInterval              *string             `mapstructure:"check_update_interval"`
 	Checks                           []CheckDefinition   `mapstructure:"checks"`
 	ClientAddr                       *string             `mapstructure:"client_addr"`
+	Cloud                            *CloudConfigRaw     `mapstructure:"cloud"`
 	ConfigEntries                    ConfigEntries       `mapstructure:"config_entries"`
 	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt"`
 	Connect                          Connect             `mapstructure:"connect"`
@@ -332,10 +333,11 @@ type Consul struct {
 }
 
 type Addresses struct {
-	DNS   *string `mapstructure:"dns"`
-	HTTP  *string `mapstructure:"http"`
-	HTTPS *string `mapstructure:"https"`
-	GRPC  *string `mapstructure:"grpc"`
+	DNS     *string `mapstructure:"dns"`
+	HTTP    *string `mapstructure:"http"`
+	HTTPS   *string `mapstructure:"https"`
+	GRPC    *string `mapstructure:"grpc"`
+	GRPCTLS *string `mapstructure:"grpc_tls"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -694,6 +696,7 @@ type Ports struct {
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
 	GRPC           *int `mapstructure:"grpc"`
+	GRPCTLS        *int `mapstructure:"grpc_tls"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
@@ -855,6 +858,14 @@ type RawUIMetricsProxyAddHeader struct {
 
 type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
+}
+
+type CloudConfigRaw struct {
+	ResourceID   *string `mapstructure:"resource_id"`
+	ClientID     *string `mapstructure:"client_id"`
+	ClientSecret *string `mapstructure:"client_secret"`
+	Hostname     *string `mapstructure:"hostname"`
+	AuthURL      *string `mapstructure:"auth_url"`
 }
 
 type TLSProtocolConfig struct {

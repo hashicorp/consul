@@ -78,7 +78,10 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		aclResolver := &MockACLResolver{}
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
 			Return(testutils.TestAuthorizerServiceRead(t, tc.registerReq.Service.ID), nil)
-		ctx := external.ContextWithToken(context.Background(), testToken)
+
+		options := structs.QueryOptions{Token: testToken}
+		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+		require.NoError(t, err)
 
 		server := NewServer(Config{
 			GetStore:    func() StateStore { return store },
@@ -154,11 +157,14 @@ func TestGetEnvoyBootstrapParams_Error(t *testing.T) {
 
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
 			Return(testutils.TestAuthorizerServiceRead(t, proxyServiceID), nil)
-		ctx := external.ContextWithToken(context.Background(), testToken)
+
+		options := structs.QueryOptions{Token: testToken}
+		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+		require.NoError(t, err)
 
 		store := testutils.TestStateStore(t, nil)
 		registerReq := testRegisterRequestProxy(t)
-		err := store.EnsureRegistration(1, registerReq)
+		err = store.EnsureRegistration(1, registerReq)
 		require.NoError(t, err)
 
 		server := NewServer(Config{
@@ -224,8 +230,12 @@ func TestGetEnvoyBootstrapParams_Unauthenticated(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(resolver.Result{}, acl.ErrNotFound)
-	ctx := external.ContextWithToken(context.Background(), testToken)
+
+	options := structs.QueryOptions{Token: testToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 	store := testutils.TestStateStore(t, nil)
+
 	server := NewServer(Config{
 		GetStore:    func() StateStore { return store },
 		Logger:      hclog.NewNullLogger(),
@@ -243,12 +253,16 @@ func TestGetEnvoyBootstrapParams_PermissionDenied(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerDenyAll(t), nil)
-	ctx := external.ContextWithToken(context.Background(), testToken)
+
+	options := structs.QueryOptions{Token: testToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
+
 	store := testutils.TestStateStore(t, nil)
 	registerReq := structs.TestRegisterRequestProxy(t)
 	proxyServiceID := "web-sidecar-proxy"
 	registerReq.Service.ID = proxyServiceID
-	err := store.EnsureRegistration(1, registerReq)
+	err = store.EnsureRegistration(1, registerReq)
 	require.NoError(t, err)
 
 	server := NewServer(Config{

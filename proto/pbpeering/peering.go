@@ -143,10 +143,10 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 }
 
 func (p *Peering) IsActive() bool {
-	if p != nil && p.State == PeeringState_TERMINATED {
+	if p == nil || p.State == PeeringState_TERMINATED {
 		return false
 	}
-	if p == nil || p.DeletedAt == nil {
+	if p.DeletedAt == nil {
 		return true
 	}
 

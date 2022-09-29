@@ -15,7 +15,7 @@ export const Collection = class Collection {
   }
 
   get ExternalSources() {
-    const items = this.items.reduce(function(prev, item) {
+    const items = this.items.reduce(function (prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
@@ -25,7 +25,7 @@ export const Collection = class Collection {
   // when and when not somewhere in the docs
   get Partitions() {
     // unique, non-empty values, alpha sort
-    return [...new Set(this.items.map(item => item.Partition))].sort();
+    return [...new Set(this.items.map((item) => item.Partition))].sort();
   }
 };
 export default class Service extends Model {

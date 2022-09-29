@@ -27,6 +27,10 @@ type clientACLResolverBackend struct {
 	*Client
 }
 
+func (c *clientACLResolverBackend) IsServerManagementToken(_ string) bool {
+	return false
+}
+
 func (c *clientACLResolverBackend) ACLDatacenter() string {
 	// For resolution running on clients servers within the current datacenter
 	// must be queried first to pick up local tokens.

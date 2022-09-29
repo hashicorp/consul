@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Application-Aware Intentions:** A new set of capabilities that extends Consul’s intentions model to support Layer 7 request information. Intentions now provide the ability for operators to construct policies which evaluate application-layer information such as HTTP Path, Headers, or Method – in addition to service identity – when authorizing HTTP-based (HTTP/1.1, HTTP/2, gRPC) service-to-service communication.
+- **Application-Aware Intentions:** A new set of capabilities that extends Consul's intentions model to support Layer 7 request information. Intentions now provide the ability for operators to construct policies which evaluate application-layer information such as HTTP Path, Headers, or Method – in addition to service identity – when authorizing HTTP-based (HTTP/1.1, HTTP/2, gRPC) service-to-service communication.
 
 - **Service Mesh Visualization:** This addition provides a new topology tab to the Consul UI which displays topology diagrams and key service mesh metrics like request, error rates, and timing metrics. These new features will assist developers and operators in verifying configuration and troubleshooting issues within the service mesh. The UI also supports deep linking into your external metrics dashboards.
 
@@ -17,7 +17,7 @@ description: >-
 
 - **Custom Resources for Kubernetes:** Consul now provides a Kubernetes-first experience through CRDs to allow practitioners to easily configure Consul service mesh via Kubernetes-style objects.
 
-- **Deploy Consul in OpenShift:** Enable installing Consul via Helm chart in OpenShift. We’ve now ensured that Consul Kubernetes runs on OpenShift securely by ensuring that Consul runs as non-root and also provided a set of SecurityContextConstraints to deploy Consul securely.
+- **Deploy Consul in OpenShift:** Enable installing Consul via Helm chart in OpenShift. We've now ensured that Consul Kubernetes runs on OpenShift securely by ensuring that Consul runs as non-root and also provided a set of SecurityContextConstraints to deploy Consul securely.
   - Installing Consul on OpenShift should now be as simple as running a Helm install with the `global.openshift.enabled` set to `true`.
 
 - **Active Health Checks for Consul on Kubernetes:** Consul service mesh now integrates with Kubernetes Readiness probes. This provides the ability to natively detect health status from Kubernetes via Readiness probe, and is then used for directing service mesh traffic.

@@ -4,7 +4,6 @@ import flat from 'flat';
 import { createMachine, interpret } from '@xstate/fsm';
 
 export default class StateService extends Service {
-
   stateCharts = {};
 
   @service('logger') logger;
@@ -19,9 +18,9 @@ export default class StateService extends Service {
   }
 
   addGuards(chart, options) {
-    this.guards(chart).forEach(function([path, name]) {
+    this.guards(chart).forEach(function ([path, name]) {
       // xstate/fsm has no guard lookup
-      set(chart, path, function() {
+      set(chart, path, function () {
         return !!options.onGuard(...[name, ...arguments]);
       });
     });
@@ -40,11 +39,11 @@ export default class StateService extends Service {
     // xstate/fsm doesn't seem to interpret toplevel/global events
     // artificially add them here instead
     if (typeof chart.on !== 'undefined') {
-      Object.values(chart.states).forEach(function(state) {
+      Object.values(chart.states).forEach(function (state) {
         if (typeof state.on === 'undefined') {
           state.on = chart.on;
         } else {
-          Object.keys(chart.on).forEach(function(key) {
+          Object.keys(chart.on).forEach(function (key) {
             if (typeof state.on[key] === 'undefined') {
               state.on[key] = chart.on[key];
             }
@@ -61,7 +60,7 @@ export default class StateService extends Service {
       return false;
     }
     const values = Array.isArray(matches) ? matches : [matches];
-    return values.some(item => {
+    return values.some((item) => {
       return state.matches(item);
     });
   }
@@ -76,7 +75,7 @@ export default class StateService extends Service {
     chart = this.prepareChart(chart);
     const service = interpret(this.machine(chart, options));
     // returns subscription
-    service.subscribe(state => {
+    service.subscribe((state) => {
       if (state.changed) {
         this.log(chart, state);
         options.onTransition(state);

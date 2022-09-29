@@ -61,7 +61,7 @@ export default class ServiceInstanceSerializer extends Serializer {
   }
 
   respondForQuery(respond, query) {
-    const body = super.respondForQuery(cb => {
+    const body = super.respondForQuery((cb) => {
       return respond((headers, body) => {
         if (body.length === 0) {
           const e = new Error();
@@ -73,7 +73,7 @@ export default class ServiceInstanceSerializer extends Serializer {
           ];
           throw e;
         }
-        body.forEach(item => {
+        body.forEach((item) => {
           item.Datacenter = query.dc;
           item.Namespace = query.ns || 'default';
           item.Partition = query.partition || 'default';
@@ -86,15 +86,15 @@ export default class ServiceInstanceSerializer extends Serializer {
   }
 
   respondForQueryRecord(respond, query) {
-    return super.respondForQueryRecord(cb => {
+    return super.respondForQueryRecord((cb) => {
       return respond((headers, body) => {
-        body.forEach(item => {
+        body.forEach((item) => {
           item.Datacenter = query.dc;
           item.Namespace = query.ns || 'default';
           item.Partition = query.partition || 'default';
           item.uid = this.extractUid(item);
         });
-        body = body.find(function(item) {
+        body = body.find(function (item) {
           return item.Node.Node === query.node && item.Service.ID === query.serviceId;
         });
         if (typeof body === 'undefined') {

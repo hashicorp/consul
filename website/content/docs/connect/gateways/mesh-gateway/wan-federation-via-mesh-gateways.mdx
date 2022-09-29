@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: WAN Federation via Mesh Gateways
-description: |-
-  WAN federation via mesh gateways allows for Consul servers in different datacenters to be federated exclusively through mesh gateways.
+page_title: Mesh Gateways for WAN Federation
+description: >-
+  You can use mesh gateways to simplify the networking requirements for WAN federated Consul datacenters. Mesh gateways reduce cross-datacenter connection paths, ports, and communication protocols.
 ---
 
-# WAN Federation via Mesh Gateways
+# Mesh Gateways for WAN Federation
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
@@ -15,7 +15,7 @@ WAN federation via mesh gateways allows for Consul servers in different datacent
 to be federated exclusively through mesh gateways.
 
 When setting up a
-[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/consul/security-networking/datacenters)
 Consul cluster, operators must ensure that all Consul servers in every
 datacenter must be directly connectable over their WAN-advertised network
 address from each other.
@@ -102,7 +102,7 @@ each datacenter otherwise the WAN will become only partly connected.
 
 There are a few necessary additional pieces of configuration beyond those
 required for standing up a
-[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/consul/security-networking/datacenters)
 Consul cluster.
 
 Consul servers in the _primary_ datacenter should add this snippet to the
@@ -128,7 +128,7 @@ connect {
 
 The [`start_join_wan`](/docs/agent/config/config-files#start_join_wan) or
 [`retry_join_wan`](/docs/agent/config/config-files#retry_join_wan) are
-only used for the [traditional federation process](/docs/k8s/installation/multi-cluster#traditional-wan-federation).
+only used for the [traditional federation process](/docs/k8s/deployment-configurations/multi-cluster#traditional-wan-federation).
 They must be omitted when federating Consul servers via gateways.
 
 -> The `primary_gateways` configuration can also use `go-discover` syntax just

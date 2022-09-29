@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Consul Agent Configuration Reference
+page_title: Agents - Configuration File Reference
 description: >-
-  This topic describes the supported parameters for configuring Consul agents in HCL and JSON configuration files.
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
 ---
 
-# Configuration Files ((#configuration_files))
+# Agents Configuration File Reference ((#configuration_files))
 
 You can create one or more files to configure the Consul agent on startup. We recommend
 grouping similar configurations into separate files, such as ACL parameters, to make it
@@ -21,8 +21,8 @@ specified within it.
 Configuration files are used for more than just setting up the agent.
 They are also used to provide check and service definitions that
 announce the availability of system servers to the rest of the cluster.
-These definitions are documented separately under [check configuration](/docs/agent/checks) and
-[service configuration](/docs/agent/services) respectively. Service and check
+These definitions are documented separately under [check configuration](/docs/discovery/checks) and
+[service configuration](/docs/discovery/services) respectively. Service and check
 definitions support being updated during a reload.
 
 <CodeTabs heading="Example Configuration File">
@@ -604,10 +604,16 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     (disabled). **We recommend using `8501`** for `https` by convention as some tooling
     will work automatically with this.
   - `grpc` ((#grpc_port)) - The gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `grpc` by convention as some tooling will work
-    automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
-    proxies.
+    **We recommend using `8502` for `grpc`** as your conventional gRPC port number, as it allows some
+    tools to work automatically. This parameter is set to `8502` by default when the agent runs
+    in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
+    backwards-compatibility, but TLS support is deprecated and will be removed in a future
+    release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
+  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502` for `grpc_tls`** as your conventional gRPC port number, as it allows some 
+    tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
+    can be configured at the same time, but they may not utilize the same port number. If both `grpc` and
+    `grpc_tls` are defined, then `grpc` will always be plaintext. This field was added in Consul 1.14.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](/docs/agent/config/cli-flags#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.
@@ -1057,6 +1063,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `enabled` ((#connect_enabled)) (Defaults to `false`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
     in order for Connect to function properly.
+    Will be set to `true` automatically if `auto_config.enabled` or `auto_encrypt.allow_tls` is `true`.
 
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
     through mesh gateways. This was added in Consul 1.8.0.
@@ -1338,13 +1345,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     equivalent to "no max age". To get a fresh value from the cache use a very small value
     of `1ns` instead of 0.
 
-  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in
-    Consul 1.11. Use the [canonical DNS format](/docs/discovery/dns#namespaced-partitioned-services) instead.** -
-    When set to true, in a DNS query for a service, the label between the domain
-    and the `service` label will be treated as a namespace name instead of a datacenter.
-    When set to false, the default, the behavior will be the same as non-Enterprise
-    versions and will assume the label is the datacenter. See: [this section](/docs/discovery/dns#namespaced-services)
-    for more details.
+  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in Consul 1.11.
+    Use the [canonical DNS format for enterprise service lookups](/docs/discovery/dns#service-lookups-for-consul-enterprise) instead.** -
+    When set to `true`, in a DNS query for a service, a single label between the domain
+    and the `service` label is treated as a namespace name instead of a datacenter.
+    When set to `false`, the default, the behavior is the same as non-Enterprise
+    versions and treats the single label as the datacenter.
 
 - `domain` Equivalent to the [`-domain` command-line flag](/docs/agent/config/cli-flags#_domain).
 
@@ -2003,7 +2009,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       interface.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
-    the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
+    the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

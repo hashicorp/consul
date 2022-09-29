@@ -189,7 +189,7 @@ In the `-config` option, the following fields are required:
 
 The following binding rule is used to associate a service identity with each token created by
 successful login to this instance of the auth method. The service identity name is taken from the
-`consul.hashicorp.com.service-name` tag from the authenticaing IAM role identity.
+`consul.hashicorp.com.service-name` tag from the authenticating IAM role identity.
 
 #### Create Binding Rule
 
@@ -271,7 +271,7 @@ consul acl auth-method create \
 | -------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-partition`                     | string | The Consul Enterprise admin partition in which the auth method is created.                                                                                                                                            |
 | `-namespace-rule-selector`       | string | When this expression evaluates to true during login, the `-namespace-rule-bind-namespace` is applied. As shown, it evaluates to true when the `consul.hashicorp.com.namespace` tag is non-empty on the task IAM role. |
-| `-namespace-rule-bind-namespace` | string | This expression is evaluted to determine the namespace where the token is created during login. As shown, it uses the namespace from the `consul.hashicorp.com.namespace` tag on the task IAM role.                   |
+| `-namespace-rule-bind-namespace` | string | This expression is evaluated to determine the namespace where the token is created during login. As shown, it uses the namespace from the `consul.hashicorp.com.namespace` tag on the task IAM role.                   |
 | `IAMEntityTags`                  | list   | Must include `consul.hashicorp.com.namespace` to enable use of this tag in binding rules.                                                                                                                             |
 
 ## Secret storage

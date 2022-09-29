@@ -3,11 +3,12 @@ package structs
 import (
 	"errors"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -37,6 +38,8 @@ const (
 	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
+
+	ConnectionExactBalance = "exact_balance"
 )
 
 var AllConfigEntryKinds = []string{
@@ -97,17 +100,20 @@ type WarningConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind                  string
-	Name                  string
-	Protocol              string
-	Mode                  ProxyMode              `json:",omitempty"`
-	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose                ExposeConfig           `json:",omitempty"`
-	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Destination           *DestinationConfig     `json:",omitempty"`
-	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
+	Kind                      string
+	Name                      string
+	Protocol                  string
+	Mode                      ProxyMode              `json:",omitempty"`
+	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig           `json:",omitempty"`
+	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig     `json:",omitempty"`
+	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -179,6 +185,10 @@ func (e *ServiceConfigEntry) Validate() error {
 	}
 
 	validationErr := validateConfigEntryMeta(e.Meta)
+
+	if !isValidConnectionBalance(e.BalanceInboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_inbound_connections: %v", e.BalanceInboundConnections))
+	}
 
 	// External endpoints are invalid with an existing service's upstream configuration
 	if e.UpstreamConfig != nil && e.Destination != nil {
@@ -362,6 +372,13 @@ func (e *ProxyConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ProxyDefaults
+
+	// proxy default config only accepts global configs
+	// this check is replicated in normalize() and validate(),
+	// since validate is not called by all the endpoints (e.g., delete)
+	if e.Name != "" && e.Name != ProxyConfigGlobal {
+		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
 	e.Name = ProxyConfigGlobal
 
 	e.EnterpriseMeta.Normalize()
@@ -790,6 +807,10 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates how the proxy should attempt to distribute
+	// connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 func (cfg UpstreamConfig) Clone() UpstreamConfig {
@@ -837,6 +858,9 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	}
 	if cfg.PassiveHealthCheck != nil {
 		dst["passive_health_check"] = cfg.PassiveHealthCheck
+	}
+	if cfg.BalanceOutboundConnections != "" {
+		dst["balance_outbound_connections"] = cfg.BalanceOutboundConnections
 	}
 }
 
@@ -907,6 +931,10 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		}
 	}
 
+	if !isValidConnectionBalance(cfg.BalanceOutboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_outbound_connections: %v", cfg.BalanceOutboundConnections))
+	}
+
 	return validationErr
 }
 
@@ -961,6 +989,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
@@ -1206,4 +1239,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 
 type ConfigEntryDeleteResponse struct {
 	Deleted bool
+}
+
+func isValidConnectionBalance(s string) bool {
+	return s == "" || s == ConnectionExactBalance
 }

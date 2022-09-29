@@ -4,8 +4,8 @@ import { assert } from '@ember/debug';
 export default class StyleModifier extends Modifier {
   setStyles(newStyles = []) {
     const rulesToRemove = this._oldStyles || new Set();
-    if(!Array.isArray(newStyles)) {
-      newStyles = Object.entries(newStyles)
+    if (!Array.isArray(newStyles)) {
+      newStyles = Object.entries(newStyles);
     }
     newStyles.forEach(([property, value]) => {
       assert(
@@ -36,15 +36,12 @@ export default class StyleModifier extends Modifier {
   }
 
   didReceiveArguments() {
-    if(typeof this.args.named.delay !== 'undefined') {
-      setTimeout(
-        _ => {
-          if(typeof this !== this.args.positional[0]) {
-            this.setStyles(this.args.positional[0]);
-          }
-        },
-        this.args.named.delay
-      )
+    if (typeof this.args.named.delay !== 'undefined') {
+      setTimeout((_) => {
+        if (typeof this !== this.args.positional[0]) {
+          this.setStyles(this.args.positional[0]);
+        }
+      }, this.args.named.delay);
     } else {
       this.setStyles(this.args.positional[0]);
     }

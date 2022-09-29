@@ -141,6 +141,11 @@ func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigE
 			}
 		}
 	}
+	if s.Defaults != nil {
+		var x structs.IngressServiceConfig
+		IngressServiceConfigToStructs(s.Defaults, &x)
+		t.Defaults = &x
+	}
 	t.Meta = s.Meta
 }
 func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressGateway) {
@@ -161,6 +166,11 @@ func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressG
 				s.Listeners[i] = &x
 			}
 		}
+	}
+	if t.Defaults != nil {
+		var x IngressServiceConfig
+		IngressServiceConfigFromStructs(t.Defaults, &x)
+		s.Defaults = &x
 	}
 	s.Meta = t.Meta
 }
@@ -227,6 +237,9 @@ func IngressServiceToStructs(s *IngressService, t *structs.IngressService) {
 		HTTPHeaderModifiersToStructs(s.ResponseHeaders, &x)
 		t.ResponseHeaders = &x
 	}
+	t.MaxConnections = s.MaxConnections
+	t.MaxPendingRequests = s.MaxPendingRequests
+	t.MaxConcurrentRequests = s.MaxConcurrentRequests
 	t.Meta = s.Meta
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
@@ -251,8 +264,27 @@ func IngressServiceFromStructs(t *structs.IngressService, s *IngressService) {
 		HTTPHeaderModifiersFromStructs(t.ResponseHeaders, &x)
 		s.ResponseHeaders = &x
 	}
+	s.MaxConnections = t.MaxConnections
+	s.MaxPendingRequests = t.MaxPendingRequests
+	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 	s.Meta = t.Meta
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func IngressServiceConfigToStructs(s *IngressServiceConfig, t *structs.IngressServiceConfig) {
+	if s == nil {
+		return
+	}
+	t.MaxConnections = s.MaxConnections
+	t.MaxPendingRequests = s.MaxPendingRequests
+	t.MaxConcurrentRequests = s.MaxConcurrentRequests
+}
+func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *IngressServiceConfig) {
+	if s == nil {
+		return
+	}
+	s.MaxConnections = t.MaxConnections
+	s.MaxPendingRequests = t.MaxPendingRequests
+	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -415,6 +447,11 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		MeshHTTPConfigToStructs(s.HTTP, &x)
 		t.HTTP = &x
 	}
+	if s.Peering != nil {
+		var x structs.PeeringMeshConfig
+		PeeringMeshConfigToStructs(s.Peering, &x)
+		t.Peering = &x
+	}
 	t.Meta = s.Meta
 }
 func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
@@ -435,6 +472,11 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		var x MeshHTTPConfig
 		MeshHTTPConfigFromStructs(t.HTTP, &x)
 		s.HTTP = &x
+	}
+	if t.Peering != nil {
+		var x PeeringMeshConfig
+		PeeringMeshConfigFromStructs(t.Peering, &x)
+		s.Peering = &x
 	}
 	s.Meta = t.Meta
 }
@@ -495,6 +537,18 @@ func MeshTLSConfigFromStructs(t *structs.MeshTLSConfig, s *MeshTLSConfig) {
 		MeshDirectionalTLSConfigFromStructs(t.Outgoing, &x)
 		s.Outgoing = &x
 	}
+}
+func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	t.PeerThroughMeshGateways = s.PeerThroughMeshGateways
+}
+func PeeringMeshConfigFromStructs(t *structs.PeeringMeshConfig, s *PeeringMeshConfig) {
+	if s == nil {
+		return
+	}
+	s.PeerThroughMeshGateways = t.PeerThroughMeshGateways
 }
 func RingHashConfigToStructs(s *RingHashConfig, t *structs.RingHashConfig) {
 	if s == nil {
@@ -689,6 +743,7 @@ func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.Ser
 	t.Namespace = s.Namespace
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
+	t.Peer = s.Peer
 }
 func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *ServiceResolverRedirect) {
 	if s == nil {
@@ -699,6 +754,7 @@ func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *S
 	s.Namespace = t.Namespace
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
+	s.Peer = t.Peer
 }
 func ServiceResolverSubsetToStructs(s *ServiceResolverSubset, t *structs.ServiceResolverSubset) {
 	if s == nil {

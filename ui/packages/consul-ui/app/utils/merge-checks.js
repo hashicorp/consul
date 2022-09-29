@@ -17,7 +17,7 @@ export default (checks = [], exposed = false, MMap = MultiMap) => {
   const ids = new MMap();
   const a = checks.shift();
   const result = a
-    .map(item => {
+    .map((item) => {
       // its a Node check (ServiceName === ""), record this one so we
       // don't end up with duplicates of it
       if (item.ServiceName === '') {
@@ -53,8 +53,8 @@ export default (checks = [], exposed = false, MMap = MultiMap) => {
   // TODO: consider moving this out of here so we aren't doing too much in one util
   if (exposed) {
     result
-      .filter(item => get(item, 'Exposable'))
-      .forEach(item => {
+      .filter((item) => get(item, 'Exposable'))
+      .forEach((item) => {
         set(item, 'Exposed', exposed);
       });
   }

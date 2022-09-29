@@ -132,6 +132,7 @@ type ACLResolverBackend interface {
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
+	IsServerManagementToken(token string) bool
 	// TODO: separate methods for each RPC call (there are 4)
 	RPC(method string, args interface{}, reply interface{}) error
 	EnterpriseACLResolverDelegate
@@ -978,6 +979,10 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 
 	if r.tokens.IsAgentRecoveryToken(token) {
 		return structs.NewAgentRecoveryTokenIdentity(r.config.NodeName, token), r.agentRecoveryAuthz, true
+	}
+
+	if r.backend.IsServerManagementToken(token) {
+		return structs.NewACLServerIdentity(token), acl.ManageAll(), true
 	}
 
 	return r.resolveLocallyManagedEnterpriseToken(token)

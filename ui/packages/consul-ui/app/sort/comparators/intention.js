@@ -1,3 +1,3 @@
-export default () => key => {
+export default () => (key) => {
   return [key];
 };

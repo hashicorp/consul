@@ -562,14 +562,14 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@" 2> /dev/null
 }
 
 function docker_wget {
@@ -581,7 +581,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul:local "$@"
 }
 
 function docker_exec {
@@ -806,7 +806,14 @@ function delete_config_entry {
 
 function register_services {
   local DC=${1:-primary}
+  wait_for_leader "$DC"
   docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
+}
+
+# wait_for_leader waits until a leader is elected.
+# Its first argument must be the datacenter name.
+function wait_for_leader {
+  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
 }
 
 function setup_upsert_l4_intention {

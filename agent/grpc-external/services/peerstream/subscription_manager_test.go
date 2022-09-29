@@ -3,14 +3,17 @@ package peerstream
 import (
 	"context"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -627,20 +630,100 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	})
 }
 
+func TestSubscriptionManager_ServerAddrs(t *testing.T) {
+	backend := newTestSubscriptionBackend(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	// Create a peering
+	_, id := backend.ensurePeering(t, "my-peering")
+	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
+
+	payload := autopilotevents.EventPayloadReadyServers{
+		autopilotevents.ReadyServerInfo{
+			ID:          "9aeb73f6-e83e-43c1-bdc9-ca5e43efe3e4",
+			Address:     "198.18.0.1",
+			Version:     "1.13.1",
+			ExtGRPCPort: 8502,
+		},
+	}
+	// mock handler only gets called once during the initial subscription
+	backend.handler.expect("", 0, 1, payload)
+
+	// Only configure a tracker for server address events.
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLPeeringServerAddresses)
+
+	mgr := newSubscriptionManager(ctx,
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		connect.TestTrustDomain,
+		backend,
+		func() StateStore {
+			return backend.store
+		},
+		tracker)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
+
+	testutil.RunStep(t, "initial events", func(t *testing.T) {
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "added server", func(t *testing.T) {
+		payload = append(payload, autopilotevents.ReadyServerInfo{
+			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
+			Address:     "198.18.0.2",
+			Version:     "1.13.1",
+			ExtGRPCPort: 9502,
+		})
+		backend.Publish([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   2,
+				Payload: payload,
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502"}, addrs.GetAddresses())
+			},
+		)
+	})
+}
+
 type testSubscriptionBackend struct {
 	state.EventPublisher
-	store *state.Store
+	store   *state.Store
+	handler *mockSnapshotHandler
 
 	lastIdx uint64
 }
 
 func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	publisher := stream.NewEventPublisher(10 * time.Second)
-	store := newStateStore(t, publisher)
+	store, handler := newStateStore(t, publisher)
 
 	backend := &testSubscriptionBackend{
 		EventPublisher: publisher,
 		store:          store,
+		handler:        handler,
 	}
 
 	backend.ensureCAConfig(t, &structs.CAConfiguration{
@@ -739,20 +822,35 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	return p.ID
 }
 
-func newStateStore(t *testing.T, publisher *stream.EventPublisher) *state.Store {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
+func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *mockSnapshotHandler) {
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
 	require.NoError(t, err)
+
+	handler := newMockSnapshotHandler(t)
 
 	store := state.NewStateStoreWithEventPublisher(gc, publisher)
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot, false))
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot, false))
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot, false))
-	go publisher.Run(ctx)
+	require.NoError(t, publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, handler.handle, false))
 
-	return store
+	// WaitGroup used to make sure that the publisher returns
+	// before handler's t.Cleanup is called (otherwise an event
+	// might fire during an assertion and cause a data race).
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+		wg.Wait()
+	})
+
+	wg.Add(1)
+	go func() {
+		publisher.Run(ctx)
+		wg.Done()
+	}()
+
+	return store, handler
 }
 
 func expectEvents(
@@ -869,4 +967,40 @@ func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMe
 		ServiceName:    svcName,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+// mockSnapshotHandler is copied from server_discovery/server_test.go
+type mockSnapshotHandler struct {
+	mock.Mock
+}
+
+func newMockSnapshotHandler(t *testing.T) *mockSnapshotHandler {
+	handler := &mockSnapshotHandler{}
+	t.Cleanup(func() {
+		handler.AssertExpectations(t)
+	})
+	return handler
+}
+
+func (m *mockSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	ret := m.Called(req, buf)
+	return ret.Get(0).(uint64), ret.Error(1)
+}
+
+func (m *mockSnapshotHandler) expect(token string, requestIndex uint64, eventIndex uint64, payload autopilotevents.EventPayloadReadyServers) {
+	m.On("handle", stream.SubscribeRequest{
+		Topic:   autopilotevents.EventTopicReadyServers,
+		Subject: stream.SubjectNone,
+		Token:   token,
+		Index:   requestIndex,
+	}, mock.Anything).Run(func(args mock.Arguments) {
+		buf := args.Get(1).(stream.SnapshotAppender)
+		buf.Append([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   eventIndex,
+				Payload: payload,
+			},
+		})
+	}).Return(eventIndex, nil)
 }

@@ -58,6 +58,9 @@
   {{else}}
     <div class="dc-name" data-test-datacenter-single>
       {{@dcs.firstObject.Name}}
+      {{#if (env 'CONSUL_HCP_MANAGED_RUNTIME')}}
+        <span>Self-managed</span>
+      {{/if}}
     </div>
   {{/if}}
 </li>

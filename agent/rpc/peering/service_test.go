@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -216,7 +217,10 @@ func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err := client.GenerateToken(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.GenerateToken(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -344,8 +348,8 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 	}
 }
 
-// We define a valid peering by a peering that does not occur over the same server addresses
-func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
+// Loopback peering within the same cluster/partion should throw an error
+func TestPeeringService_Establish_invalidPeeringInSamePartition(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
@@ -368,12 +372,48 @@ func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
 	require.Nil(t, respE)
 }
 
+// When tokens have the same name as the dialing cluster but are unknown by ID, we
+// should be throwing an error to note the server name conflict.
+func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	// Manufacture token to have the same server name but a PeerID not in the store.
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err, "could not generate uuid")
+	peeringToken := structs.PeeringToken{
+		ServerAddresses:     []string{"1.2.3.4:8502"},
+		ServerName:          s.Server.GetPeeringBackend().GetServerName(),
+		EstablishmentSecret: "foo",
+		PeerID:              id,
+	}
+
+	jsonToken, err := json.Marshal(peeringToken)
+	require.NoError(t, err, "could not marshal peering token")
+	base64Token := base64.StdEncoding.EncodeToString(jsonToken)
+
+	establishReq := &pbpeering.EstablishRequest{
+		PeerName:     "peerTwo",
+		PeeringToken: base64Token,
+	}
+
+	respE, errE := client.Establish(ctx, establishReq)
+	require.Error(t, errE)
+	require.Contains(t, errE.Error(), "conflict - peering token's server name matches the current cluster's server name")
+	require.Nil(t, respE)
+}
+
 func TestPeeringService_Establish(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s1 := newTestServer(t, nil)
 	client1 := pbpeering.NewPeeringServiceClient(s1.ClientConn(t))
 
 	s2 := newTestServer(t, func(conf *consul.Config) {
+		conf.Datacenter = "dc2"
 		conf.GRPCPort = 5301
 	})
 	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
@@ -454,7 +494,10 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err := client.Establish(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.Establish(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -589,7 +632,10 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.PeeringRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.PeeringRead(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -621,38 +667,50 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 }
 
 func TestPeeringService_Delete(t *testing.T) {
-	// TODO(peering): see note on newTestServer, refactor to not use this
-	s := newTestServer(t, nil)
-
-	p := &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:          nil,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+	tt := map[string]pbpeering.PeeringState{
+		"active peering":     pbpeering.PeeringState_ACTIVE,
+		"terminated peering": pbpeering.PeeringState_TERMINATED,
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
-	require.NoError(t, err)
-	require.Nil(t, p.DeletedAt)
-	require.True(t, p.IsActive())
 
-	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	for name, overrideState := range tt {
+		t.Run(name, func(t *testing.T) {
+			// TODO(peering): see note on newTestServer, refactor to not use this
+			s := newTestServer(t, nil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	t.Cleanup(cancel)
+			// A pointer is kept for the following peering so that we can modify the object without another PeeringWrite.
+			p := &pbpeering.Peering{
+				ID:                  testUUID(t),
+				Name:                "foo",
+				PeerCAPems:          nil,
+				PeerServerName:      "test",
+				PeerServerAddresses: []string{"addr1"},
+			}
+			err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
+			require.NoError(t, err)
+			require.Nil(t, p.DeletedAt)
+			require.True(t, p.IsActive())
 
-	_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
-	require.NoError(t, err)
+			// Overwrite the peering state to simulate deleting from a non-initial state.
+			p.State = overrideState
 
-	retry.Run(t, func(r *retry.R) {
-		_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
-		require.NoError(r, err)
+			client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
-		// Initially the peering will be marked for deletion but eventually the leader
-		// routine will clean it up.
-		require.Nil(r, resp)
-	})
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			t.Cleanup(cancel)
+
+			_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
+			require.NoError(t, err)
+
+			retry.Run(t, func(r *retry.R) {
+				_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
+				require.NoError(r, err)
+
+				// Initially the peering will be marked for deletion but eventually the leader
+				// routine will clean it up.
+				require.Nil(r, resp)
+			})
+		})
+	}
 }
 
 func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {
@@ -688,7 +746,10 @@ func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err = client.PeeringDelete(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		_, err = client.PeeringDelete(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -813,7 +874,10 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.PeeringList(external.ContextWithToken(ctx, tc.token), &pbpeering.PeeringListRequest{})
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{})
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -901,7 +965,10 @@ func TestPeeringService_TrustBundleRead_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.TrustBundleRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.TrustBundleRead(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -1057,6 +1124,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 
 	s2 := newTestServer(t, func(conf *consul.Config) {
 		conf.GRPCPort = 5301
+		conf.Datacenter = "dc2"
 	})
 	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
 
@@ -1233,7 +1301,10 @@ func TestPeeringService_TrustBundleListByService_ACLEnforcement(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.TrustBundleListByService(external.ContextWithToken(ctx, tc.token), tc.req)
+		options := structs.QueryOptions{Token: tc.token}
+		ctx, err := external.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+		resp, err := client.TrustBundleListByService(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -1434,6 +1505,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
+		XDSStreamLimiter:         limiter.NewSessionLimiter(),
 	}
 }
 

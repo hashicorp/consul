@@ -30,7 +30,7 @@ export default class IntentionRepository extends RepositoryService {
       this.managedByCRDs = this.store
         .peekAll(this.getModelName())
         .toArray()
-        .some(item => item.IsManagedByCRD);
+        .some((item) => item.IsManagedByCRD);
     }
     return this.managedByCRDs;
   }

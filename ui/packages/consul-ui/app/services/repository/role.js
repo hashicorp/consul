@@ -36,9 +36,6 @@ export default class RoleService extends RepositoryService {
     } else {
       item = await super.findBySlug(...arguments);
     }
-    return this.form
-      .form(this.getModelName())
-      .setData(item)
-      .getData();
+    return this.form.form(this.getModelName()).setData(item).getData();
   }
 }

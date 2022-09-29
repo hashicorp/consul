@@ -3487,6 +3487,124 @@ func TestInternal_PeeredUpstreams_ACLEnforcement(t *testing.T) {
 	}
 }
 
+func TestInternal_ExportedServicesForPeer_ACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s := testServerWithConfig(t, testServerACLConfig)
+	codec := rpcClient(t, s)
+
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-1",
+		},
+	}))
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-2",
+		},
+	}))
+	require.NoError(t, s.fsm.State().EnsureConfigEntry(1, &structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{PeerName: "peer-1"},
+				},
+			},
+			{
+				Name: "db",
+				Consumers: []structs.ServiceConsumer{
+					{PeerName: "peer-2"},
+				},
+			},
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{PeerName: "peer-1"},
+				},
+			},
+		},
+	}))
+
+	type testcase struct {
+		name      string
+		token     string
+		expect    structs.ServiceList
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		var out *structs.IndexedServiceList
+		req := structs.ServiceDumpRequest{
+			Datacenter:   "dc1",
+			PeerName:     "peer-1",
+			QueryOptions: structs.QueryOptions{Token: tc.token},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ExportedServicesForPeer", &req, &out)
+
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			require.Nil(t, out)
+			return
+		}
+
+		require.NoError(t, err)
+		require.Equal(t, tc.expect, out.Services)
+	}
+	tcs := []testcase{
+		{
+			name: "can read all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service_prefix "" {
+				policy = "read"
+			}
+			`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("api", nil),
+				structs.NewServiceName("web", nil),
+			},
+		},
+		{
+			name: "filtered",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service "web" { policy = "read" }
+			service "api" { policy = "deny" }
+			`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("web", nil),
+			},
+		},
+		{
+			name: "no service rules filters all results",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				``),
+			expect: structs.ServiceList{},
+		},
+		{
+			name: "no service rules but mesh write shows all results",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`mesh = "write"`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("api", nil),
+				structs.NewServiceName("web", nil),
+			},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func testUUID() string {
 	buf := make([]byte, 16)
 	if _, err := rand.Read(buf); err != nil {

@@ -56,7 +56,9 @@ func TestWatchRoots_Success(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -104,7 +106,9 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(resolver.Result{}, acl.ErrNotFound)
 
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -142,7 +146,9 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
 
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	server := NewServer(Config{
 		Publisher:      publisher,
@@ -210,7 +216,9 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	server := NewServer(Config{
 		Publisher:      publisher,

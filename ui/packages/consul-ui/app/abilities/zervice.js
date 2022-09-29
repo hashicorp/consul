@@ -12,7 +12,7 @@ export default class ZerviceAbility extends BaseAbility {
       return false;
     }
     const found = this.item.Resources.find(
-      item => item.Resource === 'intention' && item.Access === 'read' && item.Allow === true
+      (item) => item.Resource === 'intention' && item.Access === 'read' && item.Allow === true
     );
     return typeof found !== 'undefined';
   }
@@ -22,7 +22,7 @@ export default class ZerviceAbility extends BaseAbility {
       return false;
     }
     const found = this.item.Resources.find(
-      item => item.Resource === 'intention' && item.Access === 'write' && item.Allow === true
+      (item) => item.Resource === 'intention' && item.Access === 'write' && item.Allow === true
     );
     return typeof found !== 'undefined';
   }

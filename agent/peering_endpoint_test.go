@@ -267,8 +267,8 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		a2 := NewTestAgent(t, "")
-		testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+		a2 := NewTestAgent(t, `datacenter = "dc2"`)
+		testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 		bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
 			PeerName: "foo",

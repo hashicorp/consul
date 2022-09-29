@@ -72,7 +72,7 @@ service mesh.
     }
     ```
 1. Issue the `consul services register` command to store the configuration:
-    ```shell-sesion
+    ```shell-session
      $ consul services register api-sidecar-proxy.hcl
     ```
 1. Call the upstream service to invoke the Lambda function. In the following example, the `api` service invokes the `authentication` service at `localhost:2345`:

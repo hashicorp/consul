@@ -316,19 +316,19 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: "mesh-gateway:dc2",
-				Result: &structs.IndexedNodesWithGateways{
+				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestGatewayNodesDC2(t),
 				},
 			},
 			{
 				CorrelationID: "mesh-gateway:dc4",
-				Result: &structs.IndexedNodesWithGateways{
+				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestGatewayNodesDC4Hostname(t),
 				},
 			},
 			{
 				CorrelationID: "mesh-gateway:dc6",
-				Result: &structs.IndexedNodesWithGateways{
+				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: TestGatewayNodesDC6Hostname(t),
 				},
 			},
@@ -376,7 +376,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 					// Have the cross-dc query mechanism not work for dc2 so
 					// fedstates will infill.
 					CorrelationID: "mesh-gateway:dc2",
-					Result: &structs.IndexedNodesWithGateways{
+					Result: &structs.IndexedCheckServiceNodes{
 						Nodes: nil,
 					},
 				},

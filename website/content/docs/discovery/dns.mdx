@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: Find Services - DNS Interface
+page_title: Find services with DNS
 description: >-
-  One of the primary query interfaces for Consul is DNS. The DNS interface
-  allows applications to make use of service discovery without any high-touch
-  integration with Consul.
+  For service discovery use cases, Domain Name Service (DNS) is the main interface to look up, query, and address Consul nodes and services. Learn how a Consul DNS lookup can help you find services by tag, name, namespace, partition, datacenter, or domain.
 ---
 
-# DNS Interface
+# Query services with DNS
 
 One of the primary query interfaces for Consul is DNS.
 The DNS interface allows applications to make use of service
@@ -35,7 +33,7 @@ as the DNS server for a node and provide a
 [`recursors`](/docs/agent/config/config-files#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. Review the
-[DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=consul.io&utm_medium=docs) for examples.
+[DNS Forwarding tutorial](https://learn.hashicorp.com/tutorials/consul/dns-forwarding?utm_source=docs) for examples.
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
@@ -95,6 +93,23 @@ By default the TXT records value will match the node's metadata key-value
 pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
 Alternatively, the TXT record will only include the node's metadata value when the
 node's metadata key starts with `rfc1035-`.
+
+
+### Node Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+Consul nodes exist at the admin partition level within a datacenter.
+By default, the partition and datacenter used in a [node lookup](#node-lookups) are
+the partition and datacenter of the Consul agent that received the DNS query.
+
+Use the following query format to specify a partition for a node lookup:
+```text
+<node>.node.<partition>.ap.<datacenter>.dc.<domain>
+```
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+node lookups to non-`default` partitions must explicitly specify
+the partition of the target node.
 
 ## Service Lookups
 
@@ -171,13 +186,13 @@ foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 Valid formats for RFC 2782 SRV lookups depend on
 whether you want to filter results based on a service tag:
 
-- No filtering on service tag
+- No filtering on service tag:
 
    ```text
   _<service>._tcp[.service][.<datacenter>].<domain>
   ```
 
-- Filtering on service tag specified in the RFC 2782 protocol field
+- Filtering on service tag specified in the RFC 2782 protocol field:
 
    ```text
   _<service>._<tag>[.service][.<datacenter>].<domain>
@@ -334,6 +349,51 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 </Tabs>
 
+### Service Lookups for Consul Enterprise <EnterpriseAlert inline />
+
+By default, all service lookups use the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+To lookup services in another namespace, partition, and/or datacenter,
+use the [canonical format](#canonical-format).
+
+Consul server agents are in the `default` partition.
+If DNS queries are addressed to Consul server agents,
+service lookups to non-`default` partitions must explicitly specify
+the partition of the target service.
+
+To lookup services imported from a cluster peer,
+refer to [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+
+#### Canonical format
+
+Use the following query format to specify namespace, partition, and/or datacenter
+for `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
+All three fields (`namespace`, `partition`, `datacenter`) are optional.
+```text
+[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
+```
+
+#### Alternative formats for specifying namespace
+
+Though the [canonical format](#canonical-format) is recommended for readability,
+you can use the following query formats specify namespace but not partition:
+
+- Specify both namespace and datacenter:
+
+  ```text
+  [<tag>.]<service>.service.<namespace>.<datacenter>.<domain>
+  ```
+
+- **Deprecated in Consul 1.11:**
+  Specify namespace without a datacenter,
+  which requires that DNS queries are addressed to a Consul agent with
+  [`dns_config.prefer_namespace`](/docs/agent/config/config-files#dns_prefer_namespace)
+  set to `true`:
+
+   ```text
+  [<tag>.]<service>.service.<namespace>.<domain>
+  ```
+
 ### Prepared Query Lookups
 
 The format of a prepared query lookup is:
@@ -398,7 +458,21 @@ of a service imported from that peer.
 
 The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
 under the `consul-virtual` tag.
+ 
+#### Service Virtual IP Lookups for Consul Enterprise <EnterpriseAlert inline />
 
+By default, a service virtual IP lookup uses the `default` namespace
+within the partition and datacenter of the Consul agent that received the DNS query.
+
+To lookup services imported from a cluster peered partition or open-source datacenter,
+specify the namespace and peer name in the lookup:
+```text
+<service>.virtual[.<namespace>].<peer>.<domain>
+```
+
+To lookup services not imported from a cluster peer,
+refer to [service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
+ 
 ### Ingress Service Lookups
 
 To find ingress-enabled services:
@@ -480,38 +554,6 @@ using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
 options.
 
-## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
-
-Consul Enterprise supports resolving namespaced and partitioned services via DNS.
-The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
-The DNS server can also resolve nodes assigned to partitions.
-To maintain backwards compatibility existing queries can be used and these will
-resolve services within the `default` namespace and partition. However, for resolving
-services from other namespaces or partitions the following form can be used:
-
-```text
-[<tag>.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-This sequence is the canonical naming convention of a Consul Enterprise service. At least two of the following
-fields must be present:
-* `namespace`
-* `partition`
-* `datacenter`
-
-For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
-
-```text
-<service>.virtual[.<namespace>].<peer>.<domain>
-```
-
-For node lookups, only the partition and datacenter need to be specified as nodes cannot be
-namespaced.
-
-```text
-[<tag>.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
-```
-
 ## DNS with ACLs
 
 In order to use the DNS interface when
@@ -541,4 +583,4 @@ For guidance on how to configure an appropriate token for DNS, refer to the
 securing Consul with ACLs guides for:
 
 - [Production Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#token-for-dns)
-- [Development Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup#additional-acl-configuration)
+- [Development Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup?utm_source=docs#enable-acls-on-consul-clients)

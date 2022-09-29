@@ -37,14 +37,14 @@ export default class PeerService extends RepositoryService {
           interval: 10000,
           uri: uri,
         },
-        body: body.map(item => {
+        body: body.map((item) => {
           return cache(
             {
               ...item,
               Datacenter: dc,
               Partition: partition,
             },
-            uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+            (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
           );
         }),
       };
@@ -61,7 +61,7 @@ export default class PeerService extends RepositoryService {
         Namespace: '',
         Partition: partition,
       });
-      item.meta = {cacheControl: 'no-store'};
+      item.meta = { cacheControl: 'no-store' };
       return item;
     }
     return (
@@ -85,7 +85,7 @@ export default class PeerService extends RepositoryService {
             Datacenter: dc,
             Partition: partition,
           },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
         ),
       };
     });
@@ -117,7 +117,7 @@ export default class PeerService extends RepositoryService {
             ...item,
             State: 'ESTABLISHING',
           },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
         ),
       };
     });
@@ -145,7 +145,7 @@ export default class PeerService extends RepositoryService {
             ...item,
             State: 'DELETING',
           },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
         ),
       };
     });

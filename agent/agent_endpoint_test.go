@@ -1434,15 +1434,8 @@ func TestAgent_Self(t *testing.T) {
 	cases := map[string]struct {
 		hcl       string
 		expectXDS bool
+		grpcTLS   bool
 	}{
-		"normal": {
-			hcl: `
-			node_meta {
-				somekey = "somevalue"
-			}
-			`,
-			expectXDS: true,
-		},
 		"no grpc": {
 			hcl: `
 			node_meta {
@@ -1453,13 +1446,35 @@ func TestAgent_Self(t *testing.T) {
 			}
 			`,
 			expectXDS: false,
+			grpcTLS:   false,
+		},
+		"plaintext grpc": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			`,
+			expectXDS: true,
+			grpcTLS:   false,
+		},
+		"tls grpc": {
+			hcl: `
+				node_meta {
+					somekey = "somevalue"
+				}
+				`,
+			expectXDS: true,
+			grpcTLS:   true,
 		},
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, tc.hcl)
+			a := StartTestAgent(t, TestAgent{
+				HCL:        tc.hcl,
+				UseGRPCTLS: tc.grpcTLS,
+			})
 			defer a.Shutdown()
 
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1487,6 +1502,13 @@ func TestAgent_Self(t *testing.T) {
 					map[string][]string{"envoy": proxysupport.EnvoyVersions},
 					val.XDS.SupportedProxies,
 				)
+				require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Ports.TLS)
+				require.Equal(t, a.Config.GRPCPort, val.XDS.Ports.Plaintext)
+				if tc.grpcTLS {
+					require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Port)
+				} else {
+					require.Equal(t, a.Config.GRPCPort, val.XDS.Port)
+				}
 
 			} else {
 				require.Nil(t, val.XDS, "xds component should be missing when gRPC is disabled")
@@ -1655,7 +1677,6 @@ func TestAgent_Reload(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
 		services = [
@@ -3764,7 +3785,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				fmt.Println("TCP Check:= ", v)
 			}
 			if hasNoCorrectTCPCheck {
-				t.Fatalf("Did not find the expected TCP Healtcheck '%s' in %#v ", tt.expectedTCPCheckStart, a.checkTCPs)
+				t.Fatalf("Did not find the expected TCP Healthcheck '%s' in %#v ", tt.expectedTCPCheckStart, a.checkTCPs)
 			}
 			require.Equal(t, sidecarSvc, gotSidecar)
 		})
@@ -5477,7 +5498,6 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5847,7 +5867,6 @@ func TestAgent_Monitor(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -6497,9 +6516,9 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
-	a := NewTestAgent(t, "")
+	// Disable peering to avoid setting up a roots watch for the server certificate,
+	// which leads to cache hit on the first query below.
+	a := NewTestAgent(t, "peering { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -6728,8 +6747,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {

@@ -1,10 +1,11 @@
----
+"---
 layout: docs
-page_title: Configuring a Connect CA Provider
-description: Configuring a Connect CA Provider
----
+page_title: Configure Certificate Authority (CA) for Consul on Kubernetes
+description: >-
+  Consul includes a built-in CA, but when bootstrapping a cluster on k8s, you can configure your service mesh to use a custom certificate provider instead. Learn how to configure Vault as an external CA in primary and secondary datacenters and manually rotate Vault tokens.
+---"
 
-# Configuring a Connect CA Provider
+#  Configure Certificate Authority (CA) for Consul on Kubernetes
 
 ~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
 To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
@@ -21,7 +22,7 @@ To configure an external CA provider via the Consul Helm chart, you need to foll
 1. Create a Kubernetes secret containing the configuration file.
 1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-To configure the Vault Connect Provider please see [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/connect-ca).
+To configure the Vault Connect Provider please see [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
 
 
 ~> **NOTE:** The following instructions are only valid for Consul-k8s 0.37.0 and prior.
@@ -98,7 +99,7 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
-<CodeBlockConfig filename="config.yaml" highlight="4-13">
+<CodeBlockConfig filename="values.yaml" highlight="4-13">
 
   ```yaml
   global:
@@ -123,7 +124,7 @@ We will provide this secret and the Vault CA secret, to the Consul server via th
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
 ```shell-session
-$ helm install consul --values config.yaml hashicorp/consul
+$ helm install consul --values values.yaml hashicorp/consul
 ```
 
 Verify that the CA provider is set correctly:

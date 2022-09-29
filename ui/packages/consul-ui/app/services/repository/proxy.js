@@ -19,8 +19,8 @@ export default class ProxyService extends RepositoryService {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), params).then(items => {
-      items.forEach(item => {
+    return this.store.query(this.getModelName(), params).then((items) => {
+      items.forEach((item) => {
         // swap out the id for the services id
         // so we can then assign the proxy to it if it exists
         const id = JSON.parse(item.uid);
