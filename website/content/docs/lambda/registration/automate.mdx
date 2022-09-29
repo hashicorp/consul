@@ -13,7 +13,7 @@ This topic describes how to automate Lambda function registration using the Cons
 
 You can deploy the Lambda registrator to your environment to automatically register and deregister Lambda functions with Consul based on the function's tags. Refer to the [AWS Lambda tags documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) to learn about tags. 
 
-The registrator also stores and periodically updates information required to make mTLS requests to upstream services in the AWS parameter store. This enables Lambda functions to invoke mesh services. Refer to [Invoke Services from Lambda Functions](TODO) for additional information. 
+The registrator also stores and periodically updates information required to make mTLS requests to upstream services in the AWS parameter store. This enables Lambda functions to invoke mesh services. Refer to [Invoke Services from Lambda Functions](/docs/lambda/invoke-from-lambda) for additional information. 
 
 The registrator runs as a Lambda function that is invoked by AWS EventBridge. Refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information.
 

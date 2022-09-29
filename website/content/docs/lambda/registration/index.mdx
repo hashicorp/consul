@@ -65,8 +65,10 @@ To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`
 configuration entry.
 
-### Optional: Run a Mesh Gateway
+### Run a Mesh Gateway
 
+A mesh gateway is required to enable Lambda functions to invoke mesh services, but optional to enable services to invoke Lambda functions.
+ 
 You can set up a mesh gateway so that you can invoke Lambda services across datacenters and admin partitions. The mesh gateway must be running and registered in the relevant Consul datacenters and partitions. Refer to the following documentation and tutorials for instructions on how to set up mesh gateways:
 
 - [Mesh gateway documentation](/docs/connect/gateways#mesh-gateways)

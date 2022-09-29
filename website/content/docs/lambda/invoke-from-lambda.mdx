@@ -13,11 +13,11 @@ This topic describes how to invoke services in the mesh from Lambda functions re
 
 The following steps describe the process:
 
-1. Deploy the services you want to allow Lambda to invoke. 
+1. Deploy the services you want to allow the Lambda function to invoke. 
 1. (Optional) Enable L7 traffic management in the local datacenter.
-1. Deploy the mesh gateway
-1. Deploy the Lambda registrator
-1. Invoke the Lambda function 
+1. Deploy the mesh gateway.
+1. Deploy the Lambda registrator.
+1. Invoke the the Lambda function. 
 
 You must add the `consul-lambda-extension` extension as a Lambda layer to enable Lambda functions to send requests to mesh services. Refer to the [AWS Lambdas documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html) for instructions on how to add layers to your Lambda functions. 
 
@@ -120,27 +120,27 @@ The mesh gateway must be running and registered to the Lambda function’s Consu
 
 ## Deploy the Lambda extension layer
 
-The `consul-lambda-extension` extension runs during the `init` phase of the Lambda function execution. The extension retrieves the data that the Lambda registrator has been configured to store from AWS Parameter Store and creates a lightweight TCP proxy. The proxy creates a local listener for each upstream defined in the `CONSUL_SERVICE_UPSTREAMS` environment variable. 
+The `consul-lambda-extension` extension runs during the `Init` phase of the Lambda function execution. The extension retrieves the data that the Lambda registrator has been configured to store from AWS Parameter Store and creates a lightweight TCP proxy. The proxy creates a local listener for each upstream defined in the `CONSUL_SERVICE_UPSTREAMS` environment variable. 
 
-When the Lambda function is invoked, the extension retrieves the data from the AWS Parameter Store so that the function can process requests. When the Lambda function receives a shutdown event, the extension also stops.
+The extension periodically retrieves the data from the AWS Parameter Store so that the function can process requests. When the Lambda function receives a shutdown event, the extension also stops.
 
 1. Download the `consul-lambda-extension` extension from releases.hashicorp.com: 
 
     ```shell-session
     curl -o consul-lambda-extension_<version>_linux_amd64.zip https://releases.hashicorp.com/consul-lambda/<version>/consul-lambda-extension_<version>_linux_amd64.zip
     ```
-1. Create the AWS Lambda layer. You can create the layer manually using the AWS CLI or AWS Console, but we recommend using Terraform:
+1. Create the AWS Lambda layer in the same AWS region as the Lambda function. You can create the layer manually using the AWS CLI or AWS Console, but we recommend using Terraform:
 
     <CodeBlockConfig filename="consul-lambda-extension.tf">
 
-    ```
-    resource "aws_lambda_layer_version" "consul_lambda_extension" {
-        layer_name       = "consul-lambda-extension"
-        filename         = "consul-lambda-extension_<version>_linux_amd64.zip"
-    source_code_hash = filebase64sha256("consul-lambda-extension_<version>_linux_amd64.zip")
-        description      = "Consul service mesh extension for AWS Lambda"
-    }
-    ```
+      ```
+      resource "aws_lambda_layer_version" "consul_lambda_extension" {
+          layer_name       = "consul-lambda-extension"
+          filename         = "consul-lambda-extension_<version>_linux_amd64.zip"
+      source_code_hash = filebase64sha256("consul-lambda-extension_<version>_linux_amd64.zip")
+          description      = "Consul service mesh extension for AWS Lambda"
+      }
+      ```
 
     </CodeBlockConfig>
 
@@ -197,7 +197,7 @@ func main() {
 
 ## Deploy the Lambda function
 
-1. Create and apply an IAM policy that allows the Lambda function’s role to fetch the Lambda extension’s data from the Parameter Store. The following example, creates an IAM role for the Lambda function, creates an IAM policy with the necessary permissions and attaches the policy to the role:
+1. Create and apply an IAM policy that allows the Lambda function’s role to fetch the Lambda extension’s data from the AWS Parameter Store. The following example, creates an IAM role for the Lambda function, creates an IAM policy with the necessary permissions and attaches the policy to the role:
 
     <CodeBlockConfig filename="lambda-iam-policy.tf">
 
@@ -250,7 +250,7 @@ func main() {
     ```
     </CodeBlockConfig>
 
-1. Configure and deploy the Lambda function. Refer to the [Lambda function configuration](#lambda-function-configuration) reference for information about all available options. There are several methods for deploying Lambda functions. The following example uses Terraform to deploy a function that can invoke the `static-server` upstream service using mTLS data stored under the `/lambda_extension_data` prefix:
+1. Configure and deploy the Lambda function. Refer to the [Lambda extension configuration](#lambda-extension-configuration) reference for information about all available options. There are several methods for deploying Lambda functions. The following example uses Terraform to deploy a function that can invoke the `static-server` upstream service using mTLS data stored under the `/lambda_extension_data` prefix:
 
     <CodeBlockConfig filename="lambda-function.tf">
 
@@ -277,9 +277,9 @@ func main() {
 1. Issue the `terraform apply` command and Consul automatically configures a service for the Lambda function.
 
 
-### Lambda function configuration
+### Lambda extension configuration
 
-Define  the following environment variables to configure each Lambda function. The configurations apply to each Lambda function in your environment:
+Define the following environment variables in your Lambda functions to configure the Lambda extension. The variables apply to each Lambda function in your environment:
 
 | Variable | Description | Default |
 | ---      | ---         | ---     |
@@ -287,7 +287,7 @@ Define  the following environment variables to configure each Lambda function. T
 | <nobr>`CONSUL_EXTENSION_DATA_PREFIX`</nobr> | Specifies the prefix that the plugin pulls configuration data from. The data must be located in the following directory: <br/>`“${CONSUL_EXTENSION_DATA_PREFIX}/${CONSUL_SERVICE_PARTITION}/${CONSUL_SERVICE_NAMESPACE}/<lambda-function-name>”` | none |
 | `CONSUL_SERVICE_NAMESPACE` | Specifies the Consul namespace the service is registered into. | `default` |
 | `CONSUL_SERVICE_PARTITION` | Specifies the Consul partition the service is registered into. | `default` |
-| `CONSUL_REFRESH_FREQUENCY` | Specifies the amount of time the extension waits before re-pulling data from the Parameter Store. Use [Go `time.Duration`](https://pkg.go.dev/time@go1.19.1#ParseDuration) string values, for example, `”30s”`. <br/>The time is added to the duration configured in the Lambda registrator `sync_frequency_in_minutes` configuration. Refer to [Lambda registrator configuration options](/docs/lambda/registration/automate#lambda-registrator-configuration-options). The combined configurations determine how stale the data may become. Lambda functions can run for up to 14 hours. We recommend configuring an acceptable value to preview stale certificates. | `“5m”` |
+| `CONSUL_REFRESH_FREQUENCY` | Specifies the amount of time the extension waits before re-pulling data from the Parameter Store. Use [Go `time.Duration`](https://pkg.go.dev/time@go1.19.1#ParseDuration) string values, for example, `”30s”`. <br/>The time is added to the duration configured in the Lambda registrator `sync_frequency_in_minutes` configuration. Refer to [Lambda registrator configuration options](/docs/lambda/registration/automate#lambda-registrator-configuration-options). The combined configurations determine how stale the data may become. Lambda functions can run for up to 14 hours, so we recommend configuring a value that results in acceptable staleness for certificates. | `“5m”` |
 | `CONSUL_SERVICE_UPSTREAMS` | Specifies the upstream services that the Lambda function can call. Specify the value as an unlabelled annotation according to the [`consul.hashicorp.com/connect-service-upstreams` annotation format](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Consul on Kubernetes. For example, `"[service-name]:[port]:[optional-datacenter]"` | none |
 
 ## Invoke the Lambda function
