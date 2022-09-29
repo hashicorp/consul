@@ -984,11 +984,11 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "connect/dataplane"
+            "href": "/docs/connect/dataplane"
           },
           {
             "title": "CLI Reference",
-            "path": "connect/dataplane/consul-dataplane"
+            "href": "/docs/connect/dataplane/consul-dataplane"
           }
         ]
       },
