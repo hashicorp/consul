@@ -189,6 +189,12 @@ message Peering {
   // ExportedServiceCount is the count of how many services are exported to this peering.
   uint64 ExportedServiceCount = 14;
 
+  // ImportedServices is the list of services imported from this peering.
+  repeated string ImportedServices = 15;
+
+  // ExportedServices is the list of services exported to this peering.
+  repeated string ExportedServices = 16;
+
   // CreateIndex is the Raft index at which the Peering was created.
   // @gotags: bexpr:"-"
   uint64 CreateIndex = 11;

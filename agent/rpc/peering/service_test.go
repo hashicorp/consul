@@ -544,14 +544,12 @@ func TestPeeringService_Read(t *testing.T) {
 
 	// insert peering directly to state store
 	p := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "foo",
-		State:                pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:           nil,
-		PeerServerName:       "test",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
@@ -607,14 +605,12 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 
 	// insert peering directly to state store
 	p := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "foo",
-		State:                pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:           nil,
-		PeerServerName:       "test",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
@@ -794,25 +790,21 @@ func TestPeeringService_List(t *testing.T) {
 	// Note that the state store holds reference to the underlying
 	// variables; do not modify them after writing.
 	foo := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "foo",
-		State:                pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:           nil,
-		PeerServerName:       "fooservername",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "fooservername",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: foo}))
 	bar := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "bar",
-		State:                pbpeering.PeeringState_ACTIVE,
-		PeerCAPems:           nil,
-		PeerServerName:       "barservername",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "bar",
+		State:               pbpeering.PeeringState_ACTIVE,
+		PeerCAPems:          nil,
+		PeerServerName:      "barservername",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, &pbpeering.PeeringWriteRequest{Peering: bar}))
 
@@ -840,25 +832,21 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 
 	// insert peering directly to state store
 	foo := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "foo",
-		State:                pbpeering.PeeringState_ESTABLISHING,
-		PeerCAPems:           nil,
-		PeerServerName:       "fooservername",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "fooservername",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: foo}))
 	bar := &pbpeering.Peering{
-		ID:                   testUUID(t),
-		Name:                 "bar",
-		State:                pbpeering.PeeringState_ACTIVE,
-		PeerCAPems:           nil,
-		PeerServerName:       "barservername",
-		PeerServerAddresses:  []string{"addr1"},
-		ImportedServiceCount: 0,
-		ExportedServiceCount: 0,
+		ID:                  testUUID(t),
+		Name:                "bar",
+		State:               pbpeering.PeeringState_ACTIVE,
+		PeerCAPems:          nil,
+		PeerServerName:      "barservername",
+		PeerServerAddresses: []string{"addr1"},
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, &pbpeering.PeeringWriteRequest{Peering: bar}))
 

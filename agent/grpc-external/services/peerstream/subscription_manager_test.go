@@ -57,9 +57,14 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-		checkEvent(t, got, gatewayCorrID, 0)
-	})
+	expectEvents(t, subCh,
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkExportedServices(t, got, []string{})
+		},
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkEvent(t, got, gatewayCorrID, 0)
+		},
+	)
 
 	// Initially add in L4 failover so that later we can test removing it. We
 	// cannot do the other way around because it would fail validation to
@@ -94,6 +99,9 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		})
 
 		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{"mysql"})
+			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, mysqlCorrID, 0)
 			},
@@ -437,6 +445,26 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			},
 		)
 	})
+
+	testutil.RunStep(t, "unexporting a service emits sends an event", func(t *testing.T) {
+		backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "mongo",
+					Consumers: []structs.ServiceConsumer{
+						{PeerName: "my-other-peering"},
+					},
+				},
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{})
+			},
+		)
+	})
 }
 
 func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
@@ -490,9 +518,13 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-		checkEvent(t, got, gatewayCorrID, 0)
-	})
+	expectEvents(t, subCh,
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkExportedServices(t, got, []string{})
+		},
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkEvent(t, got, gatewayCorrID, 0)
+		})
 
 	// At this point in time we'll have a mesh-gateway notification with no
 	// content stored and handled.
@@ -522,6 +554,9 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		})
 
 		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{"mysql", "chain", "mongo"})
+			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, chainCorrID, 0)
 			},
@@ -931,6 +966,23 @@ func checkEvent(
 			require.Equal(t, expectKind, evt.Nodes[i].Service.Kind)
 		}
 	}
+}
+
+func checkExportedServices(
+	t *testing.T,
+	got cache.UpdateEvent,
+	expectedServices []string,
+) {
+	t.Helper()
+
+	var qualifiedServices []string
+	for _, s := range expectedServices {
+		qualifiedServices = append(qualifiedServices, structs.ServiceName{Name: s}.String())
+	}
+
+	require.Equal(t, subExportedServiceList, got.CorrelationID)
+	evt := got.Result.(*pbpeerstream.ExportedServiceList)
+	require.ElementsMatch(t, qualifiedServices, evt.Services)
 }
 
 func pbNode(node, addr, partition string) *pbservice.Node {

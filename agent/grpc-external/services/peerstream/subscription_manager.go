@@ -124,8 +124,6 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		return fmt.Errorf("received error event: %w", u.Err)
 	}
 
-	// TODO(peering): on initial stream setup, transmit the list of exported
-	// services for use in differential DELETE/UPSERT. Akin to streaming's snapshot start/end.
 	switch {
 	case u.CorrelationID == subExportedServiceList:
 		// Everything starts with the exported service list coming from
@@ -138,10 +136,20 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		state.exportList = evt
 
 		pending := &pendingPayload{}
-		m.syncNormalServices(ctx, state, pending, evt.Services)
+		m.syncNormalServices(ctx, state, evt.Services)
 		if m.config.ConnectEnabled {
 			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
 		}
+
+		err := pending.Add(
+			exportedServiceListID,
+			subExportedServiceList,
+			pbpeerstream.ExportedServiceListFromStruct(evt),
+		)
+		if err != nil {
+			return err
+		}
+
 		state.sendPendingEvents(ctx, m.logger, pending)
 
 		// cleanup event versions too
@@ -435,7 +443,6 @@ func (m *subscriptionManager) subscribeCARoots(
 func (m *subscriptionManager) syncNormalServices(
 	ctx context.Context,
 	state *subscriptionState,
-	pending *pendingPayload,
 	services []structs.ServiceName,
 ) {
 	// seen contains the set of exported service names and is used to reconcile the list of watched services.
@@ -464,20 +471,7 @@ func (m *subscriptionManager) syncNormalServices(
 	for svc, cancel := range state.watchedServices {
 		if _, ok := seen[svc]; !ok {
 			cancel()
-
 			delete(state.watchedServices, svc)
-
-			// Send an empty event to the stream handler to trigger sending a DELETE message.
-			// Cancelling the subscription context above is necessary, but does not yield a useful signal on its own.
-			err := pending.Add(
-				servicePayloadIDPrefix+svc.String(),
-				subExportedService+svc.String(),
-				&pbservice.IndexedCheckServiceNodes{},
-			)
-			if err != nil {
-				m.logger.Error("failed to send event for service", "service", svc.String(), "error", err)
-				continue
-			}
 		}
 	}
 }

@@ -78,6 +78,8 @@ func PeeringToAPI(s *Peering, t *api.Peering) {
 	t.PeerServerAddresses = s.PeerServerAddresses
 	t.ImportedServiceCount = s.ImportedServiceCount
 	t.ExportedServiceCount = s.ExportedServiceCount
+	t.ImportedServices = s.ImportedServices
+	t.ExportedServices = s.ExportedServices
 	t.CreateIndex = s.CreateIndex
 	t.ModifyIndex = s.ModifyIndex
 }
@@ -97,6 +99,8 @@ func PeeringFromAPI(t *api.Peering, s *Peering) {
 	s.PeerServerAddresses = t.PeerServerAddresses
 	s.ImportedServiceCount = t.ImportedServiceCount
 	s.ExportedServiceCount = t.ExportedServiceCount
+	s.ImportedServices = t.ImportedServices
+	s.ExportedServices = t.ExportedServices
 	s.CreateIndex = t.CreateIndex
 	s.ModifyIndex = t.ModifyIndex
 }

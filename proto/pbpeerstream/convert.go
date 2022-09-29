@@ -23,3 +23,15 @@ func (s *ExportedService) CheckServiceNodesToStruct() ([]structs.CheckServiceNod
 	}
 	return resp, nil
 }
+
+func ExportedServiceListFromStruct(e *structs.ExportedServiceList) *ExportedServiceList {
+	services := make([]string, 0, len(e.Services))
+
+	for _, s := range e.Services {
+		services = append(services, s.String())
+	}
+
+	return &ExportedServiceList{
+		Services: services,
+	}
+}
