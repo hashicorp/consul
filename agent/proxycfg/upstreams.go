@@ -317,7 +317,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			}
 		case structs.MeshGatewayModeLocal:
 			gk = GatewayKey{
-				Partition:  s.source.NodePartitionOrDefault(),
+				Partition:  s.proxyID.PartitionOrDefault(),
 				Datacenter: s.source.Datacenter,
 			}
 		}
