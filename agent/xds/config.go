@@ -132,6 +132,12 @@ type GatewayConfig struct {
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
+
+	// TCP keepalive settings for connections between remote mesh gateways.
+	// See: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive
+	TcpKeepaliveEnable   bool `mapstructure:"envoy_mesh_gateway_tcp_enable_keepalive"`
+	TcpKeepaliveTime     int  `mapstructure:"envoy_mesh_gateway_tcp_keepalive_time"`
+	TcpKeepaliveInterval int  `mapstructure:"envoy_mesh_gateway_tcp_keepalive_interval"`
 }
 
 // ParseGatewayConfig returns the GatewayConfig parsed from an opaque map. If an

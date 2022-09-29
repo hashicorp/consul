@@ -1534,6 +1534,19 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		useEDS = false
 	}
 
+	// Set TCP keepalive settings on the upstream gateway cluster if enabled.
+	if opts.isRemote && cfg.TcpKeepaliveEnable {
+		cluster.UpstreamConnectionOptions = &envoy_cluster_v3.UpstreamConnectionOptions{
+			TcpKeepalive: &envoy_core_v3.TcpKeepalive{},
+		}
+		if cfg.TcpKeepaliveTime != 0 {
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveTime = makeUint32Value(cfg.TcpKeepaliveTime)
+		}
+		if cfg.TcpKeepaliveInterval != 0 {
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveInterval = makeUint32Value(cfg.TcpKeepaliveInterval)
+		}
+	}
+
 	// If none of the service instances are addressed by a hostname we provide the endpoint IP addresses via EDS
 	if useEDS {
 		cluster.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
