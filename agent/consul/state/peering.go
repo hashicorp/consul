@@ -588,6 +588,8 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		// We may need to avoid clobbering existing values.
 		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
 		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
+		req.Peering.ImportedServices = existing.ImportedServices
+		req.Peering.ExportedServices = existing.ExportedServices
 		req.Peering.CreateIndex = existing.CreateIndex
 		req.Peering.ModifyIndex = idx
 	} else {

@@ -66,6 +66,10 @@ type Peering struct {
 	ImportedServiceCount uint64
 	// ExportedServiceCount is the count of how many services are exported to this peering.
 	ExportedServiceCount uint64
+	// ImportedServices is the list of services imported from this peering.
+	ImportedServices []string
+	// ExportedServices is the list of services exported to this peering.
+	ExportedServices []string
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
 	// ModifyIndex is the latest Raft index at which the Peering. was modified.

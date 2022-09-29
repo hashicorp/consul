@@ -697,15 +697,15 @@ agent. The table below describes the additional metrics exported by the proxy.
 
 | Metric                                | Description                                                           | Unit   | Type    |
 | ------------------------------------- | ----------------------------------------------------------------------| ------ | ------- |
-| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.             | count  | gauge   |
+| `consul.peering.exported_services`    | Counts the number of services exported with [exported service configuration entries](/docs/connect/config-entries/exported-services) to a peer cluster. | count    | gauge   |
 | `consul.peering.healthy`              | Tracks the health of a peering connection as reported by the server. If Consul detects errors while sending or receiving from a peer which do not recover within a reasonable time, this metric returns 0. Healthy connections return 1.  | health | gauge   |
 
 ### Labels
 
 Consul attaches the following labels to metric values.
 
-| Label Name                            | Description                                                            | Possible values                            |
-| ------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
-| `peer_name`                           | The name of the peering on the reporting cluster or leader.              | Any defined peer name in the cluster      |
-| `peer_id`                             | The ID of a peer connected to the reporting cluster or leader.                | Any UUID                                  |
+| Label Name                            | Description                                                                      | Possible values                           |
+| ------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------- |
+| `peer_name`                           | The name of the peering on the reporting cluster or leader.                      | Any defined peer name in the cluster      |
+| `peer_id`                             | The ID of a peer connected to the reporting cluster or leader.                   | Any UUID                                  |
 | `partition`                           | <EnterpriseAlert inline /> Name of the partition that the peering is created in. | Any defined partition name in the cluster |
