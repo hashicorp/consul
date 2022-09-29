@@ -532,6 +532,19 @@
         "title": "Security",
         "path": "connect/security",
         "hidden": true
+      },
+      {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "connect/dataplane/consul-dataplane"
+          }
+        ]
       }
     ]
   },
@@ -549,19 +562,6 @@
       {
         "title": "Watches",
         "path": "dynamic-app-config/watches"
-      }
-    ]
-  },
-  {
-    "title": "Consul Dataplane",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "connect/dataplane"
-      },
-      {
-        "title": "CLI Reference",
-        "path": "connect/dataplane/consul-dataplane"
       }
     ]
   },
