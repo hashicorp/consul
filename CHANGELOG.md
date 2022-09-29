@@ -1,3 +1,45 @@
+## 1.14.0-beta1 (September 29, 2022)
+
+BREAKING CHANGES:
+
+* config: Add new `ports.grpc_tls` configuration option.
+Introduce a new port to better separate TLS config from the existing `ports.grpc` config.
+The new `ports.grpc_tls` only supports TLS encrypted communication.
+The existing `ports.grpc` currently supports both plain-text and tls communication, but tls support will be removed in a future release. [[GH-14294](https://github.com/hashicorp/consul/issues/14294)]
+* xds: Convert service mesh failover to use Envoy's aggregate clusters. This
+changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io/docs/envoy/latest/configuration/upstream/cluster_manager/cluster_stats#dynamic-http-statistics). [[GH-14178](https://github.com/hashicorp/consul/issues/14178)]
+
+FEATURES:
+
+* http: Add new `get-or-empty` operation to the txn api. Refer to the [API docs](https://www.consul.io/api-docs/txn#kv-operations) for more information. [[GH-14474](https://github.com/hashicorp/consul/issues/14474)]
+* peering: Add support to failover to services running on cluster peers. [[GH-14396](https://github.com/hashicorp/consul/issues/14396)]
+* peering: Add support to redirect to services running on cluster peers with service resolvers. [[GH-14445](https://github.com/hashicorp/consul/issues/14445)]
+* ui: Added support for central config merging [[GH-14604](https://github.com/hashicorp/consul/issues/14604)]
+* ui: Detect a TokenSecretID cookie and passthrough to localStorage [[GH-14495](https://github.com/hashicorp/consul/issues/14495)]
+* ui: Use withCredentials for all HTTP API requests [[GH-14343](https://github.com/hashicorp/consul/issues/14343)]
+* xds: servers will limit the number of concurrent xDS streams they can handle to balance the load across all servers [[GH-14397](https://github.com/hashicorp/consul/issues/14397)]
+
+IMPROVEMENTS:
+
+* agent/hcp: add initial HashiCorp Cloud Platform integration [[GH-14723](https://github.com/hashicorp/consul/issues/14723)]
+* api: Add filtering support to Catalog's List Services (v1/catalog/services) [[GH-11742](https://github.com/hashicorp/consul/issues/11742)]
+* api: Increase max number of operations inside a transaction for requests to /v1/txn (128) [[GH-14599](https://github.com/hashicorp/consul/issues/14599)]
+* config-entry: Validate that service-resolver `Failover`s and `Redirect`s only
+specify `Partition` and `Namespace` on Consul Enterprise. This prevents scenarios
+where OSS Consul would save service-resolvers that require Consul Enterprise. [[GH-14162](https://github.com/hashicorp/consul/issues/14162)]
+* dns: **(Enterprise Only)** All enterprise locality labels are now optional in DNS lookups. For example, service lookups support the following format: <tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>`. [[GH-14679](https://github.com/hashicorp/consul/issues/14679)]
+* metrics: Service RPC calls less than 1ms are now emitted as a decimal number. [[GH-12905](https://github.com/hashicorp/consul/issues/12905)]
+* peering: adds an internally managed server certificate for automatic TLS between servers in peer clusters. [[GH-14556](https://github.com/hashicorp/consul/issues/14556)]
+* xds: Set `max_ejection_percent` on Envoy's outlier detection to 100% for peered services. [[GH-14373](https://github.com/hashicorp/consul/issues/14373)]
+
+BUG FIXES:
+
+* checks: Do not set interval as timeout value [[GH-14619](https://github.com/hashicorp/consul/issues/14619)]
+* checks: If set, use proxy address for automatically added sidecar check instead of service address. [[GH-14433](https://github.com/hashicorp/consul/issues/14433)]
+* cli: Fix Consul kv CLI 'GET' flags 'keys' and 'recurse' to be set together [[GH-13493](https://github.com/hashicorp/consul/issues/13493)]
+* metrics: Add duplicate metrics that have only a single "consul_" prefix for all existing metrics with double ("consul_consul_") prefix, with the intent to standardize on single prefixes. [[GH-14475](https://github.com/hashicorp/consul/issues/14475)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
 ## 1.13.2 (September 20, 2022)
 
 SECURITY:
