@@ -9,42 +9,22 @@ description: >-
 
 ## Release Highlights
 
-- **Consul CNI Plugin**: This release introduces the Consul CNI Plugin for Consul on Kubernetes, to allow for configuring traffic redirection rules without escalated container privileges such as `CAP_NET_ADMIN`. Refer to [Enable the Consul CNI Plugin](/docs/k8s/installation/install#enable-the-consul-cni-plugin) for more details. The Consul CNI Plugin is supported for Consul K8s 0.49.0+ and Consul 1.13.1+.
+- **Consul CNI Plugin - OpenShift support**: Support for OpenShift and Multus CNI plugin [GH-1527]
 
-- **Kubernetes 1.24 Support**: Add support for Kubernetes 1.24 where ServiceAccounts no longer have long-term JWT tokens. [[GH-1431](https://github.com/hashicorp/consul-k8s/pull/1431)]
+- **Consul API Gateway secondary datacenter support**: Use global ACL auth method to provision ACL tokens for API Gateway in secondary datacenter and Set primary datacenter flag when deploying controller into secondary datacenter with federation enabled [GH-1481]
+
+- **Cluster Peering**: pass new use_auto_cert value to gRPC TLS config when auto-encrypt is enabled. [GH-1541]
+
+- **Service tag annotation improvements**: Support escaped commas in service tag annotations for pods which use consul.hashicorp.com/connect-service-tags or consul.hashicorp.com/service-tags. [GH-1532]
   
 - **MaxInboundConnections in service-defaults CRD**: Add support for MaxInboundConnections on the Service Defaults CRD. [[GH-1437](https://github.com/hashicorp/consul-k8s/pull/1437)]
-
-- **API Gateway: ACL auth when using WAN Federation**: Configure ACL auth for controller correctly when deployed in secondary datacenter with federation enabled [[GH-1462](https://github.com/hashicorp/consul-k8s/pull/1462)]
-
-## What has Changed
-
-- **Kubernetes 1.24 Support for multiport applications require Kubernetes secrets**: Users deploying multiple services to the same Pod (multiport) on Kubernetes 1.24+ must also deploy a Kubernetes secret for each ServiceAccount associated with the Consul service. The name of the Secret must match the ServiceAccount name and be of type `kubernetes.io/service-account-token`
-Example:
-
-  ```yaml
-  apiVersion: v1
-  kind: Secret
-  metadata:
-    name: svc1
-    annotations:
-      kubernetes.io/service-account.name: svc1
-  type: kubernetes.io/service-account-token
-  ---
-  apiVersion: v1
-  kind: Secret
-  metadata:
-    name: svc2
-    annotations:
-      kubernetes.io/service-account.name: svc2
-  type: kubernetes.io/service-account-token
-  ```
 
 ## Supported Software
 
 - Consul 1.11.x, Consul 1.12.x and Consul 1.13.1+
 - Kubernetes 1.19-1.24
 - Kubectl 1.19+
+- Helm 3.2+
 - Envoy proxy support is determined by the Consul version deployed. Refer to
   [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
@@ -55,7 +35,7 @@ For detailed information on upgrading, please refer to the [Upgrades page](/docs
 ## Known Issues
 The following issues are know to exist in the v0.49.0 release: 
 
-- Consul CNI Plugin currently does not support RedHat OpenShift as the CNI Plugin Daemonset requires additional SecurityContextConstraint objects to run on OpenShift. Support for OpenShift will be added in an upcoming release. 
+- Kubernetes 1.25 is not supported as the [pod security admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) is not supported by Consul K8s. 
 
 ## Changelogs
 
