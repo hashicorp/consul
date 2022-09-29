@@ -111,7 +111,7 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
-const consulPeerList = consulPeerListFactory(collection, isPresent, attribute);
+const consulPeerList = consulPeerListFactory(collection, isPresent, attribute, morePopoverMenu);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
   collection,
