@@ -76,7 +76,11 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - All paths were updated to use Windows format.
 - Created *stop_and_copy_files* function to copy files into the shared volume (see [volume issues](#volume-issues)).
 - Changed the *-admin-bind* value from `0.0.0.0` to `127.0.0.1` when generating the Envoy Bootstrap files.
-- Removed the *&&* from the *common_run_container_service's* docker exec command and replaced it with *\*.  
+- Removed the *&&* from the *common_run_container_service's* docker exec command and replaced it with *\*.
+- Removed *docker_wget* and *docker_curl* functions from [helpers.windows.bash](helpers.windows.bash) file and replaced them with **docker_consul_exec**, this way we avoid starting intermediate containers when capturing logs.
+- The function *wipe_volumes* uses a `docker exec` command instead of the original `docker run`, this way we speed up test execution by avoiding to start a new container just to delete volume content before each test run.
+- For **case-grpc** we increased the `envoy_stats_flush_interval` value from 1s to 5s, on Windows, the original value caused the test to pass or fail randomly.
+- For **case-cfg-resolver-svc-failover** the changes introduced by **PR #14178** (August 12th, 2022 3:30 PM) on the [verify.bats](./case-cfg-resolver-svc-failover/verify.bats) were causing this test to fail on Windows and Linux, after reverting those changes tests passed on both platforms.  
 
 ## Volume Issues
 
