@@ -183,8 +183,7 @@ func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits 
 	return testCA(t, xc, keyType, keyBits, 0)
 }
 
-func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
-
+func testLeafWithID(t testing.T, spiffeId CertURI, dnsSAN string, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
 	if expiration == 0 {
 		// this is 10 years
 		expiration = 10 * 365 * 24 * time.Hour
@@ -238,6 +237,7 @@ func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, caSigner.Public()),
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
+		DNSNames:       []string{dnsSAN},
 	}
 
 	// Create the certificate, PEM encode it and return that value.
@@ -263,7 +263,7 @@ func TestAgentLeaf(t testing.T, node string, datacenter string, root *structs.CA
 		Agent:      node,
 	}
 
-	return testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
+	return testLeafWithID(t, spiffeId, "", root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
 }
 
 func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
@@ -275,7 +275,7 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 		Service:    service,
 	}
 
-	return testLeafWithID(t, spiffeId, root, keyType, keyBits, 0)
+	return testLeafWithID(t, spiffeId, "", root, keyType, keyBits, 0)
 }
 
 // TestLeaf returns a valid leaf certificate and it's private key for the named
@@ -305,7 +305,23 @@ func TestMeshGatewayLeaf(t testing.T, partition string, root *structs.CARoot) (s
 		Datacenter: "dc1",
 	}
 
-	certPEM, keyPEM, err := testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
+	certPEM, keyPEM, err := testLeafWithID(t, spiffeId, "", root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	return certPEM, keyPEM
+}
+
+func TestServerLeaf(t testing.T, dc string, root *structs.CARoot) (string, string) {
+	t.Helper()
+
+	spiffeID := &SpiffeIDServer{
+		Datacenter: dc,
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+	}
+	san := PeeringServerSAN(dc, TestTrustDomain)
+
+	certPEM, keyPEM, err := testLeafWithID(t, spiffeID, san, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

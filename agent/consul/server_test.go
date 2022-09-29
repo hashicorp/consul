@@ -232,7 +232,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -247,15 +247,32 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
-	if srv.config.GRPCPort > 0 {
+	for _, grpcPort := range []int{srv.config.GRPCPort, srv.config.GRPCTLSPort} {
+		if grpcPort == 0 {
+			continue
+		}
+
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
-		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-		ln, err := net.Listen("tcp", externalGRPCAddr)
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
 
-		// Wrap the listener with TLS
-		if deps.TLSConfigurator.GRPCServerUseTLS() {
+		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
+			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
+				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
+				cert, _ := srv.config.CAConfig.Config["RootCert"].(string)
+				if key != "" && cert != "" {
+					ca := &structs.CARoot{
+						SigningKey: key,
+						RootCert:   cert,
+					}
+					require.NoError(t, deps.TLSConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, srv.config.Datacenter, ca)))
+					deps.TLSConfigurator.UpdateAutoTLSPeeringServerName(connect.PeeringServerSAN("dc1", connect.TestTrustDomain))
+				}
+			}
+
+			// Wrap the listener with TLS.
 			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
 		}
 

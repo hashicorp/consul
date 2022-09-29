@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -33,28 +34,52 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+type tlsMode byte
+
+const (
+	tlsModeNone tlsMode = iota
+	tlsModeManual
+	tlsModeAuto
+)
+
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, false)
+		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, tlsModeNone)
 	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, true)
+	t.Run("manual-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, tlsModeManual)
+	})
+	t.Run("auto-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, tlsModeAuto)
 	})
 }
 
-func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS bool) {
+func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, mode tlsMode) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
+		if mode == tlsModeManual {
+			c.ConnectEnabled = false
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		}
+		if mode == tlsModeAuto {
+			c.CAConfig = &structs.CAConfiguration{
+				ClusterID: connect.TestClusterID,
+				Provider:  structs.ConsulCAProvider,
+				Config: map[string]interface{}{
+					"PrivateKey": ca.SigningKey,
+					"RootCert":   ca.RootCert,
+				},
+			}
+
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -94,11 +119,6 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -345,26 +365,42 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 
 func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, false)
+		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, tlsModeNone)
 	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, true)
+	t.Run("manual-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, tlsModeManual)
+	})
+	t.Run("auto-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, tlsModeAuto)
 	})
 }
 
-func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS bool) {
+func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, mode tlsMode) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
+		if mode == tlsModeManual {
+			c.ConnectEnabled = false
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		}
+		if mode == tlsModeAuto {
+			c.CAConfig = &structs.CAConfiguration{
+				ClusterID: connect.TestClusterID,
+				Provider:  structs.ConsulCAProvider,
+				Config: map[string]interface{}{
+					"PrivateKey": ca.SigningKey,
+					"RootCert":   ca.RootCert,
+				},
+			}
+
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -399,11 +435,6 @@ func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS b
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -496,6 +527,7 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
 
+		c.ConnectEnabled = false
 		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
