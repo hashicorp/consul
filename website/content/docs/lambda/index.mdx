@@ -30,18 +30,6 @@ You can also add the `consul-lambda-extension` plugin as a layer in your Lambda 
 
 Refer to [Invoke Services from Lambda Functions](/docs/lambda/invoke-from-lambda) for additional information about registering Lambda functions into Consul.
 
-## Cross-datacenter communication
-
-You can use the following Consul features to send cross-datacenter requests between Lambda functions and mesh services. 
-
-### Mesh gateway WAN federation
-
-Mesh gateways enable you to route traffic to services within and across Consul datacenters. WAN federation refers to designating a _primary datacenter_ that contains authoritative information about all datacenters, including service mesh configurations and access control list (ACL) resources. Refer to [Mesh Gateways for WAN Federation](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
+Consul mesh gateways are required to send requests from Lambda functions to mesh services. Refer to [Mesh Gateways between Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information.
 
 Note that mesh gateways do not implement L7 traffic management by default. As a result, requests from Lambda functions ignore service routes and splitters.
-
-#### Admin partitions 
-
-If admin partitions are enabled and the datacenters are federated across the WAN using mesh gateways, then you can only route requests from Lambda functions by applying an [`exported-services`](/docs/connect/config-entries/exported-services) configuration entry to export their service instances. This is required even if the upstream for the Lambda function is in the same admin partition. Otherwise, Consul does not populate the mesh gateways with the routing information.
-
-You can also use the [admin partitions](/docs/enterprise/partitions) feature included with Consul Enterprise to define separate administrative areas within a datacenter. If admin partitions are not enabled and the datacenters are federated across the WAN using mesh gateways, then you can route all services through the mesh gateways by default. You do not need to use the [`exported-services`](/docs/connect/config-entries/exported-services) configuration entry to export service instances. 

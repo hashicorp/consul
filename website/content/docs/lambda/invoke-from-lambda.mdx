@@ -14,7 +14,6 @@ This topic describes how to invoke services in the mesh from Lambda functions re
 The following steps describe the process:
 
 1. Deploy the services you want to allow the Lambda function to invoke. 
-1. (Optional) Enable L7 traffic management in the local datacenter.
 1. Deploy the mesh gateway.
 1. Deploy the Lambda registrator.
 1. Invoke the the Lambda function. 
@@ -25,7 +24,7 @@ The layer runs an external Lambda extension that starts a sidecar proxy. The pro
 
 ## Prerequisites
 
-You must deploy the destination services and mesh gateway prior to deploying your Lambda service with the `consul-lambda-extension` layer. It’s not required, but you can also enable L7 traffic management in the local datacenter prior to implementing the `consul-lambda-extension` layer. 
+You must deploy the destination services and mesh gateway prior to deploying your Lambda service with the `consul-lambda-extension` layer. 
 
 ### Deploy the destination service
 
@@ -79,36 +78,7 @@ spec:
       serviceAccountName: static-server
 ```
 
-### Enable L7 traffic management (optional)
 
-Mesh gateways do not implement L7 traffic management features, but you can enable L7 in the local data center so that your service can use service resolvers, splitters, and routers.
-
-1. Define an `exported-services` configuration entry. Refer to [Exported Services](/docs/connect/config-entries/exported-services) for additional information. The following example exports `static-server` service instances to a peered cluster specified in the `PeerName` field. 
-
-    <CodeBlock filename="static-server-configuration-entry.hcl">
-
-    ```hcl
-    Kind = "exported-services"
-    Name = "default"
-    Services = [
-        {
-            Name = "static-server"
-            Consumers = [
-                {
-                    PeerName = "<name of the peered cluster that dials the exported service>"
-                }
-            ]
-        }
-    ]
-    ```
-
-    </CodeBlock>
-  
-1. Apply the configuration using the Consul CLI or by using a custom resource definition (CRD) if Consul is running on Kubernetes. The following example shows the command line  usage:
-
-    ```shell-session
-    $ consul config write static-server-configuration-entry.hcl
-    ``` 
 ### Deploy the mesh gateway
 
 The mesh gateway must be running and registered to the Lambda function’s Consul datacenter.  Refer to the following documentation and tutorials for instructions:
@@ -292,7 +262,7 @@ Define the following environment variables in your Lambda functions to configure
 
 ## Invoke the Lambda function
 
-You can create an _intention_ in Consul prior to invoking the Lambda function. Intentions  define access control for services in the mesh. Refer to [Service Mesh Intentions](/docs/connect/intentions) for additional information.
+If _intentions_ are enabled in the Consul service mesh, you must create an intention that allows the Lambda function's Consul service to invoke all upstream services prior to invoking the Lambda function. Refer to [Service Mesh Intentions](/docs/connect/intentions) for additional information.
 
 There are several ways to invoke Lambda functions. In the following example, the `aws lambda invoke` CLI command invokes the function.:
 
