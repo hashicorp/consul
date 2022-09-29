@@ -553,6 +553,19 @@
     ]
   },
   {
+    "title": "Consul Dataplane",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "connect/dataplane"
+      },
+      {
+        "title": "CLI Reference",
+        "path": "connect/dataplane/consul-dataplane"
+      }
+    ]
+  },
+  {
     "title": "Security",
     "routes": [
       {
@@ -950,19 +963,6 @@
         "path": "k8s/annotations-and-labels"
       },
       {
-        "title": "Consul Dataplane",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "k8s/dataplane"
-          },
-          {
-            "title": "CLI Reference",
-            "path": "k8s/dataplane/consul-dataplane"
-          }
-        ]
-      },
-      {
         "title": "Consul DNS",
         "path": "k8s/dns"
       },
@@ -976,6 +976,19 @@
           {
             "title": "Upgrading Consul K8s CLI",
             "path": "k8s/upgrade/upgrade-cli"
+          }
+        ]
+      },
+      {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "connect/dataplane/consul-dataplane"
           }
         ]
       },

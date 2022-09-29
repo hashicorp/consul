@@ -11,6 +11,8 @@ description: >-
 
 This topic provides an overview of Consul Dataplane, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers.
 
+Consul Dataplane requires servers running Consul v1.14-beta+.
+
 ## What is Consul Dataplane?
 
 In standard deployments, Consul uses a control plane that contains both *server agents* and *client agents*. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes already include components called *kubelets* that support health checking and service location functions typically provided by the client agent.
