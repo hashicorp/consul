@@ -192,6 +192,36 @@ $ consul connect envoy -bootstrap > bootstrap.json
 ```
 
 Then, open `bootstrap.json` and add your ACL token and log path to the file.
+<CodeBlockConfig filename="bootstrap.json" hideClipboard lineNumbers highlight="2,19">
+
+```json
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  ## ...
+  "dynamic_resources": {
+    ## ...
+    "ads_config": {
+      ## ...
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": "<ACL-Token>"
+          }
+        ],
+        ## ...
+      }
+    }
+  }
+}
+```
 
 To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
 
