@@ -21,7 +21,7 @@ Consul Dataplane manages Envoy proxies and leaves responsibility for other funct
 
 ## Benefits
 
-**Fewer networking requirements**: Without client agents, Consul doesn’t need to ensure bidirectional network connectivity across multiple protocols to enable gossip communication. Instead, it requires a single gRPC connection to the Consul servers, which significantly simplifies requirements for the operator.
+**Fewer networking requirements**: Without client agents, Consul does not require bidirectional network connectivity across multiple protocols to enable gossip communication. Instead, it requires a single gRPC connection to the Consul servers, which significantly simplifies requirements for the operator.
 
 **Simplified set up**: Because there are no client agents to engage in gossip, you do not have to generate and distribute a gossip encryption key to agents during the initial bootstrapping process. Securing agent communication also becomes simpler, with fewer tokens to track, distribute, and rotate.
 
