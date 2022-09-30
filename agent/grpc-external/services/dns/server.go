@@ -93,6 +93,8 @@ func (b *BufferResponseWriter) TsigTimersOnly(bool) {}
 // After a call to Hijack(), the DNS package will not do anything with the connection. {
 func (b *BufferResponseWriter) Hijack() {}
 
+// Query is a gRPC endpoint that will serve dns requests. It will be consumed primarily by the
+// consul dataplane to proxy dns requests to consul.
 func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.QueryResponse, error) {
 	pr, ok := peer.FromContext(ctx)
 	if !ok {
