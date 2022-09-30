@@ -138,7 +138,7 @@ this is required for the Consul components to communicate with the Consul server
     you can run:
 
     ```shell-session
-    $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul -f values.yaml
     ```
 
     Role for Consul clients:
@@ -153,7 +153,7 @@ this is required for the Consul components to communicate with the Consul server
 
     To find out the service account name of the Consul client, use the command below.
     ```shell-session
-    $ helm template --release-name ${RELEASE_NAME} --show-only templates/client-serviceaccount.yaml hashicorp/consul
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/client-serviceaccount.yaml hashicorp/consul -f values.yaml
     ```
 
     Role for CA components:
