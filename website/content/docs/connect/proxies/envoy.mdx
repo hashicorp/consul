@@ -222,6 +222,10 @@ Then, open `bootstrap.json` and update the following sections with your ACL toke
     }
   }
 }
+```
+</CodeBlockConfig>
+
+To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
 
 ```shell-session
 $ envoy -c bootstrap.json
