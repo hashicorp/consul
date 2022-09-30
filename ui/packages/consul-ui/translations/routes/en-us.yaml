@@ -121,11 +121,11 @@ dc:
             }
         body: |
           {items, select,
-            0 {No peers where found matching that search}
-            other {Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {canUsePartitions, select,
+            0 {Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {canUsePartitions, select,
               true {admin partition}
               other {datacenter}
             }}
+            other {No peers were found matching that search}
           }{canUseACLs, select,
             true {, or you may not have the <code>peering:read</code> permissions to access this view.}
             other {.}
@@ -153,7 +153,7 @@ dc:
               true {, or you may not have access to view partitions yet.}
               other {.}
             }}
-            other {No partitions where found matching that search{canUseACLs, select,
+            other {No partitions were found matching that search{canUseACLs, select,
               true {, or you may not have access to view the namesapces you are searching}
               other {.}
             }}
@@ -168,7 +168,7 @@ dc:
           }
         body: |
           {items, select,
-            0 {No namespaces where found matching that search{canUseACLs, select,
+            0 {No namespaces were found matching that search{canUseACLs, select,
               true {, or you may not have access to view the namespaces you are searching for.}
               other {.}
             }}
