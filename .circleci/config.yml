@@ -891,20 +891,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_20_6:
+  envoy-integration-test-1_20_7:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.6"
+      ENVOY_VERSION: "1.20.7"
 
-  envoy-integration-test-1_21_3:
+  envoy-integration-test-1_21_5:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.21.4"
+      ENVOY_VERSION: "1.21.5"
 
-  envoy-integration-test-1_22_2:
+  envoy-integration-test-1_22_5:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.22.2"
+      ENVOY_VERSION: "1.22.5"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1124,13 +1124,13 @@ workflows:
       - envoy-integration-test-1_19_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_6:
+      - envoy-integration-test-1_20_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_21_3:
+      - envoy-integration-test-1_21_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_22_2:
+      - envoy-integration-test-1_22_5:
           requires:
             - dev-build
       - compatibility-integration-test:
