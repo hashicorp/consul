@@ -1479,7 +1479,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `aclSyncToken` ((#v-synccatalog-aclsynctoken)) - Refers to a Kubernetes secret that you have created that contains
     an ACL token for your Consul cluster which allows the sync process the correct
-    permissions. This is only needed if ACLs are managed manually within the Consul cluster.
+    permissions. This is only needed if ACLs are managed manually within the Consul cluster, i.e. `global.acls.manageSystemACLs` is `false`.
 
     - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the acl sync token.
 
@@ -1597,6 +1597,17 @@ Use these links to navigate to a particular top-level stanza.
       ```
 
     - `cniNetDir` ((#v-connectinject-cni-cninetdir)) (`string: /etc/cni/net.d`) - Location on the kubernetes node of all CNI configuration. Should be the absolute path and start with a '/'
+
+    - `multus` ((#v-connectinject-cni-multus)) (`string: false`) - If multus CNI plugin is enabled with consul-cni. When enabled, consul-cni will not be installed as a chained
+      CNI plugin. Instead, a NetworkAttachementDefinition CustomResourceDefinition (CRD) will be created in the helm
+      release namespace. Following multus plugin standards, an annotation is required in order for the consul-cni plugin
+      to be executed and for your service to be added to the Consul Service Mesh. 
+
+      Add the annotation `'k8s.v1.cni.cncf.io/networks': '[{ "name":"consul-cni","namespace": "consul" }]'` to your pod
+      to use the default installed NetworkAttachementDefinition CRD.
+
+      Please refer to the [Multus Quickstart Guide](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md)
+      for more information about using multus.
 
     - `resources` ((#v-connectinject-cni-resources)) (`map`) - The resource settings for CNI installer daemonset.
 
