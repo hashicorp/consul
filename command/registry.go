@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/hashicorp/consul/command/acl"
@@ -125,6 +126,8 @@ import (
 	"github.com/hashicorp/consul/command/cli"
 )
 
+const OSPlatform = runtime.GOOS
+
 // RegisteredCommands returns a realized mapping of available CLI commands in a format that
 // the CLI class can consume.
 func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
@@ -180,7 +183,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil }},
 		entry{"connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil }},
 		entry{"connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil }},
-		entry{"connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil }},
+		entry{"connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui, OSPlatform), nil }},
 		entry{"connect envoy pipe-bootstrap", func(ui cli.Ui) (cli.Command, error) { return pipebootstrap.New(ui), nil }},
 		entry{"connect expose", func(ui cli.Ui) (cli.Command, error) { return expose.New(ui), nil }},
 		entry{"connect redirect-traffic", func(ui cli.Ui) (cli.Command, error) { return redirecttraffic.New(ui), nil }},
