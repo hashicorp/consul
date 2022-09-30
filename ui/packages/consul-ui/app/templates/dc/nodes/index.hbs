@@ -107,6 +107,18 @@ as |route|>
                   htmlSafe=true
                 }}
               </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_DEVELOPER_URL'}}/agent" rel="noopener noreferrer" target="_blank">
+                    Documentation on Nodes
+                  </a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env "CONSUL_DOCS_LEARN_URL"}}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents" rel="noopener noreferrer" target="_blank">
+                    Learn guides
+                  </a>
+                </li>
+              </BlockSlot>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
