@@ -192,6 +192,7 @@ $ consul connect envoy -bootstrap > bootstrap.json
 ```
 
 Then, open `bootstrap.json` and update the following sections with your ACL token and log path.
+
 <CodeBlockConfig filename="bootstrap.json" hideClipboard lineNumbers highlight="2,19">
 
 ```json
@@ -221,9 +222,6 @@ Then, open `bootstrap.json` and update the following sections with your ACL toke
     }
   }
 }
-```
-
-To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
 
 ```shell-session
 $ envoy -c bootstrap.json
