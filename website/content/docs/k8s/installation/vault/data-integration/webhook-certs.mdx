@@ -169,7 +169,7 @@ this is required for the Consul components to communicate with the Consul server
     you can run:
 
     ```shell-session
-    $ helm template --release-name ${RELEASE_NAME} --show-only templates/controller-serviceaccount.yaml hashicorp/consul
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/controller-serviceaccount.yaml hashicorp/consul -f values.yaml
     ```
 
     Role for Consul connect inject webhooks:
@@ -184,7 +184,7 @@ this is required for the Consul components to communicate with the Consul server
 
     To find out the service account name of the Consul connect inject, use the command below.
     ```shell-session
-    $ helm template --release-name ${RELEASE_NAME} --show-only templates/connect-inject-serviceaccount.yaml hashicorp/consul
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/connect-inject-serviceaccount.yaml hashicorp/consul -f values.yaml
     ```
 
 ## Update Consul on Kubernetes Helm chart
