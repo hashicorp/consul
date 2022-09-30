@@ -70,7 +70,7 @@ To find out the service account name of the Consul snapshot agent,
 you can run the following `helm template` command with your Consul on Kubernetes values file:
 
 ```shell-session
-$ helm template --release-name ${RELEASE_NAME} -s templates/client-snapshot-agent-serviceaccount.yaml hashicorp/consul
+$ helm template --release-name ${RELEASE_NAME} -s templates/client-snapshot-agent-serviceaccount.yaml hashicorp/consul -f values.yaml
 ```
 
 ## Update Consul on Kubernetes Helm chart
