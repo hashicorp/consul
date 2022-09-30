@@ -104,6 +104,7 @@ One of the primary use cases for admin partitions is for enabling a service mesh
 
 - If you are deploying Consul servers on Kubernetes, then ensure that the Consul servers are deployed within the same Kubernetes cluster. Consul servers may be deployed external to Kubernetes and configured using the `externalServers` stanza.
 - Consul clients deployed on the same Kubernetes cluster as the Consul Servers must use the `default` partition. If the clients are required to run on a non-default partition, then the clients must be deployed in a separate Kubernetes cluster.
+- For Kubernetes clusters that join the Consul datacenter as admin partitions, ensure that a unique `global.name` value is assigned for the corresponding Helm `values.yaml` file. 
 - A Consul Enterprise license must be installed on each Kubernetes cluster.
 - The helm chart for consul-k8s v0.39.0 or greater.
 - Consul 1.11.1-ent or greater.
@@ -171,7 +172,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.12.0-ent
+    image: hashicorp/consul-enterprise:1.13.2-ent
     adminPartitions:
       enabled: true
     acls:
@@ -203,7 +204,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the Consul server(s) using the values file created in the previous step:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "0.43.0" --create-namespace --namespace consul --values server.yaml
+  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values server.yaml
   ```
 
 1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
@@ -248,7 +249,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   ```
 
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
-   In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique global name is assigned.
+   In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique `global.name` value is assigned.
 
   <CodeTabs heading="client.yaml">
 
@@ -259,7 +260,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     name: client
     enabled: false
     enableConsulNamespaces: true
-    image: hashicorp/consul-enterprise:1.12.0-ent
+    image: hashicorp/consul-enterprise:1.13.2-ent
     adminPartitions:
       enabled: true
       name: clients
@@ -308,7 +309,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the workload client clusters:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace --namespace consul --values client.yaml
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values client.yaml
   ```
 
 ### Verifying the Deployment
