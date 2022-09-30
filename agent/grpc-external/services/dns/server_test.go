@@ -58,7 +58,7 @@ func (s *DNSTestSuite) TestProxy_Success() {
 	server := NewServer(Config{
 		Logger:      hclog.Default(),
 		DNSServeMux: mux,
-		LocalAddress: Local{
+		LocalAddr: LocalAddr{
 			net.IPv4(127, 0, 0, 1),
 			0,
 		},

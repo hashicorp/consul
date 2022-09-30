@@ -15,15 +15,15 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbdns"
 )
 
-type Local struct {
+type LocalAddr struct {
 	IP   net.IP
 	Port int
 }
 
 type Config struct {
-	Logger       hclog.Logger
-	DNSServeMux  *dns.ServeMux
-	LocalAddress Local
+	Logger      hclog.Logger
+	DNSServeMux *dns.ServeMux
+	LocalAddr   LocalAddr
 }
 
 type Server struct {
@@ -40,7 +40,7 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 
 // BufferResponseWriter writes a DNS response to a byte buffer.
 type BufferResponseWriter struct {
-	ResponseBuffer []byte
+	responseBuffer []byte
 	LocalAddress   net.Addr
 	RemoteAddress  net.Addr
 	Logger         hclog.Logger
@@ -64,15 +64,14 @@ func (b *BufferResponseWriter) WriteMsg(m *dns.Msg) error {
 		b.Logger.Error("error packing message", "err", err)
 		return err
 	}
-	b.ResponseBuffer = msgBytes
+	b.responseBuffer = msgBytes
 	return nil
 }
 
 // Write writes a raw buffer back to the client.
 func (b *BufferResponseWriter) Write(m []byte) (int, error) {
-	b.Logger.Info("Write was called")
-	copy(b.ResponseBuffer, m)
-	return len(b.ResponseBuffer), nil
+	b.Logger.Debug("Write was called")
+	return copy(b.responseBuffer, m), nil
 }
 
 // Close closes the connection.
@@ -108,11 +107,11 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 	switch req.GetProtocol() {
 	case pbdns.Protocol_PROTOCOL_TCP:
 		remote = pr.Addr
-		local = &net.TCPAddr{IP: s.LocalAddress.IP, Port: s.LocalAddress.Port}
+		local = &net.TCPAddr{IP: s.LocalAddr.IP, Port: s.LocalAddr.Port}
 	case pbdns.Protocol_PROTOCOL_UDP:
 		remoteAddr := pr.Addr.(*net.TCPAddr)
 		remote = &net.UDPAddr{IP: remoteAddr.IP, Port: remoteAddr.Port}
-		local = &net.UDPAddr{IP: s.LocalAddress.IP, Port: s.LocalAddress.Port}
+		local = &net.UDPAddr{IP: s.LocalAddr.IP, Port: s.LocalAddr.Port}
 	default:
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error protocol type not set: %v", req.GetProtocol()))
 	}
@@ -131,7 +130,7 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 	}
 	s.DNSServeMux.ServeDNS(respWriter, msg)
 
-	queryResponse := &pbdns.QueryResponse{Msg: respWriter.ResponseBuffer}
+	queryResponse := &pbdns.QueryResponse{Msg: respWriter.responseBuffer}
 
 	return queryResponse, nil
 }
