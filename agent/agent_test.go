@@ -28,8 +28,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/serf/coordinate"
@@ -47,6 +45,8 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -6082,8 +6082,6 @@ func TestAgent_startListeners_scada(t *testing.T) {
 }
 
 func TestAgent_scadaProvider(t *testing.T) {
-	t.Parallel()
-
 	pvd := scada.NewMockProvider(t)
 
 	// this listener is used when mocking out the scada provider
@@ -6095,7 +6093,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 	pvd.EXPECT().Start().Return(nil).Once()
 	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
-	pvd.EXPECT().SessionStatus().Return("test").Once()
+	pvd.EXPECT().SessionStatus().Return("test")
 	a := TestAgent{
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd
