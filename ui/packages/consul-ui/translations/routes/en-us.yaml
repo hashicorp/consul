@@ -71,6 +71,8 @@ dc:
               other {.}
             }
           </p>
+        documentation: Documentation on Nodes
+        learn: Take the tutorial
     show:
       rtt:
         title: Round Trip Time
