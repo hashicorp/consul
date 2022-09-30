@@ -296,7 +296,10 @@ dc:
                 {items, select,
                   0 {There don't seem to be any Intentions in this Consul cluster}
                   other {No Intentions were found matching your search}
-                }, or you may not have <code>intentions:read</code> permissions access to this view.
+                }{canUseACLs, select,
+                  true {, or you may not have <code>intentions:read</code> permissions access to this view.}
+                  other {.}
+                }
               </p>
 
       instances:
