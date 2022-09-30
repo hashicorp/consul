@@ -42,6 +42,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
@@ -920,6 +921,15 @@ func (a *Agent) listenAndServeDNS() error {
 			}
 		}(addr)
 	}
+	s, _ := NewDNSServer(a)
+
+	grpcDNS.NewServer(grpcDNS.Config{
+		Logger:       a.logger.Named("grpc-api.dns"),
+		DNSServeMux:  s.mux,
+		LocalAddress: grpcDNS.Local{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
