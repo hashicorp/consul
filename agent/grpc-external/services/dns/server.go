@@ -103,7 +103,8 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 	var local net.Addr
 	var remote net.Addr
 	// We do this so that we switch to udp/tcp when handling the request since it will be proxied
-	// through consul through gRPC and we need to 'fake' the protocol to get the correct response
+	// through consul through gRPC and we need to 'fake' the protocol so that the message is trimmed
+	// according to wether it is UDP or TCP.
 	switch req.GetProtocol() {
 	case pbdns.Protocol_PROTOCOL_TCP:
 		remote = pr.Addr
