@@ -185,7 +185,7 @@ Use the -bootstrap option to generate the JSON to use when running envoy on a su
 
 To bootstrap Envoy on Windows VMs, you must generate the bootstrap configuration as a .json file and then manually edit it to add both your ACL token and a valid access log path.
 
-First, add the `-bootstrap` option to the command and save the output to a file:
+To generate the bootstrap configuration file, add the `-bootstrap` option to the command and then save the output to a file:
 
 ```shell-session
 $ consul connect envoy -bootstrap > bootstrap.json
