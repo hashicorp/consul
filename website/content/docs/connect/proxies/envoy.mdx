@@ -174,7 +174,7 @@ definition](/docs/connect/registration/service-registration) or
 
 The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
 
-### Bootstrap Consul on Windows VMs
+### Bootstrap Envoy on Windows VMs
 
 If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
 
@@ -191,7 +191,7 @@ First, add the `-bootstrap` option to the command and save the output to a file:
 $ consul connect envoy -bootstrap > bootstrap.json
 ```
 
-Then, open `bootstrap.json` and add your ACL token and log path to the file.
+Then, open `bootstrap.json` and update the following sections with your ACL token and log path.
 <CodeBlockConfig filename="bootstrap.json" hideClipboard lineNumbers highlight="2,19">
 
 ```json
@@ -226,7 +226,7 @@ Then, open `bootstrap.json` and add your ACL token and log path to the file.
 To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
 
 ```shell-session
-envoy -c bootstrap.json
+$ envoy -c bootstrap.json
 ```
 
 ~> **Security Note**: The bootstrap JSON contains the ACL token and should be handled as a secret. Because this token authorizes the identity of any service it has `service:write` permissions for, it can be used to access upstream services.
