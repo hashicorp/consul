@@ -14,7 +14,15 @@
         "title": "Service Mesh",
         "path": "concepts/service-mesh"
       }
+    ],
+    "title": "Consul versus other",
+    "routes": [
+      {
+        "title": "Consul vs other",
+        "path": "concepts/consul-vs-other"  
+      }
     ]
+
   },
   {
     "title": "Get Started",
