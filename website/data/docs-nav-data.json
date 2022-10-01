@@ -1083,11 +1083,6 @@
   },
   {
     "title": "AWS Lambda",
-    "badge": {
-      "text": "BETA",
-      "type": "outlined",
-      "color": "neutral"
-    },
     "routes": [
       {
         "title": "Overview",
@@ -1116,7 +1111,12 @@
       },
       {
         "title": "Invoke Services from Lambda Functions",
-        "path": "lambda/invoke-from-lambda"
+        "path": "lambda/invoke-from-lambda",
+        "badge": {
+          "text": "BETA",
+          "type": "outlined",
+          "color": "neutral"
+        }    
       }
     ]
   },

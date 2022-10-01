@@ -20,9 +20,11 @@ Refer to [Lambda Function Registration Requirements](/docs/lambda/registration/i
 
 After registering AWS Lambda functions, you can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connect proxies.
 
-Refer to Invoke Lambda Functions from Services for details.
+Refer to [Invoke Lambda Functions from Services](/docs/lambda/invocation) for details.
 
 ## Invoke mesh services from Lambda function 
+
+~> **Lambda-to-mesh functionality is currently in beta**: Functionality associated with beta features are subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support. 
 
 You can also add the `consul-lambda-extension` plugin as a layer in your Lambda functions, which enables them to send requests to services in the mesh. The plugin starts a lightweight sidecar proxy that directs requests from Lambda functions to [mesh gateways](docs/connect/gateways#mesh-gateways). The gateways route traffic to the destination service to complete the request.  
 
@@ -32,4 +34,4 @@ Refer to [Invoke Services from Lambda Functions](/docs/lambda/invoke-from-lambda
 
 Consul mesh gateways are required to send requests from Lambda functions to mesh services. Refer to [Mesh Gateways between Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information.
 
-Note that mesh gateways do not implement L7 traffic management by default. As a result, requests from Lambda functions ignore service routes and splitters.
+Note that L7 traffic management features are not supported. As a result, requests from Lambda functions ignore service routes and splitters.

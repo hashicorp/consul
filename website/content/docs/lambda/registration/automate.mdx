@@ -98,7 +98,7 @@ If you want to enable Lambda functions to invoke services in the mesh, then you 
 
 Lambda registrator encrypts and stores all data for Lambda functions in the AWS Parameter Store according to the [Lambda registrator configuration options](#lambda-registrator-configuration-options). The data is stored in the following directory as a `SecureString` type:
 
-`${var.consul_extension_data_prefix}/${<partition>}/${<namespace>}/${<service_name>}` 
+`${consul_extension_data_prefix}/${<partition>}/${<namespace>}/${<service_name>}` 
 
 The registrator also requires the following IAM permissions to access the parameter store:
 
@@ -167,8 +167,8 @@ resource "aws_lambda_function" "example" {
   function_name = "lambda"
   tags = {
     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
-    "serverless.consul.hashicorp.com/alpha/lambda/payload-passthrough" = "true"
-    "serverless.consul.hashicorp.com/alpha/lambda/invocation-mode" = "ASYNCHRONOUS"
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough" = "true"
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/invocation-mode" = "ASYNCHRONOUS"
   }
 }
 ```

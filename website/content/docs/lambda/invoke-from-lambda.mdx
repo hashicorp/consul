@@ -9,16 +9,20 @@ description: >-
 
 This topic describes how to invoke services in the mesh from Lambda functions registered with Consul. 
 
+~> **Lambda-to-mesh functionality is currently in beta**: Functionality associated with beta features are subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.
+
 ## Introduction
 
 The following steps describe the process:
 
-1. Deploy the services you want to allow the Lambda function to invoke. 
-1. Deploy the mesh gateway.
+1. Deploy the destination service and mesh gateway. 
+1. Deploy the Lambda extension layer
 1. Deploy the Lambda registrator.
-1. Invoke the the Lambda function. 
+1. Write the Lambda function code.
+1. Deploy the Lambda function.
+1. Invoke the Lambda function. 
 
-You must add the `consul-lambda-extension` extension as a Lambda layer to enable Lambda functions to send requests to mesh services. Refer to the [AWS Lambdas documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html) for instructions on how to add layers to your Lambda functions. 
+You must add the `consul-lambda-extension` extension as a Lambda layer to enable Lambda functions to send requests to mesh services. Refer to the [AWS Lambda documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-layers.html) for instructions on how to add layers to your Lambda functions. 
 
 The layer runs an external Lambda extension that starts a sidecar proxy. The proxy listens on one port for each upstream service and upgrades the outgoing connections to mTLS. It then proxies the requests through to [mesh gateways](/docs/connect/gateways#mesh-gateways).
 
@@ -78,7 +82,6 @@ spec:
       serviceAccountName: static-server
 ```
 
-
 ### Deploy the mesh gateway
 
 The mesh gateway must be running and registered to the Lambda function’s Consul datacenter.  Refer to the following documentation and tutorials for instructions:
@@ -101,16 +104,16 @@ The extension periodically retrieves the data from the AWS Parameter Store so th
     ```
 1. Create the AWS Lambda layer in the same AWS region as the Lambda function. You can create the layer manually using the AWS CLI or AWS Console, but we recommend using Terraform:
 
-    <CodeBlockConfig filename="consul-lambda-extension.tf">
+  <CodeBlockConfig filename="consul-lambda-extension.tf">
 
-      ```
-      resource "aws_lambda_layer_version" "consul_lambda_extension" {
-          layer_name       = "consul-lambda-extension"
-          filename         = "consul-lambda-extension_<version>_linux_amd64.zip"
-      source_code_hash = filebase64sha256("consul-lambda-extension_<version>_linux_amd64.zip")
-          description      = "Consul service mesh extension for AWS Lambda"
-      }
-      ```
+    ```hcl
+    resource "aws_lambda_layer_version" "consul_lambda_extension" {
+        layer_name       = "consul-lambda-extension"
+        filename         = "consul-lambda-extension_<version>_linux_amd64.zip"
+        source_code_hash = filebase64sha256("consul-lambda-extension_<version>_linux_amd64.zip")
+        description      = "Consul service mesh extension for AWS Lambda"
+    }
+    ```
 
     </CodeBlockConfig>
 
@@ -234,9 +237,9 @@ func main() {
     }
     variables = {
         environment = {
-        CONSUL_MESH_GATEWAY_URI = var.mesh_gateway_http_addr
-        CONSUL_SERVICE_UPSTREAMS = "static-server:2345:dc1"
-        CONSUL_EXTENSION_DATA_PREFIX = “/lambda_extension_data”
+          CONSUL_MESH_GATEWAY_URI = var.mesh_gateway_http_addr
+          CONSUL_SERVICE_UPSTREAMS = "static-server:2345:dc1"
+          CONSUL_EXTENSION_DATA_PREFIX = "/lambda_extension_data"
         }
     }
     layers = [aws_lambda_layer_version.consul_lambda_extension.arn]  
@@ -258,7 +261,7 @@ Define the following environment variables in your Lambda functions to configure
 | `CONSUL_SERVICE_NAMESPACE` | Specifies the Consul namespace the service is registered into. | `default` |
 | `CONSUL_SERVICE_PARTITION` | Specifies the Consul partition the service is registered into. | `default` |
 | `CONSUL_REFRESH_FREQUENCY` | Specifies the amount of time the extension waits before re-pulling data from the Parameter Store. Use [Go `time.Duration`](https://pkg.go.dev/time@go1.19.1#ParseDuration) string values, for example, `”30s”`. <br/>The time is added to the duration configured in the Lambda registrator `sync_frequency_in_minutes` configuration. Refer to [Lambda registrator configuration options](/docs/lambda/registration/automate#lambda-registrator-configuration-options). The combined configurations determine how stale the data may become. Lambda functions can run for up to 14 hours, so we recommend configuring a value that results in acceptable staleness for certificates. | `“5m”` |
-| `CONSUL_SERVICE_UPSTREAMS` | Specifies the upstream services that the Lambda function can call. Specify the value as an unlabelled annotation according to the [`consul.hashicorp.com/connect-service-upstreams` annotation format](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Consul on Kubernetes. For example, `"[service-name]:[port]:[optional-datacenter]"` | none |
+| `CONSUL_SERVICE_UPSTREAMS` | Specifies a comma-separated list of upstream services that the Lambda function can call. Specify the value as an unlabelled annotation according to the [`consul.hashicorp.com/connect-service-upstreams` annotation format](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Consul on Kubernetes. For example, `"[service-name]:[port]:[optional-datacenter]"` | none |
 
 ## Invoke the Lambda function
 
@@ -267,5 +270,5 @@ If _intentions_ are enabled in the Consul service mesh, you must create an inten
 There are several ways to invoke Lambda functions. In the following example, the `aws lambda invoke` CLI command invokes the function.:
 
 ```shell-session
-$ aws lambda invoke --function-name lambda-registrator-2345 /dev/stdout | cat
+$ aws lambda invoke --function-name lambda /dev/stdout | cat
 ```
