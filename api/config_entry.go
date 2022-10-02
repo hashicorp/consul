@@ -273,7 +273,7 @@ type ProxyConfigEntry struct {
 }
 
 func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
-func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetName() string            { return ProxyConfigGlobal }
 func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
 func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
 func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }
