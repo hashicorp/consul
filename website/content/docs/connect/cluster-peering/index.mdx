@@ -22,6 +22,8 @@ Cluster peering is a process that allows Consul clusters to communicate with eac
 
 For detailed instructions on establishing cluster peering connections, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
+> To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
+
 ### Differences between WAN federation and cluster peering
 
 WAN federation and cluster peering are different ways to connect Consul deployments. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
