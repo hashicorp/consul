@@ -558,7 +558,9 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	waitForLeaderEstablishment(t, s1)
