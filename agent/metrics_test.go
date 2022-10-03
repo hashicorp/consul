@@ -47,7 +47,7 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
-// assertMetricExistsWithLabels looks in the prometheus metrics reponse for the metric name and all the labels. eg:
+// assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
 // new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
 func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
 	if respRec.Body.String() == "" {
@@ -136,6 +136,28 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
+func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	metrics := respRec.Body.String()
+	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+
+	for _, line := range strings.Split(metrics, "\n") {
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, labelWithValueTarget) {
+			s := strings.SplitN(line, " ", 2)
+			if s[1] == "0" {
+				t.Fatalf("Metric with label provided \"%s:%s\" has the value 0", label, labelValue)
+			}
+		}
+	}
+}
+
 func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -205,6 +227,8 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
+		// make sure rpc calls with elapsed time below 1ms are reported as decimal
+		assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
 	})
 }
 

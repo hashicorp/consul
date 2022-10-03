@@ -17,7 +17,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 	testutil.RunStep(t, "set and get", func(t *testing.T) {
 		exports := &ExportedServicesConfigEntry{
 			Name:      PartitionDefaultName,
-			Partition: splitDefaultPartition,
+			Partition: defaultPartition,
 			Meta: map[string]string{
 				"gir": "zim",
 			},
@@ -48,7 +48,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 			Services: []ExportedService{
 				{
 					Name:      "db",
-					Namespace: splitDefaultNamespace,
+					Namespace: defaultNamespace,
 					Consumers: []ServiceConsumer{
 						{
 							PeerName: "alpha",
@@ -60,7 +60,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: splitDefaultPartition,
+			Partition: defaultPartition,
 		}
 
 		_, wm, err := entries.Set(updated, nil)

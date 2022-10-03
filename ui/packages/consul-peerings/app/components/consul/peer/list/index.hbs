@@ -4,7 +4,9 @@
   @items={{@items}}
 as |item index|>
   <BlockSlot @name="header">
-    <p>
+    <p 
+      data-test-peer={{item.Name}}
+    >
       {{item.Name}}
     </p>
   </BlockSlot>
@@ -44,7 +46,7 @@ as |item index|>
     <Actions as |Action|>
 {{#if (can "write peer" item=item)}}
         <Action
-          data-test-edit-action
+          data-test-regenerate-action
           {{on 'click' (fn @onedit item)}}
         >
           <BlockSlot @name="label">

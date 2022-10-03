@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/ipaddr"
@@ -9,8 +10,15 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func sidecarServiceID(serviceID string) string {
-	return serviceID + "-sidecar-proxy"
+const sidecarIDSuffix = "-sidecar-proxy"
+
+func sidecarIDFromServiceID(serviceID string) string {
+	return serviceID + sidecarIDSuffix
+}
+
+// reverses the sidecarIDFromServiceID operation
+func serviceIDFromSidecarID(sidecarID string) string {
+	return strings.TrimSuffix(sidecarID, sidecarIDSuffix)
 }
 
 // sidecarServiceFromNodeService returns a *structs.NodeService representing a
@@ -30,7 +38,7 @@ func sidecarServiceID(serviceID string) string {
 // registration. This will be the same as the token parameter passed unless the
 // SidecarService definition contains a distinct one.
 // TODO: return AddServiceRequest
-func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
+func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil
 	}
@@ -43,7 +51,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 	// Override the ID which must always be consistent for a given outer service
 	// ID. We rely on this for lifecycle management of the nested definition.
-	sidecar.ID = sidecarServiceID(ns.ID)
+	sidecar.ID = sidecarIDFromServiceID(ns.ID)
 
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
@@ -114,30 +122,18 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
-	if sidecar.Port < 1 {
-		port, err := a.sidecarPortFromServiceID(sidecar.CompoundServiceID())
-		if err != nil {
-			return nil, nil, "", err
-		}
-		sidecar.Port = port
-	}
-
 	// Setup checks
 	checks, err := ns.Connect.SidecarService.CheckTypes()
 	if err != nil {
 		return nil, nil, "", err
 	}
-	// Setup default check if none given
-	if len(checks) < 1 {
-		checks = sidecarDefaultChecks(ns.ID, sidecar.Proxy.LocalServiceAddress, sidecar.Port)
-	}
 
 	return sidecar, checks, token, nil
 }
 
-// sidecarPortFromServiceID is used to allocate a unique port for a sidecar proxy.
+// sidecarPortFromServiceIDLocked is used to allocate a unique port for a sidecar proxy.
 // This is called immediately before registration to avoid value collisions. This function assumes the state lock is already held.
-func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.ServiceID) (int, error) {
+func (a *Agent) sidecarPortFromServiceIDLocked(sidecarCompoundServiceID structs.ServiceID) (int, error) {
 	sidecarPort := 0
 
 	// Allocate port if needed (min and max inclusive).
@@ -202,14 +198,23 @@ func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.Servic
 	return sidecarPort, nil
 }
 
-func sidecarDefaultChecks(serviceID string, localServiceAddress string, port int) []*structs.CheckType {
-	// Setup default check if none given
+func sidecarDefaultChecks(sidecarID string, sidecarAddress string, proxyServiceAddress string, port int) []*structs.CheckType {
+	// The check should use the sidecar's address because it makes a request to the sidecar.
+	// If the sidecar's address is empty, we fall back to the address of the local service, as set in
+	// sidecar.Proxy.LocalServiceAddress, in the hope that the proxy is also accessible on that address
+	// (which in most cases it is because it's running as a sidecar in the same network).
+	// We could instead fall back to the address of the service as set by (ns.Address), but I've kept it using
+	// sidecar.Proxy.LocalServiceAddress so as to not change things too much in the
+	// process of fixing #14433.
+	checkAddress := sidecarAddress
+	if checkAddress == "" {
+		checkAddress = proxyServiceAddress
+	}
+	serviceID := serviceIDFromSidecarID(sidecarID)
 	return []*structs.CheckType{
 		{
-			Name: "Connect Sidecar Listening",
-			// Default to localhost rather than agent/service public IP. The checks
-			// can always be overridden if a non-loopback IP is needed.
-			TCP:      ipaddr.FormatAddressPort(localServiceAddress, port),
+			Name:     "Connect Sidecar Listening",
+			TCP:      ipaddr.FormatAddressPort(checkAddress, port),
 			Interval: 10 * time.Second,
 		},
 		{

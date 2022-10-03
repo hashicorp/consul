@@ -27,7 +27,11 @@ references:
     - &default_envoy_version "1.20.6"
     - "1.21.4"
     - "1.22.2"
-    - "1.23.0"
+    - "1.23.1"
+  nomad-versions: &supported_nomad_versions
+    - &default_nomad_version "1.3.3"
+    - "1.2.10"
+    - "1.1.16"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -105,15 +109,18 @@ commands:
         type: env_var_name
         default: ROLE_ARN
     steps:
+      # Only run the assume-role command for the main repo. The AWS credentials aren't available for forks.
       - run: |
-          export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
-          export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
-          export ROLE_ARN="${<< parameters.role-arn >>}"
-          # assume role has duration of 15 min (the minimum allowed)
-          CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
-          echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
-          echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
-          echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
+          if [[ "${CIRCLE_BRANCH%%/*}/" != "pull/" ]]; then
+            export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
+            export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
+            export ROLE_ARN="${<< parameters.role-arn >>}"
+            # assume role has duration of 15 min (the minimum allowed)
+            CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
+            echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
+          fi
 
   run-go-test-full:
     parameters:
@@ -560,17 +567,20 @@ jobs:
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
-  # Nomad 0.8 builds on go1.10
-  # Run integration tests on nomad/v0.8.7
-  nomad-integration-0_8:
+  nomad-integration-test: &NOMAD_TESTS
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.19
+    parameters:
+      nomad-version:
+        type: enum
+        enum: *supported_nomad_versions
+        default: *default_nomad_version
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: v0.8.7
+      NOMAD_VERSION: << parameters.nomad-version >>
     steps: &NOMAD_INTEGRATION_TEST_STEPS
-      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+      - run: git clone https://github.com/hashicorp/nomad.git --branch v${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
@@ -600,16 +610,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  # run integration tests on nomad/main
-  nomad-integration-main:
-    docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.18
-    environment:
-      <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: main
-    steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   # build frontend yarn cache
   frontend-cache:
@@ -816,7 +816,7 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      # Build the consul-dev image from the already built binary
+      # Build the consul:local image from the already built binary
       - run:
           command: |
             sudo rm -rf /usr/local/go
@@ -887,8 +887,8 @@ jobs:
       - attach_workspace:
           at: .
       - run: *install-gotestsum
-      # Build the consul-dev image from the already built binary
-      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
+      # Build the consul:local image from the already built binary
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
           command: |
@@ -902,6 +902,7 @@ jobs:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
             COMPOSE_INTERACTIVE_NO_CLI: 1
+            LAMBDA_TESTS_ENABLED: "true"
             # tput complains if this isn't set to something.
             TERM: ansi
       - store_artifacts:
@@ -1117,12 +1118,12 @@ workflows:
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-main:
+      - nomad-integration-test:
           requires:
             - dev-build
-      - nomad-integration-0_8:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              nomad-version: *supported_nomad_versions
       - envoy-integration-test:
           requires:
             - dev-build

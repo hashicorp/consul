@@ -25,6 +25,6 @@ export default class IntentionPermissionHttp extends Fragment {
 
   @computed(...schema.PathType.allowedValues)
   get PathType() {
-    return schema.PathType.allowedValues.find(prop => typeof this[prop] === 'string');
+    return schema.PathType.allowedValues.find((prop) => typeof this[prop] === 'string');
   }
 }

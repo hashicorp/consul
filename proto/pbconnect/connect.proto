@@ -165,6 +165,10 @@ message IssuedCert {
   // KindURI is the cert URI value.
   string KindURI = 13;
 
+  // ServerURI is the URI value of a cert issued for a server agent.
+  // The same URI is shared by all servers in a Consul datacenter.
+  string ServerURI = 14;
+
   // ValidAfter and ValidBefore are the validity periods for the
   // certificate.
   // mog: func-to=structs.TimeFromProto func-from=structs.TimeToProto

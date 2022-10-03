@@ -1,0 +1,4 @@
+```release-note:feature
+service-defaults: Added support for `local_request_timeout_ms` and
+`local_connect_timeout_ms` in servicedefaults config entry
+```

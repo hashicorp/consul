@@ -1,8 +1,6 @@
 (routes => routes({
   dc: {
-    show: {
-      license: null,
-    },
+    show: null
   },
 }))(
   (json, data = (typeof document !== 'undefined' ? document.currentScript.dataset : module.exports)) => {

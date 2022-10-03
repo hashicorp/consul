@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -576,7 +577,10 @@ func (c *compiler) assembleChain() error {
 	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
-		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", "", ""))
+		node, err := c.getSplitterOrResolverNode(c.newTarget(structs.DiscoveryTargetOpts{
+			Service: c.serviceName,
+		}))
+
 		if err != nil {
 			return err
 		}
@@ -626,11 +630,20 @@ func (c *compiler) assembleChain() error {
 		)
 		if dest.ServiceSubset == "" {
 			node, err = c.getSplitterOrResolverNode(
-				c.newTarget(svc, "", destNamespace, destPartition, ""),
-			)
+				c.newTarget(structs.DiscoveryTargetOpts{
+					Service:   svc,
+					Namespace: destNamespace,
+					Partition: destPartition,
+				},
+				))
 		} else {
 			node, err = c.getResolverNode(
-				c.newTarget(svc, dest.ServiceSubset, destNamespace, destPartition, ""),
+				c.newTarget(structs.DiscoveryTargetOpts{
+					Service:       svc,
+					ServiceSubset: dest.ServiceSubset,
+					Namespace:     destNamespace,
+					Partition:     destPartition,
+				}),
 				false,
 			)
 		}
@@ -642,7 +655,12 @@ func (c *compiler) assembleChain() error {
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), router.PartitionOrDefault(), ""))
+	opts := structs.DiscoveryTargetOpts{
+		Service:   router.Name,
+		Namespace: router.NamespaceOrDefault(),
+		Partition: router.PartitionOrDefault(),
+	}
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(opts))
 	if err != nil {
 		return err
 	}
@@ -674,26 +692,36 @@ func newDefaultServiceRoute(serviceName, namespace, partition string) *structs.S
 	}
 }
 
-func (c *compiler) newTarget(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
-	if service == "" {
+func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.DiscoveryTarget {
+	if opts.Service == "" {
 		panic("newTarget called with empty service which makes no sense")
 	}
 
-	t := structs.NewDiscoveryTarget(
-		service,
-		serviceSubset,
-		defaultIfEmpty(namespace, c.evaluateInNamespace),
-		defaultIfEmpty(partition, c.evaluateInPartition),
-		defaultIfEmpty(datacenter, c.evaluateInDatacenter),
-	)
+	if opts.Peer == "" {
+		opts.Datacenter = defaultIfEmpty(opts.Datacenter, c.evaluateInDatacenter)
+		opts.Namespace = defaultIfEmpty(opts.Namespace, c.evaluateInNamespace)
+		opts.Partition = defaultIfEmpty(opts.Partition, c.evaluateInPartition)
+	} else {
+		// Don't allow Peer and Datacenter.
+		opts.Datacenter = ""
+		// Peer and Partition cannot both be set.
+		opts.Partition = acl.PartitionOrDefault("")
+		// Default to "default" rather than c.evaluateInNamespace.
+		opts.Namespace = acl.PartitionOrDefault(opts.Namespace)
+	}
 
-	// Set default connect SNI. This will be overridden later if the service
-	// has an explicit SNI value configured in service-defaults.
-	t.SNI = connect.TargetSNI(t, c.evaluateInTrustDomain)
+	t := structs.NewDiscoveryTarget(opts)
 
-	// Use the same representation for the name. This will NOT be overridden
-	// later.
-	t.Name = t.SNI
+	// We don't have the peer's trust domain yet so we can't construct the SNI.
+	if opts.Peer == "" {
+		// Set default connect SNI. This will be overridden later if the service
+		// has an explicit SNI value configured in service-defaults.
+		t.SNI = connect.TargetSNI(t, c.evaluateInTrustDomain)
+
+		// Use the same representation for the name. This will NOT be overridden
+		// later.
+		t.Name = t.SNI
+	}
 
 	prev, ok := c.loadedTargets[t.ID]
 	if ok {
@@ -703,34 +731,30 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, partition, datac
 	return t
 }
 
-func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, partition, namespace, datacenter string) *structs.DiscoveryTarget {
-	var (
-		service2       = t.Service
-		serviceSubset2 = t.ServiceSubset
-		partition2     = t.Partition
-		namespace2     = t.Namespace
-		datacenter2    = t.Datacenter
-	)
+func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, opts structs.DiscoveryTargetOpts) *structs.DiscoveryTarget {
+	mergedOpts := t.ToDiscoveryTargetOpts()
 
-	if service != "" && service != service2 {
-		service2 = service
+	if opts.Service != "" && opts.Service != mergedOpts.Service {
+		mergedOpts.Service = opts.Service
 		// Reset the chosen subset if we reference a service other than our own.
-		serviceSubset2 = ""
+		mergedOpts.ServiceSubset = ""
 	}
-	if serviceSubset != "" {
-		serviceSubset2 = serviceSubset
+	if opts.ServiceSubset != "" {
+		mergedOpts.ServiceSubset = opts.ServiceSubset
 	}
-	if partition != "" {
-		partition2 = partition
+	if opts.Partition != "" {
+		mergedOpts.Partition = opts.Partition
 	}
-	if namespace != "" {
-		namespace2 = namespace
+	// Only use explicit Namespace with Peer
+	if opts.Namespace != "" || opts.Peer != "" {
+		mergedOpts.Namespace = opts.Namespace
 	}
-	if datacenter != "" {
-		datacenter2 = datacenter
+	if opts.Datacenter != "" {
+		mergedOpts.Datacenter = opts.Datacenter
 	}
+	mergedOpts.Peer = opts.Peer
 
-	return c.newTarget(service2, serviceSubset2, namespace2, partition2, datacenter2)
+	return c.newTarget(mergedOpts)
 }
 
 func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
@@ -803,10 +827,13 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 			// fall through to group-resolver
 		}
 
-		node, err := c.getResolverNode(
-			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), splitID.PartitionOrDefault(), ""),
-			false,
-		)
+		opts := structs.DiscoveryTargetOpts{
+			Service:       splitID.ID,
+			ServiceSubset: split.ServiceSubset,
+			Namespace:     splitID.NamespaceOrDefault(),
+			Partition:     splitID.PartitionOrDefault(),
+		}
+		node, err := c.getResolverNode(c.newTarget(opts), false)
 		if err != nil {
 			return nil, err
 		}
@@ -881,11 +908,7 @@ RESOLVE_AGAIN:
 
 		redirectedTarget := c.rewriteTarget(
 			target,
-			redirect.Service,
-			redirect.ServiceSubset,
-			redirect.Partition,
-			redirect.Namespace,
-			redirect.Datacenter,
+			redirect.ToDiscoveryTargetOpts(),
 		)
 		if redirectedTarget.ID != target.ID {
 			target = redirectedTarget
@@ -895,14 +918,9 @@ RESOLVE_AGAIN:
 
 	// Handle default subset.
 	if target.ServiceSubset == "" && resolver.DefaultSubset != "" {
-		target = c.rewriteTarget(
-			target,
-			"",
-			resolver.DefaultSubset,
-			"",
-			"",
-			"",
-		)
+		target = c.rewriteTarget(target, structs.DiscoveryTargetOpts{
+			ServiceSubset: resolver.DefaultSubset,
+		})
 		goto RESOLVE_AGAIN
 	}
 
@@ -1027,55 +1045,53 @@ RESOLVE_AGAIN:
 			failover, ok = f["*"]
 		}
 
-		if ok {
-			// Determine which failover definitions apply.
-			var failoverTargets []*structs.DiscoveryTarget
-			if len(failover.Datacenters) > 0 {
-				for _, dc := range failover.Datacenters {
-					// Rewrite the target as per the failover policy.
-					failoverTarget := c.rewriteTarget(
-						target,
-						failover.Service,
-						failover.ServiceSubset,
-						target.Partition,
-						failover.Namespace,
-						dc,
-					)
-					if failoverTarget.ID != target.ID { // don't failover to yourself
-						failoverTargets = append(failoverTargets, failoverTarget)
-					}
-				}
-			} else {
+		if !ok {
+			return node, nil
+		}
+
+		// Determine which failover definitions apply.
+		var failoverTargets []*structs.DiscoveryTarget
+		if len(failover.Datacenters) > 0 {
+			opts := failover.ToDiscoveryTargetOpts()
+			for _, dc := range failover.Datacenters {
 				// Rewrite the target as per the failover policy.
-				failoverTarget := c.rewriteTarget(
-					target,
-					failover.Service,
-					failover.ServiceSubset,
-					target.Partition,
-					failover.Namespace,
-					"",
-				)
+				opts.Datacenter = dc
+				failoverTarget := c.rewriteTarget(target, opts)
 				if failoverTarget.ID != target.ID { // don't failover to yourself
 					failoverTargets = append(failoverTargets, failoverTarget)
 				}
 			}
-
-			// If we filtered everything out then no point in having a failover.
-			if len(failoverTargets) > 0 {
-				df := &structs.DiscoveryFailover{}
-				node.Resolver.Failover = df
-
-				// Take care of doing any redirects or configuration loading
-				// related to targets by cheating a bit and recursing into
-				// ourselves.
-				for _, target := range failoverTargets {
-					failoverResolveNode, err := c.getResolverNode(target, true)
-					if err != nil {
-						return nil, err
-					}
-					failoverTarget := failoverResolveNode.Resolver.Target
-					df.Targets = append(df.Targets, failoverTarget)
+		} else if len(failover.Targets) > 0 {
+			for _, t := range failover.Targets {
+				// Rewrite the target as per the failover policy.
+				failoverTarget := c.rewriteTarget(target, t.ToDiscoveryTargetOpts())
+				if failoverTarget.ID != target.ID { // don't failover to yourself
+					failoverTargets = append(failoverTargets, failoverTarget)
 				}
+			}
+		} else {
+			// Rewrite the target as per the failover policy.
+			failoverTarget := c.rewriteTarget(target, failover.ToDiscoveryTargetOpts())
+			if failoverTarget.ID != target.ID { // don't failover to yourself
+				failoverTargets = append(failoverTargets, failoverTarget)
+			}
+		}
+
+		// If we filtered everything out then no point in having a failover.
+		if len(failoverTargets) > 0 {
+			df := &structs.DiscoveryFailover{}
+			node.Resolver.Failover = df
+
+			// Take care of doing any redirects or configuration loading
+			// related to targets by cheating a bit and recursing into
+			// ourselves.
+			for _, target := range failoverTargets {
+				failoverResolveNode, err := c.getResolverNode(target, true)
+				if err != nil {
+					return nil, err
+				}
+				failoverTarget := failoverResolveNode.Resolver.Target
+				df.Targets = append(df.Targets, failoverTarget)
 			}
 		}
 	}

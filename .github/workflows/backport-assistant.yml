@@ -16,7 +16,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.2.3
+    container: hashicorpdev/backport-assistant:0.2.5
     steps:
       - name: Run Backport Assistant for stable-website
         run: |
@@ -24,6 +24,7 @@ jobs:
         env:
           BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
           BACKPORT_TARGET_TEMPLATE: "stable-website"
+          BACKPORT_MERGE_COMMIT: true
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       - name: Backport changes to latest release branch
         run: |

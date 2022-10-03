@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -14,10 +16,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -218,9 +222,10 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var dir string
 	var srv *Server
 
+	var config *Config
+	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		var config *Config
 		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
@@ -234,7 +239,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		srv, err = newServer(t, config)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -245,9 +251,14 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
 		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-
 		ln, err := net.Listen("tcp", externalGRPCAddr)
 		require.NoError(t, err)
+
+		// Wrap the listener with TLS
+		if deps.TLSConfigurator.GRPCServerUseTLS() {
+			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+		}
+
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
 		}()
@@ -300,8 +311,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"))
+	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
 	}
@@ -2003,4 +2014,28 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
 	// test corollary by transitivity to future-proof against any setup bugs
 	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
+}
+
+func TestServer_hcpManager(t *testing.T) {
+	_, conf1 := testServerConfig(t)
+	conf1.BootstrapExpect = 1
+	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	hcp1 := hcp.NewMockClient(t)
+	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcp.ServerStatus) bool {
+		return status.ID == string(conf1.NodeID)
+	})).Run(func(ctx context.Context, status *hcp.ServerStatus) {
+		require.Equal(t, status.LanAddress, "127.0.0.2")
+	}).Call.Return(nil)
+
+	deps1 := newDefaultDeps(t, conf1)
+	deps1.HCP.Client = hcp1
+	s1, err := newServerWithDeps(t, conf1, deps1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+	require.NotNil(t, s1.hcpManager)
+	waitForLeaderEstablishment(t, s1)
+	hcp1.AssertExpectations(t)
+
 }

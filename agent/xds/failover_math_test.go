@@ -15,15 +15,40 @@ func TestFirstHealthyTarget(t *testing.T) {
 	warning := proxycfg.TestUpstreamNodesInStatus(t, "warning")
 	critical := proxycfg.TestUpstreamNodesInStatus(t, "critical")
 
-	warnOnlyPassingTarget := structs.NewDiscoveryTarget("all-warn", "", "default", "default", "dc1")
+	warnOnlyPassingTarget := structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+		Service:    "all-warn",
+		Namespace:  "default",
+		Partition:  "default",
+		Datacenter: "dc1",
+	})
 	warnOnlyPassingTarget.Subset.OnlyPassing = true
-	failOnlyPassingTarget := structs.NewDiscoveryTarget("all-fail", "", "default", "default", "dc1")
+	failOnlyPassingTarget := structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+		Service:    "all-fail",
+		Namespace:  "default",
+		Partition:  "default",
+		Datacenter: "dc1",
+	})
 	failOnlyPassingTarget.Subset.OnlyPassing = true
 
 	targets := map[string]*structs.DiscoveryTarget{
-		"all-ok.default.dc1":               structs.NewDiscoveryTarget("all-ok", "", "default", "default", "dc1"),
-		"all-warn.default.dc1":             structs.NewDiscoveryTarget("all-warn", "", "default", "default", "dc1"),
-		"all-fail.default.default.dc1":     structs.NewDiscoveryTarget("all-fail", "", "default", "default", "dc1"),
+		"all-ok.default.dc1": structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+			Service:    "all-ok",
+			Namespace:  "default",
+			Partition:  "default",
+			Datacenter: "dc1",
+		}),
+		"all-warn.default.dc1": structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+			Service:    "all-warn",
+			Namespace:  "default",
+			Partition:  "default",
+			Datacenter: "dc1",
+		}),
+		"all-fail.default.default.dc1": structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+			Service:    "all-fail",
+			Namespace:  "default",
+			Partition:  "default",
+			Datacenter: "dc1",
+		}),
 		"all-warn-onlypassing.default.dc1": warnOnlyPassingTarget,
 		"all-fail-onlypassing.default.dc1": failOnlyPassingTarget,
 	}

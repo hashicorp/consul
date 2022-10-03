@@ -495,6 +495,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					structs.Upstream{
 						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-to-peer",
+						LocalBindPort:   10007,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
 						DestinationName: "api-dc2",
 						LocalBindPort:   10006,
 					},
@@ -550,6 +555,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeNone,
+					},
+				}),
+				fmt.Sprintf("discovery-chain:%s-failover-to-peer", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-to-peer",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: meshGatewayProxyConfigValue,
 					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
@@ -639,6 +654,26 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					Err: nil,
 				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-to-peer", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-to-peer", "default", "default", "dc1", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
+							}, &structs.ServiceResolverConfigEntry{
+								Kind: structs.ServiceResolver,
+								Name: "api-failover-to-peer",
+								Failover: map[string]structs.ServiceResolverFailover{
+									"*": {
+										Targets: []structs.ServiceResolverFailoverTarget{
+											{Peer: "cluster-01"},
+										},
+									},
+								},
+							}),
+					},
+					Err: nil,
+				},
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
@@ -646,14 +681,17 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Equal(t, indexedRoots, snap.Roots)
 
 				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
-				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
-				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
-				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
-				require.Len(t, snap.ConnectProxy.WatchedGateways, 5, "%+v", snap.ConnectProxy.WatchedGateways)
-				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 6, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 6, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 6, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 6, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 6, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
@@ -667,6 +705,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				fmt.Sprintf("upstream-target:api-failover-remote.default.default.dc2:%s-failover-remote?dc=dc2", apiUID.String()): genVerifyServiceSpecificRequest("api-failover-remote", "", "dc2", true),
 				fmt.Sprintf("upstream-target:api-failover-local.default.default.dc2:%s-failover-local?dc=dc2", apiUID.String()):   genVerifyServiceSpecificRequest("api-failover-local", "", "dc2", true),
 				fmt.Sprintf("upstream-target:api-failover-direct.default.default.dc2:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyServiceSpecificRequest("api-failover-direct", "", "dc2", true),
+				upstreamPeerWatchIDPrefix + fmt.Sprintf("%s-failover-to-peer?peer=cluster-01", apiUID.String()):                   genVerifyServiceSpecificPeeredRequest("api-failover-to-peer", "", "", "cluster-01", true),
 				fmt.Sprintf("mesh-gateway:dc2:%s-failover-remote?dc=dc2", apiUID.String()):                                        genVerifyGatewayWatch("dc2"),
 				fmt.Sprintf("mesh-gateway:dc1:%s-failover-local?dc=dc2", apiUID.String()):                                         genVerifyGatewayWatch("dc1"),
 			},
@@ -676,14 +715,17 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Equal(t, indexedRoots, snap.Roots)
 
 				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
-				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
-				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
-				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
-				require.Len(t, snap.ConnectProxy.WatchedGateways, 5, "%+v", snap.ConnectProxy.WatchedGateways)
-				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 6, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 6, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 6, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 6, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 6, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
@@ -737,6 +779,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Service: "mesh-gateway",
 				Address: "10.0.1.1",
 				Port:    443,
+				Meta: map[string]string{
+					structs.MetaWANFederationKey: "1",
+				},
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
@@ -748,6 +793,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
 						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
+						consulServerListWatchID:    genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -885,7 +931,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					events: []UpdateEvent{
 						{
 							CorrelationID: "mesh-gateway:dc4",
-							Result: &structs.IndexedNodesWithGateways{
+							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: TestGatewayNodesDC4Hostname(t),
 							},
 							Err: nil,
@@ -969,6 +1015,186 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 						}
 						require.Equal(t, snap.MeshGateway.HostnameDatacenters["dc5"], expect)
+					},
+				},
+			},
+		},
+		"mesh-gateway-peering-control-plane": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Address: "10.0.1.1",
+				Port:    443,
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						datacentersWatchID:         verifyDatacentersWatch,
+						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
+						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
+						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "gateway without root is not valid")
+					},
+				},
+				{
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									Peering: &structs.PeeringMeshConfig{
+										PeerThroughMeshGateways: true,
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: exportedServiceListWatchID,
+							Result: &structs.IndexedExportedServiceList{
+								Services: nil,
+							},
+						},
+						{
+							CorrelationID: serviceListWatchID,
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{},
+							},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.True(t, snap.MeshGateway.PeeringTrustBundlesSet)
+						require.True(t, snap.MeshGateway.MeshConfigSet)
+
+						require.True(t, snap.Valid(), "gateway without services is valid")
+						require.True(t, snap.ConnectProxy.isEmpty())
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						consulServerListWatchID: genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: consulServerListWatchID,
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node1",
+											Address:    "127.0.0.1",
+										},
+										Service: &structs.NodeService{
+											ID:      structs.ConsulServiceID,
+											Service: structs.ConsulServiceName,
+										},
+									},
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "replica1",
+											Address:    "127.0.0.1",
+										},
+										Service: &structs.NodeService{
+											ID:      structs.ConsulServiceID,
+											Service: structs.ConsulServiceName,
+											Meta:    map[string]string{"read_replica": "true"},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+
+						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						require.True(t, ok)
+
+						expect := structs.CheckServiceNodes{
+							{
+								Node: &structs.Node{
+									Datacenter: "dc1",
+									Node:       "node1",
+									Address:    "127.0.0.1",
+								},
+								Service: &structs.NodeService{
+									ID:      structs.ConsulServiceID,
+									Service: structs.ConsulServiceName,
+								},
+							},
+							{
+								Node: &structs.Node{
+									Datacenter: "dc1",
+									Node:       "replica1",
+									Address:    "127.0.0.1",
+								},
+								Service: &structs.NodeService{
+									ID:      structs.ConsulServiceID,
+									Service: structs.ConsulServiceName,
+									Meta:    map[string]string{"read_replica": "true"},
+								},
+							},
+						}
+						require.Equal(t, expect, servers)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									Peering: &structs.PeeringMeshConfig{
+										PeerThroughMeshGateways: false,
+									},
+								},
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshConfig())
+
+						require.False(t, snap.MeshGateway.WatchedConsulServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						require.False(t, ok)
+						require.Empty(t, servers)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: nil,
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Nil(t, snap.MeshConfig())
+
+						require.False(t, snap.MeshGateway.WatchedConsulServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						require.False(t, ok)
+						require.Empty(t, servers)
 					},
 				},
 			},

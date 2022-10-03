@@ -13,6 +13,17 @@
   nav .dcs li.is-local span {
     @extend %menu-panel-badge;
   }
+  nav .dcs .dc-name {
+    color: rgb(var(--tone-gray-600));
+    padding: 3.25px 0px;
+    font-weight: var(--typo-weight-semibold)
+  }
+  nav .dcs .dc-name span {
+    @extend %pill-200;
+    margin-left: 1rem;
+    background-color: rgb(var(--tone-gray-300));
+    color: rgb(var(--tone-gray-999));
+  }
   nav li.partitions,
   nav li.nspaces {
     @extend %main-nav-vertical-popover-menu;
@@ -49,11 +60,6 @@
     position: relative;
     top: 2px;
     margin-left: 2px;
-  }
-  .dc-name {
-    color: rgb(var(--tone-gray-600));
-    padding: 3.25px 0px;
-    font-weight: var(--typo-weight-semibold)
   }
 }
 .hashicorp-consul {

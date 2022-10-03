@@ -19,6 +19,7 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -177,6 +178,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Bootstrap = true
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -194,6 +196,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.BootstrapExpect = 3
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -208,6 +211,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
+			rt.TLS.ServerMode = false
 			rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4")}
 			rt.DNSAddrs = []net.Addr{tcpAddr("1.2.3.4:8600"), udpAddr("1.2.3.4:8600")}
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:8500")}
@@ -319,6 +323,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfBindAddrLAN = tcpAddr("127.0.0.1:8301")
 			rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "127.0.0.1",
@@ -659,6 +664,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -841,6 +847,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -1881,6 +1888,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1898,6 +1906,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 2
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1918,6 +1927,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 4
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1937,6 +1947,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.LeaveOnTerm = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 			rt.SkipLeaveOnInt = false
 			rt.DataDir = dataDir
 		},
@@ -3056,6 +3067,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3087,6 +3099,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3115,6 +3128,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3140,6 +3154,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3162,6 +3177,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// rpc.enable_streaming make no sense in not-server mode
 			rt.RPCConfig.EnableStreaming = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 		},
 	})
 	run(t, testCase{
@@ -3185,6 +3201,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.UseStreamingBackend = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 		},
@@ -3602,6 +3619,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectMeshGatewayWANFederationEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -4509,7 +4527,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Defaults sanity checks
 
 	run(t, testCase{
@@ -4532,7 +4550,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Auto Config related tests
 	run(t, testCase{
 		desc: "auto config and auto encrypt error",
@@ -5023,6 +5041,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
@@ -5516,7 +5535,70 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "tls.grpc without ports.https",
+		desc: "tls.grpc.use_auto_cert defaults to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert defaults to false (II)",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {}
+			}
+		`},
+		hcl: []string{`
+			tls {
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert defaults to false (III)",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+			}
+		`},
+		hcl: []string{`
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert enabled when true",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
@@ -5524,7 +5606,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			{
 				"tls": {
 					"grpc": {
-						"cert_file": "cert-1234"
+						"use_auto_cert": true
 					}
 				}
 			}
@@ -5532,20 +5614,43 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl: []string{`
 			tls {
 				grpc {
-					cert_file = "cert-1234"
+					use_auto_cert = true
 				}
 			}
 		`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
-
-			rt.TLS.GRPC.CertFile = "cert-1234"
+			rt.TLS.GRPC.UseAutoCert = true
 		},
-		expectedWarnings: []string{
-			"tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)",
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert disabled when false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"use_auto_cert": false
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {
+					use_auto_cert = false
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
 		},
 	})
 }
@@ -5885,44 +5990,51 @@ func TestLoad_FullConfig(t *testing.T) {
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
 		ConnectServerlessPluginEnabled:         true,
-		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
-		DNSARecordLimit:                        29907,
-		DNSAllowStale:                          true,
-		DNSDisableCompression:                  true,
-		DNSDomain:                              "7W1xXSqd",
-		DNSAltDomain:                           "1789hsd",
-		DNSEnableTruncate:                      true,
-		DNSMaxStale:                            29685 * time.Second,
-		DNSNodeTTL:                             7084 * time.Second,
-		DNSOnlyPassing:                         true,
-		DNSPort:                                7001,
-		DNSRecursorStrategy:                    "sequential",
-		DNSRecursorTimeout:                     4427 * time.Second,
-		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
-		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
-		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
-		DNSUDPAnswerLimit:                      29909,
-		DNSNodeMetaTXT:                         true,
-		DNSUseCache:                            true,
-		DNSCacheMaxAge:                         5 * time.Minute,
-		DataDir:                                dataDir,
-		Datacenter:                             "rzo029wg",
-		DefaultQueryTime:                       16743 * time.Second,
-		DisableAnonymousSignature:              true,
-		DisableCoordinates:                     true,
-		DisableHostNodeID:                      true,
-		DisableHTTPUnprintableCharFilter:       true,
-		DisableKeyringFile:                     true,
-		DisableRemoteExec:                      true,
-		DisableUpdateCheck:                     true,
-		DiscardCheckOutput:                     true,
-		DiscoveryMaxStale:                      5 * time.Second,
-		EnableAgentTLSForChecks:                true,
-		EnableCentralServiceConfig:             false,
-		EnableDebug:                            true,
-		EnableRemoteScriptChecks:               true,
-		EnableLocalScriptChecks:                true,
-		EncryptKey:                             "A4wELWqH",
+		Cloud: hcpconfig.CloudConfig{
+			ResourceID:   "N43DsscE",
+			ClientID:     "6WvsDZCP",
+			ClientSecret: "lCSMHOpB",
+			Hostname:     "DH4bh7aC",
+			AuthURL:      "332nCdR2",
+		},
+		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:                  29907,
+		DNSAllowStale:                    true,
+		DNSDisableCompression:            true,
+		DNSDomain:                        "7W1xXSqd",
+		DNSAltDomain:                     "1789hsd",
+		DNSEnableTruncate:                true,
+		DNSMaxStale:                      29685 * time.Second,
+		DNSNodeTTL:                       7084 * time.Second,
+		DNSOnlyPassing:                   true,
+		DNSPort:                          7001,
+		DNSRecursorStrategy:              "sequential",
+		DNSRecursorTimeout:               4427 * time.Second,
+		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
+		DNSUDPAnswerLimit:                29909,
+		DNSNodeMetaTXT:                   true,
+		DNSUseCache:                      true,
+		DNSCacheMaxAge:                   5 * time.Minute,
+		DataDir:                          dataDir,
+		Datacenter:                       "rzo029wg",
+		DefaultQueryTime:                 16743 * time.Second,
+		DisableAnonymousSignature:        true,
+		DisableCoordinates:               true,
+		DisableHostNodeID:                true,
+		DisableHTTPUnprintableCharFilter: true,
+		DisableKeyringFile:               true,
+		DisableRemoteExec:                true,
+		DisableUpdateCheck:               true,
+		DiscardCheckOutput:               true,
+		DiscoveryMaxStale:                5 * time.Second,
+		EnableAgentTLSForChecks:          true,
+		EnableCentralServiceConfig:       false,
+		EnableDebug:                      true,
+		EnableRemoteScriptChecks:         true,
+		EnableLocalScriptChecks:          true,
+		EncryptKey:                       "A4wELWqH",
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -5930,6 +6042,8 @@ func TestLoad_FullConfig(t *testing.T) {
 
 		GRPCPort:              4881,
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
+		GRPCTLSPort:           5201,
+		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6340,6 +6454,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSMinVersion:  types.TLSv1_0,
 				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
+				UseAutoCert:    true,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,
@@ -6352,6 +6467,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			NodeName:                "otlLxGaI",
 			ServerName:              "Oerr9n1G",
+			ServerMode:              true,
 			Domain:                  "7W1xXSqd",
 			EnableAgentTLSForChecks: true,
 		},
@@ -6662,6 +6778,11 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 		Cache: cache.Options{
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
+		},
+		Cloud: hcpconfig.CloudConfig{
+			ResourceID:   "cluster1",
+			ClientID:     "id",
+			ClientSecret: "secret",
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RaftProtocol:                 3,

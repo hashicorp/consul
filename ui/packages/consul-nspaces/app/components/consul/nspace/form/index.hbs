@@ -1,169 +1,159 @@
-<div
-  class="consul-nspace-form"
-  ...attributes
->
-    <DataWriter
-      @sink={{uri
-        '/${partition}/${nspace}/${dc}/nspace'
-        (hash
-          partition=''
-          nspace=''
-          dc=@item.Datacenter
-        )
-      }}
-      @type={{'nspace'}}
-      @label={{"Namespace"}}
-      @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
-      @onchange={{fn (optional @onsubmit) @item}}
-      as |writer|>
-        <BlockSlot @name="removed" as |after|>
-          <Consul::Nspace::Notifications 
-            {{notification
-              after=(action after)
-            }}
-            @type="remove"
-          />
-        </BlockSlot>
+<div class="consul-nspace-form" ...attributes>
+  <DataWriter
+    @sink={{uri
+      "/${partition}/${nspace}/${dc}/nspace"
+      (hash partition="" nspace="" dc=@item.Datacenter)
+    }}
+    @type={{"nspace"}}
+    @label={{"Namespace"}}
+    @ondelete={{fn this.onDelete @item}}
+    @onchange={{fn this.onSubmit @item}}
+    as |writer|
+  >
+    <BlockSlot @name="removed" as |after|>
+      <Consul::Nspace::Notifications
+        {{notification after=(action after)}}
+        @type="remove"
+      />
+    </BlockSlot>
 
     <BlockSlot @name="content">
 
-{{#let 
-
-  (not (can "write nspaces"))
-
-  @item
-
-  (hash
-    help='Must be a valid DNS hostname. Must contain 1-64 characters (numbers, letters, and hyphens), and must begin with a letter. Once created, this cannot be changed.'
-    Name=(array
-      (hash
-        test='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$'
-        error='Name must be a valid DNS hostname.'
-      )
-    )
-  )
-
-  (hash
-    Description=(array)
-  )
-
-as |readOnly item Name Description|}}
-<form
-  {{on 'submit' (fn writer.persist item)}}
-  {{disabled readOnly}}
->
-
-<StateChart 
-  @src={{state-chart 'validate'}}
-as |State Guard ChartAction dispatch state|>
-
-  <fieldset>
-{{#if (is "new nspace" item=item)}}
-    <TextInput
-      @name="Name"
-      @placeholder="Name"
-      @item={{item}}
-      @validations={{Name}}
-      @chart={{hash
-        state=state
-        dispatch=dispatch
+      {{#let
+        (not (can "write nspaces"))
+        @item
+        (hash
+          help="Must be a valid DNS hostname. Must contain 1-64 characters (numbers, letters, and hyphens), and must begin with a letter. Once created, this cannot be changed."
+          Name=(array
+            (hash
+              test="^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$"
+              error="Name must be a valid DNS hostname."
+            )
+          )
+        )
+        (hash Description=(array))
+        as |readOnly item Name Description|
       }}
-    />
-{{/if}}
-    <TextInput
-      @expanded={{true}}
-      @name="Description"
-      @label="Description (Optional)"
-      @item={{item}}
-      @validations={{Description}}
-      @chart={{hash
-        state=state
-        dispatch=dispatch
-      }}
-    />
-  </fieldset>
-{{#if (can 'use acls')}}
-  <fieldset id="roles">
-    <h2>Roles</h2>
-    <p>
-{{#if (can "write nspace" item=item)}}
-      By adding roles to this namespaces, you will apply them to all tokens created within this namespace.
-{{else}}
-      The following roles are applied to all tokens created within this namespace.
-{{/if}}
-    </p>
-    <RoleSelector
-      @dc={{@dc}}
-      @nspace="default"
-      @partition={{@partition}}
-      @disabled={{readOnly}}
-      @items={{item.ACLs.RoleDefaults}}
-    />
-  </fieldset>
-  <fieldset id="policies">
-    <h2>Policies</h2>
-    <p>
-{{#if (not readOnly)}}
-      By adding policies to this namespace, you will apply them to all tokens created within this namespace.
-{{else}}
-      The following policies are applied to all tokens created within this namespace.
-{{/if}}
-    </p>
-    <PolicySelector
-      @dc={{@dc}}
-      @nspace="default"
-      @partition={{@partition}}
-      @disabled={{readOnly}}
-      @allowIdentity={{false}}
-      @items={{item.ACLs.PolicyDefaults}}
-    />
-  </fieldset>
-{{/if}}
-  <div>
-{{#if (and (is "new nspace" item=item) (can "create nspaces"))}}
-      <Action
-        @type="submit"
-        {{disabled (or (is "pristine nspace" item=item) (state-matches state "error"))}}
-      >
-        Save
-      </Action>
-{{else if (can "write nspace" item=item)}}
-      <Action @type="submit">Save</Action>
-{{/if}}
+        <form {{on "submit" (fn writer.persist item)}} {{disabled readOnly}}>
 
-      <Action
-        @type="reset"
-        {{on 'click' (if @oncancel (fn @oncancel item) (fn @onsubmit item))}}
-      >
-        Cancel
-      </Action>
-
-{{#if (and (not (is "new nspace" item=item)) (can "delete nspace" item=item))}}
-      <ConfirmationDialog @message="Are you sure you want to delete this Namespace?">
-        <BlockSlot @name="action" as |confirm|>
-          <Action
-            data-test-delete
-            class="type-delete"
-            {{on 'click' (fn confirm (fn writer.delete item))}}
+          <StateChart
+            @src={{state-chart "validate"}}
+            as |State Guard ChartAction dispatch state|
           >
-            Delete
-          </Action>
-        </BlockSlot>
-        <BlockSlot @name="dialog" as |execute cancel message|>
-          <DeleteConfirmation
-            @message={{message}}
-            @execute={{execute}}
-            @cancel={{cancel}}
-          />
-        </BlockSlot>
-      </ConfirmationDialog>
-{{/if}}
 
-  </div>
-</StateChart>
-</form>
-{{/let}}
-  </BlockSlot>
-</DataWriter>
+            <fieldset>
+              {{#if (is "new nspace" item=item)}}
+                <TextInput
+                  @name="Name"
+                  @placeholder="Name"
+                  @item={{item}}
+                  @validations={{Name}}
+                  @chart={{hash state=state dispatch=dispatch}}
+                />
+              {{/if}}
+              <TextInput
+                @expanded={{true}}
+                @name="Description"
+                @label="Description (Optional)"
+                @item={{item}}
+                @validations={{Description}}
+                @chart={{hash state=state dispatch=dispatch}}
+              />
+            </fieldset>
+            {{#if (can "use acls")}}
+              <fieldset id="roles">
+                <h2>Roles</h2>
+                <p>
+                  {{#if (can "write nspace" item=item)}}
+                    By adding roles to this namespaces, you will apply them to
+                    all tokens created within this namespace.
+                  {{else}}
+                    The following roles are applied to all tokens created within
+                    this namespace.
+                  {{/if}}
+                </p>
+                <RoleSelector
+                  @dc={{@dc}}
+                  @nspace="default"
+                  @partition={{@partition}}
+                  @disabled={{readOnly}}
+                  @items={{item.ACLs.RoleDefaults}}
+                />
+              </fieldset>
+              <fieldset id="policies">
+                <h2>Policies</h2>
+                <p>
+                  {{#if (not readOnly)}}
+                    By adding policies to this namespace, you will apply them to
+                    all tokens created within this namespace.
+                  {{else}}
+                    The following policies are applied to all tokens created
+                    within this namespace.
+                  {{/if}}
+                </p>
+                <PolicySelector
+                  @dc={{@dc}}
+                  @nspace="default"
+                  @partition={{@partition}}
+                  @disabled={{readOnly}}
+                  @allowIdentity={{false}}
+                  @items={{item.ACLs.PolicyDefaults}}
+                />
+              </fieldset>
+            {{/if}}
+            <div>
+              {{#if (and (is "new nspace" item=item) (can "create nspaces"))}}
+                <Action
+                  @type="submit"
+                  {{disabled
+                    (or
+                      (is "pristine nspace" item=item)
+                      (state-matches state "error")
+                    )
+                  }}
+                >
+                  Save
+                </Action>
+              {{else if (can "write nspace" item=item)}}
+                <Action @type="submit">Save</Action>
+              {{/if}}
+
+              <Action @type="reset" {{on "click" (fn this.onCancel item)}}>
+                Cancel
+              </Action>
+
+              {{#if
+                (and
+                  (not (is "new nspace" item=item))
+                  (can "delete nspace" item=item)
+                )
+              }}
+                <ConfirmationDialog
+                  @message="Are you sure you want to delete this Namespace?"
+                >
+                  <BlockSlot @name="action" as |confirm|>
+                    <Action
+                      data-test-delete
+                      class="type-delete"
+                      {{on "click" (fn confirm (fn writer.delete item))}}
+                    >
+                      Delete
+                    </Action>
+                  </BlockSlot>
+                  <BlockSlot @name="dialog" as |execute cancel message|>
+                    <DeleteConfirmation
+                      @message={{message}}
+                      @execute={{execute}}
+                      @cancel={{cancel}}
+                    />
+                  </BlockSlot>
+                </ConfirmationDialog>
+              {{/if}}
+
+            </div>
+          </StateChart>
+        </form>
+      {{/let}}
+    </BlockSlot>
+  </DataWriter>
 </div>
-

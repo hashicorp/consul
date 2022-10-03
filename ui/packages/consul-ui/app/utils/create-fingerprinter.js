@@ -1,8 +1,8 @@
 import { get } from '@ember/object';
 
-export default function(foreignKey, nspaceKey, partitionKey, hash = JSON.stringify) {
-  return function(primaryKey, slugKey, foreignKeyValue, nspaceValue, partitionValue) {
-    return function(item) {
+export default function (foreignKey, nspaceKey, partitionKey, hash = JSON.stringify) {
+  return function (primaryKey, slugKey, foreignKeyValue, nspaceValue, partitionValue) {
+    return function (item) {
       foreignKeyValue = foreignKeyValue == null ? item[foreignKey] : foreignKeyValue;
       if (foreignKeyValue == null) {
         throw new Error(
@@ -10,7 +10,7 @@ export default function(foreignKey, nspaceKey, partitionKey, hash = JSON.stringi
         );
       }
       const slugKeys = slugKey.split(',');
-      const slugValues = slugKeys.map(function(slugKey) {
+      const slugValues = slugKeys.map(function (slugKey) {
         const slug = get(item, slugKey);
         if (slug == null || slug.length < 1) {
           throw new Error(

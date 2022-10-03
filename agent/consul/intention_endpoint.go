@@ -21,7 +21,7 @@ import (
 var IntentionSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"consul", "intention", "apply"},
-		Help: "",
+		Help: "Deprecated - please use intention_apply",
 	},
 	{
 		Name: []string{"intention", "apply"},

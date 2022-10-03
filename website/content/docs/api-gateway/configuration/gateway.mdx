@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul API Gateway Gateway
 description:  >-
-  This topic descrbes how to configure the Consul API Gateway Gateway object
+  This topic describes how to configure the Consul API Gateway Gateway object
 ---
 
 # Gateway
@@ -159,7 +159,7 @@ Specifies the `tls` configurations for the `Gateway`. The `tls` object is requir
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
-| `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).</div>  | Object or array | Required if `tls` is set |
+| `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant).</div>  | Object or array | Required if `tls` is set |
 | `mode` | Specifies the TLS Mode. Should always be set to `Terminate` for `HTTPRoutes` | string | Required if `certificateRefs` is set |
 | `options` | Specifies additional Consul API Gateway options. | Map of strings | optional |
 
@@ -174,7 +174,7 @@ In the following example, `tls` settings are configured to use a secret named `c
 
 tls:
   certificateRefs:
-    name: consul-server-cert
+  - name: consul-server-cert
     group: ""
     kind: Secret
   mode: Terminate
@@ -183,3 +183,49 @@ tls:
 
 ```
 
+#### Example cross-namespace certificateRef
+
+The following example creates a `Gateway` named `example-gateway` in namespace `gateway-namespace` (lines 2-4). The gateway has a `certificateRef` in namespace `secret-namespace` (lines 16-18). The reference is allowed because the `ReferenceGrant` configuration, named `reference-grant` in namespace `secret-namespace` (lines 24-27), allows `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace` (lines 31-35).
+
+<CodeBlockConfig filename="gateway_with_referencegrant.yaml" lineNumbers highlight="2-4,16-18,24-27,31-35">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1beta1
+  kind: Gateway
+  metadata:
+    name: example-gateway
+    namespace: gateway-namespace
+  spec:
+    gatewayClassName: consul-api-gateway
+    listeners:
+    - protocol: HTTPS
+      port: 443
+      name: https
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        certificateRefs:
+          - name: cert
+            namespace: secret-namespace
+            group: ""
+            kind: Secret
+  ---
+
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferenceGrant
+  metadata:
+    name: reference-grant
+    namespace: secret-namespace
+  spec:
+    from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: gateway-namespace
+      to:
+      - group: ""
+        kind: Secret
+        name: cert
+  ```
+
+</CodeBlockConfig>

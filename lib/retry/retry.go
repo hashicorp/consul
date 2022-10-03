@@ -79,6 +79,7 @@ func (w *Waiter) delay() time.Duration {
 }
 
 // Reset the failure count to 0.
+// Reset must be called if the operation done after Wait did not fail.
 func (w *Waiter) Reset() {
 	w.failures = 0
 }
@@ -88,10 +89,16 @@ func (w *Waiter) Failures() int {
 	return int(w.failures)
 }
 
-// Wait increase the number of failures by one, and then blocks until the context
+// Wait increases the number of failures by one, and then blocks until the context
 // is cancelled, or until the wait time is reached.
+//
 // The wait time increases exponentially as the number of failures increases.
-// Wait will return ctx.Err() if the context is cancelled.
+// Every call to Wait increments the failures count, so Reset must be called
+// after Wait when there wasn't a failure.
+//
+// The only non-nil error that Wait returns will come from ctx.Err(),
+// such as when the context is canceled. This makes it suitable for
+// long-running routines that do not get re-initialized, such as replication.
 func (w *Waiter) Wait(ctx context.Context) error {
 	w.failures++
 	timer := time.NewTimer(w.delay())
@@ -102,4 +109,11 @@ func (w *Waiter) Wait(ctx context.Context) error {
 	case <-timer.C:
 		return nil
 	}
+}
+
+// NextWait returns the period the next call to Wait with block for assuming
+// it's context is not cancelled. It's useful for informing a user how long
+// it will be before the next attempt is made.
+func (w *Waiter) NextWait() time.Duration {
+	return w.delay()
 }

@@ -565,6 +565,11 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
+	filter, err := bexpr.CreateFilter(args.Filter, nil, []*structs.ServiceNode{})
+	if err != nil {
+		return err
+	}
+
 	// Set reply enterprise metadata after resolving and validating the token so
 	// that we can properly infer metadata from the token.
 	reply.EnterpriseMeta = args.EnterpriseMeta
@@ -574,10 +579,11 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
+			var serviceNodes structs.ServiceNodes
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -588,9 +594,41 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return nil
 			}
 
+			raw, err := filter.Execute(serviceNodes)
+			if err != nil {
+				return err
+			}
+
+			reply.Services = servicesTagsByName(raw.(structs.ServiceNodes))
+
 			c.srv.filterACLWithAuthorizer(authz, reply)
+
 			return nil
 		})
+}
+
+func servicesTagsByName(services []*structs.ServiceNode) structs.Services {
+	unique := make(map[string]map[string]struct{})
+	for _, svc := range services {
+		tags, ok := unique[svc.ServiceName]
+		if !ok {
+			unique[svc.ServiceName] = make(map[string]struct{})
+			tags = unique[svc.ServiceName]
+		}
+		for _, tag := range svc.ServiceTags {
+			tags[tag] = struct{}{}
+		}
+	}
+
+	// Generate the output structure.
+	var results = make(structs.Services)
+	for service, tags := range unique {
+		results[service] = make([]string, 0, len(tags))
+		for tag := range tags {
+			results[service] = append(results[service], tag)
+		}
+	}
+	return results
 }
 
 // ServiceList is used to query the services in a DC.

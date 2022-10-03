@@ -33,12 +33,12 @@ followers may have a slightly outdated, or "stale", view of Consul's state.
 If a read request is handled by the current leader, the response is guaranteed to be
 fully _consistent_ (as up-to-date as possible).
 If the same request were handled by a follower, the response may be less consistent:
-based on a _stale_ (outdated) copy of the leader's state. 
+based on a _stale_ (outdated) copy of the leader's state.
 Consistency is highest if the response comes from the leader.
 But ensuring only the leader can respond to the request prevents spreading
 read request load across all Consul servers.
 
-The consistency mode controls which Consul servers can repond to read requests,
+The consistency mode controls which Consul servers can respond to read requests,
 enabling control over this inherent trade-off between consistency and performance.
 
 ## Available Consistency Modes
@@ -56,7 +56,7 @@ Each HTTP API endpoint documents its support for the three read consistency mode
 
 - `default` -
   [Consul HTTP API queries use `default` mode by default](#consul-http-api-queries).
-  It is strongly consistent in almost all cases. 
+  It is strongly consistent in almost all cases.
   However, there is a small window in which a new leader may be elected
   during which the old leader may respond with stale values.
   The trade-off is fast reads but potentially stale values.
@@ -108,7 +108,7 @@ per consistency mode and the relative trade-offs between level of consistency an
 ### Cross-Datacenter Request Behavior
 
 When making a request across federated Consul datacenters, requests are forwarded from
-a local server to any remote server. Once in the remote datecenter, the request path
+a local server to any remote server. Once in the remote datacenter, the request path
 is the same as a [local request with the same consistency mode](#intra-datacenter-request-behavior).
 The following diagrams show the cross-datacenter request paths when Consul servers in datacenters are
 [federated either directly or via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
@@ -214,7 +214,7 @@ Services can still override this default on a per-request basis by
 [specifying a supported consistency mode as a query parameter in the request](#overriding-a-request-s-consistency-mode).
 
 To configure Consul servers that receive service discovery requests to use `stale`
-consistency mode unless overriden,
+consistency mode unless overridden,
 set [`discovery_max_stale`] to a value greater than zero in their agent configuration.
 The `stale` consistency mode will be used by default unless the data is sufficiently stale:
 its Raft log's index is more than [`discovery_max_stale`] indices behind the leader's.

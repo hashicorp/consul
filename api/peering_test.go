@@ -27,7 +27,9 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(peer.CreateIndex == aPeer.CreateIndex) &&
 			(peer.ModifyIndex == aPeer.ModifyIndex) &&
 			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
-			(peer.ExportedServiceCount == aPeer.ExportedServiceCount)
+			(peer.ExportedServiceCount == aPeer.ExportedServiceCount) &&
+			reflect.DeepEqual(peer.ImportedServices, aPeer.ImportedServices) &&
+			reflect.DeepEqual(peer.ExportedServices, aPeer.ExportedServices)
 
 		if isEqual {
 			return true
@@ -51,6 +53,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
 		serverConfig.Ports.GRPC = 5301
+		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
 

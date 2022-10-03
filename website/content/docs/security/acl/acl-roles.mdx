@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: Roles
+page_title: ACL Roles
 description: >-
-  This topic describes roles within the access control list (ACL) system. A role is a named set of policies and service identities.
-  They enable you to reuse policies by decoupling the policies from the token distributed to team members.
+  Roles are a named collection of ACL policies, service identities, and node identities. Learn how roles allow you to reuse and update access control policies without needing to distribute new tokens to users.
 ---
 
-# Roles
+# ACL Roles
 
 A role is a collection of policies that your ACL administrator can link to a token.
 They enable you to reuse policies by decoupling the policies from the token distributed to team members.
@@ -210,7 +209,7 @@ node_prefix "" {
 
 You can specify a node identity when configuring roles or linking tokens to policies. _Node_ commonly refers to a Consul agent, but a node can also be a physical server, cloud instance, virtual machine, or container.
 
-Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
+Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/config/config-files#acl_tokens_agent) field when configuring the agent.
 
 ### Node Identity Specification
 

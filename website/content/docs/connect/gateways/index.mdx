@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Gateways
+page_title: Gateways Overview
 description: >-
-  Gateways provide connectivity into, out of, and between Consul service meshes.
+  Gateways are proxies that direct traffic into, out of, and inside of Consul's service mesh. They secure communication with external or non-mesh network resources and enable services on different runtimes, cloud providers, or with overlapping IP addresses to communicate with each other.
 ---
 
-# Gateways
+# Gateways Overview
 
 This topic provides an overview of the gateway features shipped with Consul. Gateways provide connectivity into, out of, and between Consul service meshes. You can configure the following types of gateways:
 
@@ -44,7 +44,7 @@ to services in the mesh. To accept ingress traffic from the public internet, use
 These gateways allow you to define what services should be exposed, on what port, and by what hostname. You configure
 an ingress gateway by defining a set of listeners that can map to different sets of backing services.
 
-Ingress gateways are tightly integrated with Consul’s L7 configuration and enable dynamic routing of HTTP requests by
+Ingress gateways are tightly integrated with Consul's L7 configuration and enable dynamic routing of HTTP requests by
 attributes like the request path.
 
 For more information about ingress gateways, review the [complete documentation](/docs/connect/gateways/ingress-gateway)
@@ -65,7 +65,7 @@ infrastructure you do not control.
 Terminating gateways effectively act as egress proxies that can represent one or more services. They terminate Connect
 mTLS connections, enforce Consul intentions, and forward requests to the appropriate destination.
 
-These gateways also simplify authorization from dynamic service addresses. Consul’s intentions determine whether
+These gateways also simplify authorization from dynamic service addresses. Consul's intentions determine whether
 connections through the gateway are authorized. Then traditional tools like firewalls or IAM roles can authorize the
 connections from the known gateway nodes to the destination services.
 

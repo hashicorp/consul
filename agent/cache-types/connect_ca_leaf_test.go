@@ -1164,4 +1164,11 @@ func TestConnectCALeaf_Key(t *testing.T) {
 			})
 		})
 	})
+	t.Run("server", func(t *testing.T) {
+		r1 := key(ConnectCALeafRequest{
+			Server:     true,
+			Datacenter: "us-east",
+		})
+		require.True(t, strings.HasPrefix(r1, "server:"), "Key %s does not start with server:", r1)
+	})
 }

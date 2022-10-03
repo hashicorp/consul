@@ -52,6 +52,7 @@
   @extend %with-user-team-mask, %as-pseudo;
   color: rgb(var(--tone-gray-500));
 }
+%popover-select .lambda button::before,
 %popover-select .aws button::before {
   @extend %with-aws-300;
 }

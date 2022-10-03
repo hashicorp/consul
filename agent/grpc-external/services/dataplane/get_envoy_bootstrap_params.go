@@ -22,10 +22,14 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
 
-	token := external.TokenFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var authzContext acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.GetPartition(), req.GetNamespace())
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzContext)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
@@ -52,13 +56,21 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	}
 
 	// Build out the response
+	var serviceName string
+	if svc.ServiceKind == structs.ServiceKindConnectProxy {
+		serviceName = svc.ServiceProxy.DestinationServiceName
+	} else {
+		serviceName = svc.ServiceName
+	}
 
 	resp := &pbdataplane.GetEnvoyBootstrapParamsResponse{
-		Service:     svc.ServiceProxy.DestinationServiceName,
+		Service:     serviceName,
 		Partition:   svc.EnterpriseMeta.PartitionOrDefault(),
 		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
 		Datacenter:  s.Datacenter,
 		ServiceKind: convertToResponseServiceKind(svc.ServiceKind),
+		NodeName:    svc.Node,
+		NodeId:      string(svc.ID),
 	}
 
 	bootstrapConfig, err := structpb.NewStruct(svc.ServiceProxy.Config)

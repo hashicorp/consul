@@ -1523,6 +1523,45 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 	}
 }
 
+func TestCatalog_ListServices_Filter(t *testing.T) {
+	t.Parallel()
+	_, s1 := testServer(t)
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	// Run the tests against the test server
+
+	t.Run("ListServices", func(t *testing.T) {
+		args := structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+
+		args.Filter = "ServiceName == redis"
+		out := new(structs.IndexedServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
+		require.Contains(t, out.Services, "redis")
+		require.ElementsMatch(t, []string{"v1", "v2"}, out.Services["redis"])
+
+		args.Filter = "NodeMeta.os == NoSuchOS"
+		out = new(structs.IndexedServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
+		require.Len(t, out.Services, 0)
+
+		args.Filter = "NodeMeta.NoSuchMetadata == linux"
+		out = new(structs.IndexedServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
+		require.Len(t, out.Services, 0)
+
+		args.Filter = "InvalidField == linux"
+		out = new(structs.IndexedServices)
+		require.Error(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
+	})
+}
+
 func TestCatalog_ListServices_Blocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

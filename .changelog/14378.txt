@@ -1,0 +1,5 @@
+```release-note:bug
+api: Fix a breaking change caused by renaming `QueryDatacenterOptions` to
+`QueryFailoverOptions`. This adds `QueryDatacenterOptions` back as an alias to
+`QueryFailoverOptions` and marks it as deprecated.
+```

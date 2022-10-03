@@ -509,3 +509,75 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	require.Len(t, store.byKey, 0)
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
 }
+
+func TestStore_Run_FailingMaterializer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	store := NewStore(hclog.NewNullLogger())
+	store.idleTTL = 24 * time.Hour
+	go store.Run(ctx)
+
+	t.Run("with an in-flight request", func(t *testing.T) {
+		req := &failingMaterializerRequest{
+			doneCh: make(chan struct{}),
+		}
+
+		ch := make(chan cache.UpdateEvent)
+		reqCtx, reqCancel := context.WithCancel(context.Background())
+		t.Cleanup(reqCancel)
+		require.NoError(t, store.Notify(reqCtx, req, "", ch))
+
+		assertRequestCount(t, store, req, 1)
+
+		// Cause the materializer to "fail" (exit before its context is canceled).
+		close(req.doneCh)
+
+		// End the in-flight request.
+		reqCancel()
+
+		// Check that the item was evicted.
+		retry.Run(t, func(r *retry.R) {
+			store.lock.Lock()
+			defer store.lock.Unlock()
+
+			require.Len(r, store.byKey, 0)
+		})
+	})
+
+	t.Run("with no in-flight requests", func(t *testing.T) {
+		req := &failingMaterializerRequest{
+			doneCh: make(chan struct{}),
+		}
+
+		// Cause the materializer to "fail" (exit before its context is canceled).
+		close(req.doneCh)
+
+		// Check that the item was evicted.
+		retry.Run(t, func(r *retry.R) {
+			store.lock.Lock()
+			defer store.lock.Unlock()
+
+			require.Len(r, store.byKey, 0)
+		})
+	})
+}
+
+type failingMaterializerRequest struct {
+	doneCh chan struct{}
+}
+
+func (failingMaterializerRequest) CacheInfo() cache.RequestInfo { return cache.RequestInfo{} }
+func (failingMaterializerRequest) Type() string                 { return "test.FailingMaterializerRequest" }
+
+func (r *failingMaterializerRequest) NewMaterializer() (Materializer, error) {
+	return &failingMaterializer{doneCh: r.doneCh}, nil
+}
+
+type failingMaterializer struct {
+	doneCh <-chan struct{}
+}
+
+func (failingMaterializer) Query(context.Context, uint64) (Result, error) { return Result{}, nil }
+
+func (m *failingMaterializer) Run(context.Context) { <-m.doneCh }

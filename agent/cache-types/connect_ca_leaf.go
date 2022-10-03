@@ -540,7 +540,9 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	var id connect.CertURI
 	var dnsNames []string
 	var ipAddresses []net.IP
-	if req.Service != "" {
+
+	switch {
+	case req.Service != "":
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
@@ -549,7 +551,8 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Service:    req.Service,
 		}
 		dnsNames = append(dnsNames, req.DNSSAN...)
-	} else if req.Agent != "" {
+
+	case req.Agent != "":
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
@@ -558,19 +561,30 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
 		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
-	} else if req.Kind != "" {
-		if req.Kind != structs.ServiceKindMeshGateway {
-			return result, fmt.Errorf("unsupported kind: %s", req.Kind)
-		}
 
+	case req.Kind == structs.ServiceKindMeshGateway:
 		id = &connect.SpiffeIDMeshGateway{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Partition:  req.TargetPartition(),
 		}
 		dnsNames = append(dnsNames, req.DNSSAN...)
-	} else {
-		return result, errors.New("URI must be either service, agent, or kind")
+
+	case req.Kind != "":
+		return result, fmt.Errorf("unsupported kind: %s", req.Kind)
+
+	case req.Server:
+		if req.Datacenter == "" {
+			return result, errors.New("datacenter name must be specified")
+		}
+		id = &connect.SpiffeIDServer{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+		}
+		dnsNames = append(dnsNames, connect.PeeringServerSAN(req.Datacenter, roots.TrustDomain))
+
+	default:
+		return result, errors.New("URI must be either service, agent, server, or kind")
 	}
 
 	// Create a new private key
@@ -674,18 +688,21 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ConnectCALeafRequest struct {
-	Token          string
-	Datacenter     string
-	Service        string              // Service name, not ID
-	Agent          string              // Agent name, not ID
-	Kind           structs.ServiceKind // only mesh-gateway for now
-	DNSSAN         []string
-	IPSAN          []net.IP
-	MinQueryIndex  uint64
-	MaxQueryTime   time.Duration
+	Token         string
+	Datacenter    string
+	DNSSAN        []string
+	IPSAN         []net.IP
+	MinQueryIndex uint64
+	MaxQueryTime  time.Duration
+	acl.EnterpriseMeta
 	MustRevalidate bool
 
-	acl.EnterpriseMeta
+	// The following flags indicate the entity we are requesting a cert for.
+	// Only one of these must be specified.
+	Service string              // Given a Service name, not ID, the request is for a SpiffeIDService.
+	Agent   string              // Given an Agent name, not ID, the request is for a SpiffeIDAgent.
+	Kind    structs.ServiceKind // Given "mesh-gateway", the request is for a SpiffeIDMeshGateway. No other kinds supported.
+	Server  bool                // If true, the request is for a SpiffeIDServer.
 }
 
 func (r *ConnectCALeafRequest) Key() string {
@@ -711,6 +728,14 @@ func (r *ConnectCALeafRequest) Key() string {
 		}
 	case r.Kind != "":
 		// this is not valid
+	case r.Server:
+		v, err := hashstructure.Hash([]interface{}{
+			"server",
+			r.Datacenter,
+		}, nil)
+		if err == nil {
+			return fmt.Sprintf("server:%d", v)
+		}
 	default:
 		v, err := hashstructure.Hash([]interface{}{
 			r.Service,

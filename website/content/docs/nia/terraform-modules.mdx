@@ -11,7 +11,7 @@ Consul-Terraform-Sync (CTS) automates execution of Terraform modules through tas
 
 ## Module Specifications
 
-Compatible modules for CTS follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer.
+Compatible modules for CTS follow the [standard module](https://www.terraform.io/language/modules/develop#module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer.
 
 ### Compatibility Requirements
 
@@ -31,7 +31,7 @@ See below sections for more information on [defining module input](#module-input
 
 ### Module Input ((#source-input))
 
-A task monitors [Consul objects](/docs/nia#consul-objects) that are defined by the task's configuration. The Consul objects can be used for the module input that satisfies the requirements defined by the task's Terraform module's [input variables](https://www.terraform.io/docs/language/values/variables.html).
+A task monitors [Consul objects](/docs/nia#consul-objects) that are defined by the task's configuration. The Consul objects can be used for the module input that satisfies the requirements defined by the task's Terraform module's [input variables](https://www.terraform.io/language/values/variables).
 
 A task's module input is slightly different from the task's condition, even though both monitor defined objects. The task's condition monitors defined objects with a configured criteria. When this criteria is satisfied, the task will trigger.
 
@@ -120,7 +120,7 @@ The services module input operates by monitoring the [Health List Nodes For Serv
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module.
+Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task's module.
 
 ```hcl
 task {
@@ -228,7 +228,7 @@ task {
 
 ## How to Create a Compatible Terraform Module
 
-You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). CTS is designed to integrate with any module that satisfies the specifications in the following section.
+You can read more on how to [create a module](https://www.terraform.io/language/modules/develop) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create?utm_source=docs). CTS is designed to integrate with any module that satisfies the specifications in the following section.
 
 The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module. The template repository has the files described in the next steps prepared.
 
@@ -290,7 +290,7 @@ variable "services" {
 
 Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for CTS tasks](/docs/nia/tasks#services-condition).
 
-Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows CTS to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with CTS may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
+Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/language/expressions/type-constraints#conversion-of-complex-types). This allows CTS to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with CTS may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
 
 <CodeBlockConfig filename="variables.tf">
 
@@ -351,13 +351,13 @@ If your module contains the `consul_kv` variable, we recommend documenting the u
 
 ### Module Input Variables
 
-Network infrastructure differs vastly across teams and organizations, and the automation needs of practitioners are unique based on their existing setup. [Input variables](https://www.terraform.io/docs/configuration/variables.html) can be used to serve as customization parameters to the module for practitioners.
+Network infrastructure differs vastly across teams and organizations, and the automation needs of practitioners are unique based on their existing setup. [Input variables](https://www.terraform.io/language/values/variables) can be used to serve as customization parameters to the module for practitioners.
 
 1. Identify areas in the module where practitioners could tailor the automation to fit their infrastructure.
 2. Declare input variables and insert the use of variables throughout module resources to expose these options to practitioners.
-3. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) to provide context to users the expected format and conditions for the variables.
+3. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/language/values/variables#custom-validation-rules) to provide context to users the expected format and conditions for the variables.
 4. Set reasonable default values for variables that are optional, or omit default values for variables that are required module arguments.
-5. Set the [sensitive argument](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
+5. Set the [sensitive argument](https://www.terraform.io/language/values/variables) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
 
 Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. CTS abstracts this by creating intermediate variables at the root level from the module input. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide CTS are declared and supported by the module, matching name and type.
 
@@ -375,7 +375,7 @@ Consider authoring modules with low complexity to reduce the run time for Terraf
 
 #### Providers
 
-The Terraform module must declare which providers it requires within the [`terraform.required_providers` block](https://www.terraform.io/docs/language/providers/requirements.html#requiring-providers). We suggest to also include a version constraint for the provider to specify which versions the module is compatible with.
+The Terraform module must declare which providers it requires within the [`terraform.required_providers` block](https://www.terraform.io/language/providers/requirements#requiring-providers). We suggest to also include a version constraint for the provider to specify which versions the module is compatible with.
 
 Aside from the `required_providers` block, provider configurations should not be included within the sharable module for network integrations. End users will configure the providers through CTS, and CTS will then translate provider configuration to the generated root module appropriately.
 

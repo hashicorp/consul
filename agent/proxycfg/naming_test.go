@@ -35,6 +35,13 @@ func TestUpstreamIDFromTargetID(t *testing.T) {
 				Datacenter: "dc2",
 			},
 		},
+		"peered": {
+			tid: "foo.default.default.external.cluster-01",
+			expect: UpstreamID{
+				Name: "foo",
+				Peer: "cluster-01",
+			},
+		},
 	}
 
 	for name, tc := range cases {

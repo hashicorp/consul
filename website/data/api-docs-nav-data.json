@@ -1,7 +1,12 @@
 [
   {
-    "title": "API Introduction",
-    "path": "index"
+    "title": "Overview",
+    "path": "index",
+    "hidden": true
+  },
+  {
+    "title": "API Structure",
+    "path": "api-structure"
   },
   {
     "title": "API Features",

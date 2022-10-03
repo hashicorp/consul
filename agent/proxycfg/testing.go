@@ -280,6 +280,31 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
+func TestUpstreamNodesPeerCluster01(t testing.T) structs.CheckServiceNodes {
+	peer := "cluster-01"
+	service := structs.TestNodeServiceWithNameInPeer(t, "web", peer)
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:       "test1",
+				Node:     "test1",
+				Address:  "10.40.1.1",
+				PeerName: peer,
+			},
+			Service: service,
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:       "test2",
+				Node:     "test2",
+				Address:  "10.40.1.2",
+				PeerName: peer,
+			},
+			Service: service,
+		},
+	}
+}
+
 func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
@@ -949,7 +974,7 @@ func NewTestDataSources() *TestDataSources {
 		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
-		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
+		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
@@ -975,7 +1000,7 @@ type TestDataSources struct {
 	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
-	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
+	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
 	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]

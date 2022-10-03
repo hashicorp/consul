@@ -45,7 +45,7 @@ task IAM role must encode the Consul service name.
 
 By default, the `mesh-task` module will create and configure the task IAM role for you.
 
--> **NOTE**: When passing an existing IAM role to the `mesh-task` module using the `task_role` input
+~> **Note:** When passing an existing IAM role to the `mesh-task` module using the `task_role` input
 variable, you must configure the IAM role as described in [ECS Task Role
 Configuration](/docs/ecs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
 the AWS IAM auth method.
@@ -56,42 +56,42 @@ the AWS IAM auth method.
 1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/acl-tokens) for instructions.
 1. Create a Secrets Manager secret containing the ACL controller's token and a Secrets Manager secret containing the Consul CA cert.
 
-  ```hcl
-  resource "aws_secretsmanager_secret" "bootstrap_token" {
-    name  = "bootstrap-token"
-  }
+```hcl
+resource "aws_secretsmanager_secret" "bootstrap_token" {
+  name  = "bootstrap-token"
+}
 
-  resource "aws_secretsmanager_secret_version" "bootstrap_token" {
-    secret_id     = aws_secretsmanager_secret.bootstrap_token.id
-    secret_string = "<bootstrap token>"
-  }
+resource "aws_secretsmanager_secret_version" "bootstrap_token" {
+  secret_id     = aws_secretsmanager_secret.bootstrap_token.id
+  secret_string = "<bootstrap token>"
+}
 
-  resource "aws_secretsmanager_secret" "ca_cert" {
-    name  = "server-ca-cert"
-  }
+resource "aws_secretsmanager_secret" "ca_cert" {
+  name  = "server-ca-cert"
+}
 
-  resource "aws_secretsmanager_secret_version" "ca_cert" {
-    secret_id     = aws_secretsmanager_secret.ca_cert.id
-    secret_string = "<CA certificate for the Consul server's HTTPS endpoint>"
-  }
-  ```
+resource "aws_secretsmanager_secret_version" "ca_cert" {
+  secret_id     = aws_secretsmanager_secret.ca_cert.id
+  secret_string = "<CA certificate for the Consul server's HTTPS endpoint>"
+}
+```
 
 1. Use the [`acl-controller` terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller?tab=inputs) to deploy the controller. You must provide the ARN's for the token and CA cert in the `consul_bootstrap_token_secret_arn` and `consul_server_ca_cert_arn` fields, respectively.
 
-    ```hcl
-    module "acl_controller" {
-      source                            = "hashicorp/consul-ecs/aws//modules/acl-controller"
-      version                           = "<version>"
+   ```hcl
+   module "acl_controller" {
+     source                            = "hashicorp/consul-ecs/aws//modules/acl-controller"
+     version                           = "<version>"
 
-      consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
-      consul_server_http_addr           = "https://consul-server.example.com:8501"
-      consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
-      ecs_cluster_arn                   = "arn:aws:ecs:us-east-1:111111111111:cluster/consul-ecs"
-      region                            = "us-east-1"
-      subnets                           = ["subnet-abcdef123456789"]
-      name_prefix                       = "consul-ecs"
-    }
-    ```
+     consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
+     consul_server_http_addr           = "https://consul-server.example.com:8501"
+     consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
+     ecs_cluster_arn                   = "arn:aws:ecs:us-east-1:111111111111:cluster/consul-ecs"
+     region                            = "us-east-1"
+     subnets                           = ["subnet-abcdef123456789"]
+     name_prefix                       = "consul-ecs"
+   }
+   ```
 
 The following table describes the required input variables for the `acl-controller` module.
 
@@ -132,11 +132,12 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
   secret_string = "<Gossip encryption key>"
 }
 ```
+
 </CodeBlock>
 
 ### Enable secure deployment
 
-To enable secure deployment, add the following configuration to the task module. 
+To enable secure deployment, add the following configuration to the task module.
 
 ```hcl
 module "my_task" {

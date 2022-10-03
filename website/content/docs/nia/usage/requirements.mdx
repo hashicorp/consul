@@ -1,0 +1,134 @@
+---
+layout: docs
+page_title: Requirements
+description: >-
+  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the `consul-terraform-sync` daemon.
+---
+
+# Requirements
+
+The following components are required to run Consul-Terraform-Sync (CTS):
+
+- A Terraform provider
+- A Terraform module
+- A Consul cluster running outside of the `consul-terraform-sync` daemon
+
+You can add support for your network infrastructure through Terraform providers so that you can apply Terraform modules to implement network integrations.
+
+The following guidance is for running CTS using the Terraform driver. The Terraform Cloud driver<EnterpriseAlert inline /> has [additional prerequisites](/docs/nia/network-drivers/terraform-cloud#setting-up-terraform-cloud-driver).
+
+## Run a Consul cluster
+
+Below are several steps towards a minimum Consul setup required for running CTS.
+
+### Install Consul
+
+CTS is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. CTS is not included with the Consul binary and needs to be installed separately.
+
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-install).
+
+For information on compatible Consul versions, refer to the [Consul compatibility matrix](/docs/nia/compatibility#consul).
+
+### Run an agent
+
+The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/docs/agent/index) for information about configuring and starting a Consul agent. For hands-on instructions about running Consul agents, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
+
+When running a Consul agent with CTS in production, consider that CTS uses [blocking queries](/api-docs/features/blocking) to monitor task dependencies, such as changes to registered services. This  results in multiple long-running TCP connections between CTS and the agent to poll changes for each dependency. Consul may quickly reach the agent connection limits if CTS is monitoring a high number of services.
+
+To avoid reaching the limit prematurely, we recommend using HTTP/2 (requires HTTPS) to communicate between CTS and the Consul agent. When using HTTP/2, CTS establishes a single connection and reuses it for all communication. Refer to the [Consul Configuration section](/docs/nia/configuration#consul) for details. 
+
+Alternatively, you can configure the [`limits.http_max_conns_per_client`](/docs/agent/config/config-files#http_max_conns_per_client) option to set a maximimum number of connections to meet your needs. 
+
+### Register services
+
+CTS monitors the Consul catalog for service changes that lead to downstream changes to your network devices. Without services, your CTS daemon is operational but idle. You can register services with your Consul agent by either loading a service definition or by sending an HTTP API request.
+
+The following HTTP API request example registers a service named `web` with your Consul agent: 
+
+```shell-session
+$ echo '{
+    "ID": "web",
+    "Name": "web",
+    "Address": "10.10.10.10",
+    "Port": 8000
+}' > payload.json
+
+$ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
+```
+
+The example represents a non-existent web service running at `10.10.10.10:8000` that is now available for CTS to consume. 
+
+You can configure CTS to monitor the web service, execute a task, and update network device(s) by configuring `web` in the [`condition "services"`](/docs/nia/configuration#services-condition) task block. If the web service has any non-default values, it can also be configured in `condition "services"`.
+
+For more details on registering a service using the HTTP API endpoint, refer to the [register service API docs](/api-docs/agent/service#register-service).
+
+For hands-on instructions on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
+
+### Run a cluster
+
+For production environments, we recommend operating a Consul cluster rather than a single agent. Refer to [Getting Started: Create a Local Consul Datacenter](https://learn.hashicorp.com/tutorials/consul/get-started-create-datacenter?in=consul/getting-started) for instructions on starting multiple Consul agents and joining them into a cluster.
+
+## Network infrastructure using a Terraform provider
+
+CTS integrations for the Terraform driver use Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver for CTS inherits the expansive collection of Terraform providers to integrate with. You can also specify a provider `source` in the [`required_providers` configuration](https://www.terraform.io/language/providers/requirements#requiring-providers) to use providers written by the community (requires Terraform 0.13 or later).
+
+### Finding Terraform providers
+
+To find providers for the infrastructure platforms you use, browse the providers section of the [Terraform Registry](https://registry.terraform.io/browse/providers).
+
+### How to create a provider
+
+If a Terraform provider does not exist for your environment, you can create a new Terraform provider and publish it to the registry so that you can use it within a network integration task or create a compatible Terraform module. Refer to the following Terraform tutorial and documentation for additional information on creating and publishing providers:
+
+- [Setup and Implement Read](https://learn.hashicorp.com/tutorials/terraform/provider-setup) 
+- [Publishing Providers](https://www.terraform.io/registry/providers/publishing). 
+
+## Network integration using a Terraform module
+
+The Terraform module for a task in CTS is the core component of the integration. It declares which resources to use and how your infrastructure is dynamically updated. The module, along with how it is configured within a task, determines the conditions under which your infrastructure is updated.
+
+Working with a Terraform provider, you can write an integration task for CTS by [creating a Terraform module](/docs/nia/terraform-modules) that is compatible with the Terraform driver. You can also use a [module built by partners](#partner-terraform-modules).
+
+Refer to [Configuration](/docs/nia/configuration) for information about configuring CTS and how to use Terraform providers and modules for tasks.
+
+### Partner Terraform Modules
+
+The modules listed below are available to use and are compatible with CTS.
+
+#### A10 Networks
+
+- Dynamic Load Balancing with Group Member Updates: [Terraform Registry](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest) / [GitHub](https://github.com/a10networks/terraform-thunder-service-group-sync-nia)
+
+#### Avi Networks
+
+- Scale Up and Scale Down Pool and Pool Members (Servers): [GitHub](https://github.com/vmware/terraform-provider-avi/tree/20.1.5/modules/nia/pool)
+
+#### AWS Application Load Balancer (ALB)
+
+- Create Listener Rule and Target Group for an AWS ALB, Forward Traffic to Consul Ingress Gateway: [Terraform Registry](https://registry.terraform.io/modules/aws-quickstart/cts-alb_listener-nia/hashicorp/latest) / [GitHub](https://github.com/aws-quickstart/terraform-hashicorp-cts-alb_listener-nia)
+
+#### Checkpoint
+
+- Dynamic Firewalling with Address Object Updates: [Terraform Registry](https://registry.terraform.io/modules/CheckPointSW/dynobj-nia/checkpoint/latest) / [GitHub](https://github.com/CheckPointSW/terraform-checkpoint-dynobj-nia)
+
+#### Cisco ACI
+
+- Policy Based Redirection: [Terraform Registry](https://registry.terraform.io/modules/CiscoDevNet/autoscaling-nia/aci/latest) / [GitHub](https://github.com/CiscoDevNet/terraform-aci-autoscaling-nia)
+- Create and Update Cisco ACI Endpoint Security Groups: [Terraform Registry](https://registry.terraform.io/modules/CiscoDevNet/esg-nia/aci/latest) / [GitHub](https://github.com/CiscoDevNet/terraform-aci-esg-nia)
+
+#### Citrix ADC
+
+- Create, Update, and Delete Service Groups in Citrix ADC: [Terraform Registry](https://registry.terraform.io/modules/citrix/servicegroup-consul-sync-nia/citrixadc/latest) / [GitHub](https://github.com/citrix/terraform-citrixadc-servicegroup-consul-sync-nia)
+
+#### F5
+
+- Dynamic Load Balancing with Pool Member Updates: [Terraform Registry](https://registry.terraform.io/modules/f5devcentral/app-consul-sync-nia/bigip/latest) / [GitHub](https://github.com/f5devcentral/terraform-bigip-app-consul-sync-nia)
+
+#### NS1
+
+- Create, Delete, and Update DNS Records and Zones: [Terraform Registry](https://registry.terraform.io/modules/ns1-terraform/record-sync-nia/ns1/latest) / [GitHub](https://github.com/ns1-terraform/terraform-ns1-record-sync-nia)
+
+#### Palo Alto Networks
+
+- Dynamic Address Group (DAG) Tags: [Terraform Registry](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) / [GitHub](https://github.com/PaloAltoNetworks/terraform-panos-dag-nia)
+- Address Group and Dynamic Address Group (DAG) Tags: [Terraform Registry](https://registry.terraform.io/modules/PaloAltoNetworks/ag-dag-nia/panos/latest) / [GitHub](https://github.com/PaloAltoNetworks/terraform-panos-ag-dag-nia)

@@ -950,6 +950,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 			Peering: &pbpeering.Peering{
 				ID:        testFooPeerID,
 				Name:      "foo",
+				State:     pbpeering.PeeringState_DELETING,
 				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		})
@@ -976,6 +977,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 		err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
 			ID:        testBarPeerID,
 			Name:      "bar",
+			State:     pbpeering.PeeringState_DELETING,
 			DeletedAt: structs.TimeToProto(time.Now()),
 		},
 		})
@@ -1077,6 +1079,7 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 			Peering: &pbpeering.Peering{
 				ID:        testFooPeerID,
 				Name:      "foo",
+				State:     pbpeering.PeeringState_DELETING,
 				DeletedAt: structs.TimeToProto(time.Now()),
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
@@ -1112,16 +1115,22 @@ func TestStore_PeeringWrite(t *testing.T) {
 	// Each case depends on the previous.
 	s := NewStateStore(nil)
 
+	testTime := time.Now()
+
+	type expectations struct {
+		peering *pbpeering.Peering
+		secrets *pbpeering.PeeringSecrets
+		err     string
+	}
 	type testcase struct {
-		name          string
-		input         *pbpeering.PeeringWriteRequest
-		expectSecrets *pbpeering.PeeringSecrets
-		expectErr     string
+		name   string
+		input  *pbpeering.PeeringWriteRequest
+		expect expectations
 	}
 	run := func(t *testing.T, tc testcase) {
 		err := s.PeeringWrite(10, tc.input)
-		if tc.expectErr != "" {
-			testutil.RequireErrorContains(t, err, tc.expectErr)
+		if tc.expect.err != "" {
+			testutil.RequireErrorContains(t, err, tc.expect.err)
 			return
 		}
 		require.NoError(t, err)
@@ -1133,52 +1142,176 @@ func TestStore_PeeringWrite(t *testing.T) {
 		_, p, err := s.PeeringRead(nil, q)
 		require.NoError(t, err)
 		require.NotNil(t, p)
-		require.Equal(t, tc.input.Peering.State, p.State)
-		require.Equal(t, tc.input.Peering.Name, p.Name)
+		require.Equal(t, tc.expect.peering.State, p.State)
+		require.Equal(t, tc.expect.peering.Name, p.Name)
+		require.Equal(t, tc.expect.peering.Meta, p.Meta)
+		if tc.expect.peering.DeletedAt != nil {
+			require.Equal(t, tc.expect.peering.DeletedAt, p.DeletedAt)
+		}
 
 		secrets, err := s.PeeringSecretsRead(nil, tc.input.Peering.ID)
 		require.NoError(t, err)
-		prototest.AssertDeepEqual(t, tc.expectSecrets, secrets)
+		prototest.AssertDeepEqual(t, tc.expect.secrets, secrets)
 	}
 	tcs := []testcase{
 		{
 			name: "create baz",
 			input: &pbpeering.PeeringWriteRequest{
 				Peering: &pbpeering.Peering{
-					ID:        testBazPeerID,
-					Name:      "baz",
-					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_ESTABLISHING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 				SecretsRequest: &pbpeering.SecretsWriteRequest{
 					PeerID: testBazPeerID,
-					Request: &pbpeering.SecretsWriteRequest_GenerateToken{
-						GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
-							EstablishmentSecret: testBazSecretID,
+					Request: &pbpeering.SecretsWriteRequest_Establish{
+						Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+							ActiveStreamSecret: testBazSecretID,
 						},
 					},
 				},
 			},
-			expectSecrets: &pbpeering.PeeringSecrets{
-				PeerID: testBazPeerID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: testBazSecretID,
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:    testBazPeerID,
+					Name:  "baz",
+					State: pbpeering.PeeringState_ESTABLISHING,
 				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testBazPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testBazSecretID,
+					},
+				},
+			},
+		},
+		{
+			name: "cannot change ID for baz",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  "123",
+					Name:                "baz",
+					State:               pbpeering.PeeringState_FAILING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				err: `A peering already exists with the name "baz" and a different ID`,
+			},
+		},
+		{
+			name: "cannot change dialer status for baz",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:    "123",
+					Name:  "baz",
+					State: pbpeering.PeeringState_FAILING,
+					// Excluding the peer server addresses leads to baz not being considered a dialer.
+					// PeerServerAddresses: []string{"localhost:8502"},
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				err: "Cannot switch peering dialing mode from true to false",
 			},
 		},
 		{
 			name: "update baz",
 			input: &pbpeering.PeeringWriteRequest{
 				Peering: &pbpeering.Peering{
-					ID:        testBazPeerID,
-					Name:      "baz",
-					State:     pbpeering.PeeringState_FAILING,
-					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_FAILING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
-			expectSecrets: &pbpeering.PeeringSecrets{
-				PeerID: testBazPeerID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: testBazSecretID,
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:    testBazPeerID,
+					Name:  "baz",
+					State: pbpeering.PeeringState_FAILING,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testBazPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testBazSecretID,
+					},
+				},
+			},
+		},
+		{
+			name: "if no state was included in request it is inherited from existing",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:   testBazPeerID,
+					Name: "baz",
+					// Send undefined state.
+					// State:               pbpeering.PeeringState_FAILING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:   testBazPeerID,
+					Name: "baz",
+					// Previous failing state is picked up.
+					State: pbpeering.PeeringState_FAILING,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testBazPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testBazSecretID,
+					},
+				},
+			},
+		},
+		{
+			name: "mark baz as terminated",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_TERMINATED,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:    testBazPeerID,
+					Name:  "baz",
+					State: pbpeering.PeeringState_TERMINATED,
+				},
+				// Secrets for baz should have been deleted
+				secrets: nil,
+			},
+		},
+		{
+			name: "cannot modify peering during no-op termination",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_TERMINATED,
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					PeerServerAddresses: []string{"localhost:8502"},
+
+					// Attempt to add metadata
+					Meta: map[string]string{"foo": "bar"},
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:    testBazPeerID,
+					Name:  "baz",
+					State: pbpeering.PeeringState_TERMINATED,
+					// Meta should be unchanged.
+					Meta: nil,
 				},
 			},
 		},
@@ -1186,42 +1319,104 @@ func TestStore_PeeringWrite(t *testing.T) {
 			name: "mark baz for deletion",
 			input: &pbpeering.PeeringWriteRequest{
 				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_DELETING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					DeletedAt:           structs.TimeToProto(testTime),
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
 					ID:        testBazPeerID,
 					Name:      "baz",
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: structs.TimeToProto(time.Now()),
-					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					DeletedAt: structs.TimeToProto(testTime),
+				},
+				secrets: nil,
+			},
+		},
+		{
+			name: "deleting a deleted peering is a no-op",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_DELETING,
+					PeerServerAddresses: []string{"localhost:8502"},
+					DeletedAt:           structs.TimeToProto(time.Now()),
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
-			// Secrets for baz should have been deleted
-			expectSecrets: nil,
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:   testBazPeerID,
+					Name: "baz",
+					// Still marked as deleting at the original testTime
+					State:     pbpeering.PeeringState_DELETING,
+					DeletedAt: structs.TimeToProto(testTime),
+				},
+				// Secrets for baz should have been deleted
+				secrets: nil,
+			},
+		},
+		{
+			name: "terminating a peering marked for deletion is a no-op",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_TERMINATED,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:   testBazPeerID,
+					Name: "baz",
+					// Still marked as deleting
+					State: pbpeering.PeeringState_DELETING,
+				},
+				// Secrets for baz should have been deleted
+				secrets: nil,
+			},
 		},
 		{
 			name: "cannot update peering marked for deletion",
 			input: &pbpeering.PeeringWriteRequest{
 				Peering: &pbpeering.Peering{
-					ID:   testBazPeerID,
-					Name: "baz",
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+
 					// Attempt to add metadata
 					Meta: map[string]string{
 						"source": "kubernetes",
 					},
-					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
-			expectErr: "cannot write to peering that is marked for deletion",
+			expect: expectations{
+				err: "cannot write to peering that is marked for deletion",
+			},
 		},
 		{
 			name: "cannot create peering marked for deletion",
 			input: &pbpeering.PeeringWriteRequest{
 				Peering: &pbpeering.Peering{
-					ID:        testFooPeerID,
-					Name:      "foo",
-					DeletedAt: structs.TimeToProto(time.Now()),
-					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					ID:                  testFooPeerID,
+					Name:                "foo",
+					PeerServerAddresses: []string{"localhost:8502"},
+					State:               pbpeering.PeeringState_DELETING,
+					DeletedAt:           structs.TimeToProto(time.Now()),
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
-			expectErr: "cannot create a new peering marked for deletion",
+			expect: expectations{
+				err: "cannot create a new peering marked for deletion",
+			},
 		},
 	}
 	for _, tc := range tcs {
@@ -1246,6 +1441,7 @@ func TestStore_PeeringDelete(t *testing.T) {
 			Peering: &pbpeering.Peering{
 				ID:        testFooPeerID,
 				Name:      "foo",
+				State:     pbpeering.PeeringState_DELETING,
 				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		}))
@@ -1461,7 +1657,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 	}
 
 	newTarget := func(service, serviceSubset, datacenter string) *structs.DiscoveryTarget {
-		t := structs.NewDiscoveryTarget(service, serviceSubset, "default", "default", datacenter)
+		t := structs.NewDiscoveryTarget(structs.DiscoveryTargetOpts{
+			Service:       service,
+			ServiceSubset: serviceSubset,
+			Partition:     "default",
+			Namespace:     "default",
+			Datacenter:    datacenter,
+		})
 		t.SNI = connect.TargetSNI(t, connect.TestTrustDomain)
 		t.Name = t.SNI
 		t.ConnectTimeout = 5 * time.Second // default
@@ -1753,6 +1955,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				copied := pbpeering.Peering{
 					ID:        tp.peering.ID,
 					Name:      tp.peering.Name,
+					State:     pbpeering.PeeringState_DELETING,
 					DeletedAt: structs.TimeToProto(time.Now()),
 				}
 				require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &copied}))
@@ -2195,6 +2398,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 			Peering: &pbpeering.Peering{
 				ID:        peerID1,
 				Name:      "peer1",
+				State:     pbpeering.PeeringState_DELETING,
 				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		}))

@@ -66,6 +66,7 @@ func TestLoad_IntegrationWithFlags_OSS(t *testing.T) {
 			expected: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.ServerMode = true
+				rt.TLS.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
 				rt.RPCConfig.EnableStreaming = true

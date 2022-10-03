@@ -58,6 +58,16 @@ type ConfigSnapshotUpstreams struct {
 	// backing endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
+	// WatchedLocalGWEndpoints is used to store the backing endpoints of
+	// a local mesh gateway. Currently, this is used by peered upstreams
+	// configured with local mesh gateway mode so that they can watch for
+	// gateway endpoints.
+	//
+	// Note that the string form of GatewayKey is used as the key so empty
+	// fields can be normalized in OSS.
+	//   GatewayKey.String() -> structs.CheckServiceNodes
+	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
+
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
@@ -375,8 +385,11 @@ type configSnapshotMeshGateway struct {
 	// datacenter.
 	FedStateGateways map[string]structs.CheckServiceNodes
 
-	// ConsulServers is the list of consul servers in this datacenter.
-	ConsulServers structs.CheckServiceNodes
+	// WatchedConsulServers is a map of (structs.ConsulServiceName -> structs.CheckServiceNodes)`
+	// Mesh gateways can spin up watches for local servers both for
+	// WAN federation and for peering. This map ensures we only have one
+	// watch at a time.
+	WatchedConsulServers watch.Map[string, structs.CheckServiceNodes]
 
 	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -556,8 +569,8 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
-		len(c.ConsulServers) == 0 &&
 		len(c.HostnameDatacenters) == 0 &&
+		c.WatchedConsulServers.Len() == 0 &&
 		c.isEmptyPeering()
 }
 
@@ -609,6 +622,9 @@ type configSnapshotIngressGateway struct {
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
+
+	// Defaults is the default configuration for upstream service instances
+	Defaults structs.IngressServiceConfig
 }
 
 // isEmpty is a test helper
@@ -690,8 +706,11 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.TerminatingGateway.MeshConfigSet
 
 	case structs.ServiceKindMeshGateway:
-		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
-			if len(s.MeshGateway.ConsulServers) == 0 {
+		if s.MeshGateway.WatchedConsulServers.Len() == 0 {
+			if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
+				return false
+			}
+			if cfg := s.MeshConfig(); cfg.PeerThroughMeshGateways() {
 				return false
 			}
 		}
@@ -812,6 +831,18 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 		return nil
 	}
 	return mesh.TLS.Outgoing
+}
+
+func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, error) {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
+	case structs.ServiceKindIngressGateway:
+		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
+	default:
+		// This is a coherence check and should never fail
+		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
+	}
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {

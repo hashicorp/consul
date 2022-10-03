@@ -39,12 +39,8 @@ func (c cacheIntentions) Notify(ctx context.Context, req *structs.ServiceSpecifi
 		QueryOptions: structs.QueryOptions{Token: req.QueryOptions.Token},
 	}
 	return c.c.NotifyCallback(ctx, cachetype.IntentionMatchName, query, correlationID, func(ctx context.Context, event cache.UpdateEvent) {
-		e := proxycfg.UpdateEvent{
-			CorrelationID: correlationID,
-			Err:           event.Err,
-		}
-
-		if e.Err == nil {
+		var result any
+		if event.Err == nil {
 			rsp, ok := event.Result.(*structs.IndexedIntentionMatches)
 			if !ok {
 				return
@@ -54,11 +50,11 @@ func (c cacheIntentions) Notify(ctx context.Context, req *structs.ServiceSpecifi
 			if len(rsp.Matches) != 0 {
 				matches = rsp.Matches[0]
 			}
-			e.Result = matches
+			result = matches
 		}
 
 		select {
-		case ch <- e:
+		case ch <- newUpdateEvent(correlationID, result, event.Err):
 		case <-ctx.Done():
 		}
 	})
@@ -110,10 +106,7 @@ func (s *serverIntentions) Notify(ctx context.Context, req *structs.ServiceSpeci
 
 		sort.Sort(structs.IntentionPrecedenceSorter(intentions))
 
-		return proxycfg.UpdateEvent{
-			CorrelationID: correlationID,
-			Result:        intentions,
-		}, true
+		return newUpdateEvent(correlationID, intentions, nil), true
 	}
 
 	for subjectIdx, subject := range subjects {

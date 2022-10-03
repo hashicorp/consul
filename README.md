@@ -17,10 +17,10 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
-* **Service Mesh/Service Segmentation** - Consul Connect enables secure service-to-service
+* **Service Mesh** - Consul Service Mesh enables secure service-to-service
   communication with automatic TLS encryption and identity-based authorization. Applications
   can use sidecar proxies in a service mesh configuration to establish TLS
-  connections for inbound and outbound connections without being aware of Connect at all.
+  connections for inbound and outbound connections with Transparent Proxy.
 
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
@@ -37,7 +37,7 @@ Consul provides several key features:
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
-called [Consul Enterprise](https://www.hashicorp.com/products/consul) is also
+called [Consul Enterprise](https://www.consul.io/docs/enterprise) is also
 available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you
@@ -52,12 +52,11 @@ A few quick start guides are available on the Consul website:
 * **Minikube install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube
 * **Kind install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-kind
 * **Kubernetes install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide
+* **Deploy HCP Consul:** https://learn.hashicorp.com/tutorials/consul/hcp-gs-deploy 
 
 ## Documentation
 
-Full, comprehensive documentation is available on the Consul website:
-
-https://www.consul.io/docs
+Full, comprehensive documentation is available on the Consul website: https://consul.io/docs
 
 ## Contributing
 

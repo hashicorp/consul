@@ -25,7 +25,7 @@ non-graceful leave can affect cluster availability.
 Running `consul leave` on a server explicitly will reduce the quorum size. Even if the cluster used `bootstrap_expect` to set a quorum size initially, issuing `consul leave` on a server will reconfigure the cluster to have fewer servers.
 This means you could end up with just one server that is still able to commit writes because quorum is only 1, but those writes might be lost if that server fails before more are added.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
+The table below shows this command's [required ACLs](/api-docs#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 

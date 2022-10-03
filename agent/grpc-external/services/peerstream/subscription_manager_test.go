@@ -3,14 +3,18 @@ package peerstream
 import (
 	"context"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/types"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -46,17 +50,15 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	var (
-		gatewayCorrID = subMeshGateway + partition
-
-		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
-
+		mysqlCorrID      = subExportedService + structs.NewServiceName("mysql", nil).String()
 		mysqlProxyCorrID = subExportedService + structs.NewServiceName("mysql-sidecar-proxy", nil).String()
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-		checkEvent(t, got, gatewayCorrID, 0)
-	})
+	expectEvents(t, subCh,
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkExportedServices(t, got, []string{})
+		})
 
 	// Initially add in L4 failover so that later we can test removing it. We
 	// cannot do the other way around because it would fail validation to
@@ -91,6 +93,9 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		})
 
 		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{"mysql"})
+			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, mysqlCorrID, 0)
 			},
@@ -289,17 +294,6 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 					},
 				}, res.Nodes[0])
 			},
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, gatewayCorrID, got.CorrelationID)
-				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
-				require.Equal(t, uint64(0), res.Index)
-
-				require.Len(t, res.Nodes, 1)
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("mgw", "10.1.1.1", partition),
-					Service: pbService("mesh-gateway", "gateway-1", "gateway", 8443, nil),
-				}, res.Nodes[0])
-			},
 		)
 	})
 
@@ -425,12 +419,25 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 
 				require.Len(t, res.Nodes, 0)
 			},
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, gatewayCorrID, got.CorrelationID)
-				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
-				require.Equal(t, uint64(0), res.Index)
+		)
+	})
 
-				require.Len(t, res.Nodes, 0)
+	testutil.RunStep(t, "unexporting a service emits sends an event", func(t *testing.T) {
+		backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "mongo",
+					Consumers: []structs.ServiceConsumer{
+						{PeerName: "my-other-peering"},
+					},
+				},
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{})
 			},
 		)
 	})
@@ -475,8 +482,6 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	backend.ensureService(t, "zip", mongo.Service)
 
 	var (
-		gatewayCorrID = subMeshGateway + partition
-
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
 		mongoCorrID = subExportedService + structs.NewServiceName("mongo", nil).String()
 		chainCorrID = subExportedService + structs.NewServiceName("chain", nil).String()
@@ -487,9 +492,10 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	)
 
 	// Expect just the empty mesh gateway event to replicate.
-	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-		checkEvent(t, got, gatewayCorrID, 0)
-	})
+	expectEvents(t, subCh,
+		func(t *testing.T, got cache.UpdateEvent) {
+			checkExportedServices(t, got, []string{})
+		})
 
 	// At this point in time we'll have a mesh-gateway notification with no
 	// content stored and handled.
@@ -519,6 +525,9 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		})
 
 		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkExportedServices(t, got, []string{"mysql", "chain", "mongo"})
+			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, chainCorrID, 0)
 			},
@@ -558,9 +567,6 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				checkEvent(t, got, mysqlProxyCorrID, 1, "mysql-sidecar-proxy", string(structs.ServiceKindConnectProxy))
-			},
-			func(t *testing.T, got cache.UpdateEvent) {
-				checkEvent(t, got, gatewayCorrID, 1, "gateway", string(structs.ServiceKindMeshGateway))
 			},
 		)
 	})
@@ -627,20 +633,196 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	})
 }
 
+func TestSubscriptionManager_ServerAddrs(t *testing.T) {
+	backend := newTestSubscriptionBackend(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	// Create a peering
+	_, id := backend.ensurePeering(t, "my-peering")
+	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
+
+	payload := autopilotevents.EventPayloadReadyServers{
+		autopilotevents.ReadyServerInfo{
+			ID:          "9aeb73f6-e83e-43c1-bdc9-ca5e43efe3e4",
+			Address:     "198.18.0.1",
+			Version:     "1.13.1",
+			ExtGRPCPort: 8502,
+		},
+	}
+	// mock handler only gets called once during the initial subscription
+	backend.handler.expect("", 0, 1, payload)
+
+	// Only configure a tracker for server address events.
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLPeeringServerAddresses)
+
+	mgr := newSubscriptionManager(ctx,
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		connect.TestTrustDomain,
+		backend,
+		func() StateStore {
+			return backend.store
+		},
+		tracker)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
+
+	testutil.RunStep(t, "initial events", func(t *testing.T) {
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "added server", func(t *testing.T) {
+		payload = append(payload, autopilotevents.ReadyServerInfo{
+			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
+			Address:     "198.18.0.2",
+			Version:     "1.13.1",
+			ExtGRPCPort: 9502,
+		})
+		backend.Publish([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   2,
+				Payload: payload,
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "flipped to peering through mesh gateways", func(t *testing.T) {
+		require.NoError(t, backend.store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
+			Peering: &structs.PeeringMeshConfig{
+				PeerThroughMeshGateways: true,
+			},
+		}))
+
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-subCh:
+			t.Fatal("expected to time out: no mesh gateways are registered")
+		}
+	})
+
+	testutil.RunStep(t, "registered and received a mesh gateway", func(t *testing.T) {
+		reg := structs.RegisterRequest{
+			ID:      types.NodeID("b5489ca9-f5e9-4dba-a779-61fec4e8e364"),
+			Node:    "gw-node",
+			Address: "1.2.3.4",
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "172.217.22.14",
+			},
+			Service: &structs.NodeService{
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Kind:    structs.ServiceKindMeshGateway,
+				Port:    443,
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					structs.TaggedAddressWAN: {Address: "154.238.12.252", Port: 8443},
+				},
+			},
+		}
+		require.NoError(t, backend.store.EnsureRegistration(2, &reg))
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"154.238.12.252:8443"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "registered and received a second mesh gateway", func(t *testing.T) {
+		reg := structs.RegisterRequest{
+			ID:      types.NodeID("e4cc0af3-5c09-4ddf-94a9-5840e427bc45"),
+			Node:    "gw-node-2",
+			Address: "1.2.3.5",
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "172.217.22.15",
+			},
+			Service: &structs.NodeService{
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Kind:    structs.ServiceKindMeshGateway,
+				Port:    443,
+			},
+		}
+		require.NoError(t, backend.store.EnsureRegistration(3, &reg))
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"154.238.12.252:8443", "172.217.22.15:443"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "disabled peering through gateways and received server addresses", func(t *testing.T) {
+		require.NoError(t, backend.store.EnsureConfigEntry(4, &structs.MeshConfigEntry{
+			Peering: &structs.PeeringMeshConfig{
+				PeerThroughMeshGateways: false,
+			},
+		}))
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				// New subscriptions receive a snapshot from the event publisher.
+				// At the start of the test the handler registered a mock that only returns a single address.
+				require.Equal(t, []string{"198.18.0.1:8502"}, addrs.GetAddresses())
+			},
+		)
+	})
+}
+
 type testSubscriptionBackend struct {
 	state.EventPublisher
-	store *state.Store
+	store   *state.Store
+	handler *mockSnapshotHandler
 
 	lastIdx uint64
 }
 
 func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	publisher := stream.NewEventPublisher(10 * time.Second)
-	store := newStateStore(t, publisher)
+	store, handler := newStateStore(t, publisher)
 
 	backend := &testSubscriptionBackend{
 		EventPublisher: publisher,
 		store:          store,
+		handler:        handler,
 	}
 
 	backend.ensureCAConfig(t, &structs.CAConfiguration{
@@ -739,20 +921,35 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	return p.ID
 }
 
-func newStateStore(t *testing.T, publisher *stream.EventPublisher) *state.Store {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
+func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *mockSnapshotHandler) {
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
 	require.NoError(t, err)
+
+	handler := newMockSnapshotHandler(t)
 
 	store := state.NewStateStoreWithEventPublisher(gc, publisher)
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot, false))
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot, false))
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot, false))
-	go publisher.Run(ctx)
+	require.NoError(t, publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, handler.handle, false))
 
-	return store
+	// WaitGroup used to make sure that the publisher returns
+	// before handler's t.Cleanup is called (otherwise an event
+	// might fire during an assertion and cause a data race).
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+		wg.Wait()
+	})
+
+	wg.Add(1)
+	go func() {
+		publisher.Run(ctx)
+		wg.Done()
+	}()
+
+	return store, handler
 }
 
 func expectEvents(
@@ -835,6 +1032,23 @@ func checkEvent(
 	}
 }
 
+func checkExportedServices(
+	t *testing.T,
+	got cache.UpdateEvent,
+	expectedServices []string,
+) {
+	t.Helper()
+
+	var qualifiedServices []string
+	for _, s := range expectedServices {
+		qualifiedServices = append(qualifiedServices, structs.ServiceName{Name: s}.String())
+	}
+
+	require.Equal(t, subExportedServiceList, got.CorrelationID)
+	evt := got.Result.(*pbpeerstream.ExportedServiceList)
+	require.ElementsMatch(t, qualifiedServices, evt.Services)
+}
+
 func pbNode(node, addr, partition string) *pbservice.Node {
 	return &pbservice.Node{Node: node, Partition: partition, Address: addr}
 }
@@ -869,4 +1083,40 @@ func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMe
 		ServiceName:    svcName,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+// mockSnapshotHandler is copied from server_discovery/server_test.go
+type mockSnapshotHandler struct {
+	mock.Mock
+}
+
+func newMockSnapshotHandler(t *testing.T) *mockSnapshotHandler {
+	handler := &mockSnapshotHandler{}
+	t.Cleanup(func() {
+		handler.AssertExpectations(t)
+	})
+	return handler
+}
+
+func (m *mockSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	ret := m.Called(req, buf)
+	return ret.Get(0).(uint64), ret.Error(1)
+}
+
+func (m *mockSnapshotHandler) expect(token string, requestIndex uint64, eventIndex uint64, payload autopilotevents.EventPayloadReadyServers) {
+	m.On("handle", stream.SubscribeRequest{
+		Topic:   autopilotevents.EventTopicReadyServers,
+		Subject: stream.SubjectNone,
+		Token:   token,
+		Index:   requestIndex,
+	}, mock.Anything).Run(func(args mock.Arguments) {
+		buf := args.Get(1).(stream.SnapshotAppender)
+		buf.Append([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   eventIndex,
+				Payload: payload,
+			},
+		})
+	}).Return(eventIndex, nil)
 }

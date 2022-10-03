@@ -166,6 +166,34 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			},
 		},
 		{
+			name: "resolver: failover with targets",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Targets: []ServiceResolverFailoverTarget{
+							{Service: "other1"},
+							{Datacenter: "dc2"},
+							{Peer: "cluster-01"},
+						},
+					},
+				},
+			},
+			expectServices: []ServiceID{NewServiceID("other1", nil)},
+			expectACLs: []testACL{
+				defaultDenyCase,
+				readTestCase,
+				writeTestCaseDenied,
+				{
+					name:       "can write test (with other1:read)",
+					authorizer: newServiceACL(t, []string{"other1"}, []string{"test"}),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
 			name: "splitter: self",
 			entry: &ServiceSplitterConfigEntry{
 				Kind: ServiceSplitter,
@@ -596,6 +624,15 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: "Redirect is empty",
 		},
 		{
+			name: "empty redirect",
+			entry: &ServiceResolverConfigEntry{
+				Kind:     ServiceResolver,
+				Name:     "test",
+				Redirect: &ServiceResolverRedirect{},
+			},
+			validateErr: "Redirect is empty",
+		},
+		{
 			name: "redirect subset with no service",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
@@ -605,17 +642,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: "Redirect.ServiceSubset defined without Redirect.Service",
-		},
-		{
-			name: "redirect namespace with no service",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Redirect: &ServiceResolverRedirect{
-					Namespace: "alternate",
-				},
-			},
-			validateErr: "Redirect.Namespace defined without Redirect.Service",
 		},
 		{
 			name: "self redirect with invalid subset",
@@ -630,6 +656,41 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: `Redirect.ServiceSubset "gone" is not a valid subset of "test"`,
 		},
 		{
+			name: "redirect with peer and subset",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer:          "cluster-01",
+					ServiceSubset: "gone",
+				},
+			},
+			validateErr: `Redirect.Peer cannot be set with Redirect.ServiceSubset`,
+		},
+		{
+			name: "redirect with peer and datacenter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer:       "cluster-01",
+					Datacenter: "dc2",
+				},
+			},
+			validateErr: `Redirect.Peer cannot be set with Redirect.Datacenter`,
+		},
+		{
+			name: "redirect with peer and datacenter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Peer: "cluster-01",
+				},
+			},
+			validateErr: `Redirect.Peer defined without Redirect.Service`,
+		},
+		{
 			name: "self redirect with valid subset",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,
@@ -640,6 +701,17 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 				Subsets: map[string]ServiceResolverSubset{
 					"v1": {Filter: "Service.Meta.version == v1"},
+				},
+			},
+		},
+		{
+			name: "redirect to peer",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					Service: "other",
+					Peer:    "cluster-01",
 				},
 			},
 		},
@@ -695,7 +767,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {},
 				},
 			},
-			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",
@@ -712,7 +784,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Bad Failover["v1"].ServiceSubset "gone" is not a valid subset of "test"`,
+			validateErr: `Bad Failover["v1"]: ServiceSubset "gone" is not a valid subset of "test"`,
 		},
 		{
 			name: "failover to self using valid subset",
@@ -744,6 +816,109 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: `Bad Failover["*"].Datacenters: found empty datacenter`,
+		},
+		{
+			name: "failover target with an invalid subset",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Targets: []ServiceResolverFailoverTarget{{ServiceSubset: "subset"}},
+					},
+				},
+			},
+			validateErr: `Bad Failover["*"].Targets[0]: ServiceSubset "subset" is not a valid subset of "test"`,
+		},
+		{
+			name: "failover targets can't have Peer and ServiceSubset",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01", ServiceSubset: "subset"}},
+					},
+				},
+			},
+			validateErr: `Bad Failover["*"].Targets[0]: Peer cannot be set with ServiceSubset`,
+		},
+		{
+			name: "failover targets can't have Peer and Datacenter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01", Datacenter: "dc1"}},
+					},
+				},
+			},
+			validateErr: `Bad Failover["*"].Targets[0]: Peer cannot be set with Datacenter`,
+		},
+		{
+			name: "failover Targets cannot be set with Datacenters",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Datacenters: []string{"a"},
+						Targets:     []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
+					},
+				},
+			},
+			validateErr: `Bad Failover["*"]: Targets cannot be set with Datacenters`,
+		},
+		{
+			name: "failover Targets cannot be set with ServiceSubset",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						ServiceSubset: "v2",
+						Targets:       []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
+					},
+				},
+				Subsets: map[string]ServiceResolverSubset{
+					"v2": {Filter: "Service.Meta.version == v2"},
+				},
+			},
+			validateErr: `Bad Failover["*"]: Targets cannot be set with ServiceSubset`,
+		},
+		{
+			name: "failover Targets cannot be set with Service",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Service: "another-service",
+						Targets: []ServiceResolverFailoverTarget{{Peer: "cluster-01"}},
+					},
+				},
+				Subsets: map[string]ServiceResolverSubset{
+					"v2": {Filter: "Service.Meta.version == v2"},
+				},
+			},
+			validateErr: `Bad Failover["*"]: Targets cannot be set with Service`,
+		},
+		{
+			name: "complicated failover targets",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						Targets: []ServiceResolverFailoverTarget{
+							{Peer: "cluster-01", Service: "test-v2"},
+							{Service: "test-v2", ServiceSubset: "test"},
+							{Datacenter: "dc2"},
+						},
+					},
+				},
+			},
 		},
 		{
 			name: "bad connect timeout",

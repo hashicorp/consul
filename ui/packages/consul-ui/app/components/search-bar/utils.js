@@ -1,5 +1,5 @@
 export const diff = (a, b) => {
-  return a.filter(item => !b.includes(item));
+  return a.filter((item) => !b.includes(item));
 };
 /**
  * filters accepts the args.filter @attribute which is shaped like
@@ -11,7 +11,7 @@ export const diff = (a, b) => {
  * There is more explanation in the unit tests for this function so thats worthwhile
  * checking if you are in amongst this
  */
-export const filters = filters => {
+export const filters = (filters) => {
   return Object.entries(filters)
     .filter(([key, value]) => {
       if (key === 'searchproperty') {
@@ -21,7 +21,7 @@ export const filters = filters => {
     })
     .reduce((prev, [key, value]) => {
       return prev.concat(
-        value.value.map(item => {
+        value.value.map((item) => {
           const obj = {
             key: key,
             value: item,

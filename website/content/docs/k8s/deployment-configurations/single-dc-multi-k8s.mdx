@@ -1,0 +1,337 @@
+---
+layout: docs
+page_title: Single Consul Datacenter in Multiple Kubernetes Clusters - Kubernetes
+description: Single Consul Datacenter deployed in multiple Kubernetes clusters
+---
+
+# Single Consul Datacenter in Multiple Kubernetes Clusters
+
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
+
+This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
+with servers and clients running in one cluster and only clients in the rest of the clusters.
+This example uses two Kubernetes clusters, but this approach could be extended to using more than two.
+
+## Requirements
+
+* Consul-Helm version `v0.32.1` or higher
+* This deployment topology requires that the Kubernetes clusters have a flat network
+for both pods and nodes so that pods or nodes from one cluster can connect
+to pods or nodes in another. In many hosted Kubernetes environments, this may have to be explicitly configured based on the hosting provider's network. Refer to the following documentation for instructions:
+  * [Azure AKS CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking)
+  * [AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html)
+  * [GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
+* Either the Helm release name for each Kubernetes cluster must be unique, or `global.name` for each Kubernetes cluster must be unique to prevent collisions of ACL resources with the same prefix.
+
+## Prepare Helm release name ahead of installs
+
+The Helm release name must be unique for each Kubernetes cluster.
+The Helm chart uses the Helm release name as a prefix for the
+ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases are identical, or if `global.name` for each cluster is identical, subsequent Consul on Kubernetes clusters will overwrite existing ACL resources and cause the clusters to fail.
+
+Before proceeding with installation, prepare the Helm release names as environment variables for both the server and client install.
+
+```shell-session
+  $ export HELM_RELEASE_SERVER=server
+  $ export HELM_RELEASE_CLIENT=client
+  ...
+  $ export HELM_RELEASE_CLIENT2=client2
+```
+
+## Deploying Consul servers and clients in the first cluster
+
+First, deploy the first cluster with Consul Servers and Clients with the example Helm configuration below.
+
+<CodeBlockConfig filename="cluster1-values.yaml">
+
+```yaml
+global:
+  datacenter: dc1
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+  acls:
+    manageSystemACLs: true
+  gossipEncryption:
+    secretName: consul-gossip-encryption-key
+    secretKey: key
+connectInject:
+  enabled: true
+controller:
+  enabled: true
+ui:
+  service:
+    type: NodePort
+```
+
+</CodeBlockConfig>
+
+Note that this will deploy a secure configuration with gossip encryption,
+TLS for all components and ACLs. In addition, this will enable the Consul Service Mesh and the controller for CRDs
+that can be used later to verify the connectivity of services across clusters.
+
+The UI's service type is set to be `NodePort`.
+This is needed to connect to servers from another cluster without using the pod IPs of the servers,
+which are likely going to change.
+
+To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
+
+```shell-session
+$ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
+```
+
+Now install Consul cluster with Helm:
+```shell-session
+$ helm install ${HELM_RELEASE_SERVER} --values cluster1-values.yaml hashicorp/consul
+```
+
+
+Once the installation finishes and all components are running and ready, the following information needs to be extracted (using the below command) and applied to the second Kubernetes cluster.
+ * The Gossip encryption key created
+ * The CA certificate generated during installation
+ * The ACL bootstrap token generated during installation
+
+```shell-session
+$ kubectl get secret consul-gossip-encryption-key ${HELM_RELEASE_SERVER}-consul-ca-cert ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
+```
+
+## Deploying Consul clients in the second cluster
+~> **Note:** If multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions will need to be repeated for each additional Kubernetes cluster.
+
+Switch to the second Kubernetes cluster where Consul clients will be deployed
+that will join the first Consul cluster.
+
+```shell-session
+$ kubectl config use-context <K8S_CONTEXT_NAME>
+```
+
+First, apply the credentials extracted from the first cluster to the second cluster:
+
+```shell-session
+$ kubectl apply --filename cluster1-credentials.yaml
+```
+To deploy in the second cluster, the following example Helm configuration will be used:
+
+<CodeBlockConfig filename="cluster2-values.yaml" highlight="6-11,15-17">
+
+```yaml
+global:
+  enabled: false
+  datacenter: dc1
+  acls:
+    manageSystemACLs: true
+    bootstrapToken:
+      secretName: cluster1-consul-bootstrap-acl-token
+      secretKey: token
+  gossipEncryption:
+    secretName: consul-gossip-encryption-key
+    secretKey: key
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+    caCert:
+      secretName: cluster1-consul-ca-cert
+      secretKey: tls.crt
+externalServers:
+  enabled: true
+  # This should be any node IP of the first k8s cluster
+  hosts: ["10.0.0.4"]
+  # The node port of the UI's NodePort service
+  httpsPort: 31557
+  tlsServerName: server.dc1.consul
+  # The address of the kube API server of this Kubernetes cluster
+  k8sAuthMethodHost: https://kubernetes.example.com:443
+client:
+  enabled: true
+  join: ["provider=k8s kubeconfig=/consul/userconfig/cluster1-kubeconfig/kubeconfig label_selector=\"app=consul,component=server\""]
+  extraVolumes:
+    - type: secret
+      name: cluster1-kubeconfig
+      load: false
+connectInject:
+  enabled: true
+```
+
+</CodeBlockConfig>
+
+Note the references to the secrets extracted and applied from the first cluster in ACL, gossip, and TLS configuration.
+
+The `externalServers.hosts` and `externalServers.httpsPort`
+refer to the IP and port of the UI's NodePort service deployed in the first cluster.
+Set the `externalServers.hosts` to any Node IP of the first cluster,
+which can be seen by running `kubectl get nodes --output wide`.
+Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service.
+In our example, the port is `31557`.
+
+```shell-session
+$ kubectl get service cluster1-consul-ui --context cluster1
+NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
+cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h
+```
+
+Set the `externalServer.tlsServerName` to `server.dc1.consul`. This the DNS SAN
+(Subject Alternative Name) that is present in the Consul server's certificate.
+This is required because the connection to the Consul servers uses the node IP,
+but that IP isn't present in the server's certificate.
+To make sure that the hostname verification succeeds during the TLS handshake, set the TLS
+server name to a DNS name that *is* present in the certificate.
+
+Next, set `externalServers.k8sAuthMethodHost` to the address of the second Kubernetes API server.
+This should be the address that is reachable from the first cluster, so it cannot be the internal DNS
+available in each Kubernetes cluster. Consul needs it so that `consul login` with the Kubernetes auth method will work
+from the second cluster.
+More specifically, the Consul server will need to perform the verification of the Kubernetes service account
+whenever `consul login` is called, and to verify service accounts from the second cluster, it needs to
+reach the Kubernetes API in that cluster.
+The easiest way to get it is from the `kubeconfig` by running `kubectl config view` and grabbing
+the value of `cluster.server` for the second cluster.
+
+Lastly, set up the clients so that they can discover the servers in the first cluster.
+For this, Consul's cloud auto-join feature
+for the [Kubernetes provider](/docs/install/cloud-auto-join#kubernetes-k8s) can be used.
+
+This can be configured by saving the `kubeconfig` for the first cluster as a Kubernetes secret in the second cluster
+and referencing it in the `clients.join` value. Note that the secret is made available to the client pods
+by setting it in `client.extraVolumes`.
+
+~> **Note:** The kubeconfig provided to the client should have minimal permissions.
+The cloud auto-join provider will only need permission to read pods.
+Please see [Kubernetes Cloud auto-join](/docs/install/cloud-auto-join#kubernetes-k8s)
+for more details.
+
+Now, proceed with the installation of the second cluster.
+
+```shell-session
+$ helm install ${HELM_RELEASE_CLIENT} --values cluster2-values.yaml hashicorp/consul
+```
+
+## Verifying the Consul Service Mesh works
+
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
+
+Now that the Consul cluster spanning across multiple k8s clusters is up and running, deploy two services in separate k8s clusters and verify that they can connect to each other.
+
+First, deploy `static-server` service in the first cluster:
+
+<CodeBlockConfig filename="static-server.yaml">
+
+```yaml
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: static-server
+spec:
+  destination:
+    name: static-server
+  sources:
+    - name: static-client
+      action: allow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  type: ClusterIP
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: static-server
+```
+
+</CodeBlockConfig>
+
+Note that defining a Service intention is required so that our services are allowed to talk to each other.
+
+Next, deploy `static-client` in the second cluster with the following configuration:
+
+<CodeBlockConfig filename="static-client.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service-upstreams": "static-server:1234"
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          command: [ "/bin/sh", "-c", "--" ]
+          args: [ "while true; do sleep 30; done;" ]
+      serviceAccountName: static-client
+```
+
+</CodeBlockConfig>
+
+Once both services are up and running, try connecting to the `static-server` from `static-client`:
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl --silent localhost:1234
+"hello world"
+```
+
+A successful installation would return `hello world` for the above curl command output.

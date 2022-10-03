@@ -1,25 +1,25 @@
 import { visit } from '@ember/test-helpers';
 
-export default function(scenario, pages, set, reset) {
+export default function (scenario, pages, set, reset) {
   scenario
-    .when('I visit the $name page', function(name) {
+    .when('I visit the $name page', function (name) {
       reset();
       return set(pages[name]).visit();
     })
-    .when('I visit the $name page for the "$id" $model', function(name, id, model) {
+    .when('I visit the $name page for the "$id" $model', function (name, id, model) {
       reset();
       return set(pages[name]).visit({
         [model]: id,
       });
     })
-    .when('I visit the $name page with the url $url', function(name, url) {
+    .when('I visit the $name page with the url $url', function (name, url) {
       reset();
       set(pages[name]);
       return visit(url);
     })
     .when(
       ['I visit the $name page for yaml\n$yaml', 'I visit the $name page for json\n$json'],
-      function(name, data) {
+      function (name, data) {
         const nspace = this.ctx.nspace;
         if (nspace !== '' && typeof nspace !== 'undefined') {
           data.nspace = `~${nspace}`;

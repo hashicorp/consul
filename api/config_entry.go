@@ -177,6 +177,10 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
+	// outbound connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul
@@ -196,6 +200,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific
@@ -218,21 +227,25 @@ type UpstreamLimits struct {
 }
 
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Protocol         string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-	Destination      *DestinationConfig      `json:",omitempty"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+	Kind                      string
+	Name                      string
+	Partition                 string                  `json:",omitempty"`
+	Namespace                 string                  `json:",omitempty"`
+	Protocol                  string                  `json:",omitempty"`
+	Mode                      ProxyMode               `json:",omitempty"`
+	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig            `json:",omitempty"`
+	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig      `json:",omitempty"`
+	MaxInboundConnections     int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	Meta                      map[string]string       `json:",omitempty"`
+	CreateIndex               uint64
+	ModifyIndex               uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }

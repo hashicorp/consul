@@ -18,6 +18,9 @@
     'component:consul/peer/selector': {
       class: '@glimmer/component',
     },
+    'component:consul/hcp/home': {
+      class: '@glimmer/component',
+    },
   }))(
   (
     json,

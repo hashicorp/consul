@@ -1,0 +1,3 @@
+```release-note:feature
+peering: Add support to failover to services running on cluster peers.
+```

@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
@@ -270,17 +272,20 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			require.Equal(t, uint64(2), idx)
 			require.Equal(t, svcmap["redis1"], r)
 
+			exp := svcmap["redis1"].ToServiceNode("node1")
+			exp.ID = nodeID
+
 			// lookup service by node name
 			idx, sn, err := s.ServiceNode("", "node1", "redis1", nil, peerName)
 			require.NoError(t, err)
 			require.Equal(t, uint64(2), idx)
-			require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+			require.Equal(t, exp, sn)
 
 			// lookup service by node ID
 			idx, sn, err = s.ServiceNode(string(nodeID), "", "redis1", nil, peerName)
 			require.NoError(t, err)
 			require.Equal(t, uint64(2), idx)
-			require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+			require.Equal(t, exp, sn)
 
 			// lookup service by invalid node
 			_, _, err = s.ServiceNode("", "invalid-node", "redis1", nil, peerName)
@@ -2102,10 +2107,13 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns1.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(2, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	testRegisterService(t, s, 3, "node1", "dogs")
+	ns1Dogs := testRegisterService(t, s, 3, "node1", "dogs")
+	ns1Dogs.EnterpriseMeta.Normalize()
+
 	testRegisterNode(t, s, 4, "node2")
 	ns2 := &structs.NodeService{
 		ID:      "service3",
@@ -2114,6 +2122,7 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns2.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(5, "node2", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2131,19 +2140,13 @@ func TestStateStore_Services(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Verify the result. We sort the lists since the order is
-	// non-deterministic (it's built using a map internally).
-	expected := structs.Services{
-		"redis": []string{"prod", "primary", "replica"},
-		"dogs":  []string{},
+	// Verify the result.
+	expected := []*structs.ServiceNode{
+		ns1Dogs.ToServiceNode("node1"),
+		ns1.ToServiceNode("node1"),
+		ns2.ToServiceNode("node2"),
 	}
-	sort.Strings(expected["redis"])
-	for _, tags := range services {
-		sort.Strings(tags)
-	}
-	if !reflect.DeepEqual(expected, services) {
-		t.Fatalf("bad: %#v", services)
-	}
+	assertDeepEqual(t, expected, services, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 
 	// Deleting a node with a service should fire the watch.
 	if err := s.DeleteNode(6, "node1", nil, ""); err != nil {
@@ -2182,6 +2185,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns1.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(2, "node0", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2192,6 +2196,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+	ns2.EnterpriseMeta.Normalize()
 	if err := s.EnsureService(3, "node1", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2206,11 +2211,10 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		expected := structs.Services{
-			"redis": []string{"primary", "prod"},
+		expected := []*structs.ServiceNode{
+			ns1.ToServiceNode("node0"),
 		}
-		sort.Strings(res["redis"])
-		require.Equal(t, expected, res)
+		assertDeepEqual(t, res, expected, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 	})
 
 	t.Run("Get all services using the common meta value", func(t *testing.T) {
@@ -2218,11 +2222,12 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		expected := structs.Services{
-			"redis": []string{"primary", "prod", "replica"},
+		require.Len(t, res, 2)
+		expected := []*structs.ServiceNode{
+			ns1.ToServiceNode("node0"),
+			ns2.ToServiceNode("node1"),
 		}
-		sort.Strings(res["redis"])
-		require.Equal(t, expected, res)
+		assertDeepEqual(t, res, expected, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 	})
 
 	t.Run("Get an empty list for an invalid meta value", func(t *testing.T) {
@@ -2230,8 +2235,8 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		expected := structs.Services{}
-		require.Equal(t, expected, res)
+		var expected []*structs.ServiceNode
+		assertDeepEqual(t, res, expected, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 	})
 
 	t.Run("Get the first node's service instance using multiple meta filters", func(t *testing.T) {
@@ -2239,11 +2244,10 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		expected := structs.Services{
-			"redis": []string{"primary", "prod"},
+		expected := []*structs.ServiceNode{
+			ns1.ToServiceNode("node0"),
 		}
-		sort.Strings(res["redis"])
-		require.Equal(t, expected, res)
+		assertDeepEqual(t, res, expected, cmpopts.IgnoreFields(structs.ServiceNode{}, "RaftIndex"))
 	})
 
 	t.Run("Registering some unrelated node + service should not fire the watch.", func(t *testing.T) {
@@ -8806,4 +8810,11 @@ func setVirtualIPFlags(t *testing.T, s *Store) {
 		Key:   structs.SystemMetadataTermGatewayVirtualIPsEnabled,
 		Value: "true",
 	}))
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

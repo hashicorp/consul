@@ -108,6 +108,16 @@ func (msg *PeeringTrustBundle) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *PeeringServerAddresses) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *PeeringServerAddresses) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *PeeringReadRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

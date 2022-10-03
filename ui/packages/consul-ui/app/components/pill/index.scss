@@ -18,6 +18,9 @@ span.policy-node-identity::before {
 span.policy-service-identity::before {
   content: 'Service Identity: ';
 }
+%pill::before {
+  --icon-size: icon-300;
+}
 %pill.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;
 }

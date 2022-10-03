@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: Agent
+page_title: Agents Overview
 description: >-
-  The Consul agent is the core process of Consul. The agent maintains membership
-  information, registers services, runs checks, responds to queries, and more.
-  The agent must run on every node that is part of a Consul cluster.
+  Agents maintain register services, respond to queries, maintain datacenter membership information, and make most of Consul’s functions possible. Learn how to start, stop, and configure agents, as well as their requirements and lifecycle.
 ---
 
-# Consul Agent
+# Agents Overview
 
 This topic provides an overview of the Consul agent, which is the core process of Consul.
 The agent maintains membership information, registers services, runs checks, responds to queries, and more.
@@ -77,7 +75,7 @@ The [Datacenter Deploy tutorial](https://learn.hashicorp.com/tutorials/consul/re
 
 ### Maximum Latency Network requirements
 
-Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol’s maximum latency threshold. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents.  Other network usages outside of Gossip are not bound by these latency requirements (i.e. client to server RPCs, HTTP API requests, xDS proxy configuration, DNS).
+Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol's maximum latency threshold. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents.  Other network usages outside of Gossip are not bound by these latency requirements (i.e. client to server RPCs, HTTP API requests, xDS proxy configuration, DNS).
 
 For data sent between all Consul agents the following latency requirements must be met:
 
@@ -97,7 +95,7 @@ The `-dev` flag is provided for learning purposes only.
 We strongly advise against using it for production environments.
 
 -> **Getting Started Tutorials**: You can test a local agent by following the
-[Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=consul.io&utm_medium=docs).
+[Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=docs).
 
 When starting Consul with the `-dev` flag, the only additional information Consul needs to run is the location of a directory for storing agent state data.
 You can specify the location with the `-data-dir` flag or define the location in an external file and point the file with the `-config-file` flag.
@@ -153,7 +151,7 @@ $ consul agent -data-dir=/tmp/consul
   specify a `-http-addr` whenever you run commands such as
   [`consul members`](/commands/members) to indicate how to reach the
   agent. Other applications can also use the HTTP address and port
-  [to control Consul](/api).
+  [to control Consul](/api-docs).
 
 - **Cluster Addr**: This is the address and set of ports used for communication
   between Consul agents in a cluster. Not all Consul agents in a cluster have to
@@ -377,9 +375,9 @@ service {
 
 The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
 
-The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/docs/agent/options#bind_addr)).
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/docs/agent/config/config-files#bind_addr)).
 
-The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/docs/agent/options#client_addr)).
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/docs/agent/config/config-files#client_addr)).
 
 <CodeTabs>
 

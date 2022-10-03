@@ -267,8 +267,8 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		a2 := NewTestAgent(t, "")
-		testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+		a2 := NewTestAgent(t, `datacenter = "dc2"`)
+		testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 		bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
 			PeerName: "foo",
@@ -392,6 +392,8 @@ func TestHTTP_Peering_Read(t *testing.T) {
 
 		require.Equal(t, uint64(0), apiResp.ImportedServiceCount)
 		require.Equal(t, uint64(0), apiResp.ExportedServiceCount)
+		require.Equal(t, 0, len(apiResp.ImportedServices))
+		require.Equal(t, 0, len(apiResp.ExportedServices))
 
 	})
 
@@ -521,6 +523,8 @@ func TestHTTP_Peering_List(t *testing.T) {
 		for _, p := range apiResp {
 			require.Equal(t, uint64(0), p.ImportedServiceCount)
 			require.Equal(t, uint64(0), p.ExportedServiceCount)
+			require.Equal(t, 0, len(p.ImportedServices))
+			require.Equal(t, 0, len(p.ExportedServices))
 		}
 	})
 }

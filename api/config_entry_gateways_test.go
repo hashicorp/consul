@@ -29,6 +29,10 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			Enabled:       true,
 			TLSMinVersion: "TLSv1_2",
 		},
+		Defaults: &IngressServiceConfig{
+			MaxConnections:     uint32Pointer(2048),
+			MaxPendingRequests: uint32Pointer(4096),
+		},
 	}
 
 	global := &ProxyConfigEntry{
@@ -93,6 +97,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 							CertResource: "bar",
 						},
 					},
+					MaxConnections:        uint32Pointer(5120),
+					MaxPendingRequests:    uint32Pointer(512),
+					MaxConcurrentRequests: uint32Pointer(2048),
 				},
 			},
 			TLS: &GatewayTLSConfig{
@@ -168,6 +175,9 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, ingress2.Kind, readIngress.Kind)
 			require.Equal(t, ingress2.Name, readIngress.Name)
+			require.Equal(t, *ingress2.Defaults.MaxConnections, *readIngress.Defaults.MaxConnections)
+			require.Equal(t, uint32(4096), *readIngress.Defaults.MaxPendingRequests)
+			require.Equal(t, uint32(0), *readIngress.Defaults.MaxConcurrentRequests)
 			require.Len(t, readIngress.Listeners, 1)
 			require.Len(t, readIngress.Listeners[0].Services, 1)
 			// Set namespace and partition to blank so that OSS and ent can utilize the same tests

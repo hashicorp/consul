@@ -1,4 +1,4 @@
-export default function(visitable, clickable, attribute, collection) {
+export default function (visitable, clickable, attribute, collection) {
   return {
     visit: visitable('/:dc/'),
     dcs: collection('[data-test-datacenter-picker]'),

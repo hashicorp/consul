@@ -2,61 +2,42 @@
 layout: docs
 page_title: Start Command
 description: >-
-  Consul-Terraform-Sync supports start command for starting CTS as a daemon
+  Run the Consul-Terraform-Sync start command to start the CTS daemon.
 ---
 
 # start
 
-The `start` command starts Consul-Terraform-Sync (CTS) as a daemon. When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag `-config-file` or `-config-dir`. For example:
+The `start` command starts the Consul-Terraform-Sync (CTS) daemon. 
+
+## Usage
 
 ```shell-session
-$ consul-terraform-sync start -config-file=config.hcl
+$ consul-terraform-sync start -config-file <instance-configuration-file> [OPTIONS]
 ```
 
-To review a list of available flags, use the `-help` or `-h` flag.
-
-## Modes
-
-CTS can be run as a daemon in different modes.
-
-### Long-running Mode
-
-Flag: none
-
-Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long-running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. When the long-running process begins, CTS daemon starts serving API and command requests.
-
-### Inspect Mode
-
-Flag: `-inspect`
-
-Behavior: CTS will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, CTS will exit with a non-zero status.
-
-Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
-
----
-
-Flag: `-inspect-task [task-name]`
-
-Behavior: This has similar behavior as `-inspect` mode for the selected task. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode.
-
-Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
-
-### Once Mode
-
-Flag: `-once`
-
-Behavior: CTS will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, CTS will exit with a non-zero status.
-
-Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
+The `-config-file` or `-config-dir` flag is required. Use the flag to specify the [CTS instance configuration file](/docs/nia/configuration) or directory containing several configuration files to start a CTS cluster. 
 
 ## Options
 
-The `start` command supports the following options:
+The following table describes all of the available flags.
 
-| Name            | Required | Type    | Description                     |Default                  |
-| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
-| `-config-dir ` &nbsp; &nbsp; &nbsp;| Required when`-config-file` is not set | string | A directory to load files for configuring CTS. Configuration files require an .hcl or .json file extension in order to specify their format. This option can be specified multiple times to load different directories. | none |
-| `-config-file` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Required when `-config-dir` is not set | string | A file to load for configuring CTS. Configuration file requires an .hcl or .json extension in order to specify their format. This option can be specified multiple times to load different configuration files. | none |
-| `-inspect` | Optional | boolean | Run CTS in Inspect mode to print the proposed state changes for all tasks, and then exit. No changes are applied in this mode. | false |
-| `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
-| `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |
+| Name | Required | Type | Description |Default |
+| --- | ---- | ---- | ---- | ---- |
+| <nobr>`-config-dir`</nobr>| Required when <nobr>`-config-file`</nobr> is not set | string | Specifies a directory containing CTS instance configuration files to load on startup. Files must be in HCL or JSON format. You can specify the flag multiple times to load more than one directory of files. | none |
+| <nobr>`-config-file`</nobr> | Required when `-config-dir` is not set | string | Specifies the CTS instance configuration file to load on startup. Files must be in HCL or JSON format. You can specify the flag multiple times to load more than one file. | none |
+| <nobr>`-inspect`</nobr> | Optional | boolean | Starts CTS in inspect mode . In inspect mode, CTS displays the proposed state changes for all tasks once and exits. No changes are applied. Refer to [Modes](#modes) for additional information. If an error occurs before displaying all changes, CTS exits with a non-zero status.  | `false` |
+| <nobr>`-inspect-task`</nobr> | Optional | string | Starts CTS in inspect mode for the specified task. CTS displays the proposed state changes for the specified task and exits. No changes are applied. <br/>You can specify the flag multiple times to display more than one task. <br/>If an error occurs before displaying all changes, CTS exits with a non-zero status.  | none |
+| <nobr>`-once`</nobr> | Optional | boolean | Starts CTS in once-mode. In once-mode, CTS renders templates, runs tasks once, and disables buffer periods. Refer to [Modes](#modes) for additional information. | `false` |
+| <nobr>`-reset-storage`</nobr> | Optional | boolean | <EnterpriseAlert inline /> Directs CTS to overwrite the state storage with new state information when the instance you are starting is elected the cluster leader. <br/>Only use this flag when running CTS in [high availability mode](/docs/nia/usage/run-ha).   | `false` |
+| `-h`, `-help` | Optional | boolean | Prints the CTS command line help. | `false` | 
+
+## Modes
+
+By default, CTS starts in long-running mode. The following table describes all available CTS modes.
+
+| Name | Description |How to start | 
+| --- | --- | --- |
+| <nobr>Long-running mode</nobr> | CTS starts in once-mode and switches to a long-running process. <p>During the once-mode phase, the daemon exits with a non-zero status if it encounters an error.</p><p>After successfully operating in once-mode, CTS begins a long-running process.</p><p> When the long-running process begins, the CTS daemon serves API and command requests.</p><p>If an error occurs, CTS logs it and continues running.</p> | No additional flags. <br/>This is the default mode. |
+| Once-mode | In once-mode, CTS renders templates and runs tasks once. CTS does not start the process in long-running mode and disables buffer periods. <p>Use once-mode before starting CTS in long-running mode to verify that your configuration is accurate and tasks update network infrastructure as expected.</p> | Add the `-once` flag when starting CTS. |
+| Inspect mode | CTS displays the proposed state changes for all tasks once and exits. No changes are applied. If an error occurs before displaying all changes, CTS exits with a non-zero status. <p>Use inspect mode before starting CTS in long-running mode to debug one or more tasks and to verify that your tasks will update network infrastructure as expected.</p> | Add the `-inspect` flag to verify all tasks. <p>Add the `-inspect-task` flag to inspect a single task. Use multiple flags to verify more than one task.</p> |
+| <nobr>High availability mode</nobr> | A long-running process that ensures that all changes to Consul that occur during a failover transition are processed and that CTS continues to operate as expected. CTS logs the errors and continues to operate without interruption. Refer to [Run Consul-Terraform-Sync with High Availability](/docs/nia/usage/run-ha) for additional information. | Add the `high_availability` block to your CTS instance configuration. <p>Refer to [Run Consul-Terraform-Sync with High Availability](/docs/nia/usage/run-ha) for additional information.</p> |

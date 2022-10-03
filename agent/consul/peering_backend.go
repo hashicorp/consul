@@ -9,10 +9,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -57,20 +59,57 @@ func (b *PeeringBackend) GetAgentCACertificates() ([]string, error) {
 	return b.srv.tlsConfigurator.GRPCManualCAPems(), nil
 }
 
-// GetServerAddresses looks up server node addresses from the state store.
+// GetServerAddresses looks up server or mesh gateway addresses from the state store.
 func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
-	state := b.srv.fsm.State()
+	_, rawEntry, err := b.srv.fsm.State().ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mesh config entry: %w", err)
+	}
+
+	meshConfig, ok := rawEntry.(*structs.MeshConfigEntry)
+	if ok && meshConfig.Peering != nil && meshConfig.Peering.PeerThroughMeshGateways {
+		return meshGatewayAdresses(b.srv.fsm.State())
+	}
+	return serverAddresses(b.srv.fsm.State())
+}
+
+func meshGatewayAdresses(state *state.Store) ([]string, error) {
+	_, nodes, err := state.ServiceDump(nil, structs.ServiceKindMeshGateway, true, acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dump gateway addresses: %w", err)
+	}
+
+	var addrs []string
+	for _, node := range nodes {
+		_, addr, port := node.BestAddress(true)
+		addrs = append(addrs, ipaddr.FormatAddressPort(addr, port))
+	}
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("servers are configured to PeerThroughMeshGateways, but no mesh gateway instances are registered")
+	}
+	return addrs, nil
+}
+
+func serverAddresses(state *state.Store) ([]string, error) {
 	_, nodes, err := state.ServiceNodes(nil, "consul", structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, err
 	}
 	var addrs []string
 	for _, node := range nodes {
-		grpcPortStr := node.ServiceMeta["grpc_port"]
-		if v, err := strconv.Atoi(grpcPortStr); err != nil || v < 1 {
-			continue // skip server that isn't exporting public gRPC properly
+		// Prefer the TLS port if it is defined.
+		grpcPortStr := node.ServiceMeta["grpc_tls_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			continue
 		}
-		addrs = append(addrs, node.Address+":"+grpcPortStr)
+		// Fallback to the standard port if TLS is not defined.
+		grpcPortStr = node.ServiceMeta["grpc_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			continue
+		}
+		// Skip node if neither defined.
 	}
 	if len(addrs) == 0 {
 		return nil, fmt.Errorf("a grpc bind port must be specified in the configuration for all servers")

@@ -16,7 +16,7 @@ The following table highlights some of the additional features Terraform and Ter
 | Network Driver | Description | Features |
 | -------------- | ----------- | -------- |
 | [Terraform driver](/docs/nia/network-drivers/terraform) | CTS automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/docs/nia/configuration#backend) available for state storage <br/> |
-| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | CTS Enterprise automates remote workspaces on [Terraform Cloud](https://www.terraform.io/docs/cloud/index.html) | - [Remote Terraform execution](https://www.terraform.io/docs/cloud/run/index.html) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) <br/> - [State versions](https://www.terraform.io/docs/cloud/workspaces/state.html) <br/> - [Sentinel](https://www.terraform.io/docs/cloud/sentinel/index.html) to enforce governance policies as code <br/> - Audit [logs](https://www.terraform.io/docs/enterprise/admin/logging.html) and [trails](https://www.terraform.io/docs/cloud/api/audit-trails.html) <br/> - Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html), and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) <br/> - [Terraform Cloud Agents](https://www.terraform.io/docs/cloud/agents/index.html) |
+| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | CTS Enterprise automates remote workspaces on [Terraform Cloud](https://www.terraform.io/cloud-docs) | - [Remote Terraform execution](https://www.terraform.io/cloud-docs/run/remote-operations) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/cloud-docs/workspaces/variables) <br/> - [State versions](https://www.terraform.io/cloud-docs/workspaces/state) <br/> - [Sentinel](https://www.terraform.io/cloud-docs/sentinel) to enforce governance policies as code <br/> - Audit [logs](https://www.terraform.io/enterprise/admin/infrastructure/logging) and [trails](https://www.terraform.io/cloud-docs/api-docs/audit-trails) <br/> - Run [history](https://www.terraform.io/cloud-docs/run/manage), [triggers](https://www.terraform.io/cloud-docs/workspaces/settings/run-triggers), and [notifications](https://www.terraform.io/cloud-docs/workspaces/settings/notifications) <br/> - [Terraform Cloud Agents](https://www.terraform.io/cloud-docs/agents) |
 
 ## Understanding Terraform Automation
 
@@ -26,8 +26,8 @@ The network driver for CTS determines how the Terraform automation operates. Vis
 
 ### Upgrading Terraform
 
-Upgrading the Terraform version used by CTS may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/upgrade-guides/index.html) for details before upgrading.
+Upgrading the Terraform version used by CTS may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/language/upgrade-guides) for details before upgrading.
 
 The following versions were identified as containing changes that may impact Terraform modules.
 
-- [Terraform v0.15](https://www.terraform.io/upgrade-guides/0-15.html)
+- [Terraform v0.15](https://www.terraform.io/language/v1.1.x/upgrade-guides/0-15)

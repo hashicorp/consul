@@ -1,10 +1,11 @@
 ---
 layout: docs
-page_title: Ingress Gateways - Kubernetes
-description: Configuring Ingress Gateways on Kubernetes
+page_title: Configure Ingress Gateways for Consul on Kubernetes
+description: >-
+  Ingress gateways listen for external requests and route authorized traffic to instances in the service mesh running on Kubernetes. Learn how to configure ingress gateways, set intentions, and connect them to k8s applications.
 ---
 
-# Ingress Gateways on Kubernetes
+# Configure Ingress Gateways for Consul on Kubernetes
 
 -> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
@@ -26,7 +27,7 @@ Adding an ingress gateway is a multi-step process that consists of the following
 
 When deploying the Helm chart you must provide Helm with a custom YAML file that contains your environment configuration.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -178,7 +179,7 @@ $ kubectl apply --filename service-intentions.yaml
 serviceintentions.consul.hashicorp.com/ingress-gateway created
 ```
 
-For detailed instructions on how to configure zero-trust networking with intentions please refer to this [guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-zero-trust-network).
+For detailed instructions on how to configure zero-trust networking with intentions please refer to this [guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-zero-trust-network?utm_source=docs).
 
 ## Deploying your application to Kubernetes
 
@@ -260,7 +261,7 @@ leaving an open and unauthenticated load balancer alive in your cluster.
 
 To delete the ingress gateway, set enabled to `false` in your Helm configuration:
 
-<CodeBlockConfig filename="config.yaml" highlight="8">
+<CodeBlockConfig filename="values.yaml" highlight="8">
 
 ```yaml
 global:
@@ -282,5 +283,5 @@ ingressGateways:
 And run Helm upgrade:
 
 ```shell-session
-$ helm upgrade consul hashicorp/consul --values config.yaml
+$ helm upgrade consul hashicorp/consul --values values.yaml
 ```

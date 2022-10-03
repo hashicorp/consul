@@ -24,9 +24,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
@@ -37,8 +39,12 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
+	"github.com/hashicorp/consul/agent/hcp/scada"
+	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -213,7 +219,7 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// externalGRPCServer is the gRPC server exposed on dedicated gRPC ports (as
 	// opposed to the multiplexed "server" port).
 	externalGRPCServer *grpc.Server
 
@@ -353,6 +359,9 @@ type Agent struct {
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 
+	// certManager manages the lifecycle of the internally-managed server certificate.
+	certManager *servercert.CertManager
+
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
@@ -378,24 +387,28 @@ type Agent struct {
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
 
+	// scadaProvider is set when HashiCorp Cloud Platform integration is configured and exposes the agent's API over
+	// an encrypted session to HCP
+	scadaProvider scada.Provider
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
 
 // New process the desired options and creates a new Agent.
 // This process will
-//   * parse the config given the config Flags
-//   * setup logging
-//      * using predefined logger given in an option
-//        OR
-//      * initialize a new logger from the configuration
-//        including setting up gRPC logging
-//   * initialize telemetry
-//   * create a TLS Configurator
-//   * build a shared connection pool
-//   * create the ServiceManager
-//   * setup the NodeID if one isn't provided in the configuration
-//   * create the AutoConfig object for future use in fully
+//   - parse the config given the config Flags
+//   - setup logging
+//   - using predefined logger given in an option
+//     OR
+//   - initialize a new logger from the configuration
+//     including setting up gRPC logging
+//   - initialize telemetry
+//   - create a TLS Configurator
+//   - build a shared connection pool
+//   - create the ServiceManager
+//   - setup the NodeID if one isn't provided in the configuration
+//   - create the AutoConfig object for future use in fully
 //     resolving the configuration
 func New(bd BaseDeps) (*Agent, error) {
 	a := Agent{
@@ -424,6 +437,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 		routineManager:  routine.NewManager(bd.Logger),
+		scadaProvider:   bd.HCP.Provider,
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -539,7 +553,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.buildExternalGRPCServer()
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"))
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -583,6 +597,24 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
+
+		if a.config.PeeringEnabled && a.config.ConnectEnabled {
+			d := servercert.Deps{
+				Logger: a.logger.Named("server.cert-manager"),
+				Config: servercert.Config{
+					Datacenter:  a.config.Datacenter,
+					ACLsEnabled: a.config.ACLsEnabled,
+				},
+				Cache:           a.cache,
+				GetStore:        func() servercert.Store { return server.FSM().State() },
+				TLSConfigurator: a.tlsConfigurator,
+			}
+			a.certManager = servercert.NewCertManager(d)
+			if err := a.certManager.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+				return fmt.Errorf("failed to start server cert manager: %w", err)
+			}
+		}
+
 	} else {
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
@@ -702,10 +734,13 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	// Start gRPC server.
+	// Start grpc and grpc_tls servers.
 	if err := a.listenAndServeGRPC(); err != nil {
 		return err
 	}
+
+	// Start a goroutine to terminate excess xDS sessions.
+	go a.baseDeps.XDSStreamLimiter.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// register watches
 	if err := a.reloadWatches(a.config); err != nil {
@@ -744,6 +779,17 @@ func (a *Agent) Start(ctx context.Context) error {
 		}()
 	}
 
+	if a.scadaProvider != nil {
+		a.scadaProvider.UpdateMeta(map[string]string{
+			"consul_server_id": string(a.config.NodeID),
+		})
+
+		if err = a.scadaProvider.Start(); err != nil {
+			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
+				"error", err, "resource_id", a.config.Cloud.ResourceID)
+		}
+	}
+
 	return nil
 }
 
@@ -760,15 +806,10 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) buildExternalGRPCServer() {
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator)
-}
-
 func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 {
+	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
 		return nil
 	}
-
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
@@ -787,7 +828,6 @@ func (a *Agent) listenAndServeGRPC() error {
 		}()
 		cfg = catalogCfg
 	}
-
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
@@ -797,25 +837,65 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
+		a.baseDeps.XDSStreamLimiter,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 
-	ln, err := a.startListeners(a.config.GRPCAddrs)
-	if err != nil {
-		return err
+	// Attempt to spawn listeners
+	var listeners []net.Listener
+	start := func(port_name string, addrs []net.Addr, tlsConf *tls.Config) error {
+		if len(addrs) < 1 {
+			return nil
+		}
+
+		ln, err := a.startListeners(addrs)
+		if err != nil {
+			return err
+		}
+		for i := range ln {
+			// Wrap with TLS, if provided.
+			if tlsConf != nil {
+				ln[i] = tls.NewListener(ln[i], tlsConf)
+			}
+			listeners = append(listeners, ln[i])
+		}
+
+		for _, l := range ln {
+			go func(innerL net.Listener) {
+				a.logger.Info("Started gRPC listeners",
+					"port_name", port_name,
+					"address", innerL.Addr().String(),
+					"network", innerL.Addr().Network(),
+				)
+				err := a.externalGRPCServer.Serve(innerL)
+				if err != nil {
+					a.logger.Error("gRPC server failed", "port_name", port_name, "error", err)
+				}
+			}(l)
+		}
+		return nil
 	}
 
-	for _, l := range ln {
-		go func(innerL net.Listener) {
-			a.logger.Info("Started gRPC server",
-				"address", innerL.Addr().String(),
-				"network", innerL.Addr().Network(),
-			)
-			err := a.externalGRPCServer.Serve(innerL)
-			if err != nil {
-				a.logger.Error("gRPC server failed", "error", err)
-			}
-		}(l)
+	// The original grpc port may spawn in either plain-text or TLS mode (for backwards compatibility).
+	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
+	if a.config.GRPCPort > 0 {
+		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
+		var tlsConf *tls.Config = nil
+		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
+			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
+			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
+		}
+		if err := start("grpc", a.config.GRPCAddrs, tlsConf); err != nil {
+			closeListeners(listeners)
+			return err
+		}
+	}
+	// Only allow grpc_tls to spawn with a TLS listener.
+	if a.config.GRPCTLSPort > 0 {
+		if err := start("grpc_tls", a.config.GRPCTLSAddrs, a.tlsConfigurator.IncomingGRPCConfig()); err != nil {
+			closeListeners(listeners)
+			return err
+		}
 	}
 	return nil
 }
@@ -841,6 +921,15 @@ func (a *Agent) listenAndServeDNS() error {
 			}
 		}(addr)
 	}
+	s, _ := NewDNSServer(a)
+
+	grpcDNS.NewServer(grpcDNS.Config{
+		Logger:      a.logger.Named("grpc-api.dns"),
+		DNSServeMux: s.mux,
+		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
@@ -895,6 +984,12 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
+		case *capability.Addr:
+			l, err = a.scadaProvider.Listen(x.Capability())
+			if err != nil {
+				return nil, err
+			}
+
 		default:
 			closeAll()
 			return nil, fmt.Errorf("unsupported address type %T", addr)
@@ -939,8 +1034,9 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			}
 
 			srv := &HTTPHandlers{
-				agent:    a,
-				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
+				agent:          a,
+				denylist:       NewDenylist(a.config.HTTPBlockEndpoints),
+				proxyTransport: http.DefaultTransport,
 			}
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
@@ -949,6 +1045,11 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				TLSConfig:      tlscfg,
 				Handler:        srv.handler(a.config.EnableDebug),
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
+			}
+
+			if libscada.IsCapability(l.Addr()) {
+				// wrap in http2 server handler
+				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
 			}
 
 			// Load the connlimit helper into the server
@@ -967,7 +1068,12 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		return nil
 	}
 
-	if err := start("http", a.config.HTTPAddrs); err != nil {
+	httpAddrs := a.config.HTTPAddrs
+	if a.config.IsCloudEnabled() {
+		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
+	}
+
+	if err := start("http", httpAddrs); err != nil {
 		closeListeners(ln)
 		return nil, err
 	}
@@ -1202,6 +1308,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
 	cfg.GRPCPort = runtimeCfg.GRPCPort
+	cfg.GRPCTLSPort = runtimeCfg.GRPCTLSPort
 
 	cfg.Segment = runtimeCfg.SegmentName
 	if len(runtimeCfg.Segments) > 0 {
@@ -1505,7 +1612,9 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	a.externalGRPCServer.Stop()
+	if a.externalGRPCServer != nil {
+		a.externalGRPCServer.Stop()
+	}
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {
@@ -1518,6 +1627,11 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
+
+	// Shutdown SCADA provider
+	if a.scadaProvider != nil {
+		a.scadaProvider.Stop()
+	}
 
 	var err error
 	if a.delegate != nil {
@@ -2104,6 +2218,21 @@ func (a *Agent) AddService(req AddServiceRequest) error {
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
 func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
+	// Must auto-assign the port and default checks (if needed) here to avoid race collisions.
+	if req.Service.LocallyRegisteredAsSidecar {
+		if req.Service.Port < 1 {
+			port, err := a.sidecarPortFromServiceIDLocked(req.Service.CompoundServiceID())
+			if err != nil {
+				return err
+			}
+			req.Service.Port = port
+		}
+		// Setup default check if none given.
+		if len(req.chkTypes) < 1 {
+			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Address, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+		}
+	}
+
 	req.Service.EnterpriseMeta.Normalize()
 
 	if err := a.validateService(req.Service, req.chkTypes); err != nil {
@@ -2231,7 +2360,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			intervalStr = chkType.Interval.String()
 		}
 		if chkType.Timeout != 0 {
-			timeoutStr = chkType.Interval.String()
+			timeoutStr = chkType.Timeout.String()
 		}
 
 		check := &structs.HealthCheck{
@@ -2556,7 +2685,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 }
 
 func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
-	sidecarSID := structs.NewServiceID(sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
+	sidecarSID := structs.NewServiceID(sidecarIDFromServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
 		// Double check that it's not just an ID collision and we actually added
 		// this from a sidecar.
@@ -3368,7 +3497,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		// Grab and validate sidecar if there is one too
-		sidecar, sidecarChecks, sidecarToken, err := a.sidecarServiceFromNodeService(ns, service.Token)
+		sidecar, sidecarChecks, sidecarToken, err := sidecarServiceFromNodeService(ns, service.Token)
 		if err != nil {
 			return fmt.Errorf("Failed to validate sidecar for service %q: %v", service.Name, err)
 		}
@@ -4268,7 +4397,10 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
+		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
+		sources.ResolvedServiceConfig = proxycfgglue.ServerResolvedServiceConfig(deps, proxycfgglue.CacheResolvedServiceConfig(a.cache))
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
 		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
 		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)

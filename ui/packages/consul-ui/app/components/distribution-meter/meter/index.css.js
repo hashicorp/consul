@@ -18,9 +18,10 @@ export default (css) => {
       height: 100%;
 
       transition-timing-function: ease-out;
-      transition-duration: .5s;
+      transition-duration: 0.5s;
     }
-    dt, dd meter {
+    dt,
+    dd meter {
       animation-name: visually-hidden;
       animation-fill-mode: forwards;
       animation-play-state: paused;
@@ -49,7 +50,7 @@ export default (css) => {
     :host(.type-radial) circle,
     :host(.type-circular) circle {
       transition-timing-function: ease-out;
-      transition-duration: .5s;
+      transition-duration: 0.5s;
       pointer-events: stroke;
       transition-property: stroke-dashoffset, stroke-width;
       transform: rotate(-90deg);
@@ -76,4 +77,4 @@ export default (css) => {
       stroke-width: 14;
     }
   `;
-}
+};

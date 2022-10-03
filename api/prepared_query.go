@@ -17,6 +17,9 @@ type QueryFailoverOptions struct {
 	Targets []QueryFailoverTarget
 }
 
+// Deprecated: use QueryFailoverOptions instead.
+type QueryDatacenterOptions = QueryFailoverOptions
+
 type QueryFailoverTarget struct {
 	// PeerName specifies a peer to try during failover.
 	PeerName string

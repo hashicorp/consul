@@ -185,25 +185,25 @@ dc:
             header: Limited Access
             body: This service may have dependencies you won’t see because you don’t have access to them.
           default-allow:
-            header: Intentions are set to default allow
-            body: Your Intention settings are currently set to default allow. This means that this view will show connections to every service in your cluster. We recommend changing your Intention settings to default deny and creating specific Intentions for upstream and downstream services for this view to be useful.
+            header: Restrict which services can connect
+            body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer: |
               <p>
-                <a href="{route_intentions}">Edit Intentions</a>
+                <a href="{route_intentions}">Create a wildcard deny Intention</a>
               </p>
           wildcard-intention:
-            header: Permissive Intention
-            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this visualization more useful.
+            header: Restrict which services can connect
+            body: There is currently a wildcard Intention that allows all services to connect to each other. Change the action of that Intention to deny to improve your security posture and have this topology view reflect the actual upstreams and downstreams of this service.
             footer: |
               <p>
-                <a href="{route_intentions}">Edit Intentions</a>
+                <a href="{route_intentions}">Edit wildcard intentions</a>
               </p>
           not-defined-intention:
-            header: Connections are not explicitly defined
-            body: There appears to be an Intention allowing traffic, but the services are unable to communicate until that connection is enabled by defining an explicit upstream or proxies are set to 'transparent' mode.
+            header: Add upstream to allow traffic
+            body: An Intention was defined that allows traffic between services, but those services are unable to communicate. Define an explicit upstream in the service definition or enable transparent proxy to fix this.
             footer: |
               <p>
-                <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstreams" target="_blank" rel="noopener noreferrer">Read the documentation</a>
+                <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstreams" target="_blank" rel="noopener noreferrer">Learn how to add upstreams</a>
               </p>
           no-dependencies:
             header: No dependencies
@@ -213,11 +213,18 @@ dc:
                 <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#upstream-configuration-reference" target="_blank" rel="noopener noreferrer">Read the documentation</a>
               </p>
           acls-disabled:
-            header: Enable ACLs
-            body: This connect-native service may have dependencies, but Consul isn't aware of them when ACLs are disabled. Enable ACLs to make this view more useful.
+            header: Restrict which services can connect
+            body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or enable ACLs and set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer: |
               <p>
                 <a href="{CONSUL_DOCS_URL}/security/acl/acl-system#configuring-acls" target="_blank" rel="noopener noreferrer">Read the documentation</a>
+              </p>
+          no-intentions:
+            header: Add Intention to allow traffic
+            body: There is an upstream registered for this service, but that upstream cannot receive traffic without creating an allow intention.
+            footer: |
+              <p>
+                <a href="{route_intentions}">Edit Intentions</a>
               </p>
       intentions:
         index:
