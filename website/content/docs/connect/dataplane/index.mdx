@@ -11,7 +11,7 @@ description: >-
 
 This topic provides an overview of Consul Dataplane, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers.
 
-Consul Dataplane requires servers running Consul v1.14-beta+.
+Consul Dataplane requires servers running Consul v1.14.0-beta1+.
 
 ## What is Consul Dataplane?
 
@@ -25,7 +25,7 @@ Consul Dataplane manages Envoy proxies and leaves responsibility for other funct
 
 **Simplified set up**: Because there are no client agents to engage in gossip, you do not have to generate and distribute a gossip encryption key to agents during the initial bootstrapping process. Securing agent communication also becomes simpler, with fewer tokens to track, distribute, and rotate.
 
-**Additional environment and runtime support**: Current Consul on Kubernetes deployments require using `hostPorts` and `DaemonSets` for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported. As a result, Consul Dataplane supports AWS Fargate and GKE Autopilot, as well as runtimes that mix Kubernetes and VM deployments.
+**Additional environment and runtime support**: Current Consul on Kubernetes deployments require using `hostPorts` and `DaemonSets` for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported. As a result, Consul Dataplane supports AWS Fargate and GKE Autopilot.
 
 **Easier upgrades**: With Consul Dataplane, updating Consul to a new version no longer requires upgrading client agents. Consul Dataplane also has better compatibility across Consul server versions, so the process to upgrade Consul servers becomes easier.
 
@@ -35,7 +35,7 @@ To get started with Consul Dataplane, use the following reference resources:
 
 - For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/consul/docs/dataplane/consul-dataplane).
 - For Helm chart information, refer to the [Helm Chart reference](/consul/docs/k8s/helm).
-- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/k8s/compatibility).
+- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/docs/connect/procies/envoy).
 
 ## Beta release features
 
@@ -56,6 +56,5 @@ Be aware of the following limitations and recommendations for Consul Dataplane:
 - Metrics and telemetry are not currently available for services deployed with Dataplane.
 - Consul API Gateway is not currently supported.
 - Transparent proxies are not supported.
-- Secrets Discovery Service (SDS) is not supported.
 - If using EKS Fargate, we recommend that you use external Consul servers. 
 - Consul Dataplane is not supported on Windows.
