@@ -111,6 +111,9 @@ type QueryOptions struct {
 	// by the Config
 	Datacenter string
 
+	// Providing a peer name in the query option
+	Peer string
+
 	// AllowStale allows any Consul server (non-leader) to service
 	// a read. This allows for lower latency and higher throughput
 	AllowStale bool
@@ -811,6 +814,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
+	}
+	if q.Peer != "" {
+		r.params.Set("peer", q.Peer)
 	}
 	if q.AllowStale {
 		r.params.Set("stale", "")
