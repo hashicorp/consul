@@ -117,7 +117,8 @@ type Backend interface {
 	// GetAgentCACertificates returns the CA certificate to be returned in the peering token data
 	GetAgentCACertificates() ([]string, error)
 
-	// GetServerAddresses returns the addresses used for establishing a peering connection
+	// GetServerAddresses returns the addresses used for establishing a peering connection.
+	// These may be server addresses or mesh gateway addresses if peering through mesh gateways.
 	GetServerAddresses() ([]string, error)
 
 	// GetServerName returns the SNI to be returned in the peering token data which
