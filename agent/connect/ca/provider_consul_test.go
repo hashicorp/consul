@@ -425,6 +425,9 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	// Sign the CSR with provider1.
 	intermediatePEM, err := provider1.SignIntermediate(csr)
 	require.NoError(t, err)
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	require.NoError(t, err)
+	require.NotEmpty(t, intermediateCert.Subject.CommonName)
 	root, err := provider1.GenerateRoot()
 	require.NoError(t, err)
 	rootPEM := root.PEM
@@ -451,6 +454,8 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	require.NoError(t, err)
 	requireNotEncoded(t, cert.SubjectKeyId)
 	requireNotEncoded(t, cert.AuthorityKeyId)
+	require.NotEmpty(t, cert.Issuer.CommonName)
+	require.Equal(t, cert.Issuer.CommonName, intermediateCert.Subject.CommonName)
 
 	// Check that the leaf signed by the new cert can be verified using the
 	// returned cert chain (signed intermediate + remote root).

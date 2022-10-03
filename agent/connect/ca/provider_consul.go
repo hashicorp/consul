@@ -222,7 +222,13 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	csr, err := connect.CreateCACSR(c.spiffeID, signer)
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
+	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
+
+	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
 	if err != nil {
 		return "", err
 	}
