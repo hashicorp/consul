@@ -8,7 +8,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "consul-vs-other/index"
+        "path": "consul-vs-other/"
       },
       {
         "title": "Service Meshes",
