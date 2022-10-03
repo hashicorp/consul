@@ -710,7 +710,7 @@ spec:
     {
       name: 'RetryOn',
       type: 'array<string>',
-      description: `Allows retrying requests for a list of conditions. One of:
+      description: `Allows Consul to retry requests when they meet one of the following sets of conditions:
                       \`5xx\`, \`gateway-error\`, \`reset\`, \`connect-failure\`, \`envoy-ratelimited\`, \`retriable-4xx\`,
                       \`refused-stream\`, \`cancelled\`, \`deadline-exceeded\`, \`internal\`, \`resource-exhausted\`, or \`unavailable\``,
     },
