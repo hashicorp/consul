@@ -3,11 +3,11 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-bexpr"
 
@@ -248,7 +248,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			_, addr, port := srv.BestAddress(false /*wan*/)
@@ -279,6 +280,50 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			ClusterName: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, ""),
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
 				LbEndpoints: allServersLbEndpoints,
+			}},
+		})
+	}
+
+	// Create endpoints for the cluster where local servers will be dialed by peers.
+	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
+	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
+		var serverEndpoints []*envoy_endpoint_v3.LbEndpoint
+
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
+			if isReplica := srv.Service.Meta["read_replica"]; isReplica == "true" {
+				// Peering control-plane traffic can only ever be handled by the local leader.
+				// We avoid routing to read replicas since they will never be Raft voters.
+				continue
+			}
+
+			_, addr, _ := srv.BestAddress(false)
+			portStr, ok := srv.Service.Meta["grpc_tls_port"]
+			if !ok {
+				s.Logger.Warn("peering is enabled but local server %q does not have the required gRPC TLS port configured",
+					"server", srv.Node.Node)
+				continue
+			}
+			port, err := strconv.Atoi(portStr)
+			if err != nil {
+				s.Logger.Error("peering is enabled but local server has invalid gRPC TLS port",
+					"server", srv.Node.Node, "port", portStr, "error", err)
+				continue
+			}
+
+			serverEndpoints = append(serverEndpoints, &envoy_endpoint_v3.LbEndpoint{
+				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+					Endpoint: &envoy_endpoint_v3.Endpoint{
+						Address: makeAddress(addr, port),
+					},
+				},
+			})
+		}
+
+		resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
+			ClusterName: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+				LbEndpoints: serverEndpoints,
 			}},
 		})
 	}
