@@ -123,5 +123,6 @@ type StateStore interface {
 	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error)
+	ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error)
 	AbandonCh() <-chan struct{}
 }

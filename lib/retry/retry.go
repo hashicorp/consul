@@ -96,7 +96,9 @@ func (w *Waiter) Failures() int {
 // Every call to Wait increments the failures count, so Reset must be called
 // after Wait when there wasn't a failure.
 //
-// Wait will return ctx.Err() if the context is cancelled.
+// The only non-nil error that Wait returns will come from ctx.Err(),
+// such as when the context is canceled. This makes it suitable for
+// long-running routines that do not get re-initialized, such as replication.
 func (w *Waiter) Wait(ctx context.Context) error {
 	w.failures++
 	timer := time.NewTimer(w.delay())
