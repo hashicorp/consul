@@ -54,7 +54,7 @@ Not all features and functionality are available in the beta release. In particu
 
 - Mesh gateways for _server to server traffic_ are not available.
 - Services with node, instance, and check definitions totaling more than 4MB cannot be exported to a peer.
-- The `service-splitter` and `service-router` config entry kinds cannot directly target a peer. To split or route traffic to a service instance on a peer, you must supplement your desired dynamic routing definition with a `service-resolver` config entry on the dialing cluster.
+- The `service-splitter` and `service-router` config entry kinds cannot directly target a peer. To split or route traffic to a service instance on a peer, you must supplement your desired dynamic routing definition with a `service-resolver` config entry on the dialing cluster. Refer to [L7 traffic management between peers](/docs/connect/cluster-peering/create-manage-peering#L7-traffic) for more information.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
 - Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.
