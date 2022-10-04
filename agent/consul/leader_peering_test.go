@@ -257,7 +257,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 				Services: []structs.ExportedService{
 					{
 						Name:      "foo",
-						Consumers: []structs.ServiceConsumer{{PeerName: "my-peer-dialer"}},
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer-dialer"}},
 					},
 				},
 			},
@@ -1014,7 +1014,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: structs.WildcardSpecifier,
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -1042,7 +1042,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -1050,7 +1050,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "b-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -1069,7 +1069,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -1088,7 +1088,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -1096,7 +1096,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "c-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},

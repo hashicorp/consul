@@ -3334,19 +3334,19 @@ func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-2"},
+					{Peer: "peer-2"},
 				},
 			},
 			{
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 		},
@@ -3405,7 +3405,7 @@ func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
 				`
 			service "web" { policy = "read" }
 			service "api" { policy = "read" }
-			service "db"  { policy = "deny" }	
+			service "db"  { policy = "deny" }
 			`),
 			expect: map[string]structs.ServiceList{
 				"peer-1": {
@@ -3514,19 +3514,19 @@ func TestInternal_ExportedServicesForPeer_ACLEnforcement(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-2"},
+					{Peer: "peer-2"},
 				},
 			},
 			{
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 		},

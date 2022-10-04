@@ -50,8 +50,8 @@ type ServiceConsumer struct {
 	// Deprecated: PeerName should be used for both remote peers and local partitions.
 	Partition string `json:",omitempty"`
 
-	// PeerName is the name of the peer to export the service to.
-	PeerName string `json:",omitempty" alias:"peer_name"`
+	// Peer is the name of the peer to export the service to.
+	Peer string `json:",omitempty" alias:"peer_name"`
 }
 
 func (e *ExportedServicesConfigEntry) GetKind() string            { return ExportedServices }

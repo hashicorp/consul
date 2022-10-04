@@ -80,13 +80,13 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-other-peering"},
+						{Peer: "my-other-peering"},
 					},
 				},
 			},
@@ -429,7 +429,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-other-peering"},
+						{Peer: "my-other-peering"},
 					},
 				},
 			},
@@ -506,19 +506,19 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					Name: "chain",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 			},

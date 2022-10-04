@@ -779,7 +779,7 @@ func TestUIExportedServices(t *testing.T) {
 					Name: "api",
 					Consumers: []structs.ServiceConsumer{
 						{
-							PeerName: "peer1",
+							Peer: "peer1",
 						},
 					},
 				},

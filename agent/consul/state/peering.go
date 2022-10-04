@@ -794,7 +794,7 @@ func exportedServicesForPeerTxn(
 				// Service was covered by a wildcard that was already accounted for
 				continue
 			}
-			if consumer.PeerName != peering.Name {
+			if consumer.Peer != peering.Name {
 				continue
 			}
 			sawPeer = true
@@ -940,7 +940,7 @@ func listServicesExportedToAnyPeerByConfigEntry(
 
 		sawPeer := false
 		for _, consumer := range svc.Consumers {
-			if consumer.PeerName == "" {
+			if consumer.Peer == "" {
 				continue
 			}
 			sawPeer = true
@@ -1312,8 +1312,8 @@ func peersForServiceTxn(
 	}
 
 	for _, c := range entry.Services[targetIdx].Consumers {
-		if c.PeerName != "" {
-			results = append(results, c.PeerName)
+		if c.Peer != "" {
+			results = append(results, c.Peer)
 		}
 	}
 	return idx, results, nil
