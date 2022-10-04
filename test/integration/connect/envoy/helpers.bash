@@ -51,34 +51,6 @@ function retry_long {
   retry 30 1 "$@"
 }
 
-function echored {
-  tput setaf 1
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echogreen {
-  tput setaf 2
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoyellow {
-  tput setaf 3
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoblue {
-  tput setaf 4
-  tput bold
-  echo $@
-  tput sgr0
-}
-
 function is_set {
    # Arguments:
    #   $1 - string value to check its truthiness

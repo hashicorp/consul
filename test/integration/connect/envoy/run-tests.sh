@@ -354,10 +354,10 @@ function verify {
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
     bats-verify \
-    --pretty /workdir/${CLUSTER}/bats ; then
-    echogreen "✓ PASS"
+    --formatter tap /workdir/${CLUSTER}/bats ; then
+    echo "✓ PASS"
   else
-    echored "⨯ FAIL"
+    echo "⨯ FAIL"
     res=1
   fi
 
@@ -472,7 +472,7 @@ function run_tests {
 
   # Allow vars.sh to set a reason to skip this test case based on the ENV
   if [ "$SKIP_CASE" != "" ] ; then
-    echoyellow "SKIPPING CASE: $SKIP_CASE"
+    echo "SKIPPING CASE: $SKIP_CASE"
     return 0
   fi
 
