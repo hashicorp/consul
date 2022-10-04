@@ -123,9 +123,9 @@ If you need to re-establish a connection, you must generate a new peering token.
 <Tab heading="Consul UI" group="ui">
 
 1. In the Consul UI for the datacenter associated with `cluster 02`, click **Peers** and then **Add peer connection**.
-2. Click **Establish peering**.
-3. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
-4. Click **Add peer**.
+1. Click **Establish peering**.
+1. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
+1. Click **Add peer**.
 
 </Tab>
 </Tabs>
@@ -377,7 +377,9 @@ Next to the name of the peer, click **More** (three horizontal dots) and then **
 </Tabs>
 
 ## L7 traffic management between peers
+
 The following sections describe how to enable L7 traffic management features between peered clusters.
+
 ### Service resolvers for redirects and failover
 
 As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers. The following examples update the [`service-resolver` config entry](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
