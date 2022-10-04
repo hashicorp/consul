@@ -129,7 +129,9 @@ as |item|}}
           <BlockSlot @name="breadcrumbs">
               <ol>
                   <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
-                  <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
+                  <li><a {{tooltip (concat "Service (" item.Service.Service ")")}} data-test-back href={{href-to 'dc.services.show'}}>
+                    Service ({{item.Service.Service}})
+                  </a></li>
               </ol>
           </BlockSlot>
           <BlockSlot @name="header">
