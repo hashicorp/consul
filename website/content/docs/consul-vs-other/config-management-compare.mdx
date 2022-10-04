@@ -7,7 +7,9 @@ description: >-
 
 # Consul Compared to Other Configuration Management Tools
 
-There are many configuration management tools available. These tools typically focus on static provisioning while Consul focuses on dynamic configuration based on service and node state. Both are equally important and work well together. Since Consul offers a number of different capabilities, there are times when it can overlap with configuration management tools.
+Examples: Chef, Puppet
+
+There are many configuration management tools available. These tools typically focus on static provisioning, while Consul supports dynamic configuration based on service and node state. Both types of configuration are important and work well together. Because Consul offers a number of different capabilities, there are times when its functionality overlaps with other configuration management tools.
 
 For example, it is not uncommon to find people using Chef, Puppet, and other configuration management tools to build service discovery mechanisms. Unfortunately, configuration information is static and updates range from several minutes to hours depending on the frequency of conversion runs. Additionally, there is no mechanism to incorporate the system state in the configuration. For example, a load balancer may continue to send traffic to unhealthy nodes, further exacerbating issues. Using this approach also makes supporting multiple datacenters challenging as a central group of servers must manage all datacenters.
 
