@@ -2177,5 +2177,4 @@ func TestIsValidRetryCondition(t *testing.T) {
 	assert.True(t, isValidRetryCondition("internal"))
 	assert.True(t, isValidRetryCondition("resource-exhausted"))
 	assert.True(t, isValidRetryCondition("unavailable"))
-
 }
