@@ -17,24 +17,6 @@ Usage: `consul-dataplane [options]`
 
 Consul Dataplane requires servers running Consul version `v1.14-beta+`. To find a specific version of Consul, refer to [Hashicorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
 
-### Installation
-
-To install the beta release of Consul Dataplane, set `VERSION` to `1.0.0-beta` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/docs/k8s/installation/install-cli#install-a-previous-version).
-
-#### Helm
-
-```shell-session
-$ export VERSION=1.0.0-beta
-$ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
-```
-
-#### Consul-k8s CLI
-
-```shell-session
-$ export VERSION=1.0.0-beta && \
-    curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
-```
-
 ### Startup
 
 The following options are required when starting `consul-dataplane` with the CLI:
