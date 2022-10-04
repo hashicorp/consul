@@ -532,6 +532,18 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		rootUpdateRequired = true
 	}
 
+	state := c.delegate.State()
+	_, activeRoot, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+
+	// Add intermediates from current root if any as intermediates aren't
+	// directly tied to the provider.
+	if activeRoot != nil {
+		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
+	}
+
 	// Add the local leaf signing cert to the rootCA struct. This handles both
 	// upgrades of existing state, and new rootCA.
 	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
@@ -539,29 +551,29 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		rootUpdateRequired = true
 	}
 
-	// Check if the CA root is already initialized and exit if it is,
-	// adding on any existing intermediate certs since they aren't directly
-	// tied to the provider.
+	// Check if the CA root is already initialized and exit if it is.
 	// Every change to the CA after this initial bootstrapping should
-	// be done through the rotation process.
-	state := c.delegate.State()
-	_, activeRoot, err := state.CARootActive(nil)
-	if err != nil {
-		return err
-	}
-	if activeRoot != nil && !rootUpdateRequired {
+	// be done through the rotation process, except in some data structure
+	// realignment cases.
+	if activeRoot != nil {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
 			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
 
-		// TODO: why doesn't this c.setCAProvider(provider, activeRoot) ?
-		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
-		c.setCAProvider(provider, rootCA)
+		// If current root in raft misses some changes from generated rootCA, persist those changes.
+		// Don't compare raft index as rootCA has been generated from root PEM.
+		rootCA.RaftIndex = activeRoot.RaftIndex
+		if !reflect.DeepEqual(rootCA, activeRoot) {
+			rootUpdateRequired = true
+		}
 
-		c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
-		return nil
+		if !rootUpdateRequired {
+			c.setCAProvider(provider, activeRoot)
+			c.logger.Info("initialized primary datacenter CA from existing CARoot with provider", "provider", conf.Provider)
+			return nil
+		}
 	}
 
 	if err := c.persistNewRootAndConfig(provider, rootCA, conf); err != nil {

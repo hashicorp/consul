@@ -1314,8 +1314,8 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 	s1.Leave()
 	s1.Shutdown()
 
+	var leader *Server
 	retry.Run(t, func(r *retry.R) {
-		var leader *Server
 		for _, s := range []*Server{s2, s3} {
 			if s.IsLeader() {
 				leader = s
@@ -1327,10 +1327,39 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 		}
 
 		_, newLeaderRoot := getCAProviderWithLock(leader)
+		// Don't check raft id as root was not loaded from raft database but generated.
+		root.RaftIndex = newLeaderRoot.RaftIndex
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
 	})
+
+	_, lastRoot := getCAProviderWithLock(leader)
+
+	// Force another leader change and make sure the root CA values are preserved, including raft index,
+	// to ensure CA initialization doesn't trigger a raft commit.
+	leader.Leave()
+	leader.Shutdown()
+
+	leader = nil
+
+	retry.Run(t, func(r *retry.R) {
+		for _, s := range []*Server{s2, s3} {
+			if s.IsLeader() {
+				leader = s
+				break
+			}
+		}
+		if leader == nil {
+			r.Fatal("no leader")
+		}
+
+		_, newLeaderRoot := getCAProviderWithLock(leader)
+		if !reflect.DeepEqual(newLeaderRoot, lastRoot) {
+			r.Fatalf("got %v, want %v", newLeaderRoot, lastRoot)
+		}
+	})
+
 }
 
 func TestNewCARoot(t *testing.T) {
