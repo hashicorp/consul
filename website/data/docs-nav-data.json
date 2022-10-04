@@ -1112,11 +1112,6 @@
   },
   {
     "title": "AWS Lambda",
-    "badge": {
-      "text": "BETA",
-      "type": "outlined",
-      "color": "neutral"
-    },
     "routes": [
       {
         "title": "Overview",
@@ -1124,11 +1119,33 @@
       },
       {
         "title": "Register Lambda Functions",
-        "path": "lambda/registration"
+        "routes":[
+          {
+            "title": "Requirements",
+            "path": "lambda/registration"
+          },
+          {
+            "title": "Automate Registration",
+            "path": "lambda/registration/automate"
+          },
+          {
+            "title": "Manual Registration",
+            "path": "lambda/registration/manual"
+          }
+        ]
       },
       {
-        "title": "Invoke Lambda Functions",
+        "title": "Invoke Lambda Functions from Services",
         "path": "lambda/invocation"
+      },
+      {
+        "title": "Invoke Services from Lambda Functions",
+        "path": "lambda/invoke-from-lambda",
+        "badge": {
+          "text": "BETA",
+          "type": "outlined",
+          "color": "neutral"
+        }    
       }
     ]
   },
