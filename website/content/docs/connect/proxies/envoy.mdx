@@ -33,6 +33,8 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatibility please view the respective versioned docs for this page.
 
+### Envoy and Consul Client Agent
+
 Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
 | Consul Version      | Compatible Envoy Versions                                                          |
@@ -43,6 +45,16 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
 Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
+
+### Envoy and Consul Dataplane
+
+~> **Note:** Consul Dataplane is currently in beta.
+
+Consul Dataplane is a feature introduced in Consul v1.14. Because each version of Consul Dataplane supports one specific version of Envoy, you must use the following versions of Consul, Consul Dataplane, and Envoy together.
+
+| Consul Version      | Consul Dataplane Version | Bundled Envoy Version  |
+| ------------------- | ------------------------ | ---------------------- |
+| 1.14.x              | 1.0.x                    | 1.23.x                 |
 
 ## Getting Started
 
@@ -379,7 +391,7 @@ definition](/docs/connect/registration/service-registration) or
     load balancer.
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
-  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
+  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected
     when an outlier status is detected through consecutive 5xx.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
@@ -839,7 +851,7 @@ definition](/docs/connect/registration/service-registration) or
   </CodeTabs>
 
 
-- `envoy_listener_tracing_json` - Specifies a [tracing 
+- `envoy_listener_tracing_json` - Specifies a [tracing
   configuration](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-msg-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing)
   to be inserted in the proxy's public and upstreams listeners.
 
