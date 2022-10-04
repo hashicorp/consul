@@ -15,7 +15,7 @@ For example, Chef and Puppet are configuration management tools that can build s
 
 Consul's service discovery layer is specifically designed to dynamically track and respond to your service's state. By using the integrated health checking, Consul can route traffic away from unhealthy nodes, allowing systems and services to gracefully recover. In addition, Consul’s service discovery layer works with Terraform. Consul-Terraform-Sync (CTS) automates updates to network infrastructure based on dynamic changes to each service. For example, as services scale up or down, CTS can trigger Terraform to update firewalls or load balancers to reflect the latest changes. Also, since each datacenter runs independently, supporting multiple datacenters is no different than supporting a single datacenter.
 
-Consul is not a replacement for other configuration management tools. These tools are still critical for setting up applications, including Consul. Static provisioning is best managed by existing tools while dynamic state and service discovery is better managed by Consul. 
+Consul is not a replacement for other configuration management tools. These tools are still critical for setting up applications, including Consul. Static provisioning is best managed by existing tools, while Consul enables you to leverage dynamic configuration and service discovery. 
 
 By separating configuration management and cluster management tools, you can take advantage of simpler workflows: 
 - Periodic runs are no longer required for service or configuration changes.
