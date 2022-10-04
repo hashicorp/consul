@@ -65,6 +65,6 @@ load helpers
 }
 
 @test "requests through ingress to splitter should go to alpha" {
-  retry_default assert_expected_fortio_name s1-alpha split.ingress.consul 10002
-  retry_default assert_expected_fortio_name s2-alpha split.ingress.consul 10002
+  retry_long assert_expected_fortio_name s1-alpha split.ingress.consul 10002
+  retry_long assert_expected_fortio_name s2-alpha split.ingress.consul 10002
 }
