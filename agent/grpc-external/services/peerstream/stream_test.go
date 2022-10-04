@@ -864,14 +864,14 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					// Mongo does not get pushed because it does not have instances registered.
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 			},
@@ -1035,7 +1035,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
 						{
-							PeerName: "my-peering",
+							Peer: "my-peering",
 						},
 					},
 				},

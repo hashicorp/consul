@@ -36,13 +36,13 @@ func TestServerExportedPeeredServices(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-2"},
+					{Peer: "peer-2"},
 				},
 			},
 		},
@@ -78,20 +78,20 @@ func TestServerExportedPeeredServices(t *testing.T) {
 				{
 					Name: "web",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
+						{Peer: "peer-1"},
 					},
 				},
 				{
 					Name: "db",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-2"},
+						{Peer: "peer-2"},
 					},
 				},
 				{
 					Name: "api",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
-						{PeerName: "peer-3"},
+						{Peer: "peer-1"},
+						{Peer: "peer-3"},
 					},
 				},
 			},

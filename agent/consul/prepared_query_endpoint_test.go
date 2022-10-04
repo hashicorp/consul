@@ -88,7 +88,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 
 	// Fix that and ensure Targets and NearestN cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 1
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -97,7 +97,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	// Fix that and ensure Targets and Datacenters cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Service.Failover.Datacenters = []string{"dc2"}
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -1552,7 +1552,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				Services: []structs.ExportedService{
 					{
 						Name:      "foo",
-						Consumers: []structs.ServiceConsumer{{PeerName: dialingPeerName}},
+						Consumers: []structs.ServiceConsumer{{Peer: dialingPeerName}},
 					},
 				},
 			},
@@ -2429,7 +2429,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	query.Query.Service.Failover = structs.QueryFailoverOptions{
 		Targets: []structs.QueryFailoverTarget{
 			{Datacenter: "dc2"},
-			{PeerName: acceptingPeerName},
+			{Peer: acceptingPeerName},
 		},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
@@ -2950,7 +2950,7 @@ func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
 }
 
 func (m *mockQueryServer) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-	peerName := args.Query.Service.PeerName
+	peerName := args.Query.Service.Peer
 	dc := args.Datacenter
 	if peerName != "" {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("peer:%s", peerName))
@@ -3302,15 +3302,15 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	// Failover returns data from the first cluster peer with data.
 	query.Service.Failover.Datacenters = nil
 	query.Service.Failover.Targets = []structs.QueryFailoverTarget{
-		{PeerName: "cluster-01"},
+		{Peer: "cluster-01"},
 		{Datacenter: "dc44"},
-		{PeerName: "cluster-02"},
+		{Peer: "cluster-02"},
 	}
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc44"},
 			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				if args.Query.Service.PeerName == "cluster-02" {
+				if args.Query.Service.Peer == "cluster-02" {
 					reply.Nodes = nodes()
 				}
 				return nil

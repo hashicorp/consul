@@ -29,7 +29,7 @@ config_entries {
           name = "s2"
           consumers = [
             {
-              peer_name = "alpha-to-primary"
+              peer = "alpha-to-primary"
             }
           ]
         }

@@ -1059,10 +1059,10 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
 					{
-						PeerName: "foo",
+						Peer: "foo",
 					},
 					{
-						PeerName: "bar",
+						Peer: "bar",
 					},
 				},
 			},
@@ -1070,7 +1070,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
 					{
-						PeerName: "baz",
+						Peer: "baz",
 					},
 				},
 			},
@@ -1264,7 +1264,7 @@ func TestPeeringService_TrustBundleListByService_ACLEnforcement(t *testing.T) {
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
 					{
-						PeerName: "foo",
+						Peer: "foo",
 					},
 				},
 			},
