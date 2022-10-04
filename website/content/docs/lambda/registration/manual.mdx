@@ -46,7 +46,7 @@ You can manually register Lambda functions if you are unable to automate the pro
    $ curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register
    ```
 
-1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `Meta` field (see [Supported `Meta` fields](#supported-meta-fields). The following example creates a `service-defaults` configuration entry named `lambda`:
+1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `Meta` field (refer to [Supported `Meta` fields](#supported-meta-fields). The following example creates a `service-defaults` configuration entry named `lambda`:
 
    <CodeBlockConfig filename="lambda-service-defaults.hcl">
 
@@ -71,7 +71,7 @@ You can manually register Lambda functions if you are unable to automate the pro
 
 ### Supported `Meta` fields
 
-The following tags are supported. The path prefix for all tags is  `serverless.consul.hashicorp.com/v1alpha1/lambda`. For example, specify the following tag to enable Consul to configure the service as an AWS Lambda function: 
+The following tags are supported. The path prefix for all tags is `serverless.consul.hashicorp.com/v1alpha1/lambda`. For example, specify the following tag to enable Consul to configure the service as an AWS Lambda function: 
 
 `serverless.consul.hashicorp.com/v1alpha1/lambda/enabled`.
 

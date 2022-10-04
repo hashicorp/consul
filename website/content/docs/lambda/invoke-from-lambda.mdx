@@ -16,7 +16,7 @@ This topic describes how to invoke services in the mesh from Lambda functions re
 The following steps describe the process:
 
 1. Deploy the destination service and mesh gateway. 
-1. Deploy the Lambda extension layer
+1. Deploy the Lambda extension layer.
 1. Deploy the Lambda registrator.
 1. Write the Lambda function code.
 1. Deploy the Lambda function.
@@ -86,7 +86,7 @@ spec:
 
 The mesh gateway must be running and registered to the Lambda function’s Consul datacenter.  Refer to the following documentation and tutorials for instructions:
 
-- (Mesh Gateways between Datacenters)(/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
+- [Mesh Gateways between Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
 - [Mesh Gateways between Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
 - [Mesh Gateways between Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers)
 - [Connect Services Across Datacenters with Mesh Gateways](https://developer.hashicorp.com/consul/tutorials/developer-mesh/service-mesh-gateways) 
@@ -97,7 +97,7 @@ The `consul-lambda-extension` extension runs during the `Init` phase of the Lamb
 
 The extension periodically retrieves the data from the AWS Parameter Store so that the function can process requests. When the Lambda function receives a shutdown event, the extension also stops.
 
-1. Download the `consul-lambda-extension` extension from releases.hashicorp.com: 
+1. Download the `consul-lambda-extension` extension from [releases.hashicorp.com](https://releases.hashicorp.com/): 
 
     ```shell-session
     curl -o consul-lambda-extension_<version>_linux_amd64.zip https://releases.hashicorp.com/consul-lambda/<version>/consul-lambda-extension_<version>_linux_amd64.zip
@@ -247,8 +247,7 @@ func main() {
 
     </CodeBlockConfig>
 
-1. Issue the `terraform apply` command and Consul automatically configures a service for the Lambda function.
-
+1. Run the `terraform apply` command and Consul automatically configures a service for the Lambda function.
 
 ### Lambda extension configuration
 
@@ -267,7 +266,7 @@ Define the following environment variables in your Lambda functions to configure
 
 If _intentions_ are enabled in the Consul service mesh, you must create an intention that allows the Lambda function's Consul service to invoke all upstream services prior to invoking the Lambda function. Refer to [Service Mesh Intentions](/docs/connect/intentions) for additional information.
 
-There are several ways to invoke Lambda functions. In the following example, the `aws lambda invoke` CLI command invokes the function.:
+There are several ways to invoke Lambda functions. In the following example, the `aws lambda invoke` CLI command invokes the function:
 
 ```shell-session
 $ aws lambda invoke --function-name lambda /dev/stdout | cat

@@ -14,7 +14,7 @@ You can either manually register AWS Lambda functions with Consul or use the Lam
 
 ## Requirements
 
-Consul 1.12.1 and later
+Consul v1.12.1 and later
 
 ## Prerequisites
 
@@ -50,15 +50,15 @@ enables an IAM user or role to invoke the `example` Lambda function:
 }
 ```
 
-Define AWS IAM credentials in environment variables, EC2 metadata or
+Define AWS IAM credentials in environment variables, EC2 metadata, or
 ECS metadata. On [AWS EKS](https://aws.amazon.com/eks/), associate an IAM role with the proxy's `ServiceAccount`. Refer to the [AWS IAM roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) documentation for instructions.
 
 ### Mesh gateway
 
 A mesh gateway is required in the following scenarios:
 
-* Invoking mesh services from Lambda functions
-* Invoking Lambda functions from a service deployed to a separate Consul data center
+- Invoking mesh services from Lambda functions
+- Invoking Lambda functions from a service deployed to a separate Consul datacenter
 
 Mesh gateways are optional for enabling services to invoke Lambda functions if they are in the same datacenter.
  
