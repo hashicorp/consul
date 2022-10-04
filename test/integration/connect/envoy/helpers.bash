@@ -997,3 +997,23 @@ function varsub {
     sed -i "s/\${$v}/${!v}/g" $file
   done
 }
+
+function get_url_header {
+  local URL=$1
+  local HEADER=$2
+  run curl -s -f -X GET -I "${URL}"
+  [ "$status" == 0 ]
+  RESP=$(echo "$output" | tr -d '\r')
+  RESP=$(echo "$RESP" | grep -E "^${HEADER}: ")
+  RESP=$(echo "$RESP" | sed "s/^${HEADER}: //g")
+  echo "$RESP"
+}
+
+function assert_url_header {
+  local URL=$1
+  local HEADER=$2
+  local VALUE=$3
+  run get_url_header "$URL" "$HEADER"
+  [ "$status" == 0 ]
+  [ "$VALUE" = "$output" ]
+}
