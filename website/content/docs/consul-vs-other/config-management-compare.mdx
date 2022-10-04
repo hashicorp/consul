@@ -13,4 +13,9 @@ For example, it is not uncommon to find people using Chef, Puppet, and other con
 
 Consul's service discovery layer is specifically designed to dynamically track and respond to the state of the cluster. By using the integrated health checking, Consul can route traffic away from unhealthy nodes, allowing systems and services to gracefully recover. In addition, Consul’s service discovery layer works with Terraform by using Consul-Terraform-Sync (CTS) to automate updates to network infrastructure based on dynamic changes of each service. For example, as services scale up or down, CTS triggers Terraform to update firewalls or load balancers to reflect the latest changes.  Lastly, because each datacenter runs independently, supporting multiple datacenters is no different than a single datacenter.
 
-With that said, Consul is not a replacement for configuration management tools. These tools are still critical to set up applications, including Consul itself. Static provisioning is best managed by existing tools while dynamic state and discovery is better managed by Consul. The separation of configuration management and cluster management also has a number of advantageous side effects: Chef recipes and Puppet manifests become simpler without global state, periodic runs are no longer required for service or configuration changes, and the infrastructure can become immutable since config management runs require no global state. 
+Consul is not a replacement for other configuration management tools. These tools are still critical for setting up applications, including Consul. Static provisioning is best managed by existing tools while dynamic state and service discovery is better managed by Consul. 
+
+By separating configuration management and cluster management tools, you can take advantage of simpler workflows: 
+- Periodic runs are no longer required for service or configuration changes.
+- Chef recipes and Puppet manifests are simpler because they do not require a global state. 
+- Infrastructure can become immutable because configuration management runs do not require global state. 
