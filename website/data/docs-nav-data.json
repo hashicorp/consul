@@ -4,6 +4,31 @@
     "path": "intro"
   },
   {
+    "title": "Why Choose Consul?",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "consul-vs-other"
+      },
+      {
+        "title": "Service Meshes",
+        "path": "consul-vs-other/service-mesh-compare"
+      },
+      {
+        "title": "DNS Tools",
+        "path": "consul-vs-other/dns-tools-compare"
+      },
+      {
+        "title": "Configuration Management Tools",
+        "path": "consul-vs-other/config-management-compare"
+      },
+      {
+        "title": "API Gateways",
+        "path": "consul-vs-other/api-gateway-compare"
+      }
+    ]
+  },
+  {
     "title": "Core Concepts",
     "routes": [
       {
