@@ -32,7 +32,9 @@ You must implement the following requirements to create and use cluster peering 
 
 ### Prepare for installation
 
-1. After you provision a Kubernetes cluster and set up your kubeconfig file to manage access to multiple Kubernetes clusters, use the `kubectl` command to export the Kubernetes context names and then set them to variables for future use. For more information on how to use kubeconfig and contexts, refer to the [Kubernetes docs on configuring access to multiple clusters](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
+Complete the following procedure after you have provisioned a Kubernetes cluster and set up your kubeconfig file to manage access to multiple Kubernetes clusters. 
+
+1. Use the `kubectl` command to export the Kubernetes context names and then set them to variables for future use. For more information on how to use kubeconfig and contexts, refer to the [Kubernetes docs on configuring access to multiple clusters](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
 
     You can use the following methods to get the context names for your clusters:
   
@@ -101,9 +103,11 @@ Install Consul on Kubernetes by using the CLI to apply `values.yaml` to each clu
 
 ## Create a peering connection for Consul on Kubernetes
 
+To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster. Complete the following steps to create the peer connection.
+
 ### Create a peering token
 
-To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster. Peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs.
+Peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs.
 
 1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
 
@@ -171,7 +175,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 ### Export services between clusters
 
-~> **Tip**: The examples in this section demonstrate how to export a service named `backend`. You should change instances of `backend` in the example code to the name of the service you want to export.
+The examples described in this section demonstrate how to export a service named `backend`. You should change instances of `backend` in the example code to the name of the service you want to export.
 
 1. For the service in `cluster-02` that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels) to your service's pods. 
 
@@ -433,7 +437,13 @@ To recreate or reset the peering connection, you need to generate a new peering 
 
     </CodeBlockConfig>
 
-2. After you update `PeeringAcceptor`, repeat the steps to create a peering connection, including saving a new peering token and exporting it to the other cluster. Your peering connection is re-established with the updated token.
+2. After updating `PeeringAcceptor`, repeat the following steps to create a peering connection:
+      1.  [Create a peering token](#create-a-peering-token)
+      1.  [Establish a peering connection between clusters](#establish-a-peering-connection-between-clusters)
+      1. [Export services between clusters](#export-services-between-clusters)
+      1. [Authorize services for peers](#authorize-services-for-peers)
+      
+      Your peering connection is re-established with the updated token.
 
 ~> **Note:** The only way to create or set a new peering token is to manually adjust the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token causes the previous token to expire.
 

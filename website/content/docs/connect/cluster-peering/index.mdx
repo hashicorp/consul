@@ -16,9 +16,9 @@ You can create peering connections between two or more independent clusters so t
 Cluster peering is a process that allows Consul clusters to communicate with each other. The cluster peering process consists of the following steps:
 
 1. Create a peering token in one cluster.
-2. Use the peering token to establish peering with a second cluster.
-3. Export services between clusters.
-4. Create intentions to authorize services for peers.
+1. Use the peering token to establish peering with a second cluster.
+1. Export services between clusters.
+1. Create intentions to authorize services for peers.
 
 For detailed instructions on establishing cluster peering connections, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
@@ -56,7 +56,7 @@ Not all features and functionality are available in the beta release. In particu
 
 - Mesh gateways for _server to server traffic_ are not available.
 - Services with node, instance, and check definitions totaling more than 4MB cannot be exported to a peer.
-- The `service-splitter` and `service-router` config entry kinds cannot directly target a peer. To split or route traffic to a service instance on a peer, you must supplement your desired dynamic routing definition with a `service-resolver` config entry on the dialing cluster. Refer to [L7 traffic management between peers](/docs/connect/cluster-peering/create-manage-peering#L7-traffic) for more information.
+- The `service-splitter` and `service-router` configuration entry kinds cannot directly target a peer. To split or route traffic to a service instance on a peer, you must supplement your desired dynamic routing definition with a `service-resolver` config entry on the dialing cluster. Refer to [L7 traffic management between peers](/docs/connect/cluster-peering/create-manage-peering#L7-traffic) for more information.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
 - Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.
