@@ -112,7 +112,7 @@ Envoy requires an initial bootstrap configuration file. The easiest way to
 create this is using the [`consul connect envoy`
 command](/commands/connect/envoy). The command can either output the
 bootstrap configuration directly to stdout, or generate the configuration and issue an `exec` command
-to the Envoy binary as a convenience wrapper.
+to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
 
 Because some Envoy configuration options, such as metrics and tracing sinks, can only be
 specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
@@ -173,6 +173,67 @@ definition](/docs/connect/registration/service-registration) or
   [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval).
 
 The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
+
+### Bootstrap Envoy on Windows VMs
+
+> Complete the [Connect Services on Windows Workloads to Consul Service Mesh tutorial](https://learn.hashicorp.com/tutorials/consul/consul-on-windows-workloads?utm_source=docs) to learn how to deploy Consul and use its service mesh on Windows VMs.
+
+If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
+
+```shell-session hideClipboard
+Directly running Envoy is only supported on linux and macOS since envoy itself doesn't build on other plataforms currently.
+Use the -bootstrap option to generate the JSON to use when running envoy on a supported OS or via a container or VM.
+```
+
+To bootstrap Envoy on Windows VMs, you must generate the bootstrap configuration as a .json file and then manually edit it to add both your ACL token and a valid access log path.
+
+To generate the bootstrap configuration file, add the `-bootstrap` option to the command and then save the output to a file:
+
+```shell-session
+$ consul connect envoy -bootstrap > bootstrap.json
+```
+
+Then, open `bootstrap.json` and update the following sections with your ACL token and log path.
+
+<CodeBlockConfig filename="bootstrap.json" hideClipboard lineNumbers highlight="2,19">
+
+```json
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  ## ...
+  "dynamic_resources": {
+    ## ...
+    "ads_config": {
+      ## ...
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": "<ACL-Token>"
+          }
+        ],
+        ## ...
+      }
+    }
+  }
+}
+```
+</CodeBlockConfig>
+
+To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
+
+```shell-session
+$ envoy -c bootstrap.json
+```
+
+~> **Security Note**: The bootstrap JSON contains the ACL token and should be handled as a secret. Because this token authorizes the identity of any service it has `service:write` permissions for, it can be used to access upstream services.
 
 ## Dynamic Configuration
 
