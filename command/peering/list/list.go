@@ -99,7 +99,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		meta := strings.Join(metaPairs, ",")
 		line := fmt.Sprintf("%s\x1f%s\x1f%d\x1f%d\x1f%s",
-			peer.Name, peer.State, peer.ImportedServiceCount, peer.ExportedServiceCount, meta)
+			peer.Name, peer.State, len(peer.ImportedServices), len(peer.ExportedServices), meta)
 		result = append(result, line)
 	}
 
@@ -123,7 +123,7 @@ const (
 Usage: consul peering list [options]
 
   List all peering connections.  The results will be filtered according
-  to ACL policy configuration. 
+  to ACL policy configuration.
 
   Example:
 

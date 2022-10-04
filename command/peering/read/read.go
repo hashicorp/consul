@@ -130,8 +130,8 @@ func formatPeering(peering *api.Peering) string {
 	}
 
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Imported Services: %d\n", peering.ImportedServiceCount))
-	buffer.WriteString(fmt.Sprintf("Exported Services: %d\n", peering.ExportedServiceCount))
+	buffer.WriteString(fmt.Sprintf("Imported Services: %d\n", len(peering.ImportedServices)))
+	buffer.WriteString(fmt.Sprintf("Exported Services: %d\n", len(peering.ExportedServices)))
 
 	buffer.WriteString("\n")
 	buffer.WriteString(fmt.Sprintf("Create Index: %d\n", peering.CreateIndex))

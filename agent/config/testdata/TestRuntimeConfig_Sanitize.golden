@@ -124,6 +124,13 @@
         }
     ],
     "ClientAddrs": [],
+    "Cloud": {
+        "AuthURL": "",
+        "ClientID": "id",
+        "ClientSecret": "hidden",
+        "Hostname": "",
+        "ResourceID": "cluster1"
+    },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",

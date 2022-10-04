@@ -476,6 +476,13 @@ type gatewayWatchOpts struct {
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
+	var correlationId string
+	if opts.upstreamID.Name == "" {
+		correlationId = fmt.Sprintf("mesh-gateway:%s", opts.key.String())
+	} else {
+		correlationId = fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String())
+	}
+
 	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
@@ -483,5 +490,5 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
+	}, correlationId, opts.notifyCh)
 }

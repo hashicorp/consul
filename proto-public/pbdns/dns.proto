@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package hashicorp.consul.dns;
+
+option go_package = "github.com/hashicorp/consul/proto-public/pbdns";
+
+service DNSService {
+  // Query sends a DNS request over to Consul server and returns a DNS reply message.
+  rpc Query(QueryRequest) returns (QueryResponse) {}
+}
+
+enum Protocol {
+  PROTOCOL_UNSET_UNSPECIFIED = 0;
+  PROTOCOL_TCP = 1;
+  PROTOCOL_UDP = 2;
+}
+
+message QueryRequest {
+  // msg is the DNS request message.
+  bytes msg = 1;
+  // protocol is the protocol of the request
+  Protocol protocol = 2;
+}
+
+message QueryResponse {
+  // msg is the DNS reply message.
+  bytes msg = 1;
+}

@@ -701,7 +701,7 @@ agent. The table below describes the additional metrics exported by the proxy.
 
 | Metric                                | Description                                                                                                                                                                                                                               | Unit   | Type    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
-| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.                                                                                                                                                                                 | count  | gauge   |
+| `consul.peering.exported_services`    | Counts the number of services exported with [exported service configuration entries](/docs/connect/config-entries/exported-services) to a peer cluster.                                                                                   | count  | gauge   |
 | `consul.peering.healthy`              | Tracks the health of a peering connection as reported by the server. If Consul detects errors while sending or receiving from a peer which do not recover within a reasonable time, this metric returns 0. Healthy connections return 1.  | health | gauge   |
 
 ### Labels

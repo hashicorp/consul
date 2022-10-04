@@ -252,22 +252,22 @@ type RPCInfo interface {
 type QueryOptions struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
-	Token string
+	Token string `mapstructure:"x-consul-token,omitempty"`
 
 	// If set, wait until query exceeds given index. Must be provided
 	// with MaxQueryTime.
-	MinQueryIndex uint64
+	MinQueryIndex uint64 `mapstructure:"min-query-index,omitempty"`
 
 	// Provided with MinQueryIndex to wait for change.
-	MaxQueryTime time.Duration
+	MaxQueryTime time.Duration `mapstructure:"max-query-time,omitempty"`
 
 	// If set, any follower can service the request. Results
 	// may be arbitrarily stale.
-	AllowStale bool
+	AllowStale bool `mapstructure:"allow-stale,omitempty"`
 
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
-	RequireConsistent bool
+	RequireConsistent bool `mapstructure:"require-consistent,omitempty"`
 
 	// If set, the local agent may respond with an arbitrarily stale locally
 	// cached response. The semantics differ from AllowStale since the agent may
@@ -276,12 +276,12 @@ type QueryOptions struct {
 	// provide additional bounds on the last contact time from the leader. It's
 	// expected that servers that are partitioned are noticed and replaced in a
 	// timely way by operators while the same may not be true for client agents.
-	UseCache bool
+	UseCache bool `mapstructure:"use-cache,omitempty"`
 
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
 	// read is older than value.
-	MaxStaleDuration time.Duration
+	MaxStaleDuration time.Duration `mapstructure:"max-stale-duration,omitempty"`
 
 	// MaxAge limits how old a cached value will be returned if UseCache is true.
 	// If there is a cached response that is older than the MaxAge, it is treated
@@ -290,30 +290,30 @@ type QueryOptions struct {
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
-	MaxAge time.Duration
+	MaxAge time.Duration `mapstructure:"max-age,omitempty"`
 
 	// MustRevalidate forces the agent to fetch a fresh version of a cached
 	// resource or at least validate that the cached version is still fresh. It is
 	// implied by either max-age=0 or must-revalidate Cache-Control headers. It
 	// only makes sense when UseCache is true. We store it since MaxAge = 0 is the
 	// default unset value.
-	MustRevalidate bool
+	MustRevalidate bool `mapstructure:"must-revalidate,omitempty"`
 
 	// StaleIfError specifies how stale the client will accept a cached response
 	// if the servers are unavailable to fetch a fresh one. Only makes sense when
 	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
 	// ignored if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
-	StaleIfError time.Duration
+	StaleIfError time.Duration `mapstructure:"stale-if-error,omitempty"`
 
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
-	Filter string
+	Filter string `mapstructure:"filter,omitempty"`
 
 	// AllowNotModifiedResponse indicates that if the MinIndex matches the
 	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
 	// will be set to true to indicate the result of the query has not changed.
-	AllowNotModifiedResponse bool
+	AllowNotModifiedResponse bool `mapstructure:"allow-not-modified-response,omitempty"`
 }
 
 // IsRead is always true for QueryOption.

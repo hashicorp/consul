@@ -14,6 +14,8 @@ PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.3.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
+MOCKED_PB_DIRS= pbdns
+
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 GOARCH?=$(shell go env GOARCH)
@@ -401,8 +403,19 @@ else
 endif
 
 .PHONY: proto
-proto: proto-tools
+proto: proto-tools proto-gen proto-mocks
+
+.PHONY: proto-gen
+proto-gen: proto-tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh
+
+.PHONY: proto-mocks
+proto-mocks:
+	for dir in $(MOCKED_PB_DIRS) ; do \
+		cd proto-public && \
+		rm -f $$dir/mock*.go && \
+		mockery --dir $$dir --inpackage --all --recursive --log-level trace ; \
+	done
 
 .PHONY: proto-format
 proto-format: proto-tools

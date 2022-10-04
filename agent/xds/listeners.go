@@ -275,7 +275,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil
 			}
 			configuredPorts[svcConfig.Destination.Port] = struct{}{}
-			const name = "~http" //name used for the shared route name
+			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:  routeName,
@@ -1757,7 +1757,8 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		}
 
 		// Wildcard all flavors to each server.
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)
@@ -1768,10 +1769,37 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 
 			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
 				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-					ServerNames: []string{fmt.Sprintf("%s", clusterName)},
+					ServerNames: []string{clusterName},
 				},
 				Filters: []*envoy_listener_v3.Filter{
 					dcTCPProxy,
+				},
+			})
+		}
+	}
+
+	// Create a single cluster for local servers to be dialed by peers.
+	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
+	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
+		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+
+		// Peering control-plane traffic can only ever be handled by the local leader.
+		// We avoid routing to read replicas since they will never be Raft voters.
+		if haveVoters(servers) {
+			clusterName := connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)
+
+			filter, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peering_server.")
+			if err != nil {
+				return nil, err
+			}
+
+			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ServerNames: []string{clusterName},
+				},
+				Filters: []*envoy_listener_v3.Filter{
+					filter,
 				},
 			})
 		}
@@ -2014,6 +2042,10 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 
 	if cfg.ConnectTimeoutMs == 0 {
 		cfg.ConnectTimeoutMs = 5000
+	}
+
+	if cfg.MeshGateway.Mode == "" && u != nil {
+		cfg.MeshGateway = u.MeshGateway
 	}
 
 	return cfg

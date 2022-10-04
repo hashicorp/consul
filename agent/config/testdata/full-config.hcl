@@ -201,6 +201,13 @@ auto_encrypt = {
     ip_san = ["192.168.4.139", "192.168.4.140"]
     allow_tls = true
 }
+cloud {
+    resource_id = "N43DsscE"
+    client_id = "6WvsDZCP"
+    client_secret = "lCSMHOpB"
+    hostname = "DH4bh7aC"
+    auth_url = "332nCdR2"
+}
 connect {
     ca_provider = "consul"
     ca_config {

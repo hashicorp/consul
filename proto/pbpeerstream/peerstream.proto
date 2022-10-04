@@ -96,11 +96,6 @@ enum Operation {
 
   // UPSERT represents a create or update event.
   OPERATION_UPSERT = 1;
-
-  // DELETE indicates the resource should be deleted.
-  // In DELETE operations no Resource will be returned.
-  // Deletion by an importing peer must be done with the type URL and ID.
-  OPERATION_DELETE = 2;
 }
 
 // LeaderAddress is sent when the peering service runs on a consul node
@@ -113,6 +108,12 @@ message LeaderAddress {
 // ExportedService is one of the types of data returned via peer stream replication.
 message ExportedService {
   repeated hashicorp.consul.internal.service.CheckServiceNode Nodes = 1;
+}
+
+// ExportedServiceList is one of the types of data returned via peer stream replication.
+message ExportedServiceList {
+  // The identifiers for the services being exported.
+  repeated string Services = 1;
 }
 
 message ExchangeSecretRequest {

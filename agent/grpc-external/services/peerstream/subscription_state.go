@@ -96,6 +96,9 @@ func (s *subscriptionState) cleanupEventVersions(logger hclog.Logger) {
 		case id == serverAddrsPayloadID:
 			keep = true
 
+		case id == exportedServiceListID:
+			keep = true
+
 		case strings.HasPrefix(id, servicePayloadIDPrefix):
 			name := strings.TrimPrefix(id, servicePayloadIDPrefix)
 			sn := structs.ServiceNameFromString(name)
@@ -135,6 +138,7 @@ const (
 	serverAddrsPayloadID          = "server-addrs"
 	caRootsPayloadID              = "roots"
 	meshGatewayPayloadID          = "mesh-gateway"
+	exportedServiceListID         = "exported-service-list"
 	servicePayloadIDPrefix        = "service:"
 	discoveryChainPayloadIDPrefix = "chain:"
 )

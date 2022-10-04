@@ -85,6 +85,9 @@ type TestAgent struct {
 	// non-user settable configurations
 	Overrides string
 
+	// allows the BaseDeps to be modified before starting the embedded agent
+	OverrideDeps func(deps *BaseDeps)
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
@@ -233,6 +236,10 @@ func (a *TestAgent) Start(t *testing.T) error {
 		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
 	}
 	a.Config = bd.RuntimeConfig
+
+	if a.OverrideDeps != nil {
+		a.OverrideDeps(&bd)
+	}
 
 	agent, err := New(bd)
 	if err != nil {

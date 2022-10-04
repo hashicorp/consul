@@ -360,6 +360,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// Subscribe to all relevant resource types.
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
 		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
@@ -624,6 +625,13 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		case update := <-subCh:
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
+			case strings.HasPrefix(update.CorrelationID, subExportedServiceList):
+				resp, err = makeExportedServiceListResponse(status, update)
+				if err != nil {
+					// Log the error and skip this response to avoid locking up peering due to a bad update event.
+					logger.Error("failed to create exported service list response", "error", err)
+					continue
+				}
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
 				resp, err = makeServiceResponse(status, update)
 				if err != nil {
@@ -631,9 +639,6 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					logger.Error("failed to create service response", "error", err)
 					continue
 				}
-
-			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
-				// TODO(Peering): figure out how to sync this separately
 
 			case update.CorrelationID == subCARoot:
 				resp, err = makeCARootsResponse(update)
