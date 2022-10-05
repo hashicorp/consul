@@ -36,27 +36,10 @@
             </h1>
           </BlockSlot>
           <BlockSlot @name="content">
-            <TabNav
-              @items={{compact
-                (array
-                  (hash
-                    label="Imported Services"
-                    href=(href-to "dc.peers.edit.imported")
-                    selected=(is-href "dc.peers.edit.imported")
-                  )
-                  (hash
-                    label="Exported Services"
-                    href=(href-to "dc.peers.edit.exported")
-                    selected=(is-href "dc.peers.edit.exported")
-                  )
-                  (hash
-                    label="Addresses"
-                    href=(href-to "dc.peers.edit.addresses")
-                    selected=(is-href "dc.peers.edit.addresses")
-                  )
-                )
-              }}
-            />
+            <Peerings::Provider @peer={{item}} as |peering|>
+              <TabNav @items={{peering.data.tabs}} />
+
+            </Peerings::Provider>
             <Outlet
               @name={{routeName}}
               @model={{assign
