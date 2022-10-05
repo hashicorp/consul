@@ -195,6 +195,23 @@ message Peering {
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
   // @gotags: bexpr:"-"
   uint64 ModifyIndex = 12;
+
+  // Remote contains metadata about the remote peer.
+  RemoteInfo Remote = 17;
+}
+
+// RemoteInfo contains metadata about the remote peer.
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringRemoteInfo
+// output=peering.gen.go
+// name=API
+message RemoteInfo {
+  // Partition is the remote peer's partition.
+  string Partition = 1;
+  // Datacenter is the remote peer's datacenter.
+  string Datacenter = 2;
 }
 
 // StreamStatus represents information about an active peering stream.

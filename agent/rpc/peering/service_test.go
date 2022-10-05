@@ -91,7 +91,10 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		secret string
 	)
 	testutil.RunStep(t, "peering token is generated with data", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
+		req := pbpeering.GenerateTokenRequest{
+			PeerName: "peerB",
+			Meta:     map[string]string{"foo": "bar"},
+		}
 		resp, err := client.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 
@@ -108,6 +111,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		_, roots, err := s.Server.FSM().State().CARoots(nil)
 		require.NoError(t, err)
 		require.Equal(t, []string{roots.Active().RootCert}, token.CA)
+		require.Equal(t, "dc1", token.Remote.Datacenter)
 
 		require.NotEmpty(t, token.EstablishmentSecret)
 		secret = token.EstablishmentSecret
@@ -427,6 +431,8 @@ func TestPeeringService_Establish(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s1 := newTestServer(t, func(conf *consul.Config) {
 		conf.NodeName = "s1"
+		conf.Datacenter = "test-dc1"
+		conf.PrimaryDatacenter = "test-dc1"
 	})
 	client1 := pbpeering.NewPeeringServiceClient(s1.ClientConn(t))
 
@@ -474,6 +480,9 @@ func TestPeeringService_Establish(t *testing.T) {
 		require.Equal(t, token.CA, resp.Peering.PeerCAPems)
 		require.Equal(t, token.ServerAddresses, resp.Peering.PeerServerAddresses)
 		require.Equal(t, token.ServerName, resp.Peering.PeerServerName)
+		require.Equal(t, "test-dc1", token.Remote.Datacenter)
+		require.Equal(t, "test-dc1", resp.Peering.Remote.Datacenter)
+		require.Equal(t, token.Remote.Partition, resp.Peering.Remote.Partition)
 	})
 
 	testutil.RunStep(t, "stream secret is persisted", func(t *testing.T) {

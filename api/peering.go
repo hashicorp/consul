@@ -39,6 +39,13 @@ const (
 	PeeringStateTerminated PeeringState = "TERMINATED"
 )
 
+type PeeringRemoteInfo struct {
+	// Partition is the remote peer's partition.
+	Partition string
+	// Datacenter is the remote peer's datacenter.
+	Datacenter string
+}
+
 type Peering struct {
 	// ID is a datacenter-scoped UUID for the peering.
 	ID string
@@ -66,8 +73,10 @@ type Peering struct {
 	StreamStatus PeeringStreamStatus
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
-	// ModifyIndex is the latest Raft index at which the Peering. was modified.
+	// ModifyIndex is the latest Raft index at which the Peering was modified.
 	ModifyIndex uint64
+	// Remote contains metadata for the remote peer.
+	Remote PeeringRemoteInfo
 }
 
 type PeeringStreamStatus struct {
