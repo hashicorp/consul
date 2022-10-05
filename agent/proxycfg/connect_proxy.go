@@ -156,11 +156,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if u.Datacenter != "" {
 			dc = u.Datacenter
 		}
-		if s.proxyCfg.Mode == structs.ProxyModeTransparent && (dc == "" || dc == s.source.Datacenter) {
-			// In transparent proxy mode, watches for upstreams in the local DC
-			// are handled by the IntentionUpstreams and PeeredUpstreams watch.
-			continue
-		}
 
 		// Default the partition and namespace to the namespace of this proxy service.
 		partition := s.proxyID.PartitionOrDefault()
@@ -499,7 +494,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 
 		// Clean up data from services that were not in the update
 		for uid, targets := range snap.ConnectProxy.WatchedUpstreams {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
@@ -516,7 +511,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		for uid := range snap.ConnectProxy.WatchedUpstreamEndpoints {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
@@ -524,7 +519,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		for uid, cancelMap := range snap.ConnectProxy.WatchedGateways {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
@@ -535,7 +530,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		for uid := range snap.ConnectProxy.WatchedGatewayEndpoints {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
@@ -543,7 +538,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 		for uid, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
@@ -567,7 +562,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
 		// since there was no known watch for it.
 		for uid := range snap.ConnectProxy.DiscoveryChain {
-			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {

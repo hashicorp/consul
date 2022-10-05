@@ -777,6 +777,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
 		},
 		{
+			name:   "transparent-proxy-with-resolver-redirect-upstream",
+			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+		},
+		{
 			name:   "transparent-proxy-catalog-destinations-only",
 			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
