@@ -326,6 +326,24 @@ func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 	require.Contains(t, b.err.Error(), "cannot have both socket path")
 }
 
+func TestBuilder_ServiceVal_with_Check(t *testing.T) {
+	b := builder{}
+	svc := b.serviceVal(&ServiceDefinition{
+		Name: strPtr("unbound"),
+		ID:   strPtr("unbound"),
+		Port: intPtr(12345),
+		Checks: []CheckDefinition{
+			{
+				Interval: strPtr("5s"),
+				UDP:      strPtr("localhost:53"),
+			},
+		},
+	})
+	require.NoError(t, b.err)
+	require.Equal(t, 1, len(svc.Checks))
+	require.Equal(t, "localhost:53", svc.Checks[0].UDP)
+}
+
 func intPtr(v int) *int {
 	return &v
 }
