@@ -1,8 +1,9 @@
 package proxycfg
 
 import (
-	"github.com/hashicorp/consul/api"
 	"time"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/mitchellh/go-testing-interface"
 
@@ -427,6 +428,75 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 								TransparentProxy: structs.TransparentProxyConfig{
 									DialedDirectly: true,
 								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestConfigSnapshotTransparentProxyResolverRedirectUpstream(t testing.T) *ConfigSnapshot {
+	// Service-Resolver redirect with explicit upstream should spawn an outbound listener.
+	var (
+		db      = structs.NewServiceName("db-redir", nil)
+		dbUID   = NewUpstreamIDFromServiceName(db)
+		dbChain = discoverychain.TestCompileConfigEntries(t, "db-redir", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db-redir",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "db",
+				},
+			},
+		)
+
+		google      = structs.NewServiceName("google", nil)
+		googleUID   = NewUpstreamIDFromServiceName(google)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+	)
+
+	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		ns.Proxy.Mode = structs.ProxyModeTransparent
+		ns.Proxy.Upstreams[0].DestinationName = "db-redir"
+	}, []UpdateEvent{
+		{
+			CorrelationID: "discovery-chain:" + dbUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: dbChain,
+			},
+		},
+		{
+			CorrelationID: intentionUpstreamsID,
+			Result: &structs.IndexedServiceList{
+				Services: structs.ServiceList{
+					google,
+				},
+			},
+		},
+		{
+			CorrelationID: "discovery-chain:" + googleUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: googleChain,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:google.default.default.dc1:" + googleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: []structs.CheckServiceNode{
+					{
+						Node: &structs.Node{
+							Address:    "8.8.8.8",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "google",
+							Address: "9.9.9.9",
+							Port:    9090,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								"virtual":                      {Address: "10.0.0.1"},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
 							},
 						},
 					},
