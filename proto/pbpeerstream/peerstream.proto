@@ -3,6 +3,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.peerstream;
 
 import "google/protobuf/any.proto";
+import "proto/pbpeering/peering.proto";
 import "proto/pbservice/node.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
@@ -41,6 +42,9 @@ message ReplicationMessage {
 
     // StreamSecretID contains the long-lived secret from stream authn/authz.
     string StreamSecretID = 2;
+
+    // Remote contains metadata about the remote peer.
+    hashicorp.consul.internal.peering.RemoteInfo Remote = 3;
   }
 
   // A Request requests to subscribe to a resource of a given type.

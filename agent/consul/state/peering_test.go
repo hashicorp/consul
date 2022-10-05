@@ -1145,6 +1145,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		require.Equal(t, tc.expect.peering.State, p.State)
 		require.Equal(t, tc.expect.peering.Name, p.Name)
 		require.Equal(t, tc.expect.peering.Meta, p.Meta)
+		require.Equal(t, tc.expect.peering.Remote, p.Remote)
 		if tc.expect.peering.DeletedAt != nil {
 			require.Equal(t, tc.expect.peering.DeletedAt, p.DeletedAt)
 		}
@@ -1227,6 +1228,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					State:               pbpeering.PeeringState_FAILING,
 					PeerServerAddresses: []string{"localhost:8502"},
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 			},
 			expect: expectations{
@@ -1234,6 +1239,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					ID:    testBazPeerID,
 					Name:  "baz",
 					State: pbpeering.PeeringState_FAILING,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
 					PeerID: testBazPeerID,
@@ -1261,6 +1270,39 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name: "baz",
 					// Previous failing state is picked up.
 					State: pbpeering.PeeringState_FAILING,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testBazPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testBazSecretID,
+					},
+				},
+			},
+		},
+		{
+			name: "if no remote info was included in request it is inherited from existing",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:                  testBazPeerID,
+					Name:                "baz",
+					State:               pbpeering.PeeringState_ACTIVE,
+					PeerServerAddresses: []string{"localhost:8502"},
+					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expect: expectations{
+				peering: &pbpeering.Peering{
+					ID:    testBazPeerID,
+					Name:  "baz",
+					State: pbpeering.PeeringState_ACTIVE,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
 					PeerID: testBazPeerID,
@@ -1286,6 +1328,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					ID:    testBazPeerID,
 					Name:  "baz",
 					State: pbpeering.PeeringState_TERMINATED,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				// Secrets for baz should have been deleted
 				secrets: nil,
@@ -1310,6 +1356,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					ID:    testBazPeerID,
 					Name:  "baz",
 					State: pbpeering.PeeringState_TERMINATED,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 					// Meta should be unchanged.
 					Meta: nil,
 				},
@@ -1333,6 +1383,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:      "baz",
 					State:     pbpeering.PeeringState_DELETING,
 					DeletedAt: structs.TimeToProto(testTime),
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				secrets: nil,
 			},
@@ -1356,6 +1410,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					// Still marked as deleting at the original testTime
 					State:     pbpeering.PeeringState_DELETING,
 					DeletedAt: structs.TimeToProto(testTime),
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				// Secrets for baz should have been deleted
 				secrets: nil,
@@ -1378,6 +1436,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name: "baz",
 					// Still marked as deleting
 					State: pbpeering.PeeringState_DELETING,
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  "part1",
+						Datacenter: "datacenter1",
+					},
 				},
 				// Secrets for baz should have been deleted
 				secrets: nil,

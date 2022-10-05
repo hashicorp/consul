@@ -261,6 +261,13 @@ func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
 	return &t
 }
 
+func (r *RemoteInfo) IsEmpty() bool {
+	if r == nil {
+		return true
+	}
+	return r.Partition == "" && r.Datacenter == ""
+}
+
 // convenience
 func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *GenerateTokenRequest {
 	if req == nil {

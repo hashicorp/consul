@@ -153,7 +153,8 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must specify a PeerID")
 	}
 
-	_, p, err := s.GetStore().PeeringReadByID(nil, req.PeerID)
+	var p *pbpeering.Peering
+	_, p, err = s.GetStore().PeeringReadByID(nil, req.PeerID)
 	if err != nil {
 		logger.Error("failed to look up peer", "peer_id", req.PeerID, "error", err)
 		return grpcstatus.Error(codes.Internal, "failed to find PeerID: "+req.PeerID)
@@ -161,6 +162,12 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	if p == nil {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
 	}
+	// Clone the peering because we will modify and rewrite it.
+	p, ok := proto.Clone(p).(*pbpeering.Peering)
+	if !ok {
+		return grpcstatus.Errorf(codes.Internal, "unexpected error while cloning a Peering object.")
+	}
+
 	if !p.IsActive() {
 		// If peering is terminated, then our peer sent the termination message.
 		// For other non-active states, send the termination message.
@@ -215,9 +222,14 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 				},
 			},
 		}
-		err = s.Backend.PeeringSecretsWrite(promoted)
+
+		p.Remote = req.Remote
+		err = s.Backend.PeeringWrite(&pbpeering.PeeringWriteRequest{
+			Peering:        p,
+			SecretsRequest: promoted,
+		})
 		if err != nil {
-			return grpcstatus.Errorf(codes.Internal, "failed to persist peering secret: %v", err)
+			return grpcstatus.Errorf(codes.Internal, "failed to persist peering: %v", err)
 		}
 	}
 	if !authorized {

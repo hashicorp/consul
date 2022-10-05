@@ -311,6 +311,10 @@ func (s *Server) GenerateToken(
 		ServerAddresses:     serverAddrs,
 		ServerName:          serverName,
 		EstablishmentSecret: secretID,
+		Remote: structs.PeeringTokenRemote{
+			Partition:  req.PartitionOrDefault(),
+			Datacenter: s.Datacenter,
+		},
 	}
 
 	encoded, err := s.Backend.EncodeToken(&tok)
@@ -416,9 +420,12 @@ func (s *Server) Establish(
 		PeerID:              tok.PeerID,
 		Meta:                req.Meta,
 		State:               pbpeering.PeeringState_ESTABLISHING,
-
 		// PartitionOrEmpty is used to avoid writing "default" in OSS.
 		Partition: entMeta.PartitionOrEmpty(),
+		Remote: &pbpeering.RemoteInfo{
+			Partition:  tok.Remote.Partition,
+			Datacenter: tok.Remote.Datacenter,
+		},
 	}
 
 	tlsOption, err := peering.TLSDialOption()
