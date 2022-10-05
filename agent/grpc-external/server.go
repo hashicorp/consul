@@ -3,6 +3,7 @@ package external
 import (
 	"time"
 
+	"github.com/armon/go-metrics"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc"
@@ -11,13 +12,21 @@ import (
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 )
 
+var metricsLabels = []metrics.Label{{
+	Name:  "server_type",
+	Value: "external",
+}}
+
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
 func NewServer(logger agentmiddleware.Logger) *grpc.Server {
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
+	metrics := agentmiddleware.DefaultMetrics()
+
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
+		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metrics, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -25,6 +34,7 @@ func NewServer(logger agentmiddleware.Logger) *grpc.Server {
 		middleware.WithStreamServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.StreamServerInterceptor(recoveryOpts...),
+			agentmiddleware.NewActiveStreamCounter(metrics, metricsLabels).Intercept,
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			// This must be less than the keealive.ClientParameters Time setting, otherwise

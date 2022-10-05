@@ -82,18 +82,22 @@ func TestHandler_EmitsStats(t *testing.T) {
 	})
 
 	cmpMetricCalls := cmp.AllowUnexported(metricCall{})
+	expLabels := []metrics.Label{{
+		Name:  "server_type",
+		Value: "internal",
+	}}
 	expectedGauge := []metricCall{
-		{key: []string{"testing", "grpc", "server", "connections"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "streams"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "connections"}, val: 0},
-		{key: []string{"testing", "grpc", "server", "streams"}, val: 0},
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 1, labels: expLabels},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 1, labels: expLabels},
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 0, labels: expLabels},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 0, labels: expLabels},
 	}
 	prototest.AssertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
 
 	expectedCounter := []metricCall{
-		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1, labels: expLabels},
+		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1, labels: expLabels},
+		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1, labels: expLabels},
 	}
 	prototest.AssertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
