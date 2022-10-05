@@ -303,7 +303,7 @@ Routes = [
     Match{
         HTTP {
             PathPrefix = "/coffees"
-        }  
+        }
     }
 
     Destination {
@@ -311,13 +311,14 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOn = ["reset"]
     }
   },
   {
     Match{
         HTTP {
             PathPrefix = "/orders"
-        }  
+        }
     }
 
     Destination {
@@ -325,6 +326,7 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOn = ["reset"]
     }
   }
 ]
@@ -345,6 +347,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
+        retryOn: ['reset']
     - match:
         http:
           pathExact: /orders
@@ -353,7 +356,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
-
+        retryOn: ['reset']
 ```
 
 
@@ -372,6 +375,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         },
@@ -385,6 +389,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         }
@@ -701,6 +706,13 @@ spec:
       name: 'RetryOnConnectFailure',
       type: 'bool: false',
       description: 'Allows for connection failure errors to trigger a retry.',
+    },
+    {
+      name: 'RetryOn',
+      type: 'array<string>',
+      description: `Allows Consul to retry requests when they meet one of the following sets of conditions:
+                      \`5xx\`, \`gateway-error\`, \`reset\`, \`connect-failure\`, \`envoy-ratelimited\`, \`retriable-4xx\`,
+                      \`refused-stream\`, \`cancelled\`, \`deadline-exceeded\`, \`internal\`, \`resource-exhausted\`, or \`unavailable\``,
     },
     {
       name: 'RetryOnStatusCodes',
