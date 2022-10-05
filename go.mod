@@ -53,7 +53,7 @@ require (
 	github.com/hashicorp/hcp-sdk-go v0.23.1-0.20220921131124-49168300a7dc
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
-	github.com/hashicorp/raft v1.3.9
+	github.com/hashicorp/raft v1.3.11
 	github.com/hashicorp/raft-autopilot v0.1.6
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/hashicorp/serf v0.10.1
