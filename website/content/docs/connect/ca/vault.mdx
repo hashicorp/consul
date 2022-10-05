@@ -227,6 +227,11 @@ path "/sys/mounts/connect_inter" {
   capabilities = [ "read" ]
 }
 
+# Needed for Consul 1.11+
+path "/sys/mounts/connect_inter/tune" {
+  capabilities = [ "update" ]
+}
+
 path "/connect_root/" {
   capabilities = [ "read" ]
 }
@@ -273,6 +278,11 @@ path "/sys/mounts/connect_root" {
 
 path "/sys/mounts/connect_inter" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+# Needed for Consul 1.11+
+path "/sys/mounts/connect_inter/tune" {
+  capabilities = [ "update" ]
 }
 
 path "/connect_root/*" {
