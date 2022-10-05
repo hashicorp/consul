@@ -26,6 +26,16 @@
           _options: {
             path: "/:name",
           },
+          imported: {
+            _options: {
+              path: "/imported-services",
+            },
+          },
+          exported: {
+            _options: {
+              path: "/exported-services",
+            },
+          },
           addresses: {
             _options: {
               path: "/addresses",
