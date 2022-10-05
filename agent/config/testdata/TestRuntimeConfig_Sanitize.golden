@@ -479,5 +479,6 @@
     "Version": "",
     "VersionMetadata": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSUpdateRateLimit": 0
 }

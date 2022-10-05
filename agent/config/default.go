@@ -135,6 +135,9 @@ func DefaultSource() Source {
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 
+		xds {
+			update_max_per_second = 250
+		}
 	`,
 	}
 }

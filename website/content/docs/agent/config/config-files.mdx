@@ -2206,3 +2206,23 @@ tls {
 Consul will not enable TLS for the HTTP or gRPC API unless the `https` port has
 been assigned a port number `> 0`. We recommend using `8501` for `https` as this
 default will automatically work with some tooling.
+
+## xDS Server Parameters
+
+- `xds` This object allows you to configure the behavior of Consul's
+[xDS protocol](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol)
+server. Available in Consul 1.14 and later.
+
+  - `update_max_per_second` Controls the rate at which proxy config updates
+    will be delivered, across all connected xDS streams. This prevents updates
+    to "global" resources such as wildcard intentions from saturating system
+    resources at the expense of other work, such as Raft and Gossip, which
+    could cause general cluster instability.
+
+    It defaults to 250 updates per second, which is conservative and was chosen
+    based on a load-test of 5k streams connected to a single server with 2 CPU
+    cores.
+
+    This can be reloaded using `consul reload` or sending the server a `SIGHUP`
+    to allow lowering or increasing the limit without a rolling restart in
+    emergencies.

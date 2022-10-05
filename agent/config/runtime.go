@@ -1440,6 +1440,15 @@ type RuntimeConfig struct {
 	//
 	Watches []map[string]interface{}
 
+	// XDSUpdateRateLimit controls the maximum rate at which proxy config updates
+	// will be delivered, across all connected xDS streams. This is used to stop
+	// updates to "global" resources (e.g. wildcard intentions) from saturating
+	// system resources at the expense of other work, such as raft and gossip,
+	// which could cause general cluster instability.
+	//
+	// hcl: xds { update_max_per_second = (float64|MaxFloat64) }
+	XDSUpdateRateLimit rate.Limit
+
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
 
