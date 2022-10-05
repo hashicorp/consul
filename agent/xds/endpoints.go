@@ -413,16 +413,20 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 	// generate the endpoints for the linked service groups
 	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
 		for sn, serviceGroup := range serviceGroups {
-			var clusterName string
-			if len(serviceGroup) > 0 {
-				node := serviceGroup[0]
-				if node.Service == nil {
-					return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
-				}
-				clusterName = node.Service.Connect.PeerMeta.PrimarySNI()
+			if serviceGroup.UseCDS || len(serviceGroup.Nodes) == 0 {
+				continue
 			}
 
-			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup, OnlyPassing: false}}
+			node := serviceGroup.Nodes[0]
+			if node.Service == nil {
+				return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
+			}
+			// This uses the SNI in the accepting cluster peer so the remote mesh
+			// gateway can distinguish between an exported service as opposed to the
+			// usual mesh gateway route for a service.
+			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
+
+			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
 
 			la := makeLoadAssignment(
 				clusterName,

@@ -122,7 +122,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	snap.MeshGateway.WatchedDiscoveryChains = make(map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedPeeringServices = make(map[string]map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedPeers = make(map[string]context.CancelFunc)
-	snap.MeshGateway.PeeringServices = make(map[string]map[structs.ServiceName]structs.CheckServiceNodes)
+	snap.MeshGateway.PeeringServices = make(map[string]map[structs.ServiceName]PeeringServiceValue)
 
 	// there is no need to initialize the map of service resolvers as we
 	// fully rebuild it every time we get updates
@@ -645,10 +645,19 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 				if len(resp.Nodes) > 0 {
 					if _, ok := snap.MeshGateway.PeeringServices[peer]; !ok {
-						snap.MeshGateway.PeeringServices[peer] = make(map[structs.ServiceName]structs.CheckServiceNodes)
+						snap.MeshGateway.PeeringServices[peer] = make(map[structs.ServiceName]PeeringServiceValue)
 					}
 
-					snap.MeshGateway.PeeringServices[peer][sn] = resp.Nodes
+					if eps := hostnameEndpoints(s.logger, GatewayKey{}, resp.Nodes); len(eps) > 0 {
+						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
+							Nodes:  eps,
+							UseCDS: true,
+						}
+					} else {
+						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
+							Nodes: resp.Nodes,
+						}
+					}
 				} else if _, ok := snap.MeshGateway.PeeringServices[peer]; ok {
 					delete(snap.MeshGateway.PeeringServices[peer], sn)
 				}

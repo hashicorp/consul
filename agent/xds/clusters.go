@@ -575,22 +575,45 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 
 	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
 		for sn, serviceGroup := range serviceGroups {
-			var clusterName string
-			var isRemote bool
-			if len(serviceGroup) > 0 {
-				node := serviceGroup[0]
-				if node.Service == nil {
-					return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
-				}
-				clusterName = node.Service.Connect.PeerMeta.PrimarySNI()
-				isRemote = !cfgSnap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
+			if len(serviceGroup.Nodes) == 0 {
+				continue
 			}
+
+			node := serviceGroup.Nodes[0]
+			if node.Service == nil {
+				return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
+			}
+			// This uses the SNI in the accepting cluster peer so the remote mesh
+			// gateway can distinguish between an exported service as opposed to the
+			// usual mesh gateway route for a service.
+			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
 
 			opts := clusterOpts{
 				name:     clusterName,
-				isRemote: isRemote,
+				isRemote: true,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
+
+			if serviceGroup.UseCDS {
+				configureClusterWithHostnames(
+					s.Logger,
+					cluster,
+					"", /*TODO:make configurable?*/
+					serviceGroup.Nodes,
+					true,  /*isRemote*/
+					false, /*onlyPassing*/
+				)
+			} else {
+				cluster.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
+				cluster.EdsClusterConfig = &envoy_cluster_v3.Cluster_EdsClusterConfig{
+					EdsConfig: &envoy_core_v3.ConfigSource{
+						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+							Ads: &envoy_core_v3.AggregatedConfigSource{},
+						},
+					},
+				}
+			}
 
 			clusters = append(clusters, cluster)
 		}

@@ -659,24 +659,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-a:db",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.CheckServiceNode{
-							Node: &structs.Node{
-								ID:       "test1",
-								Node:     "test1",
-								Address:  "10.40.1.1",
-								PeerName: "peer-a",
-							},
-							Service: structs.TestNodeServiceWithNameInPeer(t, "db", "peer-a"),
-						},
-						structs.CheckServiceNode{
-							Node: &structs.Node{
-								ID:       "test2",
-								Node:     "test2",
-								Address:  "10.40.1.2",
-								PeerName: "peer-a",
-							},
-							Service: structs.TestNodeServiceWithNameInPeer(t, "db", "peer-a"),
-						},
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.2", false),
 					},
 				},
 			},
@@ -684,24 +668,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-b:alt",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.CheckServiceNode{
-							Node: &structs.Node{
-								ID:       "test1",
-								Node:     "test1",
-								Address:  "10.40.2.1",
-								PeerName: "peer-b",
-							},
-							Service: structs.TestNodeServiceWithNameInPeer(t, "alt", "peer-b"),
-						},
-						structs.CheckServiceNode{
-							Node: &structs.Node{
-								ID:       "test2",
-								Node:     "test2",
-								Address:  "10.40.2.2",
-								PeerName: "peer-b",
-							},
-							Service: structs.TestNodeServiceWithNameInPeer(t, "alt", "peer-b"),
-						},
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.2", true),
 					},
 				},
 			},
