@@ -1,5 +1,9 @@
 ## 1.13.2 (September 20, 2022)
 
+BREAKING CHANGES:
+
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change will be resolved in an upcoming 1.13 patch release. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+
 SECURITY:
 
 * auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
