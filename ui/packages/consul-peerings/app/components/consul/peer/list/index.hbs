@@ -41,14 +41,11 @@ as |item index|>
     </div>
   </BlockSlot>
   <BlockSlot @name="actions" as |Actions|>
-{{#if (can 'delete peer' item=item)}}
+    {{#if (can "delete peer" item=item)}}
 
     <Actions as |Action|>
-{{#if (can "write peer" item=item)}}
-        <Action
-          data-test-regenerate-action
-          {{on 'click' (fn @onedit item)}}
-        >
+        {{#if (and (can "write peer" item=item) item.isDialer)}}
+          <Action data-test-regenerate-action {{on "click" (fn @onedit item)}}>
           <BlockSlot @name="label">
             Regenerate token
           </BlockSlot>
