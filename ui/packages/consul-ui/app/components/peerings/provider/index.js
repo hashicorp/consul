@@ -1,31 +1,7 @@
 import Component from '@glimmer/component';
-import { tracked } from '@glimmer/tracking';
-import { hrefTo } from 'consul-ui/helpers/href-to';
 import { inject as service } from '@ember/service';
 import { getOwner } from '@ember/application';
-
-class PeerTab {
-  @tracked route;
-  @tracked label;
-  @tracked currentRouteName;
-
-  constructor(opts) {
-    const { currentRouteName, route, label, owner } = opts;
-
-    this.currentRouteName = currentRouteName;
-    this.owner = owner;
-    this.route = route;
-    this.label = label;
-  }
-
-  get selected() {
-    return this.currentRouteName === this.route;
-  }
-
-  get href() {
-    return hrefTo(this.owner, [this.route]);
-  }
-}
+import { Tab } from 'consul-ui/components/tab-nav';
 
 export default class PeeringsProvider extends Component {
   @service router;
@@ -56,8 +32,6 @@ export default class PeeringsProvider extends Component {
       ];
     }
 
-    return tabs.map(
-      (tab) => new PeerTab({ ...tab, currentRouteName: router.currentRouteName, owner })
-    );
+    return tabs.map((tab) => new Tab({ ...tab, currentRouteName: router.currentRouteName, owner }));
   }
 }
