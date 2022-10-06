@@ -528,7 +528,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh := c.fetch(key, r, true, 0, false)
+	waiterCh := c.fetch(key, r)
 
 	// No longer our first time through
 	first = false
@@ -555,46 +555,41 @@ func makeEntryKey(t, dc, peerName, token, key string) string {
 	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
-// fetch triggers a new background fetch for the given Request. If a
-// background fetch is already running for a matching Request, the waiter
-// channel for that request is returned. The effect of this is that there
-// is only ever one blocking query for any matching requests.
-//
-// If allowNew is true then the fetch should create the cache entry
-// if it doesn't exist. If this is false, then fetch will do nothing
-// if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
-	// We acquire a write lock because we may have to set Fetching to true.
+// fetch triggers a new background fetch for the given Request. If a background
+// fetch is already running or a goroutine to manage that still exists for a
+// matching Request, the waiter channel for that request is returned. The
+// effect of this is that there is only ever one blocking query and goroutine
+// for any matching requests.
+func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
+	// We acquire a write lock because we may have to set HasGoroutine or
+	// Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
+
 	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 
-	// This handles the case where a fetch succeeded after checking for its existence in
-	// getWithIndex. This ensures that we don't miss updates.
-	if ok && entryValid && !ignoreExisting {
+	switch {
+	case ok && entryValid:
+		// This handles the case where a fetch succeeded after checking for its
+		// existence in getWithIndex. This ensures that we don't miss updates.
 		ch := make(chan struct{})
 		close(ch)
 		return ch
-	}
 
-	// If we aren't allowing new values and we don't have an existing value,
-	// return immediately. We return an immediately-closed channel so nothing
-	// blocks.
-	if !ok && !allowNew {
-		ch := make(chan struct{})
-		close(ch)
-		return ch
-	}
-
-	// If we already have an entry and it is actively fetching, then return
-	// the currently active waiter.
-	if ok && entry.Fetching {
+	case ok && entry.Fetching:
+		// If we already have an entry and it is actively fetching, then return
+		// the currently active waiter.
 		return entry.Waiter
-	}
 
-	// If we don't have an entry, then create it. The entry must be marked
-	// as invalid so that it isn't returned as a valid value for a zero index.
-	if !ok {
+	case ok && entry.HasGoroutine:
+		// If we already have an entry and there's a goroutine to keep it
+		// refreshed then don't spawn another one to do the same work.
+		return entry.Waiter
+
+	case !ok:
+		// If we don't have an entry, then create it. The entry must be marked
+		// as invalid so that it isn't returned as a valid value for a zero
+		// index.
 		entry = cacheEntry{
 			Valid:  false,
 			Waiter: make(chan struct{}),
@@ -609,13 +604,93 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.
 	entry.Fetching = true
+	entry.HasGoroutine = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
-	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
-	go func() {
+	go c.launchBackgroundFetcher(key, r, entry)
+
+	return entry.Waiter
+}
+
+func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry cacheEntry) {
+	defer func() {
+		c.mutateExistingEntry(key, r, func(entry *cacheEntry) {
+			if entry.HasGoroutine {
+				entry.HasGoroutine = false
+				entry.Fetching = false
+			}
+		})
+	}()
+
+	var (
+		attempt uint
+		entry   = initialEntry
+	)
+	for {
+		if !c.runBackgroundFetcherOnce(key, r, entry, &attempt) {
+			return
+		}
+
+		var totalWait time.Duration
+
+		// If we're over the attempt minimum, start an exponential backoff.
+		if wait := backOffWait(attempt); wait > 0 {
+			totalWait += wait
+		}
+
+		// If we have a timer, wait for it
+		if r.TypeEntry.Opts.RefreshTimer > 0 {
+			totalWait += r.TypeEntry.Opts.RefreshTimer
+		}
+
+		select {
+		case <-time.After(totalWait):
+		case <-c.stopCh:
+			return // Check if cache was stopped
+		}
+
+		// Trigger. The "allowNew" field is false because in the time we were
+		// waiting to refresh we may have expired and got evicted. If that
+		// happened, we don't want to create a new entry.
+		r.Info.MustRevalidate = false
+		r.Info.MinIndex = 0
+
+		// We acquire a write lock because we may have to set Fetching to true.
+		c.entriesLock.Lock()
+
+		var ok bool
+		ok, _, entry = c.getEntryLocked(r.TypeEntry, key, r.Info)
+		if !ok || entry.Fetching {
+			// If we don't have an existing entry, return immediately.
+			//
+			// Also if we already have an entry and it is actively fetching, then
+			// return immediately.
+			c.entriesLock.Unlock()
+			return
+		}
+
+		// Set that we're fetching to true, which makes it so that future
+		// identical calls to fetch will return the same waiter rather than
+		// perform multiple fetches.
+		entry.Fetching = true
+		c.entries[key] = entry
+		metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+		metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
+		c.entriesLock.Unlock()
+	}
+}
+
+func (c *Cache) runBackgroundFetcherOnce(
+	key string,
+	r getOptions,
+	entry cacheEntry,
+	attempt *uint,
+) (keepGoing bool) {
+	tEntry := r.TypeEntry
+	{
 		// If we have background refresh and currently are in "disconnected" state,
 		// waiting for a response might mean we mark our results as stale for up to
 		// 10 minutes (max blocking timeout) after connection is restored. To reduce
@@ -653,12 +728,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
+
 		if err := entry.FetchRateLimiter.Wait(c.rateLimitContext); err != nil {
 			if connectedTimer != nil {
 				connectedTimer.Stop()
 			}
 			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
-			return
+			return false
 		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
@@ -724,7 +800,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
-				attempt = 0
+				*attempt = 0
 			} else {
 				// Result having a zero index is an implicit error case. There was no
 				// actual error but it implies the RPC found in index (nothing written
@@ -739,7 +815,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				// state it can be considered a bug in the RPC implementation (to ever
 				// return a zero index) however since it can happen this is a safety net
 				// for the future.
-				attempt++
+				*attempt++
 			}
 
 			// If we have refresh active, this successful response means cache is now
@@ -759,7 +835,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
-			attempt++
+			*attempt++
 
 			// If we are refreshing and just failed, updated the lost contact time as
 			// our cache will be stale until we get successfully reconnected. We only
@@ -814,31 +890,26 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// request back up again shortly but in the general case this prevents
 		// spamming the logs with tons of ACL not found errors for days.
 		if tEntry.Opts.Refresh && !preventRefresh {
-			// Check if cache was stopped
-			if atomic.LoadUint32(&c.stopped) == 1 {
-				return
-			}
-
-			// If we're over the attempt minimum, start an exponential backoff.
-			if wait := backOffWait(attempt); wait > 0 {
-				time.Sleep(wait)
-			}
-
-			// If we have a timer, wait for it
-			if tEntry.Opts.RefreshTimer > 0 {
-				time.Sleep(tEntry.Opts.RefreshTimer)
-			}
-
-			// Trigger. The "allowNew" field is false because in the time we were
-			// waiting to refresh we may have expired and got evicted. If that
-			// happened, we don't want to create a new entry.
-			r.Info.MustRevalidate = false
-			r.Info.MinIndex = 0
-			c.fetch(key, r, false, attempt, true)
+			return true
 		}
-	}()
+	}
 
-	return entry.Waiter
+	return false
+}
+
+func (c *Cache) mutateExistingEntry(key string, r getOptions, mutFn func(*cacheEntry)) {
+	if mutFn == nil {
+		return
+	}
+
+	c.entriesLock.Lock()
+	defer c.entriesLock.Unlock()
+
+	ok, _, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	if ok {
+		mutFn(&entry)
+		c.entries[key] = entry
+	}
 }
 
 func backOffWait(failures uint) time.Duration {
