@@ -122,7 +122,7 @@
     "ember-cli-string-helpers": "^5.0.0",
     "ember-cli-template-lint": "^2.0.1",
     "ember-cli-terser": "^4.0.1",
-    "ember-cli-yadda": "^0.6.0",
+    "ember-cli-yadda": "^0.7.0",
     "ember-collection": "^1.0.0-alpha.9",
     "ember-compatibility-helpers": "^1.2.5",
     "ember-composable-helpers": "^5.0.0",
