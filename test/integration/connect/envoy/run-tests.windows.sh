@@ -430,8 +430,8 @@ function init_vars {
 }
 
 function global_setup {
-  if [ -f "${CASE_DIR}/global-setup.sh" ] ; then
-    source "${CASE_DIR}/global-setup.sh"
+  if [ -f "${CASE_DIR}/global-setup-windows.sh" ] ; then    
+    source "${CASE_DIR}/global-setup-windows.sh"
   fi
 }
 
@@ -480,7 +480,7 @@ function run_tests {
   fi
 
   global_setup
-
+  
   # Allow vars.sh to set a reason to skip this test case based on the ENV
   if [ "$SKIP_CASE" != "" ] ; then
     echoyellow "SKIPPING CASE: $SKIP_CASE"

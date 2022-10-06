@@ -215,9 +215,9 @@ then
     echo "Completed 2"
     XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-remote" -win=true > test/integration/connect/envoy/results/case-cfg-resolver-dc-failover-gateways-remote.log
     echo "Completed 3"
-    XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers" -win=true > test/integration/connect/envoy/results/case-cross-peers.log
+    XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers$" -win=true > test/integration/connect/envoy/results/case-cross-peers.log
     echo "Completed 4"
-    XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http" -win=true > test/integration/connect/envoy/results/case-cross-peers-http.log
+    XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http$" -win=true > test/integration/connect/envoy/results/case-cross-peers-http.log
     echo "Completed 5"
     XDS_TARGET=$XDS_TARGET go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http-router" -win=true > test/integration/connect/envoy/results/case-cross-peers-http-router.log
     echo "Completed 6"
