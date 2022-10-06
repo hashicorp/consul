@@ -71,6 +71,7 @@
     "@hashicorp/design-system-tokens": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@hashicorp/ember-flight-icons": "^2.0.12",
+    "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
