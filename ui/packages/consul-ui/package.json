@@ -201,5 +201,8 @@
       "lib/custom-element",
       "lib/startup"
     ]
+  },
+  "volta": {
+    "node": "14.20.1"
   }
 }
