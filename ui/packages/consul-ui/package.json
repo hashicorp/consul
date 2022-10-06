@@ -103,7 +103,7 @@
     "deepmerge": "^4.2.2",
     "ember-array-fns": "^1.4.0",
     "ember-assign-helper": "^0.3.0",
-    "ember-auto-import": "^1.10.1",
+    "ember-auto-import": "^2.4.2",
     "ember-can": "^4.2.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "~3.9.0",
@@ -190,7 +190,8 @@
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
     "unist-util-visit": "^2.0.3",
-    "wayfarer": "^7.0.1"
+    "wayfarer": "^7.0.1",
+    "webpack": "^5.74.0"
   },
   "engines": {
     "node": ">=10 <=14"
