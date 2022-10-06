@@ -25,6 +25,7 @@ const (
 	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
+	peeringServiceListWatchID          = "peering-service-list:"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
 	consulServerListWatchID            = "consul-server-list"
 	datacentersWatchID                 = "datacenters"

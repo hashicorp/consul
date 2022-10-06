@@ -632,6 +632,48 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				},
 			},
 		)
+	case "imported-services":
+		peerTrustBundles := TestPeerTrustBundles(t).Bundles
+		dbSN := structs.NewServiceName("db", nil)
+		altSN := structs.NewServiceName("alt", nil)
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: peeringTrustBundlesWatchID,
+				Result: &pbpeering.TrustBundleListByServiceResponse{
+					Bundles: peerTrustBundles,
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-a",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{altSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-b",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{dbSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-a:db",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.2", false),
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-b:alt",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.2", true),
+					},
+				},
+			},
+		)
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{

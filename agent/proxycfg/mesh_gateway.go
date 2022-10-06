@@ -120,6 +120,9 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	snap.MeshGateway.ExportedServicesWithPeers = make(map[structs.ServiceName][]string)
 	snap.MeshGateway.DiscoveryChain = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
 	snap.MeshGateway.WatchedDiscoveryChains = make(map[structs.ServiceName]context.CancelFunc)
+	snap.MeshGateway.WatchedPeeringServices = make(map[string]map[structs.ServiceName]context.CancelFunc)
+	snap.MeshGateway.WatchedPeers = make(map[string]context.CancelFunc)
+	snap.MeshGateway.PeeringServices = make(map[string]map[structs.ServiceName]PeeringServiceValue)
 
 	// there is no need to initialize the map of service resolvers as we
 	// fully rebuild it every time we get updates
@@ -460,6 +463,52 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		}
 		snap.MeshGateway.PeeringTrustBundlesSet = true
 
+		wildcardEntMeta := s.proxyID.WithWildcardNamespace()
+
+		// For each peer, fetch the imported services to support mesh gateway local
+		// mode.
+		for _, tb := range resp.Bundles {
+			entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+			if _, ok := snap.MeshGateway.WatchedPeers[tb.PeerName]; !ok {
+				ctx, cancel := context.WithCancel(ctx)
+
+				err := s.dataSources.ServiceList.Notify(ctx, &structs.DCSpecificRequest{
+					PeerName:       tb.PeerName,
+					QueryOptions:   structs.QueryOptions{Token: s.token},
+					Source:         *s.source,
+					EnterpriseMeta: *wildcardEntMeta,
+				}, peeringServiceListWatchID+tb.PeerName, s.ch)
+
+				if err != nil {
+					meshLogger.Error("failed to register watch for mesh-gateway",
+						"peer", tb.PeerName,
+						"partition", entMeta.PartitionOrDefault(),
+						"error", err,
+					)
+					cancel()
+					return err
+				}
+				snap.MeshGateway.WatchedPeers[tb.PeerName] = cancel
+			}
+		}
+
+		for peerName, cancelFn := range snap.MeshGateway.WatchedPeers {
+			found := false
+			for _, bundle := range resp.Bundles {
+				if peerName == bundle.PeerName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				delete(snap.MeshGateway.PeeringServices, peerName)
+				delete(snap.MeshGateway.WatchedPeers, peerName)
+				delete(snap.MeshGateway.WatchedPeeringServices, peerName)
+				cancelFn()
+			}
+		}
+
 	case meshConfigEntryID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
@@ -517,6 +566,57 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 	default:
 		switch {
+		case strings.HasPrefix(u.CorrelationID, peeringServiceListWatchID):
+			services, ok := u.Result.(*structs.IndexedServiceList)
+			if !ok {
+				return fmt.Errorf("invalid type for response: %T", u.Result)
+			}
+
+			peerName := strings.TrimPrefix(u.CorrelationID, peeringServiceListWatchID)
+
+			svcMap := make(map[structs.ServiceName]struct{})
+
+			if _, ok := snap.MeshGateway.WatchedPeeringServices[peerName]; !ok {
+				snap.MeshGateway.WatchedPeeringServices[peerName] = make(map[structs.ServiceName]context.CancelFunc)
+			}
+
+			for _, svc := range services.Services {
+				// Make sure to add every service to this map, we use it to cancel
+				// watches below.
+				svcMap[svc] = struct{}{}
+
+				if _, ok := snap.MeshGateway.WatchedPeeringServices[peerName][svc]; !ok {
+					ctx, cancel := context.WithCancel(ctx)
+					err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
+						PeerName:       peerName,
+						QueryOptions:   structs.QueryOptions{Token: s.token},
+						ServiceName:    svc.Name,
+						Connect:        true,
+						EnterpriseMeta: svc.EnterpriseMeta,
+					}, fmt.Sprintf("peering-connect-service:%s:%s", peerName, svc.String()), s.ch)
+
+					if err != nil {
+						meshLogger.Error("failed to register watch for connect-service",
+							"service", svc.String(),
+							"error", err,
+						)
+						cancel()
+						return err
+					}
+					snap.MeshGateway.WatchedPeeringServices[peerName][svc] = cancel
+				}
+			}
+
+			watchedServices := snap.MeshGateway.WatchedPeeringServices[peerName]
+			for sn, cancelFn := range watchedServices {
+				if _, ok := svcMap[sn]; !ok {
+					meshLogger.Debug("canceling watch for service", "service", sn.String())
+					delete(snap.MeshGateway.WatchedPeeringServices[peerName], sn)
+					delete(snap.MeshGateway.PeeringServices[peerName], sn)
+					cancelFn()
+				}
+			}
+
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
@@ -529,6 +629,38 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				snap.MeshGateway.ServiceGroups[sn] = resp.Nodes
 			} else if _, ok := snap.MeshGateway.ServiceGroups[sn]; ok {
 				delete(snap.MeshGateway.ServiceGroups, sn)
+			}
+		case strings.HasPrefix(u.CorrelationID, "peering-connect-service:"):
+			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+
+			if !ok {
+				return fmt.Errorf("invalid type for response: %T", u.Result)
+			}
+
+			key := strings.TrimPrefix(u.CorrelationID, "peering-connect-service:")
+			peer, snString, ok := strings.Cut(key, ":")
+
+			if ok {
+				sn := structs.ServiceNameFromString(snString)
+
+				if len(resp.Nodes) > 0 {
+					if _, ok := snap.MeshGateway.PeeringServices[peer]; !ok {
+						snap.MeshGateway.PeeringServices[peer] = make(map[structs.ServiceName]PeeringServiceValue)
+					}
+
+					if eps := hostnameEndpoints(s.logger, GatewayKey{}, resp.Nodes); len(eps) > 0 {
+						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
+							Nodes:  eps,
+							UseCDS: true,
+						}
+					} else {
+						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
+							Nodes: resp.Nodes,
+						}
+					}
+				} else if _, ok := snap.MeshGateway.PeeringServices[peer]; ok {
+					delete(snap.MeshGateway.PeeringServices[peer], sn)
+				}
 			}
 
 		case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):

@@ -418,6 +418,13 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 	}
 	clusters = append(clusters, c...)
 
+	// generate the outgoing clusters for imported peer services.
+	c, err = s.makeGatewayOutgoingClusterPeeringServiceClusters(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	clusters = append(clusters, c...)
+
 	// Generate per-target clusters for all exported discovery chains.
 	c, err = s.makeExportedUpstreamClustersForMeshGateway(cfgSnap)
 	if err != nil {
@@ -552,6 +559,62 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 					return nil, err
 				}
 			}
+			clusters = append(clusters, cluster)
+		}
+	}
+
+	return clusters, nil
+}
+
+func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	if cfgSnap.Kind != structs.ServiceKindMeshGateway {
+		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
+	}
+
+	var clusters []proto.Message
+
+	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
+		for sn, serviceGroup := range serviceGroups {
+			if len(serviceGroup.Nodes) == 0 {
+				continue
+			}
+
+			node := serviceGroup.Nodes[0]
+			if node.Service == nil {
+				return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
+			}
+			// This uses the SNI in the accepting cluster peer so the remote mesh
+			// gateway can distinguish between an exported service as opposed to the
+			// usual mesh gateway route for a service.
+			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
+
+			opts := clusterOpts{
+				name:     clusterName,
+				isRemote: true,
+			}
+			cluster := s.makeGatewayCluster(cfgSnap, opts)
+
+			if serviceGroup.UseCDS {
+				configureClusterWithHostnames(
+					s.Logger,
+					cluster,
+					"", /*TODO:make configurable?*/
+					serviceGroup.Nodes,
+					true,  /*isRemote*/
+					false, /*onlyPassing*/
+				)
+			} else {
+				cluster.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
+				cluster.EdsClusterConfig = &envoy_cluster_v3.Cluster_EdsClusterConfig{
+					EdsConfig: &envoy_core_v3.ConfigSource{
+						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+							Ads: &envoy_core_v3.AggregatedConfigSource{},
+						},
+					},
+				}
+			}
+
 			clusters = append(clusters, cluster)
 		}
 	}

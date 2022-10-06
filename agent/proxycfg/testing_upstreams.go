@@ -88,7 +88,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodesPeerCluster01(t),
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -106,7 +106,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodesPeerCluster01(t),
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":

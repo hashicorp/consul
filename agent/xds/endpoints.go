@@ -342,6 +342,13 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	}
 	resources = append(resources, e...)
 
+	// generate the outgoing endpoints for imported peer services.
+	e, err = s.makeEndpointsForOutgoingPeeredServices(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, e...)
+
 	return resources, nil
 }
 
@@ -386,6 +393,41 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 		// now generate the load assignment for all subsets
 		for subsetName, groups := range clusterEndpoints {
 			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			la := makeLoadAssignment(
+				clusterName,
+				groups,
+				cfgSnap.Locality,
+			)
+			resources = append(resources, la)
+		}
+	}
+
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
+	cfgSnap *proxycfg.ConfigSnapshot,
+) ([]proto.Message, error) {
+	var resources []proto.Message
+
+	// generate the endpoints for the linked service groups
+	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
+		for sn, serviceGroup := range serviceGroups {
+			if serviceGroup.UseCDS || len(serviceGroup.Nodes) == 0 {
+				continue
+			}
+
+			node := serviceGroup.Nodes[0]
+			if node.Service == nil {
+				return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
+			}
+			// This uses the SNI in the accepting cluster peer so the remote mesh
+			// gateway can distinguish between an exported service as opposed to the
+			// usual mesh gateway route for a service.
+			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
+
+			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
+
 			la := makeLoadAssignment(
 				clusterName,
 				groups,

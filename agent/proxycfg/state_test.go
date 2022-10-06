@@ -830,6 +830,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.MeshGateway.ServiceGroups)
 						require.Empty(t, snap.MeshGateway.ServiceResolvers)
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
+						require.Empty(t, snap.MeshGateway.WatchedPeeringServices)
+						require.Empty(t, snap.MeshGateway.WatchedPeers)
+						require.Empty(t, snap.MeshGateway.PeeringServices)
 					},
 				},
 				{
@@ -897,8 +900,22 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 						{
 							CorrelationID: peeringTrustBundlesWatchID,
-							Result: &pbpeering.TrustBundleListByServiceResponse{
-								Bundles: nil,
+							Result:        peerTrustBundles,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+								},
+							},
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-10"},
+								},
 							},
 						},
 					},
@@ -906,6 +923,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 1)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 1)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 1)
 					},
 				},
 				{
@@ -920,11 +941,33 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+									{Name: "service-2"},
+									{Name: "service-3"},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{},
+							},
+							Err: nil,
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 2)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 3)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 0)
 					},
 				},
 				{

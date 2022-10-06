@@ -55,23 +55,46 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 
 const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
-func TestNodeServiceWithNameInPeer(t testing.T, name string, peer string) *NodeService {
-	service := "payments"
-	return &NodeService{
-		Kind:    ServiceKindTypical,
-		Service: name,
-		Port:    8080,
+func TestCheckNodeServiceWithNameInPeer(t testing.T, name, peer, ip string, useHostname bool) CheckServiceNode {
+	service := &NodeService{
+		Kind:     ServiceKindTypical,
+		Service:  name,
+		Port:     8080,
+		PeerName: peer,
 		Connect: ServiceConnect{
 			PeerMeta: &PeeringServiceMeta{
 				SNI: []string{
-					service + ".default.default." + peer + ".external." + peerTrustDomain,
+					name + ".default.default." + peer + ".external." + peerTrustDomain,
 				},
 				SpiffeID: []string{
-					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + service,
+					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + name,
 				},
 				Protocol: "tcp",
 			},
 		},
+	}
+
+	if useHostname {
+		service.TaggedAddresses = map[string]ServiceAddress{
+			TaggedAddressLAN: {
+				Address: ip,
+				Port:    443,
+			},
+			TaggedAddressWAN: {
+				Address: name + ".us-east-1.elb.notaws.com",
+				Port:    8443,
+			},
+		}
+	}
+
+	return CheckServiceNode{
+		Node: &Node{
+			ID:         "test1",
+			Node:       "test1",
+			Address:    ip,
+			Datacenter: "cloud-dc",
+		},
+		Service: service,
 	}
 }
 

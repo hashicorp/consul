@@ -348,6 +348,11 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
+type PeeringServiceValue struct {
+	Nodes  structs.CheckServiceNodes
+	UseCDS bool
+}
+
 type configSnapshotMeshGateway struct {
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of connect enabled services for the given
@@ -372,6 +377,19 @@ type configSnapshotMeshGateway struct {
 	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceName]structs.CheckServiceNodes
+
+	// PeeringServices is a map of peer name -> (map of
+	// service name -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of a service on a peer.
+	PeeringServices map[string]map[structs.ServiceName]PeeringServiceValue
+
+	// WatchedPeeringServices is a map of peer name -> (map of service name ->
+	// cancel function) and is used to track watches on services within a peer.
+	WatchedPeeringServices map[string]map[structs.ServiceName]context.CancelFunc
+
+	// WatchedPeers is a map of peer name -> cancel functions. It is used to
+	// track watches on peers.
+	WatchedPeers map[string]context.CancelFunc
 
 	// ServiceResolvers is a map of service name to an associated
 	// service-resolver config entry for that service.
