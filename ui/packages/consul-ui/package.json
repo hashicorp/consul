@@ -60,16 +60,21 @@
     "@babel/helper-call-delegate": "^7.10.1",
     "@babel/plugin-proposal-class-properties": "^7.10.1",
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
+    "@csstools/postcss-sass": "^5.0.1",
     "@docfy/ember": "^0.4.1",
     "@ember/optional-features": "^2.0.0",
     "@ember/render-modifiers": "^1.0.2",
     "@ember/test-helpers": "^2.1.4",
     "@glimmer/component": "^1.0.3",
     "@glimmer/tracking": "^1.0.3",
-    "@hashicorp/ember-cli-api-double": "^3.1.0",
+    "@hashicorp/design-system-components": "^1.0.4",
+    "@hashicorp/design-system-tokens": "^1.0.0",
+    "@hashicorp/ember-cli-api-double": "^4.0.0",
+    "@hashicorp/ember-flight-icons": "^2.0.12",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
+    "autoprefixer": "^10.4.8",
     "babel-eslint": "^10.0.3",
     "babel-loader": "^8.1.0",
     "babel-plugin-ember-modules-api-polyfill": "^3.2.0",
@@ -88,6 +93,7 @@
     "consul-nspaces": "*",
     "consul-partitions": "*",
     "consul-peerings": "*",
+    "css": "^3.0.0",
     "css.escape": "^1.5.1",
     "d3-array": "^2.8.0",
     "d3-scale": "^3.2.3",
@@ -98,7 +104,7 @@
     "deepmerge": "^4.2.2",
     "ember-array-fns": "^1.4.0",
     "ember-assign-helper": "^0.3.0",
-    "ember-auto-import": "^1.10.1",
+    "ember-auto-import": "^2.4.2",
     "ember-can": "^4.2.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "~3.9.0",
@@ -112,12 +118,12 @@
     "ember-cli-htmlbars": "^5.3.1",
     "ember-cli-inject-live-reload": "^2.0.2",
     "ember-cli-page-object": "^1.17.10",
-    "ember-cli-sass": "^10.0.1",
+    "ember-cli-postcss": "^8.1.0",
     "ember-cli-sri": "^2.1.1",
     "ember-cli-string-helpers": "^5.0.0",
     "ember-cli-template-lint": "^2.0.1",
     "ember-cli-terser": "^4.0.1",
-    "ember-cli-yadda": "^0.6.0",
+    "ember-cli-yadda": "^0.7.0",
     "ember-collection": "^1.0.0-alpha.9",
     "ember-compatibility-helpers": "^1.2.5",
     "ember-composable-helpers": "^5.0.0",
@@ -179,12 +185,14 @@
     "remark-autolink-headings": "^6.0.1",
     "remark-hbs": "^0.4.0",
     "sass": "^1.28.0",
+    "tailwindcss": "^3.1.8",
     "tape": "^5.0.1",
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
     "unist-util-visit": "^2.0.3",
-    "wayfarer": "^7.0.1"
+    "wayfarer": "^7.0.1",
+    "webpack": "^5.74.0"
   },
   "engines": {
     "node": ">=10 <=14"
@@ -200,5 +208,8 @@
       "lib/custom-element",
       "lib/startup"
     ]
+  },
+  "volta": {
+    "node": "14.20.1"
   }
 }
