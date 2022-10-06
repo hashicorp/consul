@@ -36,6 +36,7 @@
       },
       "upstreamConnectionOptions": {
         "tcpKeepalive": {
+          "keepaliveProbes": 7,
           "keepaliveTime": 120,
           "keepaliveInterval": 60
         }
@@ -74,6 +75,7 @@
       },
       "upstreamConnectionOptions": {
         "tcpKeepalive": {
+          "keepaliveProbes": 7,
           "keepaliveTime": 120,
           "keepaliveInterval": 60
         }
@@ -112,6 +114,7 @@
       },
       "upstreamConnectionOptions": {
         "tcpKeepalive": {
+          "keepaliveProbes": 7,
           "keepaliveTime": 120,
           "keepaliveInterval": 60
         }
