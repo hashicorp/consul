@@ -812,7 +812,6 @@ function read_config_entry {
   local NAME=$2
   local DC=${3:-primary}
   get_consul_hostname $DC
-
   docker_consul_exec "$DC" bash -c "consul config read -kind $KIND -name $NAME -http-addr="$CONSUL_HOSTNAME:8500""
 }
 
@@ -831,7 +830,6 @@ function delete_config_entry {
   local KIND=$1
   local NAME=$2
   get_consul_hostname primary
-
   retry_default curl -sL -XDELETE "http://${CONSUL_HOSTNAME}:8500/v1/config/${KIND}/${NAME}"
 }
 
@@ -845,7 +843,7 @@ function register_services {
 # Its first argument must be the datacenter name.
 function wait_for_leader {
   get_consul_hostname primary
-  retry_default docker_consul_exec "$1" sh -c "[[ $(curl --fail -sS http://${CONSUL_HOSTNAME}:8500/v1/status/leader) ]]"
+  retry_default docker_consul_exec "$1" bash -c "[[ $(curl --fail -sS http://${CONSUL_HOSTNAME}:8500/v1/status/leader) ]]"
 }
 
 function setup_upsert_l4_intention {
@@ -853,7 +851,6 @@ function setup_upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
   get_consul_hostname primary
-
   retry_default docker_consul_exec primary bash -c "curl -sL -X PUT -d '{\"Action\": \"${ACTION}\"}' 'http://${CONSUL_HOSTNAME}:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}'"
 }
 
@@ -862,7 +859,6 @@ function upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
   get_consul_hostname primary
-
   retry_default curl -sL -XPUT "http://${CONSUL_HOSTNAME}:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
       -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
@@ -877,7 +873,6 @@ function cacert_curl {
   local ADDR=$2  
   local CA_ROOT="/c/workdir/caroot.pem"
   get_ca_root > $CA_ROOT
-
   run retry_default curl --cacert $CA_ROOT -s -f -d hello --resolve $RESOLVE_ADDR $ADDR
 
   [ "$status" -eq 0 ]
@@ -888,7 +883,6 @@ function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
   get_consul_hostname $DC
-
   retry_default docker_consul_exec "$DC" bash -c "curl -sLf 'http://${CONSUL_HOSTNAME}:8500/v1/agent/service/${SERVICE_ID}' >/dev/null"
 }
 

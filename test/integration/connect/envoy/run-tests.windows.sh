@@ -17,7 +17,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=0
@@ -150,7 +150,7 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
- ports=(
+  ports=(
     '-p=8500:8500'
     '-p=8502:8502'
     '-p=9411:9411'
@@ -184,7 +184,7 @@ function start_consul {
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
   #
-  # This is nessasary because servers and clients source configuration data in
+  # This is necessary because servers and clients source configuration data in
   # different ways (client agents use an RPC-backed cache and servers use their
   # own local data) and we want to catch regressions in both.
   #
@@ -323,11 +323,6 @@ function pre_service_setup {
 }
 
 function start_services {
-  # Push the state to the shared docker.exe volume (note this is because CircleCI
-  # can't use shared volumes)
-  # docker.exe cp workdir/. envoy_workdir_1:/workdir
-
-
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
     docker_kill_rm $REQUIRED_SERVICES
@@ -353,12 +348,12 @@ function verify {
 
   # need to tell the PID 1 inside of the container that it won't be actual PID
   # 1 because we're using --pid=host so we use TINI_SUBREAPER
-  if docker.exe exec -i ${SINGLE_CONTAINER_BASE_NAME}-${CLUSTER}_1 bash -c "TINI_SUBREAPER=1 \
-                                                                            XDS_TARGET=${XDS_TARGET} \
-                                                                            ENVOY_VERSION=${ENVOY_VERSION} \
-                                                                            /c/bats/bin/bats \
-                                                                            --pretty \
-                                                                            /c/workdir/${CLUSTER}/bats" ; then
+  if docker.exe exec -i ${SINGLE_CONTAINER_BASE_NAME}-${CLUSTER}_1 bash \
+    -c "TINI_SUBREAPER=1 \
+    ENVOY_VERSION=${ENVOY_VERSION} \
+    XDS_TARGET=${XDS_TARGET} \
+    /c/bats/bin/bats \
+    --pretty /c/workdir/${CLUSTER}/bats" ; then
     echogreen "✓ PASS"
   else
     echored "⨯ FAIL"
@@ -621,11 +616,12 @@ function common_run_container_service {
   local grpcPort="$4"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
 
-  docker.exe exec -d $CONTAINER_NAME bash -c "FORTIO_NAME=${service} \
-                                              fortio.exe server \
-                                              -http-port ":$httpPort" \
-                                              -grpc-port ":$grpcPort" \
-                                              -redirect-port disabled >/dev/null"
+  docker.exe exec -d $CONTAINER_NAME bash \
+    -c "FORTIO_NAME=${service} \
+    fortio.exe server \
+    -http-port ":$httpPort" \
+    -grpc-port ":$grpcPort" \
+    -redirect-port disabled >/dev/null"
 }
 
 function run_container_s1 {
@@ -700,11 +696,12 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker.exe exec -d $CONTAINER_NAME bash -c "envoy.exe \
-                                              -c /c/workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
-                                              -l trace \
-                                              --disable-hot-restart \
-                                              --drain-time-s 1 >/dev/null"
+  docker.exe exec -d $CONTAINER_NAME bash \
+    -c "envoy.exe \
+    -c /c/workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
+    -l trace \
+    --disable-hot-restart \
+    --drain-time-s 1 >/dev/null"
 }
 
 function run_container_s1-sidecar-proxy {
@@ -783,11 +780,12 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker.exe exec -d $CONTAINER_NAME bash -c "envoy.exe \
-                                              -c /c/workdir/${DC}/envoy/${name}-bootstrap.json \
-                                              -l trace \
-                                              --disable-hot-restart \
-                                              --drain-time-s 1 >/dev/null"
+  docker.exe exec -d $CONTAINER_NAME bash \
+    -c "envoy.exe \
+    -c /c/workdir/${DC}/envoy/${name}-bootstrap.json \
+    -l trace \
+    --disable-hot-restart \
+    --drain-time-s 1 >/dev/null"
 }
 
 function run_container_gateway-primary {
@@ -830,7 +828,7 @@ function run_container_jaeger {
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
 
   docker.exe exec -d $CONTAINER_NAME bash -c "jaeger-all-in-one.exe \
-                                              --collector.zipkin.http-port=9411"
+    --collector.zipkin.http-port=9411"
 }
 
 function run_container_test-sds-server {
@@ -840,7 +838,7 @@ function run_container_test-sds-server {
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
 
   docker.exe exec -d $CONTAINER_NAME bash -c "cd /c/test-sds-server &&
-                                              ./test-sds-server.exe"
+    ./test-sds-server.exe"
 }
 
 function container_name {
