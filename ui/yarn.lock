@@ -3291,17 +3291,17 @@
   resolved "https://registry.yarnpkg.com/@hashicorp/design-system-tokens/-/design-system-tokens-1.0.0.tgz#06ab55873ef444b0958a5192db310278c6501f0b"
   integrity sha512-akziX9jiHnQ8KfJA6s8l+98Ukz30C5Lw7BpSPeTduOmdOlJv1uP7w4TV0hC6VIDMDrJrxIF5Y/HnpSCdQGlxQA==
 
-"@hashicorp/ember-cli-api-double@^3.1.0":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-3.1.2.tgz#0eaee116da1431ed63e55eea9ff9c28028cf9f8c"
-  integrity sha512-4j4JxIHBeo5KjTfcEAIrzjtiWBTxPzTTBMiigNgKAIWAtO6Hz58LQ6kDJl8MN52kSq2uSBlFJpp6aQhfwJaPtw==
+"@hashicorp/ember-cli-api-double@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-4.0.0.tgz#fd6181229c589b4db93f1784d022db064c61ec76"
+  integrity sha512-ana8k6MjyXgwflAgVJxrgab1vKz/v6212HOHO6Gsz6NaDwzQt0DUuT4dB3VpbiZ6K8D1M7xd0znsmnvR795goA==
   dependencies:
     "@hashicorp/api-double" "^1.6.1"
     array-range "^1.0.1"
     broccoli-file-creator "^2.1.1"
     broccoli-merge-trees "^3.0.2"
-    ember-auto-import "^1.5.3"
-    ember-cli-babel "^6.6.0"
+    ember-auto-import "^2.4.2"
+    ember-cli-babel "^7.26.11"
     merge-options "^1.0.1"
     pretender "^3.2.0"
     recursive-readdir-sync "^1.0.6"
