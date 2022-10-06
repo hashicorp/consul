@@ -19,11 +19,11 @@ require (
 	github.com/coredns/coredns v1.1.2
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.3.0
-	github.com/envoyproxy/go-control-plane v0.10.1
+	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/strfmt v0.20.0
-	github.com/golang/protobuf v1.5.0
+	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.8
 	github.com/google/gofuzz v1.2.0
 	github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
@@ -87,7 +87,7 @@ require (
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
-	google.golang.org/grpc v1.37.1
+	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gotest.tools/v3 v3.0.3
@@ -121,7 +121,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.3.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.1.3 // indirect
-	github.com/cncf/xds/go v0.0.0-20211001041855-01bcc9b48dfe // indirect
+	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denverdino/aliyungo v0.0.0-20170926055100-d3308649c661 // indirect
 	github.com/digitalocean/godo v1.10.0 // indirect
