@@ -139,6 +139,10 @@ type Cache struct {
 	entries           map[string]cacheEntry
 	entriesExpiryHeap *ttlcache.ExpiryHeap
 
+	fetchLock    sync.Mutex
+	lastFetchID  uint64
+	fetchHandles map[string]fetchHandle
+
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
 	stopped uint32
@@ -148,6 +152,11 @@ type Cache struct {
 	options          Options
 	rateLimitContext context.Context
 	rateLimitCancel  context.CancelFunc
+}
+
+type fetchHandle struct {
+	id     uint64
+	stopCh chan struct{}
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -225,6 +234,7 @@ func New(options Options) *Cache {
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
+		fetchHandles:      make(map[string]fetchHandle),
 		stopCh:            make(chan struct{}),
 		options:           options,
 		rateLimitContext:  ctx,
@@ -614,8 +624,18 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 	tEntry := r.TypeEntry
-	// The actual Fetch must be performed in a goroutine.
-	go func() {
+
+	// The actual Fetch must be performed in a goroutine. Ensure that we only
+	// have one in-flight at a time, but don't use a deferred
+	// context.WithCancel style termination so that these things outlive their
+	// requester.
+	//
+	// By the time we get here the system WANTS to make a replacement fetcher, so
+	// we terminate the prior one and replace it.
+	handle := c.getOrReplaceFetchHandle(key)
+	go func(handle fetchHandle) {
+		defer c.deleteFetchHandle(key, handle.id)
+
 		// If we have background refresh and currently are in "disconnected" state,
 		// waiting for a response might mean we mark our results as stale for up to
 		// 10 minutes (max blocking timeout) after connection is restored. To reduce
@@ -664,6 +684,14 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()
+		}
+
+		// If we were stopped while waiting on a blocking query now would be a
+		// good time to detect that.
+		select {
+		case <-handle.stopCh:
+			return
+		default:
 		}
 
 		// Copy the existing entry to start.
@@ -820,13 +848,15 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			}
 
 			// If we're over the attempt minimum, start an exponential backoff.
-			if wait := backOffWait(attempt); wait > 0 {
-				time.Sleep(wait)
-			}
+			wait := backOffWait(attempt)
 
 			// If we have a timer, wait for it
-			if tEntry.Opts.RefreshTimer > 0 {
-				time.Sleep(tEntry.Opts.RefreshTimer)
+			wait += tEntry.Opts.RefreshTimer
+
+			select {
+			case <-time.After(wait):
+			case <-handle.stopCh:
+				return
 			}
 
 			// Trigger. The "allowNew" field is false because in the time we were
@@ -836,9 +866,44 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			r.Info.MinIndex = 0
 			c.fetch(key, r, false, attempt, true)
 		}
-	}()
+	}(handle)
 
 	return entry.Waiter
+}
+
+func (c *Cache) getOrReplaceFetchHandle(key string) fetchHandle {
+	c.fetchLock.Lock()
+	defer c.fetchLock.Unlock()
+
+	if prevHandle, ok := c.fetchHandles[key]; ok {
+		close(prevHandle.stopCh)
+	}
+
+	c.lastFetchID++
+
+	handle := fetchHandle{
+		id:     c.lastFetchID,
+		stopCh: make(chan struct{}),
+	}
+
+	c.fetchHandles[key] = handle
+
+	return handle
+}
+
+func (c *Cache) deleteFetchHandle(key string, fetchID uint64) {
+	c.fetchLock.Lock()
+	defer c.fetchLock.Unlock()
+
+	// Only remove a fetchHandle if it's YOUR fetchHandle.
+	handle, ok := c.fetchHandles[key]
+	if !ok {
+		return
+	}
+
+	if handle.id == fetchID {
+		delete(c.fetchHandles, key)
+	}
 }
 
 func backOffWait(failures uint) time.Duration {
