@@ -146,7 +146,7 @@
     "ember-power-select": "^4.0.5",
     "ember-power-select-with-create": "^0.8.0",
     "ember-qunit": "^5.1.1",
-    "ember-ref-modifier": "^1.0.0",
+    "ember-ref-bucket": "^4.1.0",
     "ember-render-helpers": "^0.2.0",
     "ember-resolver": "^8.0.2",
     "ember-route-action-helper": "^2.0.8",

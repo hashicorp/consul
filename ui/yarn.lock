@@ -8881,7 +8881,7 @@ ember-modifier@^2.1.0, ember-modifier@^2.1.1:
     ember-destroyable-polyfill "^2.0.2"
     ember-modifier-manager-polyfill "^1.2.0"
 
-"ember-modifier@^2.1.2 || ^3.1.0 || ^4.0.0":
+"ember-modifier@^2.1.2 || ^3.1.0 || ^4.0.0", ember-modifier@^3.2.7:
   version "3.2.7"
   resolved "https://registry.yarnpkg.com/ember-modifier/-/ember-modifier-3.2.7.tgz#f2d35b7c867cbfc549e1acd8d8903c5ecd02ea4b"
   integrity sha512-ezcPQhH8jUfcJQbbHji4/ZG/h0yyj1jRDknfYue/ypQS8fM8LrGcCMo0rjDZLzL1Vd11InjNs3BD7BdxFlzGoA==
@@ -8981,12 +8981,14 @@ ember-qunit@^5.1.1:
     silent-error "^1.1.1"
     validate-peer-dependencies "^1.2.0"
 
-ember-ref-modifier@^1.0.0:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/ember-ref-modifier/-/ember-ref-modifier-1.0.1.tgz#aeca56798ebc0fb750f0ccd36e86d667f5b1bc44"
-  integrity sha512-qmEFY/4WOWWXABRWvX50jLPleH30p/LPLUXEvaSlIj41F23e3Vul91IqZ1PFdw1Rxpkb8DHWO5BRchN8vnz4+Q==
+ember-ref-bucket@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/ember-ref-bucket/-/ember-ref-bucket-4.1.0.tgz#2a52e72a395a14033d034c834fab648f26d74baa"
+  integrity sha512-oEUU2mDtuYuMM039U9YEqrrOCVHH6rQfvbFOmh3WxOVEgubmLVyKEpGgU4P/6j0B/JxTqqTwM3ULTQyDto8dKg==
   dependencies:
-    ember-cli-babel "^7.20.5"
+    ember-cli-babel "^7.26.11"
+    ember-cli-htmlbars "^6.0.1"
+    ember-modifier "^3.2.7"
 
 ember-render-helpers@^0.2.0:
   version "0.2.0"
