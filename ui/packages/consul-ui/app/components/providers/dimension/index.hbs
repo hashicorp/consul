@@ -1,0 +1,4 @@
+<div {{create-ref 'element'}} {{did-insert this.measureDimensions}}>
+  {{on-window 'resize' this.handleWindowResize}}
+  {{yield (hash data=this.data)}}
+</div>
