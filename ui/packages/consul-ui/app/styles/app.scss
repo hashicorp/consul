@@ -21,3 +21,6 @@
 /* debug only, this is empty during a production build */
 /* but uses the contents of ./debug.scss during dev */
 @import '_debug';
+
+/* css for hds */
+@import '@hashicorp/design-system-components';

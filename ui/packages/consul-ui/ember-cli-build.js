@@ -161,6 +161,11 @@ module.exports = function (defaults, $ = process.env) {
           plugins: [
             {
               module: require('@csstools/postcss-sass'),
+              options: {
+                includePaths: [
+                  '../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
+                ],
+              },
             },
             {
               module: require('tailwindcss'),
