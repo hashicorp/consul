@@ -19,12 +19,12 @@ function colorMapFromTokens(tokensPath) {
   });
 
   const ast = css.parse(tokensFile);
-  const rootVars = ast.stylesheet.rules.filter(r => r.type !== 'comment')[0];
+  const rootVars = ast.stylesheet.rules.filter((r) => r.type !== 'comment')[0];
 
   // filter out all colors and then create a map out of them
-  const vars = rootVars.declarations.filter(d => d.type !== 'comment');
+  const vars = rootVars.declarations.filter((d) => d.type !== 'comment');
   const colorPropertyNameCleanupRegex = /^--token-color-(palette-)?/;
-  const colors = vars.filter(d => d.property.match(/^--token-color-/));
+  const colors = vars.filter((d) => d.property.match(/^--token-color-/));
 
   return colors.reduce((acc, d) => {
     acc[d.property.replace(colorPropertyNameCleanupRegex, 'hds-')] = d.value;

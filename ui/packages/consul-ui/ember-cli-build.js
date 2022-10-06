@@ -100,12 +100,12 @@ module.exports = function (defaults, $ = process.env) {
   }
 
   //
-  (function(apps) {
+  (function (apps) {
     trees.app = mergeTrees(
       [new Funnel('app', { exclude: excludeFiles })].concat(
         apps
-          .filter(item => exists(`${item.path}/app`))
-          .map(item => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
+          .filter((item) => exists(`${item.path}/app`))
+          .map((item) => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
       ),
       {
         overwrite: true,
@@ -121,9 +121,9 @@ module.exports = function (defaults, $ = process.env) {
         new Funnel('app', { include: ['components/**/*.{scss,css}'], destDir: 'consul-ui' }),
       ].concat(
         apps
-          .filter(item => exists(`${item.path}/app`))
+          .filter((item) => exists(`${item.path}/app`))
           .map(
-            item =>
+            (item) =>
               new Funnel(`${item.path}/app`, {
                 include: ['**/*.{scss,css}'],
                 destDir: 'consul-ui',
@@ -140,7 +140,7 @@ module.exports = function (defaults, $ = process.env) {
   })(
     // consul-ui will eventually be a separate app just like the others
     // at which point we can remove this filter/extra scope
-    apps.filter(item => item.name !== 'consul-ui')
+    apps.filter((item) => item.name !== 'consul-ui')
   );
   //
 
