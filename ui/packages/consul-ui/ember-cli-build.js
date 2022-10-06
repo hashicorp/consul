@@ -100,12 +100,35 @@ module.exports = function (defaults, $ = process.env) {
   }
 
   //
-  (function (apps) {
+  (function(apps) {
     trees.app = mergeTrees(
       [new Funnel('app', { exclude: excludeFiles })].concat(
         apps
-          .filter((item) => exists(`${item.path}/app`))
-          .map((item) => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
+          .filter(item => exists(`${item.path}/app`))
+          .map(item => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
+      ),
+      {
+        overwrite: true,
+      }
+    );
+    // we switched to postcss - because ember-cli-postcss only operates on the
+    // styles tree we need to make sure we write the css files from "sub-apps"
+    // into `app/styles` manually and prefix them with `consul-ui` because that
+    // is what the codebase expects from before when using ember-cli-sass.
+    trees.styles = mergeTrees(
+      [
+        new Funnel('app/styles', { include: ['**/*.{scss,css}'] }),
+        new Funnel('app', { include: ['components/**/*.{scss,css}'], destDir: 'consul-ui' }),
+      ].concat(
+        apps
+          .filter(item => exists(`${item.path}/app`))
+          .map(
+            item =>
+              new Funnel(`${item.path}/app`, {
+                include: ['**/*.{scss,css}'],
+                destDir: 'consul-ui',
+              })
+          )
       ),
       {
         overwrite: true,
@@ -117,7 +140,7 @@ module.exports = function (defaults, $ = process.env) {
   })(
     // consul-ui will eventually be a separate app just like the others
     // at which point we can remove this filter/extra scope
-    apps.filter((item) => item.name !== 'consul-ui')
+    apps.filter(item => item.name !== 'consul-ui')
   );
   //
 
@@ -131,6 +154,16 @@ module.exports = function (defaults, $ = process.env) {
       outputPaths: outputPaths,
       'ember-cli-babel': {
         includePolyfill: true,
+      },
+      postcssOptions: {
+        compile: {
+          extension: 'scss',
+          plugins: [
+            {
+              module: require('@csstools/postcss-sass'),
+            },
+          ],
+        },
       },
       'ember-cli-string-helpers': {
         only: [
