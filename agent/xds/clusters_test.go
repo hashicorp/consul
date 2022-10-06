@@ -419,6 +419,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["envoy_mesh_gateway_tcp_enable_keepalive"] = true
 					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_time"] = 120
 					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_interval"] = 60
+					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_probes"] = 7
 				}, nil)
 			},
 		},

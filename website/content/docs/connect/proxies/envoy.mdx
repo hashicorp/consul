@@ -441,6 +441,25 @@ will continue to be supported.
   addressed by a hostname, such as a managed database. It also applies to mesh gateways,
   such as when gateways in other Consul datacenters are behind a load balancer that is addressed by a hostname.
 
+- `envoy_mesh_gateway_tcp_enable_keepalive` - Enables TCP keepalive settings on mesh gateway upstream connections
+  to remote datacenters. Defaults to `false`. Must be one of `true` or `false`. Details for this feature are available in
+  the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+
+- `envoy_mesh_gateway_tcp_keepalive_time` - The number of seconds a connection needs to
+  be idle before keep-alive probes start being sent. For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to mesh gateway upstream connections to remote datacenters.
+
+- `envoy_mesh_gateway_tcp_keepalive_interval` - The number of seconds between keep-alive probes.
+  For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to mesh gateway upstream connections to remote datacenters.
+
+- `envoy_mesh_gateway_tcp_keepalive_probes` - Maximum number of keepalive probes to send without
+  response before deciding the connection is dead. For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to mesh gateway upstream connections to remote datacenters.
+
 ## Advanced Configuration
 
 To support more flexibility when configuring Envoy, several "lower-level" options exist

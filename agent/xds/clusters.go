@@ -1545,6 +1545,9 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		if cfg.TcpKeepaliveInterval != 0 {
 			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveInterval = makeUint32Value(cfg.TcpKeepaliveInterval)
 		}
+		if cfg.TcpKeepaliveProbes != 0 {
+			cluster.UpstreamConnectionOptions.TcpKeepalive.KeepaliveProbes = makeUint32Value(cfg.TcpKeepaliveProbes)
+		}
 	}
 
 	// If none of the service instances are addressed by a hostname we provide the endpoint IP addresses via EDS

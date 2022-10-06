@@ -138,6 +138,7 @@ type GatewayConfig struct {
 	TcpKeepaliveEnable   bool `mapstructure:"envoy_mesh_gateway_tcp_enable_keepalive"`
 	TcpKeepaliveTime     int  `mapstructure:"envoy_mesh_gateway_tcp_keepalive_time"`
 	TcpKeepaliveInterval int  `mapstructure:"envoy_mesh_gateway_tcp_keepalive_interval"`
+	TcpKeepaliveProbes   int  `mapstructure:"envoy_mesh_gateway_tcp_keepalive_probes"`
 }
 
 // ParseGatewayConfig returns the GatewayConfig parsed from an opaque map. If an
