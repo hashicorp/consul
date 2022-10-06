@@ -66,8 +66,13 @@ dc:
             {items, select,
               0 {There don't seem to be any registered Nodes in this Consul cluster}
               other {No Nodes were found matching your search}
-          }, or you may not have <code>service:read</code> and <code>node:read</code> permissions access to this view.
+            }{canUseACLs, select,
+              true {, or you may not have <code>service:read</code> and <code>node:read</code> permissions access to this view.}
+              other {.}
+            }
           </p>
+        documentation: Documentation on Nodes
+        learn: Take the tutorial
     show:
       rtt:
         title: Round Trip Time
@@ -79,7 +84,10 @@ dc:
           header: Welcome to Lock Sessions
           body: |
             <p>
-            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
+            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present{canUseACLs, select,
+              true {, or you may not have <code>key:read</code> or <code>session:read</code> permissions.}
+              other {.}
+            }
             </p>
       services:
         title: Service Instances
@@ -107,6 +115,23 @@ dc:
             </p>
   peers:
     index:
+      empty:
+        header: |
+            {items, select,
+              0 {Welcome to Peers}
+              other {No peers found}
+            }
+        body: |
+          {items, select,
+            0 {Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {canUsePartitions, select,
+              true {admin partition}
+              other {datacenter}
+            }}
+            other {No peers were found matching that search}
+          }{canUseACLs, select,
+            true {, or you may not have the <code>peering:read</code> permissions to access this view.}
+            other {.}
+          }
       detail:
         imported:
           count: |
@@ -116,6 +141,44 @@ dc:
           count: |
            {count} exported services
           tooltip: The number of services exported from {name}
+  partitions:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Partitions}
+            other {No partitions found}
+          } 
+        body: |
+          {items, select,
+            0 {There don't seem to be any partitions{canUseACLs, select,
+              true {, or you may not have access to view partitions yet.}
+              other {.}
+            }}
+            other {No partitions were found matching that search{canUseACLs, select,
+              true {, or you may not have access to view the namesapces you are searching}
+              other {.}
+            }}
+          }
+  namespaces:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Namespaces}
+            other {No namespaces found}
+          }
+        body: |
+          {items, select,
+            0 {No namespaces were found matching that search{canUseACLs, select,
+              true {, or you may not have access to view the namespaces you are searching for.}
+              other {.}
+            }}
+            other {There don't seem to be any namespaces{canUseACLs, select,
+              true {, or you may not have access to view namespaces yet.}
+              other {.}
+            }}
+          }
   services:
     index:
       empty:
@@ -129,7 +192,10 @@ dc:
             {items, select,
               0 {There don't seem to be any registered services in this Consul cluster}
               other {No Services were found matching your search}
-          }, or you may not have <code>service:read</code> and <code>node:read</code> access to this view. Use Terraform, Kubernetes CRDs, Vault, or the Consul CLI to register Services.
+            }{canUseACLs, select,
+              true {, or you may not have <code>service:read</code> and <code>node:read</code> access to this view. Use Terraform, Kubernetes CRDs, Vault, or the Consul CLI to register Services.}
+              other {.}
+            }
           </p>
     instance:
       exposedpaths:
@@ -239,7 +305,10 @@ dc:
                 {items, select,
                   0 {There don't seem to be any Intentions in this Consul cluster}
                   other {No Intentions were found matching your search}
-                }, or you may not have <code>intentions:read</code> permissions access to this view.
+                }{canUseACLs, select,
+                  true {, or you may not have <code>intentions:read</code> permissions access to this view.}
+                  other {.}
+                }
               </p>
 
       instances:
@@ -297,7 +366,10 @@ dc:
             {items, select,
               0 {There don't seem to be any Intentions in this Consul cluster}
               other {No Intentions were found matching your search}
-            }, or you may not have <code>intentions:read</code> permissions access to this view.
+            }{canUseACLs, select,
+              true {, or you may not have intentions:read permissions access to this view.} 
+              other {.}
+            }
           </p>
   kv:
     index:
@@ -312,7 +384,10 @@ dc:
             {items, select,
               0 {There don't seem to be any K/V pairs in this Consul cluster yet}
               other {No K/V pairs were found matching your search}
-            }, or you may not have <code>key:read</code> permissions access to this view.
+            }{canUseACLs, select,
+              true {, or you may not have <code>key:read</code> permissions access to this view.}
+              other {.}
+            }
           </p>
   acls:
     tokens:
@@ -363,15 +438,16 @@ dc:
     auth-methods:
       show:
         binding-rules:
-          empty:
-            header: No Binding Rules
-            body: |
-              <p>
-                Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
-              </p>
+          index:
+            empty:
+              header: No binding rules
+              body: |
+                <p>
+                  Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
+                </p>
         nspace-rules:
           empty:
-            header: No Namespace Rules
+            header: No namespace rules
             body: |
               <p>
                 A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.

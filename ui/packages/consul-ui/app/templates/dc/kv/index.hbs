@@ -186,6 +186,7 @@ as |sort filters parent items|}}
                   <BlockSlot @name="body">
                     {{t 'routes.dc.kv.index.empty.body'
                       items=items.length
+                      canUseACLs=(can "use acls")
                       htmlSafe=true
                     }}
                   </BlockSlot>
