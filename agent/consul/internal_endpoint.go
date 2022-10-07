@@ -632,7 +632,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.EnterpriseMeta)
+			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.Datacenter, args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -678,7 +678,7 @@ func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, rep
 				reply.Services = nil
 				return errNotFound
 			}
-			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, "")
+			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, args.Datacenter)
 			if err != nil {
 				return fmt.Errorf("error while listing exported services for peer %q: %w", args.PeerName, err)
 			}

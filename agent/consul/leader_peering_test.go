@@ -1139,8 +1139,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedServsCount: 4, // 3 services from above + the "consul" service
-			expectedExportedServsCount: 4, // 3 services from above + the "consul" service
+			expectedImportedServsCount: 3, // 3 services from above
+			expectedExportedServsCount: 3, // 3 services from above
 		},
 		{
 			name:        "no sync",
@@ -1148,8 +1148,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 			exportedService: structs.ExportedServicesConfigEntry{
 				Name: "default",
 			},
-			expectedImportedServsCount: 0, // we want to see this decremented from 4 --> 0
-			expectedExportedServsCount: 0, // we want to see this decremented from 4 --> 0
+			expectedImportedServsCount: 0, // we want to see this decremented from 3 --> 0
+			expectedExportedServsCount: 0, // we want to see this decremented from 3 --> 0
 		},
 		{
 			name:        "just a, b services",
