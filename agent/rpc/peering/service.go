@@ -648,8 +648,6 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		// add imported & exported services
 		cp.ImportedServices = streamState.ImportedServices
 		cp.ExportedServices = streamState.ExportedServices
-		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
-		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
 
 		return cp
 	}

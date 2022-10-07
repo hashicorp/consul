@@ -62,10 +62,6 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
-	// ImportedServiceCount is the count of how many services are imported from this peering.
-	ImportedServiceCount uint64
-	// ExportedServiceCount is the count of how many services are exported to this peering.
-	ExportedServiceCount uint64
 	// ImportedServices is the list of services imported from this peering.
 	ImportedServices []string
 	// ExportedServices is the list of services exported to this peering.
