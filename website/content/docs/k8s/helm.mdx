@@ -594,7 +594,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-server-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers running
     Consul server agents.
 
-  - `replicas` ((#v-server-replicas)) (`integer: 3`) - The number of server agents to run. This determines the fault tolerance of
+  - `replicas` ((#v-server-replicas)) (`integer: 1`) - The number of server agents to run. This determines the fault tolerance of
     the cluster. Please see the deployment table (https://consul.io/docs/internals/consensus#deployment-table)
     for more information.
 
@@ -1555,7 +1555,7 @@ Use these links to navigate to a particular top-level stanza.
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
-  - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - True if you want to enable connect injection. Set to "-" to inherit from
+  - `enabled` ((#v-connectinject-enabled)) (`boolean: true`) - True if you want to enable connect injection. Set to "-" to inherit from
     global.enabled.
 
   - `replicas` ((#v-connectinject-replicas)) (`integer: 2`) - The number of deployment replicas.
@@ -1874,7 +1874,7 @@ Use these links to navigate to a particular top-level stanza.
   Requires consul >= 1.8.4.
   ServiceIntentions require consul 1.9+.
 
-  - `enabled` ((#v-controller-enabled)) (`boolean: false`) - Enables the controller for managing custom resources.
+  - `enabled` ((#v-controller-enabled)) (`boolean: true`) - Enables the controller for managing custom resources.
 
   - `replicas` ((#v-controller-replicas)) (`integer: 1`) - The number of deployment replicas.
 
