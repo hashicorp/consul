@@ -12,18 +12,20 @@ import (
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 )
 
-var metricsLabels = []metrics.Label{{
-	Name:  "server_type",
-	Value: "external",
-}}
+var (
+	defaultMetrics = agentmiddleware.DefaultMetrics
+	metricsLabels  = []metrics.Label{{
+		Name:  "server_type",
+		Value: "external",
+	}}
+)
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
 func NewServer(logger agentmiddleware.Logger) *grpc.Server {
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
-	metrics := agentmiddleware.DefaultMetrics()
-
+	metrics := defaultMetrics()
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metrics, metricsLabels)),

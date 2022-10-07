@@ -16,7 +16,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/proto/prototest"
 )
 
@@ -29,7 +29,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	handler := NewHandler(hclog.Default(), addr, noopRegister)
 	reset()
 
-	testservice.RegisterSimpleServer(handler.srv, &simple{})
+	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

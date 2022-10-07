@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.23.0
 // 	protoc        v3.15.8
-// source: agent/grpc-internal/internal/testservice/simple.proto
+// source: agent/grpc-middleware/testutil/testservice/simple.proto
 
 package testservice
 

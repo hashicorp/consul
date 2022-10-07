@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -15,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/tlsutil"
@@ -42,14 +41,14 @@ func (s testServer) Metadata() *metadata.Server {
 
 func newSimpleTestServer(t *testing.T, name, dc string, tlsConf *tlsutil.Configurator) testServer {
 	return newTestServer(t, hclog.Default(), name, dc, tlsConf, func(server *grpc.Server) {
-		testservice.RegisterSimpleServer(server, &simple{name: name, dc: dc})
+		testservice.RegisterSimpleServer(server, &testservice.Simple{Name: name, DC: dc})
 	})
 }
 
 // newPanicTestServer sets up a simple server with handlers that panic.
 func newPanicTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *tlsutil.Configurator) testServer {
 	return newTestServer(t, logger, name, dc, tlsConf, func(server *grpc.Server) {
-		testservice.RegisterSimpleServer(server, &simplePanic{name: name, dc: dc})
+		testservice.RegisterSimpleServer(server, &testservice.SimplePanic{Name: name, DC: dc})
 	})
 }
 
@@ -93,43 +92,6 @@ func newTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *
 			}
 		},
 	}
-}
-
-type simple struct {
-	name string
-	dc   string
-}
-
-func (s *simple) Flow(_ *testservice.Req, flow testservice.Simple_FlowServer) error {
-	for flow.Context().Err() == nil {
-		resp := &testservice.Resp{ServerName: "one", Datacenter: s.dc}
-		if err := flow.Send(resp); err != nil {
-			return err
-		}
-		time.Sleep(time.Millisecond)
-	}
-	return nil
-}
-
-func (s *simple) Something(_ context.Context, _ *testservice.Req) (*testservice.Resp, error) {
-	return &testservice.Resp{ServerName: s.name, Datacenter: s.dc}, nil
-}
-
-type simplePanic struct {
-	name, dc string
-}
-
-func (s *simplePanic) Flow(_ *testservice.Req, flow testservice.Simple_FlowServer) error {
-	for flow.Context().Err() == nil {
-		time.Sleep(time.Millisecond)
-		panic("panic from Flow")
-	}
-	return nil
-}
-
-func (s *simplePanic) Something(_ context.Context, _ *testservice.Req) (*testservice.Resp, error) {
-	time.Sleep(time.Millisecond)
-	panic("panic from Something")
 }
 
 // fakeRPCListener mimics agent/consul.Server.listen to handle the RPCType byte.
