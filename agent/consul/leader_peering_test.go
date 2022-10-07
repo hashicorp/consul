@@ -34,14 +34,6 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-type tlsMode byte
-
-const (
-	tlsModeNone tlsMode = iota
-	tlsModeManual
-	tlsModeAuto
-)
-
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -169,13 +161,22 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	}
 
 	// Reserve a gRPC port so we can restart the accepting server with the same port.
-	ports := freeport.GetN(t, 1)
-	dialingServerPort := ports[0]
+	dialingServerPort := freeport.GetOne(t)
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 
@@ -207,10 +208,11 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
 	_, dialer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "dialer"
-		c.Datacenter = "dc1"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
 		c.GRPCPort = dialingServerPort
 	})
-	testrpc.WaitForLeader(t, dialer.RPC, "dc1")
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
 	// Create a peering at dialer by establishing a peering with acceptor's token
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
