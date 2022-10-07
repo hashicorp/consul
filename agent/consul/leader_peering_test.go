@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -34,27 +35,23 @@ import (
 )
 
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
-	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, false)
-	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, true)
-	})
-}
-
-func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -94,11 +91,6 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -169,13 +161,22 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	}
 
 	// Reserve a gRPC port so we can restart the accepting server with the same port.
-	ports := freeport.GetN(t, 1)
-	dialingServerPort := ports[0]
+	dialingServerPort := freeport.GetOne(t)
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 
@@ -207,10 +208,11 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
 	_, dialer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "dialer"
-		c.Datacenter = "dc1"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
 		c.GRPCPort = dialingServerPort
 	})
-	testrpc.WaitForLeader(t, dialer.RPC, "dc1")
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
 	// Create a peering at dialer by establishing a peering with acceptor's token
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
@@ -344,27 +346,23 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 }
 
 func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
-	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, false)
-	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, true)
-	})
-}
-
-func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -399,11 +397,6 @@ func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS b
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -476,7 +469,7 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 	t.Run("server-name-validation", func(t *testing.T) {
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.ServerName = "wrong.name"
-		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.consul, bob.server.dc1.consul, not wrong.name`)
+		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.peering.11111111-2222-3333-4444-555555555555.consul, not wrong.name`)
 	})
 	t.Run("bad-ca-roots", func(t *testing.T) {
 		wrongRoot, err := ioutil.ReadFile("../../test/client_certs/rootca.crt")
@@ -491,14 +484,20 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(token *structs.PeeringToken), expectErr string) {
 	require.NotNil(t, tokenMutateFn)
 
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-
-		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -541,10 +540,6 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-
-		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -583,11 +578,11 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// TODO(peering): Configure with TLS
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -662,15 +657,21 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	}
 
 	// Reserve a gRPC port so we can restart the accepting server with the same port.
-	ports := freeport.GetN(t, 1)
-	acceptingServerPort := ports[0]
+	acceptingServerPort := freeport.GetOne(t)
 
+	ca := connect.TestCA(t, nil)
 	_, acceptingServer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptingServer.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
-		c.GRPCPort = acceptingServerPort
-		c.PeeringEnabled = true
+		c.GRPCTLSPort = acceptingServerPort
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptingServer.RPC, "dc1")
 
@@ -773,9 +774,17 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 		c.NodeName = "acceptingServer.dc1"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		c.GRPCPort = acceptingServerPort
 		c.DataDir = acceptingServer.config.DataDir
 		c.NodeID = acceptingServer.config.NodeID
+		c.GRPCTLSPort = acceptingServerPort
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 
 	testrpc.WaitForLeader(t, acceptingServerRestart.RPC, "dc1")
@@ -870,11 +879,19 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
-		c.PeeringEnabled = true
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1172,11 +1189,19 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		lastIdx            = uint64(0)
 	)
 
-	// TODO(peering): Configure with TLS
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1583,10 +1608,20 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	maxRetryBackoff = 1
 	t.Cleanup(func() { maxRetryBackoff = orig })
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 

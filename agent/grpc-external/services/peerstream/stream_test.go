@@ -43,7 +43,6 @@ import (
 
 const (
 	testPeerID                = "caf067a6-f112-4907-9101-d45857d2b149"
-	testActiveStreamSecretID  = "e778c518-f0db-473a-9224-24b357da971d"
 	testPendingStreamSecretID = "522c0daf-2ef2-4dab-bc78-5e04e3daf552"
 	testEstablishmentSecretID = "f6569d37-1c5b-4415-aae5-26f4594f7f60"
 )

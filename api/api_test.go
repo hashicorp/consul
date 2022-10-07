@@ -96,6 +96,10 @@ func makeClientWithConfig(
 	if server.Config.Bootstrap {
 		server.WaitForLeader(t)
 	}
+	connectEnabled := server.Config.Connect["enabled"]
+	if enabled, ok := connectEnabled.(bool); ok && server.Config.Server && enabled {
+		server.WaitForActiveCARoot(t)
+	}
 
 	conf.Address = server.HTTPAddr
 

@@ -52,6 +52,7 @@ type TestPortConfig struct {
 	SerfWan      int `json:"serf_wan,omitempty"`
 	Server       int `json:"server,omitempty"`
 	GRPC         int `json:"grpc,omitempty"`
+	GRPCTLS      int `json:"grpc_tls,omitempty"`
 	ProxyMinPort int `json:"proxy_min_port,omitempty"`
 	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
@@ -156,7 +157,7 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.GetN(t, 7)
+	ports := freeport.GetN(t, 8)
 
 	logBuffer := NewLogBuffer(t)
 
@@ -180,6 +181,7 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 			SerfWan: ports[4],
 			Server:  ports[5],
 			GRPC:    ports[6],
+			GRPCTLS: ports[7],
 		},
 		ReadyTimeout:   10 * time.Second,
 		StopTimeout:    10 * time.Second,
@@ -224,11 +226,12 @@ type TestServer struct {
 	cmd    *exec.Cmd
 	Config *TestServerConfig
 
-	HTTPAddr  string
-	HTTPSAddr string
-	LANAddr   string
-	WANAddr   string
-	GRPCAddr  string
+	HTTPAddr    string
+	HTTPSAddr   string
+	LANAddr     string
+	WANAddr     string
+	GRPCAddr    string
+	GRPCTLSAddr string
 
 	HTTPClient *http.Client
 
@@ -302,11 +305,12 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		Config: cfg,
 		cmd:    cmd,
 
-		HTTPAddr:  httpAddr,
-		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
-		LANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
-		WANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
-		GRPCAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
+		HTTPAddr:    httpAddr,
+		HTTPSAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
+		LANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
+		WANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		GRPCAddr:    fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
+		GRPCTLSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPCTLS),
 
 		HTTPClient: client,
 
