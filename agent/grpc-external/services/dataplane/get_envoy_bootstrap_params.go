@@ -3,7 +3,6 @@ package dataplane
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"google.golang.org/grpc/codes"
