@@ -89,7 +89,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	)
 	if err != nil {
 		logger.Error("Error merging with central config", "error", err)
-		return nil, status.Error(codes.Unknown, fmt.Sprintf("Error merging central config: %v", err))
+		return nil, status.Errorf(codes.Unknown, "Error merging central config: %v", err)
 	}
 
 	bootstrapConfig, err := structpb.NewStruct(ns.Proxy.Config)
