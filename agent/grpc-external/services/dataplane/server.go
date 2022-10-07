@@ -4,11 +4,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
@@ -22,8 +20,7 @@ type Config struct {
 	Logger      hclog.Logger
 	ACLResolver ACLResolver
 	// Datacenter of the Consul server this gRPC server is hosted on
-	Datacenter                        string
-	MergeNodeServiceWithCentralConfig func(memdb.WatchSet, *state.Store, *structs.ServiceSpecificRequest, *structs.NodeService, hclog.Logger) (uint64, *structs.NodeService, error)
+	Datacenter string
 }
 
 type StateStore interface {

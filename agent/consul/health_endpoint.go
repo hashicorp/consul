@@ -11,6 +11,7 @@ import (
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -256,7 +257,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				for _, node := range resolvedNodes {
 					ns := node.Service
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
 						if err != nil {
 							return err
 						}

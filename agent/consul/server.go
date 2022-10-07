@@ -732,7 +732,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		Logger:                            logger.Named("grpc-api.dataplane"),
 		ACLResolver:                       s.ACLResolver,
 		Datacenter:                        s.config.Datacenter,
-		MergeNodeServiceWithCentralConfig: mergeNodeServiceWithCentralConfig,
 	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{

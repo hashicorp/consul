@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
@@ -76,9 +77,9 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 
 	// This is awkward because it's designed for different requests, but
 	// this fakes the ServiceSpecificRequest so that we can reuse code.
-	_, ns, err := s.MergeNodeServiceWithCentralConfig(
+	_, ns, err := configentry.MergeNodeServiceWithCentralConfig(
 		nil,
-		store.(*state.Store),
+		store.(configentry.StateStore),
 		&structs.ServiceSpecificRequest{
 			Datacenter:   s.Datacenter,
 			QueryOptions: options,
