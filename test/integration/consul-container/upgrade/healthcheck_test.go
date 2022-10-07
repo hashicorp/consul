@@ -153,7 +153,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
 					bootstrap_expect=3
-					server=true`,
+					server=true
+					rpc { enable_streaming=false }`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: *utils.TargetImage,
 			})
@@ -163,7 +164,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
-					server=true`,
+					server=true
+					rpc { enable_streaming=false }`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: *utils.LatestImage,
 		})
@@ -192,7 +194,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
-		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+		if err == nil && q.QueryBackend != api.QueryBackendBlockingQuery {
 			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
 		}
 		if err != nil {
@@ -224,11 +226,31 @@ func clientsCreate(t *testing.T, numClients int, version string, serfKey string)
 	for i := 0; i < numClients; i++ {
 		var err error
 		clients[i], err = node.NewConsulContainer(context.Background(),
+			// note on `use_streaming_backend = false`: in 1.13, the Subscribe API was changed to
+			// no longer send `Key` in the top level SubscribeRequest (it moved to NamedSubject.Key)
+			// and so for the TestMixedServersMajorityTargetGAClient case above, it will fail if the
+			// client that is chosen for use in the test assertions is not the same version as the
+			// server. Since there are 3 servers, two on 1.12 and one on 1.13, this means the test
+			// will fail roughly 2/3rds of the time. We have a few options on how to remediate the
+			// situation:
+			// 1) fix the backwards-incompatibility in 1.13 by restoring the missing Key field
+			// 2) in the test above, always select the client that matches the latest server.
+			// 3) disable streaming backend in test client
+			//
+			// All of them have issues:
+			// 1) doesn't immediately fix 1.12, requires fixing in 1.13 code and doing a release
+			// 2) invalidates part of what the test is trying to actually test
+			// 3) means the tests resemble real-world scenarios less
+			//
+			// I believe 1) is the best option but means we don't fix the actual issue right now, so
+			// I'm choosing 3) now, and then also 1) since it is most ideal and fixes the real issue
+			// which should give us the best outcome in the long run.
 			node.Config{
 				HCL: fmt.Sprintf(`
 				node_name = %q
 				log_level = "TRACE"
-				encrypt = %q`, utils.RandName("consul-client"), serfKey),
+				encrypt = %q
+			    use_streaming_backend = false`, utils.RandName("consul-client"), serfKey),
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: version,
 			})
