@@ -141,10 +141,17 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 	}
 
 	syncLoop := func(ws memdb.WatchSet) {
+		// Cancel the context on return to clean up the goroutine started by WatchCh.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		for {
 			select {
-			case <-ws.WatchCh(context.Background()):
+			case <-ws.WatchCh(ctx):
 				// Something changed, unblock and re-run the query.
+				//
+				// It is expected that all other branches of this select will return and
+				// cancel the context given to WatchCh (to clean up its goroutine).
 			case doneCh := <-closeCh:
 				// All watchers of this service (xDS streams) have gone away, so it's time
 				// to free its resources.
