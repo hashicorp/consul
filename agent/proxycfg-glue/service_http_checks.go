@@ -34,6 +34,6 @@ func (c serverHTTPChecks) Notify(ctx context.Context, req *cachetype.ServiceHTTP
 	if c.localState.ServiceExists(structs.ServiceID{ID: req.ServiceID, EnterpriseMeta: req.EnterpriseMeta}) {
 		return c.cacheSource.Notify(ctx, req, correlationID, ch)
 	}
-	c.deps.Logger.Debug("http-checks: no-op")
+	c.deps.Logger.Debug("service-http-checks: no-op")
 	return nil
 }
