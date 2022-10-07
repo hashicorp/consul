@@ -121,6 +121,7 @@ func TestTrustBundles_MultipleUpdates(t *testing.T) {
 	for {
 		select {
 		case <-ctx.Done():
+			t.Fatal("context deadline exceeded")
 			return
 		case update := <-ch:
 			// Expect to receive updates for increasing indexes serially.

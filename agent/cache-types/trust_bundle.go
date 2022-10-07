@@ -83,8 +83,7 @@ func (t *TrustBundle) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fetc
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	// Fetch
-	options := structs.QueryOptions{Token: reqReal.Token}
-	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
 	if err != nil {
 		return result, err
 	}

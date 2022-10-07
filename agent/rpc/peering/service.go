@@ -607,7 +607,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	defer metrics.MeasureSince([]string{"peering", "list"}, time.Now())
 
-	_, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
+	idx, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +619,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 		cPeerings = append(cPeerings, cp)
 	}
 
-	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
+	return &pbpeering.PeeringListResponse{Peerings: cPeerings, Index: idx}, nil
 }
 
 // TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state

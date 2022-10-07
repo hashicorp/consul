@@ -348,6 +348,12 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
+type PeerServersValue struct {
+	Addresses []structs.ServiceAddress
+	Index     uint64
+	UseCDS    bool
+}
+
 type PeeringServiceValue struct {
 	Nodes  structs.CheckServiceNodes
 	UseCDS bool
@@ -403,11 +409,11 @@ type configSnapshotMeshGateway struct {
 	// datacenter.
 	FedStateGateways map[string]structs.CheckServiceNodes
 
-	// WatchedConsulServers is a map of (structs.ConsulServiceName -> structs.CheckServiceNodes)`
+	// WatchedLocalServers is a map of (structs.ConsulServiceName -> structs.CheckServiceNodes)`
 	// Mesh gateways can spin up watches for local servers both for
 	// WAN federation and for peering. This map ensures we only have one
 	// watch at a time.
-	WatchedConsulServers watch.Map[string, structs.CheckServiceNodes]
+	WatchedLocalServers watch.Map[string, structs.CheckServiceNodes]
 
 	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -448,6 +454,13 @@ type configSnapshotMeshGateway struct {
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
+
+	// PeerServers is the map of peering server names to their addresses.
+	PeerServers map[string]PeerServersValue
+
+	// PeerServersWatchCancel is a CancelFunc to use when resetting the watch
+	// on all peerings as it is enabled/disabled.
+	PeerServersWatchCancel context.CancelFunc
 
 	// PeeringTrustBundles is the list of trust bundles for peers where
 	// services have been exported to using this mesh gateway.
@@ -588,7 +601,7 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
 		len(c.HostnameDatacenters) == 0 &&
-		c.WatchedConsulServers.Len() == 0 &&
+		c.WatchedLocalServers.Len() == 0 &&
 		c.isEmptyPeering()
 }
 
@@ -724,7 +737,7 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.TerminatingGateway.MeshConfigSet
 
 	case structs.ServiceKindMeshGateway:
-		if s.MeshGateway.WatchedConsulServers.Len() == 0 {
+		if s.MeshGateway.WatchedLocalServers.Len() == 0 {
 			if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
 				return false
 			}

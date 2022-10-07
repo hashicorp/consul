@@ -6,26 +6,26 @@ import (
 	"strconv"
 	"time"
 
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/hashstructure"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
-	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-// Recommended name for registration.
-const TrustBundleListName = "trust-bundles"
+// PeeringListName is the recommended name for registration.
+const PeeringListName = "peers"
 
-type TrustBundleListRequest struct {
-	Request *pbpeering.TrustBundleListByServiceRequest
+type PeeringListRequest struct {
+	Request *pbpeering.PeeringListRequest
 	structs.QueryOptions
 }
 
-func (r *TrustBundleListRequest) CacheInfo() cache.RequestInfo {
+func (r *PeeringListRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,
 		Datacenter:     "",
@@ -40,9 +40,6 @@ func (r *TrustBundleListRequest) CacheInfo() cache.RequestInfo {
 
 	v, err := hashstructure.Hash([]interface{}{
 		r.Request.Partition,
-		r.Request.Namespace,
-		r.Request.ServiceName,
-		r.Request.Kind,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -54,27 +51,26 @@ func (r *TrustBundleListRequest) CacheInfo() cache.RequestInfo {
 	return info
 }
 
-// TrustBundles supports fetching discovering service instances via prepared
-// queries.
-type TrustBundles struct {
+// Peerings supports fetching the list of peers for a given partition or wildcard-specifier.
+type Peerings struct {
 	RegisterOptionsNoRefresh
-	Client TrustBundleLister
+	Client PeeringLister
 }
 
-//go:generate mockery --name TrustBundleLister --inpackage --filename mock_TrustBundleLister_test.go
-type TrustBundleLister interface {
-	TrustBundleListByService(
-		ctx context.Context, in *pbpeering.TrustBundleListByServiceRequest, opts ...grpc.CallOption,
-	) (*pbpeering.TrustBundleListByServiceResponse, error)
+//go:generate mockery --name PeeringLister --inpackage --filename mock_PeeringLister_test.go
+type PeeringLister interface {
+	PeeringList(
+		ctx context.Context, in *pbpeering.PeeringListRequest, opts ...grpc.CallOption,
+	) (*pbpeering.PeeringListResponse, error)
 }
 
-func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (t *Peerings) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
-	// The request should be a TrustBundleListRequest.
+	// The request should be a PeeringListRequest.
 	// We do not need to make a copy of this request type like in other cache types
 	// because the RequestInfo is synthetic.
-	reqReal, ok := req.(*TrustBundleListRequest)
+	reqReal, ok := req.(*PeeringListRequest)
 	if !ok {
 		return result, fmt.Errorf(
 			"Internal cache failure: request wrong type: %T", req)
@@ -86,19 +82,19 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 	// servers too.
 	reqReal.QueryOptions.SetAllowStale(true)
 
-	// Fetch
 	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
 	if err != nil {
 		return result, err
 	}
 
-	reply, err := t.Client.TrustBundleListByService(ctx, reqReal.Request)
+	// Fetch
+	reply, err := t.Client.PeeringList(ctx, reqReal.Request)
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.
 		if e, ok := status.FromError(err); ok && e.Code() == codes.FailedPrecondition {
 			result.Index = 1
-			result.Value = &pbpeering.TrustBundleListByServiceResponse{Index: 1}
+			result.Value = &pbpeering.PeeringListResponse{}
 			return result, nil
 		}
 		return result, err

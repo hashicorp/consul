@@ -1731,6 +1731,10 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
+	// --------
+	// WAN Federation over mesh gateways
+	// --------
+
 	if cfgSnap.ProxyID.InDefaultPartition() &&
 		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 		cfgSnap.ServerSNIFn != nil {
@@ -1757,7 +1761,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		}
 
 		// Wildcard all flavors to each server.
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
@@ -1778,10 +1782,14 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		}
 	}
 
-	// Create a single cluster for local servers to be dialed by peers.
+	// --------
+	// Peering control plane
+	// --------
+
+	// Create a single filter chain for local servers to be dialed by peers.
 	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
-	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+	if cfgSnap.MeshConfig().PeerThroughMeshGateways() {
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 
 		// Peering control-plane traffic can only ever be handled by the local leader.
 		// We avoid routing to read replicas since they will never be Raft voters.
@@ -1804,6 +1812,30 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 			})
 		}
 	}
+
+	// Create a filter chain per outbound peer server cluster. Listen for the SNI provided
+	// as the peer's ServerName.
+	var peerServerFilterChains []*envoy_listener_v3.FilterChain
+	for name := range cfgSnap.MeshGateway.PeerServers {
+
+		dcTCPProxy, err := makeTCPProxyFilter(name, name, "mesh_gateway_remote_peering_servers.")
+		if err != nil {
+			return nil, err
+		}
+
+		peerServerFilterChains = append(peerServerFilterChains, &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(name),
+			Filters: []*envoy_listener_v3.Filter{
+				dcTCPProxy,
+			},
+		})
+	}
+
+	// Sort so the output is stable and the listener doesn't get drained
+	sort.Slice(peerServerFilterChains, func(i, j int) bool {
+		return peerServerFilterChains[i].FilterChainMatch.ServerNames[0] < peerServerFilterChains[j].FilterChainMatch.ServerNames[0]
+	})
+	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
 	// This needs to get tacked on at the end as it has no
 	// matching and will act as a catch all

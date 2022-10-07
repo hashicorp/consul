@@ -195,7 +195,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	keys := cfgSnap.MeshGateway.GatewayKeys()
-	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
+
+	// Allocation count (this is a lower bound - all subset specific clusters will be appended):
+	// 1 cluster per remote dc/partition
+	// 1 cluster per local service
+	// 1 cluster per unique peer server (control plane traffic)
+	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups)+len(cfgSnap.MeshGateway.PeerServers))
 
 	for _, key := range keys {
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
@@ -248,7 +253,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
@@ -289,7 +294,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
 		var serverEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			if isReplica := srv.Service.Meta["read_replica"]; isReplica == "true" {
 				// Peering control-plane traffic can only ever be handled by the local leader.
@@ -319,13 +324,14 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				},
 			})
 		}
-
-		resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
-			ClusterName: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
-			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
-				LbEndpoints: serverEndpoints,
-			}},
-		})
+		if len(serverEndpoints) > 0 {
+			resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
+				ClusterName: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: serverEndpoints,
+				}},
+			})
+		}
 	}
 
 	// Generate the endpoints for each service and its subsets
@@ -344,6 +350,13 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 	// generate the outgoing endpoints for imported peer services.
 	e, err = s.makeEndpointsForOutgoingPeeredServices(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, e...)
+
+	// Generate the endpoints for peer server control planes.
+	e, err = s.makePeerServerEndpointsForMeshGateway(cfgSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +448,37 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 			)
 			resources = append(resources, la)
 		}
+	}
+
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makePeerServerEndpointsForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.PeerServers))
+
+	// Peer server names are assumed to already be formatted in SNI notation:
+	// server.<datacenter>.peering.<trust-domain>
+	for name, servers := range cfgSnap.MeshGateway.PeerServers {
+		if servers.UseCDS || len(servers.Addresses) == 0 {
+			continue
+		}
+
+		es := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(servers.Addresses))
+
+		for _, address := range servers.Addresses {
+			es = append(es, makeEndpoint(address.Address, address.Port))
+		}
+
+		cla := &envoy_endpoint_v3.ClusterLoadAssignment{
+			ClusterName: name,
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: es,
+				},
+			},
+		}
+
+		resources = append(resources, cla)
 	}
 
 	return resources, nil
