@@ -728,10 +728,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
-		GetStore:                          func() dataplane.StateStore { return s.FSM().State() },
-		Logger:                            logger.Named("grpc-api.dataplane"),
-		ACLResolver:                       s.ACLResolver,
-		Datacenter:                        s.config.Datacenter,
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: s.ACLResolver,
+		Datacenter:  s.config.Datacenter,
 	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
