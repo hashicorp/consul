@@ -534,9 +534,11 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		snap.MeshGateway.MeshConfig = meshConf
 		snap.MeshGateway.MeshConfigSet = true
 
+		// If we're peering through mesh gateways it means the config entry may be deleted
+		// or the flag was disabled. Here we clean up related watches if they exist.
 		if !meshConf.PeerThroughMeshGateways() {
 			// We avoid canceling server watches when WAN federation is enabled since it
-			// always requires server watches.
+			// always requires a watch to the local servers.
 			if s.meta[structs.MetaWANFederationKey] != "1" {
 				// If the entry was deleted we cancel watches that may have existed because of
 				// PeerThroughMeshGateways being set in the past.
@@ -556,8 +558,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		// we need to start watching the list of peering connections in all partitions
 		// to set up outbound routes for the control plane. Consul servers are in the default partition,
 		// so only mesh gateways here have his responsibility.
-		if meshConf.PeerThroughMeshGateways() &&
-			snap.ProxyID.InDefaultPartition() &&
+		if snap.ProxyID.InDefaultPartition() &&
 			snap.MeshGateway.PeerServersWatchCancel == nil {
 
 			peeringListCtx, cancel := context.WithCancel(ctx)
@@ -575,18 +576,12 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			snap.MeshGateway.PeerServersWatchCancel = cancel
 		}
 
-		snap.MeshGateway.MeshConfigSet = true
-
-		// We avoid managing Consul server watches when WAN federation is enabled since it
+		// We avoid initializing Consul server watches when WAN federation is enabled since it
 		// always requires server watches.
 		if s.meta[structs.MetaWANFederationKey] == "1" {
 			return nil
 		}
 
-		if !meshConf.PeerThroughMeshGateways() {
-			snap.MeshGateway.WatchedLocalServers.CancelWatch(structs.ConsulServiceName)
-			return nil
-		}
 		if snap.MeshGateway.WatchedLocalServers.IsWatched(structs.ConsulServiceName) {
 			return nil
 		}
