@@ -364,31 +364,7 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 	}
 }
 
-// Loopback peering within the same cluster/partion should throw an error
-func TestPeeringService_Establish_invalidPeeringInSamePartition(t *testing.T) {
-	// TODO(peering): see note on newTestServer, refactor to not use this
-	s := newTestServer(t, nil)
-	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	t.Cleanup(cancel)
-
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerOne"}
-	resp, err := client.GenerateToken(ctx, &req)
-	require.NoError(t, err)
-	require.NotEmpty(t, resp)
-
-	establishReq := &pbpeering.EstablishRequest{
-		PeerName:     "peerTwo",
-		PeeringToken: resp.PeeringToken}
-
-	respE, errE := client.Establish(ctx, establishReq)
-	require.Error(t, errE)
-	require.Contains(t, errE.Error(), "cannot create a peering within the same partition (ENT) or cluster (OSS)")
-	require.Nil(t, respE)
-}
-
-// When tokens have the same name as the dialing cluster but are unknown by ID, we
+// When tokens have the same name as the dialing cluster, we
 // should be throwing an error to note the server name conflict.
 func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
@@ -423,7 +399,7 @@ func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
 
 	respE, errE := client.Establish(ctx, establishReq)
 	require.Error(t, errE)
-	require.Contains(t, errE.Error(), "conflict - peering token's server name matches the current cluster's server name")
+	require.Contains(t, errE.Error(), "cannot create a peering within the same cluster")
 	require.Nil(t, respE)
 }
 
