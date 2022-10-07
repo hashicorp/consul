@@ -646,6 +646,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedServiceList):
+				// TODO either filter here or at the source.
 				resp, err = makeExportedServiceListResponse(status, update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.

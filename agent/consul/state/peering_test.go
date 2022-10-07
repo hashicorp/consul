@@ -1746,6 +1746,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 			Name: "default",
 			Services: []structs.ExportedService{
 				{
+					// The "consul" service should never be exported.
+					Name: structs.ConsulServiceName,
+					Consumers: []structs.ServiceConsumer{
+						{Peer: "my-peering"},
+					},
+				},
+				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
 						{Peer: "my-peering"},
@@ -1813,6 +1820,10 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
 			ID: "billing", Service: "billing", Port: 5000,
 		}))
+		// The consul service should never be exported.
+		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
+			ID: structs.ConsulServiceID, Service: structs.ConsulServiceName, Port: 8000,
+		}))
 
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
@@ -1866,6 +1877,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 			Service: "payments-proxy",
 			Port:    5000,
 		}))
+		// The consul service should never be exported.
+		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      structs.ConsulServiceID,
+			Service: structs.ConsulServiceName,
+			Port:    8000,
+		}))
 
 		// Ensure everything is L7-capable.
 		ensureConfigEntry(t, &structs.ProxyConfigEntry{
@@ -1896,6 +1914,16 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 			EnterpriseMeta: *defaultEntMeta,
 		})
 
+		// Consul should still never be exported, even if a resolver references it.
+		ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "consul-redirect",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: structs.ConsulServiceName,
+			},
+			EnterpriseMeta: *defaultEntMeta,
+		})
+
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
@@ -1910,8 +1938,12 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 				// NOTE: no payments-proxy here
+				// NOTE: no consul here
 			},
 			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("consul-redirect"): {
+					Protocol: "http",
+				},
 				newSN("billing"): {
 					Protocol: "http",
 				},
@@ -1952,8 +1984,12 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 				// NOTE: no payments-proxy here
+				// NOTE: no consul here
 			},
 			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("consul-redirect"): {
+					Protocol: "http",
+				},
 				newSN("payments"): {
 					Protocol: "http",
 				},
