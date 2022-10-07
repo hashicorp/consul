@@ -326,9 +326,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			dataSources.ConfigEntry.Set(meshConfigReq, &structs.ConfigEntryResponse{Entry: nil})
 			tt.setup(t, dataSources)
 
-			expectSnapCopy, err := tt.expectSnap.Clone()
-			require.NoError(t, err)
-
+			expectSnapCopy := tt.expectSnap.Clone()
 			webProxyCopy, err := copystructure.Copy(webProxy)
 			require.NoError(t, err)
 

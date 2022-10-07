@@ -336,11 +336,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
+			snapCopy := snap.Clone()
 
 			select {
 			// Try to send
@@ -377,12 +373,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
-			replyCh <- snapCopy
+			replyCh <- snap.Clone()
 
 			// Skip rest of loop - there is nothing to send since nothing changed on
 			// this iteration

@@ -1,3 +1,4 @@
+//go:generate ./deep-copy.sh
 package structs
 
 import (
@@ -2009,6 +2010,14 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 }
 
 type CheckServiceNodes []CheckServiceNode
+
+func (csns CheckServiceNodes) DeepCopy() CheckServiceNodes {
+	dup := make(CheckServiceNodes, len(csns))
+	for idx, v := range csns {
+		dup[idx] = *v.DeepCopy()
+	}
+	return dup
+}
 
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
 func (nodes CheckServiceNodes) Shuffle() {

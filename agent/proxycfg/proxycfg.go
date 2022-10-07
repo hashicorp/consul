@@ -50,4 +50,6 @@
 //  7. It registers the service with the proxycfg manager.
 // 7a. See: 2a.
 //  8. xDS server receives snapshots of configuration data whenever it changes.
+//
+//go:generate ./deep-copy.sh
 package proxycfg
