@@ -1758,6 +1758,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
 			ID: "billing", Service: "billing", Port: 5000,
 		}))
+		lastIdx++
 		// The consul service should never be exported.
 		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
 			ID: structs.ConsulServiceID, Service: structs.ConsulServiceName, Port: 8000,
@@ -1815,12 +1816,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 			Service: "payments-proxy",
 			Port:    5000,
 		}))
+		lastIdx++
 		// The consul service should never be exported.
 		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
 			Kind:    structs.ServiceKindConnectProxy,
-			ID:      structs.ConsulServiceID,
+			ID:      structs.ConsulServiceID + "-2",
 			Service: structs.ConsulServiceName,
-			Port:    8000,
+			Port:    8001,
 		}))
 
 		// Ensure everything is L7-capable.
@@ -1879,9 +1881,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				// NOTE: no consul here
 			},
 			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
-				newSN("consul-redirect"): {
-					Protocol: "http",
-				},
+				// NOTE: no consul-redirect here
 				newSN("billing"): {
 					Protocol: "http",
 				},
@@ -1925,9 +1925,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				// NOTE: no consul here
 			},
 			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
-				newSN("consul-redirect"): {
-					Protocol: "http",
-				},
+				// NOTE: no consul-redirect here
 				newSN("payments"): {
 					Protocol: "http",
 				},

@@ -89,8 +89,6 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 	state.publicUpdateCh = publicUpdateCh
 	state.updateCh = updateCh
 
-	// TODO should I worry about all these goroutines emitting a `consul` object?
-
 	// Wrap our bare state store queries in goroutines that emit events.
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
 	go m.notifyServerAddrUpdates(ctx, state.updateCh)
