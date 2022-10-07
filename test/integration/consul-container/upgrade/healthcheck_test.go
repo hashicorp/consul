@@ -41,7 +41,7 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 	go func() {
 		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
-		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+		if err == nil && q.QueryBackend != api.QueryBackendBlockingQuery {
 			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
 		}
 		if err != nil {
@@ -117,7 +117,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
-		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+		if err == nil && q.QueryBackend != api.QueryBackendBlockingQuery {
 			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
 		}
 		if err != nil {
