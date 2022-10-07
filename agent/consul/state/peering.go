@@ -784,6 +784,10 @@ func exportedServicesForPeerTxn(
 	// - use connect native mode
 
 	for _, svc := range conf.Services {
+		// Prevent exporting the "consul" service.
+		if svc.Name == structs.ConsulServiceName {
+			continue
+		}
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -814,6 +818,10 @@ func exportedServicesForPeerTxn(
 				maxIdx = idx
 			}
 			for _, s := range typicalServices {
+				// Prevent exporting the "consul" service.
+				if s.Service.Name == structs.ConsulServiceName {
+					continue
+				}
 				normalSet[s.Service] = struct{}{}
 			}
 
@@ -826,6 +834,10 @@ func exportedServicesForPeerTxn(
 				maxIdx = idx
 			}
 			for _, sn := range discoChains {
+				// Prevent exporting the "consul" service.
+				if sn.Name == structs.ConsulServiceName {
+					continue
+				}
 				discoSet[sn] = struct{}{}
 			}
 		}
