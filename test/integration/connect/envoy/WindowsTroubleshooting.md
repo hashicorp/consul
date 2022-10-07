@@ -80,7 +80,7 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - Removed *docker_wget* and *docker_curl* functions from [helpers.windows.bash](helpers.windows.bash) file and replaced them with **docker_consul_exec**, this way we avoid starting intermediate containers when capturing logs.
 - The function *wipe_volumes* uses a `docker exec` command instead of the original `docker run`, this way we speed up test execution by avoiding to start a new container just to delete volume content before each test run.
 - For **case-grpc** we increased the `envoy_stats_flush_interval` value from 1s to 5s, on Windows, the original value caused the test to pass or fail randomly.
-- For **case-cfg-resolver-svc-failover** the changes introduced by **PR #14178** (August 12th, 2022 3:30 PM) on the [verify.bats](./case-cfg-resolver-svc-failover/verify.bats) were causing this test to fail on Windows and Linux, after reverting those changes tests passed on both platforms.  
+- For **case-wanfed-gw** a new script was created: **global-setup-windows.sh**, this file replaces global-setup.sh when running this test in Windows. The new script uses the windows/consul:local Docker image to generate the required TLS files and copies them into host's workdir directory.
 
 ## Volume Issues
 
