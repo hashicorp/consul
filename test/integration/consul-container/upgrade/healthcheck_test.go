@@ -153,8 +153,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
 					bootstrap_expect=3
-					server=true
-					rpc { enable_streaming=false }`,
+					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: *utils.TargetImage,
 			})
@@ -164,8 +163,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
-					server=true
-					rpc { enable_streaming=false }`,
+					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: *utils.LatestImage,
 		})
