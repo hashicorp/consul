@@ -35,7 +35,7 @@ export default function (
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
       instance: clickable('a'),
       nodeChecks: text('[data-test-node-health-checks]'),
-      nodeName: text('[data-test-node-name]')
+      nodeName: text('[data-test-node-name]'),
     }),
     intentionList: intentions(),
   };

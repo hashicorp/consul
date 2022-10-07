@@ -147,6 +147,8 @@ Feature: dc / services / show: Show Service
           external-source: vault
       Node:
         Address: 3.4.4.4
+        Meta:
+          synthetic-node: false
     ---
     When I visit the service page for yaml
     ---
