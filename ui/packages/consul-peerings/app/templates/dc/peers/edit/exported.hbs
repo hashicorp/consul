@@ -22,13 +22,106 @@
       </BlockSlot>
 
       <BlockSlot @name="loaded">
-        <div class="hds-surface-faint flex h-12 py-1.5 px-1">
-          <div>
-            <Hds::Form::TextInput::Field @type="search" placeholder="Search" />
+        {{#if items.length}}
+          <div
+            class="hds-surface-faint flex h-12 py-1.5 px-1 border-t border-b border-hds-border-primary"
+          >
+            <div>
+              <Hds::Form::TextInput::Field
+                @type="search"
+                @value={{this.search}}
+                placeholder="Search"
+                {{on "input" (pick "target.value" this.updateSearch)}}
+              />
+            </div>
           </div>
-        </div>
-        <Consul::Service::List @items={{items}} @partition={{partition}} />
+        {{/if}}
+        <Providers::Search
+          @items={{items}}
+          @search={{this.search}}
+          @searchProperties={{array "Name"}}
+          as |search|
+        >
+          <Providers::Dimension as |p|>
+            {{#if p.data.height}}
+              <div
+                style={{p.data.fillRemainingHeightStyle}}
+                class="overflow-y-scroll"
+              >
+                {{#if search.data.items.length}}
+                  <VerticalCollection
+                    @tagName="ul"
+                    @estimateHeight={{p.data.height}}
+                    @items={{search.data.items}}
+                    as |service index|
+                  >
+                    <li
+                      class="px-3 h-12 flex items-center border-b border-hds-border-primary border-b"
+                    >
+                      <div
+                        class="hds-typography-display-300 hds-font-weight-semibold"
+                      >{{service.Name}}</div>
+                    </li>
+                  </VerticalCollection>
+                {{else}}
+                  <EmptyState @login={{route.model.app.login.open}}>
+                    <BlockSlot @name="header">
+                      <h2>
+                        No visible exported services to
+                        {{route.model.peer.Name}}
+                      </h2>
+                    </BlockSlot>
+                    <BlockSlot @name="body">
+                      {{#if items.length}}
+                        <div>
+                          No services where found matching that search, or you
+                          may not have access to view the services you are
+                          searching for.
+                        </div>
+                      {{else}}
+                        <div>
+                          Services must be exported from one peer to another to
+                          enable service communication across two peers. There
+                          don't seem to be any services exported to peer-a yet,
+                          or you may not have
+                          <code>services:read</code>
+                          permissions to access to this view.
+                        </div>
+                      {{/if}}
+                    </BlockSlot>
+                    <BlockSlot @name="actions">
+                      <li class="docs-link">
+                        <a
+                          href="{{env
+                            'CONSUL_DOCS_URL'
+                          }}/connect/cluster-peering"
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          Documentation on Peers
+                        </a>
+                      </li>
+                      <li class="learn-link">
+                        <a
+                          href="{{env
+                            'CONSUL_DOCS_URL'
+                          }}/connect/cluster-peering/create-manage-peering"
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          Take the tutorial
+                        </a>
+                      </li>
+                    </BlockSlot>
+                  </EmptyState>
+                {{/if}}
+              </div>
+            {{/if}}
+          </Providers::Dimension>
+
+        </Providers::Search>
       </BlockSlot>
     {{/let}}
   </DataLoader>
+
 </Route>

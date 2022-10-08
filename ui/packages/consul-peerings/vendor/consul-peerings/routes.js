@@ -34,6 +34,12 @@
           exported: {
             _options: {
               path: "/exported-services",
+              queryParams: {
+                search: {
+                  as: "filter",
+                  replace: true,
+                },
+              },
             },
           },
           addresses: {
