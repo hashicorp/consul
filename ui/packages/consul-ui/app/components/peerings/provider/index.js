@@ -25,7 +25,7 @@ export default class PeeringsProvider extends Component {
       },
     ];
 
-    if (!peer.isReceiver) {
+    if (peer.isReceiver) {
       tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.edit.addresses' }];
     }
 
