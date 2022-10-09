@@ -17,19 +17,16 @@ export default class PeeringsProvider extends Component {
     const { router } = this;
     const owner = getOwner(this);
 
-    let tabs;
-    if (peer.isDialer) {
-      tabs = [
-        {
-          label: 'Exported Services',
-          route: 'dc.peers.edit.exported',
-        },
-      ];
-    } else {
-      tabs = [
-        { label: 'Imported Services', route: 'dc.peers.edit.imported' },
-        { label: 'Addresses', route: 'dc.peers.edit.addresses' },
-      ];
+    let tabs = [
+      { label: 'Imported Services', route: 'dc.peers.edit.imported' },
+      {
+        label: 'Exported Services',
+        route: 'dc.peers.edit.exported',
+      },
+    ];
+
+    if (!peer.isReceiver) {
+      tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.edit.addresses' }];
     }
 
     return tabs.map((tab) => new Tab({ ...tab, currentRouteName: router.currentRouteName, owner }));
