@@ -20,15 +20,16 @@ func TestServerHTTPChecks(t *testing.T) {
 	var (
 		ctx           = context.Background()
 		svcID         = "web-sidecar-proxy-1"
-		req           = &cachetype.ServiceHTTPChecksRequest{ServiceID: svcID}
 		correlationID = "correlation-id"
 		ch            = make(chan<- proxycfg.UpdateEvent)
 		cacheResult   = errors.New("KABOOM")
+		nodeName      = "server-1"
 	)
 
 	type testCase struct {
 		name                string
 		serviceInLocalState bool
+		req                 *cachetype.ServiceHTTPChecksRequest
 		expectedResult      error
 	}
 
@@ -38,25 +39,35 @@ func TestServerHTTPChecks(t *testing.T) {
 		mockCacheSource := newMockServiceHTTPChecks(t)
 		if tc.serviceInLocalState {
 			require.NoError(t, localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, ""))
-			mockCacheSource.On("Notify", ctx, req, correlationID, ch).Return(cacheResult)
+		}
+		if tc.req.NodeName == nodeName && tc.serviceInLocalState {
+			mockCacheSource.On("Notify", ctx, tc.req, correlationID, ch).Return(cacheResult)
 		} else {
 			mockCacheSource.AssertNotCalled(t, "Notify")
 		}
 
-		dataSource := ServerHTTPChecks(ServerDataSourceDeps{Logger: hclog.NewNullLogger()}, mockCacheSource, localState)
-		err := dataSource.Notify(ctx, req, correlationID, ch)
+		dataSource := ServerHTTPChecks(ServerDataSourceDeps{Logger: hclog.NewNullLogger()}, nodeName, mockCacheSource, localState)
+		err := dataSource.Notify(ctx, tc.req, correlationID, ch)
 		require.Equal(t, tc.expectedResult, err)
 	}
 
 	testcases := []testCase{
 		{
-			name:                "delegate to cache source if service in local state",
+			name:                "delegate to cache source if service in local state of the server node",
 			serviceInLocalState: true,
+			req:                 &cachetype.ServiceHTTPChecksRequest{ServiceID: svcID, NodeName: nodeName},
 			expectedResult:      cacheResult,
 		},
 		{
-			name:                "no-op if service not in local state",
+			name:                "no-op if service not in local state of server node",
 			serviceInLocalState: false,
+			req:                 &cachetype.ServiceHTTPChecksRequest{ServiceID: svcID, NodeName: nodeName},
+			expectedResult:      nil,
+		},
+		{
+			name:                "no-op if service with same ID in local state but belongs to different node",
+			serviceInLocalState: true,
+			req:                 &cachetype.ServiceHTTPChecksRequest{ServiceID: svcID, NodeName: "server-2"},
 			expectedResult:      nil,
 		},
 	}
