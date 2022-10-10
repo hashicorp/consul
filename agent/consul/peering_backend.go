@@ -139,12 +139,7 @@ func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID stri
 	if !peering.IsActive() {
 		return nil, fmt.Errorf("there is no active peering for %q", peerID)
 	}
-
-	// IMPORTANT: The address ring buffer must always be length > 0
-	if len(peering.PeerServerAddresses) == 0 {
-		return nil, fmt.Errorf("peer %q has no addresses to dial", peerID)
-	}
-	return bufferFromAddresses(peering.PeerServerAddresses), nil
+	return bufferFromAddresses(peering.PeerServerAddresses)
 }
 
 // maybeFetchGatewayAddresses will return a ring buffer with the latest gateway addresses if the
@@ -157,12 +152,10 @@ func (b *PeeringBackend) maybeFetchGatewayAddresses(ws memdb.WatchSet) (*ring.Ri
 	}
 	if useGateways {
 		addresses, err := meshGatewayAdresses(b.srv.fsm.State(), ws, false)
-
-		// IMPORTANT: The address ring buffer must always be length > 0
-		if err != nil || len(addresses) == 0 {
+		if err != nil {
 			return nil, fmt.Errorf("error fetching local mesh gateway addresses: %w", err)
 		}
-		return bufferFromAddresses(addresses), nil
+		return bufferFromAddresses(addresses)
 	}
 	return nil, nil
 }
@@ -182,13 +175,17 @@ func (b *PeeringBackend) PeerThroughMeshGateways(ws memdb.WatchSet) (bool, error
 
 }
 
-func bufferFromAddresses(addresses []string) *ring.Ring {
+func bufferFromAddresses(addresses []string) (*ring.Ring, error) {
+	// IMPORTANT: The address ring buffer must always be length > 0
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("no known addresses")
+	}
 	ring := ring.New(len(addresses))
 	for _, addr := range addresses {
 		ring.Value = addr
 		ring = ring.Next()
 	}
-	return ring
+	return ring, nil
 }
 
 func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]string, error) {

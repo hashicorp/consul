@@ -232,7 +232,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: acceptorPeerID,
 			expect: expectation{
-				err: fmt.Sprintf(`peer %q has no addresses to dial`, acceptorPeerID),
+				err: "no known addresses",
 			},
 		},
 		{
