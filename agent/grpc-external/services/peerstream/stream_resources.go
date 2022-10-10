@@ -709,7 +709,7 @@ func getTrustDomain(store StateStore, logger hclog.Logger) (string, error) {
 		return "", grpcstatus.Error(codes.Internal, "failed to read Connect CA Config")
 	case cfg == nil:
 		logger.Warn("cannot begin stream because Connect CA is not yet initialized")
-		return "", grpcstatus.Error(codes.FailedPrecondition, "Connect CA is not yet initialized")
+		return "", grpcstatus.Error(codes.Unavailable, "Connect CA is not yet initialized")
 	}
 	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
 }
