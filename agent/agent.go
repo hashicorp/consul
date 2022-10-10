@@ -3263,7 +3263,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 		check.Stop()
 		delete(a.checkH2PINGs, checkID)
 	}
-
+	if check, ok := a.checkAliases[checkID]; ok {
+		check.Stop()
+		delete(a.checkAliases, checkID)
+	}
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
