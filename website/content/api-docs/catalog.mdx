@@ -270,7 +270,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
-| `NO`             | `none`            | `none`        | `none`       |
+| `NO`             | `none`            | `simple`      | `none`       |
 
 The corresponding CLI command is [`consul catalog datacenters`](/commands/catalog/datacenters).
 
@@ -401,7 +401,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `YES`            | `all`             | `none`        | `service:read` |
+| `YES`            | `all`             | `simple`      | `service:read` |
 
 The corresponding CLI command is [`consul catalog services`](/commands/catalog/services).
 
