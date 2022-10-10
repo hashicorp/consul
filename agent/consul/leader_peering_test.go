@@ -1144,15 +1144,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient2.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, int(resp.Peering.ImportedServiceCount))
-				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.ImportedServices))
+				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ImportedServices))
 
 				// on List
 				resp2, err2 := peeringClient2.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, int(resp2.Peerings[0].ImportedServiceCount))
-				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].ImportedServices))
+				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ImportedServices))
 			})
 
 			// Check that exported services count on S1 are what we expect
@@ -1161,15 +1159,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s2"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, int(resp.Peering.ExportedServiceCount))
-				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.ExportedServices))
+				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ExportedServices))
 
 				// on List
 				resp2, err2 := peeringClient.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, int(resp2.Peerings[0].ExportedServiceCount))
-				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].ExportedServices))
+				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ExportedServices))
 			})
 		})
 	}

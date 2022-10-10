@@ -572,8 +572,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	var lastSendAck time.Time
+	var lastSendSuccess time.Time
 
 	client.DrainStream(t)
+
+	// Manually grab the last success time from sending the trust bundle or exported services list.
+	status, ok := srv.StreamStatus(testPeerID)
+	require.True(t, ok)
+	lastSendSuccess = status.LastSendSuccess
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
@@ -589,11 +595,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		lastSendAck = it.FutureNow(1)
+
 		err := client.Send(ack)
 		require.NoError(t, err)
 
 		expect := Status{
 			Connected:        true,
+			LastSendSuccess:  lastSendSuccess,
 			LastAck:          lastSendAck,
 			ExportedServices: []string{},
 		}
@@ -631,6 +639,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:        true,
+			LastSendSuccess:  lastSendSuccess,
 			LastAck:          lastSendAck,
 			LastNack:         lastNack,
 			LastNackMessage:  lastNackMsg,
@@ -682,6 +691,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
+			LastSendSuccess:         lastSendSuccess,
 			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
@@ -737,6 +747,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
+			LastSendSuccess:         lastSendSuccess,
 			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
@@ -766,6 +777,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
+			LastSendSuccess:         lastSendSuccess,
 			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
@@ -793,6 +805,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
+			LastSendSuccess:         lastSendSuccess,
 			LastAck:                 lastSendAck,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,

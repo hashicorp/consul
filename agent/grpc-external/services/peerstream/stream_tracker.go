@@ -214,6 +214,9 @@ type Status struct {
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
+	// LastSendSuccess tracks the time we last successfully sent a resource TO the peer.
+	LastSendSuccess time.Time
+
 	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
 	LastRecvHeartbeat time.Time
 
@@ -268,6 +271,12 @@ func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
 	s.LastSendError = s.timeNow().UTC()
 	s.LastSendErrorMessage = error
+	s.mu.Unlock()
+}
+
+func (s *MutableStatus) TrackSendSuccess() {
+	s.mu.Lock()
+	s.LastSendSuccess = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 

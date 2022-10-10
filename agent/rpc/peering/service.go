@@ -632,8 +632,10 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
+		// TODO(peering): this may be noise on non-leaders
 		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
+		peering.StreamStatus = &pbpeering.StreamStatus{}
 		return peering
 	} else {
 		cp := copyPeering(peering)
@@ -645,11 +647,26 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		// add imported & exported services
-		cp.ImportedServices = streamState.ImportedServices
-		cp.ExportedServices = streamState.ExportedServices
-		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
-		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
+		latest := func(tt ...time.Time) time.Time {
+			latest := time.Time{}
+			for _, t := range tt {
+				if t.After(latest) {
+					latest = t
+				}
+			}
+			return latest
+		}
+
+		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
+		lastSend := latest(streamState.LastSendError, streamState.LastSendSuccess)
+
+		cp.StreamStatus = &pbpeering.StreamStatus{
+			ImportedServices: streamState.ImportedServices,
+			ExportedServices: streamState.ExportedServices,
+			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      structs.TimeToProto(lastRecv),
+			LastSend:         structs.TimeToProto(lastSend),
+		}
 
 		return cp
 	}

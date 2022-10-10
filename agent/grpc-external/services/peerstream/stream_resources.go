@@ -351,8 +351,14 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		err := streamReq.Stream.Send(msg)
 		sendMutex.Unlock()
 
-		if err != nil {
-			status.TrackSendError(err.Error())
+		// We only track send successes and errors for response types because this is meant to track
+		// resources, not request/ack messages.
+		if msg.GetResponse() != nil {
+			if err != nil {
+				status.TrackSendError(err.Error())
+			} else {
+				status.TrackSendSuccess()
+			}
 		}
 		return err
 	}

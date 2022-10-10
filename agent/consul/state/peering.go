@@ -584,12 +584,7 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		if req.Peering.State == pbpeering.PeeringState_UNDEFINED {
 			req.Peering.State = existing.State
 		}
-		// TODO(peering): Confirm behavior when /peering/token is called more than once.
-		// We may need to avoid clobbering existing values.
-		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
-		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
-		req.Peering.ImportedServices = existing.ImportedServices
-		req.Peering.ExportedServices = existing.ExportedServices
+		req.Peering.StreamStatus = nil
 		req.Peering.CreateIndex = existing.CreateIndex
 		req.Peering.ModifyIndex = idx
 	} else {
