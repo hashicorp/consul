@@ -32,6 +32,8 @@ Usage: `consul connect redirect-traffic [options]`
 
 #### Command Options
 
+- `-node-name` - The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.
+
 - `-consul-dns-ip` - The IP address of the Consul DNS resolver. If provided, DNS queries will be redirected to the provided IP address for name resolution.
 
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
