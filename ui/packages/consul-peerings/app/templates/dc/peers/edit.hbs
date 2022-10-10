@@ -54,52 +54,65 @@
                   <div
                     class="hds-typography-body-200 hds-font-weight-semibold mb-2 text-hds-foreground-primary"
                   >Latest heartbeat</div>
-                  {{#let (smart-date-format item.heartbeat) as |smartDate|}}
-                    <div class="flex items-center"><FlightIcon
-                        @name="activity"
-                        class="mr-0.5 text-hds-foreground-faint fill-current"
-                      />
-                      {{#if smartDate.isNearDate}}
-                        <span
-                          {{tooltip smartDate.friendly}}
-                        >{{smartDate.relative}}</span>
-                      {{else}}
-                        <span>{{smartDate.friendly}}</span>
-                      {{/if}}
-                    </div>
-                  {{/let}}
+                  <div class="flex items-center">
+                    {{#if item.heartbeat}}
+                      {{#let (smart-date-format item.heartbeat) as |smartDate|}}
+                        <FlightIcon
+                          @name="activity"
+                          class="mr-0.5 text-hds-foreground-faint fill-current"
+                        />
+                        {{#if smartDate.isNearDate}}
+                          <span
+                            {{tooltip smartDate.friendly}}
+                          >{{smartDate.relative}}</span>
+                        {{else}}
+                          <span>{{smartDate.friendly}}</span>
+                        {{/if}}
+                      {{/let}}
+                    {{else}}
+                      <span>None yet</span>
+                    {{/if}}
+                  </div>
                 </div>
                 <div class="shrink-0">
                   <div
                     class="hds-typography-body-200 hds-font-weight-semibold mb-2 text-hds-foregrouny-primary"
                   >Latest receipt</div>
-                  {{#let (smart-date-format item.receipt) as |smartDate|}}
-                    <div class="flex items-center">
-                      {{#if smartDate.isNearDate}}
-                        <span
-                          {{tooltip smartDate.friendly}}
-                        >{{smartDate.relative}}</span>
-                      {{else}}
-                        <span>{{smartDate.friendly}}</span>
-                      {{/if}}
-                    </div>
-                  {{/let}}
+                  <div class="flex items-center">
+                    {{#if item.receipt}}
+                      {{#let (smart-date-format item.receipt) as |smartDate|}}
+                        {{#if smartDate.isNearDate}}
+                          <span
+                            {{tooltip smartDate.friendly}}
+                          >{{smartDate.relative}}</span>
+                        {{else}}
+                          <span>{{smartDate.friendly}}</span>
+                        {{/if}}
+                      {{/let}}
+                    {{else}}
+                      <span>None yet</span>
+                    {{/if}}
+                  </div>
                 </div>
                 <div class="shrink-0">
                   <div
                     class="hds-typography-body-200 hds-font-weight-semibold mb-2 text-hds-foreground-primary"
                   >Latest send</div>
-                  {{#let (smart-date-format item.lastSend) as |smartDate|}}
-                    <div class="flex items-center">
-                      {{#if smartDate.isNearDate}}
-                        <span
-                          {{tooltip smartDate.friendly}}
-                        >{{smartDate.relative}}</span>
-                      {{else}}
-                        <span>{{smartDate.friendly}}</span>
-                      {{/if}}
-                    </div>
-                  {{/let}}
+                  <div class="flex items-center">
+                    {{#if item.lastSend}}
+                      {{#let (smart-date-format item.lastSend) as |smartDate|}}
+                        {{#if smartDate.isNearDate}}
+                          <span
+                            {{tooltip smartDate.friendly}}
+                          >{{smartDate.relative}}</span>
+                        {{else}}
+                          <span>{{smartDate.friendly}}</span>
+                        {{/if}}
+                      {{/let}}
+                    {{else}}
+                      <span>None yet</span>
+                    {{/if}}
+                  </div>
 
                 </div>
               </div>

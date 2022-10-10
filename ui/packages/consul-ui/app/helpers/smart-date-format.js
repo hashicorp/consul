@@ -21,16 +21,6 @@ export default class SmartDateFormat extends Helper {
   @service intl;
 
   compute([value], hash) {
-    const fallback = hash.fallback || 'None yet';
-
-    if (!value) {
-      return {
-        isNearDate: false,
-        relative: fallback,
-        friendly: fallback,
-      };
-    }
-
     return {
       isNearDate: isNearDate(value),
       relative: `${this.temporal.format(value)} ago`,
