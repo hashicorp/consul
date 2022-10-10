@@ -5,29 +5,39 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	acl "github.com/hashicorp/consul/acl"
-	resolver "github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/consul/types"
 )
 
 const (
 	testToken        = "acl-token-get-envoy-bootstrap-params"
+	testServiceName  = "web"
 	proxyServiceID   = "web-proxy"
 	nodeName         = "foo"
 	nodeID           = "2980b72b-bd9d-9d7b-d4f9-951bf7508d95"
 	proxyConfigKey   = "envoy_dogstatsd_url"
 	proxyConfigValue = "udp://127.0.0.1:8125"
 	serverDC         = "dc1"
+
+	protocolKey       = "protocol"
+	connectTimeoutKey = "local_connect_timeout_ms"
+	requestTimeoutKey = "local_request_timeout_ms"
+
+	proxyDefaultsProtocol         = "http"
+	proxyDefaultsRequestTimeout   = 1111
+	serviceDefaultsProtocol       = "tcp"
+	serviceDefaultsConnectTimeout = 4444
 )
 
 func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
@@ -43,7 +53,7 @@ func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
 			Address: "127.0.0.2",
 			Port:    2222,
 			Proxy: structs.ConnectProxyConfig{
-				DestinationServiceName: "web",
+				DestinationServiceName: testServiceName,
 				Config: map[string]interface{}{
 					proxyConfigKey: proxyConfigValue,
 				},
@@ -63,17 +73,56 @@ func testRegisterIngressGateway(t *testing.T) *structs.RegisterRequest {
 	return registerReq
 }
 
+func testProxyDefaults(t *testing.T) structs.ConfigEntry {
+	return &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			protocolKey:       proxyDefaultsProtocol,
+			requestTimeoutKey: proxyDefaultsRequestTimeout,
+		},
+	}
+}
+
+func testServiceDefaults(t *testing.T) structs.ConfigEntry {
+	return &structs.ServiceConfigEntry{
+		Kind:                  structs.ServiceDefaults,
+		Name:                  testServiceName,
+		Protocol:              serviceDefaultsProtocol,
+		LocalConnectTimeoutMs: serviceDefaultsConnectTimeout,
+	}
+}
+
+func requireConfigField(t *testing.T, resp *pbdataplane.GetEnvoyBootstrapParamsResponse, key string, value interface{}) {
+	require.Contains(t, resp.Config.Fields, key)
+	require.Equal(t, value, resp.Config.Fields[key])
+}
+
 func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 	type testCase struct {
-		name        string
-		registerReq *structs.RegisterRequest
-		nodeID      bool
+		name            string
+		registerReq     *structs.RegisterRequest
+		nodeID          bool
+		proxyDefaults   structs.ConfigEntry
+		serviceDefaults structs.ConfigEntry
 	}
 
 	run := func(t *testing.T, tc testCase) {
 		store := testutils.TestStateStore(t, nil)
-		err := store.EnsureRegistration(1, tc.registerReq)
+		idx := uint64(1)
+		err := store.EnsureRegistration(idx, tc.registerReq)
 		require.NoError(t, err)
+
+		if tc.proxyDefaults != nil {
+			idx++
+			err := store.EnsureConfigEntry(idx, tc.proxyDefaults)
+			require.NoError(t, err)
+		}
+		if tc.serviceDefaults != nil {
+			idx++
+			err := store.EnsureConfigEntry(idx, tc.serviceDefaults)
+			require.NoError(t, err)
+		}
 
 		aclResolver := &MockACLResolver{}
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
@@ -109,20 +158,33 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		require.Equal(t, serverDC, resp.Datacenter)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.PartitionOrDefault(), resp.Partition)
 		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
-		require.Contains(t, resp.Config.Fields, proxyConfigKey)
-		require.Equal(t, structpb.NewStringValue(proxyConfigValue), resp.Config.Fields[proxyConfigKey])
+		requireConfigField(t, resp, proxyConfigKey, structpb.NewStringValue(proxyConfigValue))
 		require.Equal(t, convertToResponseServiceKind(tc.registerReq.Service.Kind), resp.ServiceKind)
 		require.Equal(t, tc.registerReq.Node, resp.NodeName)
 		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
+
+		if tc.serviceDefaults != nil && tc.proxyDefaults != nil {
+			// service-defaults take precedence over proxy-defaults
+			requireConfigField(t, resp, protocolKey, structpb.NewStringValue(serviceDefaultsProtocol))
+			requireConfigField(t, resp, connectTimeoutKey, structpb.NewNumberValue(serviceDefaultsConnectTimeout))
+			requireConfigField(t, resp, requestTimeoutKey, structpb.NewNumberValue(proxyDefaultsRequestTimeout))
+		} else if tc.serviceDefaults != nil {
+			requireConfigField(t, resp, protocolKey, structpb.NewStringValue(serviceDefaultsProtocol))
+			requireConfigField(t, resp, connectTimeoutKey, structpb.NewNumberValue(serviceDefaultsConnectTimeout))
+		} else if tc.proxyDefaults != nil {
+			requireConfigField(t, resp, protocolKey, structpb.NewStringValue(proxyDefaultsProtocol))
+			requireConfigField(t, resp, requestTimeoutKey, structpb.NewNumberValue(proxyDefaultsRequestTimeout))
+		}
+
 	}
 
 	testCases := []testCase{
 		{
-			name:        "lookup service side car proxy by node name",
+			name:        "lookup service sidecar proxy by node name",
 			registerReq: testRegisterRequestProxy(t),
 		},
 		{
-			name:        "lookup service side car proxy by node ID",
+			name:        "lookup service sidecar proxy by node ID",
 			registerReq: testRegisterRequestProxy(t),
 			nodeID:      true,
 		},
@@ -134,6 +196,21 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 			name:        "lookup ingress gw service by node ID",
 			registerReq: testRegisterIngressGateway(t),
 			nodeID:      true,
+		},
+		{
+			name:          "merge proxy defaults for sidecar proxy",
+			registerReq:   testRegisterRequestProxy(t),
+			proxyDefaults: testProxyDefaults(t),
+		},
+		{
+			name:            "merge service defaults for sidecar proxy",
+			registerReq:     testRegisterRequestProxy(t),
+			serviceDefaults: testServiceDefaults(t),
+		},
+		{
+			name:            "merge proxy defaults and service defaults for sidecar proxy",
+			registerReq:     testRegisterRequestProxy(t),
+			serviceDefaults: testServiceDefaults(t),
 		},
 	}
 

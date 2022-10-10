@@ -9,10 +9,11 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	acl "github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
@@ -73,7 +74,24 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		NodeId:      string(svc.ID),
 	}
 
-	bootstrapConfig, err := structpb.NewStruct(svc.ServiceProxy.Config)
+	// This is awkward because it's designed for different requests, but
+	// this fakes the ServiceSpecificRequest so that we can reuse code.
+	_, ns, err := configentry.MergeNodeServiceWithCentralConfig(
+		nil,
+		store,
+		&structs.ServiceSpecificRequest{
+			Datacenter:   s.Datacenter,
+			QueryOptions: options,
+		},
+		svc.ToNodeService(),
+		logger,
+	)
+	if err != nil {
+		logger.Error("Error merging with central config", "error", err)
+		return nil, status.Errorf(codes.Unknown, "Error merging central config: %v", err)
+	}
+
+	bootstrapConfig, err := structpb.NewStruct(ns.Proxy.Config)
 	if err != nil {
 		logger.Error("Error creating the envoy boostrap params config", "error", err)
 		return nil, status.Error(codes.Unknown, "Error creating the envoy boostrap params config")

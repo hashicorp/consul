@@ -1,4 +1,4 @@
-package consul
+package configentry
 
 import (
 	"fmt"
@@ -8,18 +8,21 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/consul/agent/configentry"
-	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// mergeNodeServiceWithCentralConfig merges a service instance (NodeService) with the
+type StateStore interface {
+	ReadResolvedServiceConfigEntries(memdb.WatchSet, string, *acl.EnterpriseMeta, []structs.ServiceID, structs.ProxyMode) (uint64, *ResolvedServiceConfigSet, error)
+}
+
+// MergeNodeServiceWithCentralConfig merges a service instance (NodeService) with the
 // proxy-defaults/global and service-defaults/:service config entries.
 // This common helper is used by the blocking query function of different RPC endpoints
 // that need to return a fully resolved service defintion.
-func mergeNodeServiceWithCentralConfig(
+func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
-	state *state.Store,
+	state StateStore,
 	args *structs.ServiceSpecificRequest,
 	ns *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
@@ -67,7 +70,7 @@ func mergeNodeServiceWithCentralConfig(
 			ns.ID, err)
 	}
 
-	defaults, err := configentry.ComputeResolvedServiceConfig(
+	defaults, err := ComputeResolvedServiceConfig(
 		configReq,
 		upstreams,
 		false,
