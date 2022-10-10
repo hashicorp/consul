@@ -42,10 +42,6 @@ The table below shows this endpoint's support for
 - `Partition` `(string: "")` - <EnterpriseAlert inline /> The admin partition that the
   peering token is generated from. Uses `default` when not specified.
 
-- `ServerExternalAddresses` `([]string: <optional>)` - A list of addresses to put
-into the generated token. Addresses are the form of `{host or IP}:port`.
-You can specify one or more load balancers or external IPs that route external traffic to this cluster's Consul servers.
-
 - `Meta` `(map<string|string>: <optional>)` - Specifies KV metadata to associate with
   the peering. This parameter is not required and does not directly impact the cluster
   peering process.
