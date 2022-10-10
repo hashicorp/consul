@@ -50,15 +50,17 @@ import { hrefTo } from 'consul-ui/helpers/href-to';
 export class Tab {
   @tracked route;
   @tracked label;
+  @tracked tooltip;
   @tracked currentRouteName;
 
   constructor(opts) {
-    const { currentRouteName, route, label, owner } = opts;
+    const { currentRouteName, route, label, tooltip, owner } = opts;
 
     this.currentRouteName = currentRouteName;
     this.owner = owner;
     this.route = route;
     this.label = label;
+    this.tooltip = tooltip;
   }
 
   get selected() {
