@@ -47,8 +47,6 @@ var StatsCounters = []prometheus.CounterDefinition{
 	},
 }
 
-var DefaultMetrics = metrics.Default
-
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.
 type statsHandler struct {

@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
@@ -1415,7 +1414,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, metrics.Default())
+	externalGRPCServer := external.NewServer(deps.Logger, nil)
 
 	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)

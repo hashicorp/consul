@@ -22,6 +22,9 @@ var (
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
 func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics) *grpc.Server {
+	if metricsObj == nil {
+		metricsObj = metrics.Default()
+	}
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{

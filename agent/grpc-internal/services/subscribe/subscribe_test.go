@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
@@ -378,7 +377,7 @@ func runTestServer(t *testing.T, server *Server) net.Addr {
 			grpcServer = srv
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
 		},
-		metrics.Default(),
+		nil,
 	)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")

@@ -25,6 +25,9 @@ var (
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
 func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics) *Handler {
+	if metricsObj == nil {
+		metricsObj = metrics.Default()
+	}
 
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
