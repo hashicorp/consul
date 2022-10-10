@@ -135,11 +135,15 @@ dc:
       detail:
         imported:
           count: |
-           {count} imported services
+            {count} imported services
           tooltip: The number of services imported from {name}
+          tab-tooltip: Services imported from {name}
         exported:
           count: |
-           {count} exported services
+            {count} exported services
+          tooltip: The number of services exported from {name}
+          tab-tooltip: Services exported from {name}
+        addresses:
           tooltip: The number of services exported from {name}
   partitions:
     index:

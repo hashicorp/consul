@@ -5,6 +5,7 @@ import { Tab } from 'consul-ui/components/tab-nav';
 
 export default class PeeringsProvider extends Component {
   @service router;
+  @service intl;
 
   get data() {
     return {
@@ -17,15 +18,21 @@ export default class PeeringsProvider extends Component {
     const { router } = this;
     const owner = getOwner(this);
 
+    const { isReceiver, Name: name } = peer;
     let tabs = [
-      { label: 'Imported Services', route: 'dc.peers.edit.imported' },
+      {
+        label: 'Imported Services',
+        route: 'dc.peers.edit.imported',
+        tooltip: this.intl.t('routes.dc.peers.index.detail.imported.tab-tooltip', { name }),
+      },
       {
         label: 'Exported Services',
         route: 'dc.peers.edit.exported',
+        tooltip: this.intl.t('routes.dc.peers.index.detail.exported.tab-tooltip', { name }),
       },
     ];
 
-    if (peer.isReceiver) {
+    if (isReceiver) {
       tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.edit.addresses' }];
     }
 
