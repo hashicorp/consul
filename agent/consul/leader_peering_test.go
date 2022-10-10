@@ -567,7 +567,7 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 	}
 
 	// Since the Establish RPC dials the remote cluster, it will yield the TLS error.
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	_, err = s2Client.Establish(ctx, &establishReq)
 	require.Contains(t, err.Error(), expectErr)
