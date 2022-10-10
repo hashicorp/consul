@@ -7,11 +7,12 @@
 package pbpeering
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -1687,10 +1688,6 @@ type GenerateTokenRequest struct {
 	Partition string `protobuf:"bytes,2,opt,name=Partition,proto3" json:"Partition,omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `protobuf:"bytes,5,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
-	// load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
-	// addresses obtained from the "consul" service.
-	ServerExternalAddresses []string `protobuf:"bytes,6,rep,name=ServerExternalAddresses,proto3" json:"ServerExternalAddresses,omitempty"`
 }
 
 func (x *GenerateTokenRequest) Reset() {
@@ -1742,13 +1739,6 @@ func (x *GenerateTokenRequest) GetPartition() string {
 func (x *GenerateTokenRequest) GetMeta() map[string]string {
 	if x != nil {
 		return x.Meta
-	}
-	return nil
-}
-
-func (x *GenerateTokenRequest) GetServerExternalAddresses() []string {
-	if x != nil {
-		return x.ServerExternalAddresses
 	}
 	return nil
 }

@@ -310,15 +310,9 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	// ServerExternalAddresses must be formatted as addr:port.
-	var serverAddrs []string
-	if len(req.ServerExternalAddresses) > 0 {
-		serverAddrs = req.ServerExternalAddresses
-	} else {
-		serverAddrs, err = s.Backend.GetLocalServerAddresses()
-		if err != nil {
-			return nil, err
-		}
+	serverAddrs, err := s.Backend.GetLocalServerAddresses()
+	if err != nil {
+		return nil, err
 	}
 
 	tok := structs.PeeringToken{
