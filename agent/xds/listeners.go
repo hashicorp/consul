@@ -1073,6 +1073,19 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 	return nil
 }
 
+func getAlpnProtocols(protocol string) []string {
+	var alpnProtocols []string
+
+	switch protocol {
+	case "grpc", "http2":
+		alpnProtocols = append(alpnProtocols, "h2", "http/1.1")
+	case "http":
+		alpnProtocols = append(alpnProtocols, "http/1.1")
+	}
+
+	return alpnProtocols
+}
+
 func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
@@ -1081,12 +1094,21 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
+	// Determine listener protocol type from configured service protocol. Don't hard fail on a config typo,
+	//The parse func returns default config if there is an error, so it's safe to continue.
+	cfg, _ := ParseProxyConfig(cfgSnap.Proxy.Config)
+
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
 	tlsContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)
+
+	if tlsContext != nil {
+		// Configure alpn protocols on CommonTLSContext
+		tlsContext.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
+	}
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
 	if len(peerBundles) > 0 {

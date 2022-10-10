@@ -110,6 +110,17 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+		"http2ProtocolOptions": {
+
+		},
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }
@@ -120,6 +131,7 @@
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
                 "alpnProtocols": [
+                  "h2",
                   "http/1.1"
                 ],
                 "tlsParams": {

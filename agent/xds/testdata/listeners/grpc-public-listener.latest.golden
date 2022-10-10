@@ -91,6 +91,19 @@
                 },
                 "httpFilters": [
                   {
+                    "name": "envoy.filters.http.grpc_stats",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
+		      "statsForAllMethods": true
+                    }
+		  },
+		  {
+                    "name": "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
+                    }
+		  },
+                  {
                     "name": "envoy.filters.http.rbac",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
@@ -105,11 +118,22 @@
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
                   }
-                ],
+		],
                 "tracing": {
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+		"http2ProtocolOptions": {
+
+		},
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }
@@ -120,7 +144,8 @@
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
                 "alpnProtocols": [
-                  "http/1.1"
+                  "h2",
+		  "http/1.1"
                 ],
                 "tlsParams": {
 

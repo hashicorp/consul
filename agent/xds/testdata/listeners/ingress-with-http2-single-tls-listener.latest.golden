@@ -3,61 +3,11 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:127.0.0.1:9191",
+      "name": "http2:1.2.3.4:8080",
       "address": {
         "socketAddress": {
-          "address": "127.0.0.1",
-          "portValue": 9191
-        }
-      },
-      "filterChains": [
-        {
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.db.default.default.dc1",
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        }
-      ],
-      "trafficDirection": "OUTBOUND"
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "prepared_query:geo-cache:127.10.10.10:8181",
-      "address": {
-        "socketAddress": {
-          "address": "127.10.10.10",
-          "portValue": 8181
-        }
-      },
-      "filterChains": [
-        {
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.prepared_query_geo-cache",
-                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        }
-      ],
-      "trafficDirection": "OUTBOUND"
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "public_listener:0.0.0.0:9999",
-      "address": {
-        "socketAddress": {
-          "address": "0.0.0.0",
-          "portValue": 9999
+          "address": "1.2.3.4",
+          "portValue": 8080
         }
       },
       "filterChains": [
@@ -67,38 +17,69 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "public_listener",
-                "routeConfig": {
-                  "name": "public_listener",
-                  "virtualHosts": [
-                    {
-                      "name": "public_listener",
-                      "domains": [
-                        "*"
-                      ],
-                      "routes": [
-                        {
-                          "match": {
-                            "prefix": "/"
-                          },
-                          "route": {
-                            "cluster": "local_app"
-                          }
-                        }
-                      ]
-                    }
-                  ]
+                "statPrefix": "ingress_upstream_8080",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    },
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "8080"
+                },
+                "http2ProtocolOptions": {
+
                 },
                 "httpFilters": [
                   {
-                    "name": "envoy.filters.http.rbac",
+                    "name": "envoy.filters.http.router",
                     "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {
-
-                      }
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "http2:1.2.3.4:8081",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8081
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix": "ingress_upstream_8081",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    },
+                    "resourceApiVersion": "V3"
                   },
+                  "routeConfigName": "8081"
+                },
+                "http2ProtocolOptions": {
+
+                },
+                "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
                     "typedConfig": {
@@ -120,10 +101,11 @@
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
                 "alpnProtocols": [
+                  "h2",
                   "http/1.1"
                 ],
                 "tlsParams": {
-
+                  "tlsMinimumProtocolVersion": "TLSv1_2"
                 },
                 "tlsCertificates": [
                   {
@@ -141,12 +123,12 @@
                   }
                 }
               },
-              "requireClientCertificate": true
+              "requireClientCertificate": false
             }
           }
         }
       ],
-      "trafficDirection": "INBOUND"
+      "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
