@@ -12,6 +12,11 @@ export default class ServiceService extends RepositoryService {
     return super.findAll(...arguments);
   }
 
+  @dataSource('/:partition/:ns/:dc/services/:peer')
+  async findAllImportedServices() {
+    return super.findAll(...arguments);
+  }
+
   @dataSource('/:partition/:ns/:dc/gateways/for-service/:gateway')
   findGatewayBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {

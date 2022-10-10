@@ -1,3 +1,133 @@
 <Route @name={{routeName}} as |route|>
-  <div>This is imported services</div>
+  <DataLoader
+    @src={{uri
+      "/${partition}/${nspace}/${dc}/services/${peer}"
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        peer=route.model.peer.Name
+      )
+    }}
+    as |api|
+  >
+
+    <BlockSlot @name="error">
+      <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+      {{#let
+        (hash
+          value=(or sortBy "Status:asc")
+          change=(action (mut sortBy) value="target.selected")
+        )
+        (hash
+          status=(hash
+            value=(if status (split status ",") undefined)
+            change=(action (mut status) value="target.selectedItems")
+          )
+          kind=(hash
+            value=(if kind (split kind ",") undefined)
+            change=(action (mut kind) value="target.selectedItems")
+          )
+          source=(hash
+            value=(if source (split source ",") undefined)
+            change=(action (mut source) value="target.selectedItems")
+          )
+          searchproperty=(hash
+            value=(if
+              (not-eq searchproperty undefined)
+              (split searchproperty ",")
+              this.searchProperties
+            )
+            change=(action (mut searchproperty) value="target.selectedItems")
+            default=this.searchProperties
+          )
+        )
+        (reject-by "Kind" "connect-proxy" api.data)
+        (or route.params.partition route.model.user.token.Partition "default")
+        (or route.params.nspace route.model.user.token.Namespace "default")
+        as |sort filters items partition nspace|
+      }}
+
+        {{#if (gt items.length 0)}}
+          {{#let (collection items) as |items|}}
+            <Consul::Service::SearchBar
+              @sources={{get items "ExternalSources"}}
+              @partitions={{get items "Partitions"}}
+              @partition={{partition}}
+              @search={{search}}
+              @onsearch={{action (mut search) value="target.value"}}
+              @sort={{sort}}
+              @filter={{filters}}
+            />
+          {{/let}}
+        {{/if}}
+        <DataCollection
+          @type="service"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+          as |collection|
+        >
+          <collection.Collection>
+            <Consul::Service::List
+              @items={{collection.items}}
+              @partition={{partition}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState @login={{route.model.app.login.open}}>
+              <BlockSlot @name="header">
+                <h2>
+                  No visible imported services from
+                  {{route.model.peer.Name}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                {{#if items.length}}
+                  <div>
+                    No services where found matching that search, or you may not
+                    have access to view the services you are searching for.
+                  </div>
+                {{else}}
+                  <div>Services must be exported from one peer to another to
+                    enable service communication across two peers. There don't
+                    seem to be any services imported from
+                    {{route.model.peer.Name}}
+                    yet, or you may not have
+                    <code>service:read</code>
+                    permissions to access to this view.</div>
+                {{/if}}
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a
+                    href="{{env 'CONSUL_DOCS_URL'}}/connect/cluster-peering"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Documentation on Peers
+                  </a>
+                </li>
+                <li class="learn-link">
+                  <a
+                    href="{{env
+                      'CONSUL_DOCS_URL'
+                    }}/connect/cluster-peering/create-manage-peering"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Take the tutorial
+                  </a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>
