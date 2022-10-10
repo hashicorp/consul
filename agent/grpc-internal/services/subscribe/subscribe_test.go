@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
@@ -370,10 +371,15 @@ var _ Backend = (*testBackend)(nil)
 func runTestServer(t *testing.T, server *Server) net.Addr {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(hclog.New(nil), addr, func(srv *gogrpc.Server) {
-		grpcServer = srv
-		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
-	})
+	handler := grpc.NewHandler(
+		hclog.New(nil),
+		addr,
+		func(srv *gogrpc.Server) {
+			grpcServer = srv
+			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
+		},
+		metrics.Default(),
+	)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

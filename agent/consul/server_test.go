@@ -328,7 +328,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"))
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), metrics.Default())
 	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err

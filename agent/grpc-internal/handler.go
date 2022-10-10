@@ -15,8 +15,7 @@ import (
 )
 
 var (
-	defaultMetrics = agentmiddleware.DefaultMetrics
-	metricsLabels  = []metrics.Label{{
+	metricsLabels = []metrics.Label{{
 		Name:  "server_type",
 		Value: "internal",
 	}}
@@ -25,15 +24,14 @@ var (
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
-func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)) *Handler {
+func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics) *Handler {
 
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
-	metrics := defaultMetrics()
 	opts := []grpc.ServerOption{
-		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metrics, metricsLabels)),
+		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -41,7 +39,7 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 		middleware.WithStreamServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.StreamServerInterceptor(recoveryOpts...),
-			agentmiddleware.NewActiveStreamCounter(metrics, metricsLabels).Intercept,
+			agentmiddleware.NewActiveStreamCounter(metricsObj, metricsLabels).Intercept,
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime: 15 * time.Second,

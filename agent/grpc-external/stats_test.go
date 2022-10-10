@@ -5,7 +5,6 @@ import (
 	"net"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/google/go-cmp/cmp"
@@ -21,10 +20,9 @@ import (
 )
 
 func TestServer_EmitsStats(t *testing.T) {
-	sink, reset := patchGlobalMetrics(t)
+	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default())
-	reset()
+	srv := NewServer(hclog.Default(), metricsObj)
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 
@@ -95,30 +93,6 @@ func TestServer_EmitsStats(t *testing.T) {
 		{Key: []string{"testing", "grpc", "server", "stream", "count"}, Val: 1, Labels: expLabels},
 	}
 	prototest.AssertDeepEqual(t, expectedCounter, sink.IncrCounterCalls, cmpMetricCalls)
-}
-
-func patchGlobalMetrics(t *testing.T) (*testutil.FakeMetricsSink, func()) {
-	t.Helper()
-
-	sink := &testutil.FakeMetricsSink{}
-	cfg := &metrics.Config{
-		ServiceName:      "testing",
-		TimerGranularity: time.Millisecond, // Timers are in milliseconds
-		ProfileInterval:  time.Second,      // Poll runtime every second
-		FilterDefault:    true,
-	}
-	var err error
-	defaultMetrics = func() *metrics.Metrics {
-		m, _ := metrics.New(cfg, sink)
-		return m
-	}
-	require.NoError(t, err)
-	reset := func() {
-		t.Helper()
-		defaultMetrics = metrics.Default
-		require.NoError(t, err, "failed to reset global metrics")
-	}
-	return sink, reset
 }
 
 func logError(t *testing.T, f func() error) func() {

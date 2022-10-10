@@ -2,9 +2,27 @@ package testutil
 
 import (
 	"sync"
+	"testing"
+	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/require"
 )
+
+func NewFakeSink(t *testing.T) (*FakeMetricsSink, *metrics.Metrics) {
+	t.Helper()
+
+	sink := &FakeMetricsSink{}
+	cfg := &metrics.Config{
+		ServiceName:      "testing",
+		TimerGranularity: time.Millisecond, // Timers are in milliseconds
+		ProfileInterval:  time.Second,      // Poll runtime every second
+		FilterDefault:    true,
+	}
+	m, err := metrics.New(cfg, sink)
+	require.NoError(t, err)
+	return sink, m
+}
 
 type FakeMetricsSink struct {
 	lock sync.Mutex

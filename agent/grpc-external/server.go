@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	defaultMetrics = agentmiddleware.DefaultMetrics
-	metricsLabels  = []metrics.Label{{
+	metricsLabels = []metrics.Label{{
 		Name:  "server_type",
 		Value: "external",
 	}}
@@ -22,13 +21,12 @@ var (
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger) *grpc.Server {
+func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics) *grpc.Server {
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
-	metrics := defaultMetrics()
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
-		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metrics, metricsLabels)),
+		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -36,7 +34,7 @@ func NewServer(logger agentmiddleware.Logger) *grpc.Server {
 		middleware.WithStreamServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.StreamServerInterceptor(recoveryOpts...),
-			agentmiddleware.NewActiveStreamCounter(metrics, metricsLabels).Intercept,
+			agentmiddleware.NewActiveStreamCounter(metricsObj, metricsLabels).Intercept,
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			// This must be less than the keealive.ClientParameters Time setting, otherwise
