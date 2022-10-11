@@ -1,6 +1,22 @@
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
 
+function normalizePeerPayload(peerPayload, dc, partition) {
+  const {
+    StreamStatus: { LastHeartbeat, LastReceive, LastSend, ImportedServices, ExportedServices },
+  } = peerPayload;
+
+  return {
+    ...peerPayload,
+    LastHeartbeat,
+    LastReceive,
+    LastSend,
+    ImportedServices,
+    ExportedServices,
+    Datacenter: dc,
+    Partition: partition,
+  };
+}
 export default class PeerService extends RepositoryService {
   getModelName() {
     return 'peer';
@@ -39,11 +55,7 @@ export default class PeerService extends RepositoryService {
         },
         body: body.map((item) => {
           return cache(
-            {
-              ...item,
-              Datacenter: dc,
-              Partition: partition,
-            },
+            normalizePeerPayload(item),
             (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
           );
         }),
@@ -80,11 +92,7 @@ export default class PeerService extends RepositoryService {
           uri: uri,
         },
         body: cache(
-          {
-            ...body,
-            Datacenter: dc,
-            Partition: partition,
-          },
+          normalizePeerPayload(body),
           (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
         ),
       };
