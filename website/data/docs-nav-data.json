@@ -4,6 +4,31 @@
     "path": "intro"
   },
   {
+    "title": "Why Choose Consul?",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "consul-vs-other"
+      },
+      {
+        "title": "Service Meshes",
+        "path": "consul-vs-other/service-mesh-compare"
+      },
+      {
+        "title": "DNS Tools",
+        "path": "consul-vs-other/dns-tools-compare"
+      },
+      {
+        "title": "Configuration Management Tools",
+        "path": "consul-vs-other/config-management-compare"
+      },
+      {
+        "title": "API Gateways",
+        "path": "consul-vs-other/api-gateway-compare"
+      }
+    ]
+  },
+  {
     "title": "Core Concepts",
     "routes": [
       {
@@ -141,6 +166,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v0.49.x",
+            "path": "release-notes/consul-k8s/v0_49_x"
+          },
           {
             "title": "v0.48.x",
             "path": "release-notes/consul-k8s/v0_48_x"
@@ -532,6 +561,19 @@
         "title": "Security",
         "path": "connect/security",
         "hidden": true
+      },
+      {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "connect/dataplane/consul-dataplane"
+          }
+        ]
       }
     ]
   },
@@ -967,6 +1009,19 @@
         ]
       },
       {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "href": "/docs/connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "href": "/docs/connect/dataplane/consul-dataplane"
+          }
+        ]
+      },
+      {
         "title": "Operations",
         "routes": [
           {
@@ -1083,11 +1138,6 @@
   },
   {
     "title": "AWS Lambda",
-    "badge": {
-      "text": "BETA",
-      "type": "outlined",
-      "color": "neutral"
-    },
     "routes": [
       {
         "title": "Overview",
@@ -1095,11 +1145,33 @@
       },
       {
         "title": "Register Lambda Functions",
-        "path": "lambda/registration"
+        "routes":[
+          {
+            "title": "Requirements",
+            "path": "lambda/registration/index"
+          },
+          {
+            "title": "Automate Registration",
+            "path": "lambda/registration/automate"
+          },
+          {
+            "title": "Manual Registration",
+            "path": "lambda/registration/manual"
+          }
+        ]
       },
       {
-        "title": "Invoke Lambda Functions",
+        "title": "Invoke Lambda Functions from Services",
         "path": "lambda/invocation"
+      },
+      {
+        "title": "Invoke Services from Lambda Functions",
+        "path": "lambda/invoke-from-lambda",
+        "badge": {
+          "text": "BETA",
+          "type": "outlined",
+          "color": "neutral"
+        }    
       }
     ]
   },
