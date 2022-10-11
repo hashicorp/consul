@@ -202,8 +202,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 }
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
-//
-//	all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
+// all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
 func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
 	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
@@ -345,6 +344,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		fsm.CommandsSummaries,
 		fsm.SnapshotSummaries,
 		raftSummaries,
+		xds.StatsSummaries,
 	}
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
