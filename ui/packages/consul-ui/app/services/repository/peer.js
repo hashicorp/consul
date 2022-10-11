@@ -55,7 +55,7 @@ export default class PeerService extends RepositoryService {
         },
         body: body.map((item) => {
           return cache(
-            normalizePeerPayload(item),
+            normalizePeerPayload(item, dc, partition),
             (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
           );
         }),
@@ -92,7 +92,7 @@ export default class PeerService extends RepositoryService {
           uri: uri,
         },
         body: cache(
-          normalizePeerPayload(body),
+          normalizePeerPayload(body, dc, partition),
           (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
         ),
       };
