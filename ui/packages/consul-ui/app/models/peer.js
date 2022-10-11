@@ -1,4 +1,5 @@
 import Model, { attr } from '@ember-data/model';
+import { nullValue } from 'consul-ui/decorators/replace';
 
 export const schema = {
   State: {
@@ -16,8 +17,8 @@ export default class Peer extends Model {
   @attr('string') Name;
   @attr('string') State;
   @attr('string') ID;
-  @attr() ImportedServices;
-  @attr() ExportedServices;
+  @nullValue([]) @attr() ImportedServices;
+  @nullValue([]) @attr() ExportedServices;
   @attr('date') LastHeartbeat;
   @attr('date') LastReceive;
   @attr('date') LastSend;
