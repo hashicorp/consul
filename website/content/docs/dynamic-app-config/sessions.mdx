@@ -1,14 +1,11 @@
 ---
 layout: docs
-page_title: Sessions
+page_title: Sessions and Distributed Locks Overview
 description: >-
-  Consul provides a session mechanism which can be used to build distributed
-  locks. Sessions act as a binding layer between nodes, health checks, and
-  key/value data. They are designed to provide granular locking and are heavily
-  inspired by The Chubby Lock Service for Loosely-Coupled Distributed Systems.
+  Consul supports sessions that you can use to build distributed locks with granular locking. Learn about sessions, how they can prevent ""split-brain"" systems by ensuring consistency in deployments, and how they can integrate with the key/value (KV) store.
 ---
 
-# Sessions
+# Sessions and Distributed Locks Overview
 
 Consul provides a session mechanism which can be used to build distributed locks.
 Sessions act as a binding layer between nodes, health checks, and key/value data.
