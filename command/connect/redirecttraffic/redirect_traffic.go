@@ -155,7 +155,6 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 
 		var svc *api.AgentService
 		if c.nodeName == "" {
-			var err error
 			svc, _, err = c.client.Agent().Service(c.proxyID, nil)
 			if err != nil {
 				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
