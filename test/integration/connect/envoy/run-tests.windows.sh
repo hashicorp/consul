@@ -848,14 +848,16 @@ function container_name_prev {
   echo "envoy_${FUNCNAME[2]/#run_container_/}_1"
 }
 
-# This is a debugging tool. Run via './run-tests.sh debug_dump_volumes'
+# This is a debugging tool. Run via 'bash run-tests.sh debug_dump_volumes' on Powershell
 function debug_dump_volumes {
-  docker.exe run --rm -it \
+  local LINUX_PATH=$(pwd)
+  local WIN_PATH=$( echo "$LINUX_PATH" | sed 's/^\/mnt//' | sed -e 's/^\///' -e 's/\//\\/g' -e 's/^./\0:/' )  
+  docker.exe run -it \
     $WORKDIR_SNIPPET \
-    -v ./:/cwd \
+    -v "$WIN_PATH":"C:\\cwd" \
     --net=none \
     "${HASHICORP_DOCKER_PROXY}/windows/nanoserver:1809" \
-    xcopy "\workdir" "\cwd\workdir" /E /H /C /I /Y
+    cmd /c "xcopy \workdir \cwd\workdir /E /H /C /I /Y"
 }
 
 function run_container_tcpdump-primary {
