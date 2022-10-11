@@ -223,7 +223,7 @@ Refer to [Kubernetes Health Checks in Consul on Kubernetes](/docs/k8s/connect/he
 
 ### Dial services across Kubernetes cluster
 
-If your [Consul servers are federated between Kubernetes clusters](/docs/k8s/installation/multi-cluster/kubernetes),
+If your [Consul servers are federated between Kubernetes clusters](/docs/k8s/deployment-configurations/multi-cluster/kubernetes),
 then you must configure services in one Kubernetes cluster to explicitly dial a service in the datacenter of another Kubernetes cluster using the
 [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 The following example configures the service to dial an upstream service called `my-service` in datacenter `dc2` on port `1234`:
