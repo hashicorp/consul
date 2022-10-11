@@ -22,6 +22,7 @@ export default class Peer extends Model {
   @attr('string') PeerID;
 
   @attr() PeerServerAddresses;
+  @attr() StreamStatus;
 
   // StreamStatus
   @nullValue([]) @attr() ImportedServices;

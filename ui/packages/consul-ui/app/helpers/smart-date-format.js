@@ -10,10 +10,10 @@ const MILLISECONDS_IN_WEEK = MILLISECONDS_IN_DAY * 7;
  */
 function isNearDate(date) {
   const now = new Date();
-  const aWeekAgo = now - MILLISECONDS_IN_WEEK;
-  const aWeekInFuture = now + MILLISECONDS_IN_WEEK;
+  const aWeekAgo = +now - MILLISECONDS_IN_WEEK;
+  const aWeekInFuture = +now + MILLISECONDS_IN_WEEK;
 
-  return date >= aWeekAgo && aWeekInFuture;
+  return date >= aWeekAgo && date <= aWeekInFuture;
 }
 
 export default class SmartDateFormat extends Helper {
