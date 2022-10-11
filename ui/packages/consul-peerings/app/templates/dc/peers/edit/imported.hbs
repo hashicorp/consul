@@ -1,12 +1,13 @@
 <Route @name={{routeName}} as |route|>
   <DataLoader
     @src={{uri
-      "/${partition}/${nspace}/${dc}/services/${peer}"
+      "/${partition}/${nspace}/${dc}/services/${peer}/${peerId}"
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         peer=route.model.peer.Name
+        peerId=route.model.peer.id
       )
     }}
     as |api|
@@ -61,6 +62,7 @@
               @onsearch={{action (mut search) value="target.value"}}
               @sort={{sort}}
               @filter={{filters}}
+              @peer={{route.model.peer}}
             />
           {{/let}}
         {{/if}}
@@ -76,7 +78,6 @@
             <Consul::Service::List
               @items={{collection.items}}
               @partition={{partition}}
-              @peer={{route.model.peer}}
             />
           </collection.Collection>
           <collection.Empty>

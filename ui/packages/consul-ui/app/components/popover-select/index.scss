@@ -42,6 +42,10 @@
   @extend %with-minus-square-fill-mask, %as-pseudo;
   color: rgb(var(--tone-gray-400));
 }
+%popover-select .value-unknown button::before {
+  @extend %with-help-circle-outline-mask, %as-pseudo;
+  color: rgb(var(--tone-gray-500));
+}
 %popover-select.type-source li:not(.partition) button {
   text-transform: capitalize;
 }

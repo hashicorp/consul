@@ -6,35 +6,12 @@
   as |item index|
 >
   <BlockSlot @name='header'>
-    {{#let
-      (eq @peer.State 'FAILING')
-      (and @peer (eq item.InstanceCount 0))
-      as |peerIsFailing peeredAndInstanceCountZero|
-    }}
-      <dl class={{if (or peerIsFailing peeredAndInstanceCountZero) 'help' item.MeshStatus}}>
-        <dt>
-          Health
-        </dt>
-        <dd>
-          <Tooltip @position='top-start'>
-            {{#if peerIsFailing}}
-              This peer is out of sync, so the current health statuses of its services are unknown.
-            {{else if peeredAndInstanceCountZero}}
-              This service currently has 0 instances. Check with the operator of its peer to make
-              sure this is expected behavior.
-            {{else if (eq 'critical' item.MeshStatus)}}
-              At least one health check on one instance is failing.
-            {{else if (eq 'warning' item.MeshStatus)}}
-              At least one health check on one instance has a warning.
-            {{else if (eq 'passing' item.MeshStatus)}}
-              All health checks are passing.
-            {{else}}
-              There are no health checks.
-            {{/if}}
-          </Tooltip>
-        </dd>
-      </dl>
-    {{/let}}
+    <dl class={{item.MeshStatus}}>
+      <dt>
+        Health
+      </dt>
+      <dd {{tooltip item.healthTooltipText}}></dd>
+    </dl>
     {{#if (gt item.InstanceCount 0)}}
       <a
         data-test-service-name
@@ -70,7 +47,8 @@
         {{pluralize item.InstanceCount 'instance' without-count=true}}
       </span>
     {{/if}}
-    {{#unless @peer}}
+    {{! we are displaying imported-services - don't show bucket-list }}
+    {{#unless item.peer}}
       <Consul::Bucket::List @item={{item}} @nspace={{@nspace}} @partition={{@partition}} />
     {{/unless}}
     {{#if (eq item.Kind 'terminating-gateway')}}
