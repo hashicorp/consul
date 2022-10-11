@@ -171,6 +171,9 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			if len(svcList.Services) < 1 {
 				return iptables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
 			}
+			if len(svcList.Services) > 1 {
+				return iptables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+			}
 			svc = svcList.Services[0]
 		}
 
