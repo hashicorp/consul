@@ -310,6 +310,14 @@ func (r *ReadyServersEventPublisher) getGRPCPort(srv *autopilot.ServerState) int
 	if err != nil || ns == nil || ns.Meta == nil {
 		return 0
 	}
+
+	if str, ok := ns.Meta["grpc_tls_port"]; ok {
+		grpcPort, err := strconv.Atoi(str)
+		if err == nil {
+			return grpcPort
+		}
+	}
+
 	if str, ok := ns.Meta["grpc_port"]; ok {
 		grpcPort, err := strconv.Atoi(str)
 		if err == nil {
