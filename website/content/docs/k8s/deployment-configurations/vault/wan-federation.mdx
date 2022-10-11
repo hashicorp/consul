@@ -9,10 +9,10 @@ description: >-
 
 ~> **Note**: This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters), [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
-This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster) for more information on use cases and how it works.
+This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/docs/k8s/deployment-configurations/multi-cluster) for more information on use cases and how it works.
 
 ## Differences Between Using Kubernetes Secrets vs. Vault
-The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for you to export and import a [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in each datacenter.
+The [Federation Between Kubernetes Clusters](/docs/k8s/deployment-configurations/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for you to export and import a [Federation Secret](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in each datacenter.
 
 ## Usage
 
@@ -28,7 +28,7 @@ The Vault Agents on each Consul pod will communicate directly with Vault on its 
 
 ![Vault agent and server communication](/img/k8s/consul-vault-wan-federation-vault-communication.svg 'Vault agent and server communication')
 
-The two data centers will federated using mesh gateways.  This communication topology is also described in the [WAN Federation Via Mesh Gateways](/docs/k8s/installation/multi-cluster#wan-federation-via-mesh-gateways) section of [Multi-Cluster Federation Overview](/docs/k8s/installation/multi-cluster).
+The two data centers will federated using mesh gateways.  This communication topology is also described in the [WAN Federation Via Mesh Gateways](/docs/k8s/deployment-configurations/multi-cluster#wan-federation-via-mesh-gateways) section of [Multi-Cluster Federation Overview](/docs/k8s/deployment-configurations/multi-cluster).
 
 ![Mesh Federation via Mesh Gateways](/img/k8s/consul-vault-wan-federation-mesh-communication.svg 'Mesh Federation via Mesh Gateways')
 

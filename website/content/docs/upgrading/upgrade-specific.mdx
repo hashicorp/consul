@@ -207,7 +207,7 @@ such as to the latest patch within a release series.
 
 #### Removing configuration options
 
-The [`disable_compat_19`](/docs/agent/options#telemetry-disable_compat_1.9) telemetry configuration option is now removed.
+The [`disable_compat_19`](/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed.
 In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. In 1.12.x it defaulted to `true`.
 If you were using this flag, you must remove it before upgrading.
 
@@ -227,7 +227,7 @@ Follow the same guidance as provided in the
 
 #### Changing the default behavior for option
 
-The [`disable_compat_19`](/docs/agent/options#telemetry-disable_compat_1.9) telemetry configuration option now defaults
+The [`disable_compat_19`](/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option now defaults
 to `true`. In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. If you require 1.9 style
 `consul.http...` metrics, you may enable them by setting the flag to `false`. However, be advised that these metrics, as
 well as the flag will be removed in upcoming Consul 1.13. We recommend changing your instrumentation to use 1.10 and later
@@ -705,7 +705,7 @@ automatically and without loss of connectivity throughout all datacenters and
 workloads.
 
 For more information see [Connect
-Multi-datacenter](/docs/enterprise/connect-multi-datacenter).
+Multi-datacenter](/docs/enterprise).
 
 ## Consul 1.3.0
 
