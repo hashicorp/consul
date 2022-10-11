@@ -13,14 +13,14 @@ description: >-
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
 be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
-must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter).
+must be the [primary](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter).
 
 ## Kubernetes as the Primary
 
 If your primary datacenter is running on Kubernetes, use the Helm config from the
-[Primary Datacenter](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
+[Primary Datacenter](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
 
-Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
+Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
 
 - Certificate authority cert and key (in order to create SSL certs for VMs)
@@ -209,7 +209,7 @@ ports {
 ## Kubernetes as the Secondary
 
 If you're running your primary datacenter on VMs then you'll need to manually
-construct the [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in order to federate
+construct the [Federation Secret](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in order to federate
 Kubernetes clusters as secondaries.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
@@ -351,7 +351,7 @@ With your config file ready to go, follow our [Installation Guide](/docs/k8s/ins
 to install Consul on your secondary cluster(s).
 
 After installation, if you're using consul-helm 0.30.0+, [create the
-`ProxyDefaults` resource](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults)
+`ProxyDefaults` resource](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults)
 to allow traffic between datacenters.
 
 ## Next Steps

@@ -14,7 +14,7 @@ Consul allows using Kubernetes auth methods to configure Connect CA.
 This allows for automatic token rotation once the renewal is no longer possible.
 
 ## Overview
-To use Vault as the service mesh certificate provider on Kubernetes, you will complete a modified version of the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section.
+To use Vault as the service mesh certificate provider on Kubernetes, you will complete a modified version of the steps outlined in the [Data Integration](/docs/k8s/deployment-configurations/vault/data-integration) section.
 
 Complete the following steps once:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
@@ -25,8 +25,8 @@ Repeat the following steps for each datacenter in the cluster:
 
 ## Prerequisites
 Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
-1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
-2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+2. Read the [Data Integration Overview](/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 
 ## Create Vault policy
 

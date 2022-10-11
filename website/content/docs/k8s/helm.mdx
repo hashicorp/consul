@@ -516,7 +516,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
+      Please see the [Kubernetes Auth Method documentation](/docs/security/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -749,7 +749,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config/config-files) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1044,7 +1044,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config/config-files) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1356,15 +1356,15 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
-      https://www.consul.io/docs/agent/options#ui_config_metrics_provider
+      https://www.consul.io/docs/agent/config/config-files#ui_config_metrics_provider
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
 
-  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to https://www.consul.io/docs/agent/options#ui_config_dashboard_url_templates configuration.
+  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to https://www.consul.io/docs/agent/config/config-files#ui_config_dashboard_url_templates configuration.
 
-    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets https://www.consul.io/docs/agent/options#ui_config_dashboard_url_templates_service.
+    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets https://www.consul.io/docs/agent/config/config-files#ui_config_dashboard_url_templates_service.
 
 ### syncCatalog ((#h-synccatalog))
 
