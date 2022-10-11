@@ -1460,7 +1460,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.Equal(t, 1, val.Count)
 	})
 
-	testutil.RunStep(t, "check stream start time recorded", func(t *testing.T) {
+	testutil.RunStep(t, "check streamStart metric recorded", func(t *testing.T) {
 		data := scenario.sink.Data()
 		require.Len(t, data, 1)
 
