@@ -690,7 +690,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 	attempt *uint,
 ) (keepGoing bool) {
 	tEntry := r.TypeEntry
-	{
+	{ // NOTE: this indentation is here to facilitate the PR review diff only
 		// If we have background refresh and currently are in "disconnected" state,
 		// waiting for a response might mean we mark our results as stale for up to
 		// 10 minutes (max blocking timeout) after connection is restored. To reduce
