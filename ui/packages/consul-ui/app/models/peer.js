@@ -16,7 +16,17 @@ export default class Peer extends Model {
   @attr('string') Name;
   @attr('string') State;
   @attr('string') ID;
-  @attr('number') ImportedServiceCount;
-  @attr('number') ExportedServiceCount;
+  @attr() ImportedServices;
+  @attr() ExportedServices;
+  @attr('date') LastHeartbeat;
+  @attr('date') LastReceive;
+  @attr('date') LastSend;
   @attr() PeerServerAddresses;
+
+  get ImportedServiceCount() {
+    return this.ImportedServices.length;
+  }
+  get ExportedServiceCount() {
+    return this.ExportedServices.length;
+  }
 }

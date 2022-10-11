@@ -18,8 +18,13 @@
       'TERMINATED',
       'UNDEFINED'
     ])}",
-    "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
-    "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "StreamStatus": {
+      "LastHeartbeat": "${fake.date.past(10).toISOString()}",
+      "LastReceive": "${fake.date.past(10).toISOString()}",
+      "LastSend": "${fake.date.past(10).toISOString()}",
+      "ExportedServices": ["${`export-service-${i}`}"],
+      "ImportedServices": ["${`import-service-${i}`}"]
+    },
     "PeerID": "${id}",
     "PeerServerName": "${fake.internet.domainName()}",
     "PeerServerAddresses": [
