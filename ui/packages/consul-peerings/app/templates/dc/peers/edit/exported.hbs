@@ -23,18 +23,15 @@
 
       <BlockSlot @name="loaded">
         {{#if items.length}}
-          <div
-            class="hds-surface-faint flex h-12 py-1.5 px-1 border-t border-b border-hds-border-primary"
-          >
-            <div>
-              <Hds::Form::TextInput::Field
-                @type="search"
+          <div class="search-bar">
+            <form class="filter-bar">
+              <FreetextFilter
+                @onsearch={{pick "target.value" this.updateSearch}}
                 @value={{this.search}}
-                placeholder="Search"
-                class="rounded-sm border-hds-border-faint"
-                {{on "input" (pick "target.value" this.updateSearch)}}
+                @placeholder="Search"
+                class="!w-80"
               />
-            </div>
+            </form>
           </div>
         {{/if}}
         <Providers::Search
@@ -56,9 +53,7 @@
                     @items={{search.data.items}}
                     as |service index|
                   >
-                    <li
-                      class="px-3 h-12 border-b border-hds-border-primary border-b"
-                    >
+                    <li class="px-3 h-12 border-b border-hds-border-primary">
                       <a
                         data-test-service-name
                         class="hds-typography-display-300 text-hds-foreground-strong hds-font-weight-semibold h-full w-full flex items-center"

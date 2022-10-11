@@ -11,11 +11,9 @@ export default class SearchProvider extends Component {
     const { _search: search } = this;
 
     if (search.length > 0) {
-      const regex = new RegExp(`${search}`, 'ig');
-
       return items.filter((item) => {
         const matchesInSearchProperties = searchProperties.reduce((acc, searchProperty) => {
-          const match = item[searchProperty].match(regex);
+          const match = item[searchProperty].indexOf(search) !== -1;
           if (match) {
             return [...acc, match];
           } else {
