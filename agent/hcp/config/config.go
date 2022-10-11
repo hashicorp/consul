@@ -13,6 +13,7 @@ type CloudConfig struct {
 	ClientSecret string
 	Hostname     string
 	AuthURL      string
+	ScadaAddress string
 }
 
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
@@ -24,6 +25,9 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	}
 	if c.Hostname != "" {
 		opts = append(opts, hcpcfg.WithAPI(c.Hostname, &tls.Config{}))
+	}
+	if c.ScadaAddress != "" {
+		opts = append(opts, hcpcfg.WithSCADA(c.ScadaAddress, &tls.Config{}))
 	}
 	opts = append(opts, hcpcfg.FromEnv())
 	return hcpcfg.NewHCPConfig(opts...)
