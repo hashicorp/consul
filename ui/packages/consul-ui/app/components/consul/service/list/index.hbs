@@ -48,7 +48,7 @@
       </span>
     {{/if}}
     {{! we are displaying imported-services - don't show bucket-list }}
-    {{#unless item.peer}}
+    {{#unless @isPeerDetail}}
       <Consul::Bucket::List @item={{item}} @nspace={{@nspace}} @partition={{@partition}} />
     {{/unless}}
     {{#if (eq item.Kind 'terminating-gateway')}}
