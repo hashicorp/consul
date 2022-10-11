@@ -1148,7 +1148,7 @@
         "routes":[
           {
             "title": "Requirements",
-            "path": "lambda/registration/index"
+            "path": "lambda/registration"
           },
           {
             "title": "Automate Registration",
