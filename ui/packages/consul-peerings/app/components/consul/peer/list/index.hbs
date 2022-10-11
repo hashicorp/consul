@@ -30,7 +30,7 @@
       >
         {{t
           "routes.dc.peers.index.detail.imported.count"
-          count=(format-number (or item.ImportedServiceCount 0))
+          count=(format-number item.ImportedServiceCount)
         }}
       </div>
 
@@ -41,7 +41,7 @@
       >
         {{t
           "routes.dc.peers.index.detail.exported.count"
-          count=(format-number (or item.ExportedServiceCount 0))
+          count=(format-number item.ExportedServiceCount)
         }}
       </div>
 
