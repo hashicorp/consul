@@ -416,10 +416,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-tcp-keepalives",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_mesh_gateway_tcp_enable_keepalive"] = true
-					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_time"] = 120
-					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_interval"] = 60
-					ns.Proxy.Config["envoy_mesh_gateway_tcp_keepalive_probes"] = 7
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 120
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 60
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 7
 				}, nil)
 			},
 		},
@@ -673,6 +673,20 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name:   "terminating-gateway-lb-config",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfigNoHashPolicies,
+		},
+		{
+			name: "terminating-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					if ns.Proxy.Config == nil {
+						ns.Proxy.Config = map[string]interface{}{}
+					}
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 133
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 27
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 5
+				}, nil)
+			},
 		},
 		{
 			name:   "ingress-multiple-listeners-duplicate-service",

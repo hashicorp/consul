@@ -1534,8 +1534,9 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		useEDS = false
 	}
 
-	// Set TCP keepalive settings on the upstream gateway cluster if enabled.
-	if opts.isRemote && cfg.TcpKeepaliveEnable {
+	// TCP keepalive settings can be enabled for terminating gateway upstreams or remote mesh gateways.
+	remoteUpstream := opts.isRemote || snap.Kind == structs.ServiceKindTerminatingGateway
+	if remoteUpstream && cfg.TcpKeepaliveEnable {
 		cluster.UpstreamConnectionOptions = &envoy_cluster_v3.UpstreamConnectionOptions{
 			TcpKeepalive: &envoy_core_v3.TcpKeepalive{},
 		}
