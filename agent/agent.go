@@ -671,6 +671,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
 			Segment:       a.config.SegmentName,
+			Node:          a.config.NodeName,
 			NodePartition: a.config.PartitionOrEmpty(),
 		},
 		DNSConfig: proxycfg.DNSConfig{
