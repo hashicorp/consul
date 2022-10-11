@@ -107,16 +107,22 @@ export default class PeerService extends RepositoryService {
       }}
     `
     )((headers, body, cache) => {
+      // we can't easily use fragments as we are working around the serializer
+      // layer
       const { StreamStatus } = body;
-      if (StreamStatus.LastHeartbeat) {
-        StreamStatus.LastHeartbeat = new Date(StreamStatus.LastHeartbeat);
+
+      if (StreamStatus) {
+        if (StreamStatus.LastHeartbeat) {
+          StreamStatus.LastHeartbeat = new Date(StreamStatus.LastHeartbeat);
+        }
+        if (StreamStatus.LastReceive) {
+          StreamStatus.LastReceive = new Date(StreamStatus.LastReceive);
+        }
+        if (StreamStatus.LastSend) {
+          StreamStatus.LastSend = new Date(StreamStatus.LastSend);
+        }
       }
-      if (StreamStatus.LastReceive) {
-        StreamStatus.LastReceive = new Date(StreamStatus.LastReceive);
-      }
-      if (StreamStatus.LastSend) {
-        StreamStatus.LastSend = new Date(StreamStatus.LastSend);
-      }
+
       return {
         meta: {
           version: 2,

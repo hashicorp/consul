@@ -76,6 +76,7 @@
             <Consul::Service::List
               @items={{collection.items}}
               @partition={{partition}}
+              @peer={{route.model.peer}}
             />
           </collection.Collection>
           <collection.Empty>

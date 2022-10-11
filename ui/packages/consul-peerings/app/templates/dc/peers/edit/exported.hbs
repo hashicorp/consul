@@ -31,6 +31,7 @@
                 @type="search"
                 @value={{this.search}}
                 placeholder="Search"
+                class="rounded-sm border-hds-border-faint"
                 {{on "input" (pick "target.value" this.updateSearch)}}
               />
             </div>
