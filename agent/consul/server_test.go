@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -15,10 +16,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -229,7 +232,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -244,15 +247,32 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
-	if srv.config.GRPCPort > 0 {
+	for _, grpcPort := range []int{srv.config.GRPCPort, srv.config.GRPCTLSPort} {
+		if grpcPort == 0 {
+			continue
+		}
+
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
-		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-		ln, err := net.Listen("tcp", externalGRPCAddr)
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
 
-		// Wrap the listener with TLS
-		if deps.TLSConfigurator.GRPCServerUseTLS() {
+		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
+			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
+				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
+				cert, _ := srv.config.CAConfig.Config["RootCert"].(string)
+				if key != "" && cert != "" {
+					ca := &structs.CARoot{
+						SigningKey: key,
+						RootCert:   cert,
+					}
+					require.NoError(t, deps.TLSConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, srv.config.Datacenter, ca)))
+					deps.TLSConfigurator.UpdateAutoTLSPeeringServerName(connect.PeeringServerSAN("dc1", connect.TestTrustDomain))
+				}
+			}
+
+			// Wrap the listener with TLS.
 			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
 		}
 
@@ -2011,4 +2031,28 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
 	// test corollary by transitivity to future-proof against any setup bugs
 	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
+}
+
+func TestServer_hcpManager(t *testing.T) {
+	_, conf1 := testServerConfig(t)
+	conf1.BootstrapExpect = 1
+	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	hcp1 := hcp.NewMockClient(t)
+	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcp.ServerStatus) bool {
+		return status.ID == string(conf1.NodeID)
+	})).Run(func(ctx context.Context, status *hcp.ServerStatus) {
+		require.Equal(t, status.LanAddress, "127.0.0.2")
+	}).Call.Return(nil)
+
+	deps1 := newDefaultDeps(t, conf1)
+	deps1.HCP.Client = hcp1
+	s1, err := newServerWithDeps(t, conf1, deps1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+	require.NotNil(t, s1.hcpManager)
+	waitForLeaderEstablishment(t, s1)
+	hcp1.AssertExpectations(t)
+
 }

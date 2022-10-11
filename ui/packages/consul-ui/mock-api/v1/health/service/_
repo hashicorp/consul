@@ -18,6 +18,16 @@
         const proxy = service.indexOf('-proxy')
         const sidecar = service.indexOf('-sidecar-proxy')
         const id = (proxy !== -1 ? service.slice(0, -6) + '-with-id-proxy' : service + '-with-id');
+        const externalSource = fake.helpers.randomize([
+            'consul-api-gateway',
+            'vault',
+            'nomad',
+            'terraform',
+            'kubernetes',
+            'aws',
+            'lambda',
+            ''
+          ]);
         let kind = '';
         switch(true) {
           case service.endsWith('-mesh-gateway'):
@@ -42,7 +52,10 @@
             "Address":"${ip}",
             "Datacenter":"dc1",
             "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},
-            "Meta":{"${service}-network-segment":""},
+            "Meta":{
+              "${service}-network-segment":"",
+              "synthetic-node":${externalSource === 'kubernetes' ? "true" : "false"}
+            },
 ${typeof location.search.peer !== 'undefined' ? `
             "PeerName": "${location.search.peer}",
 ` : ``}
@@ -87,16 +100,7 @@ ${typeof location.search.partition !== 'undefined' ? `
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "Meta": {
               "consul-dashboard-url": "${fake.internet.protocol()}://${fake.internet.domainName()}/?id={{Service}}",
-              "external-source": "${fake.helpers.randomize([
-                'consul-api-gateway',
-                'vault',
-                'nomad',
-                'terraform',
-                'kubernetes',
-                'aws',
-                'lambda',
-                ''
-              ])}"
+              "external-source": "${externalSource}"
             },
 ` : `
             "Meta": null,

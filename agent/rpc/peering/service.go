@@ -114,15 +114,13 @@ type Backend interface {
 	// partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error)
 
-	// GetAgentCACertificates returns the CA certificate to be returned in the peering token data
-	GetAgentCACertificates() ([]string, error)
+	// GetTLSMaterials returns the TLS materials for the dialer to dial the acceptor using TLS.
+	// It returns the server name to validate, and the CA certificate to validate with.
+	GetTLSMaterials(generatingToken bool) (string, []string, error)
 
-	// GetServerAddresses returns the addresses used for establishing a peering connection
+	// GetServerAddresses returns the addresses used for establishing a peering connection.
+	// These may be server addresses or mesh gateway addresses if peering through mesh gateways.
 	GetServerAddresses() ([]string, error)
-
-	// GetServerName returns the SNI to be returned in the peering token data which
-	// will be used by peers when establishing peering connections over TLS.
-	GetServerName() string
 
 	// EncodeToken packages a peering token into a slice of bytes.
 	EncodeToken(tok *structs.PeeringToken) ([]byte, error)
@@ -209,12 +207,22 @@ func (s *Server) GenerateToken(
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
 
 	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	serverName, caPEMs, err := s.Backend.GetTLSMaterials(true)
+	if err != nil {
 		return nil, err
 	}
 
@@ -285,11 +293,6 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	ca, err := s.Backend.GetAgentCACertificates()
-	if err != nil {
-		return nil, err
-	}
-
 	// ServerExternalAddresses must be formatted as addr:port.
 	var serverAddrs []string
 	if len(req.ServerExternalAddresses) > 0 {
@@ -304,9 +307,9 @@ func (s *Server) GenerateToken(
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
 		PeerID:              peering.ID,
-		CA:                  ca,
+		CA:                  caPEMs,
 		ServerAddresses:     serverAddrs,
-		ServerName:          s.Backend.GetServerName(),
+		ServerName:          serverName,
 		EstablishmentSecret: secretID,
 	}
 
@@ -360,7 +363,12 @@ func (s *Server) Establish(
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -476,8 +484,13 @@ func (s *Server) validatePeeringLocality(token *structs.PeeringToken, partition 
 
 	// If the token has the same server name as this cluster, but we can't find the peering
 	// in our store, it indicates a naming conflict.
-	if s.Backend.GetServerName() == token.ServerName && peering == nil {
-		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", s.Backend.GetServerName())
+	serverName, _, err := s.Backend.GetTLSMaterials(false)
+	if err != nil {
+		return fmt.Errorf("failed to fetch TLS materials: %w", err)
+	}
+
+	if serverName == token.ServerName && peering == nil {
+		return fmt.Errorf("conflict - peering token's server name matches the current cluster's server name, %q, but there is no record in the database", serverName)
 	}
 
 	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
@@ -528,7 +541,11 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +593,12 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +609,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	defer metrics.MeasureSince([]string{"peering", "list"}, time.Now())
 
-	_, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
+	idx, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -599,7 +621,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 		cPeerings = append(cPeerings, cp)
 	}
 
-	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
+	return &pbpeering.PeeringListResponse{Peerings: cPeerings, Index: idx}, nil
 }
 
 // TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state
@@ -610,8 +632,10 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
+		// TODO(peering): this may be noise on non-leaders
 		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
+		peering.StreamStatus = &pbpeering.StreamStatus{}
 		return peering
 	} else {
 		cp := copyPeering(peering)
@@ -623,9 +647,26 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		// add imported & exported services counts
-		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
-		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
+		latest := func(tt ...time.Time) time.Time {
+			latest := time.Time{}
+			for _, t := range tt {
+				if t.After(latest) {
+					latest = t
+				}
+			}
+			return latest
+		}
+
+		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
+		lastSend := latest(streamState.LastSendError, streamState.LastSendSuccess)
+
+		cp.StreamStatus = &pbpeering.StreamStatus{
+			ImportedServices: streamState.ImportedServices,
+			ExportedServices: streamState.ExportedServices,
+			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      structs.TimeToProto(lastRecv),
+			LastSend:         structs.TimeToProto(lastSend),
+		}
 
 		return cp
 	}
@@ -657,7 +698,12 @@ func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRe
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Peering.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -716,7 +762,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -775,6 +826,11 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var resp *pbpeering.TrustBundleReadResponse
 	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
@@ -790,7 +846,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -845,7 +901,12 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), &entMeta, &authzCtx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}

@@ -73,6 +73,7 @@ as |sort filters items|}}
         @aria={{hash
           label="Add peer connection"
         }}
+        class="peer-create-modal"
       as |modal|>
         <BlockSlot @name="header">
           {{did-insert (set this 'create' modal)}}
@@ -193,21 +194,20 @@ as |sort filters items|}}
                 >
                   <BlockSlot @name="header">
                     <h2>
-                      {{#if (gt items.length 0)}}
-                        No peers found
-                      {{else}}
-                        Welcome to Peers
-                      {{/if}}
+                      {{t 'routes.dc.peers.index.empty.header'
+                        items=items.length
+                        }}
                     </h2>
                   </BlockSlot>
                   <BlockSlot @name="body">
-                    {{#if (gt items.length 0)}}
-                      <p>No peers where found matching that search, or you may not have access to view the peers you are searching for.</p>
-                    {{else}}
-                      <p>
-                        Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {{if (can "use partitions") "admin partition" "datacenter"}}, or you may not have the <code>peering:read</code> permissions to access this view.
-                      </p>
-                    {{/if}}
+                    <p>
+                      {{t 'routes.dc.peers.index.empty.body'
+                        items=items.length
+                        canUsePartitions=(can "use partitions")
+                        canUseACLs=(can "use acls")
+                        htmlSafe=true
+                      }}
+                    </p>
                   </BlockSlot>
                   <BlockSlot @name="actions">
                     <li class="docs-link">

@@ -559,6 +559,9 @@ Use these links to navigate to a particular top-level stanza.
     connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
     See https://www.consul.io/docs/connect/proxies/envoy for full compatibility matrix between Consul and Envoy.
 
+  - `imageConsulDataplane` ((#v-global-imageconsuldataplane)) (`string: hashicorp/consul-dataplane:<latest supported version>`) - The name (and tag) of the consul-dataplane Docker image used for the
+    connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
+
   - `openshift` ((#v-global-openshift)) - Configuration for running this Helm chart on the Red Hat OpenShift platform.
     This Helm chart currently supports OpenShift v4.x+.
 
@@ -567,6 +570,16 @@ Use these links to navigate to a particular top-level stanza.
 
   - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
     the API before cancelling the request.
+
+  - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul self-managed cluster.
+    Requires Consul v1.14+.
+
+    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart will enable the installation of an HCP Consul
+      self-managed cluster.
+
+    - `secretName` ((#v-global-cloud-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the HCP cloud configuration.
+      It contains the HCP service principal client_id and client_secret as well
+      as the HCP resource_id.
 
 ### server ((#h-server))
 
@@ -581,7 +594,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-server-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers running
     Consul server agents.
 
-  - `replicas` ((#v-server-replicas)) (`integer: 3`) - The number of server agents to run. This determines the fault tolerance of
+  - `replicas` ((#v-server-replicas)) (`integer: 1`) - The number of server agents to run. This determines the fault tolerance of
     the cluster. Please see the deployment table (https://consul.io/docs/internals/consensus#deployment-table)
     for more information.
 
@@ -931,7 +944,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `httpsPort` ((#v-externalservers-httpsport)) (`integer: 8501`) - The HTTPS port of the Consul servers.
 
-  - `grpcPort` ((#v-externalservers-grpcport)) (`integer: 8503`) - The GRPC port of the Consul servers.
+  - `grpcPort` ((#v-externalservers-grpcport)) (`integer: 8502`) - The GRPC port of the Consul servers.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 
@@ -959,7 +972,7 @@ Use these links to navigate to a particular top-level stanza.
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
-  - `enabled` ((#v-client-enabled)) (`boolean: global.enabled`) - If true, the chart will install all
+  - `enabled` ((#v-client-enabled)) (`boolean: false`) - If true, the chart will install all
     the resources necessary for a Consul client on every Kubernetes node. This _does not_ require
     `server.enabled`, since the agents can be configured to join an external cluster.
 
@@ -1479,7 +1492,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `aclSyncToken` ((#v-synccatalog-aclsynctoken)) - Refers to a Kubernetes secret that you have created that contains
     an ACL token for your Consul cluster which allows the sync process the correct
-    permissions. This is only needed if ACLs are managed manually within the Consul cluster.
+    permissions. This is only needed if ACLs are managed manually within the Consul cluster, i.e. `global.acls.manageSystemACLs` is `false`.
 
     - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the acl sync token.
 
@@ -1542,7 +1555,7 @@ Use these links to navigate to a particular top-level stanza.
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
-  - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - True if you want to enable connect injection. Set to "-" to inherit from
+  - `enabled` ((#v-connectinject-enabled)) (`boolean: true`) - True if you want to enable connect injection. Set to "-" to inherit from
     global.enabled.
 
   - `replicas` ((#v-connectinject-replicas)) (`integer: 2`) - The number of deployment replicas.
@@ -1597,6 +1610,17 @@ Use these links to navigate to a particular top-level stanza.
       ```
 
     - `cniNetDir` ((#v-connectinject-cni-cninetdir)) (`string: /etc/cni/net.d`) - Location on the kubernetes node of all CNI configuration. Should be the absolute path and start with a '/'
+
+    - `multus` ((#v-connectinject-cni-multus)) (`string: false`) - If multus CNI plugin is enabled with consul-cni. When enabled, consul-cni will not be installed as a chained
+      CNI plugin. Instead, a NetworkAttachementDefinition CustomResourceDefinition (CRD) will be created in the helm
+      release namespace. Following multus plugin standards, an annotation is required in order for the consul-cni plugin
+      to be executed and for your service to be added to the Consul Service Mesh. 
+
+      Add the annotation `'k8s.v1.cni.cncf.io/networks': '[{ "name":"consul-cni","namespace": "consul" }]'` to your pod
+      to use the default installed NetworkAttachementDefinition CRD.
+
+      Please refer to the [Multus Quickstart Guide](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md)
+      for more information about using multus.
 
     - `resources` ((#v-connectinject-cni-resources)) (`map`) - The resource settings for CNI installer daemonset.
 
@@ -1850,7 +1874,7 @@ Use these links to navigate to a particular top-level stanza.
   Requires consul >= 1.8.4.
   ServiceIntentions require consul 1.9+.
 
-  - `enabled` ((#v-controller-enabled)) (`boolean: false`) - Enables the controller for managing custom resources.
+  - `enabled` ((#v-controller-enabled)) (`boolean: true`) - Enables the controller for managing custom resources.
 
   - `replicas` ((#v-controller-replicas)) (`integer: 1`) - The number of deployment replicas.
 
@@ -1947,8 +1971,6 @@ Use these links to navigate to a particular top-level stanza.
 
   - `service` ((#v-meshgateway-service)) - The service option configures the Service that fronts the Gateway Deployment.
 
-    - `enabled` ((#v-meshgateway-service-enabled)) (`boolean: true`) - Whether to create a Service or not.
-
     - `type` ((#v-meshgateway-service-type)) (`string: LoadBalancer`) - Type of service, ex. LoadBalancer, ClusterIP.
 
     - `port` ((#v-meshgateway-service-port)) (`integer: 443`) - Port that the service will be exposed on.
@@ -2002,8 +2024,6 @@ Use these links to navigate to a particular top-level stanza.
   - `resources` ((#v-meshgateway-resources)) (`map`) - The resource settings for mesh gateway pods.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
-
-  - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
   - `initServiceInitContainer` ((#v-meshgateway-initserviceinitcontainer)) (`map`) - The resource settings for the `service-init` init container.
 
@@ -2105,8 +2125,6 @@ Use these links to navigate to a particular top-level stanza.
 
     - `resources` ((#v-ingressgateways-defaults-resources)) (`map`) - Resource limits for all ingress gateway pods
 
-    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
-
     - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are
       also running on the nodes alongside each gateway pod.
@@ -2197,8 +2215,6 @@ Use these links to navigate to a particular top-level stanza.
       ```
 
     - `resources` ((#v-terminatinggateways-defaults-resources)) (`map`) - Resource limits for all terminating gateway pods
-
-    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
     - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are

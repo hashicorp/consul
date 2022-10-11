@@ -51,7 +51,7 @@ To find out the service account name of the Consul server,
 you can run:
 
 ```shell-session
-$ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul
+$ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul -f values.yaml
 ```
 
 ## Update Consul on Kubernetes Helm chart

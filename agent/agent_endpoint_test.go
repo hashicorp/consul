@@ -1443,8 +1443,8 @@ func TestAgent_Self(t *testing.T) {
 			}
 			ports = {
 				grpc = -1
-			}
-			`,
+				grpc_tls = -1
+			}`,
 			expectXDS: false,
 			grpcTLS:   false,
 		},
@@ -1453,7 +1453,9 @@ func TestAgent_Self(t *testing.T) {
 			node_meta {
 				somekey = "somevalue"
 			}
-			`,
+			ports = {
+				grpc_tls = -1
+			}`,
 			expectXDS: true,
 			grpcTLS:   false,
 		},
@@ -1461,8 +1463,7 @@ func TestAgent_Self(t *testing.T) {
 			hcl: `
 				node_meta {
 					somekey = "somevalue"
-				}
-				`,
+				}`,
 			expectXDS: true,
 			grpcTLS:   true,
 		},

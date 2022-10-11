@@ -26,8 +26,7 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(peer.State == aPeer.State) &&
 			(peer.CreateIndex == aPeer.CreateIndex) &&
 			(peer.ModifyIndex == aPeer.ModifyIndex) &&
-			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
-			(peer.ExportedServiceCount == aPeer.ExportedServiceCount)
+			(reflect.DeepEqual(peer.StreamStatus, aPeer.StreamStatus))
 
 		if isEqual {
 			return true
@@ -42,7 +41,6 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5300
 	})
 	defer s1.Stop()
 
@@ -50,7 +48,6 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5301
 		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
@@ -263,7 +260,7 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t) // this is "dc1"
+	c, s := makeClientWithConfig(t, nil, nil) // this is "dc1"
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 

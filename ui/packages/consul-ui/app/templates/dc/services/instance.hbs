@@ -129,7 +129,9 @@ as |item|}}
           <BlockSlot @name="breadcrumbs">
               <ol>
                   <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
-                  <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
+                  <li><a {{tooltip (concat "Service (" item.Service.Service ")")}} data-test-back href={{href-to 'dc.services.show'}}>
+                    Service ({{item.Service.Service}})
+                  </a></li>
               </ol>
           </BlockSlot>
           <BlockSlot @name="header">
@@ -149,10 +151,12 @@ as |item|}}
               <dt>Service Name</dt>
               <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
             </dl>
-            <dl>
-              <dt>Node Name</dt>
-              <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
-            </dl>
+            {{#unless item.Node.Meta.synthetic-node}}
+              <dl>
+                <dt>Node Name</dt>
+                <dd><a data-test-service-instance-node-name href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+              </dl>
+            {{/unless}}
             {{#if item.Service.PeerName}}
               <dl>
                 <dt>Peer Name</dt>

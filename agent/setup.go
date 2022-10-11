@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 
@@ -153,6 +154,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
+	if cfg.IsCloudEnabled() {
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
+		if err != nil {
+			return d, err
+		}
+	}
 
 	return d, nil
 }

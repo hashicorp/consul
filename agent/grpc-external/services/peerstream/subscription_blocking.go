@@ -98,25 +98,25 @@ func (m *subscriptionManager) syncViaBlockingQuery(
 		ws.Add(store.AbandonCh())
 		ws.Add(ctx.Done())
 
-		if result, err := queryFn(ctx, store, ws); err != nil {
+		if result, err := queryFn(ctx, store, ws); err != nil && ctx.Err() == nil {
 			logger.Error("failed to sync from query", "error", err)
+
 		} else {
-			// Block for any changes to the state store.
-			updateCh <- cache.UpdateEvent{
-				CorrelationID: correlationID,
-				Result:        result,
+			select {
+			case <-ctx.Done():
+				return
+			case updateCh <- cache.UpdateEvent{CorrelationID: correlationID, Result: result}:
 			}
+
+			// Block for any changes to the state store.
 			ws.WatchCtx(ctx)
 		}
 
-		if err := waiter.Wait(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			logger.Error("failed to wait before re-trying sync", "error", err)
-		}
-
-		select {
-		case <-ctx.Done():
+		err := waiter.Wait(ctx)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
-		default:
+		} else if err != nil {
+			logger.Error("failed to wait before re-trying sync", "error", err)
 		}
 	}
 }

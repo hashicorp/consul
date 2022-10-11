@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -33,27 +35,23 @@ import (
 )
 
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
-	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, false)
-	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, true)
-	})
-}
-
-func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -93,11 +91,6 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -162,28 +155,214 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 	})
 }
 
-func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
-	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, false)
-	})
-	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, true)
-	})
-}
-
-func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS bool) {
+func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
+	// Reserve a gRPC port so we can restart the accepting server with the same port.
+	dialingServerPort := freeport.GetOne(t)
+
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
+	})
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+		c.GRPCPort = dialingServerPort
+	})
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
+
+	// Create a peering at dialer by establishing a peering with acceptor's token
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
+
+	establishReq := pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
+
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := acceptor.peerStreamServer.StreamStatus(p.Peering.PeerID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	acceptorCodec := rpcClient(t, acceptor)
+	{
+		exportedServices := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name:      "foo",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer-dialer"}},
+					},
+				},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(acceptorCodec, "ConfigEntry.Apply", &exportedServices, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	insertNode := func(i int) {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("node%d", i+1),
+			Address:    fmt.Sprintf("127.0.0.%d", i+1),
+			NodeMeta: map[string]string{
+				"group":         fmt.Sprintf("%d", i/5),
+				"instance_type": "t2.micro",
+			},
+			Service: &structs.NodeService{
+				Service: "foo",
+				Port:    8000,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var reply struct{}
+		if err := msgpackrpc.CallWithCodec(acceptorCodec, "Catalog.Register", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	for i := 0; i < 5; i++ {
+		insertNode(i)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		_, nodes, err := dialer.fsm.State().CheckServiceNodes(nil, "foo", nil, "my-peer-acceptor")
+		require.NoError(r, err)
+		require.Len(r, nodes, 5)
+	})
+
+	// Shutdown the dialing server.
+	require.NoError(t, dialer.Shutdown())
+
+	// Have to manually shut down the gRPC server otherwise it stays bound to the port.
+	dialer.externalGRPCServer.Stop()
+
+	{
+		exportedServices := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ExportedServicesConfigEntry{
+				Name:     "default",
+				Services: []structs.ExportedService{},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(acceptorCodec, "ConfigEntry.Apply", &exportedServices, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Restart the server by re-using the previous acceptor's data directory and node id.
+	_, dialerRestart := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.GRPCPort = dialingServerPort
+		c.DataDir = dialer.config.DataDir
+		c.NodeID = dialer.config.NodeID
+	})
+
+	// The dialing peer should eventually reconnect.
+	retry.Run(t, func(r *retry.R) {
+		connStreams := dialerRestart.peerStreamServer.ConnectedStreams()
+		require.Contains(r, connStreams, p.Peering.ID)
+	})
+
+	// The un-export results in the foo nodes being deleted.
+	retry.Run(t, func(r *retry.R) {
+		_, nodes, err := dialerRestart.fsm.State().CheckServiceNodes(nil, "foo", nil, "my-peer-acceptor")
+		require.NoError(r, err)
+		require.Len(r, nodes, 0)
+	})
+}
+
+func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	ca := connect.TestCA(t, nil)
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
 		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
@@ -218,11 +397,6 @@ func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS b
 		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-		if enableTLS {
-			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		}
 	})
 	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
@@ -295,7 +469,7 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 	t.Run("server-name-validation", func(t *testing.T) {
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.ServerName = "wrong.name"
-		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.consul, bob.server.dc1.consul, not wrong.name`)
+		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.peering.11111111-2222-3333-4444-555555555555.consul, not wrong.name`)
 	})
 	t.Run("bad-ca-roots", func(t *testing.T) {
 		wrongRoot, err := ioutil.ReadFile("../../test/client_certs/rootca.crt")
@@ -310,14 +484,20 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(token *structs.PeeringToken), expectErr string) {
 	require.NotNil(t, tokenMutateFn)
 
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-
-		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
-		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -360,10 +540,6 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
-
-		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
-		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -402,11 +578,11 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// TODO(peering): Configure with TLS
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -481,15 +657,21 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	}
 
 	// Reserve a gRPC port so we can restart the accepting server with the same port.
-	ports := freeport.GetN(t, 1)
-	acceptingServerPort := ports[0]
+	acceptingServerPort := freeport.GetOne(t)
 
+	ca := connect.TestCA(t, nil)
 	_, acceptingServer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptingServer.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
-		c.GRPCPort = acceptingServerPort
-		c.PeeringEnabled = true
+		c.GRPCTLSPort = acceptingServerPort
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptingServer.RPC, "dc1")
 
@@ -592,9 +774,17 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 		c.NodeName = "acceptingServer.dc1"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
-		c.GRPCPort = acceptingServerPort
 		c.DataDir = acceptingServer.config.DataDir
 		c.NodeID = acceptingServer.config.NodeID
+		c.GRPCTLSPort = acceptingServerPort
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 
 	testrpc.WaitForLeader(t, acceptingServerRestart.RPC, "dc1")
@@ -689,11 +879,19 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
-		c.PeeringEnabled = true
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -818,8 +1016,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 		name                       string
 		description                string
 		exportedService            structs.ExportedServicesConfigEntry
-		expectedImportedServsCount uint64
-		expectedExportedServsCount uint64
+		expectedImportedServsCount int
+		expectedExportedServsCount int
 	}
 
 	testCases := []testCase{
@@ -833,7 +1031,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: structs.WildcardSpecifier,
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -861,7 +1059,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -869,7 +1067,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "b-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -888,7 +1086,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -907,7 +1105,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "a-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -915,7 +1113,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 						Name: "c-service",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "my-peer-s2",
+								Peer: "my-peer-s2",
 							},
 						},
 					},
@@ -946,13 +1144,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient2.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, resp.Peering.ImportedServiceCount)
+				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ImportedServices))
 
 				// on List
 				resp2, err2 := peeringClient2.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, resp2.Peerings[0].ImportedServiceCount)
+				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ImportedServices))
 			})
 
 			// Check that exported services count on S1 are what we expect
@@ -961,13 +1159,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s2"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, resp.Peering.ExportedServiceCount)
+				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ExportedServices))
 
 				// on List
 				resp2, err2 := peeringClient.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, resp2.Peerings[0].ExportedServiceCount)
+				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ExportedServices))
 			})
 		})
 	}
@@ -987,11 +1185,19 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		lastIdx            = uint64(0)
 	)
 
-	// TODO(peering): Configure with TLS
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s1.dc1"
 		c.Datacenter = "dc1"
-		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1061,17 +1267,21 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.NoError(t, err)
 
 		// mimic tracking exported services
-		mst1.TrackExportedService(structs.ServiceName{Name: "a-service"})
-		mst1.TrackExportedService(structs.ServiceName{Name: "b-service"})
-		mst1.TrackExportedService(structs.ServiceName{Name: "c-service"})
+		mst1.SetExportedServices([]structs.ServiceName{
+			{Name: "a-service"},
+			{Name: "b-service"},
+			{Name: "c-service"},
+		})
 
 		// connect the stream
 		mst2, err := s2.peeringServer.Tracker.Connected(s2PeerID2)
 		require.NoError(t, err)
 
 		// mimic tracking exported services
-		mst2.TrackExportedService(structs.ServiceName{Name: "d-service"})
-		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
+		mst2.SetExportedServices([]structs.ServiceName{
+			{Name: "d-service"},
+			{Name: "e-service"},
+		})
 
 		// pretend that the hearbeat happened
 		mst2.TrackRecvHeartbeat()
@@ -1394,10 +1604,20 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	maxRetryBackoff = 1
 	t.Cleanup(func() { maxRetryBackoff = orig })
 
+	ca := connect.TestCA(t, nil)
 	_, acceptor := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 

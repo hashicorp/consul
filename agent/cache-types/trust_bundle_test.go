@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestTrustBundle(t *testing.T) {
@@ -93,11 +94,12 @@ func TestTrustBundle_MultipleUpdates(t *testing.T) {
 	for {
 		select {
 		case <-ctx.Done():
+			t.Fatal("context deadline exceeded")
 			return
 		case update := <-ch:
 			// Expect to receive updates for increasing indexes serially.
-			resp := update.Result.(*pbpeering.TrustBundleReadResponse)
-			require.Equal(t, i, resp.Index)
+			actual := update.Result.(*pbpeering.TrustBundleReadResponse)
+			require.Equal(t, i, actual.Index)
 			i++
 
 			if i > 3 {

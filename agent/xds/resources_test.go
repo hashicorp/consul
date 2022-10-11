@@ -156,6 +156,10 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringTProxy,
 		},
+		{
+			name:   "local-mesh-gateway-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
@@ -213,6 +217,24 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 			name: "mesh-gateway-with-exported-peered-services-http-with-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-peering-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "control-plane", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-with-imported-peered-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-with-peer-through-mesh-gateway-enabled",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "peer-through-mesh-gateway", nil, nil)
 			},
 		},
 	}

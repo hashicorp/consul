@@ -1569,7 +1569,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				Name: "default",
 				Services: []structs.ExportedService{{
 					Name:      "main",
-					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+					Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
 				}},
 			},
 			expectErr: `contains cross-datacenter resolver redirect`,
@@ -1588,7 +1588,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				Name: "default",
 				Services: []structs.ExportedService{{
 					Name:      "*",
-					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+					Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
 				}},
 			},
 			expectErr: `contains cross-datacenter resolver redirect`,
@@ -1609,7 +1609,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				Name: "default",
 				Services: []structs.ExportedService{{
 					Name:      "main",
-					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+					Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
 				}},
 			},
 			expectErr: `contains cross-datacenter failover`,
@@ -1630,7 +1630,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				Name: "default",
 				Services: []structs.ExportedService{{
 					Name:      "*",
-					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+					Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
 				}},
 			},
 			expectErr: `contains cross-datacenter failover`,
@@ -1641,7 +1641,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Name: "default",
 					Services: []structs.ExportedService{{
 						Name:      "main",
-						Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
 					}},
 				},
 			},

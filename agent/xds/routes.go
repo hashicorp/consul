@@ -578,25 +578,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.HasRetryFeatures() {
-					retryPolicy := &envoy_route_v3.RetryPolicy{}
-					if destination.NumRetries > 0 {
-						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
-					}
-
-					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
-					if destination.RetryOnConnectFailure {
-						retryPolicy.RetryOn = "connect-failure"
-					}
-					if len(destination.RetryOnStatusCodes) > 0 {
-						if retryPolicy.RetryOn != "" {
-							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
-						} else {
-							retryPolicy.RetryOn = "retriable-status-codes"
-						}
-						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
-					}
-
-					routeAction.Route.RetryPolicy = retryPolicy
+					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
 				}
 
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
@@ -661,6 +643,43 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	}
 
 	return host, nil
+}
+
+func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
+	retryPolicy := &envoy_route_v3.RetryPolicy{}
+	if destination.NumRetries > 0 {
+		retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+	}
+
+	// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+	var retryStrings []string
+
+	if len(destination.RetryOn) > 0 {
+		retryStrings = append(retryStrings, destination.RetryOn...)
+	}
+
+	if destination.RetryOnConnectFailure {
+		// connect-failure can be enabled by either adding connect-failure to the RetryOn list or by using the legacy RetryOnConnectFailure option
+		// Check that it's not already in the RetryOn list, so we don't set it twice
+		connectFailureExists := false
+		for _, r := range retryStrings {
+			if r == "connect-failure" {
+				connectFailureExists = true
+			}
+		}
+		if !connectFailureExists {
+			retryStrings = append(retryStrings, "connect-failure")
+		}
+	}
+
+	if len(destination.RetryOnStatusCodes) > 0 {
+		retryStrings = append(retryStrings, "retriable-status-codes")
+		retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
+	}
+
+	retryPolicy.RetryOn = strings.Join(retryStrings, ",")
+
+	return retryPolicy
 }
 
 func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {

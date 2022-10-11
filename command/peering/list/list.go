@@ -90,6 +90,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	result := make([]string, 0, len(list))
+	// TODO(peering): consider adding more StreamStatus fields here
 	header := "Name\x1fState\x1fImported Svcs\x1fExported Svcs\x1fMeta"
 	result = append(result, header)
 	for _, peer := range list {
@@ -99,7 +100,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		meta := strings.Join(metaPairs, ",")
 		line := fmt.Sprintf("%s\x1f%s\x1f%d\x1f%d\x1f%s",
-			peer.Name, peer.State, peer.ImportedServiceCount, peer.ExportedServiceCount, meta)
+			peer.Name, peer.State, len(peer.StreamStatus.ImportedServices), len(peer.StreamStatus.ExportedServices), meta)
 		result = append(result, line)
 	}
 
@@ -123,7 +124,7 @@ const (
 Usage: consul peering list [options]
 
   List all peering connections.  The results will be filtered according
-  to ACL policy configuration. 
+  to ACL policy configuration.
 
   Example:
 

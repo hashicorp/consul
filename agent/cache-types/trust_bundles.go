@@ -87,7 +87,12 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	// Fetch
-	reply, err := t.Client.TrustBundleListByService(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
+	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
+	if err != nil {
+		return result, err
+	}
+
+	reply, err := t.Client.TrustBundleListByService(ctx, reqReal.Request)
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.

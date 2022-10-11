@@ -272,6 +272,18 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							NumRetries:            5,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{500, 503, 401},
+							RetryOn: []string{
+								"gateway-error",
+								"reset",
+								"envoy-ratelimited",
+								"retriable-4xx",
+								"refused-stream",
+								"cancelled",
+								"deadline-exceeded",
+								"internal",
+								"resource-exhausted",
+								"unavailable",
+							},
 							RequestHeaders: &HTTPHeaderModifiers{
 								Set: map[string]string{
 									"x-foo": "bar",

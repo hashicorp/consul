@@ -62,14 +62,25 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
-	// ImportedServiceCount is the count of how many services are imported from this peering.
-	ImportedServiceCount uint64
-	// ExportedServiceCount is the count of how many services are exported to this peering.
-	ExportedServiceCount uint64
+	// StreamStatus contains information computed on read based on the state of the stream.
+	StreamStatus PeeringStreamStatus
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
 	// ModifyIndex is the latest Raft index at which the Peering. was modified.
 	ModifyIndex uint64
+}
+
+type PeeringStreamStatus struct {
+	// ImportedServices is the list of services imported from this peering.
+	ImportedServices []string
+	// ExportedServices is the list of services exported to this peering.
+	ExportedServices []string
+	// LastHeartbeat represents when the last heartbeat message was received.
+	LastHeartbeat time.Time
+	// LastReceive represents when any message was last received, regardless of success or error.
+	LastReceive time.Time
+	// LastSend represents when any message was last sent, regardless of success or error.
+	LastSend time.Time
 }
 
 type PeeringReadResponse struct {

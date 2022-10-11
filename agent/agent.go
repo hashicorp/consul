@@ -24,9 +24,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
@@ -40,6 +42,9 @@ import (
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
+	"github.com/hashicorp/consul/agent/hcp/scada"
+	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -382,6 +387,10 @@ type Agent struct {
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
 
+	// scadaProvider is set when HashiCorp Cloud Platform integration is configured and exposes the agent's API over
+	// an encrypted session to HCP
+	scadaProvider scada.Provider
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -428,6 +437,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 		routineManager:  routine.NewManager(bd.Logger),
+		scadaProvider:   bd.HCP.Provider,
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -769,6 +779,17 @@ func (a *Agent) Start(ctx context.Context) error {
 		}()
 	}
 
+	if a.scadaProvider != nil {
+		a.scadaProvider.UpdateMeta(map[string]string{
+			"consul_server_id": string(a.config.NodeID),
+		})
+
+		if err = a.scadaProvider.Start(); err != nil {
+			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
+				"error", err, "resource_id", a.config.Cloud.ResourceID)
+		}
+	}
+
 	return nil
 }
 
@@ -900,6 +921,15 @@ func (a *Agent) listenAndServeDNS() error {
 			}
 		}(addr)
 	}
+	s, _ := NewDNSServer(a)
+
+	grpcDNS.NewServer(grpcDNS.Config{
+		Logger:      a.logger.Named("grpc-api.dns"),
+		DNSServeMux: s.mux,
+		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
@@ -953,6 +983,12 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 				return nil, err
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
+
+		case *capability.Addr:
+			l, err = a.scadaProvider.Listen(x.Capability())
+			if err != nil {
+				return nil, err
+			}
 
 		default:
 			closeAll()
@@ -1011,6 +1047,11 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
+			if libscada.IsCapability(l.Addr()) {
+				// wrap in http2 server handler
+				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
+			}
+
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
@@ -1027,7 +1068,12 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		return nil
 	}
 
-	if err := start("http", a.config.HTTPAddrs); err != nil {
+	httpAddrs := a.config.HTTPAddrs
+	if a.config.IsCloudEnabled() {
+		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
+	}
+
+	if err := start("http", httpAddrs); err != nil {
 		closeListeners(ln)
 		return nil, err
 	}
@@ -1581,6 +1627,11 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
+
+	// Shutdown SCADA provider
+	if a.scadaProvider != nil {
+		a.scadaProvider.Stop()
+	}
 
 	var err error
 	if a.delegate != nil {
@@ -4187,6 +4238,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
+
 	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
@@ -4205,6 +4257,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
 
 	a.cache.RegisterType(cachetype.PeeredUpstreamsName, &cachetype.PeeredUpstreams{RPC: a})
+
+	a.cache.RegisterType(cachetype.PeeringListName, &cachetype.Peerings{Client: a.rpcClientPeering})
 
 	a.registerEntCache()
 }
@@ -4320,6 +4374,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
 		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
 		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
+		PeeringList:                     proxycfgglue.CachePeeringList(a.cache),
 		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
@@ -4348,6 +4403,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
 		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
+		sources.PeeringList = proxycfgglue.ServerPeeringList(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
 		sources.ResolvedServiceConfig = proxycfgglue.ServerResolvedServiceConfig(deps, proxycfgglue.CacheResolvedServiceConfig(a.cache))
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))

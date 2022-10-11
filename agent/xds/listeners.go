@@ -190,6 +190,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -274,7 +275,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil
 			}
 			configuredPorts[svcConfig.Destination.Port] = struct{}{}
-			const name = "~http" //name used for the shared route name
+			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:  routeName,
@@ -385,6 +386,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
+
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -559,6 +562,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		upstreamListener := makeListener(uid.EnvoyID(), u, envoy_core_v3.TrafficDirection_OUTBOUND)
+		s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
@@ -905,6 +909,19 @@ func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener,
 	return &l, nil
 }
 
+func (s *ResourceGenerator) injectConnectionBalanceConfig(balanceType string, listener *envoy_listener_v3.Listener) {
+	switch balanceType {
+	case "":
+		// Default with no balancing.
+	case structs.ConnectionExactBalance:
+		listener.ConnectionBalanceConfig = &envoy_listener_v3.Listener_ConnectionBalanceConfig{
+			BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+		}
+	default:
+		s.Logger.Warn("ignoring invalid connection balance option", "value", balanceType)
+	}
+}
+
 // Ensure that the first filter in each filter chain of a public listener is
 // the authz filter to prevent unauthorized access.
 func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
@@ -1056,6 +1073,19 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 	return nil
 }
 
+func getAlpnProtocols(protocol string) []string {
+	var alpnProtocols []string
+
+	switch protocol {
+	case "grpc", "http2":
+		alpnProtocols = append(alpnProtocols, "h2", "http/1.1")
+	case "http":
+		alpnProtocols = append(alpnProtocols, "http/1.1")
+	}
+
+	return alpnProtocols
+}
+
 func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
@@ -1064,12 +1094,21 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
+	// Determine listener protocol type from configured service protocol. Don't hard fail on a config typo,
+	//The parse func returns default config if there is an error, so it's safe to continue.
+	cfg, _ := ParseProxyConfig(cfgSnap.Proxy.Config)
+
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
 	tlsContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 	)
+
+	if tlsContext != nil {
+		// Configure alpn protocols on CommonTLSContext
+		tlsContext.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
+	}
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
 	if len(peerBundles) > 0 {
@@ -1221,6 +1260,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+	s.injectConnectionBalanceConfig(cfg.BalanceInboundConnections, l)
 
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
 	if cfg.ListenerTracingJSON != "" {
@@ -1713,6 +1753,10 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
+	// --------
+	// WAN Federation over mesh gateways
+	// --------
+
 	if cfgSnap.ProxyID.InDefaultPartition() &&
 		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 		cfgSnap.ServerSNIFn != nil {
@@ -1739,7 +1783,8 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		}
 
 		// Wildcard all flavors to each server.
-		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
+		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)
@@ -1750,7 +1795,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 
 			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
 				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-					ServerNames: []string{fmt.Sprintf("%s", clusterName)},
+					ServerNames: []string{clusterName},
 				},
 				Filters: []*envoy_listener_v3.Filter{
 					dcTCPProxy,
@@ -1758,6 +1803,61 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 			})
 		}
 	}
+
+	// --------
+	// Peering control plane
+	// --------
+
+	// Create a single filter chain for local servers to be dialed by peers.
+	// When peering through gateways we load balance across the local servers. They cannot be addressed individually.
+	if cfgSnap.MeshConfig().PeerThroughMeshGateways() {
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
+
+		// Peering control-plane traffic can only ever be handled by the local leader.
+		// We avoid routing to read replicas since they will never be Raft voters.
+		if haveVoters(servers) {
+			clusterName := connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			filterName := fmt.Sprintf("%s.%s", name, cfgSnap.Datacenter)
+
+			filter, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peering_server.")
+			if err != nil {
+				return nil, err
+			}
+
+			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ServerNames: []string{clusterName},
+				},
+				Filters: []*envoy_listener_v3.Filter{
+					filter,
+				},
+			})
+		}
+	}
+
+	// Create a filter chain per outbound peer server cluster. Listen for the SNI provided
+	// as the peer's ServerName.
+	var peerServerFilterChains []*envoy_listener_v3.FilterChain
+	for name := range cfgSnap.MeshGateway.PeerServers {
+
+		dcTCPProxy, err := makeTCPProxyFilter(name, name, "mesh_gateway_remote_peering_servers.")
+		if err != nil {
+			return nil, err
+		}
+
+		peerServerFilterChains = append(peerServerFilterChains, &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(name),
+			Filters: []*envoy_listener_v3.Filter{
+				dcTCPProxy,
+			},
+		})
+	}
+
+	// Sort so the output is stable and the listener doesn't get drained
+	sort.Slice(peerServerFilterChains, func(i, j int) bool {
+		return peerServerFilterChains[i].FilterChainMatch.ServerNames[0] < peerServerFilterChains[j].FilterChainMatch.ServerNames[0]
+	})
+	l.FilterChains = append(l.FilterChains, peerServerFilterChains...)
 
 	// This needs to get tacked on at the end as it has no
 	// matching and will act as a catch all
@@ -1996,6 +2096,10 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 
 	if cfg.ConnectTimeoutMs == 0 {
 		cfg.ConnectTimeoutMs = 5000
+	}
+
+	if cfg.MeshGateway.Mode == "" && u != nil {
+		cfg.MeshGateway = u.MeshGateway
 	}
 
 	return cfg

@@ -1686,19 +1686,19 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					Name: "redis",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-other-peering"},
+						{Peer: "my-other-peering"},
 					},
 				},
 			},
@@ -1758,7 +1758,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				{
 					Name: "*",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "my-peering"},
+						{Peer: "my-peering"},
 					},
 				},
 			},
@@ -2046,10 +2046,10 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 						Name: "foo",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "peer1",
+								Peer: "peer1",
 							},
 							{
-								PeerName: "peer2",
+								Peer: "peer2",
 							},
 						},
 					},
@@ -2090,7 +2090,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 						Name: "foo",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "peer1",
+								Peer: "peer1",
 							},
 						},
 					},
@@ -2098,7 +2098,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 						Name: "bar",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "peer2",
+								Peer: "peer2",
 							},
 						},
 					},
@@ -2148,10 +2148,10 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 						Name: "*",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "peer1",
+								Peer: "peer1",
 							},
 							{
-								PeerName: "peer2",
+								Peer: "peer2",
 							},
 						},
 					},
@@ -2159,7 +2159,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 						Name: "bar",
 						Consumers: []structs.ServiceConsumer{
 							{
-								PeerName: "peer3",
+								Peer: "peer3",
 							},
 						},
 					},
@@ -2261,7 +2261,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 					Name: "foo",
 					Consumers: []structs.ServiceConsumer{
 						{
-							PeerName: "peer1",
+							Peer: "peer1",
 						},
 					},
 				},
@@ -2318,7 +2318,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 					Name: "foo",
 					Consumers: []structs.ServiceConsumer{
 						{
-							PeerName: "peer1",
+							Peer: "peer1",
 						},
 					},
 				},
@@ -2371,10 +2371,10 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 					Name: "foo",
 					Consumers: []structs.ServiceConsumer{
 						{
-							PeerName: "peer1",
+							Peer: "peer1",
 						},
 						{
-							PeerName: "peer2",
+							Peer: "peer2",
 						},
 					},
 				},
