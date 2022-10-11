@@ -1,3 +1,3 @@
 ```release-note:improvement
-connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on upstream connections to mesh gateways in remote datacenters.
+connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters.
 ```
