@@ -1,4 +1,4 @@
-package internal
+package middleware
 
 import (
 	"context"
@@ -47,8 +47,6 @@ var StatsCounters = []prometheus.CounterDefinition{
 	},
 }
 
-var defaultMetrics = metrics.Default
-
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.
 type statsHandler struct {
@@ -57,10 +55,11 @@ type statsHandler struct {
 	// the struct. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
 	activeConns uint64
 	metrics     *metrics.Metrics
+	labels      []metrics.Label
 }
 
-func newStatsHandler(m *metrics.Metrics) *statsHandler {
-	return &statsHandler{metrics: m}
+func NewStatsHandler(m *metrics.Metrics, labels []metrics.Label) *statsHandler {
+	return &statsHandler{metrics: m, labels: labels}
 }
 
 // TagRPC implements grpcStats.StatsHandler
@@ -77,7 +76,7 @@ func (c *statsHandler) HandleRPC(_ context.Context, s stats.RPCStats) {
 	}
 	switch s.(type) {
 	case *stats.InHeader:
-		c.metrics.IncrCounter([]string{"grpc", label, "request", "count"}, 1)
+		c.metrics.IncrCounterWithLabels([]string{"grpc", label, "request", "count"}, 1, c.labels)
 	}
 }
 
@@ -97,12 +96,12 @@ func (c *statsHandler) HandleConn(_ context.Context, s stats.ConnStats) {
 	switch s.(type) {
 	case *stats.ConnBegin:
 		count = atomic.AddUint64(&c.activeConns, 1)
-		c.metrics.IncrCounter([]string{"grpc", label, "connection", "count"}, 1)
+		c.metrics.IncrCounterWithLabels([]string{"grpc", label, "connection", "count"}, 1, c.labels)
 	case *stats.ConnEnd:
 		// Decrement!
 		count = atomic.AddUint64(&c.activeConns, ^uint64(0))
 	}
-	c.metrics.SetGauge([]string{"grpc", label, "connections"}, float32(count))
+	c.metrics.SetGaugeWithLabels([]string{"grpc", label, "connections"}, float32(count), c.labels)
 }
 
 type activeStreamCounter struct {
@@ -111,6 +110,11 @@ type activeStreamCounter struct {
 	// the struct. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
 	count   uint64
 	metrics *metrics.Metrics
+	labels  []metrics.Label
+}
+
+func NewActiveStreamCounter(m *metrics.Metrics, labels []metrics.Label) *activeStreamCounter {
+	return &activeStreamCounter{metrics: m, labels: labels}
 }
 
 // GRPCCountingStreamInterceptor is a grpc.ServerStreamInterceptor that emits a
@@ -122,11 +126,11 @@ func (i *activeStreamCounter) Intercept(
 	handler grpc.StreamHandler,
 ) error {
 	count := atomic.AddUint64(&i.count, 1)
-	i.metrics.SetGauge([]string{"grpc", "server", "streams"}, float32(count))
-	i.metrics.IncrCounter([]string{"grpc", "server", "stream", "count"}, 1)
+	i.metrics.SetGaugeWithLabels([]string{"grpc", "server", "streams"}, float32(count), i.labels)
+	i.metrics.IncrCounterWithLabels([]string{"grpc", "server", "stream", "count"}, 1, i.labels)
 	defer func() {
 		count := atomic.AddUint64(&i.count, ^uint64(0))
-		i.metrics.SetGauge([]string{"grpc", "server", "streams"}, float32(count))
+		i.metrics.SetGaugeWithLabels([]string{"grpc", "server", "streams"}, float32(count), i.labels)
 	}()
 
 	return handler(srv, ss)

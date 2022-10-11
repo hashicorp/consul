@@ -1,4 +1,4 @@
-package internal
+package external
 
 import (
 	"context"
@@ -19,15 +19,12 @@ import (
 	"github.com/hashicorp/consul/proto/prototest"
 )
 
-func noopRegister(*grpc.Server) {}
-
-func TestHandler_EmitsStats(t *testing.T) {
+func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj)
+	srv := NewServer(hclog.Default(), metricsObj)
 
-	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
+	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -37,12 +34,10 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return handler.srv.Serve(lis)
+		return srv.Serve(lis)
 	})
 	t.Cleanup(func() {
-		if err := handler.Shutdown(); err != nil {
-			t.Logf("grpc server shutdown: %v", err)
-		}
+		srv.Stop()
 		if err := g.Wait(); err != nil {
 			t.Logf("grpc server error: %v", err)
 		}
@@ -62,7 +57,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	cancel()
 	conn.Close()
-	handler.srv.GracefulStop()
+	srv.GracefulStop()
 	// Wait for the server to stop so that active_streams is predictable.
 	require.NoError(t, g.Wait())
 
@@ -82,7 +77,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	cmpMetricCalls := cmp.AllowUnexported(testutil.MetricCall{})
 	expLabels := []metrics.Label{{
 		Name:  "server_type",
-		Value: "internal",
+		Value: "external",
 	}}
 	expectedGauge := []testutil.MetricCall{
 		{Key: []string{"testing", "grpc", "server", "connections"}, Val: 1, Labels: expLabels},

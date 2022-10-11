@@ -553,7 +553,10 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"))
+	a.externalGRPCServer = external.NewServer(
+		a.logger.Named("grpc.external"),
+		metrics.Default(),
+	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err

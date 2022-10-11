@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/armon/go-metrics"
+	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/tlsutil"
@@ -129,7 +131,7 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithInsecure(),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
-		grpc.WithStatsHandler(newStatsHandler(defaultMetrics())),
+		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
 		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
 		grpc.WithBalancerName("pick_first"),
 		// Keep alive parameters are based on the same default ones we used for
