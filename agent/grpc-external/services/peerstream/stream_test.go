@@ -1887,6 +1887,7 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 		// Ensure every nonce was unique.
 		if resp := out[i].GetResponse(); resp != nil {
 			require.NotContains(t, nonces, resp.Nonce)
+			nonces[resp.Nonce] = struct{}{}
 		}
 	}
 }
