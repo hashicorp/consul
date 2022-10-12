@@ -395,11 +395,23 @@ func (c *Cache) getEntryLocked(
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		if entry.Fetching {
-			// There is an active blocking query for this data, which has not
-			// returned. We can logically deduce that the contents of the cache
-			// are actually current, and we can simply return this while
-			// leaving the blocking query alone.
+		// It is important to note that this block ONLY applies when we are not
+		// in indefinite refresh mode (where the underlying goroutine will
+		// continue to re-query for data).
+		//
+		// In this mode goroutines have a 1:1 relationship to RPCs that get
+		// executed, and importantly they DO NOT SLEEP after executing.
+		//
+		// This means that a running goroutine for this cache entry extremely
+		// strongly implies that the RPC has not yet completed, which is why
+		// this check works for the revalidation-avoidance optimization here.
+		if entry.GoroutineID != 0 {
+			// There is an active goroutine performing a blocking query for
+			// this data, which has not returned.
+			//
+			// We can logically deduce that the contents of the cache are
+			// actually current, and we can simply return this while leaving
+			// the blocking query alone.
 			return true, true, entry
 		}
 		return true, false, entry
@@ -575,14 +587,11 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 		close(ch)
 		return ch
 
-	case ok && entry.Fetching:
-		// If we already have an entry and it is actively fetching, then return
-		// the currently active waiter.
-		return entry.Waiter
-
 	case ok && entry.GoroutineID != 0:
 		// If we already have an entry and there's a goroutine to keep it
 		// refreshed then don't spawn another one to do the same work.
+		//
+		// Return the currently active waiter.
 		return entry.Waiter
 
 	case !ok:
@@ -605,10 +614,6 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 	// detect that and terminate rather than leak and do double work.
 	c.lastGoroutineID++
 	entry.GoroutineID = c.lastGoroutineID
-	// Set that we're fetching to true, which makes it so that future
-	// identical calls to fetch will return the same waiter rather than
-	// perform multiple fetches.
-	entry.Fetching = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
@@ -626,7 +631,6 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 		entry, ok := c.entries[key]
 		if ok && entry.GoroutineID == goroutineID {
 			entry.GoroutineID = 0
-			entry.Fetching = false
 			c.entries[key] = entry
 		}
 	}()
@@ -665,7 +669,7 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 		c.entriesLock.Lock()
 
 		entry, ok := c.entries[key]
-		if !ok || entry.Fetching || entry.GoroutineID != goroutineID {
+		if !ok || entry.GoroutineID != goroutineID {
 			// If we don't have an existing entry, return immediately.
 			//
 			// Also if we already have an entry and it is actively fetching, then
@@ -676,10 +680,6 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 			return
 		}
 
-		// Set that we're fetching to true, which makes it so that future
-		// identical calls to fetch will return the same waiter rather than
-		// perform multiple fetches.
-		entry.Fetching = true
 		c.entries[key] = entry
 		metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 		metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
@@ -694,7 +694,7 @@ func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOp
 	entry, ok := c.entries[key]
 	c.entriesLock.RUnlock()
 
-	if !ok || !entry.Fetching || entry.GoroutineID != goroutineID {
+	if !ok || entry.GoroutineID != goroutineID {
 		// If we don't have an existing entry, return immediately.
 		//
 		// Also if something weird has happened to orphan this goroutine, also
@@ -759,7 +759,6 @@ func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOp
 
 		// Copy the existing entry to start.
 		newEntry := entry
-		newEntry.Fetching = false
 
 		// Importantly, always reset the Error. Having both Error and a Value that
 		// are non-nil is allowed in the cache entry but it indicates that the Error

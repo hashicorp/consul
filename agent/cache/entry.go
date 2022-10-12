@@ -27,7 +27,6 @@ type cacheEntry struct {
 
 	// Metadata that is used for internal accounting
 	Valid       bool          // True if the Value is set
-	Fetching    bool          // True if a fetch RPC is currently active
 	GoroutineID uint64        // Nonzero if a fetch goroutine is running.
 	Waiter      chan struct{} // Closed when this entry is invalidated
 
