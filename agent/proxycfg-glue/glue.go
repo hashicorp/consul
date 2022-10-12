@@ -55,6 +55,8 @@ type Store interface {
 //
 // Note: there isn't a server-local equivalent of this data source because
 // "agentless" proxies obtain certificates via SDS served by consul-dataplane.
+// If SDS is not supported on consul-dataplane, data is sourced from the server agent cache
+// even for "agentless" proxies.
 func CacheCARoots(c *cache.Cache) proxycfg.CARoots {
 	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.ConnectCARootName}
 }
@@ -74,20 +76,13 @@ func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
 }
 
-// CacheHTTPChecks satisifies the proxycfg.HTTPChecks interface by sourcing
-// data from the agent cache.
-//
-// Note: there isn't a server-local equivalent of this data source because only
-// services registered to the local agent can be health checked by it.
-func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
-	return &cacheProxyDataSource[*cachetype.ServiceHTTPChecksRequest]{c, cachetype.ServiceHTTPChecksName}
-}
-
 // CacheLeafCertificate satisifies the proxycfg.LeafCertificate interface by
 // sourcing data from the agent cache.
 //
 // Note: there isn't a server-local equivalent of this data source because
 // "agentless" proxies obtain certificates via SDS served by consul-dataplane.
+// If SDS is not supported on consul-dataplane, data is sourced from the server agent cache
+// even for "agentless" proxies.
 func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
 	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
 }
