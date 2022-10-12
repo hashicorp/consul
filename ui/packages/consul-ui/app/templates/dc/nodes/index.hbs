@@ -76,52 +76,54 @@ as |route|>
       {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-        <DataCollection
-          @type="node"
-          @sort={{sort.value}}
-          @filters={{filters}}
-          @search={{search}}
-          @items={{items}}
-        as |collection|>
-          <collection.Collection>
-            <Consul::Node::List
-              @items={{collection.items}}
-              @leader={{leader}}
-            />
-          </collection.Collection>
-          <collection.Empty>
-            <EmptyState
-              @login={{route.model.app.login.open}}
-            >
-              <BlockSlot @name="header">
-                <h2>
-                  {{t 'routes.dc.nodes.index.empty.header'
+        <Providers::RejectBy @items={{items}} @path="Meta.synthetic-node" @value="true" as |filtered|>
+          <DataCollection
+            @type="node"
+            @sort={{sort.value}}
+            @filters={{filters}}
+            @search={{search}}
+            @items={{filtered.data.items}}
+          as |collection|>
+            <collection.Collection>
+              <Consul::Node::List
+                @items={{collection.items}}
+                @leader={{leader}}
+              />
+            </collection.Collection>
+            <collection.Empty>
+              <EmptyState
+                @login={{route.model.app.login.open}}
+              >
+                <BlockSlot @name="header">
+                  <h2>
+                    {{t 'routes.dc.nodes.index.empty.header'
+                      items=items.length
+                    }}
+                  </h2>
+                </BlockSlot>
+                <BlockSlot @name="body">
+                  {{t 'routes.dc.nodes.index.empty.body'
                     items=items.length
+                    canUseACLs=(can 'use acls')
+                    htmlSafe=true
                   }}
-                </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
-                {{t 'routes.dc.nodes.index.empty.body'
-                  items=items.length
-                  canUseACLs=(can 'use acls')
-                  htmlSafe=true
-                }}
-              </BlockSlot>
-              <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_DEVELOPER_URL'}}/agent" rel="noopener noreferrer" target="_blank">
-                    {{t 'routes.dc.nodes.index.empty.documentation'}}
-                  </a>
-                </li>
-                <li class="learn-link">
-                  <a href="{{env "CONSUL_DOCS_LEARN_URL"}}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents" rel="noopener noreferrer" target="_blank">
-                    {{t 'routes.dc.nodes.index.empty.learn'}}
-                  </a>
-                </li>
-              </BlockSlot>
-            </EmptyState>
-          </collection.Empty>
-        </DataCollection>
+                </BlockSlot>
+                <BlockSlot @name="actions">
+                  <li class="docs-link">
+                    <a href="{{env 'CONSUL_DOCS_DEVELOPER_URL'}}/agent" rel="noopener noreferrer" target="_blank">
+                      {{t 'routes.dc.nodes.index.empty.documentation'}}
+                    </a>
+                  </li>
+                  <li class="learn-link">
+                    <a href="{{env "CONSUL_DOCS_LEARN_URL"}}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents" rel="noopener noreferrer" target="_blank">
+                      {{t 'routes.dc.nodes.index.empty.learn'}}
+                    </a>
+                  </li>
+                </BlockSlot>
+              </EmptyState>
+            </collection.Empty>
+          </DataCollection>
+        </Providers::RejectBy>
       </BlockSlot>
     </AppView>
   {{/let}}
