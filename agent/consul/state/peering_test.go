@@ -1673,6 +1673,94 @@ func TestStore_PeeringTrustBundleDelete(t *testing.T) {
 	require.Nil(t, ptb)
 }
 
+func TestStateStore_ExportedServicesForAllPeersByName(t *testing.T) {
+	s := NewStateStore(nil)
+	var lastIdx uint64
+
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	lastIdx++
+	require.NoError(t, s.CASetConfig(lastIdx, &structs.CAConfiguration{
+		Provider:  "consul",
+		ClusterID: connect.TestClusterID,
+	}))
+
+	lastIdx++
+	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "my-peering1",
+		},
+	}))
+	lastIdx++
+	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "my-peering2",
+		},
+	}))
+
+	ensureConfigEntry := func(t *testing.T, entry structs.ConfigEntry) {
+		t.Helper()
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
+
+		lastIdx++
+		require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
+	}
+
+	ws := memdb.NewWatchSet()
+	testutil.RunStep(t, "no exported services", func(t *testing.T) {
+		expect := map[string]structs.ServiceList{}
+		idx, got, err := s.ExportedServicesForAllPeersByName(ws, *defaultEntMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Equal(t, expect, got)
+	})
+
+	testutil.RunStep(t, "exported services with two peers", func(t *testing.T) {
+		entry := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "mysql",
+					Consumers: []structs.ServiceConsumer{
+						{Peer: "my-peering1"},
+					},
+				},
+				{
+					Name: "redis",
+					Consumers: []structs.ServiceConsumer{
+						{Peer: "my-peering1"},
+					},
+				},
+				{
+					Name: "mongo",
+					Consumers: []structs.ServiceConsumer{
+						{Peer: "my-peering2"},
+					},
+				},
+			},
+		}
+		ensureConfigEntry(t, entry)
+		require.True(t, watchFired(ws))
+
+		expect := map[string]structs.ServiceList{
+			"my-peering1": []structs.ServiceName{
+				structs.NewServiceName("mysql", defaultEntMeta),
+				structs.NewServiceName("redis", defaultEntMeta),
+			},
+			"my-peering2": []structs.ServiceName{
+				structs.NewServiceName("mongo", defaultEntMeta),
+			},
+		}
+		idx, got, err := s.ExportedServicesForAllPeersByName(nil, *defaultEntMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Equal(t, expect, got)
+	})
+}
+
 func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 	s := NewStateStore(nil)
 
