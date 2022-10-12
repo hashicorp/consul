@@ -22,18 +22,18 @@ export default class PeeringsProvider extends Component {
     let tabs = [
       {
         label: 'Imported Services',
-        route: 'dc.peers.edit.imported',
+        route: 'dc.peers.show.imported',
         tooltip: this.intl.t('routes.dc.peers.index.detail.imported.tab-tooltip', { name }),
       },
       {
         label: 'Exported Services',
-        route: 'dc.peers.edit.exported',
+        route: 'dc.peers.show.exported',
         tooltip: this.intl.t('routes.dc.peers.index.detail.exported.tab-tooltip', { name }),
       },
     ];
 
     if (isReceiver) {
-      tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.edit.addresses' }];
+      tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.show.addresses' }];
     }
 
     return tabs.map((tab) => new Tab({ ...tab, currentRouteName: router.currentRouteName, owner }));

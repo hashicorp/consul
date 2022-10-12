@@ -22,7 +22,7 @@
             },
           },
         },
-        edit: {
+        show: {
           _options: {
             path: "/:name",
           },

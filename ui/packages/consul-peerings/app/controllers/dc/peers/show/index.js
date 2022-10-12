@@ -6,6 +6,6 @@ export default class DcPeersEditIndexController extends Controller {
   @service router;
 
   @action transitionToImported() {
-    this.router.replaceWith("dc.peers.edit.imported");
+    this.router.replaceWith("dc.peers.show.imported");
   }
 }
