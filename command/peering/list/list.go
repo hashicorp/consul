@@ -67,7 +67,7 @@ func (c *cmd) Run(args []string) int {
 
 	res, _, err := peerings.List(context.Background(), &api.QueryOptions{})
 	if err != nil {
-		c.UI.Error("Error listing peerings")
+		c.UI.Error(fmt.Sprintf("Error listing peerings: %s", err))
 		return 1
 	}
 

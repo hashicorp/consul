@@ -75,7 +75,7 @@ func (c *cmd) Run(args []string) int {
 
 	res, _, err := peerings.Read(context.Background(), c.name, &api.QueryOptions{})
 	if err != nil {
-		c.UI.Error("Error reading peerings")
+		c.UI.Error(fmt.Sprintf("Error reading peering: %s", err))
 		return 1
 	}
 
