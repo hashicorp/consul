@@ -152,7 +152,14 @@
             {{#if item.Service.PeerName}}
               <dl>
                 <dt>Peer Name</dt>
-                <dd>{{item.Service.PeerName}}</dd>
+                <dd><a
+                    data-test-service-instance-peer-name
+                    href={{href-to
+                      'dc.peers.show'
+                      item.Service.PeerName
+                      params=(hash peer=undefined)
+                    }}
+                  >{{item.Service.PeerName}}</a></dd>
               </dl>
             {{/if}}
           </BlockSlot>
