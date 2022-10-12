@@ -84,8 +84,8 @@ var Counters = []prometheus.CounterDefinition{
 // Constants related to refresh backoff. We probably don't ever need to
 // make these configurable knobs since they primarily exist to lower load.
 const (
-	CacheRefreshBackoffMin = 3               // 3 attempts before backing off
-	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
+	DefaultCacheRefreshBackoffMin = 3               // 3 attempts before backing off
+	DefaultCacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
 
 	// The following constants are default values for the cache entry
 	// rate limiter settings.
@@ -196,6 +196,13 @@ type Options struct {
 	EntryFetchMaxBurst int
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate rate.Limit
+
+	// CacheRefreshBackoffMin is the number of attempts to wait before backing off.
+	// Mostly configurable just for testing.
+	CacheRefreshBackoffMin uint
+	// CacheRefreshMaxWait is the maximum backoff wait time.
+	// Mostly configurable just for testing.
+	CacheRefreshMaxWait time.Duration
 }
 
 // Equal return true if both options are equivalent
@@ -210,6 +217,12 @@ func applyDefaultValuesOnOptions(options Options) Options {
 	}
 	if options.EntryFetchMaxBurst == 0 {
 		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
+	}
+	if options.CacheRefreshBackoffMin == 0 {
+		options.CacheRefreshBackoffMin = DefaultCacheRefreshBackoffMin
+	}
+	if options.CacheRefreshMaxWait == 0 {
+		options.CacheRefreshMaxWait = DefaultCacheRefreshMaxWait
 	}
 	if options.Logger == nil {
 		options.Logger = hclog.New(nil)
@@ -648,7 +661,7 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 			attempt = 0
 		}
 		// If we're over the attempt minimum, start an exponential backoff.
-		wait := backOffWait(attempt)
+		wait := backOffWait(c.options, attempt)
 
 		// If we have a timer, wait for it
 		wait += r.TypeEntry.Opts.RefreshTimer
@@ -911,15 +924,15 @@ func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOp
 	return true, false
 }
 
-func backOffWait(failures uint) time.Duration {
-	if failures > CacheRefreshBackoffMin {
-		shift := failures - CacheRefreshBackoffMin
-		waitTime := CacheRefreshMaxWait
+func backOffWait(opts Options, failures uint) time.Duration {
+	if failures > opts.CacheRefreshBackoffMin {
+		shift := failures - opts.CacheRefreshBackoffMin
+		waitTime := opts.CacheRefreshMaxWait
 		if shift < 31 {
 			waitTime = (1 << shift) * time.Second
 		}
-		if waitTime > CacheRefreshMaxWait {
-			waitTime = CacheRefreshMaxWait
+		if waitTime > opts.CacheRefreshMaxWait {
+			waitTime = opts.CacheRefreshMaxWait
 		}
 		return waitTime + lib.RandomStagger(waitTime)
 	}
