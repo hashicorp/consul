@@ -735,6 +735,8 @@ func (c *Cache) runBackgroundFetcherOnce(
 				connectedTimer.Stop()
 			}
 			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
+			// NOTE: this can only happen when the entire cache is being
+			// shutdown and isn't something that can happen normally.
 			return true, false
 		}
 		// Start building the new entry by blocking on the fetch.
