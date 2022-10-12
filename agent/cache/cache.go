@@ -660,7 +660,7 @@ func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry c
 		c.entriesLock.Lock()
 
 		var ok bool
-		ok, _, entry = c.getEntryLocked(r.TypeEntry, key, r.Info)
+		entry, ok = c.entries[key]
 		if !ok || entry.Fetching {
 			// If we don't have an existing entry, return immediately.
 			//
@@ -902,7 +902,7 @@ func (c *Cache) mutateExistingEntry(key string, r getOptions, mutFn func(*cacheE
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 
-	ok, _, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	entry, ok := c.entries[key]
 	if ok {
 		mutFn(&entry)
 		c.entries[key] = entry
