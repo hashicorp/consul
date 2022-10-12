@@ -1470,7 +1470,6 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		val, ok := item.Samples["consul.xds.test.xds.server.streamStart"]
 		require.True(t, ok)
 		require.Equal(t, 1, val.Count)
-		require.Greater(t, 0, val.Mean)
 	})
 
 }

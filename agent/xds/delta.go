@@ -365,8 +365,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
 			streamStartOnce.Do(func() {
-				diff := time.Since(streamStartTime)
-				metrics.AddSample([]string{"xds", "server", "streamStart"}, float32(diff/time.Millisecond))
+				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
 			})
 
 			for _, op := range xDSUpdateOrder {
