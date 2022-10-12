@@ -97,6 +97,12 @@ module.exports = {
       urlPrefix: 'docs/consul',
     },
     {
+      root: path.resolve(__dirname, 'app/components/providers'),
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/providers',
+    },
+    {
       root: `${path.dirname(require.resolve('consul-acls/package.json'))}/app/components`,
       pattern: '**/README.mdx',
       urlSchema: 'auto',
@@ -129,6 +135,7 @@ module.exports = {
   ].concat(user.sources),
   labels: {
     consul: 'Consul Components',
+    providers: 'Provider Components',
     ...user.labels,
   },
 };

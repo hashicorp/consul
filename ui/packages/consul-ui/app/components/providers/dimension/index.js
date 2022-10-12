@@ -6,7 +6,6 @@ import { ref } from 'ember-ref-bucket';
 import { htmlSafe } from '@ember/template';
 
 export default class DimensionsProvider extends Component {
-  @service dom;
   @ref('element') element;
 
   @tracked height;
@@ -25,24 +24,17 @@ export default class DimensionsProvider extends Component {
   }
 
   get bottomBoundary() {
-    return this.args.bottomBoundary || this.footer;
+    return document.querySelector(this.args.bottomBoundary) || this.footer;
   }
 
   get footer() {
     return document.querySelector('footer[role="contentinfo"]');
   }
 
-  get viewport() {
-    return this.dom.viewport();
-  }
-
   @action measureDimensions(element) {
-    const { viewport, bottomBoundary } = this;
-
-    const height =
-      viewport.innerHeight - (element.getBoundingClientRect().top + bottomBoundary.clientHeight);
-
-    this.height = height;
+    const bb = this.bottomBoundary.getBoundingClientRect();
+    const e = element.getBoundingClientRect();
+    this.height = bb.top + bb.height - e.top;
   }
 
   @action handleWindowResize() {
