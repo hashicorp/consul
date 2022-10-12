@@ -628,8 +628,15 @@ func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry c
 		entry   = initialEntry
 	)
 	for {
-		if !c.runBackgroundFetcherOnce(key, r, entry, &attempt) {
+		shouldStop, shouldBackoff := c.runBackgroundFetcherOnce(key, r, entry)
+		if shouldStop {
 			return
+		}
+
+		if shouldBackoff {
+			attempt++
+		} else {
+			attempt = 0
 		}
 
 		var totalWait time.Duration
@@ -685,8 +692,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 	key string,
 	r getOptions,
 	entry cacheEntry,
-	attempt *uint,
-) (keepGoing bool) {
+) (shouldStop, shouldBackoff bool) {
 	tEntry := r.TypeEntry
 	{ // NOTE: this indentation is here to facilitate the PR review diff only
 		// If we have background refresh and currently are in "disconnected" state,
@@ -732,7 +738,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 				connectedTimer.Stop()
 			}
 			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
-			return false
+			return true, false
 		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
@@ -798,7 +804,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
-				*attempt = 0
+				shouldBackoff = false
 			} else {
 				// Result having a zero index is an implicit error case. There was no
 				// actual error but it implies the RPC found in index (nothing written
@@ -813,7 +819,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 				// state it can be considered a bug in the RPC implementation (to ever
 				// return a zero index) however since it can happen this is a safety net
 				// for the future.
-				*attempt++
+				shouldBackoff = true
 			}
 
 			// If we have refresh active, this successful response means cache is now
@@ -833,7 +839,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
-			*attempt++
+			shouldBackoff = true
 
 			// If we are refreshing and just failed, updated the lost contact time as
 			// our cache will be stale until we get successfully reconnected. We only
@@ -863,7 +869,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 
 			// Trigger any waiters that are around.
 			close(entry.Waiter)
-			return
+			return true, false
 		}
 
 		// If this is a new entry (not in the heap yet), then setup the
@@ -888,11 +894,11 @@ func (c *Cache) runBackgroundFetcherOnce(
 		// request back up again shortly but in the general case this prevents
 		// spamming the logs with tons of ACL not found errors for days.
 		if tEntry.Opts.Refresh && !preventRefresh {
-			return true
+			return false, shouldBackoff
 		}
 	}
 
-	return false
+	return true, false
 }
 
 func (c *Cache) mutateExistingEntry(key string, r getOptions, mutFn func(*cacheEntry)) {
