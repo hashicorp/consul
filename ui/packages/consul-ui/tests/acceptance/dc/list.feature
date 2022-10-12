@@ -1,4 +1,7 @@
 @setupApplicationTest
+# Nodes have been removed from this list because they randomly get
+# assigned the synthetic-node property which filters them out of the list page.
+# We are already testing the nodes being listed in the nodes index feature test.
 Feature: dc / list: List Models
   Scenario: Listing [Model]
     Given 1 datacenter model with the value "dc-1"
@@ -13,7 +16,7 @@ Feature: dc / list: List Models
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                      |
-    | node    | nodes    | /dc-1/nodes              |
+    # | node    | nodes    | /dc-1/nodes              |
     | kv      | kvs      | /dc-1/kv                 |
     # | acl     | acls     | /dc-1/acls               |
     | token   | tokens   | /dc-1/acls/tokens        |
