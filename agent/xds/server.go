@@ -37,6 +37,13 @@ var StatsCounters = []prometheus.CounterDefinition{
 	},
 }
 
+var StatsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"xds", "server", "streamStart"},
+		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+	},
+}
+
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 

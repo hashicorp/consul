@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -104,6 +105,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready       bool   // set to true after the first snapshot arrives
+
+		streamStartTime = time.Now()
+		streamStartOnce sync.Once
 	)
 
 	var (
@@ -359,6 +363,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
+
+			streamStartOnce.Do(func() {
+				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
+			})
 
 			for _, op := range xDSUpdateOrder {
 				err, sent := handlers[op.TypeUrl].SendIfNew(
