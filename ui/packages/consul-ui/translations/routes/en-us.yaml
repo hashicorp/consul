@@ -117,10 +117,10 @@ dc:
     index:
       empty:
         header: |
-            {items, select,
-              0 {Welcome to Peers}
-              other {No peers found}
-            }
+          {items, select,
+            0 {Welcome to Peers}
+            other {No peers found}
+          }
         body: |
           {items, select,
             0 {Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {canUsePartitions, select,
@@ -145,6 +145,32 @@ dc:
           tab-tooltip: Services exported from {name}
         addresses:
           tooltip: The number of services exported from {name}
+    show:
+      imported:
+        empty:
+          header: No visible imported services from {name}
+          body: |
+            <div>
+            {items, select,
+              0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services imported from {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
+              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+            }
+            </div>
+      exported:
+        empty:
+          header: No visible exported services to {name}
+          body: |
+            <div>
+            {items, select,
+              0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services exported to {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
+              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+            }
+            </div>
+
+      addresses:
+        empty:
+          header: No server adddresses.
+          body: <div>There don't seem to be any server addresses for this peer.</div>
   partitions:
     index:
       empty:
@@ -152,7 +178,7 @@ dc:
           {items, select,
             0 {Welcome to Partitions}
             other {No partitions found}
-          } 
+          }
         body: |
           {items, select,
             0 {There don't seem to be any partitions{canUseACLs, select,

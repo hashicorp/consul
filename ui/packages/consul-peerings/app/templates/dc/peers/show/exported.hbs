@@ -79,28 +79,19 @@
                   <EmptyState @login={{route.model.app.login.open}}>
                     <BlockSlot @name="header">
                       <h2>
-                        No visible exported services to
-                        {{route.model.peer.Name}}
+                        {{t
+                          "routes.dc.peers.show.exported.empty.header"
+                          name=route.model.peer.Name
+                        }}
                       </h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      {{#if items.length}}
-                        <div>
-                          No services where found matching that search, or you
-                          may not have access to view the services you are
-                          searching for.
-                        </div>
-                      {{else}}
-                        <div>
-                          Services must be exported from one peer to another to
-                          enable service communication across two peers. There
-                          don't seem to be any services exported to
-                          {{route.model.peer.Name}}
-                          yet, or you may not have
-                          <code>services:read</code>
-                          permissions to access to this view.
-                        </div>
-                      {{/if}}
+                      {{t
+                        "routes.dc.peers.show.exported.empty.body"
+                        items=items.length
+                        name=route.model.peer.Name
+                        htmlSafe=true
+                      }}
                     </BlockSlot>
                     <BlockSlot @name="actions">
                       <li class="docs-link">

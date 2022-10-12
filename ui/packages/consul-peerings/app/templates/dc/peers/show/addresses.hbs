@@ -5,13 +5,11 @@
     <EmptyState @login={{route.model.app.login.open}}>
       <BlockSlot @name="header">
         <h2>
-          No server addresses.
+          {{t "routes.dc.peers.show.addresses.empty.header"}}
         </h2>
       </BlockSlot>
       <BlockSlot @name="body">
-        <div>
-          There don't seem to be any server addresses for this peer.
-        </div>
+        {{t "routes.dc.peers.show.addresses.empty.body" htmlSafe=true}}
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">
