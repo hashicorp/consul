@@ -638,21 +638,14 @@ func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry c
 		} else {
 			attempt = 0
 		}
-
-		var totalWait time.Duration
-
 		// If we're over the attempt minimum, start an exponential backoff.
-		if wait := backOffWait(attempt); wait > 0 {
-			totalWait += wait
-		}
+		wait := backOffWait(attempt)
 
 		// If we have a timer, wait for it
-		if r.TypeEntry.Opts.RefreshTimer > 0 {
-			totalWait += r.TypeEntry.Opts.RefreshTimer
-		}
+		wait += r.TypeEntry.Opts.RefreshTimer
 
 		select {
-		case <-time.After(totalWait):
+		case <-time.After(wait):
 		case <-c.stopCh:
 			return // Check if cache was stopped
 		}
