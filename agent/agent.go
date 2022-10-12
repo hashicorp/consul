@@ -1399,6 +1399,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+	cfg.RPCReadTimeout = runtimeCfg.RPCReadTimeout
 
 	cfg.RPCConfig = runtimeCfg.RPCConfig
 

@@ -19,8 +19,9 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/stretchr/testify/require"
+
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -4543,6 +4544,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// defaults are changed from these values forcing that change to be
 			// intentional.
 			rt.RPCHandshakeTimeout = 5 * time.Second
+			rt.RPCReadTimeout = 10 * time.Minute
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
@@ -6077,6 +6079,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:             tcpAddr("16.99.34.17:3757"),
 		RPCHandshakeTimeout:     1932 * time.Millisecond,
+		RPCReadTimeout:          62 * time.Minute,
 		RPCHoldTimeout:          15707 * time.Second,
 		RPCProtocol:             30793,
 		RPCRateLimit:            12029.43,

@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -31,7 +32,7 @@ type muxSession interface {
 
 // streamClient is used to wrap a stream with an RPC client
 type StreamClient struct {
-	stream *TimeoutConn
+	stream net.Conn
 	codec  rpc.ClientCodec
 }
 
@@ -109,14 +110,12 @@ func (c *Conn) getClient() (*StreamClient, error) {
 		return nil, err
 	}
 
-	timeoutStream := &TimeoutConn{Conn: stream, DefaultTimeout: c.pool.Timeout}
-
 	// Create the RPC client
-	codec := msgpackrpc.NewCodecFromHandle(true, true, timeoutStream, structs.MsgpackHandle)
+	codec := msgpackrpc.NewCodecFromHandle(true, true, stream, structs.MsgpackHandle)
 
 	// Return a new stream client
 	sc := &StreamClient{
-		stream: timeoutStream,
+		stream: stream,
 		codec:  codec,
 	}
 	return sc, nil
@@ -133,7 +132,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 
 		// If this is a Yamux stream, shrink the internal buffers so that
 		// we can GC the idle memory
-		if ys, ok := client.stream.Conn.(*yamux.Stream); ok {
+		if ys, ok := client.stream.(*yamux.Stream); ok {
 			ys.Shrink()
 		}
 	}
@@ -165,11 +164,12 @@ type ConnPool struct {
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
 
-	// The default timeout for stream reads/writes
-	Timeout time.Duration
+	// The default timeout for non-blocking queries.
+	ReadTimeout time.Duration
 
-	// Used for calculating timeouts on RPC requests
-	MaxQueryTime     time.Duration
+	// MaxQueryTime is used for calculating timeouts on blocking queries.
+	MaxQueryTime time.Duration
+	// DefaultQueryTime is used for calculating timeouts on blocking queries.
 	DefaultQueryTime time.Duration
 
 	// The maximum time to keep a connection open
@@ -364,7 +364,7 @@ func (p *ConnPool) dial(
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: p.Timeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: DefaultDialTimeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -620,6 +620,17 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	return nil
 }
 
+// BlockableQuery represents a read query which can be blocking or non-blocking.
+// This interface is used to set an appropriate read timeout for rpc connections.
+type BlockableQuery interface {
+	// BlockingTimeout returns duration > 0 if the query is blocking.
+	// Otherwise returns 0 for non-blocking queries.
+	BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration
+}
+
+var _ BlockableQuery = (*structs.QueryOptions)(nil)
+var _ BlockableQuery = (*pbcommon.QueryOptions)(nil)
+
 func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
@@ -629,9 +640,20 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
-	// Use the zero value if the request doesn't implement RPCInfo
-	if info, ok := args.(structs.RPCInfo); ok {
-		sc.stream.FirstReadTimeout = info.Timeout(p.Timeout, p.MaxQueryTime, p.DefaultQueryTime)
+	var deadline time.Time
+	if info, ok := args.(BlockableQuery); ok {
+		// Timeout here is calculated differently based on blocking vs non-blocking query.
+		timeout := info.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
+		if timeout <= 0 {
+			// must be non-blocking
+			timeout = p.ReadTimeout
+		}
+		if timeout > 0 {
+			deadline = time.Now().Add(timeout)
+		}
+	}
+	if err := sc.stream.SetReadDeadline(deadline); err != nil {
+		return fmt.Errorf("rpc error setting read deadline: %w", err)
 	}
 
 	// Make the RPC call

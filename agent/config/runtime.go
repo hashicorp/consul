@@ -133,7 +133,7 @@ type RuntimeConfig struct {
 	// AutopilotMinQuorum sets the minimum number of servers required in a cluster
 	// before autopilot can prune dead servers.
 	//
-	//hcl: autopilot { min_quorum = int }
+	// hcl: autopilot { min_quorum = int }
 	AutopilotMinQuorum uint
 
 	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
@@ -907,6 +907,18 @@ type RuntimeConfig struct {
 	// hcl: performance { rpc_hold_timeout = "duration" }
 	RPCHoldTimeout time.Duration
 
+	// RPCReadTimeout limits how long a client is allowed to read from an RPC
+	// connection. This is used to set an upper bound for non-blocking queries to
+	// eventually terminate so that RPC connections are not held indefinitely.
+	// It may be set to 0 explicitly to disable the timeout but this should never
+	// be used in production. Default is 10 minutes.
+	//
+	// Note: Blocking queries use MaxQueryTime and DefaultQueryTime to calculate
+	// timeouts.
+	//
+	// hcl: limits { rpc_read_timeout = "duration" }
+	RPCReadTimeout time.Duration
+
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
 	// rate to RPCRateLimit tokens per second, with a maximum burst size of
@@ -1344,7 +1356,7 @@ type RuntimeConfig struct {
 	SkipLeaveOnInt bool
 
 	// AutoReloadConfig indicate if the config will be
-	//auto reloaded bases on config file modification
+	// auto reloaded bases on config file modification
 	// hcl: auto_reload_config = (true|false)
 	AutoReloadConfig bool
 

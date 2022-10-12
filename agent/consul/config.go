@@ -331,6 +331,13 @@ type Config struct {
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
 
+	// RPCReadTimeout limits how long a client is allowed to read from an RPC
+	// connection. This is used to set an upper bound for non-blocking queries to
+	// eventually terminate so that RPC connections are not held indefinitely.
+	// Blocking queries will use MaxQueryTime and DefaultQueryTime to calculate
+	// their own timeouts.
+	RPCReadTimeout time.Duration
+
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
 	// rate to RPCRateLimit tokens per second, with a maximum burst size of
