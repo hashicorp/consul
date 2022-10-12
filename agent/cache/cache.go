@@ -616,12 +616,16 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 }
 
 func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry cacheEntry) {
-	defer c.mutateExistingEntry(key, r, func(entry *cacheEntry) {
-		if entry.HasGoroutine {
+	defer func() {
+		c.entriesLock.Lock()
+		defer c.entriesLock.Unlock()
+		entry, ok := c.entries[key]
+		if ok && entry.HasGoroutine {
 			entry.HasGoroutine = false
 			entry.Fetching = false
+			c.entries[key] = entry
 		}
-	})
+	}()
 
 	var (
 		attempt uint
@@ -892,21 +896,6 @@ func (c *Cache) runBackgroundFetcherOnce(
 	}
 
 	return true, false
-}
-
-func (c *Cache) mutateExistingEntry(key string, r getOptions, mutFn func(*cacheEntry)) {
-	if mutFn == nil {
-		return
-	}
-
-	c.entriesLock.Lock()
-	defer c.entriesLock.Unlock()
-
-	entry, ok := c.entries[key]
-	if ok {
-		mutFn(&entry)
-		c.entries[key] = entry
-	}
 }
 
 func backOffWait(failures uint) time.Duration {
