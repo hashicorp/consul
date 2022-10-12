@@ -138,6 +138,7 @@ type Cache struct {
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry
 	entriesExpiryHeap *ttlcache.ExpiryHeap
+	lastGoroutineID   uint64
 
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
@@ -561,8 +562,6 @@ func makeEntryKey(t, dc, peerName, token, key string) string {
 // effect of this is that there is only ever one blocking query and goroutine
 // for any matching requests.
 func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
-	// We acquire a write lock because we may have to set HasGoroutine or
-	// Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 
@@ -581,7 +580,7 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 		// the currently active waiter.
 		return entry.Waiter
 
-	case ok && entry.HasGoroutine:
+	case ok && entry.GoroutineID != 0:
 		// If we already have an entry and there's a goroutine to keep it
 		// refreshed then don't spawn another one to do the same work.
 		return entry.Waiter
@@ -600,39 +599,41 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 		}
 	}
 
+	// Assign each background fetching goroutine a unique ID and fingerprint
+	// the cache entry with the same ID. This way if the cache entry is ever
+	// cleaned up due to expiry and later recreated the old goroutine can
+	// detect that and terminate rather than leak and do double work.
+	c.lastGoroutineID++
+	entry.GoroutineID = c.lastGoroutineID
 	// Set that we're fetching to true, which makes it so that future
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.
 	entry.Fetching = true
-	entry.HasGoroutine = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 	// The actual Fetch must be performed in a goroutine.
-	go c.launchBackgroundFetcher(key, r, entry)
+	go c.launchBackgroundFetcher(entry.GoroutineID, key, r)
 
 	return entry.Waiter
 }
 
-func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry cacheEntry) {
+func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOptions) {
 	defer func() {
 		c.entriesLock.Lock()
 		defer c.entriesLock.Unlock()
 		entry, ok := c.entries[key]
-		if ok && entry.HasGoroutine {
-			entry.HasGoroutine = false
+		if ok && entry.GoroutineID == goroutineID {
+			entry.GoroutineID = 0
 			entry.Fetching = false
 			c.entries[key] = entry
 		}
 	}()
 
-	var (
-		attempt uint
-		entry   = initialEntry
-	)
+	var attempt uint
 	for {
-		shouldStop, shouldBackoff := c.runBackgroundFetcherOnce(key, r, entry)
+		shouldStop, shouldBackoff := c.runBackgroundFetcherOnce(goroutineID, key, r)
 		if shouldStop {
 			return
 		}
@@ -663,13 +664,14 @@ func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry c
 		// We acquire a write lock because we may have to set Fetching to true.
 		c.entriesLock.Lock()
 
-		var ok bool
-		entry, ok = c.entries[key]
-		if !ok || entry.Fetching {
+		entry, ok := c.entries[key]
+		if !ok || entry.Fetching || entry.GoroutineID != goroutineID {
 			// If we don't have an existing entry, return immediately.
 			//
 			// Also if we already have an entry and it is actively fetching, then
 			// return immediately.
+			//
+			// If we've somehow lost control of the entry, also return.
 			c.entriesLock.Unlock()
 			return
 		}
@@ -685,11 +687,21 @@ func (c *Cache) launchBackgroundFetcher(key string, r getOptions, initialEntry c
 	}
 }
 
-func (c *Cache) runBackgroundFetcherOnce(
-	key string,
-	r getOptions,
-	entry cacheEntry,
-) (shouldStop, shouldBackoff bool) {
+func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOptions) (shouldStop, shouldBackoff bool) {
+	// Freshly re-read this, rather than relying upon the caller to fetch it
+	// and pass it in.
+	c.entriesLock.RLock()
+	entry, ok := c.entries[key]
+	c.entriesLock.RUnlock()
+
+	if !ok || !entry.Fetching || entry.GoroutineID != goroutineID {
+		// If we don't have an existing entry, return immediately.
+		//
+		// Also if something weird has happened to orphan this goroutine, also
+		// return immediately.
+		return true, false
+	}
+
 	tEntry := r.TypeEntry
 	{ // NOTE: this indentation is here to facilitate the PR review diff only
 		// If we have background refresh and currently are in "disconnected" state,
@@ -705,7 +717,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 				c.entriesLock.Lock()
 				defer c.entriesLock.Unlock()
 				entry, ok := c.entries[key]
-				if !ok || entry.RefreshLostContact.IsZero() {
+				if !ok || entry.RefreshLostContact.IsZero() || entry.GoroutineID != goroutineID {
 					return
 				}
 				entry.RefreshLostContact = time.Time{}
@@ -855,7 +867,7 @@ func (c *Cache) runBackgroundFetcherOnce(
 		// Set our entry
 		c.entriesLock.Lock()
 
-		if _, ok := c.entries[key]; !ok {
+		if currEntry, ok := c.entries[key]; !ok || currEntry.GoroutineID != goroutineID {
 			// This entry was evicted during our fetch. DON'T re-insert it or fall
 			// through to the refresh loop below otherwise it will live forever! In
 			// theory there should not be any Get calls waiting on entry.Waiter since
