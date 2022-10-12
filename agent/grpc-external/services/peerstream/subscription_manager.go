@@ -836,7 +836,9 @@ func (m *subscriptionManager) ensureServerAddrSubscription(ctx context.Context, 
 		var err error
 
 		idx, err = m.subscribeServerAddrs(ctx, idx, updateCh)
-		if errors.Is(err, stream.ErrSubForceClosed) {
+		if err == nil {
+			waiter.Reset()
+		} else if errors.Is(err, stream.ErrSubForceClosed) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
 
 		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
