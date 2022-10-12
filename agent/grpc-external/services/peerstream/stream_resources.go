@@ -436,6 +436,9 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		incomingHeartbeatCtxCancel()
 	}()
 
+	// The nonce is used to correlate response/(ack|nack) pairs.
+	var nonce uint64
+
 	// The main loop that processes sends and receives.
 	for {
 		select {
@@ -585,7 +588,6 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if resp := msg.GetResponse(); resp != nil {
-				// TODO(peering): Ensure there's a nonce
 				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
@@ -668,6 +670,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			if resp == nil {
 				continue
 			}
+
+			// Assign a new unique nonce to the response.
+			nonce++
+			resp.Nonce = fmt.Sprintf("%08x", nonce)
 
 			replResp := makeReplicationResponse(resp)
 			if err := streamSend(replResp); err != nil {

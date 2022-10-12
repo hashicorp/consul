@@ -54,11 +54,9 @@ func makeExportedServiceListResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedServiceList,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: subExportedServiceList,
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  subExportedServiceList,
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -86,11 +84,9 @@ func makeServiceResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedService,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: serviceName,
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  serviceName,
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -104,11 +100,9 @@ func makeCARootsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: "roots",
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  "roots",
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -122,11 +116,9 @@ func makeServerAddrsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: "server-addrs",
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  "server-addrs",
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -155,6 +147,15 @@ func (s *Server) processResponse(
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
+		return makeNACKReply(
+			resp.ResourceURL,
+			resp.Nonce,
+			code.Code_INVALID_ARGUMENT,
+			err.Error(),
+		), err
+	}
+	if resp.Nonce == "" {
+		err := fmt.Errorf("received response without a nonce for: %s:%s", resp.ResourceURL, resp.ResourceID)
 		return makeNACKReply(
 			resp.ResourceURL,
 			resp.Nonce,
