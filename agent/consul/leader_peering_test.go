@@ -1686,14 +1686,35 @@ func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
 	}, allErrors)
 }
 
-func Test_isFailedPreconditionErr(t *testing.T) {
-	st := grpcstatus.New(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
-	err := st.Err()
-	assert.True(t, isFailedPreconditionErr(err))
+func Test_isErrCode(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectedCode codes.Code
+	}{
+		{
+			name:         "cannot establish a peering stream on a follower node",
+			expectedCode: codes.FailedPrecondition,
+		},
+		{
+			name:         "received message larger than max ",
+			expectedCode: codes.ResourceExhausted,
+		},
+		{
+			name:         "deadline exceeded",
+			expectedCode: codes.DeadlineExceeded,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			st := grpcstatus.New(tc.expectedCode, tc.name)
+			err := st.Err()
+			assert.True(t, isErrCode(err, tc.expectedCode))
 
-	// test that wrapped errors are checked correctly
-	werr := fmt.Errorf("wrapped: %w", err)
-	assert.True(t, isFailedPreconditionErr(werr))
+			// test that wrapped errors are checked correctly
+			werr := fmt.Errorf("wrapped: %w", err)
+			assert.True(t, isErrCode(werr, tc.expectedCode))
+		})
+	}
 }
 
 func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
