@@ -134,7 +134,14 @@
         <BlockSlot @name='options'>
           {{#let components.Option as |Option|}}
             {{#if (gt @sources.length 0)}}
-              {{#each @sources as |source|}}
+              <Option
+                class='consul'
+                @value='consul'
+                @selected={{includes 'consul' @filter.source.value}}
+              >
+                {{t 'common.brand.consul'}}
+              </Option>
+              {{#each this.sortedSources as |source|}}
                 <Option
                   class={{source}}
                   @value={{source}}
@@ -143,13 +150,6 @@
                   {{t (concat 'common.brand.' source)}}
                 </Option>
               {{/each}}
-              <Option
-                class='consul'
-                @value='consul'
-                @selected={{includes 'consul' @filter.source.value}}
-              >
-                {{t 'common.brand.consul'}}
-              </Option>
             {{/if}}
           {{/let}}
         </BlockSlot>

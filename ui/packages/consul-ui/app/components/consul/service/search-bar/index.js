@@ -8,4 +8,14 @@ export default class ConsulServiceSearchBar extends Component {
       return ['passing', 'warning', 'critical', 'empty'];
     }
   }
+
+  get sortedSources() {
+    const sources = this.args.sources || [];
+
+    if (sources.includes('consul-api-gateway')) {
+      return [...sources.filter((s) => s !== 'consul-api-gateway'), 'consul-api-gateway'];
+    } else {
+      return sources;
+    }
+  }
 }
