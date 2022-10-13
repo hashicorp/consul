@@ -119,7 +119,8 @@ html:not(.with-data-source) .data-source-debug {
   /* hi */
   z-index: 100000;
 }
-html.with-href-to [href^='console://']::before {
+html.with-href-to [href^='console://']::before
+{
   @extend %p3;
   @extend %debug-box;
   content: attr(href);
@@ -155,6 +156,7 @@ html.with-route-announcer .route-title {
       margin-bottom: 100px;
       padding-top: 0 !important;
     }
+    li.provider-components a::before,
     li.consul-components a::before,
     li.components a::before {
       @extend %with-logo-glimmer-color-icon, %as-pseudo;
@@ -164,6 +166,7 @@ html.with-route-announcer .route-title {
     li.components.css-component a::before {
       @extend %with-logo-glimmer-color-icon, %as-pseudo;
     }
+    li.provider-components.ember-component a::before,
     li.consul-components.ember-component a::before,
     li.components.ember-component a::before {
       @extend %with-logo-ember-circle-color-icon, %as-pseudo;

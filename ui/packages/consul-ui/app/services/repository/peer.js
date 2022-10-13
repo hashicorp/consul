@@ -1,5 +1,6 @@
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
+import { inject as service } from '@ember/service';
 
 function normalizePeerPayload(peerPayload, dc, partition) {
   const {
@@ -18,8 +19,29 @@ function normalizePeerPayload(peerPayload, dc, partition) {
   };
 }
 export default class PeerService extends RepositoryService {
+  @service store;
+
   getModelName() {
     return 'peer';
+  }
+
+  @dataSource('/:partition/:ns/:ds/exported-services/:name')
+  async fetchExportedServices({ dc, ns, partition, name }, configuration, request) {
+    return (
+      await request`
+      GET /v1/internal/ui/exported-services
+
+      ${{
+        peer: name,
+      }}
+    `
+    )((headers, body, cache) => {
+      const serviceSerializer = this.store.serializerFor('service');
+
+      return this.store.push(
+        serviceSerializer.createJSONApiDocumentFromServicesPayload(headers, body, dc)
+      );
+    });
   }
 
   @dataSource('/:partition/:ns/:dc/peering/token-for/:name')
@@ -85,6 +107,22 @@ export default class PeerService extends RepositoryService {
       }}
     `
     )((headers, body, cache) => {
+      // we can't easily use fragments as we are working around the serializer
+      // layer
+      const { StreamStatus } = body;
+
+      if (StreamStatus) {
+        if (StreamStatus.LastHeartbeat) {
+          StreamStatus.LastHeartbeat = new Date(StreamStatus.LastHeartbeat);
+        }
+        if (StreamStatus.LastReceive) {
+          StreamStatus.LastReceive = new Date(StreamStatus.LastReceive);
+        }
+        if (StreamStatus.LastSend) {
+          StreamStatus.LastSend = new Date(StreamStatus.LastSend);
+        }
+      }
+
       return {
         meta: {
           version: 2,

@@ -25,6 +25,11 @@
   @extend %with-minus-square-fill-mask, %as-pseudo;
   color: rgb(var(--tone-gray-500));
 }
+%icon-definition.unknown dt::before,
+%composite-row-header .unknown dd::before {
+  @extend %with-help-circle-outline-mask, %as-pseudo;
+  color: rgb(var(--tone-gray-500));
+}
 
 %composite-row-header [rel='me'] dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;

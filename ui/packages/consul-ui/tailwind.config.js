@@ -34,7 +34,7 @@ function colorMapFromTokens(tokensPath) {
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./app/**/*.{html,js,hbs,mdx}', './docs/**/*.{html,js,hbs,mdx}'],
+  content: ['../**/*.{html.js,hbs,mdx}'],
   theme: {
     colors: colorMapFromTokens(
       '../../node_modules/@hashicorp/design-system-tokens/dist/products/css/tokens.css'
