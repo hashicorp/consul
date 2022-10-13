@@ -141,10 +141,10 @@ dc:
         exported:
           count: |
             {count} exported services
-          tooltip: The number of services exported from {name}
-          tab-tooltip: Services exported from {name}
+          tooltip: The number of services exported to {name}
+          tab-tooltip: Services exported to {name}
         addresses:
-          tooltip: The number of services exported from {name}
+          tooltip: The number of services exported to {name}
     show:
       imported:
         empty:

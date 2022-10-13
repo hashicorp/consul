@@ -33,7 +33,7 @@ export default class PeeringsProvider extends Component {
     ];
 
     if (isReceiver) {
-      tabs = [...tabs, { label: 'Addresses', route: 'dc.peers.show.addresses' }];
+      tabs = [...tabs, { label: 'Server Addresses', route: 'dc.peers.show.addresses' }];
     }
 
     return tabs.map((tab) => new Tab({ ...tab, currentRouteName: router.currentRouteName, owner }));

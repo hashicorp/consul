@@ -5,6 +5,6 @@ export default function (visitable, creatable, items, popoverSelect) {
     visit: visitable('/:dc/peers'),
     peers: items(),
     sort: popoverSelect('[data-test-sort-control]'),
-    tabs: tabgroup('tab', ['imported-services', 'exported-services', 'addresses']),
+    tabs: tabgroup('tab', ['imported-services', 'exported-services', 'server-addresses']),
   });
 }
