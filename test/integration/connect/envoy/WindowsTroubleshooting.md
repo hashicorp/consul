@@ -81,6 +81,7 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - The function *wipe_volumes* uses a `docker exec` command instead of the original `docker run`, this way we speed up test execution by avoiding to start a new container just to delete volume content before each test run.
 - For **case-grpc** we increased the `envoy_stats_flush_interval` value from 1s to 5s, on Windows, the original value caused the test to pass or fail randomly.
 - For **case-wanfed-gw** a new script was created: **global-setup-windows.sh**, this file replaces global-setup.sh when running this test in Windows. The new script uses the windows/consul:local Docker image to generate the required TLS files and copies them into host's workdir directory.
+- To use the **debug_dump_volumes** function, you need to use it via Powershell and execute the following command: `bash run-tests.windows.sh debug_dump_volumes` Make sure to be positioned with your terminal in the correct directory.
 
 ## Volume Issues
 
