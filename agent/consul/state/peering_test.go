@@ -2669,3 +2669,131 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 
 	require.ElementsMatch(t, []string{"foo", "baz"}, names)
 }
+
+func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	expectedPeering := &pbpeering.Peering{
+		ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Name: "baz",
+	}
+	expectedTrustBundle := &pbpeering.PeeringTrustBundle{
+		TrustDomain: "example.com",
+		PeerName:    "example",
+		RootPEMs:    []string{"example certificate bundle"},
+	}
+	expectedSecret := &pbpeering.PeeringSecrets{
+		PeerID: expectedPeering.ID,
+		Establishment: &pbpeering.PeeringSecrets_Establishment{
+			SecretID: "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+		},
+	}
+
+	testutil.RunStep(t, "write initial values", func(t *testing.T) {
+		// Peering
+		require.NoError(t, s.PeeringWrite(1001, &pbpeering.PeeringWriteRequest{
+			Peering: expectedPeering,
+		}))
+
+		// Peering Trust Bundles
+		require.NoError(t, s.PeeringTrustBundleWrite(1002, expectedTrustBundle))
+
+		// Peering Secrets and SecretUUIDs
+		// Secrets writes don't update the index, so this 1003 will be ignored.
+		require.NoError(t, s.PeeringSecretsWrite(1003, &pbpeering.SecretsWriteRequest{
+			PeerID: expectedPeering.ID,
+			Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+				GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+					EstablishmentSecret: expectedSecret.Establishment.SecretID,
+				},
+			},
+		}))
+	})
+
+	var peeringDump []*pbpeering.Peering
+	var trustBundleDump []*pbpeering.PeeringTrustBundle
+	var secretsDump []*pbpeering.PeeringSecrets
+	testutil.RunStep(t, "verify snapshot", func(t *testing.T) {
+		// Create a snapshot
+		snap := s.Snapshot()
+		defer snap.Close()
+
+		// This should be 1002, because the secrets write doesn't update the index.
+		require.Equal(t, uint64(1002), snap.LastIndex())
+
+		// Verify peerings
+		{
+			iter, err := snap.Peerings()
+			require.NoError(t, err)
+			for entry := iter.Next(); entry != nil; entry = iter.Next() {
+				peeringDump = append(peeringDump, entry.(*pbpeering.Peering))
+			}
+			require.Equal(t, []*pbpeering.Peering{expectedPeering}, peeringDump)
+		}
+		// Verify trust bundles
+		{
+			iter, err := snap.PeeringTrustBundles()
+			require.NoError(t, err)
+			for entry := iter.Next(); entry != nil; entry = iter.Next() {
+				trustBundleDump = append(trustBundleDump, entry.(*pbpeering.PeeringTrustBundle))
+			}
+			require.Equal(t, []*pbpeering.PeeringTrustBundle{expectedTrustBundle}, trustBundleDump)
+		}
+		// Verify secrets
+		{
+			iter, err := snap.PeeringSecrets()
+			require.NoError(t, err)
+			for entry := iter.Next(); entry != nil; entry = iter.Next() {
+				secretsDump = append(secretsDump, entry.(*pbpeering.PeeringSecrets))
+			}
+			require.Equal(t, []*pbpeering.PeeringSecrets{expectedSecret}, secretsDump)
+		}
+	})
+
+	// Restore the values into a new state store.
+	testutil.RunStep(t, "restore values", func(t *testing.T) {
+		s := testStateStore(t)
+		restore := s.Restore()
+
+		// Restore values
+		for _, entry := range peeringDump {
+			require.NoError(t, restore.Peering(entry))
+		}
+		for _, entry := range trustBundleDump {
+			require.NoError(t, restore.PeeringTrustBundle(entry))
+		}
+		for _, entry := range secretsDump {
+			require.NoError(t, restore.PeeringSecrets(entry))
+		}
+		restore.Commit()
+
+		// Verify peerings
+		{
+			idx, foundPeerings, err := s.PeeringList(nil, *acl.DefaultEnterpriseMeta())
+			require.NoError(t, err)
+			require.Equal(t, uint64(1001), idx)
+			require.Equal(t, []*pbpeering.Peering{expectedPeering}, foundPeerings)
+		}
+		// Verify trust Bundles
+		{
+			idx, foundTrustBundles, err := s.PeeringTrustBundleList(nil, *acl.DefaultEnterpriseMeta())
+			require.NoError(t, err)
+			require.Equal(t, uint64(1002), idx)
+			require.Equal(t, []*pbpeering.PeeringTrustBundle{expectedTrustBundle}, foundTrustBundles)
+		}
+		// Verify secrets
+		{
+			foundSecrets, err := s.PeeringSecretsRead(nil, expectedSecret.PeerID)
+			require.NoError(t, err)
+			require.Equal(t, expectedSecret, foundSecrets)
+		}
+
+		// Verify index
+		require.Equal(t, uint64(1002), s.maxIndex(
+			partitionedIndexEntryName(tablePeering, "default"),
+			partitionedIndexEntryName(tablePeeringTrustBundles, "default"),
+			partitionedIndexEntryName(tablePeeringSecrets, "default"),
+			partitionedIndexEntryName(tablePeeringSecretUUIDs, "default"),
+		))
+	})
+}
