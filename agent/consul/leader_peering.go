@@ -338,9 +338,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 		// Try a new address on each iteration by advancing the ring buffer on errors.
 		addr := <-nextServerAddr
 
-		logger.Trace("dialing peer", "addr", addr)
-		conn, err := grpc.DialContext(streamCtx, addr,
-			// TODO(peering): use a grpc.WithStatsHandler here?)
+		opts := []grpc.DialOption{
 			tlsOption,
 			// For keep alive parameters there is a larger comment in ClientConnPool.dial about that.
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -349,7 +347,12 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 				// send keepalive pings even if there is no active streams
 				PermitWithoutStream: true,
 			}),
-		)
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(50 * 1024 * 1024)),
+		}
+		// TODO(peering): use a grpc.WithStatsHandler here?)
+		logger.Trace("dialing peer", "addr", addr)
+		conn, err := grpc.DialContext(streamCtx, addr, opts...)
+
 		if err != nil {
 			return fmt.Errorf("failed to dial: %w", err)
 		}
@@ -397,8 +400,12 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 	}, func(err error) {
 		// TODO(peering): why are we using TrackSendError here? This could also be a receive error.
 		streamStatus.TrackSendError(err.Error())
-		if isFailedPreconditionErr(err) {
+		if isErrCode(err, codes.FailedPrecondition) {
 			logger.Debug("stream disconnected due to 'failed precondition' error; reconnecting",
+				"error", err)
+			return
+		} else if isErrCode(err, codes.ResourceExhausted) {
+			logger.Debug("stream disconnected due to 'resource exhausted' error; reconnecting",
 				"error", err)
 			return
 		}
@@ -680,7 +687,7 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 // quickly. For example in the case of connecting with a follower through a load balancer, we just need to retry
 // until our request lands on a leader.
 func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
-	if loopErr != nil && isFailedPreconditionErr(loopErr) {
+	if loopErr != nil && isErrCode(loopErr, codes.FailedPrecondition) {
 		// Wait a constant time for the first number of retries.
 		if failedAttempts <= maxFastConnRetries {
 			return fastConnRetryTimeout
@@ -697,6 +704,11 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 		return ms
 	}
 
+	// if the message sent is too large probably should not retry at all
+	if loopErr != nil && isErrCode(loopErr, codes.ResourceExhausted) {
+		return maxFastRetryBackoff
+	}
+
 	// Else we go with the default backoff from retryLoopBackoff.
 	if (1 << failedAttempts) < maxRetryBackoff {
 		return (1 << failedAttempts) * time.Second
@@ -704,23 +716,22 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 	return time.Duration(maxRetryBackoff) * time.Second
 }
 
-// isFailedPreconditionErr returns true if err is a gRPC error with code FailedPrecondition.
-func isFailedPreconditionErr(err error) bool {
+// isErrCode returns true if err is a gRPC error with given error code.
+func isErrCode(err error, code codes.Code) bool {
 	if err == nil {
 		return false
 	}
-
 	// Handle wrapped errors, since status.FromError does a naive assertion.
 	var statusErr interface {
 		GRPCStatus() *grpcstatus.Status
 	}
 	if errors.As(err, &statusErr) {
-		return statusErr.GRPCStatus().Code() == codes.FailedPrecondition
+		return statusErr.GRPCStatus().Code() == code
 	}
 
 	grpcErr, ok := grpcstatus.FromError(err)
 	if !ok {
 		return false
 	}
-	return grpcErr.Code() == codes.FailedPrecondition
+	return grpcErr.Code() == code
 }

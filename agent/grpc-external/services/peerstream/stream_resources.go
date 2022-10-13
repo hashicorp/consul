@@ -367,6 +367,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		// resources, not request/ack messages.
 		if msg.GetResponse() != nil {
 			if err != nil {
+				if id := msg.GetResponse().GetResourceID(); id != "" {
+					logger.Error("failed to send resource", "resourceID", id, "error", err)
+					status.TrackSendError(err.Error())
+					return nil
+				}
 				status.TrackSendError(err.Error())
 			} else {
 				status.TrackSendSuccess()
