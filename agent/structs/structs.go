@@ -1,4 +1,3 @@
-//go:generate ./deep-copy.sh
 package structs
 
 import (

@@ -1,4 +1,3 @@
-//go:generate deep-copy -pointer-receiver -type PeeringTrustBundle -o ./peering.deepcopy.go ./
 package pbpeering
 
 import (

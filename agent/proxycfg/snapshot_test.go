@@ -46,7 +46,7 @@ func TestConfigSnapshot_Clone(t *testing.T) {
 		cmpopts.IgnoreTypes(context.CancelFunc(nil)),
 	)
 	if diff != "" {
-		t.Logf("Copied snaspshot is different to the original. You may need to re-run `go generate ./agent/structs ./proto/pbpeering ./agent/proxycfg`.\nDiff:\n%s", diff)
+		t.Logf("Copied snaspshot is different to the original. You may need to re-run `make deep-copy`.\nDiff:\n%s", diff)
 		t.FailNow()
 	}
 }
