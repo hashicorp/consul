@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -111,15 +110,8 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	if ns == nil {
 		return structs.ConnectProxyConfig{}, nil
 	}
-	// Copy the config map
-	proxyCfgRaw, err := copystructure.Copy(ns.Proxy)
-	if err != nil {
-		return structs.ConnectProxyConfig{}, err
-	}
-	proxyCfg, ok := proxyCfgRaw.(structs.ConnectProxyConfig)
-	if !ok {
-		return structs.ConnectProxyConfig{}, errors.New("failed to copy proxy config")
-	}
+
+	proxyCfg := *(&ns.Proxy).DeepCopy()
 
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
