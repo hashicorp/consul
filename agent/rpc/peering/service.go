@@ -486,7 +486,9 @@ func (s *Server) validatePeeringLocality(token *structs.PeeringToken) error {
 		return fmt.Errorf("failed to fetch TLS materials: %w", err)
 	}
 	if serverName == token.ServerName {
-		return fmt.Errorf("cannot create a peering within the same cluster %q", serverName)
+		return fmt.Errorf(
+			"cannot create a peering within the same cluster %q. Refer to the `exported-services` documentation if you want to export between partitions without peering",
+			serverName)
 	}
 	return nil
 }
