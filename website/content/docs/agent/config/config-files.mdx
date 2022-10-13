@@ -2209,20 +2209,12 @@ default will automatically work with some tooling.
 
 ## xDS Server Parameters
 
-- `xds` This object allows you to configure the behavior of Consul's
+- `xds`: This object allows you to configure the behavior of Consul's
 [xDS protocol](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol)
-server. Available in Consul 1.14 and later.
+server. 
 
-  - `update_max_per_second` Controls the rate at which proxy config updates
-    will be delivered, across all connected xDS streams. This prevents updates
-    to "global" resources such as wildcard intentions from saturating system
-    resources at the expense of other work, such as Raft and Gossip, which
-    could cause general cluster instability.
+  - `update_max_per_second`: Specifies the number of proxy configuration updates across all connected xDS streams that are allowed per second. This configuration prevents updates to global resources, such as wildcard intentions, from consuming system resources at the expense of other processes, such as Raft and Gossip, which could cause general cluster instability.
 
-    It defaults to 250 updates per second, which is conservative and was chosen
-    based on a load-test of 5k streams connected to a single server with 2 CPU
-    cores.
+    The default value is `250`. It is based on a load test of 5,000 streams connected to a single server with two CPU cores. 
 
-    This can be reloaded using `consul reload` or sending the server a `SIGHUP`
-    to allow lowering or increasing the limit without a rolling restart in
-    emergencies.
+    If necessary, you can lower or increase the limit without a rolling restart by using the `consul reload` command or by sending the server a `SIGHUP`. 
