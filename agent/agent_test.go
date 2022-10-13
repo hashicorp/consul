@@ -1873,7 +1873,7 @@ func TestAgent_Alias_AddRemove(t *testing.T) {
 
 	cid := structs.NewCheckID("aliashealth", nil)
 
-	testutil.RunStep(t, "add check", func(t *testing.T) {
+	runStep(t, "add check", func(t *testing.T) {
 		health := &structs.HealthCheck{
 			Node:    "foo",
 			CheckID: cid.ID,
@@ -1898,7 +1898,7 @@ func TestAgent_Alias_AddRemove(t *testing.T) {
 		require.Equal(t, "", cs.Token)
 	})
 
-	testutil.RunStep(t, "remove check", func(t *testing.T) {
+	runStep(t, "remove check", func(t *testing.T) {
 		require.NoError(t, a.RemoveCheck(cid, false))
 
 		requireCheckMissing(t, a, cid.ID)
@@ -5906,5 +5906,12 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
 	}
 }
