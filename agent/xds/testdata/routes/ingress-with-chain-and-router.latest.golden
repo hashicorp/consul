@@ -289,6 +289,18 @@
             },
             {
               "match": {
+                "prefix": "/retry-reset"
+              },
+              "route": {
+                "cluster": "retry-reset.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "retryPolicy": {
+                  "retryOn": "reset",
+                  "numRetries": 15
+                }
+              }
+            },
+            {
+              "match": {
                 "prefix": "/retry-codes"
               },
               "route": {
@@ -306,12 +318,12 @@
             },
             {
               "match": {
-                "prefix": "/retry-both"
+                "prefix": "/retry-all"
               },
               "route": {
-                "cluster": "retry-both.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "retry-all.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "retryPolicy": {
-                  "retryOn": "connect-failure,retriable-status-codes",
+                  "retryOn": "5xx,gateway-error,reset,connect-failure,envoy-ratelimited,retriable-4xx,refused-stream,cancelled,deadline-exceeded,internal,resource-exhausted,unavailable,retriable-status-codes",
                   "retriableStatusCodes": [
                     401,
                     409,

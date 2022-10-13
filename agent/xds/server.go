@@ -37,6 +37,13 @@ var StatsCounters = []prometheus.CounterDefinition{
 	},
 }
 
+var StatsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"xds", "server", "streamStart"},
+		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+	},
+}
+
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
@@ -204,7 +211,12 @@ func (s *Server) Register(srv *grpc.Server) {
 }
 
 func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
-	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
+	}
+
+	authz, err := s.ResolveToken(options.Token)
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

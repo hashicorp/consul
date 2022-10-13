@@ -36,6 +36,7 @@ type cmd struct {
 	client *api.Client
 
 	// Flags.
+	nodeName             string
 	consulDNSIP          string
 	proxyUID             string
 	proxyID              string
@@ -51,6 +52,8 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
+	c.flags.StringVar(&c.nodeName, "node-name", "",
+		"The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.")
 	c.flags.StringVar(&c.consulDNSIP, "consul-dns-ip", "", "IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.")
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
 	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
@@ -150,9 +153,27 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			}
 		}
 
-		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
-		if err != nil {
-			return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
+		var svc *api.AgentService
+		if c.nodeName == "" {
+			svc, _, err = c.client.Agent().Service(c.proxyID, nil)
+			if err != nil {
+				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
+			}
+		} else {
+			svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{
+				Filter:             fmt.Sprintf("ID == %q", c.proxyID),
+				MergeCentralConfig: true,
+			})
+			if err != nil {
+				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul: %s", err)
+			}
+			if len(svcList.Services) < 1 {
+				return iptables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
+			}
+			if len(svcList.Services) > 1 {
+				return iptables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+			}
+			svc = svcList.Services[0]
 		}
 
 		if svc.Proxy == nil {
@@ -205,8 +226,8 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			}
 		}
 
-		// Exclude any exposed health check ports when Proxy.Expose.Checks is true.
-		if svc.Proxy.Expose.Checks {
+		// Exclude any exposed health check ports when Proxy.Expose.Checks is true and nodeName is not provided.
+		if svc.Proxy.Expose.Checks && c.nodeName == "" {
 			// Get the health checks of the destination service.
 			checks, err := c.client.Agent().ChecksWithFilter(fmt.Sprintf("ServiceName == %q", svc.Proxy.DestinationServiceName))
 			if err != nil {

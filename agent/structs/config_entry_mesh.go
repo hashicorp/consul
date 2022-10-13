@@ -155,6 +155,13 @@ func (e *MeshConfigEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(source)
 }
 
+func (e *MeshConfigEntry) PeerThroughMeshGateways() bool {
+	if e == nil || e.Peering == nil {
+		return false
+	}
+	return e.Peering.PeerThroughMeshGateways
+}
+
 func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
 	if cfg == nil {
 		return nil

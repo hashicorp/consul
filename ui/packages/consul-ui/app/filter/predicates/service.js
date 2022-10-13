@@ -14,6 +14,7 @@ export default {
     warning: (item, value) => item.MeshStatus === value,
     critical: (item, value) => item.MeshStatus === value,
     empty: (item, value) => item.MeshChecksTotal === 0,
+    unknown: (item) => item.peerIsFailing || item.isZeroCountButPeered,
   },
   instance: {
     registered: (item, value) => item.InstanceCount > 0,

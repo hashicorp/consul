@@ -1443,8 +1443,8 @@ func TestAgent_Self(t *testing.T) {
 			}
 			ports = {
 				grpc = -1
-			}
-			`,
+				grpc_tls = -1
+			}`,
 			expectXDS: false,
 			grpcTLS:   false,
 		},
@@ -1453,7 +1453,9 @@ func TestAgent_Self(t *testing.T) {
 			node_meta {
 				somekey = "somevalue"
 			}
-			`,
+			ports = {
+				grpc_tls = -1
+			}`,
 			expectXDS: true,
 			grpcTLS:   false,
 		},
@@ -1461,8 +1463,7 @@ func TestAgent_Self(t *testing.T) {
 			hcl: `
 				node_meta {
 					somekey = "somevalue"
-				}
-				`,
+				}`,
 			expectXDS: true,
 			grpcTLS:   true,
 		},
@@ -1677,7 +1678,6 @@ func TestAgent_Reload(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
 		services = [
@@ -5499,7 +5499,6 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5869,7 +5868,6 @@ func TestAgent_Monitor(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -6519,9 +6517,9 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
-	a := NewTestAgent(t, "")
+	// Disable peering to avoid setting up a roots watch for the server certificate,
+	// which leads to cache hit on the first query below.
+	a := NewTestAgent(t, "peering { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -6750,8 +6748,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		connect {

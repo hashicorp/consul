@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -152,7 +153,7 @@ func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) erro
 func (c *cmd) run(args []string) int {
 	ui := &mcli.PrefixedUi{
 		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
+		InfoPrefix:   "    ", // Note that startupLogger also uses this prefix
 		ErrorPrefix:  "==> ",
 		Ui:           c.ui,
 	}
@@ -175,6 +176,29 @@ func (c *cmd) run(args []string) int {
 		c.configLoadOpts.DefaultConfig = source
 		return config.Load(c.configLoadOpts)
 	}
+
+	// wait for signal
+	signalCh := make(chan os.Signal, 10)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// startup logger is a shim since we need to be about to log both before and
+	// after logging is setup properly but before agent has started fully. This
+	// takes care of that!
+	suLogger := newStartupLogger()
+	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
+
+	// See if we need to bootstrap config from HCP before we go any further with
+	// agent startup. We override loader with the one returned as it may be
+	// modified to include HCP-provided config.
+	var err error
+	_, loader, err = hcpbootstrap.MaybeBootstrap(ctx, loader, ui)
+	if err != nil {
+		ui.Error(err.Error())
+		return 1
+	}
+
 	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
 		ui.Error(err.Error())
@@ -186,6 +210,9 @@ func (c *cmd) run(args []string) int {
 		ui.Error(err.Error())
 		return 1
 	}
+
+	// Upgrade our startupLogger to use the real logger now we have it
+	suLogger.SetLogger(c.logger)
 
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
@@ -228,38 +255,6 @@ func (c *cmd) run(args []string) int {
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
-
-	// wait for signal
-	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		for {
-			var sig os.Signal
-			select {
-			case s := <-signalCh:
-				sig = s
-			case <-ctx.Done():
-				return
-			}
-
-			switch sig {
-			case syscall.SIGPIPE:
-				continue
-
-			case syscall.SIGHUP:
-				err := fmt.Errorf("cannot reload before agent started")
-				c.logger.Error("Caught", "signal", sig, "error", err)
-
-			default:
-				c.logger.Info("Caught", "signal", sig)
-				cancel()
-				return
-			}
-		}
-	}()
 
 	err = agent.Start(ctx)
 	signal.Stop(signalCh)
@@ -358,6 +353,32 @@ func (c *cmd) run(args []string) int {
 				c.logger.Info("Graceful exit completed")
 				return 0
 			}
+		}
+	}
+}
+
+func handleStartupSignals(ctx context.Context, cancel func(), signalCh chan os.Signal, logger *startupLogger) {
+	for {
+		var sig os.Signal
+		select {
+		case s := <-signalCh:
+			sig = s
+		case <-ctx.Done():
+			return
+		}
+
+		switch sig {
+		case syscall.SIGPIPE:
+			continue
+
+		case syscall.SIGHUP:
+			err := fmt.Errorf("cannot reload before agent started")
+			logger.Error("Caught", "signal", sig, "error", err)
+
+		default:
+			logger.Info("Caught", "signal", sig)
+			cancel()
+			return
 		}
 	}
 }

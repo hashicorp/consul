@@ -9,10 +9,14 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -51,15 +55,68 @@ func (b *PeeringBackend) GetLeaderAddress() string {
 	return b.leaderAddr
 }
 
-// GetAgentCACertificates gets the server's raw CA data from its TLS Configurator.
-func (b *PeeringBackend) GetAgentCACertificates() ([]string, error) {
-	// TODO(peering): handle empty CA pems
-	return b.srv.tlsConfigurator.GRPCManualCAPems(), nil
+// GetTLSMaterials returns the TLS materials for the dialer to dial the acceptor using TLS.
+// It returns the server name to validate, and the CA certificate to validate with.
+func (b *PeeringBackend) GetTLSMaterials(generatingToken bool) (string, []string, error) {
+	if generatingToken {
+		if !b.srv.config.ConnectEnabled {
+			return "", nil, fmt.Errorf("connect.enabled must be set to true in the server's configuration when generating peering tokens")
+		}
+		if b.srv.config.GRPCTLSPort <= 0 && !b.srv.tlsConfigurator.GRPCServerUseTLS() {
+			return "", nil, fmt.Errorf("TLS for gRPC must be enabled when generating peering tokens")
+		}
+	}
+
+	roots, err := b.srv.getCARoots(nil, b.srv.fsm.State())
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to fetch roots: %w", err)
+	}
+	if len(roots.Roots) == 0 || roots.TrustDomain == "" {
+		return "", nil, fmt.Errorf("CA has not finished initializing")
+	}
+
+	serverName := connect.PeeringServerSAN(b.srv.config.Datacenter, roots.TrustDomain)
+
+	var caPems []string
+	for _, r := range roots.Roots {
+		caPems = append(caPems, lib.EnsureTrailingNewline(r.RootCert))
+	}
+
+	return serverName, caPems, nil
 }
 
-// GetServerAddresses looks up server node addresses from the state store.
+// GetServerAddresses looks up server or mesh gateway addresses from the state store.
 func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
-	state := b.srv.fsm.State()
+	_, rawEntry, err := b.srv.fsm.State().ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mesh config entry: %w", err)
+	}
+
+	meshConfig, ok := rawEntry.(*structs.MeshConfigEntry)
+	if ok && meshConfig.Peering != nil && meshConfig.Peering.PeerThroughMeshGateways {
+		return meshGatewayAdresses(b.srv.fsm.State())
+	}
+	return serverAddresses(b.srv.fsm.State())
+}
+
+func meshGatewayAdresses(state *state.Store) ([]string, error) {
+	_, nodes, err := state.ServiceDump(nil, structs.ServiceKindMeshGateway, true, acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dump gateway addresses: %w", err)
+	}
+
+	var addrs []string
+	for _, node := range nodes {
+		_, addr, port := node.BestAddress(true)
+		addrs = append(addrs, ipaddr.FormatAddressPort(addr, port))
+	}
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("servers are configured to PeerThroughMeshGateways, but no mesh gateway instances are registered")
+	}
+	return addrs, nil
+}
+
+func serverAddresses(state *state.Store) ([]string, error) {
 	_, nodes, err := state.ServiceNodes(nil, "consul", structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, err
@@ -84,12 +141,6 @@ func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
 		return nil, fmt.Errorf("a grpc bind port must be specified in the configuration for all servers")
 	}
 	return addrs, nil
-}
-
-// GetServerName returns the SNI to be returned in the peering token data which
-// will be used by peers when establishing peering connections over TLS.
-func (b *PeeringBackend) GetServerName() string {
-	return b.srv.tlsConfigurator.ServerSNI(b.srv.config.Datacenter, "")
 }
 
 // EncodeToken encodes a peering token as a bas64-encoded representation of JSON (for now).

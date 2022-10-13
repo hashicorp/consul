@@ -1,0 +1,3 @@
+```release-note:feature
+cli: Add -node-name flag to redirect-traffic command to support running in environments without client agents.
+```

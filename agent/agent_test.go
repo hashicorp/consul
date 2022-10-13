@@ -29,9 +29,11 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -43,6 +45,8 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -5982,6 +5986,130 @@ func TestAgent_startListeners(t *testing.T) {
 		require.Contains(r, err.Error(), "address already in use")
 	})
 
+}
+
+func TestAgent_ServerCertificate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const expectURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/agent/server/dc/dc1"
+
+	// Leader should acquire a sever cert after bootstrapping.
+	a1 := NewTestAgent(t, `
+node_name = "a1"
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a1.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+
+	// Join a follower, and it should be able to acquire a server cert as well.
+	a2 := NewTestAgent(t, `
+node_name = "a2"
+bootstrap = false
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a2.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+}
+
+func TestAgent_startListeners_scada(t *testing.T) {
+	t.Parallel()
+	pvd := scada.NewMockProvider(t)
+	c := capability.NewAddr("testcap")
+	pvd.EXPECT().Listen(c.Capability()).Return(nil, nil).Once()
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+			HCP: hcp.Deps{
+				Provider: pvd,
+			},
+		},
+		RuntimeConfig: &config.RuntimeConfig{},
+		Cache:         cache.New(cache.Options{}),
+	}
+
+	bd, err := initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	_, err = agent.startListeners([]net.Addr{c})
+	require.NoError(t, err)
+}
+
+func TestAgent_scadaProvider(t *testing.T) {
+	pvd := scada.NewMockProvider(t)
+
+	// this listener is used when mocking out the scada provider
+	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
+	require.NoError(t, err)
+	defer require.NoError(t, l.Close())
+
+	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
+	pvd.EXPECT().Start().Return(nil).Once()
+	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
+	pvd.EXPECT().Stop().Return(nil).Once()
+	pvd.EXPECT().SessionStatus().Return("test")
+	a := TestAgent{
+		OverrideDeps: func(deps *BaseDeps) {
+			deps.HCP.Provider = pvd
+		},
+		Overrides: `
+cloud {
+  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
+  client_id = "test"
+  client_secret = "test"
+}`,
+	}
+	defer a.Shutdown()
+	require.NoError(t, a.Start(t))
+
+	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
+	require.NoError(t, err)
 }
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {

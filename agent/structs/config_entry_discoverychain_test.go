@@ -2054,6 +2054,43 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			}))),
 			validateErr: "Methods contains \"GET\" more than once",
 		},
+		////////////////
+		{
+			name: "route with no match with retry condition",
+			entry: makerouter(ServiceRoute{
+				Match: nil,
+				Destination: &ServiceRouteDestination{
+					Service: "other",
+					RetryOn: []string{
+						"5xx",
+						"gateway-error",
+						"reset",
+						"connect-failure",
+						"envoy-ratelimited",
+						"retriable-4xx",
+						"refused-stream",
+						"cancelled",
+						"deadline-exceeded",
+						"internal",
+						"resource-exhausted",
+						"unavailable",
+					},
+				},
+			}),
+		},
+		{
+			name: "route with no match with invalid retry condition",
+			entry: makerouter(ServiceRoute{
+				Match: nil,
+				Destination: &ServiceRouteDestination{
+					Service: "other",
+					RetryOn: []string{
+						"invalid-retry-condition",
+					},
+				},
+			}),
+			validateErr: "contains an invalid retry condition: \"invalid-retry-condition\"",
+		},
 	}
 
 	for _, tc := range cases {
@@ -2121,4 +2158,23 @@ func TestIsProtocolHTTPLike(t *testing.T) {
 	assert.True(t, IsProtocolHTTPLike("http"))
 	assert.True(t, IsProtocolHTTPLike("http2"))
 	assert.True(t, IsProtocolHTTPLike("grpc"))
+}
+
+func TestIsValidRetryCondition(t *testing.T) {
+	assert.False(t, isValidRetryCondition(""))
+	assert.False(t, isValidRetryCondition("retriable-headers"))
+	assert.False(t, isValidRetryCondition("retriable-status-codes"))
+
+	assert.True(t, isValidRetryCondition("5xx"))
+	assert.True(t, isValidRetryCondition("gateway-error"))
+	assert.True(t, isValidRetryCondition("reset"))
+	assert.True(t, isValidRetryCondition("connect-failure"))
+	assert.True(t, isValidRetryCondition("envoy-ratelimited"))
+	assert.True(t, isValidRetryCondition("retriable-4xx"))
+	assert.True(t, isValidRetryCondition("refused-stream"))
+	assert.True(t, isValidRetryCondition("cancelled"))
+	assert.True(t, isValidRetryCondition("deadline-exceeded"))
+	assert.True(t, isValidRetryCondition("internal"))
+	assert.True(t, isValidRetryCondition("resource-exhausted"))
+	assert.True(t, isValidRetryCondition("unavailable"))
 }

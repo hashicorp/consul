@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -21,9 +24,18 @@ func TestPeeringBackend_RejectsPartition(t *testing.T) {
 	}
 
 	t.Parallel()
+
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = true
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -55,9 +67,17 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 	}
 
 	t.Parallel()
+	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = true
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")

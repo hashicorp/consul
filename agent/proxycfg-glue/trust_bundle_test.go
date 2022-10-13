@@ -144,7 +144,7 @@ func TestServerTrustBundleList(t *testing.T) {
 					{
 						Name: serviceName,
 						Consumers: []structs.ServiceConsumer{
-							{PeerName: them},
+							{Peer: them},
 						},
 					},
 				},
@@ -249,7 +249,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 					{
 						Name: serviceName,
 						Consumers: []structs.ServiceConsumer{
-							{PeerName: them},
+							{Peer: them},
 						},
 					},
 				},

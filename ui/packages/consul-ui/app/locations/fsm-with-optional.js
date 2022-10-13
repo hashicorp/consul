@@ -188,10 +188,14 @@ export default class FSMWithOptionalLocation {
   /**
    * Turns a routeName into a full URL string for anchor hrefs etc.
    */
-  hrefTo(routeName, params, hash) {
+  hrefTo(routeName, params, _hash) {
+    // copy to always work with a new hash even when helper persists hash
+    const hash = { ..._hash };
+
     if (typeof hash.dc !== 'undefined') {
       delete hash.dc;
     }
+
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }

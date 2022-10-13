@@ -1,10 +1,11 @@
 ---
 layout: docs
-page_title: Single Consul Datacenter in Multiple Kubernetes Clusters - Kubernetes
-description: Single Consul Datacenter deployed in multiple Kubernetes clusters
+page_title: Deploy Single Consul Datacenter Across Multiple K8s Clusters
+description: >-
+  A single Consul datacenter can run across multiple Kubernetes pods in a flat network as long as only one pod has server agents. Learn how to configure the Helm chart, deploy pods in sequence, and verify your service mesh.
 ---
 
-# Single Consul Datacenter in Multiple Kubernetes Clusters
+# Deploy Single Consul Datacenter Across Multiple Kubernetes Clusters
 
 ~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
 

@@ -111,6 +111,29 @@ module.exports = function (defaults, $ = process.env) {
         overwrite: true,
       }
     );
+    // we switched to postcss - because ember-cli-postcss only operates on the
+    // styles tree we need to make sure we write the css files from "sub-apps"
+    // into `app/styles` manually and prefix them with `consul-ui` because that
+    // is what the codebase expects from before when using ember-cli-sass.
+    trees.styles = mergeTrees(
+      [
+        new Funnel('app/styles', { include: ['**/*.{scss,css}'] }),
+        new Funnel('app', { include: ['components/**/*.{scss,css}'], destDir: 'consul-ui' }),
+      ].concat(
+        apps
+          .filter((item) => exists(`${item.path}/app`))
+          .map(
+            (item) =>
+              new Funnel(`${item.path}/app`, {
+                include: ['**/*.{scss,css}'],
+                destDir: 'consul-ui',
+              })
+          )
+      ),
+      {
+        overwrite: true,
+      }
+    );
     trees.vendor = mergeTrees(
       [new Funnel('vendor')].concat(apps.map((item) => new Funnel(`${item.path}/vendor`)))
     );
@@ -131,6 +154,30 @@ module.exports = function (defaults, $ = process.env) {
       outputPaths: outputPaths,
       'ember-cli-babel': {
         includePolyfill: true,
+      },
+      postcssOptions: {
+        compile: {
+          extension: 'scss',
+          plugins: [
+            {
+              module: require('@csstools/postcss-sass'),
+              options: {
+                includePaths: [
+                  '../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
+                ],
+              },
+            },
+            {
+              module: require('tailwindcss'),
+              options: {
+                config: './tailwind.config.js',
+              },
+            },
+            {
+              module: require('autoprefixer'),
+            },
+          ],
+        },
       },
       'ember-cli-string-helpers': {
         only: [

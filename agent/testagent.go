@@ -85,6 +85,9 @@ type TestAgent struct {
 	// non-user settable configurations
 	Overrides string
 
+	// allows the BaseDeps to be modified before starting the embedded agent
+	OverrideDeps func(deps *BaseDeps)
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
@@ -187,7 +190,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		Name:       name,
 	})
 
-	portsConfig := randomPortsSource(t, a.UseHTTPS, a.UseGRPCTLS)
+	portsConfig := randomPortsSource(t, a.UseHTTPS)
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
@@ -233,6 +236,10 @@ func (a *TestAgent) Start(t *testing.T) error {
 		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
 	}
 	a.Config = bd.RuntimeConfig
+
+	if a.OverrideDeps != nil {
+		a.OverrideDeps(&bd)
+	}
 
 	agent, err := New(bd)
 	if err != nil {
@@ -405,7 +412,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
 	ports := freeport.GetN(t, 8)
 
 	var http, https int
@@ -417,15 +424,6 @@ func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
 		https = -1
 	}
 
-	var grpc, grpcTLS int
-	if useGRPCTLS {
-		grpc = -1
-		grpcTLS = ports[7]
-	} else {
-		grpc = ports[6]
-		grpcTLS = -1
-	}
-
 	return `
 		ports = {
 			dns = ` + strconv.Itoa(ports[0]) + `
@@ -434,8 +432,8 @@ func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
 			serf_lan = ` + strconv.Itoa(ports[3]) + `
 			serf_wan = ` + strconv.Itoa(ports[4]) + `
 			server = ` + strconv.Itoa(ports[5]) + `
-			grpc = ` + strconv.Itoa(grpc) + `
-			grpc_tls = ` + strconv.Itoa(grpcTLS) + `
+			grpc = ` + strconv.Itoa(ports[6]) + `
+			grpc_tls = ` + strconv.Itoa(ports[7]) + `
 		}
 	`
 }

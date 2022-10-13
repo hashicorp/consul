@@ -7,6 +7,8 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/stretchr/testify/assert"
+
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -117,6 +119,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "grpc-public-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "grpc"
+				}, nil)
+			},
+		},
+		{
 			name: "listener-bind-address",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -157,6 +167,30 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 222
+				}, nil)
+			},
+		},
+		{
+			name: "http2-public-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http2"
+				}, nil)
+			},
+		},
+		{
+			name: "listener-balance-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["balance_inbound_connections"] = "exact_balance"
+				}, nil)
+			},
+		},
+		{
+			name: "listener-balance-outbound-connections-bind-port",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["balance_outbound_connections"] = "exact_balance"
 				}, nil)
 			},
 		},
@@ -757,8 +791,28 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_MixedNoTLS,
 		},
 		{
+			name:   "ingress-with-grpc-single-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressGateway_SingleTLSListener_GRPC,
+		},
+		{
+			name:   "ingress-with-http2-single-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressGateway_SingleTLSListener_HTTP2,
+		},
+		{
+			name:   "ingress-with-http2-and-grpc-multiple-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressGateway_MultiTLSListener_MixedHTTP2gRPC,
+		},
+		{
+			name:   "ingress-with-http2-and-grpc-multiple-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC,
+		},
+		{
 			name:   "transparent-proxy-http-upstream",
 			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
+		},
+		{
+			name:   "transparent-proxy-with-resolver-redirect-upstream",
+			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
 		},
 		{
 			name:   "transparent-proxy-catalog-destinations-only",
@@ -1157,4 +1211,39 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetAlpnProtocols(t *testing.T) {
+	tests := map[string]struct {
+		protocol string
+		want     []string
+	}{
+		"http": {
+			protocol: "http",
+			want:     []string{"http/1.1"},
+		},
+		"http2": {
+			protocol: "http2",
+			want:     []string{"h2", "http/1.1"},
+		},
+		"grpc": {
+			protocol: "grpc",
+			want:     []string{"h2", "http/1.1"},
+		},
+		"tcp": {
+			protocol: "",
+			want:     nil,
+		},
+		"empty": {
+			protocol: "",
+			want:     nil,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := getAlpnProtocols(tc.protocol)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

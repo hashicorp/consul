@@ -96,6 +96,10 @@ func makeClientWithConfig(
 	if server.Config.Bootstrap {
 		server.WaitForLeader(t)
 	}
+	connectEnabled := server.Config.Connect["enabled"]
+	if enabled, ok := connectEnabled.(bool); ok && server.Config.Server && enabled {
+		server.WaitForActiveCARoot(t)
+	}
 
 	conf.Address = server.HTTPAddr
 
@@ -763,6 +767,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		Namespace:         "operator",
 		Partition:         "asdf",
 		Datacenter:        "foo",
+		Peer:              "dc10",
 		AllowStale:        true,
 		RequireConsistent: true,
 		WaitIndex:         1000,
@@ -777,6 +782,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("partition") != "asdf" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("peer") != "dc10" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {

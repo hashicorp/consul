@@ -33,16 +33,28 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatibility please view the respective versioned docs for this page.
 
+### Envoy and Consul Client Agent
+
 Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
-| 1.13.x              | 1.23.1, 1.22.2, 1.21.4, 1.20.6                                                     |
-| 1.12.x              | 1.22.2, 1.21.4, 1.20.6, 1.19.5                                                     |
-| 1.11.x              | 1.20.6, 1.19.5, 1.18.6, 1.17.4<sup>1</sup>                                         |
+| 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
+| 1.12.x              | 1.22.5, 1.21.5, 1.20.7, 1.19.5                                                     |
+| 1.11.x              | 1.20.7, 1.19.5, 1.18.6, 1.17.4<sup>1</sup>                                         |
 
 1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
 Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
+
+### Envoy and Consul Dataplane
+
+~> **Note:** Consul Dataplane is currently in beta.
+
+Consul Dataplane is a feature introduced in Consul v1.14. Because each version of Consul Dataplane supports one specific version of Envoy, you must use the following versions of Consul, Consul Dataplane, and Envoy together.
+
+| Consul Version      | Consul Dataplane Version | Bundled Envoy Version  |
+| ------------------- | ------------------------ | ---------------------- |
+| 1.14.x              | 1.0.x                    | 1.23.x                 |
 
 ## Getting Started
 
@@ -112,7 +124,7 @@ Envoy requires an initial bootstrap configuration file. The easiest way to
 create this is using the [`consul connect envoy`
 command](/commands/connect/envoy). The command can either output the
 bootstrap configuration directly to stdout, or generate the configuration and issue an `exec` command
-to the Envoy binary as a convenience wrapper.
+to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
 
 Because some Envoy configuration options, such as metrics and tracing sinks, can only be
 specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
@@ -173,6 +185,67 @@ definition](/docs/connect/registration/service-registration) or
   [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval).
 
 The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
+
+### Bootstrap Envoy on Windows VMs
+
+> Complete the [Connect Services on Windows Workloads to Consul Service Mesh tutorial](https://learn.hashicorp.com/tutorials/consul/consul-windows-workloads?utm_source=docs) to learn how to deploy Consul and use its service mesh on Windows VMs.
+
+If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
+
+```shell-session hideClipboard
+Directly running Envoy is only supported on linux and macOS since envoy itself doesn't build on other plataforms currently.
+Use the -bootstrap option to generate the JSON to use when running envoy on a supported OS or via a container or VM.
+```
+
+To bootstrap Envoy on Windows VMs, you must generate the bootstrap configuration as a .json file and then manually edit it to add both your ACL token and a valid access log path.
+
+To generate the bootstrap configuration file, add the `-bootstrap` option to the command and then save the output to a file:
+
+```shell-session
+$ consul connect envoy -bootstrap > bootstrap.json
+```
+
+Then, open `bootstrap.json` and update the following sections with your ACL token and log path.
+
+<CodeBlockConfig filename="bootstrap.json" hideClipboard lineNumbers highlight="2,19">
+
+```json
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  ## ...
+  "dynamic_resources": {
+    ## ...
+    "ads_config": {
+      ## ...
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": "<ACL-Token>"
+          }
+        ],
+        ## ...
+      }
+    }
+  }
+}
+```
+</CodeBlockConfig>
+
+To complete the bootstrap process, start Envoy and include the path to `bootstrap.json`:
+
+```shell-session
+$ envoy -c bootstrap.json
+```
+
+~> **Security Note**: The bootstrap JSON contains the ACL token and should be handled as a secret. Because this token authorizes the identity of any service it has `service:write` permissions for, it can be used to access upstream services.
 
 ## Dynamic Configuration
 
@@ -254,6 +327,14 @@ defaults that are inherited by all services.
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
 
+- `balance_inbound_connections` - The strategy used for balancing inbound connections
+  across Envoy worker threads. Consul service mesh Envoy integration supports the
+  following `balance_inbound_connections` values:
+
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections. 
+  - `exact_balance` - Inbound connections to the service use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
 ### Proxy Upstream Config Options
 
 The following configuration items may be overridden directly in the
@@ -310,8 +391,16 @@ definition](/docs/connect/registration/service-registration) or
     load balancer.
   - `max_failures` - The number of consecutive failures which cause a host to be
     removed from the load balancer.
-  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected 
+  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected
     when an outlier status is detected through consecutive 5xx.
+
+- `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
+  across Envoy worker threads. Consul service mesh Envoy integration supports the
+  following `balance_outbound_connections` values:
+
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections. 
+  - `exact_balance` - Outbound connections from the upstream use the
+  [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
 ### Gateway Options
 
@@ -762,7 +851,7 @@ definition](/docs/connect/registration/service-registration) or
   </CodeTabs>
 
 
-- `envoy_listener_tracing_json` - Specifies a [tracing 
+- `envoy_listener_tracing_json` - Specifies a [tracing
   configuration](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-msg-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing)
   to be inserted in the proxy's public and upstreams listeners.
 

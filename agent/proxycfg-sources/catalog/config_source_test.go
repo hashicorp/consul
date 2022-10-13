@@ -32,6 +32,11 @@ func TestConfigSource_Success(t *testing.T) {
 			Service: "web-sidecar-proxy",
 			Port:    9999,
 			Kind:    structs.ServiceKindConnectProxy,
+			Proxy: structs.ConnectProxyConfig{
+				Config: map[string]any{
+					"local_connect_timeout_ms": 123,
+				},
+			},
 		},
 	}))
 
@@ -70,6 +75,11 @@ func TestConfigSource_Success(t *testing.T) {
 			Service: "web-sidecar-proxy",
 			Port:    8888,
 			Kind:    structs.ServiceKindConnectProxy,
+			Proxy: structs.ConnectProxyConfig{
+				Config: map[string]any{
+					"local_connect_timeout_ms": 123,
+				},
+			},
 		},
 	}))
 
@@ -77,6 +87,25 @@ func TestConfigSource_Success(t *testing.T) {
 	select {
 	case snap := <-snapCh:
 		require.Equal(t, 8888, snap.Port)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timeout waiting for snapshot")
+	}
+
+	// Update proxy-defaults.
+	require.NoError(t, store.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]any{
+			"max_inbound_connections": 321,
+		},
+	}))
+
+	// Expect Register to have been called again with the new merged config.
+	select {
+	case snap := <-snapCh:
+		require.Equal(t, map[string]any{
+			"local_connect_timeout_ms": 123,
+			"max_inbound_connections":  321,
+		}, snap.Proxy.Config)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for snapshot")
 	}
@@ -238,6 +267,7 @@ func testConfigManager(t *testing.T, serviceID structs.ServiceID, nodeName strin
 			snapCh <- &proxycfg.ConfigSnapshot{
 				ProxyID: id,
 				Port:    ns.Port,
+				Proxy:   ns.Proxy,
 			}
 		}).
 		Return(nil)

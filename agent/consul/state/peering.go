@@ -584,10 +584,16 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		if req.Peering.State == pbpeering.PeeringState_UNDEFINED {
 			req.Peering.State = existing.State
 		}
-		// TODO(peering): Confirm behavior when /peering/token is called more than once.
-		// We may need to avoid clobbering existing values.
-		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
-		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
+
+		// Prevent RemoteInfo from being overwritten with empty data
+		if !existing.Remote.IsEmpty() && req.Peering.Remote.IsEmpty() {
+			req.Peering.Remote = &pbpeering.RemoteInfo{
+				Partition:  existing.Remote.Partition,
+				Datacenter: existing.Remote.Datacenter,
+			}
+		}
+
+		req.Peering.StreamStatus = nil
 		req.Peering.CreateIndex = existing.CreateIndex
 		req.Peering.ModifyIndex = idx
 	} else {
@@ -792,7 +798,7 @@ func exportedServicesForPeerTxn(
 				// Service was covered by a wildcard that was already accounted for
 				continue
 			}
-			if consumer.PeerName != peering.Name {
+			if consumer.Peer != peering.Name {
 				continue
 			}
 			sawPeer = true
@@ -938,7 +944,7 @@ func listServicesExportedToAnyPeerByConfigEntry(
 
 		sawPeer := false
 		for _, consumer := range svc.Consumers {
-			if consumer.PeerName == "" {
+			if consumer.Peer == "" {
 				continue
 			}
 			sawPeer = true
@@ -1310,8 +1316,8 @@ func peersForServiceTxn(
 	}
 
 	for _, c := range entry.Services[targetIdx].Consumers {
-		if c.PeerName != "" {
-			results = append(results, c.PeerName)
+		if c.Peer != "" {
+			results = append(results, c.Peer)
 		}
 	}
 	return idx, results, nil

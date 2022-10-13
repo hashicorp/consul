@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -959,6 +960,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
+		Cloud:                                  b.cloudConfigVal(c.Cloud),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1560,6 +1562,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
 		Shell:                          stringVal(v.Shell),
@@ -2446,6 +2449,21 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
+	if v == nil {
+		return val
+	}
+
+	val.ResourceID = stringVal(v.ResourceID)
+	val.ClientID = stringVal(v.ClientID)
+	val.ClientSecret = stringVal(v.ClientSecret)
+	val.AuthURL = stringVal(v.AuthURL)
+	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
+
+	return val
+}
+
 // decodeBytes returns the encryption key decoded.
 func decodeBytes(key string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(key)
@@ -2596,6 +2614,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	mapCommon("grpc", t.GRPC, &c.GRPC)
 	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
 
+	c.ServerMode = rt.ServerMode
 	c.ServerName = rt.ServerName
 	c.NodeName = rt.NodeName
 	c.Domain = rt.DNSDomain

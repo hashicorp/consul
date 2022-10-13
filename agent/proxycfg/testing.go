@@ -280,31 +280,6 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
-func TestUpstreamNodesPeerCluster01(t testing.T) structs.CheckServiceNodes {
-	peer := "cluster-01"
-	service := structs.TestNodeServiceWithNameInPeer(t, "web", peer)
-	return structs.CheckServiceNodes{
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:       "test1",
-				Node:     "test1",
-				Address:  "10.40.1.1",
-				PeerName: peer,
-			},
-			Service: service,
-		},
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:       "test2",
-				Node:     "test2",
-				Address:  "10.40.1.2",
-				PeerName: peer,
-			},
-			Service: service,
-		},
-	}
-}
-
 func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
@@ -772,6 +747,7 @@ func testConfigSnapshotFixture(
 			IntentionUpstreamsDestination:   &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
 			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
+			PeeringList:                     &noopDataSource[*cachetype.PeeringListRequest]{},
 			PeeredUpstreams:                 &noopDataSource[*structs.PartitionSpecificRequest]{},
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
 			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
@@ -976,6 +952,7 @@ func NewTestDataSources() *TestDataSources {
 		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
+		PeeringList:                     NewTestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
 		ServiceList:                     NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList](),
@@ -1002,6 +979,7 @@ type TestDataSources struct {
 	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
+	PeeringList                     *TestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse]
 	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
 	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
@@ -1028,6 +1006,7 @@ func (t *TestDataSources) ToDataSources() DataSources {
 		IntentionUpstreamsDestination: t.IntentionUpstreamsDestination,
 		InternalServiceDump:           t.InternalServiceDump,
 		LeafCertificate:               t.LeafCertificate,
+		PeeringList:                   t.PeeringList,
 		PeeredUpstreams:               t.PeeredUpstreams,
 		PreparedQuery:                 t.PreparedQuery,
 		ResolvedServiceConfig:         t.ResolvedServiceConfig,

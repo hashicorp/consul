@@ -2,6 +2,7 @@ package consul
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -1295,6 +1297,13 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
+
+			serverToken, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+			require.NoError(t, err)
+			require.NotEmpty(t, serverToken)
+
+			_, err = uuid.ParseUUID(serverToken)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1449,7 +1458,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 					},
 				},
 			},
-			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior"`,
+			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior`,
 		},
 		{
 			name: "service-intentions without migration",
@@ -1489,7 +1498,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			serverCB: func(c *Config) {
 				c.ConnectEnabled = false
 			},
-			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions"`,
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions`,
 		},
 	}
 
@@ -1508,9 +1517,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 				scan := bufio.NewScanner(pr)
 				for scan.Scan() {
 					line := scan.Text()
+					lineJson := map[string]interface{}{}
+					json.Unmarshal([]byte(line), &lineJson)
 
 					if strings.Contains(line, "failed to establish leadership") {
-						applyErrorLine = line
+						applyErrorLine = lineJson["error"].(string)
 						ch <- ""
 						return
 					}
@@ -1535,9 +1546,10 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			}
 
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-				Name:   config.NodeName,
-				Level:  testutil.TestLogLevel,
-				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				Name:       config.NodeName,
+				Level:      testutil.TestLogLevel,
+				Output:     io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				JSONFormat: true,
 			})
 
 			deps := newDefaultDeps(t, config)

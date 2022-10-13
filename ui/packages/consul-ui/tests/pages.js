@@ -75,6 +75,7 @@ import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
 import nspace from 'consul-ui/tests/pages/dc/nspaces/edit';
 import peers from 'consul-ui/tests/pages/dc/peers/index';
+import peersShow from 'consul-ui/tests/pages/dc/peers/show';
 
 // utils
 const deletable = createDeletable(clickable);
@@ -111,7 +112,7 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
-const consulPeerList = consulPeerListFactory(collection, isPresent);
+const consulPeerList = consulPeerListFactory(collection, isPresent, attribute, morePopoverMenu);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(
   collection,
@@ -234,6 +235,7 @@ export default {
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
   peers: create(peers(visitable, creatable, consulPeerList, popoverSelect)),
+  peer: create(peersShow(visitable)),
   settings: create(settings(visitable, submitable, isPresent)),
   routingConfig: create(routingConfig(visitable, text)),
 };

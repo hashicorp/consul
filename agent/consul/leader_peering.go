@@ -366,6 +366,10 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws me
 				Open: &pbpeerstream.ReplicationMessage_Open{
 					PeerID:         peer.PeerID,
 					StreamSecretID: secret.GetStream().GetActiveSecretID(),
+					Remote: &pbpeering.RemoteInfo{
+						Partition:  peer.Partition,
+						Datacenter: s.config.Datacenter,
+					},
 				},
 			},
 		}

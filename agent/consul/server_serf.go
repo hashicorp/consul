@@ -153,11 +153,11 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	serfLogger := s.logger.
 		NamedIntercept(logging.Serf).
 		NamedIntercept(subLoggerName).
-		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := s.logger.
 		NamedIntercept(logging.Memberlist).
 		NamedIntercept(subLoggerName).
-		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
 	conf.Logger = serfLogger
