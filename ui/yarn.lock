@@ -9247,6 +9247,17 @@ ember-text-measurer@^0.6.0:
     ember-cli-babel "^7.19.0"
     ember-cli-htmlbars "^4.3.1"
 
+ember-tracked-local-storage@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/ember-tracked-local-storage/-/ember-tracked-local-storage-1.1.1.tgz#16104ce5bddc6d055049af094c7e223ff2f61520"
+  integrity sha512-0n4EBdbFyIJWqtbhmEf+iAFRvUD6p+s3kL9WLD2GJOimfKjcbe2ybmNUT6Qdj3ge5vqQgh59mJejJg/PEP2R0w==
+  dependencies:
+    "@glimmer/tracking" "^1.0.1"
+    ember-auto-import "^1.6.0"
+    ember-cli-babel "^7.22.1"
+    ember-cli-htmlbars "^5.3.1"
+    macro-decorators "^0.1.2"
+
 "ember-truth-helpers@^2.1.0 || ^3.0.0", ember-truth-helpers@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/ember-truth-helpers/-/ember-truth-helpers-3.0.0.tgz#86766bdca4ac9b86bce3d262dff2aabc4a0ea384"
@@ -12614,6 +12625,11 @@ lru-cache@^6.0.0:
   integrity sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==
   dependencies:
     yallist "^4.0.0"
+
+macro-decorators@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/macro-decorators/-/macro-decorators-0.1.2.tgz#1d5cf1276d343371040af192901947f2a0af03c1"
+  integrity sha512-BV5XPmCm9kPSMtgfZiv0vTjOooe5pTIPIVkdoqbC49H1B7z22KB39H50R2ZNclZDQlmVyviLozRatKnOYZkwzg==
 
 magic-string@^0.25.7:
   version "0.25.7"
