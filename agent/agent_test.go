@@ -1858,40 +1858,49 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func TestAgent_AddCheck_Alias(t *testing.T) {
+func TestAgent_Alias_AddRemove(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	health := &structs.HealthCheck{
-		Node:    "foo",
-		CheckID: "aliashealth",
-		Name:    "Alias health check",
-		Status:  api.HealthCritical,
-	}
-	chk := &structs.CheckType{
-		AliasService: "foo",
-	}
-	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(err)
+	cid := structs.NewCheckID("aliashealth", nil)
 
-	// Ensure we have a check mapping
-	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(api.HealthCritical, sChk.Status)
+	runStep(t, "add check", func(t *testing.T) {
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: cid.ID,
+			Name:    "Alias health check",
+			Status:  api.HealthCritical,
+		}
+		chk := &structs.CheckType{
+			AliasService: "foo",
+		}
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		require.NoError(t, err)
 
-	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(ok, "missing aliashealth check")
-	require.Equal("", chkImpl.RPCReq.Token)
+		sChk := requireCheckExists(t, a, cid.ID)
+		require.Equal(t, api.HealthCritical, sChk.Status)
 
-	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(cs)
-	require.Equal("", cs.Token)
+		chkImpl, ok := a.checkAliases[cid]
+		require.True(t, ok, "missing aliashealth check")
+		require.Equal(t, "", chkImpl.RPCReq.Token)
+
+		cs := a.State.CheckState(cid)
+		require.NotNil(t, cs)
+		require.Equal(t, "", cs.Token)
+	})
+
+	runStep(t, "remove check", func(t *testing.T) {
+		require.NoError(t, a.RemoveCheck(cid, false))
+
+		requireCheckMissing(t, a, cid.ID)
+		requireCheckMissingMap(t, a.checkAliases, cid.ID)
+	})
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
