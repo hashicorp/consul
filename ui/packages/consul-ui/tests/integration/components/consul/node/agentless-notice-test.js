@@ -58,8 +58,6 @@ module('Integration | Component | consul node agentless-notice', function (hooks
     await click('button');
     assert
       .dom('[data-test-node-agentless-notice]')
-      .doesNotExist(
-        'The agentless notice be dismissed'
-      );
+      .doesNotExist('The agentless notice be dismissed');
   });
 });
