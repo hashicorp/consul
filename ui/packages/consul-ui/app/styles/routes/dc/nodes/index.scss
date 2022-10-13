@@ -4,3 +4,7 @@ html[data-route^='dc.nodes.show.metadata'] table tr {
 html[data-route^='dc.nodes.show.sessions'] .consul-lock-session-list {
   @extend %list-after-secondary-nav;
 }
+html[data-route^='dc.nodes.index'] .agentless-node-notice header {
+  display: flex;
+  justify-content: space-between;
+}
