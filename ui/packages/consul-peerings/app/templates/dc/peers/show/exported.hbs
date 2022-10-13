@@ -76,7 +76,10 @@
                     </li>
                   </VerticalCollection>
                 {{else}}
-                  <EmptyState @login={{route.model.app.login.open}}>
+                  <EmptyState
+                    @login={{route.model.app.login.open}}
+                    data-test-exported-services-empty
+                  >
                     <BlockSlot @name="header">
                       <h2>
                         {{t

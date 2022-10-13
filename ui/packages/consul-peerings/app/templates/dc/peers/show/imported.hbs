@@ -82,7 +82,10 @@
             />
           </collection.Collection>
           <collection.Empty>
-            <EmptyState @login={{route.model.app.login.open}}>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+              data-test-imported-services-empty
+            >
               <BlockSlot @name="header">
                 <h2>
                   {{t
