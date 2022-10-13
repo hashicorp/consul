@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"testing"
@@ -141,7 +142,9 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		codec := rpcClient(t, s1)
 		rules := `operator = "read"`
 		tokenRead := createToken(t, codec, rules)
-		ctxToken := external.ContextWithToken(ctx, tokenRead)
+
+		ctxToken, err := external.ContextWithQueryOptions(ctx, structs.QueryOptions{Token: tokenRead})
+		require.NoError(t, err)
 		reply, err := operatorClient.TransferLeader(ctxToken, &req)
 		require.True(t, acl.IsErrPermissionDenied(err))
 		require.Nil(t, reply)
@@ -169,7 +172,8 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		codec := rpcClient(t, s1)
 		rules := `operator = "write"`
 		tokenWrite := createTokenWithPolicyNameFull(t, codec, "the-policy-write", rules, "root")
-		ctxToken := external.ContextWithToken(ctx, tokenWrite.SecretID)
+		ctxToken, err := external.ContextWithQueryOptions(ctx, structs.QueryOptions{Token: tokenWrite.SecretID})
+		require.NoError(t, err)
 		reply, err := operatorClient.TransferLeader(ctxToken, &req)
 		require.NoError(t, err)
 		require.True(t, reply.Success)
