@@ -38,7 +38,7 @@ module('Integration | Component | consul node agentless-notice', function (hooks
     this.set('nodes', [
       {
         Meta: {
-          'synthetic-node': false,
+          'synthetic-node': true,
         },
       },
     ]);
