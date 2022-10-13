@@ -53,7 +53,10 @@ func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req 
 
 	var token string
 	s.parseToken(req, &token)
-	ctx := external.ContextWithToken(req.Context(), token)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), structs.QueryOptions{Token: token})
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := s.agent.rpcClientOperator.TransferLeader(ctx, &args)
 	if err != nil {
