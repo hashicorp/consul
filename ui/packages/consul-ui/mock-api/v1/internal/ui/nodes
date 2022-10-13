@@ -24,8 +24,7 @@
               "wan":"${fake.internet.ip()}"
             },
             "Meta": {
-              "consul-network-segment":"",
-              "synthetic-node": "${fake.helpers.randomize(["true", "false", "false", "false"])}"
+              "consul-network-segment":""
             },
             "Services":[
                 ${
