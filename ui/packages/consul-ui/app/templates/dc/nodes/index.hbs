@@ -1,131 +1,121 @@
-<Route
-  @name={{routeName}}
-as |route|>
+<Route @name={{routeName}} as |route|>
 
-  <DataSource @src={{
-    uri '/${partition}/${nspace}/${dc}/leader'
-    (hash
-      partition=route.params.partition
-      nspace=route.params.nspace
-      dc=route.params.dc
-    )
-  }} as |leader|>
+  <DataSource
+    @src={{uri
+      '/${partition}/${nspace}/${dc}/leader'
+      (hash partition=route.params.partition nspace=route.params.nspace dc=route.params.dc)
+    }}
+    as |leader|
+  >
 
     <DataLoader
-      @src={{uri '/${partition}/${nspace}/${dc}/nodes'
-          (hash
-            partition=route.params.partition
-            nspace=route.params.nspace
-            dc=route.params.dc
-          )
+      @src={{uri
+        '/${partition}/${nspace}/${dc}/nodes'
+        (hash partition=route.params.partition nspace=route.params.nspace dc=route.params.dc)
       }}
-    as |api|>
+      as |api|
+    >
 
-    <BlockSlot @name="error">
-      <AppError
-        @error={{api.error}}
-        @login={{route.model.app.login.open}}
-      />
-    </BlockSlot>
-
-    <BlockSlot @name="loaded">
-  {{#let
-
-    (hash
-      value=(or sortBy "Status:asc")
-      change=(action (mut sortBy) value="target.selected")
-    )
-
-    (hash
-      status=(hash
-        value=(if status (split status ',') undefined)
-        change=(action (mut status) value="target.selectedItems")
-      )
-      searchproperty=(hash
-        value=(if (not-eq searchproperty undefined)
-          (split searchproperty ',')
-          this._searchProperties
-        )
-        change=(action (mut searchproperty) value="target.selectedItems")
-        default=this._searchProperties
-      )
-    )
-
-    api.data
-
-    leader.data
-
-  as |sort filters items leader|}}
-    <AppView>
-      <BlockSlot @name="header">
-        <h1>
-          <route.Title @title="Nodes" /> <em>{{format-number items.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
+      <BlockSlot @name='error'>
+        <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
       </BlockSlot>
-      <BlockSlot @name="toolbar">
-      {{#if (gt items.length 0) }}
-          <Consul::Node::SearchBar
-            @search={{search}}
-            @onsearch={{action (mut search) value="target.value"}}
 
-            @sort={{sort}}
-
-            @filter={{filters}}
-          />
-      {{/if}}
+      <BlockSlot @name='loaded'>
+        {{#let
+          (hash value=(or sortBy 'Status:asc') change=(action (mut sortBy) value='target.selected'))
+          (hash
+            status=(hash
+              value=(if status (split status ',') undefined)
+              change=(action (mut status) value='target.selectedItems')
+            )
+            searchproperty=(hash
+              value=(if
+                (not-eq searchproperty undefined) (split searchproperty ',') this._searchProperties
+              )
+              change=(action (mut searchproperty) value='target.selectedItems')
+              default=this._searchProperties
+            )
+          )
+          api.data
+          leader.data
+          as |sort filters items leader|
+        }}
+          {{#let (reject-by 'Meta.synthetic-node' items) as |filtered|}}
+            <AppView>
+              <BlockSlot @name='header'>
+                <h1>
+                  <route.Title @title='Nodes' />
+                  <em>{{format-number items.length}} total</em>
+                </h1>
+                <label for='toolbar-toggle'></label>
+              </BlockSlot>
+              <BlockSlot @name='toolbar'>
+                {{#if (gt filtered.length 0)}}
+                  <Consul::Node::SearchBar
+                    @search={{search}}
+                    @onsearch={{action (mut search) value='target.value'}}
+                    @sort={{sort}}
+                    @filter={{filters}}
+                  />
+                {{/if}}
+              </BlockSlot>
+              <BlockSlot @name='content'>
+                <DataCollection
+                  @type='node'
+                  @sort={{sort.value}}
+                  @filters={{filters}}
+                  @search={{search}}
+                  @items={{filtered}}
+                  as |collection|
+                >
+                  <collection.Collection>
+                    <Consul::Node::List @items={{collection.items}} @leader={{leader}} />
+                  </collection.Collection>
+                  <collection.Empty>
+                    <EmptyState @login={{route.model.app.login.open}}>
+                      <BlockSlot @name='header'>
+                        <h2>
+                          {{t 'routes.dc.nodes.index.empty.header' items=items.length}}
+                        </h2>
+                      </BlockSlot>
+                      <BlockSlot @name='body'>
+                        {{t
+                          'routes.dc.nodes.index.empty.body'
+                          items=items.length
+                          canUseACLs=(can 'use acls')
+                          htmlSafe=true
+                        }}
+                      </BlockSlot>
+                      <BlockSlot @name='actions'>
+                        <li class='docs-link'>
+                          <a
+                            href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/agent'
+                            rel='noopener noreferrer'
+                            target='_blank'
+                          >
+                            {{t 'routes.dc.nodes.index.empty.documentation'}}
+                          </a>
+                        </li>
+                        <li class='learn-link'>
+                          <a
+                            href='{{env
+                              "CONSUL_DOCS_LEARN_URL"
+                            }}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents'
+                            rel='noopener noreferrer'
+                            target='_blank'
+                          >
+                            {{t 'routes.dc.nodes.index.empty.learn'}}
+                          </a>
+                        </li>
+                      </BlockSlot>
+                    </EmptyState>
+                  </collection.Empty>
+                </DataCollection>
+              </BlockSlot>
+            </AppView>
+          {{/let}}
+        {{/let}}
       </BlockSlot>
-      <BlockSlot @name="content">
-        <DataCollection
-          @type="node"
-          @sort={{sort.value}}
-          @filters={{filters}}
-          @search={{search}}
-          @items={{items}}
-        as |collection|>
-          <collection.Collection>
-            <Consul::Node::List
-              @items={{collection.items}}
-              @leader={{leader}}
-            />
-          </collection.Collection>
-          <collection.Empty>
-            <EmptyState
-              @login={{route.model.app.login.open}}
-            >
-              <BlockSlot @name="header">
-                <h2>
-                  {{t 'routes.dc.nodes.index.empty.header'
-                    items=items.length
-                  }}
-                </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
-                {{t 'routes.dc.nodes.index.empty.body'
-                  items=items.length
-                  canUseACLs=(can 'use acls')
-                  htmlSafe=true
-                }}
-              </BlockSlot>
-              <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_DEVELOPER_URL'}}/agent" rel="noopener noreferrer" target="_blank">
-                    {{t 'routes.dc.nodes.index.empty.documentation'}}
-                  </a>
-                </li>
-                <li class="learn-link">
-                  <a href="{{env "CONSUL_DOCS_LEARN_URL"}}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents" rel="noopener noreferrer" target="_blank">
-                    {{t 'routes.dc.nodes.index.empty.learn'}}
-                  </a>
-                </li>
-              </BlockSlot>
-            </EmptyState>
-          </collection.Empty>
-        </DataCollection>
-      </BlockSlot>
-    </AppView>
-  {{/let}}
-    </BlockSlot>
     </DataLoader>
   </DataSource>
-  </Route>
+</Route>

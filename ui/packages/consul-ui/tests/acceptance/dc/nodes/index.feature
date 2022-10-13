@@ -21,6 +21,31 @@ Feature: dc / nodes / index
     Then the url should be /dc-1/nodes
     Then I see 1 node models
     And I see status on the nodes.0 like "critical"
+  Scenario: Viewing nodes list page should not show synthetic nodes
+    Given 3 node model from yaml
+    ---
+    - Meta:
+        synthetic-node: true
+      Checks:
+        - Status: passing
+          ServiceID: ""
+    - Meta:
+        synthetic-node: false
+      Checks:
+        - Status: passing
+          ServiceID: ""
+    - Meta:
+        synthetic-node: false
+      Checks:
+        - Status: critical
+          ServiceID: ""
+    ---
+    When I visit the nodes page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/nodes
+    Then I see 2 node models
   Scenario: Viewing a node with an unhealthy ServiceCheck
     Given 1 node model from yaml
     ---
@@ -29,6 +54,8 @@ Feature: dc / nodes / index
           ServiceID: ""
         - Status: critical
           ServiceID: web
+      Meta:
+        synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---
@@ -38,7 +65,24 @@ Feature: dc / nodes / index
     Then I see 1 node models
     And I see status on the nodes.0 like "passing"
   Scenario: Viewing nodes in the listing
-    Given 3 node models
+    Given 3 node model from yaml
+    ---
+    - Meta:
+        synthetic-node: false
+      Checks:
+        - Status: passing
+          ServiceID: ""
+    - Meta:
+        synthetic-node: false
+      Checks:
+        - Status: passing
+          ServiceID: ""
+    - Meta:
+        synthetic-node: false
+      Checks:
+        - Status: critical
+          ServiceID: ""
+    ---
     When I visit the nodes page for yaml
     ---
       dc: dc-1
@@ -54,12 +98,18 @@ Feature: dc / nodes / index
         Checks:
           - Status: critical
             Name: Warning check
+        Meta:
+          synthetic-node: false
       - Address: 10.0.0.1
         Checks:
           - Status: passing
+        Meta:
+          synthetic-node: false
       - Address: 10.0.0.3
         Checks:
           - Status: passing
+        Meta:
+          synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---
@@ -73,10 +123,16 @@ Feature: dc / nodes / index
     ---
       - Node: node-01
         Address: 10.0.0.0
+        Meta:
+          synthetic-node: false
       - Node: node-02
         Address: 10.0.0.1
+        Meta:
+          synthetic-node: false
       - Node: node-03
         Address: 10.0.0.2
+        Meta:
+          synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---
