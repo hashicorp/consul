@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -117,7 +118,6 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 		ws.Add(store.AbandonCh())
 
 		_, ns, err := store.NodeService(ws, proxyID.NodeName, proxyID.ID, &proxyID.EnterpriseMeta, structs.DefaultPeerKeyword)
-
 		switch {
 		case err != nil:
 			logger.Error("failed to read service from state store", "error", err.Error())
@@ -130,14 +130,29 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 			err := errors.New("service must be a sidecar proxy or gateway")
 			logger.Error(err.Error())
 			return nil, err
-		default:
-			err := m.Manager.Register(proxyID, ns, source, proxyID.Token, false)
-			if err != nil {
-				logger.Error("failed to register service", "error", err.Error())
-				return nil, err
-			}
-			return ws, nil
 		}
+
+		_, ns, err = configentry.MergeNodeServiceWithCentralConfig(
+			ws,
+			store,
+			// TODO(agentless): it doesn't seem like we actually *need* any of the
+			// values on this request struct - we should try to remove the parameter
+			// in case that changes in the future as this call-site isn't passing them.
+			&structs.ServiceSpecificRequest{},
+			ns,
+			logger,
+		)
+		if err != nil {
+			logger.Error("failed to merge with central config", "error", err.Error())
+			return nil, err
+		}
+
+		if err = m.Manager.Register(proxyID, ns, source, proxyID.Token, false); err != nil {
+			logger.Error("failed to register service", "error", err.Error())
+			return nil, err
+		}
+
+		return ws, nil
 	}
 
 	syncLoop := func(ws memdb.WatchSet) {
@@ -257,6 +272,7 @@ type ConfigManager interface {
 
 type Store interface {
 	NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error)
+	ReadResolvedServiceConfigEntries(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, upstreamIDs []structs.ServiceID, proxyMode structs.ProxyMode) (uint64, *configentry.ResolvedServiceConfigSet, error)
 	AbandonCh() <-chan struct{}
 }
 
