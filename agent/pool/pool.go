@@ -57,36 +57,6 @@ type Conn struct {
 	clientLock sync.Mutex
 }
 
-// TimeoutConn wraps net.Conn with a read timeout.
-// When set, FirstReadTimeout only applies to the very next Read.
-// DefaultTimeout is used for any other Read.
-type TimeoutConn struct {
-	net.Conn
-	DefaultTimeout   time.Duration
-	FirstReadTimeout time.Duration
-}
-
-func (c *TimeoutConn) Read(b []byte) (int, error) {
-	timeout := c.DefaultTimeout
-	// Apply timeout to first read then zero it out
-	if c.FirstReadTimeout > 0 {
-		timeout = c.FirstReadTimeout
-		c.FirstReadTimeout = 0
-	}
-	var deadline time.Time
-	if timeout > 0 {
-		deadline = time.Now().Add(timeout)
-	}
-	if err := c.Conn.SetReadDeadline(deadline); err != nil {
-		return 0, err
-	}
-	return c.Conn.Read(b)
-}
-
-func (c *TimeoutConn) Write(b []byte) (int, error) {
-	return c.Conn.Write(b)
-}
-
 func (c *Conn) Close() error {
 	return c.session.Close()
 }
