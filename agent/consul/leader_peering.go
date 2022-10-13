@@ -365,7 +365,7 @@ func (s *Server) establishStream(ctx context.Context,
 			}),
 			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(50 * 1024 * 1024)),
 		}
-	
+
 		logger.Trace("dialing peer", "addr", addr)
 		conn, err := grpc.DialContext(streamCtx, addr, opts...)
 
