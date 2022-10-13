@@ -207,6 +207,7 @@ cloud {
     client_secret = "lCSMHOpB"
     hostname = "DH4bh7aC"
     auth_url = "332nCdR2"
+    scada_address = "aoeusth232"
 }
 connect {
     ca_provider = "consul"

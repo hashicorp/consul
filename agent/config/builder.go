@@ -2459,6 +2459,7 @@ func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) 
 	val.ClientSecret = stringVal(v.ClientSecret)
 	val.AuthURL = stringVal(v.AuthURL)
 	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
 
 	return val
 }

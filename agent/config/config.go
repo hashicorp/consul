@@ -866,6 +866,7 @@ type CloudConfigRaw struct {
 	ClientSecret *string `mapstructure:"client_secret"`
 	Hostname     *string `mapstructure:"hostname"`
 	AuthURL      *string `mapstructure:"auth_url"`
+	ScadaAddress *string `mapstructure:"scada_address"`
 }
 
 type TLSProtocolConfig struct {
