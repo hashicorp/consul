@@ -25,17 +25,17 @@ Feature: dc / nodes / index
     Given 3 node model from yaml
     ---
     - Meta:
-        synthetic-node: "true"
+        synthetic-node: true
       Checks:
         - Status: passing
           ServiceID: ""
     - Meta:
-        synthetic-node: "false"
+        synthetic-node: false
       Checks:
         - Status: passing
           ServiceID: ""
     - Meta:
-        synthetic-node: "false"
+        synthetic-node: false
       Checks:
         - Status: critical
           ServiceID: ""
@@ -55,7 +55,7 @@ Feature: dc / nodes / index
         - Status: critical
           ServiceID: web
       Meta:
-        synthetic-node: "false"
+        synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---
@@ -68,17 +68,17 @@ Feature: dc / nodes / index
     Given 3 node model from yaml
     ---
     - Meta:
-        synthetic-node: "false"
+        synthetic-node: false
       Checks:
         - Status: passing
           ServiceID: ""
     - Meta:
-        synthetic-node: "false"
+        synthetic-node: false
       Checks:
         - Status: passing
           ServiceID: ""
     - Meta:
-        synthetic-node: "false"
+        synthetic-node: false
       Checks:
         - Status: critical
           ServiceID: ""
@@ -99,17 +99,17 @@ Feature: dc / nodes / index
           - Status: critical
             Name: Warning check
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
       - Address: 10.0.0.1
         Checks:
           - Status: passing
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
       - Address: 10.0.0.3
         Checks:
           - Status: passing
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---
@@ -124,15 +124,15 @@ Feature: dc / nodes / index
       - Node: node-01
         Address: 10.0.0.0
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
       - Node: node-02
         Address: 10.0.0.1
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
       - Node: node-03
         Address: 10.0.0.2
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
     ---
     When I visit the nodes page for yaml
     ---

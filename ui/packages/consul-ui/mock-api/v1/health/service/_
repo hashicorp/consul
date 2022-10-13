@@ -54,7 +54,7 @@
             "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},
             "Meta":{
               "${service}-network-segment":"",
-              "synthetic-node":${externalSource === 'kubernetes' ? "true" : "false"}
+              "synthetic-node":${externalSource === 'kubernetes' ? true : false}
             },
 ${typeof location.search.peer !== 'undefined' ? `
             "PeerName": "${location.search.peer}",

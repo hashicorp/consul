@@ -6,19 +6,19 @@ Feature: dc / nodes / no-leader
     ---
       - Node: Node-A
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
         Checks:
           - Status: critical
             ServiceID: ""
       - Node: Node-B
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
         Checks:
           - Status: passing
             ServiceID: ""
       - Node: Node-C
         Meta:
-          synthetic-node: "false"
+          synthetic-node: false
         Checks:
           - Status: warning
             ServiceID: ""

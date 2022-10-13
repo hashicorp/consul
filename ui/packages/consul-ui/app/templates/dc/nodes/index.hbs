@@ -40,7 +40,7 @@
           leader.data
           as |sort filters items leader|
         }}
-          {{#let (reject-by 'Meta.synthetic-node' 'true' items) as |filtered|}}
+          {{#let (reject-by 'Meta.synthetic-node' items) as |filtered|}}
             <AppView>
               <BlockSlot @name='header'>
                 <h1>
