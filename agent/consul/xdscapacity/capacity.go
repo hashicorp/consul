@@ -79,7 +79,7 @@ func NewController(cfg Config) *Controller {
 func (c *Controller) Run(ctx context.Context) {
 	defer close(c.doneCh)
 
-	ws, numProxies, err := c.countProxies(ctx)
+	watchCh, numProxies, err := c.countProxies(ctx)
 	if err != nil {
 		return
 	}
@@ -90,8 +90,8 @@ func (c *Controller) Run(ctx context.Context) {
 		case s := <-c.serverCh:
 			numServers = s
 			c.updateMaxSessions(numServers, numProxies)
-		case <-ws.WatchCh(ctx):
-			ws, numProxies, err = c.countProxies(ctx)
+		case <-watchCh:
+			watchCh, numProxies, err = c.countProxies(ctx)
 			if err != nil {
 				return
 			}
@@ -170,7 +170,7 @@ func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 
 // countProxies counts the number of registered proxy services, retrying on
 // error until the given context is cancelled.
-func (c *Controller) countProxies(ctx context.Context) (memdb.WatchSet, uint32, error) {
+func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, error) {
 	retryWaiter := &retry.Waiter{
 		MinFailures: 1,
 		MinWait:     1 * time.Second,
@@ -200,7 +200,7 @@ func (c *Controller) countProxies(ctx context.Context) (memdb.WatchSet, uint32, 
 				count += uint32(kindCount)
 			}
 		}
-		return ws, count, nil
+		return ws.WatchCh(ctx), count, nil
 	}
 }
 
