@@ -246,7 +246,7 @@ func genVerifyPeeringListWatchForMeshGateway() verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.PeeringListRequest)
 		require.True(t, ok)
-		require.Equal(t, structs.WildcardSpecifier, reqReal.Request.Partition)
+		require.Equal(t, acl.WildcardPartitionName, reqReal.Request.Partition)
 	}
 }
 
