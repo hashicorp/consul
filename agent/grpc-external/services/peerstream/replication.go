@@ -336,10 +336,20 @@ func (s *Server) handleUpdateService(
 	snap := newHealthSnapshot(structsNodes, partition, peerName)
 
 	for _, nodeSnap := range snap.Nodes {
-		// First register the node
+		// First register the node - skip the existent ones
+		exist := false
+		for _, csn := range storedInstances {
+			if csn.Node.IsSame(nodeSnap.Node) {
+				exist = true
+				break
+			}
+		}
+
 		req := nodeSnap.Node.ToRegisterRequest()
-		if err := s.Backend.CatalogRegister(&req); err != nil {
-			return fmt.Errorf("failed to register node: %w", err)
+		if !exist {
+			if err := s.Backend.CatalogRegister(&req); err != nil {
+				return fmt.Errorf("failed to register node: %w", err)
+			}
 		}
 
 		// Then register all services on that node
@@ -351,17 +361,38 @@ func (s *Server) handleUpdateService(
 		}
 		req.Service = nil
 
-		// Then register all checks on that node
+		// Then register all checks on that node - skip the existent ones
 		var chks structs.HealthChecks
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
-				chks = append(chks, c)
+				exist = false
+				for _, stored := range storedInstances {
+					if stored.Service.Service != svcSnap.Service.Service {
+						continue
+					}
+
+					for _, chk := range stored.Checks {
+						if chk.IsSame(c) {
+							exist = true
+							break
+						}
+					}
+					if exist {
+						break
+					}
+				}
+
+				if !exist {
+					chks = append(chks, c)
+				}
 			}
 		}
 
-		req.Checks = chks
-		if err := s.Backend.CatalogRegister(&req); err != nil {
-			return fmt.Errorf("failed to register check: %w", err)
+		if len(chks) > 0 {
+			req.Checks = chks
+			if err := s.Backend.CatalogRegister(&req); err != nil {
+				return fmt.Errorf("failed to register check: %w", err)
+			}
 		}
 	}
 
