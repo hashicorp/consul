@@ -1,11 +1,15 @@
 package consul
 
 import (
+	"container/ring"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -85,29 +89,114 @@ func (b *PeeringBackend) GetTLSMaterials(generatingToken bool) (string, []string
 	return serverName, caPems, nil
 }
 
-// GetServerAddresses looks up server or mesh gateway addresses from the state store.
-func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
-	_, rawEntry, err := b.srv.fsm.State().ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
-	if err != nil {
-		return nil, fmt.Errorf("failed to read mesh config entry: %w", err)
-	}
+// GetLocalServerAddresses looks up server or mesh gateway addresses from the state store for a peer to dial.
+func (b *PeeringBackend) GetLocalServerAddresses() ([]string, error) {
+	store := b.srv.fsm.State()
 
-	meshConfig, ok := rawEntry.(*structs.MeshConfigEntry)
-	if ok && meshConfig.Peering != nil && meshConfig.Peering.PeerThroughMeshGateways {
-		return meshGatewayAdresses(b.srv.fsm.State())
+	useGateways, err := b.PeerThroughMeshGateways(nil)
+	if err != nil {
+		// For inbound traffic we prefer to fail fast if we can't determine whether we should peer through MGW.
+		// This prevents unexpectedly sharing local server addresses when a user only intended to peer through gateways.
+		return nil, fmt.Errorf("failed to determine if peering should happen through mesh gateways: %w", err)
 	}
-	return serverAddresses(b.srv.fsm.State())
+	if useGateways {
+		return meshGatewayAdresses(store, nil, true)
+	}
+	return serverAddresses(store)
 }
 
-func meshGatewayAdresses(state *state.Store) ([]string, error) {
-	_, nodes, err := state.ServiceDump(nil, structs.ServiceKindMeshGateway, true, acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword)
+// GetDialAddresses returns: the addresses to cycle through when dialing a peer's servers,
+// a boolean indicating whether mesh gateways are present, and an optional error.
+// The resulting ring buffer is front-loaded with the local mesh gateway addresses if they are present.
+func (b *PeeringBackend) GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, bool, error) {
+	newRing, err := b.fetchPeerServerAddresses(ws, peerID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to refresh peer server addresses, will continue to use initial addresses: %w", err)
+	}
+
+	gatewayRing, err := b.maybeFetchGatewayAddresses(ws)
+	if err != nil {
+		// If we couldn't fetch the mesh gateway addresses we fall back to dialing the remote server addresses.
+		logger.Warn("failed to refresh local gateway addresses, will attempt to dial peer directly: %w", "error", err)
+		return newRing, false, nil
+	}
+	if gatewayRing != nil {
+		// The ordering is important here. We always want to start with the mesh gateway
+		// addresses and fallback to the remote addresses, so we append the server addresses
+		// in newRing to gatewayRing.
+		newRing = gatewayRing.Link(newRing)
+	}
+	return newRing, gatewayRing != nil, nil
+}
+
+// fetchPeerServerAddresses will return a ring buffer with the latest peer server addresses.
+// If the peering is no longer active or does not have addresses, then we return an error.
+func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID string) (*ring.Ring, error) {
+	_, peering, err := b.Store().PeeringReadByID(ws, peerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch peer %q: %w", peerID, err)
+	}
+	if !peering.IsActive() {
+		return nil, fmt.Errorf("there is no active peering for %q", peerID)
+	}
+	return bufferFromAddresses(peering.PeerServerAddresses)
+}
+
+// maybeFetchGatewayAddresses will return a ring buffer with the latest gateway addresses if the
+// local datacenter is configured to peer through mesh gateways and there are local gateways registered.
+// If neither of these are true then we return a nil buffer.
+func (b *PeeringBackend) maybeFetchGatewayAddresses(ws memdb.WatchSet) (*ring.Ring, error) {
+	useGateways, err := b.PeerThroughMeshGateways(ws)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine if peering should happen through mesh gateways: %w", err)
+	}
+	if useGateways {
+		addresses, err := meshGatewayAdresses(b.srv.fsm.State(), ws, false)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching local mesh gateway addresses: %w", err)
+		}
+		return bufferFromAddresses(addresses)
+	}
+	return nil, nil
+}
+
+// PeerThroughMeshGateways determines if the config entry to enable peering control plane
+// traffic through a mesh gateway is set to enable.
+func (b *PeeringBackend) PeerThroughMeshGateways(ws memdb.WatchSet) (bool, error) {
+	_, rawEntry, err := b.srv.fsm.State().ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
+	if err != nil {
+		return false, fmt.Errorf("failed to read mesh config entry: %w", err)
+	}
+	mesh, ok := rawEntry.(*structs.MeshConfigEntry)
+	if rawEntry != nil && !ok {
+		return false, fmt.Errorf("got unexpected type for mesh config entry: %T", rawEntry)
+	}
+	return mesh.PeerThroughMeshGateways(), nil
+
+}
+
+func bufferFromAddresses(addresses []string) (*ring.Ring, error) {
+	// IMPORTANT: The address ring buffer must always be length > 0
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("no known addresses")
+	}
+	ring := ring.New(len(addresses))
+	for _, addr := range addresses {
+		ring.Value = addr
+		ring = ring.Next()
+	}
+	return ring, nil
+}
+
+func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]string, error) {
+	_, nodes, err := state.ServiceDump(ws, structs.ServiceKindMeshGateway, true, acl.DefaultEnterpriseMeta(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dump gateway addresses: %w", err)
 	}
 
 	var addrs []string
 	for _, node := range nodes {
-		_, addr, port := node.BestAddress(true)
+		_, addr, port := node.BestAddress(wan)
 		addrs = append(addrs, ipaddr.FormatAddressPort(addr, port))
 	}
 	if len(addrs) == 0 {
