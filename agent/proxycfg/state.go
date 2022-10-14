@@ -317,7 +317,10 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			// This runs in another goroutine so we can't just do the send
 			// directly here as access to snap is racy. Instead, signal the main
 			// loop above.
-			sendCh <- struct{}{}
+			select {
+			case sendCh <- struct{}{}:
+			case <-ctx.Done():
+			}
 		})
 	}
 
