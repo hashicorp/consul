@@ -894,8 +894,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		}
 	})
 
-	// waiter will sleep for 101ms which is 1ms more than the DefaultQueryTime
-	require.NoError(t, s1.RegisterEndpoint("Long", &waiter{duration: 101 * time.Millisecond}))
+	require.NoError(t, s1.RegisterEndpoint("Long", &waiter{duration: 100 * time.Millisecond}))
 	require.NoError(t, s1.RegisterEndpoint("Short", &waiter{duration: 5 * time.Millisecond}))
 
 	t.Run("non-blocking query times out after RPCClientTimeout", func(t *testing.T) {
@@ -917,14 +916,14 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
-		// We use structs.KVSRequest, which does not implement pool.BlockableQuery
-		// and should have no timeouts defined.
-		require.NoError(t, c1.RPC("Long.Wait", &structs.KVSRequest{}, &out))
+		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+			},
+		}, &out))
 	})
 
 	t.Run("blocking query succeeds", func(t *testing.T) {
-		// Blocking requests have a longer timeout (100ms) so this should pass since we
-		// add the maximum jitter which should be 16ms
 		var out struct{}
 		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
 			QueryOptions: structs.QueryOptions{
