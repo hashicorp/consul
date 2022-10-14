@@ -4547,6 +4547,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
 			rt.SegmentLimit = 64
+			rt.XDSUpdateRateLimit = 250
 		},
 	})
 
@@ -6517,6 +6518,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		XDSUpdateRateLimit:               9526.2,
 		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}

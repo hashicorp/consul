@@ -36,6 +36,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -4153,6 +4154,28 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
 	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
 	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
+}
+
+func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` xds { update_max_per_second = 1000 }`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {

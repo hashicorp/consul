@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/time/rate"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -79,6 +80,8 @@ type state struct {
 	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
+
+	rateLimiter *rate.Limiter
 }
 
 // failed returns whether run exited because a data source is in an
@@ -148,7 +151,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig) (*state, error) {
+func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig, rateLimiter *rate.Limiter) (*state, error) {
 	// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 	// reasonable number of upstream watches to all deliver their initial
 	// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -176,6 +179,7 @@ func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token str
 		ch:              ch,
 		snapCh:          make(chan ConfigSnapshot, 1),
 		reqCh:           make(chan chan *ConfigSnapshot, 1),
+		rateLimiter:     rateLimiter,
 	}, nil
 }
 
@@ -303,6 +307,20 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 	sendCh := make(chan struct{})
 	var coalesceTimer *time.Timer
 
+	scheduleUpdate := func() {
+		// Wait for MAX(<rate limiter delay>, coalesceTimeout)
+		delay := s.rateLimiter.Reserve().Delay()
+		if delay < coalesceTimeout {
+			delay = coalesceTimeout
+		}
+		coalesceTimer = time.AfterFunc(delay, func() {
+			// This runs in another goroutine so we can't just do the send
+			// directly here as access to snap is racy. Instead, signal the main
+			// loop above.
+			sendCh <- struct{}{}
+		})
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -345,9 +363,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-					sendCh <- struct{}{}
-				})
+				scheduleUpdate()
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -375,15 +391,10 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 		// Check if snap is complete enough to be a valid config to deliver to a
 		// proxy yet.
 		if snap.Valid() {
-			// Don't send it right away, set a short timer that will wait for updates
-			// from any of the other cache values and deliver them all together.
 			if coalesceTimer == nil {
-				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-					// This runs in another goroutine so we can't just do the send
-					// directly here as access to snap is racy. Instead, signal the main
-					// loop above.
-					sendCh <- struct{}{}
-				})
+				// Don't send it right away, set a short timer that will wait for updates
+				// from any of the other cache values and deliver them all together.
+				scheduleUpdate()
 			}
 		}
 	}

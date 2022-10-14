@@ -237,6 +237,7 @@ type Config struct {
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs"`
+	XDS                              XDS                 `mapstructure:"xds"`
 
 	// DEPRECATED (ui-config) - moved to the ui_config stanza
 	UI *bool `mapstructure:"ui"`
@@ -908,4 +909,8 @@ type Peering struct {
 	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
 	// This always gets overridden in NonUserSource()
 	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
+}
+
+type XDS struct {
+	UpdateMaxPerSecond *float64 `mapstructure:"update_max_per_second"`
 }

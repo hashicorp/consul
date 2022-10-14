@@ -755,3 +755,6 @@ watches = [{
     key = "sl3Dffu7"
     args = ["dltjDJ2a", "flEa7C2d"]
 }]
+xds {
+  update_max_per_second = 9526.2
+}

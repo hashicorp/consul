@@ -683,6 +683,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		},
 		TLSConfigurator:       a.tlsConfigurator,
 		IntentionDefaultAllow: intentionDefaultAllow,
+		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
 	})
 	if err != nil {
 		return err
@@ -4132,6 +4133,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 			return err
 		}
 	}
+
+	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
 
 	return nil
 }
