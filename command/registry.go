@@ -100,6 +100,7 @@ import (
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
+	peerexport "github.com/hashicorp/consul/command/peering/export"
 	peergenerate "github.com/hashicorp/consul/command/peering/generate"
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
@@ -226,6 +227,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
 		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
 		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
+		entry{"peering export", func(ui cli.Ui) (cli.Command, error) { return peerexport.New(ui), nil }},
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
