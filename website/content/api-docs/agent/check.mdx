@@ -245,7 +245,7 @@ The check sends datagrams to the value specified at the interval specified in th
 If the datagram is sent successfully or a timeout is returned, the check is set to the `passing` state.
 The check is logged as `critical` if the datagram is sent unsuccessfully.
 
-- `OSService` `(string: "")` - Specifies an OS-level service to check. You can specify either `Windows Services` on Windows or `SystemD` services on Unix.
+- `OSService` `(string: "")` - Specifies the identifier of an OS-level service to check. You can specify either `Windows Services` on Windows or `SystemD` services on Unix.
 
 - `TTL` `(duration: 10s)` - Specifies this is a TTL check, and the TTL endpoint
   must be used periodically to update the state of the check. If the check is not
