@@ -60,7 +60,7 @@
                 {{/if}}
               </BlockSlot>
               <BlockSlot @name='content'>
-                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} />
+                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @dc={{route.params.dc}} />
                 <DataCollection
                   @type='node'
                   @sort={{sort.value}}

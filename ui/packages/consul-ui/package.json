@@ -158,7 +158,6 @@
     "ember-stargate": "^0.2.0",
     "ember-string-fns": "^1.4.0",
     "ember-test-selectors": "^5.0.0",
-    "ember-tracked-local-storage": "^1.1.1",
     "ember-truth-helpers": "^3.0.0",
     "eslint": "^7.17.0",
     "eslint-config-prettier": "^7.1.0",
