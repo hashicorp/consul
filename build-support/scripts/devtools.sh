@@ -21,6 +21,7 @@ Description:
 Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
+    -codegen                 Just install tools for codegen.
     -h | --help              Print this help text.
 EOF
 }
@@ -41,6 +42,10 @@ function main {
                 ;;
             -lint )
                 lint_install
+                return 0
+                ;;
+            -codegen )
+                codegen_install
                 return 0
                 ;;
             -h | --help )
@@ -135,10 +140,22 @@ function lint_install {
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
 }
 
+function codegen_install {
+    local deep_copy_version
+    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+
+    install_versioned_tool \
+        'deep-copy' \
+        'github.com/globusdigital/deep-copy' \
+        "${deep_copy_version}" \
+        'github.com/globusdigital/deep-copy'
+}
+
 function tools_install {
 
     lint_install
     proto_tools_install
+    codegen_install
 
     return 0
 }

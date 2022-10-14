@@ -263,6 +263,26 @@ jobs:
           name: "Protobuf Lint"
           command: make proto-lint
 
+  check-generated-deep-copy:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      # tput complains if this isn't set to something.
+      TERM: ansi
+    steps:
+      - checkout
+      - run:
+          name: Install deep-copy
+          command: make codegen-tools
+      - run:
+          command: make --always-make deep-copy
+      - run: |
+          if ! git diff --exit-code; then
+            echo "Generated code was not updated correctly"
+            exit 1
+          fi
+
   go-test-arm64:
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -1036,6 +1056,7 @@ workflows:
                 - /^docs\/.*/
                 - /^ui\/.*/
       - check-generated-protobuf: *filter-ignore-non-go-branches
+      - check-generated-deep-copy: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches

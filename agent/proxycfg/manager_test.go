@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -326,17 +325,14 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			dataSources.ConfigEntry.Set(meshConfigReq, &structs.ConfigEntryResponse{Entry: nil})
 			tt.setup(t, dataSources)
 
-			expectSnapCopy, err := tt.expectSnap.Clone()
-			require.NoError(t, err)
-
-			webProxyCopy, err := copystructure.Copy(webProxy)
-			require.NoError(t, err)
+			expectSnapCopy := tt.expectSnap.Clone()
+			webProxyCopy := webProxy.DeepCopy()
 
 			testManager_BasicLifecycle(t,
 				dataSources,
 				rootsReq, leafReq,
 				roots,
-				webProxyCopy.(*structs.NodeService),
+				webProxyCopy,
 				expectSnapCopy,
 			)
 		})

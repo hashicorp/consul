@@ -13,6 +13,7 @@ BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.3.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
+DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -320,6 +321,16 @@ lint-tools:
 .PHONY: proto-tools
 proto-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
+
+.PHONY: codegen-tools
+codegen-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
+
+.PHONY: deep-copy
+deep-copy:
+	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
+	@$(SHELL) $(CURDIR)/proto/pbpeering/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "

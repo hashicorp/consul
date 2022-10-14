@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -111,15 +110,8 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	if ns == nil {
 		return structs.ConnectProxyConfig{}, nil
 	}
-	// Copy the config map
-	proxyCfgRaw, err := copystructure.Copy(ns.Proxy)
-	if err != nil {
-		return structs.ConnectProxyConfig{}, err
-	}
-	proxyCfg, ok := proxyCfgRaw.(structs.ConnectProxyConfig)
-	if !ok {
-		return structs.ConnectProxyConfig{}, errors.New("failed to copy proxy config")
-	}
+
+	proxyCfg := *(&ns.Proxy).DeepCopy()
 
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
@@ -336,11 +328,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
+			snapCopy := snap.Clone()
 
 			select {
 			// Try to send
@@ -377,12 +365,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
-			replyCh <- snapCopy
+			replyCh <- snap.Clone()
 
 			// Skip rest of loop - there is nothing to send since nothing changed on
 			// this iteration
