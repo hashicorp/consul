@@ -270,7 +270,6 @@ type Event struct {
 	// Payload is the actual event content.
 	//
 	// Types that are assignable to Payload:
-	//
 	//	*Event_EndOfSnapshot
 	//	*Event_NewSnapshotToFollow
 	//	*Event_EventBatch
