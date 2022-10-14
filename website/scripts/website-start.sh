@@ -12,6 +12,13 @@ PRODUCT=consul
 # Preview mode, controls the UI rendered (either the product site or developer). Can be `io` or `developer`
 PREVIEW_MODE=developer
 
+# Get the git branch of the commit that triggered the deploy preview
+# This will power remote image assets in local and deploy previews
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# This is where content files live, relative to the website-preview dir. If omitted, "../content" will be used
+LOCAL_CONTENT_DIR=
+
 should_pull=true
 
 # Clone the dev-portal project, if needed
@@ -29,4 +36,8 @@ if [ "$should_pull" = true ]; then
 fi
 
 # Run the dev-portal content-repo start script
-REPO=$PRODUCT PREVIEW_MODE=$PREVIEW_MODE npm run start:local-preview
+REPO=$PRODUCT \
+PREVIEW_FROM_REPO=$PRODUCT \
+LOCAL_CONTENT_DIR=$LOCAL_CONTENT_DIR \
+CURRENT_GIT_BRANCH=$CURRENT_GIT_BRANCH \
+npm run start:local-preview
