@@ -134,8 +134,8 @@ type ConnPool struct {
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
 
-	// The default timeout for non-blocking queries.
-	ReadTimeout time.Duration
+	// The default timeout for client RPC requests.
+	ClientTimeout time.Duration
 
 	// MaxQueryTime is used for calculating timeouts on blocking queries.
 	MaxQueryTime time.Duration
@@ -591,7 +591,7 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 }
 
 // BlockableQuery represents a read query which can be blocking or non-blocking.
-// This interface is used to set an appropriate read timeout for rpc connections.
+// This interface is used to override the rpc_client_timeout for blocking queries.
 type BlockableQuery interface {
 	// BlockingTimeout returns duration > 0 if the query is blocking.
 	// Otherwise returns 0 for non-blocking queries.
@@ -611,16 +611,16 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	}
 
 	var deadline time.Time
-	if info, ok := args.(BlockableQuery); ok {
-		// Timeout here is calculated differently based on blocking vs non-blocking query.
-		timeout := info.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
-		if timeout <= 0 {
-			// must be non-blocking
-			timeout = p.ReadTimeout
+	timeout := p.ClientTimeout
+	if bq, ok := args.(BlockableQuery); ok {
+		blockingTimeout := bq.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
+		if blockingTimeout > 0 {
+			// override the default client timeout
+			timeout = blockingTimeout
 		}
-		if timeout > 0 {
-			deadline = time.Now().Add(timeout)
-		}
+	}
+	if timeout > 0 {
+		deadline = time.Now().Add(timeout)
 	}
 	if err := sc.stream.SetReadDeadline(deadline); err != nil {
 		return fmt.Errorf("rpc error setting read deadline: %w", err)

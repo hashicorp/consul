@@ -1031,7 +1031,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                       rpcBindAddr,
 		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCReadTimeout:                    b.durationVal("limits.rpc_read_timeout", c.Limits.RPCReadTimeout),
+		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),

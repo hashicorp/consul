@@ -264,7 +264,7 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RPCReadTimeout": "0s",
+    "RPCClientTimeout": "0s",
     "RaftBoltDBConfig": {
         "NoFreelistSync": false
     },

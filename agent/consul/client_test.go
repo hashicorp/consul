@@ -530,7 +530,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		MaxStreams:       4,
 		TLSConfigurator:  tls,
 		Datacenter:       c.Datacenter,
-		ReadTimeout:      c.RPCReadTimeout,
+		ClientTimeout:    c.RPCClientTimeout,
 		DefaultQueryTime: c.DefaultQueryTime,
 		MaxQueryTime:     c.MaxQueryTime,
 	}
@@ -881,7 +881,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 	_, c1 := testClientWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.NodeName = uniqueNodeName(t.Name())
-		c.RPCReadTimeout = 10 * time.Millisecond
+		c.RPCClientTimeout = 10 * time.Millisecond
 		c.DefaultQueryTime = 100 * time.Millisecond
 		c.MaxQueryTime = 200 * time.Millisecond
 	})
@@ -898,8 +898,8 @@ func TestClient_RPC_Timeout(t *testing.T) {
 	require.NoError(t, s1.RegisterEndpoint("Long", &waiter{duration: 101 * time.Millisecond}))
 	require.NoError(t, s1.RegisterEndpoint("Short", &waiter{duration: 5 * time.Millisecond}))
 
-	t.Run("non-blocking query times out after RPCReadTimeout", func(t *testing.T) {
-		// Requests with QueryOptions have a default timeout of RPCReadTimeout (10ms)
+	t.Run("non-blocking query times out after RPCClientTimeout", func(t *testing.T) {
+		// Requests with QueryOptions have a default timeout of RPCClientTimeout (10ms)
 		// so we expect the RPC call to timeout.
 		var out struct{}
 		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)

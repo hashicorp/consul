@@ -907,17 +907,17 @@ type RuntimeConfig struct {
 	// hcl: performance { rpc_hold_timeout = "duration" }
 	RPCHoldTimeout time.Duration
 
-	// RPCReadTimeout limits how long a client is allowed to read from an RPC
-	// connection. This is used to set an upper bound for non-blocking queries to
-	// eventually terminate so that RPC connections are not held indefinitely.
+	// RPCClientTimeout limits how long a client is allowed to read from an RPC
+	// connection. This is used to set an upper bound for requests to eventually
+	// terminate so that RPC connections are not held indefinitely.
 	// It may be set to 0 explicitly to disable the timeout but this should never
 	// be used in production. Default is 10 minutes.
 	//
 	// Note: Blocking queries use MaxQueryTime and DefaultQueryTime to calculate
 	// timeouts.
 	//
-	// hcl: limits { rpc_read_timeout = "duration" }
-	RPCReadTimeout time.Duration
+	// hcl: limits { rpc_client_timeout = "duration" }
+	RPCClientTimeout time.Duration
 
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
