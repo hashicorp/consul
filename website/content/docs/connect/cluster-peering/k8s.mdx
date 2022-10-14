@@ -177,9 +177,9 @@ Peers identify each other using the `metadata.name` values you establish when cr
 
 The examples described in this section demonstrate how to export a service named `backend`. You should change instances of `backend` in the example code to the name of the service you want to export.
 
-1. For the service in `cluster-02` that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels) to your service's pods. 
+1. For the service in `cluster-02` that you want to export, add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods prior to deploying. The annotation allows the workload to join the mesh. It is highlighted in the following example: 
 
-    <CodeBlockConfig filename="backend.yaml">
+    <CodeBlockConfig filename="backend.yaml" highlight="37">
 
     ```yaml
     # Service to expose backend
@@ -290,9 +290,9 @@ The examples described in this section demonstrate how to export a service named
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yml
     ```
 
-1. For the services in `cluster-01` that you want to access `backend`, add the following annotations to the service file. To dial the upstream service from an application, ensure that the requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). 
+1. Add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods before deploying the workload so that the services in `cluster-01` can dial `backend` in `cluster-02`. To dial the upstream service from an application, configure the application so that that requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). In the following example, the annotation that allows the workload to join the mesh and the configuration provided to the workload that enables the workload to dial the upstream service using the correct DNS name is highlighted. 
 
-    <CodeBlockConfig filename="frontend.yaml">
+    <CodeBlockConfig filename="frontend.yaml" highlight="34">
 
     ```yaml
     # Service to expose frontend
