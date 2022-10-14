@@ -308,9 +308,12 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 	var coalesceTimer *time.Timer
 
 	scheduleUpdate := func() {
-		r := s.rateLimiter.Reserve()
-
-		coalesceTimer = time.AfterFunc(coalesceTimeout+r.Delay(), func() {
+		// Wait for MAX(<rate limiter delay>, coalesceTimeout)
+		delay := s.rateLimiter.Reserve().Delay()
+		if delay < coalesceTimeout {
+			delay = coalesceTimeout
+		}
+		coalesceTimer = time.AfterFunc(delay, func() {
 			// This runs in another goroutine so we can't just do the send
 			// directly here as access to snap is racy. Instead, signal the main
 			// loop above.
