@@ -89,14 +89,16 @@ module('Integration | Component | consul node agentless-notice', function (hooks
       },
     ]);
 
-    window.localStorage.setItem('consul-nodes-agentless-notice-dismissed-dc2', 'true');
+    window.localStorage.setItem('consul-nodes-agentless-notice-dismissed-partition', 'true');
 
     await render(
-      hbs`<Consul::Node::AgentlessNotice @items={{this.nodes}} @filteredItems={{this.filteredNodes}} @dc="dc2" />`
+      hbs`<Consul::Node::AgentlessNotice @items={{this.nodes}} @filteredItems={{this.filteredNodes}} @postfix="partition" />`
     );
 
     assert.true(
-      window.localStorage.getItem.calledOnceWith('consul-nodes-agentless-notice-dismissed-dc2')
+      window.localStorage.getItem.calledOnceWith(
+        'consul-nodes-agentless-notice-dismissed-partition'
+      )
     );
 
     assert

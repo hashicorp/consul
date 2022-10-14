@@ -11,8 +11,8 @@ export default class AgentlessNotice extends Component {
   constructor(owner, args) {
     super(owner, args);
 
-    if (this.args.dc) {
-      this.storageKey = `consul-nodes-agentless-notice-dismissed-${this.args.dc}`;
+    if (this.args.postfix) {
+      this.storageKey = `consul-nodes-agentless-notice-dismissed-${this.args.postfix}`;
     }
 
     if (window.localStorage.getItem(this.storageKey) === DISMISSED_VALUE) {
