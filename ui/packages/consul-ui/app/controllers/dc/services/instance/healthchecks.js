@@ -9,8 +9,6 @@ export default class HealthChecksController extends Controller {
 
   @action
   syntheticNodeHealthCheckFilter(item, healthcheck, index, list) {
-    console.log('List to be filtered: ', list);
-    console.log(healthcheck.Kind);
     return !(item.Node.Meta?.['synthetic-node'] && healthcheck?.Kind === 'node');
   }
 }
