@@ -53,7 +53,7 @@ type BaseDeps struct {
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
@@ -63,9 +63,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
-	d.Logger, err = logging.Setup(logConf, logOut)
-	if err != nil {
-		return d, err
+
+	if providedLogger != nil {
+		d.Logger = providedLogger
+	} else {
+		d.Logger, err = logging.Setup(logConf, logOut)
+		if err != nil {
+			return d, err
+		}
 	}
 
 	grpcLogInitOnce.Do(func() {
