@@ -281,7 +281,9 @@ This endpoint returns the configuration and member information of the local
 agent. The `Config` element contains a subset of the configuration and its
 format will not change in a backwards incompatible way between releases.
 `DebugConfig` contains the full runtime configuration but its format is subject
-to change without notice or deprecation.
+to change without notice or deprecation. 
+
+~> This endpoint will not reflect [reloaded](/docs/agent/config#reloadable-configuration) configuration values.
 
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
