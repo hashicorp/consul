@@ -1712,7 +1712,7 @@ func TestStateStore_ExportedServicesForAllPeersByName(t *testing.T) {
 	ws := memdb.NewWatchSet()
 	testutil.RunStep(t, "no exported services", func(t *testing.T) {
 		expect := map[string]structs.ServiceList{}
-		idx, got, err := s.ExportedServicesForAllPeersByName(ws, *defaultEntMeta)
+		idx, got, err := s.ExportedServicesForAllPeersByName(ws, "dc1", *defaultEntMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -1754,7 +1754,7 @@ func TestStateStore_ExportedServicesForAllPeersByName(t *testing.T) {
 				structs.NewServiceName("mongo", defaultEntMeta),
 			},
 		}
-		idx, got, err := s.ExportedServicesForAllPeersByName(nil, *defaultEntMeta)
+		idx, got, err := s.ExportedServicesForAllPeersByName(nil, "dc1", *defaultEntMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
