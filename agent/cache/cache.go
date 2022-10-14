@@ -672,9 +672,7 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 			return // Check if cache was stopped
 		}
 
-		// Trigger. The "allowNew" field is false because in the time we were
-		// waiting to refresh we may have expired and got evicted. If that
-		// happened, we don't want to create a new entry.
+		// Trigger.
 		r.Info.MustRevalidate = false
 		r.Info.MinIndex = 0
 
