@@ -407,49 +407,41 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "ingress-with-service-max-connections",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.Listeners[0].Services[0].MaxConnections = 4096
-					}, nil)
+			name:   "ingress-with-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				key := proxycfg.IngressListenerKey{
+					Protocol: "tcp",
+					Port:     9191,
+				}
+				snap.IngressGateway.Listeners[key].Services[0].MaxConnections = 4096
 			},
 		},
 		{
-			name: "ingress-with-defaults-service-max-connections",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.Defaults = &structs.IngressServiceConfig{
-							MaxConnections:        2048,
-							MaxPendingRequests:    512,
-							MaxConcurrentRequests: 4096,
-						}
-					}, nil)
+			name:   "ingress-with-defaults-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Defaults = structs.IngressServiceConfig{
+					MaxConnections:        2048,
+					MaxPendingRequests:    512,
+					MaxConcurrentRequests: 4096,
+				}
 			},
 		},
 		{
-			name: "ingress-with-overwrite-defaults-service-max-connections",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.Defaults = &structs.IngressServiceConfig{
-							MaxConnections:     2048,
-							MaxPendingRequests: 512,
-						}
-						entry.Listeners[0].Services[0].MaxConnections = 4096
-						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
-					}, nil)
-			},
-		},
-		{
-			name: "ingress-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"external-sni", nil, nil, nil)
+			name:   "ingress-with-overwrite-defaults-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Defaults = structs.IngressServiceConfig{
+					MaxConnections:     2048,
+					MaxPendingRequests: 512,
+				}
+				key := proxycfg.IngressListenerKey{
+					Protocol: "tcp",
+					Port:     9191,
+				}
+				snap.IngressGateway.Listeners[key].Services[0].MaxConnections = 4096
+				snap.IngressGateway.Listeners[key].Services[0].MaxPendingRequests = 2048
 			},
 		},
 		{
