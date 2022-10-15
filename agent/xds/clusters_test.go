@@ -407,6 +407,17 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				snap := proxycfg.TestConfigSnapshotMeshGateway(t)
+				snap.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 120
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 60
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 7
+				return snap
+			},
+		},
+		{
 			name:   "ingress-with-service-max-connections",
 			create: proxycfg.TestConfigSnapshotIngress,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
@@ -785,6 +796,18 @@ func TestClustersFromSnapshot(t *testing.T) {
 				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
 					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
+			},
+		},
+		{
+			name: "terminating-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				snap := proxycfg.TestConfigSnapshotTerminatingGateway(t)
+				snap.Proxy.Config = map[string]interface{}{}
+				snap.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 133
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 27
+				snap.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 5
+				return snap
 			},
 		},
 		{
