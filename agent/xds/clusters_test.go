@@ -407,6 +407,44 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "ingress-with-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				key := proxycfg.IngressListenerKey{
+					Protocol: "tcp",
+					Port:     9191,
+				}
+				snap.IngressGateway.Listeners[key].Services[0].MaxConnections = 4096
+			},
+		},
+		{
+			name:   "ingress-with-defaults-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Defaults = structs.IngressServiceConfig{
+					MaxConnections:        2048,
+					MaxPendingRequests:    512,
+					MaxConcurrentRequests: 4096,
+				}
+			},
+		},
+		{
+			name:   "ingress-with-overwrite-defaults-service-max-connections",
+			create: proxycfg.TestConfigSnapshotIngress,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Defaults = structs.IngressServiceConfig{
+					MaxConnections:     2048,
+					MaxPendingRequests: 512,
+				}
+				key := proxycfg.IngressListenerKey{
+					Protocol: "tcp",
+					Port:     9191,
+				}
+				snap.IngressGateway.Listeners[key].Services[0].MaxConnections = 4096
+				snap.IngressGateway.Listeners[key].Services[0].MaxPendingRequests = 2048
+			},
+		},
+		{
 			name:   "ingress-gateway",
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup:  nil,
