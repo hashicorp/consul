@@ -2659,6 +2659,9 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 
 	// Remove service immediately
 	if err := a.State.RemoveServiceWithChecks(serviceID, checkIDs); err != nil {
+		if isServiceDoesNotExistErr(err) {
+			return nil
+		}
 		a.logger.Warn("Failed to deregister service",
 			"service", serviceID.String(),
 			"error", err,
@@ -4474,4 +4477,13 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func isServiceDoesNotExistErr(err error) bool {
+	switch err.(type) {
+	case *local.ServiceDoesNotExistErr:
+		return true
+	default:
+		return false
+	}
 }

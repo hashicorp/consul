@@ -50,6 +50,24 @@ var StateCounters = []prometheus.CounterDefinition{
 
 const fullSyncReadMaxStale = 2 * time.Second
 
+// ServiceDoesNotExistErr is a sentinel error returned when we attempt to delete a service instance but
+// it doesn't exist.
+type ServiceDoesNotExistErr struct {
+	ID structs.ServiceID
+}
+
+// Error returns the error string.
+func (u ServiceDoesNotExistErr) Error() string {
+	// Take care if modifying this error message.
+	// deleteService assumes the Catalog.Deregister RPC call will include "Unknown service"
+	// in the error if deregistration fails due to a service with that ID not existing.
+
+	// When the service register endpoint is called, this error message is also typically
+	// shadowed by vetServiceUpdateWithAuthorizer, which checks for the existence of the
+	// service and, if none is found, returns an error before this function is ever called.
+	return fmt.Sprintf("Unknown service ID %q. Ensure that the service ID is passed, not the service name.", u.ID)
+}
+
 // Config is the configuration for the State.
 type Config struct {
 	AdvertiseAddr       string
@@ -328,14 +346,7 @@ func (l *State) RemoveServiceWithChecks(serviceID structs.ServiceID, checkIDs []
 func (l *State) removeServiceLocked(id structs.ServiceID) error {
 	s := l.services[id]
 	if s == nil || s.Deleted {
-		// Take care if modifying this error message.
-		// deleteService assumes the Catalog.Deregister RPC call will include "Unknown service"
-		// in the error if deregistration fails due to a service with that ID not existing.
-
-		// When the service register endpoint is called, this error message is also typically
-		// shadowed by vetServiceUpdateWithAuthorizer, which checks for the existence of the
-		// service and, if none is found, returns an error before this function is ever called.
-		return fmt.Errorf("Unknown service ID %q. Ensure that the service ID is passed, not the service name.", id)
+		return &ServiceDoesNotExistErr{ID: id}
 	}
 
 	// To remove the service on the server we need the token.
