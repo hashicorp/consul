@@ -149,7 +149,9 @@ dev: dev-build
 dev-build:
 	mkdir -p bin
 	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
-	cp -f ${MAIN_GOPATH}/bin/consul ./bin/consul
+	# rm needed due to signature caching (https://apple.stackexchange.com/a/428388)
+	rm -f ./bin/consul
+	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
