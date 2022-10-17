@@ -143,6 +143,12 @@ Usage: `consul snapshot agent [options]`
     "key_file": "",
     "license_path": "",
     "tls_server_name": "",
+    "login": {
+      "auth_method": "",
+      "bearer_token": "",
+      "bearer_token_file": "",
+      "meta": {},
+    },
     "log": {
       "level": "INFO",
       "enable_syslog": false,
@@ -238,6 +244,16 @@ if desired.
 - `-syslog-facility` - Sets the facility to use for forwarding logs to syslog.
   Defaults to "LOCAL0".
 
+- `login-auth-method` - Auth method name to use to log into Consul. If provided, the token obtained with this auth method
+   will be used instead of a static token if it is provided. Currently, only `kubernetes` auth method type is supported.
+
+- `login-bearer-token` - Bearer token to use to log into Consul. Used only if `-login-auth-method` is set.
+
+- `login-bearer-token-file` - A file container bearer token to use for logging into Consul.
+  `-login-bearer-token` is ignored if this flag is provided.
+
+- `login-meta` - Metadata to set on the token, formatted as key=value. This flag may be provided multiple times.
+
 #### Local Storage Options
 
 - `-local-path` - Location to store snapshots locally. The default behavior
@@ -277,7 +293,7 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
 
 - `-aws-s3-force-path-style` - Enables the use of legacy path-based addressing instead of virtual addressing. This flag is required by minio
-  and other 3rd party S3 compatible object storage platforms where DNS or TLS requirements for virtual addressing are prohibitive. 
+  and other 3rd party S3 compatible object storage platforms where DNS or TLS requirements for virtual addressing are prohibitive.
 For more information, refer to the AWS documentation on [Methods for accessing a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html)
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
@@ -394,6 +410,6 @@ then the order of precedence is as follows:
 2. `CONSUL_LICENSE_PATH` variable
 3. `license_path` configuration.
 
-The ability to load licenses from the configuration or environment was added in v1.10.0, 
-v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for 
+The ability to load licenses from the configuration or environment was added in v1.10.0,
+v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for
 more information about Consul Enterprise license management.

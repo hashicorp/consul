@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -30,7 +31,7 @@ func NewJitter(percent int64) Jitter {
 }
 
 // Waiter records the number of failures and performs exponential backoff when
-// when there are consecutive failures.
+// there are consecutive failures.
 type Waiter struct {
 	// MinFailures before exponential backoff starts. Any failures before
 	// MinFailures is reached will wait MinWait time.
@@ -116,4 +117,24 @@ func (w *Waiter) Wait(ctx context.Context) error {
 // it will be before the next attempt is made.
 func (w *Waiter) NextWait() time.Duration {
 	return w.delay()
+}
+
+// RetryLoop retries an operation until either operation completes without error
+// or Waiter's context is canceled.
+func (w *Waiter) RetryLoop(ctx context.Context, operation func() error) error {
+	var lastError error
+	for {
+		if err := w.Wait(ctx); err != nil {
+			// The error will only be non-nil if the context is canceled.
+			return fmt.Errorf("could not retry operation: %w", lastError)
+		}
+
+		if err := operation(); err == nil {
+			// Reset the failure count seen by the waiter if there was no error.
+			w.Reset()
+			return nil
+		} else {
+			lastError = err
+		}
+	}
 }
