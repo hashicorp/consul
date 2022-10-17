@@ -420,23 +420,23 @@ To end a peering connection, delete both the `PeeringAcceptor` and `PeeringDiale
 
 1. Confirm that you deleted your peering connection in `cluster-01` by querying the the `/health` HTTP endpoint. The peered services should no longer appear.
 
-  1. Exec into the server pod for the first cluster. 
+    1. Exec into the server pod for the first cluster. 
   
-    ```shell-session
-    $ kubectl exec -it consul-server-0 -- /bin/sh
-    ```
+      ```shell-session
+      $ kubectl exec -it consul-server-0 -- /bin/sh
+      ```
   
-  1. Export an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned. 
+    1. Export an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned. 
   
-    ```shell-session
-    $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN> 
-    ```
+      ```shell-session
+      $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN> 
+      ```
   
-  1. Query the the `/health` HTTP endpoint. The peered services should no longer appear.
+    1. Query the the `/health` HTTP endpoint. The peered services should no longer appear.
  
-   ```shell-session
-    $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
-    ```
+     ```shell-session
+      $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+      ```
 
 ## Recreate or reset a peering connection
 
