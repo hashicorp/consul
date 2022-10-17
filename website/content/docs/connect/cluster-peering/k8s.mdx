@@ -418,7 +418,7 @@ To end a peering connection, delete both the `PeeringAcceptor` and `PeeringDiale
   $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
   ````
 
-1. Confirm that you deleted your peering connection, in `cluster-01`, by querying the the `/health` HTTP endpoint. The peered services should no longer appear.
+1. Confirm that you deleted your peering connection in `cluster-01` by querying the the `/health` HTTP endpoint. The peered services should no longer appear.
 
 
   Exec into the server pod for the first cluster. 
