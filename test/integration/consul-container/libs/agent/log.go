@@ -1,4 +1,4 @@
-package node
+package agent
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-type NodeLogConsumer struct {
+type LogConsumer struct {
 	Prefix string
 }
 
-var _ testcontainers.LogConsumer = (*NodeLogConsumer)(nil)
+var _ testcontainers.LogConsumer = (*LogConsumer)(nil)
 
-func (c *NodeLogConsumer) Accept(log testcontainers.Log) {
+func (c *LogConsumer) Accept(log testcontainers.Log) {
 	switch log.LogType {
 	case "STDOUT":
 		fmt.Fprint(os.Stdout, c.Prefix+" ~~ "+string(log.Content))

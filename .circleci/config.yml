@@ -869,7 +869,7 @@ jobs:
             # tput complains if this isn't set to something.
             TERM: ansi
       - store_artifacts:
-          path: ./test/integration/consul-container/upgrade/workdir/logs
+          path: ./test/integration/consul-container/test/upgrade/workdir/logs
           destination: container-logs
       - store_test_results:
           path: *TEST_RESULTS_DIR
