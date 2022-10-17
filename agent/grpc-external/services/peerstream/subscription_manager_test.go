@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/types"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -843,11 +844,13 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	return backend
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {
 	b.lastIdx++
 	return b.lastIdx, setupTestPeering(t, b.store, name, b.lastIdx)
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) uint64 {
 	require.NoError(t, entry.Normalize())
 	require.NoError(t, entry.Validate())
@@ -863,24 +866,28 @@ func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name str
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureNode(b.lastIdx, node))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureService(b.lastIdx, node, svc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureCheck(b.lastIdx, hc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.DeleteService(b.lastIdx, nodeName, serviceID, nil, ""))

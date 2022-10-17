@@ -1235,7 +1235,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			}
 		}
 
-		err := s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
+		err := s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 		}
@@ -1330,7 +1330,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 	}
 
-	err = s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
+	err = s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
@@ -1340,7 +1340,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 // finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
 // This include L4 authorization filters and TLS context.
-func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, proxyCfg ProxyConfig, useHTTPFilter bool) error {
+func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
 	if !useHTTPFilter {
 		// Best-effort injection of L4 intentions
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {

@@ -7,7 +7,7 @@ SHELL = bash
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.46.2'
+GOLANGCI_LINT_VERSION='v1.50.1'
 MOCKERY_VERSION='v2.12.2'
 BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"

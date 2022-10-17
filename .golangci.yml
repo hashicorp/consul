@@ -23,10 +23,10 @@ issues:
       text: 'SA9004:'
 
     - linters: [staticcheck]
-      text: 'SA1019: Package github.com/golang/protobuf/jsonpb is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/jsonpb" is deprecated: Use the "google.golang.org/protobuf/encoding/protojson" package instead.'
 
     - linters: [staticcheck]
-      text: 'SA1019: Package github.com/golang/protobuf/proto is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/proto" is deprecated: Use the "google.golang.org/protobuf/proto" package instead.'
 
     - linters: [staticcheck]
       text: 'SA1019: ptypes.MarshalAny is deprecated'
@@ -35,7 +35,7 @@ issues:
       text: 'SA1019: ptypes.UnmarshalAny is deprecated'
 
     - linters: [staticcheck]
-      text: 'SA1019: package github.com/golang/protobuf/ptypes is deprecated'  
+      text: 'SA1019: "github.com/golang/protobuf/ptypes" is deprecated: Well-known types have specialized functionality directly injected into the generated packages for each message type. See the deprecation notice for each function for the suggested alternative.'
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
@@ -67,6 +67,14 @@ issues:
       path: '(_oss.go|_oss_test.go|_ent.go|_ent_test.go)'
 
 linters-settings:
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+      - nilness
+      - shadow
+      - unusedwrite
   gofmt:
     simplify: true
   forbidigo:

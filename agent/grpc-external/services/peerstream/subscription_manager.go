@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -142,7 +143,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
 		}
 
 		err := pending.Add(
@@ -254,7 +255,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
 			for chainName, info := range state.connectServices {
-				m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+				m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 			}
 		}
 
@@ -475,7 +476,6 @@ func (m *subscriptionManager) syncNormalServices(
 }
 
 func (m *subscriptionManager) syncDiscoveryChains(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
@@ -488,7 +488,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 		state.connectServices[chainName] = info
 
-		m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -516,7 +516,6 @@ func (m *subscriptionManager) syncDiscoveryChains(
 }
 
 func (m *subscriptionManager) collectPendingEventForDiscoveryChain(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
@@ -786,7 +785,7 @@ func (m *subscriptionManager) notifyMeshConfigUpdates(ctx context.Context) <-cha
 	const meshConfigWatch = "mesh-config-entry"
 
 	notifyCh := make(chan cache.UpdateEvent, 1)
-	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(ctx_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
+	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		_, rawEntry, err := store.ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get mesh config entry: %w", err)
