@@ -359,7 +359,7 @@ The examples described in this section demonstrate how to export a service named
 1. Apply the service file to the first cluster.
 
     ```shell-session
-    $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
+    $ kubectl --context $CLUSTER1_CONTEXT apply --filename frontend.yaml
     ```
 
 1. Run the following command in `frontend` and then check the output to confirm that you peered your clusters successfully.
