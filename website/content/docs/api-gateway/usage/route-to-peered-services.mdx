@@ -5,14 +5,35 @@ Description: Learn how to configure Consul API Gateway to route traffic to servi
 
 # Route Traffic to Peered Services
 
-This topic describes how to configure Consul API Gateway to route traffic to services connected to the mesh through a peering connection
+This topic describes how to configure Consul API Gateway to route traffic to services connected to the mesh through a peering connection.
 
 ## Requirements
 
 1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
 1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
+1. Verify that a peering connection has been established between Consul clusters and that at least one service has been exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s) for details.
 
 ## Configuration
 
+Configure the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/docs/api-gateway/configuration/mesh) for details about the parameters.
+
+* [`name`](/docs/api-gateway/configuration/meshservice#name)
+* [`peer`](/docs/api-gateway/configuration/meshservice#peer)
 
 ## Example
+
+In the following example, routes using the example-mesh-service as a backend will send requests to the `echo` service exported by the peered Consul cluster, `dc2`.
+
+<CodeBlockConfig filename="meshservice.yaml">
+
+```yaml hideClipboard
+apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
+kind: MeshService
+metadata:
+  name: example-mesh-service
+  ##...
+spec:
+  name: echo
+  peer: dc2
+```
+</CodeBlockConfig>
