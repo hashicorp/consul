@@ -946,6 +946,7 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
+//nolint:unparam
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,

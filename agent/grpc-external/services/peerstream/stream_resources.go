@@ -658,7 +658,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					continue
 				}
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(status, update)
+				resp, err = makeServiceResponse(update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)
