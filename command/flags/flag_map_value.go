@@ -35,3 +35,15 @@ func (h *FlagMapValue) Set(value string) error {
 
 	return nil
 }
+
+// Merge will overlay this value if it has been set.
+func (h *FlagMapValue) Merge(onto map[string]string) {
+	if h == nil || onto == nil {
+		return
+	}
+	for k, v := range *h {
+		if _, ok := onto[k]; !ok {
+			onto[k] = v
+		}
+	}
+}
