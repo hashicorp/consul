@@ -619,6 +619,7 @@ type RPCConfig struct {
 // ReloadableConfig is the configuration that is passed to ReloadConfig when
 // application config is reloaded.
 type ReloadableConfig struct {
+	RPCClientTimeout      time.Duration
 	RPCRateLimit          rate.Limit
 	RPCMaxBurst           int
 	RPCMaxConnsPerClient  int

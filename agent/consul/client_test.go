@@ -530,11 +530,10 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		MaxStreams:       4,
 		TLSConfigurator:  tls,
 		Datacenter:       c.Datacenter,
-		ClientTimeout:    c.RPCClientTimeout,
 		DefaultQueryTime: c.DefaultQueryTime,
 		MaxQueryTime:     c.MaxQueryTime,
 	}
-
+	connPool.SetRPCClientTimeout(c.RPCClientTimeout)
 	return Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,

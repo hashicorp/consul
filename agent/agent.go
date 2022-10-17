@@ -4099,6 +4099,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
+		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,
 		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,

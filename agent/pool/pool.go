@@ -127,15 +127,17 @@ func (c *Conn) markForUse() {
 // streams allowed. If TLS settings are provided outgoing connections
 // use TLS.
 type ConnPool struct {
+	// The default timeout for client RPC requests in milliseconds.
+	// Stored as an atomic uint32 value to allow for reloading.
+	// TODO: once we move to go1.19, change to atomic.Uint32.
+	clientTimeout *uint32
+
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
 
 	// Logger passed to yamux
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
-
-	// The default timeout for client RPC requests.
-	ClientTimeout time.Duration
 
 	// MaxQueryTime is used for calculating timeouts on blocking queries.
 	MaxQueryTime time.Duration
@@ -387,6 +389,26 @@ func (p *ConnPool) dial(
 	return conn, hc, nil
 }
 
+func (p *ConnPool) RPCClientTimeout() time.Duration {
+	// Since clientTimeout represents uint32 milliseconds,
+	// convert to int64 first then multiply by 1000 to
+	// match time.Duration's nanoseconds.
+	return time.Duration(int64(atomic.LoadUint32(p.clientTimeout) * 1000))
+}
+
+func (p *ConnPool) SetRPCClientTimeout(timeout time.Duration) {
+	if timeout/1000 > time.Duration(^uint32(0)) {
+		// clientTimeout should never be configured so high
+		// but if it would cause overflow, set timeout to 0
+		// instead since it effectively disables timeout.
+		atomic.StoreUint32(p.clientTimeout, uint32(0))
+	} else {
+		// Since time.Duration is in nanoseconds we divide
+		// by 1000 and truncate to milliseconds.
+		atomic.StoreUint32(p.clientTimeout, uint32(timeout/1000))
+	}
+}
+
 // DialRPCViaMeshGateway dials the destination node and sets up the connection
 // to be the correct RPC type using ALPN. This currently is exclusively used to
 // dial other servers in foreign datacenters via mesh gateways.
@@ -610,11 +632,8 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
-	// TODO: We could make this reloadable by extracting the deadline calculation
-	//       to be done in (*Client).RPC. There are some other code paths that would
-	//       need to be modified (auto-config).
 	var deadline time.Time
-	timeout := p.ClientTimeout
+	timeout := p.RPCClientTimeout()
 	if bq, ok := args.(BlockableQuery); ok {
 		blockingTimeout := bq.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
 		if blockingTimeout > 0 {

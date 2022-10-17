@@ -181,10 +181,10 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
-		ClientTimeout:    config.RPCClientTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
+	pool.SetRPCClientTimeout(config.RPCClientTimeout)
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute
 		pool.MaxStreams = 64
