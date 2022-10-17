@@ -35,5 +35,8 @@ Specifies the name of the service in the Consul service mesh to send traffic to.
 
 ### peer
 Specifies the name of the Consul peer exporting the service. If not specified, the service is assumed to be in the local datacenter.
+
+Note that a [ServiceResolver](/docs/connect/config-entries/service-resolver) is also required for the referenced Consul service indicating what peer the service is exported by.
+
 * Type: string
 * Required: optional
