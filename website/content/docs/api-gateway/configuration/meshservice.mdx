@@ -11,7 +11,7 @@ This topic provides full details about the `MeshService` resource.
 
 ## Introduction
 
-A `MeshService` is a resource in the Kubernetes cluster that enables Kubernetes configuration models, such as `HTTPRoute` and `TCPRoute`, to reference services that only exist in Consul. A `MeshService` represents a service in the Consul service mesh outside the Kubernetes cluster where Consul API Gateway is deployed. The service represented by the `MeshService` resource must be in the same Consul datacenter as the Kubernetes cluster.  
+A `MeshService` is a resource in the Kubernetes cluster that enables Kubernetes configuration models, such as `HTTPRoute` and `TCPRoute`, to reference services that only exist in Consul. A `MeshService` represents a service in the Consul service mesh outside the Kubernetes cluster where Consul API Gateway is deployed. The service represented by the `MeshService` resource must be in the same Consul datacenter as the Kubernetes cluster.
 
 
 ## Configuration Model
@@ -19,6 +19,7 @@ A `MeshService` is a resource in the Kubernetes cluster that enables Kubernetes 
 The following outline shows how to format the configurations in the `MeshService` object. Click on a property name to view details about the configuration.
 
 * [`name`](#name): string | required
+* [`peer`](#peer): string | optional
 
 
 ## Specification
@@ -29,3 +30,8 @@ This topic provides details about the configuration parameters.
 Specifies the name of the service in the Consul service mesh to send traffic to.
 * Type: string
 * Required: required
+
+### peer
+Specifies the name of the Consul peer exporting the service. If not specified, the service is assumed to be in the local datacenter.
+* Type: string
+* Required: optional
