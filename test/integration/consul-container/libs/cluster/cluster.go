@@ -5,14 +5,17 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/node"
-	"github.com/stretchr/testify/require"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -59,13 +62,37 @@ func (c *Cluster) AddNodes(nodes []node.Node) error {
 		joinAddr, _ = nodes[0].GetAddr()
 	}
 
-	for _, node := range nodes {
-		err := node.GetClient().Agent().Join(joinAddr, false)
+	for _, n := range nodes {
+		err := n.GetClient().Agent().Join(joinAddr, false)
 		if err != nil {
 			return err
 		}
-		c.Nodes = append(c.Nodes, node)
+		c.Nodes = append(c.Nodes, n)
 	}
+	return nil
+}
+
+// RemoveNode instructs the node to leave the cluster then removes it
+// from the cluster Node list.
+func (c *Cluster) RemoveNode(n node.Node) error {
+	err := n.GetClient().Agent().Leave()
+	if err != nil {
+		return err
+	}
+
+	foundIdx := -1
+	for idx, this := range c.Nodes {
+		if this == n {
+			foundIdx = idx
+			break
+		}
+	}
+
+	if foundIdx == -1 {
+		return fmt.Errorf("could not find node in cluster")
+	}
+
+	c.Nodes = append(c.Nodes[:foundIdx], c.Nodes[foundIdx+1:]...)
 	return nil
 }
 
@@ -101,6 +128,49 @@ func (c *Cluster) Leader() (node.Node, error) {
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
+}
+
+// Followers returns the cluster following servers.
+func (c *Cluster) Followers() ([]node.Node, error) {
+	var followers []node.Node
+
+	leader, err := c.Leader()
+	if err != nil {
+		return nil, fmt.Errorf("could not determine leader: %w", err)
+	}
+
+	for _, n := range c.Nodes {
+		info, err := n.GetClient().Agent().Self()
+		consulBuf := info["Stats"]["consul"].(map[string]interface{})
+		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("could not parse agent self response: %w", err)
+		}
+
+		if n != leader && isServer {
+			followers = append(followers, n)
+		}
+	}
+	return followers, nil
+}
+
+// Clients returns the handle to client agent nodes.
+func (c *Cluster) Clients() ([]node.Node, error) {
+	var clients []node.Node
+
+	for _, n := range c.Nodes {
+		info, err := n.GetClient().Agent().Self()
+		consulBuf := info["Stats"]["consul"].(map[string]interface{})
+		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("could not parse agent self response: %w", err)
+		}
+
+		if !isServer {
+			clients = append(clients, n)
+		}
+	}
+	return clients, nil
 }
 
 func newSerfEncryptionKey() (string, error) {
@@ -157,7 +227,13 @@ func waitForLeaderFromClient(t *testing.T, client *api.Client) {
 func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 	retry.RunWith(LongFailer(), t, func(r *retry.R) {
 		members, err := client.Agent().Members(false)
+		var activeMembers int
+		for _, member := range members {
+			if serf.MemberStatus(member.Status) == serf.StatusAlive {
+				activeMembers++
+			}
+		}
 		require.NoError(r, err)
-		require.Len(r, members, expectN)
+		require.Equal(r, activeMembers, expectN)
 	})
 }

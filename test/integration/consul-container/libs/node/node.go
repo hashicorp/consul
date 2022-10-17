@@ -8,10 +8,12 @@ import (
 
 // Node represent a Consul node abstraction
 type Node interface {
-	Terminate() error
-	GetClient() *api.Client
 	GetAddr() (string, int)
+	GetClient() *api.Client
+	GetName() string
 	GetConfig() Config
+	RegisterTermination(func() error)
+	Terminate() error
 	Upgrade(ctx context.Context, config Config) error
 }
 

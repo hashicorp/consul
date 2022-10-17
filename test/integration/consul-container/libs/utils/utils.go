@@ -9,5 +9,9 @@ func RandName(name string) string {
 	if err != nil {
 		return ""
 	}
-	return name + generateUUID
+	return name + "-" + generateUUID
+}
+
+func StringPointer(s string) *string {
+	return &s
 }

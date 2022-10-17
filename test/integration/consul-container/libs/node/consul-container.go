@@ -9,11 +9,11 @@ import (
 
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/hcl"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -23,16 +23,25 @@ const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 // consulContainerNode implements the Node interface by running a Consul node
 // in a container.
 type consulContainerNode struct {
-	ctx       context.Context
-	client    *api.Client
-	pod       testcontainers.Container
-	container testcontainers.Container
-	ip        string
-	port      int
-	config    Config
-	podReq    testcontainers.ContainerRequest
-	consulReq testcontainers.ContainerRequest
-	dataDir   string
+	ctx            context.Context
+	client         *api.Client
+	pod            testcontainers.Container
+	container      testcontainers.Container
+	ip             string
+	port           int
+	config         Config
+	podReq         testcontainers.ContainerRequest
+	consulReq      testcontainers.ContainerRequest
+	dataDir        string
+	terminateFuncs []func() error
+}
+
+func (c *consulContainerNode) GetName() string {
+	name, err := c.container.Name(c.ctx)
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 func (c *consulContainerNode) GetConfig() Config {
@@ -52,18 +61,19 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	name := utils.RandName("consul-")
+
+	pc, err := readSomeConfigFileFields(config.HCL)
+	if err != nil {
+		return nil, err
+	}
+
+	name := utils.RandName(fmt.Sprintf("consul-%s", pc.Datacenter))
 
 	tmpDirData, err := ioutils.TempDir("", name)
 	if err != nil {
 		return nil, err
 	}
 	err = os.Chmod(tmpDirData, 0777)
-	if err != nil {
-		return nil, err
-	}
-
-	pc, err := readSomeConfigFileFields(config.HCL)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +180,10 @@ func (c *consulContainerNode) GetAddr() (string, int) {
 	return c.ip, c.port
 }
 
+func (c *consulContainerNode) RegisterTermination(f func() error) {
+	c.terminateFuncs = append(c.terminateFuncs, f)
+}
+
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
 	pc, err := readSomeConfigFileFields(config.HCL)
 	if err != nil {
@@ -215,9 +229,20 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	return nil
 }
 
-// Terminate attempts to terminate the container. On failure, an error will be
-// returned and the reaper process (RYUK) will handle cleanup.
+// Terminate attempts to terminate the node container.
+// This might also include running termination functions for containers associated with the node.
+// On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
+
+	// Services might register a termination function that should also fire
+	// when the "node" is cleaned up
+	for _, f := range c.terminateFuncs {
+		err := f()
+		if err != nil {
+
+		}
+	}
+
 	if c.container == nil {
 		return nil
 	}
@@ -283,13 +308,17 @@ func createConfigFile(HCL string) (string, error) {
 }
 
 type parsedConfig struct {
-	NodeName string `hcl:"node_name"`
+	NodeName   string `hcl:"node_name"`
+	Datacenter string `hcl:"datacenter"`
 }
 
 func readSomeConfigFileFields(HCL string) (parsedConfig, error) {
 	var pc parsedConfig
 	if err := hcl.Decode(&pc, HCL); err != nil {
 		return pc, fmt.Errorf("Failed to parse config file: %w", err)
+	}
+	if pc.Datacenter == "" {
+		pc.Datacenter = "dc1"
 	}
 	return pc, nil
 }
