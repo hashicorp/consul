@@ -12,55 +12,40 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/node"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
 func TestLeadershipMetrics(t *testing.T) {
-	var configs []node.Config
-	configs = append(configs,
-		node.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					server=true
-					telemetry {
-						statsite_address = "127.0.0.1:2180"
-					}`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		})
+	var configs []agent.Config
 
+	statsConf, err := libagent.NewConfigBuilder(nil).Telemetry("127.0.0.0:2180").ToAgentConfig()
+	require.NoError(t, err)
+	configs = append(configs, *statsConf)
+
+	conf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
+	require.NoError(t, err)
 	numServer := 3
 	for i := 1; i < numServer; i++ {
-		configs = append(configs,
-			node.Config{
-				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					bootstrap_expect=3
-					server=true`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetVersion,
-				Image:   *utils.TargetImage,
-			})
-
+		configs = append(configs, *conf)
 	}
 
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 	defer terminate(t, cluster)
 
-	svrCli := cluster.Nodes[0].GetClient()
+	svrCli := cluster.Agents[0].GetClient()
 	libcluster.WaitForLeader(t, cluster, svrCli)
 	libcluster.WaitForMembers(t, svrCli, 3)
 
-	retryWithBackoff := func(agentNode node.Node, expectedStr string) error {
+	retryWithBackoff := func(agent agent.Agent, expectedStr string) error {
 		waiter := &utils.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
-		_, port := agentNode.GetAddr()
+		_, port := agent.GetAddr()
 		ctx := context.Background()
 		for {
 			if waiter.Failures() > 5 {
@@ -78,14 +63,14 @@ func TestLeadershipMetrics(t *testing.T) {
 		}
 	}
 
-	leaderNode, err := cluster.Leader()
+	leader, err := cluster.Leader()
 	require.NoError(t, err)
-	leadAddr, leaderPort := leaderNode.GetAddr()
+	leadAddr, leaderPort := leader.GetAddr()
 
-	for i, n := range cluster.Nodes {
+	for i, n := range cluster.Agents {
 		addr, port := n.GetAddr()
 		if addr == leadAddr && port == leaderPort {
-			err = retryWithBackoff(leaderNode, ".server.isLeader\",\"Value\":1,")
+			err = retryWithBackoff(leader, ".server.isLeader\",\"Value\":1,")
 			require.NoError(t, err, "%dth node(leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.isLeader\",\"Value\":1,")
 		} else {
 			err = retryWithBackoff(n, ".server.isLeader\",\"Value\":0,")
