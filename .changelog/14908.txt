@@ -1,0 +1,3 @@
+```release-note:bug
+cache: prevent goroutine leak in agent cache
+```
