@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -301,4 +302,15 @@ func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
 		return nil
 	}
 	return structs.TimeToProto(*s)
+}
+
+// DeepCopy returns a copy of the PeeringTrustBundle that can be passed around
+// without worrying about the receiver unsafely modifying it. It is used by the
+// generated DeepCopy methods in proxycfg.
+func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
+	cp, ok := proto.Clone(o).(*PeeringTrustBundle)
+	if !ok {
+		panic(fmt.Sprintf("failed to clone *PeeringTrustBundle, got: %T", cp))
+	}
+	return cp
 }

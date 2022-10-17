@@ -329,7 +329,6 @@ codegen-tools:
 .PHONY: deep-copy
 deep-copy:
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
-	@$(SHELL) $(CURDIR)/proto/pbpeering/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
 version:
