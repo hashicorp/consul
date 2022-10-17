@@ -165,6 +165,7 @@ func (c *ConnectCALeaf) fetchDone(rootUpdateCh chan struct{}) {
 	if len(c.rootWatchSubscribers) == 0 && c.rootWatchCancel != nil {
 		// This was the last request. Stop the root watcher.
 		c.rootWatchCancel()
+		c.rootWatchCancel = nil
 	}
 }
 
