@@ -270,6 +270,9 @@ type Agent struct {
 	// checkAliases maps the check ID to an associated Alias checks
 	checkAliases map[structs.CheckID]*checks.CheckAlias
 
+	// checkOSServices maps the check ID to an associated OS Service check
+	checkOSServices map[structs.CheckID]*checks.CheckOSService
+
 	// exposedPorts tracks listener ports for checks exposed through a proxy
 	exposedPorts map[string]int
 
@@ -278,6 +281,9 @@ type Agent struct {
 
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
+
+	// osServiceClient is the client for performing OS service checks.
+	osServiceClient *checks.OSServiceClient
 
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
@@ -422,6 +428,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
+		checkOSServices: make(map[structs.CheckID]*checks.CheckOSService),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
@@ -3028,11 +3035,44 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Client:            a.dockerClient,
 				StatusHandler:     statusHandler,
 			}
-			if prev := a.checkDockers[cid]; prev != nil {
-				prev.Stop()
-			}
 			dockerCheck.Start()
 			a.checkDockers[cid] = dockerCheck
+
+		case chkType.IsOSService():
+			if existing, ok := a.checkOSServices[cid]; ok {
+				existing.Stop()
+				delete(a.checkOSServices, cid)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
+				chkType.Interval = checks.MinInterval
+			}
+
+			if a.osServiceClient == nil {
+				ossp, err := checks.NewOSServiceClient()
+				if err != nil {
+					a.logger.Error("error creating OS Service client", "error", err)
+					return err
+				}
+				a.logger.Debug("created OS Service client")
+				a.osServiceClient = ossp
+			}
+
+			osServiceCheck := &checks.CheckOSService{
+				CheckID:       cid,
+				ServiceID:     sid,
+				OSService:     chkType.OSService,
+				Timeout:       chkType.Timeout,
+				Interval:      chkType.Interval,
+				Logger:        a.logger,
+				Client:        a.osServiceClient,
+				StatusHandler: statusHandler,
+			}
+			osServiceCheck.Start()
+			a.checkOSServices[cid] = osServiceCheck
 
 		case chkType.IsMonitor():
 			if existing, ok := a.checkMonitors[cid]; ok {

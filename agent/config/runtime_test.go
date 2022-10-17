@@ -2456,6 +2456,40 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "os_service check no interval",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo" }`,
+		},
+		expectedErr: `Interval must be > 0 for Script, HTTP, H2PING, TCP, UDP or OSService checks`,
+	})
+	run(t, testCase{
+		desc: "os_service check",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo", "interval": "30s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo", interval = "30s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a",
+					OSService:     "foo",
+					Interval:      30 * time.Second,
+					OutputMaxSize: checks.DefaultBufSize,
+				},
+			}
+			rt.DataDir = dataDir
+		}})
+	run(t, testCase{
 		desc: "multiple service files",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5855,6 +5889,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
+				OSService:                      "aAjE6m9Z",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
@@ -5884,6 +5919,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
+				OSService:                      "aqq95BhP",
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
@@ -5912,6 +5948,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
+				OSService:                      "aZaCAXww",
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
@@ -6135,6 +6172,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
 						H2PingUseTLS:                   false,
+						OSService:                      "amfeO5if",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
@@ -6187,6 +6225,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "MN3oA9D2",
 						H2PING:                         "OV6Q2XEg",
 						H2PingUseTLS:                   false,
+						OSService:                      "GTti9hCA",
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
@@ -6332,6 +6371,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
 						H2PingUseTLS:                   false,
+						OSService:                      "ZA99e9Ka",
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
@@ -6358,6 +6398,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
 						H2PingUseTLS:                   false,
+						OSService:                      "GAaO6Mpr",
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
@@ -6384,6 +6425,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
 						H2PingUseTLS:                   false,
+						OSService:                      "RAa85Dv8",
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
