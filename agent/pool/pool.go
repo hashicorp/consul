@@ -610,6 +610,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
+	// TODO: We could make this reloadable by extracting the deadline calculation
+	//       to be done in (*Client).RPC. There are some other code paths that would
+	//       need to be modified (auto-config).
 	var deadline time.Time
 	timeout := p.ClientTimeout
 	if bq, ok := args.(BlockableQuery); ok {
