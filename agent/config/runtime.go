@@ -911,7 +911,7 @@ type RuntimeConfig struct {
 	// connection. This is used to set an upper bound for requests to eventually
 	// terminate so that RPC connections are not held indefinitely.
 	// It may be set to 0 explicitly to disable the timeout but this should never
-	// be used in production. Default is 10 minutes.
+	// be used in production. Default is 60 seconds.
 	//
 	// Note: Blocking queries use MaxQueryTime and DefaultQueryTime to calculate
 	// timeouts.
