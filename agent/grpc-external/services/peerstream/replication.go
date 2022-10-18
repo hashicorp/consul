@@ -334,14 +334,14 @@ func (s *Server) handleUpdateService(
 
 	// Normalize the data into a convenient form for operation.
 	snap := newHealthSnapshot(structsNodes, partition, peerName)
+	storedNodesMap, storedChecksMap := buildStoredMap(storedInstances)
 
 	for _, nodeSnap := range snap.Nodes {
 		// First register the node - skip the existent ones
 		exist := false
-		for _, csn := range storedInstances {
-			if csn.Node.IsSame(nodeSnap.Node) {
+		if storedNode, ok := storedNodesMap[nodeSnap.Node.ID]; ok {
+			if storedNode.IsSame(nodeSnap.Node) {
 				exist = true
-				break
 			}
 		}
 
@@ -351,7 +351,6 @@ func (s *Server) handleUpdateService(
 				return fmt.Errorf("failed to register node: %w", err)
 			}
 		}
-
 		// Then register all services on that node
 		for _, svcSnap := range nodeSnap.Services {
 			req.Service = svcSnap.Service
@@ -366,19 +365,9 @@ func (s *Server) handleUpdateService(
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
 				exist = false
-				for _, stored := range storedInstances {
-					if stored.Service.Service != svcSnap.Service.Service {
-						continue
-					}
-
-					for _, chk := range stored.Checks {
-						if chk.IsSame(c) {
-							exist = true
-							break
-						}
-					}
-					if exist {
-						break
+				if chk, ok := storedChecksMap[makeNodeCheckID(nodeSnap.Node.ID, c.CheckID)]; ok {
+					if chk.IsSame(c) {
+						exist = true
 					}
 				}
 
@@ -619,4 +608,24 @@ func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pb
 			Response: resp,
 		},
 	}
+}
+
+func makeNodeCheckID(nodeID types.NodeID, checkID types.CheckID) string {
+	return string(nodeID) + "-" + string(checkID)
+}
+
+func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[string]*structs.HealthCheck) {
+	nodesMap := map[types.NodeID]*structs.Node{}
+
+	// key of checksmap will be nodeid + checkID
+	checksMap := map[string]*structs.HealthCheck{}
+	for _, csn := range storedInstances {
+		nodesMap[csn.Node.ID] = csn.Node
+
+		for _, chk := range csn.Checks {
+			// checksMap[string(csn.Node.ID)+"-"+string(chk.CheckID)] = chk
+			checksMap[makeNodeCheckID(csn.Node.ID, chk.CheckID)] = chk
+		}
+	}
+	return nodesMap, checksMap
 }
