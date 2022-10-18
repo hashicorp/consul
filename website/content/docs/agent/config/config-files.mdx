@@ -752,7 +752,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
   node's configured [WAN address](/docs/agent/config/cli-flags#_advertise-wan) when querying for a node in a remote
-  datacenter. An [`X-Consul-Translate-Addresses`](/api-docs#translated-addresses) header
+  datacenter. An [`X-Consul-Translate-Addresses`](/api-docs/api-structure#translated-addresses) header
   will be present on all responses when translation is enabled to help clients know that the addresses
   may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that
   need knowledge of that address, regardless of translation.
@@ -890,7 +890,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       instead of the [anonymous token](/docs/security/acl/acl-tokens#anonymous-token).
       Consul HTTP API requests can provide an alternate token in their authorization header
       to override the `default` or anonymous token on a per-request basis,
-      as described in [HTTP API Authentication](/api-docs#authentication).
+      as described in [HTTP API Authentication](/api-docs/api-structure#authentication).
 
     - `agent` ((#acl_tokens_agent)) - Used for clients and servers to perform
       internal operations. If this isn't specified, then the
