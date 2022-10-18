@@ -184,3 +184,17 @@ expected result:
 - Ensure any API request that activates datacenter request forwarding. such as
   [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api-docs/catalog#dc-1)
   succeeds.
+
+### Upgrading the primary gateways
+
+Once federation has been established, updates for the addresses of new primary
+gateways are propagated through the gateways in the primary themselves. If the primary
+gateways are upgraded, and their previous instances are decommissioned before
+the updates are propagated, then the primary datacenter will become unreachable.
+
+To safely upgrade primary gateways it is preferable to do one of the following:
+- Avoid decommissioning primary gateway IP addresses, since the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary
+servers acts as a fallback mechanism to re-establish connectivity to the primary.
+
+- Verify that addresses of the new mesh gateways in the primary were propagated
+to the secondary datacenters before decommissioning the old mesh gateways in the primary.
