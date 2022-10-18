@@ -407,22 +407,22 @@ func TestIntentionGetExact(t *testing.T) {
 
 	t.Parallel()
 
-	hcl := `
-	bootstrap = false
-	bootstrap_expect = 2
-	server = true
-	`
+	a1 := NewTestAgent(t, `
+		bootstrap = true
+		server = true
+	`)
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a1 := NewTestAgent(t, hcl)
-	a2 := NewTestAgent(t, hcl)
+	a2 := NewTestAgent(t, `
+		bootstrap = false
+		server = true
+	`)
 
-	_, err := a1.JoinLAN([]string{
-		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	}, nil)
+	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
 	require.NoError(t, err)
 
-	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc1")
 
