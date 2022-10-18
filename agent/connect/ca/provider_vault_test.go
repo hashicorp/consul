@@ -20,13 +20,29 @@ import (
 )
 
 const pkiTestPolicy = `
-path "sys/mounts/*"
+path "sys/mounts"
 {
-  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+	capabilities = ["read"]
+}
+path "sys/mounts/pki-root"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "sys/mounts/pki-intermediate"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "sys/mounts/pki-intermediate/tune"
+{
+	capabilities = ["update"]
+}
+path "pki-root/*"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
 }
 path "pki-intermediate/*"
 {
-  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+	capabilities = ["create", "read", "update", "delete", "list"]
 }`
 
 func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
@@ -792,6 +808,98 @@ func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return provider.client.Token() != token
 	}, 10*time.Second, 100*time.Millisecond)
+}
+
+func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	// Set up a standard policy without any sys/mounts/pki-intermediate/tune permissions.
+	policy := `
+	path "sys/mounts"
+	{
+		capabilities = ["read"]
+	}
+	path "sys/mounts/pki-root"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "sys/mounts/pki-intermediate"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "pki-root/*"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "pki-intermediate/*"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}`
+	testVault := NewTestVaultServer(t)
+
+	err := testVault.Client().Sys().PutPolicy("pki", policy)
+	require.NoError(t, err)
+
+	tcr := &vaultapi.TokenCreateRequest{
+		Policies: []string{"pki"},
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	makeProviderConfWithTTL := func(ttl string) ProviderConfig {
+		conf := map[string]interface{}{
+			"Address":             testVault.Addr,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+			"Token":               providerToken,
+			"IntermediateCertTTL": ttl,
+		}
+		cfg := ProviderConfig{
+			ClusterID:  connect.TestClusterID,
+			Datacenter: "dc1",
+			IsPrimary:  true,
+			RawConfig:  conf,
+		}
+		return cfg
+	}
+
+	provider := NewVaultProvider(hclog.New(nil))
+
+	// Set up the initial provider config
+	t.Cleanup(provider.Stop)
+	err = provider.Configure(makeProviderConfWithTTL("222h"))
+	require.NoError(t, err)
+	_, err = provider.GenerateRoot()
+	require.NoError(t, err)
+	_, err = provider.GenerateIntermediate()
+	require.NoError(t, err)
+
+	// Attempt to update the ttl without permissions for the tune endpoint - shouldn't
+	// return an error.
+	err = provider.Configure(makeProviderConfWithTTL("333h"))
+	require.NoError(t, err)
+
+	// Intermediate TTL shouldn't have changed
+	mountConfig, err := testVault.Client().Sys().MountConfig("pki-intermediate")
+	require.NoError(t, err)
+	require.Equal(t, 222*3600, mountConfig.MaxLeaseTTL)
+
+	// Update the policy and verify we can reconfigure the TTL properly.
+	policy += `
+	path "sys/mounts/pki-intermediate/tune"
+	{
+	  capabilities = ["update"]
+	}`
+	err = testVault.Client().Sys().PutPolicy("pki", policy)
+	require.NoError(t, err)
+
+	err = provider.Configure(makeProviderConfWithTTL("333h"))
+	require.NoError(t, err)
+
+	mountConfig, err = testVault.Client().Sys().MountConfig("pki-intermediate")
+	require.NoError(t, err)
+	require.Equal(t, 333*3600, mountConfig.MaxLeaseTTL)
 }
 
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
