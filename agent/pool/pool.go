@@ -127,8 +127,9 @@ func (c *Conn) markForUse() {
 // streams allowed. If TLS settings are provided outgoing connections
 // use TLS.
 type ConnPool struct {
-	// The default timeout for client RPC requests in milliseconds.
-	// Stored as an atomic uint32 value to allow for reloading.
+	// clientTimeoutMs is the default timeout for client RPC requests 
+	// in milliseconds. Stored as an atomic uint32 value to allow for 
+	// reloading.
 	// TODO: once we move to go1.19, change to atomic.Uint32.
 	clientTimeoutMs uint32
 
