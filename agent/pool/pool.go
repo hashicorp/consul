@@ -130,7 +130,7 @@ type ConnPool struct {
 	// The default timeout for client RPC requests in milliseconds.
 	// Stored as an atomic uint32 value to allow for reloading.
 	// TODO: once we move to go1.19, change to atomic.Uint32.
-	clientTimeout *uint32
+	clientTimeoutMs uint32
 
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
@@ -191,8 +191,6 @@ func (p *ConnPool) init() {
 	p.pool = make(map[string]*Conn)
 	p.limiter = make(map[string]chan struct{})
 	p.shutdownCh = make(chan struct{})
-	t := uint32(0)
-	p.clientTimeout = &t
 	if p.MaxTime > 0 {
 		go p.reap()
 	}
@@ -392,25 +390,15 @@ func (p *ConnPool) dial(
 }
 
 func (p *ConnPool) RPCClientTimeout() time.Duration {
-	p.once.Do(p.init)
-	// Since clientTimeout represents uint32 milliseconds,
-	// convert to int64 first then multiply by 1000 to
-	// match time.Duration's nanoseconds.
-	return time.Duration(int64(atomic.LoadUint32(p.clientTimeout) * 1000))
+	return time.Duration(atomic.LoadUint32(&p.clientTimeoutMs)) * time.Millisecond
 }
 
 func (p *ConnPool) SetRPCClientTimeout(timeout time.Duration) {
-	p.once.Do(p.init)
-	if timeout/1000 > time.Duration(^uint32(0)) {
-		// clientTimeout should never be configured so high
-		// but if it would cause overflow, set timeout to 0
-		// instead since it effectively disables timeout.
-		atomic.StoreUint32(p.clientTimeout, uint32(0))
-	} else {
-		// Since time.Duration is in nanoseconds we divide
-		// by 1000 and truncate to milliseconds.
-		atomic.StoreUint32(p.clientTimeout, uint32(timeout/1000))
+	if timeout > time.Hour {
+		// Prevent unreasonably large timeouts that might overflow a uint32
+		timeout = time.Hour
 	}
+	atomic.StoreUint32(&p.clientTimeoutMs, uint32(timeout.Milliseconds()))
 }
 
 // DialRPCViaMeshGateway dials the destination node and sets up the connection
