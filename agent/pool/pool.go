@@ -191,6 +191,8 @@ func (p *ConnPool) init() {
 	p.pool = make(map[string]*Conn)
 	p.limiter = make(map[string]chan struct{})
 	p.shutdownCh = make(chan struct{})
+	t := uint32(0)
+	p.clientTimeout = &t
 	if p.MaxTime > 0 {
 		go p.reap()
 	}
@@ -390,6 +392,7 @@ func (p *ConnPool) dial(
 }
 
 func (p *ConnPool) RPCClientTimeout() time.Duration {
+	p.once.Do(p.init)
 	// Since clientTimeout represents uint32 milliseconds,
 	// convert to int64 first then multiply by 1000 to
 	// match time.Duration's nanoseconds.
@@ -397,6 +400,7 @@ func (p *ConnPool) RPCClientTimeout() time.Duration {
 }
 
 func (p *ConnPool) SetRPCClientTimeout(timeout time.Duration) {
+	p.once.Do(p.init)
 	if timeout/1000 > time.Duration(^uint32(0)) {
 		// clientTimeout should never be configured so high
 		// but if it would cause overflow, set timeout to 0
