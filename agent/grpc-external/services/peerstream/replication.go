@@ -334,10 +334,10 @@ func (s *Server) handleUpdateService(
 
 	// Normalize the data into a convenient form for operation.
 	snap := newHealthSnapshot(structsNodes, partition, peerName)
-	storedNodesMap, storedChecksMap := buildStoredMap(storedInstances)
+	storedNodesMap, storedSvcInstMap, storedChecksMap := buildStoredMap(storedInstances)
 
 	for _, nodeSnap := range snap.Nodes {
-		// First register the node - skip the existent ones
+		// First register the node - skip the unchanged ones
 		changed := true
 		if storedNode, ok := storedNodesMap[nodeSnap.Node.ID]; ok {
 			if storedNode.IsSame(nodeSnap.Node) {
@@ -351,16 +351,26 @@ func (s *Server) handleUpdateService(
 				return fmt.Errorf("failed to register node: %w", err)
 			}
 		}
-		// Then register all services on that node
+
+		// Then register all services on that node - skip the unchanged ones
 		for _, svcSnap := range nodeSnap.Services {
-			req.Service = svcSnap.Service
-			if err := s.Backend.CatalogRegister(&req); err != nil {
-				return fmt.Errorf("failed to register service: %w", err)
+			changed = true
+			if storedSvcInst, ok := storedSvcInstMap[makeNodeSvcInstID(nodeSnap.Node.ID, svcSnap.Service.ID)]; ok {
+				if storedSvcInst.IsSame(svcSnap.Service) {
+					changed = false
+				}
+			}
+
+			if changed {
+				req.Service = svcSnap.Service
+				if err := s.Backend.CatalogRegister(&req); err != nil {
+					return fmt.Errorf("failed to register service: %w", err)
+				}
 			}
 		}
 		req.Service = nil
 
-		// Then register all checks on that node - skip the existent ones
+		// Then register all checks on that node - skip the unchanged ones
 		var chks structs.HealthChecks
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
@@ -610,11 +620,24 @@ func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pb
 	}
 }
 
+// nodeSvcInstIdentity uniquely identifies an service instance imported from a peering cluster
+type nodeSvcInstIdentity struct {
+	nodeID    string
+	serviceID string
+}
+
 // nodeCheckIdentity uniquely identifies a check imported from a peering cluster
 type nodeCheckIdentity struct {
 	nodeID    string
 	serviceID string
 	checkID   string
+}
+
+func makeNodeSvcInstID(nodeID types.NodeID, serviceID string) nodeSvcInstIdentity {
+	return nodeSvcInstIdentity{
+		nodeID:    string(nodeID),
+		serviceID: serviceID,
+	}
 }
 
 func makeNodeCheckID(nodeID types.NodeID, serviceID string, checkID types.CheckID) nodeCheckIdentity {
@@ -625,16 +648,17 @@ func makeNodeCheckID(nodeID types.NodeID, serviceID string, checkID types.CheckI
 	}
 }
 
-func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[nodeCheckIdentity]*structs.HealthCheck) {
+func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[nodeSvcInstIdentity]*structs.NodeService, map[nodeCheckIdentity]*structs.HealthCheck) {
 	nodesMap := map[types.NodeID]*structs.Node{}
+	svcInstMap := map[nodeSvcInstIdentity]*structs.NodeService{}
 	checksMap := map[nodeCheckIdentity]*structs.HealthCheck{}
 
 	for _, csn := range storedInstances {
 		nodesMap[csn.Node.ID] = csn.Node
-
+		svcInstMap[makeNodeSvcInstID(csn.Node.ID, csn.Service.ID)] = csn.Service
 		for _, chk := range csn.Checks {
 			checksMap[makeNodeCheckID(csn.Node.ID, csn.Service.ID, chk.CheckID)] = chk
 		}
 	}
-	return nodesMap, checksMap
+	return nodesMap, svcInstMap, checksMap
 }
