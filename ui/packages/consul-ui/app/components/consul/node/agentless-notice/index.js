@@ -1,34 +1,27 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
-
-const DISMISSED_VALUE = 'true';
+import { storageFor } from '../../../../services/local-storage';
 
 export default class AgentlessNotice extends Component {
-  storageKey = 'consul-nodes-agentless-notice-dismissed';
-  @tracked hasDismissedNotice = false;
+  storageKey = 'nodes-agentless-dismissed';
+  @storageFor('notices') notices;
 
   constructor(owner, args) {
     super(owner, args);
 
     if (this.args.postfix) {
-      this.storageKey = `consul-nodes-agentless-notice-dismissed-${this.args.postfix}`;
-    }
-
-    if (window.localStorage.getItem(this.storageKey) === DISMISSED_VALUE) {
-      this.hasDismissedNotice = true;
+      this.storageKey = `nodes-agentless-dismissed-${this.args.postfix}`;
     }
   }
 
   get isVisible() {
     const { items, filteredItems } = this.args;
 
-    return !this.hasDismissedNotice && items.length > filteredItems.length;
+    return !this.notices.state.includes(this.storageKey) && items.length > filteredItems.length;
   }
 
   @action
   dismissAgentlessNotice() {
-    window.localStorage.setItem(this.storageKey, DISMISSED_VALUE);
-    this.hasDismissedNotice = true;
+    this.notices.add(this.storageKey);
   }
 }
