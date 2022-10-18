@@ -195,6 +195,79 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			token:   "foo",
 			wantErr: "reserved for internal use",
 		},
+		{
+			name: "use sidecar service defined weights",
+			sd: &structs.ServiceDefinition{
+				ID:   "web3",
+				Name: "web",
+				Port: 1313,
+				Weights: &structs.Weights{
+					Passing: 50,
+					Warning: 2,
+				},
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Weights: &structs.Weights{
+							Passing: 51,
+							Warning: 3,
+						},
+					},
+				},
+			},
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web3-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       0,
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web3",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1313,
+				},
+				Weights: &structs.Weights{
+					Passing: 51,
+					Warning: 3,
+				},
+			},
+			wantChecks: nil,
+		},
+		{
+			name: "inherit service weights when sidecar has default ones",
+			sd: &structs.ServiceDefinition{
+				ID:   "web2",
+				Name: "web",
+				Port: 1212,
+				Weights: &structs.Weights{
+					Passing: 50,
+					Warning: 2,
+				},
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
+				},
+			},
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web2-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       0,
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web2",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1212,
+				},
+				Weights: &structs.Weights{
+					Passing: 50,
+					Warning: 2,
+				},
+			},
+			wantChecks: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

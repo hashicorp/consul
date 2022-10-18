@@ -78,6 +78,14 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
+	// Override sidecar weights with the ones the service it represents only if sidecar is using default ones
+	if ns.Weights != nil && (sidecar.Weights == nil || sidecar.Weights.IsEqual(structs.DefaultServiceWeights())) {
+		sidecar.Weights = &structs.Weights{
+			Passing: ns.Weights.Passing,
+			Warning: ns.Weights.Warning,
+		}
+	}
+
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
 	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.

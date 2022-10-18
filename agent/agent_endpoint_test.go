@@ -3753,7 +3753,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				TaggedAddresses:            map[string]structs.ServiceAddress{},
 				Port:                       8001,
 				EnableTagOverride:          true,
-				Weights:                    &structs.Weights{Passing: 1, Warning: 1},
+				Weights:                    &structs.Weights{Passing: 16, Warning: 0},
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "test",
