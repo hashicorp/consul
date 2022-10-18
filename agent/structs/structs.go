@@ -210,7 +210,6 @@ type RPCInfo interface {
 	TokenSecret() string
 	SetTokenSecret(string)
 	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool
-	Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -309,7 +308,8 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+// BlockingTimeout implements pool.BlockableQuery
+func (q QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
@@ -320,13 +320,15 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 		// Timeout after maximum jitter has elapsed.
 		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
-		return q.MaxQueryTime + rpcHoldTimeout
+		return q.MaxQueryTime
 	}
-	return rpcHoldTimeout
+	return 0
 }
 
 func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+	// In addition to BlockingTimeout, allow for an additional rpcHoldTimeout buffer
+	// in case we need to wait for a leader election.
+	return time.Since(start) > rpcHoldTimeout+q.BlockingTimeout(maxQueryTime, defaultQueryTime)
 }
 
 type WriteRequest struct {
@@ -352,12 +354,8 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 	w.Token = s
 }
 
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
-}
-
-func (w WriteRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	return rpcHoldTimeout
+func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) bool {
+	return time.Since(start) > rpcHoldTimeout
 }
 
 type QueryBackend int

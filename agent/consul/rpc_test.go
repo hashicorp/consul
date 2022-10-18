@@ -1366,12 +1366,8 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (r isReadRequest) HasTimedOut(_ time.Time, _, _, _ time.Duration) bool {
 	return false
-}
-
-func (r isReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	return time.Duration(-1)
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {

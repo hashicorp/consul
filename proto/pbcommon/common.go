@@ -75,15 +75,18 @@ func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
 }
 
 func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+	// In addition to BlockingTimeout, allow for an additional rpcHoldTimeout buffer
+	// in case we need to wait for a leader election.
+	return time.Since(start) > rpcHoldTimeout+q.BlockingTimeout(maxQueryTime, defaultQueryTime)
 }
 
-func (q *QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+// BlockingTimeout implements pool.BlockableQuery
+func (q *QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	o := structs.QueryOptions{
 		MaxQueryTime:  q.MaxQueryTime,
 		MinQueryIndex: q.MinQueryIndex,
 	}
-	return o.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+	return o.BlockingTimeout(maxQueryTime, defaultQueryTime)
 }
 
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
@@ -141,12 +144,7 @@ func (w WriteRequest) AllowStaleRead() bool {
 
 // HasTimedOut implements structs.RPCInfo
 func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
-}
-
-// Timeout implements structs.RPCInfo
-func (w *WriteRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
-	return rpcHoldTimeout
+	return time.Since(start) > rpcHoldTimeout
 }
 
 // IsRead implements structs.RPCInfo
@@ -171,13 +169,8 @@ func (r *ReadRequest) SetTokenSecret(token string) {
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > r.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
-}
-
-// Timeout implements structs.RPCInfo
-func (r *ReadRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
-	return rpcHoldTimeout
+func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) bool {
+	return time.Since(start) > rpcHoldTimeout
 }
 
 // RequestDatacenter implements structs.RPCInfo
