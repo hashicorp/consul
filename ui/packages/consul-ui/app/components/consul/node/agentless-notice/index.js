@@ -6,8 +6,8 @@ export default class AgentlessNotice extends Component {
   storageKey = 'nodes-agentless-dismissed';
   @storageFor('notices') notices;
 
-  constructor(owner, args) {
-    super(owner, args);
+  constructor() {
+    super(...arguments);
 
     if (this.args.postfix) {
       this.storageKey = `nodes-agentless-dismissed-${this.args.postfix}`;
