@@ -274,6 +274,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	insertNode := func(i int) {
 		req := structs.RegisterRequest{
 			Datacenter: "dc1",
+			ID:         types.NodeID(generateUUID()),
 			Node:       fmt.Sprintf("node%d", i+1),
 			Address:    fmt.Sprintf("127.0.0.%d", i+1),
 			NodeMeta: map[string]string{
