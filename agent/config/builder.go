@@ -125,10 +125,10 @@ type LoadResult struct {
 //
 // The sources are merged in the following order:
 //
-//  * default configuration
-//  * config files in alphabetical order
-//  * command line arguments
-//  * overrides
+//   - default configuration
+//   - config files in alphabetical order
+//   - command line arguments
+//   - overrides
 //
 // The config sources are merged sequentially and later values overwrite
 // previously set values. Slice values are merged by concatenating the two slices.
@@ -1021,6 +1021,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                      rpcBindAddr,
 		RPCHandshakeTimeout:              b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCClientTimeout:                 b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                      intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:             intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                      intVal(c.RPCProtocol),
