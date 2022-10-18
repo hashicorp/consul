@@ -388,7 +388,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	} else {
 		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
 		if err != nil {
-			return err
+			v.logger.Warn("Could not update intermediate PKI mount settings", "path", v.config.IntermediatePKIPath, "error", err)
 		}
 	}
 
