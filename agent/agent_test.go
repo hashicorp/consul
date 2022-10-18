@@ -4198,6 +4198,36 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }
 
+func TestAgent_ReloadConfigRPCClientConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	hcl := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := NewTestAgent(t, hcl)
+
+	defaultRPCTimeout := 60 * time.Second
+	require.Equal(t, defaultRPCTimeout, a.baseDeps.ConnPool.RPCClientTimeout())
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		limits {
+			rpc_client_timeout = "2m"
+		}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, 2*time.Minute, a.baseDeps.ConnPool.RPCClientTimeout())
+}
+
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

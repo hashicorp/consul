@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 
@@ -24,6 +23,7 @@ import (
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -181,10 +181,10 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
-		Timeout:          config.RPCHoldTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
+	pool.SetRPCClientTimeout(config.RPCClientTimeout)
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute
 		pool.MaxStreams = 64
