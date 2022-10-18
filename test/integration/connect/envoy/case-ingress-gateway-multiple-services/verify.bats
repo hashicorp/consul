@@ -22,6 +22,14 @@ load helpers
   assert_proxy_presents_cert_uri localhost:21001 s2
 }
 
+@test "s1 proxies should be healthy" {
+  assert_service_has_healthy_instances s1 1
+}
+
+@test "s2 proxies should be healthy" {
+  assert_service_has_healthy_instances s2 1
+}
+
 @test "ingress-gateway should have healthy endpoints for s1" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
