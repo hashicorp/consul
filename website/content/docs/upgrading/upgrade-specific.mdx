@@ -27,9 +27,9 @@ upgrade flow.
 
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
-Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration 
-for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config- 
-files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14, 
+Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
+files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14,
 `ports.grpc_tls` is the recommended configuration to encrypt gRPC traffic.
 
 For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
@@ -51,7 +51,7 @@ review the following guidances relevant to your deployment:
 
 Upgrade to **Consul version 1.13.1 or later**.
 
-Consul 1.13.0 contains a bug that prevents Consul server agents from restoring 
+Consul 1.13.0 contains a bug that prevents Consul server agents from restoring
 saved state on startup if the state
 
 1. was generated before Consul 1.13 (such as during an upgrade), and
@@ -61,25 +61,22 @@ This bug is fixed in Consul versions 1.13.1 and newer.
 
 #### Service mesh deployments using auto-encrypt or auto-config
 
-**Do not upgrade to Consul 1.13 yet** if using
-[auto-encrypt](/docs/agent/config/config-files#auto_encrypt) or
-[auto-config](/docs/agent/config/config-files#auto_config).
+Upgrade to **Consul version 1.13.2 or later**.
 
-In Consul 1.13, auto-encrypt and auto-config both cause Consul
+In Consul 1.13.1, auto-encrypt and auto-config both cause Consul
 to require TLS for gRPC communication with Envoy proxies.
 In environments where Envoy proxies are not already configured
-to use TLS for gRPC, upgrading Consul 1.13 will cause
+to use TLS for gRPC, upgrading Consul 1.13.1 will cause
 Envoy proxies to disconnect from the control plane (Consul agents).
 
-The underlying cause is the same as discussed in
-[deployments without the HTTPS port enabled on Consul agents](#service-mesh-deployments-without-the-https-port-enabled-on-consul-agents).
-However, when using auto-encrypt or auto-config,
-the problem **cannot** currently be avoided by 
-[modifying the agent's TLS configuration](#modify-the-consul-agent-s-tls-configuration)
-because auto-encrypt and auto-config automatically set
-interface-generic TLS configuration in a manner similar to
-[`tls.defaults`](/docs/agent/config/config-files#tls_defaults).
-We are working to address this problem in an upcoming 1.13 patch release.
+If upgrading to version 1.13.2 from 1.13.1 you must enable
+[tls.grpc.use_auto_cert](https://developer.hashicorp.com/consul/docs/agent/config/config-files#use_auto_cert)
+if you currently use the Connect CA and auto-encrypt certs for TLS
+on the gRPC port, and do not have certificates configured via
+[tls.grpc](https://developer.hashicorp.com/consul/docs/agent/config/config-files#tls_grpc)
+or [tls.defaults](https://developer.hashicorp.com/consul/docs/agent/config/config-files#tls_defaults).
+The new `use_auto_cert` flag enables TLS for gRPC based on the presence
+of auto-encrypt certs.
 
 #### Service mesh deployments without the HTTPS port enabled on Consul agents ((#grpc-tls))
 
