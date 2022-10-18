@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -42,6 +42,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		ServiceIntentionsToStructs(s.GetServiceIntentions(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindServiceDefaults:
+		var target structs.ServiceConfigEntry
+		target.Name = s.Name
+
+		ServiceDefaultsToStructs(s.GetServiceDefaults(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -92,6 +100,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindServiceIntentions
 		configEntry.Entry = &ConfigEntry_ServiceIntentions{
 			ServiceIntentions: &serviceIntentions,
+		}
+	case *structs.ServiceConfigEntry:
+		var serviceDefaults ServiceDefaults
+		ServiceDefaultsFromStructs(v, &serviceDefaults)
+
+		configEntry.Kind = Kind_KindServiceDefaults
+		configEntry.Entry = &ConfigEntry_ServiceDefaults{
+			ServiceDefaults: &serviceDefaults,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -169,4 +185,16 @@ func intentionSourceTypeFromStructs(structs.IntentionSourceType) IntentionSource
 
 func intentionSourceTypeToStructs(IntentionSourceType) structs.IntentionSourceType {
 	return structs.IntentionSourceConsul
+}
+
+func PointerToIntFromInt32(i32 int32) *int {
+	i := int(i32)
+	return &i
+}
+
+func Int32FromPointerToInt(i *int) int32 {
+	if i != nil {
+		return int32(*i)
+	}
+	return 0
 }
