@@ -338,15 +338,15 @@ func (s *Server) handleUpdateService(
 
 	for _, nodeSnap := range snap.Nodes {
 		// First register the node - skip the existent ones
-		exist := false
+		changed := true
 		if storedNode, ok := storedNodesMap[nodeSnap.Node.ID]; ok {
 			if storedNode.IsSame(nodeSnap.Node) {
-				exist = true
+				changed = false
 			}
 		}
 
 		req := nodeSnap.Node.ToRegisterRequest()
-		if !exist {
+		if changed {
 			if err := s.Backend.CatalogRegister(&req); err != nil {
 				return fmt.Errorf("failed to register node: %w", err)
 			}
@@ -364,14 +364,14 @@ func (s *Server) handleUpdateService(
 		var chks structs.HealthChecks
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
-				exist = false
-				if chk, ok := storedChecksMap[makeNodeCheckID(nodeSnap.Node.ID, c.CheckID)]; ok {
+				changed := true
+				if chk, ok := storedChecksMap[makeNodeCheckID(nodeSnap.Node.ID, svcSnap.Service.ID, c.CheckID)]; ok {
 					if chk.IsSame(c) {
-						exist = true
+						changed = false
 					}
 				}
 
-				if !exist {
+				if changed {
 					chks = append(chks, c)
 				}
 			}
@@ -610,21 +610,30 @@ func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pb
 	}
 }
 
-func makeNodeCheckID(nodeID types.NodeID, checkID types.CheckID) string {
-	return string(nodeID) + "-" + string(checkID)
+// nodeCheckIdentity uniquely identifies a check imported from a peering cluster
+type nodeCheckIdentity struct {
+	nodeID    string
+	serviceID string
+	checkID   string
 }
 
-func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[string]*structs.HealthCheck) {
-	nodesMap := map[types.NodeID]*structs.Node{}
+func makeNodeCheckID(nodeID types.NodeID, serviceID string, checkID types.CheckID) nodeCheckIdentity {
+	return nodeCheckIdentity{
+		serviceID: serviceID,
+		checkID:   string(checkID),
+		nodeID:    string(nodeID),
+	}
+}
 
-	// key of checksmap will be nodeid + checkID
-	checksMap := map[string]*structs.HealthCheck{}
+func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[nodeCheckIdentity]*structs.HealthCheck) {
+	nodesMap := map[types.NodeID]*structs.Node{}
+	checksMap := map[nodeCheckIdentity]*structs.HealthCheck{}
+
 	for _, csn := range storedInstances {
 		nodesMap[csn.Node.ID] = csn.Node
 
 		for _, chk := range csn.Checks {
-			// checksMap[string(csn.Node.ID)+"-"+string(chk.CheckID)] = chk
-			checksMap[makeNodeCheckID(csn.Node.ID, chk.CheckID)] = chk
+			checksMap[makeNodeCheckID(csn.Node.ID, csn.Service.ID, chk.CheckID)] = chk
 		}
 	}
 	return nodesMap, checksMap
