@@ -33,12 +33,6 @@ func (msg *PeeringReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
-// Timeout implements structs.RPCInfo
-func (msg *PeeringReadRequest) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
-	// TODO(peering): figure out read semantics here
-	return rpcHoldTimeout
-}
-
 // SetTokenSecret implements structs.RPCInfo
 func (msg *PeeringReadRequest) SetTokenSecret(s string) {
 	// TODO(peering): figure out read semantics here
@@ -75,12 +69,6 @@ func (msg *PeeringListRequest) AllowStaleRead() bool {
 func (msg *PeeringListRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	// TODO(peering): figure out read semantics here
 	return time.Since(start) > rpcHoldTimeout, nil
-}
-
-// Timeout implements structs.RPCInfo
-func (msg *PeeringListRequest) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
-	// TODO(peering): figure out read semantics here
-	return rpcHoldTimeout
 }
 
 // SetTokenSecret implements structs.RPCInfo
