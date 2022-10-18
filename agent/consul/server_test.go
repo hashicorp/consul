@@ -14,31 +14,27 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul/agent/rpc/middleware"
-	"github.com/hashicorp/consul/ipaddr"
-
-	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -226,7 +222,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -1760,6 +1756,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -1773,7 +1770,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
+	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+
 	rc := ReloadableConfig{
+		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
@@ -1801,6 +1801,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check RPC client timeout got updated
+	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
 
 	// Check raft config
 	defaults := DefaultConfig()

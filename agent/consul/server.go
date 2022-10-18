@@ -749,7 +749,7 @@ func (s *Server) setupRaft() error {
 	}()
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
-	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
+	if s.config.RaftConfig.ProtocolVersion >= 3 { // ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
 		serverAddressProvider = s.serverLookup
 	}
 
@@ -1462,12 +1462,12 @@ func (s *Server) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.
@@ -1505,6 +1505,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
+	s.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader
