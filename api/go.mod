@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/api
 
 go 1.12
 
-replace github.com/hashicorp/consul/sdk => ../sdk
+//replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
 	github.com/armon/go-metrics v0.3.10 // indirect
