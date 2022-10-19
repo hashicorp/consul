@@ -111,10 +111,21 @@ type BootstrapTplArgs struct {
 	// the envoy_prometheus_bind_addr listener.
 	PrometheusScrapePath string
 
-	PrometheusCAFile   string
-	PrometheusCAPath   string
+	// PrometheusCAFile is the path to a CA file for Envoy to use when serving TLS on the Prometheius metrics
+	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusCAFile string
+
+	// PrometheusCAPath is the path to a directory of CA certificates for Envoy to use when serving the Prometheus
+	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusCAPath string
+
+	// PrometheusCertFile is the path to a certificate file for Envoy to use when serving TLS on the Prometheus
+	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
 	PrometheusCertFile string
-	PrometheusKeyFile  string
+
+	// PrometheusKeyFile is the path to a private key file Envoy to use when service TLS on the Prometheus metrics
+	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusKeyFile string
 }
 
 // GRPC settings used in the bootstrap template.
