@@ -14,7 +14,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const bootLogLine = "Consul agent running"
