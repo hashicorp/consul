@@ -2818,7 +2818,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5XX: uintPointer(80),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2836,7 +2836,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5XX: uintPointer(80),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
