@@ -123,7 +123,7 @@ type BootstrapTplArgs struct {
 	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
 	PrometheusCertFile string
 
-	// PrometheusKeyFile is the path to a private key file Envoy to use when service TLS on the Prometheus metrics
+	// PrometheusKeyFile is the path to a private key file Envoy to use when serving TLS on the Prometheus metrics
 	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
 	PrometheusKeyFile string
 }
