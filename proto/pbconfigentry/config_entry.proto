@@ -415,7 +415,8 @@ message IntentionHTTPHeaderPermission {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message ServiceDefaults {
   string Protocol = 1;
-  string Mode = 2;
+  // mog: func-to=proxyModeToStructs func-from=proxyModeFromStructs
+  ProxyMode Mode = 2;
   TransparentProxyConfig TransparentProxy = 3;
   MeshGatewayConfig MeshGateway = 4;
   ExposeConfig Expose = 5;
@@ -430,6 +431,12 @@ message ServiceDefaults {
   int32 LocalRequestTimeoutMs = 11;
   string BalanceInboundConnections = 12;
   map<string, string> Meta = 13;
+}
+
+enum ProxyMode {
+  ProxyModeDefault = 0;
+  ProxyModeTransparent = 1;
+  ProxyModeDirect = 2;
 }
 
 // mog annotation:
@@ -449,7 +456,15 @@ message TransparentProxyConfig {
 // output=config_entry.gen.go
 // name=Structs
 message MeshGatewayConfig {
-  string Mode = 1;
+  // mog: func-to=meshGatewayModeToStructs func-from=meshGatewayModeFromStructs
+  MeshGatewayMode Mode = 1;
+}
+
+enum MeshGatewayMode {
+  MeshGatewayModeDefault = 0;
+  MeshGatewayModeNone = 1;
+  MeshGatewayModeLocal = 2;
+  MeshGatewayModeRemote = 3;
 }
 
 // mog annotation:
@@ -513,11 +528,11 @@ message UpstreamConfig {
 // output=config_entry.gen.go
 // name=Structs
 message UpstreamLimits {
-  // mog: func-to=PointerToIntFromInt32 func-from=Int32FromPointerToInt
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
   int32 MaxConnections = 1;
-  // mog: func-to=PointerToIntFromInt32 func-from=Int32FromPointerToInt
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
   int32 MaxPendingRequests = 2;
-  // mog: func-to=PointerToIntFromInt32 func-from=Int32FromPointerToInt
+  // mog: func-to=pointerToIntFromInt32 func-from=int32FromPointerToInt
   int32 MaxConcurrentRequests = 3;
 }
 
@@ -526,13 +541,12 @@ message UpstreamLimits {
 // target=github.com/hashicorp/consul/agent/structs.PassiveHealthCheck
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=EnforcingConsecutive5xx
 message PassiveHealthCheck {
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration Interval = 1;
   uint32 MaxFailures = 2;
-  // mog: func-to=int func-from=int32
-  int32 EnforcingConsecutive5xx = 3;
+  // mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 EnforcingConsecutive5XX = 3;
 }
 
 // mog annotation:
@@ -545,4 +559,3 @@ message DestinationConfig {
   // mog: func-to=int func-from=int32
   int32 Port = 2;
 }
-

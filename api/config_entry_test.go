@@ -456,7 +456,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
 								"Interval": "2s",
-								"EnforcingConsecutive5xx": 60
+								"EnforcingConsecutive5XX": 60
 							},
 							"BalanceOutboundConnections": "exact_balance"
 						},

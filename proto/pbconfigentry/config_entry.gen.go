@@ -564,13 +564,13 @@ func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConf
 	if s == nil {
 		return
 	}
-	t.Mode = structs.MeshGatewayMode(s.Mode)
+	t.Mode = meshGatewayModeToStructs(s.Mode)
 }
 func MeshGatewayConfigFromStructs(t *structs.MeshGatewayConfig, s *MeshGatewayConfig) {
 	if s == nil {
 		return
 	}
-	s.Mode = string(t.Mode)
+	s.Mode = meshGatewayModeFromStructs(t.Mode)
 }
 func MeshHTTPConfigToStructs(s *MeshHTTPConfig, t *structs.MeshHTTPConfig) {
 	if s == nil {
@@ -620,6 +620,7 @@ func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealth
 	}
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.MaxFailures = s.MaxFailures
+	t.EnforcingConsecutive5XX = pointerToUint32FromUint32(s.EnforcingConsecutive5XX)
 }
 func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHealthCheck) {
 	if s == nil {
@@ -627,6 +628,7 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 	}
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.MaxFailures = t.MaxFailures
+	s.EnforcingConsecutive5XX = uint32FromPointerToUint32(t.EnforcingConsecutive5XX)
 }
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
@@ -659,7 +661,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 		return
 	}
 	t.Protocol = s.Protocol
-	t.Mode = structs.ProxyMode(s.Mode)
+	t.Mode = proxyModeToStructs(s.Mode)
 	if s.TransparentProxy != nil {
 		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
@@ -691,7 +693,7 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 		return
 	}
 	s.Protocol = t.Protocol
-	s.Mode = string(t.Mode)
+	s.Mode = proxyModeFromStructs(t.Mode)
 	{
 		var x TransparentProxyConfig
 		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
@@ -1104,15 +1106,15 @@ func UpstreamLimitsToStructs(s *UpstreamLimits, t *structs.UpstreamLimits) {
 	if s == nil {
 		return
 	}
-	t.MaxConnections = PointerToIntFromInt32(s.MaxConnections)
-	t.MaxPendingRequests = PointerToIntFromInt32(s.MaxPendingRequests)
-	t.MaxConcurrentRequests = PointerToIntFromInt32(s.MaxConcurrentRequests)
+	t.MaxConnections = pointerToIntFromInt32(s.MaxConnections)
+	t.MaxPendingRequests = pointerToIntFromInt32(s.MaxPendingRequests)
+	t.MaxConcurrentRequests = pointerToIntFromInt32(s.MaxConcurrentRequests)
 }
 func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
 	if s == nil {
 		return
 	}
-	s.MaxConnections = Int32FromPointerToInt(t.MaxConnections)
-	s.MaxPendingRequests = Int32FromPointerToInt(t.MaxPendingRequests)
-	s.MaxConcurrentRequests = Int32FromPointerToInt(t.MaxConcurrentRequests)
+	s.MaxConnections = int32FromPointerToInt(t.MaxConnections)
+	s.MaxPendingRequests = int32FromPointerToInt(t.MaxPendingRequests)
+	s.MaxConcurrentRequests = int32FromPointerToInt(t.MaxConcurrentRequests)
 }

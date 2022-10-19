@@ -187,14 +187,82 @@ func intentionSourceTypeToStructs(IntentionSourceType) structs.IntentionSourceTy
 	return structs.IntentionSourceConsul
 }
 
-func PointerToIntFromInt32(i32 int32) *int {
+func pointerToIntFromInt32(i32 int32) *int {
 	i := int(i32)
 	return &i
 }
 
-func Int32FromPointerToInt(i *int) int32 {
+func int32FromPointerToInt(i *int) int32 {
 	if i != nil {
 		return int32(*i)
 	}
 	return 0
+}
+
+func pointerToUint32FromUint32(ui32 uint32) *uint32 {
+	i := ui32
+	return &i
+}
+
+func uint32FromPointerToUint32(i *uint32) uint32 {
+	if i != nil {
+		return *i
+	}
+	return 0
+}
+
+func proxyModeFromStructs(a structs.ProxyMode) ProxyMode {
+	switch a {
+	case structs.ProxyModeDefault:
+		return ProxyMode_ProxyModeDefault
+	case structs.ProxyModeTransparent:
+		return ProxyMode_ProxyModeTransparent
+	case structs.ProxyModeDirect:
+		return ProxyMode_ProxyModeDirect
+	default:
+		return ProxyMode_ProxyModeDefault
+	}
+}
+
+func proxyModeToStructs(a ProxyMode) structs.ProxyMode {
+	switch a {
+	case ProxyMode_ProxyModeDefault:
+		return structs.ProxyModeDefault
+	case ProxyMode_ProxyModeTransparent:
+		return structs.ProxyModeTransparent
+	case ProxyMode_ProxyModeDirect:
+		return structs.ProxyModeDirect
+	default:
+		return structs.ProxyModeDefault
+	}
+}
+
+func meshGatewayModeFromStructs(a structs.MeshGatewayMode) MeshGatewayMode {
+	switch a {
+	case structs.MeshGatewayModeDefault:
+		return MeshGatewayMode_MeshGatewayModeDefault
+	case structs.MeshGatewayModeNone:
+		return MeshGatewayMode_MeshGatewayModeNone
+	case structs.MeshGatewayModeLocal:
+		return MeshGatewayMode_MeshGatewayModeLocal
+	case structs.MeshGatewayModeRemote:
+		return MeshGatewayMode_MeshGatewayModeRemote
+	default:
+		return MeshGatewayMode_MeshGatewayModeDefault
+	}
+}
+
+func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
+	switch a {
+	case MeshGatewayMode_MeshGatewayModeDefault:
+		return structs.MeshGatewayModeDefault
+	case MeshGatewayMode_MeshGatewayModeNone:
+		return structs.MeshGatewayModeNone
+	case MeshGatewayMode_MeshGatewayModeLocal:
+		return structs.MeshGatewayModeLocal
+	case MeshGatewayMode_MeshGatewayModeRemote:
+		return structs.MeshGatewayModeRemote
+	default:
+		return structs.MeshGatewayModeDefault
+	}
 }

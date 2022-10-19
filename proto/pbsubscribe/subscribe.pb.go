@@ -56,7 +56,7 @@ const (
 	//
 	// Note: WildcardSubject is the only supported Subject on this topic.
 	Topic_ServiceList Topic = 7
-	// ServiceDefaults topic contains events for changes to service intentions.
+	// ServiceDefaults topic contains events for changes to service-defaults.
 	Topic_ServiceDefaults Topic = 8
 )
 
