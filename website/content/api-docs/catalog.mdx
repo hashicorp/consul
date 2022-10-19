@@ -324,6 +324,10 @@ The corresponding CLI command is [`consul catalog nodes`](/commands/catalog/node
   of the form `key:value`. This parameter can be specified multiple times, and
   filters the results to nodes with the specified key/value pairs.
 
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the 
+[admin partition](/consul/docs/enterprise/admin-partitions) of the nodes you 
+want to lookup.
+
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
@@ -418,6 +422,10 @@ The corresponding CLI command is [`consul catalog services`](/commands/catalog/s
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the 
+[admin partition](/consul/docs/enterprise/admin-partitions) of the nodes you 
+want to lookup.
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
