@@ -55,6 +55,11 @@ dc:
 
   nodes:
     index:
+      agentless:
+        notice:
+          header: Consul 1.14 removes client nodes from Kubernetes Service Mesh deployments
+          body: Kubernetes clusters do not require client nodes to run as of Consul 1.14. Kubernetes nodes will not appear in this view.
+          footer: View documentation on Consul Dataplane
       empty:
         header: |
           {items, select,

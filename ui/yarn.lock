@@ -7982,7 +7982,7 @@ ember-cli-babel@^6.0.0, ember-cli-babel@^6.0.0-beta.4, ember-cli-babel@^6.11.0, 
     ember-cli-version-checker "^2.1.2"
     semver "^5.5.0"
 
-ember-cli-babel@^7.12.0, ember-cli-babel@^7.13.2, ember-cli-babel@^7.26.1, ember-cli-babel@^7.26.11, ember-cli-babel@^7.26.3, ember-cli-babel@^7.26.5, ember-cli-babel@^7.4.0:
+ember-cli-babel@^7.12.0, ember-cli-babel@^7.13.2, ember-cli-babel@^7.26.1, ember-cli-babel@^7.26.10, ember-cli-babel@^7.26.11, ember-cli-babel@^7.26.3, ember-cli-babel@^7.26.5, ember-cli-babel@^7.4.0:
   version "7.26.11"
   resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-7.26.11.tgz#50da0fe4dcd99aada499843940fec75076249a9f"
   integrity sha512-JJYeYjiz/JTn34q7F5DSOjkkZqy8qwFOOxXfE6pe9yEJqWGu4qErKxlz8I22JoVEQ/aBUO+OcKTpmctvykM9YA==
@@ -8436,6 +8436,22 @@ ember-cli-typescript@^5.0.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-5.1.0.tgz#460eb848564e29d64f2b36b2a75bbe98172b72a4"
   integrity sha512-wEZfJPkjqFEZAxOYkiXsDrJ1HY75e/6FoGhQFg8oNFJeGYpIS/3W0tgyl1aRkSEEN1NRlWocDubJ4aZikT+RTA==
+  dependencies:
+    ansi-to-html "^0.6.15"
+    broccoli-stew "^3.0.0"
+    debug "^4.0.0"
+    execa "^4.0.0"
+    fs-extra "^9.0.1"
+    resolve "^1.5.0"
+    rsvp "^4.8.1"
+    semver "^7.3.2"
+    stagehand "^1.0.0"
+    walk-sync "^2.2.0"
+
+ember-cli-typescript@^5.1.0:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-5.1.1.tgz#cf561026f3e7bd05312c1c212acffa1c30d5fa0c"
+  integrity sha512-DbzATYWY8nbXwSxXqtK8YlqGJTcyFyL+eg6IGCc2ur0AMnq/H+o6Z9np9eGoq1sI+HwX7vBkOVoD3k0WurAwXg==
   dependencies:
     ansi-to-html "^0.6.15"
     broccoli-stew "^3.0.0"
@@ -9246,6 +9262,14 @@ ember-text-measurer@^0.6.0:
   dependencies:
     ember-cli-babel "^7.19.0"
     ember-cli-htmlbars "^4.3.1"
+
+ember-tracked-storage-polyfill@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/ember-tracked-storage-polyfill/-/ember-tracked-storage-polyfill-1.0.0.tgz#84d307a1e4badc5f84dca681db2cfea9bdee8a77"
+  integrity sha512-eL7lZat68E6P/D7b9UoTB5bB5Oh/0aju0Z7PCMi3aTwhaydRaxloE7TGrTRYU+NdJuyNVZXeGyxFxn2frvd3TA==
+  dependencies:
+    ember-cli-babel "^7.26.3"
+    ember-cli-htmlbars "^5.7.1"
 
 "ember-truth-helpers@^2.1.0 || ^3.0.0", ember-truth-helpers@^3.0.0:
   version "3.0.0"
@@ -16640,6 +16664,15 @@ tr46@~0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
   integrity sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==
+
+tracked-built-ins@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/tracked-built-ins/-/tracked-built-ins-3.1.0.tgz#827703e8e8857e45ac449dfc41e8706e0d6da309"
+  integrity sha512-yPEZV1aYaw7xFWdoEluvdwNxIJIA834HaBQaMATjNAYPwd1fRqIJ46YnuRo6+9mRRWu6nM6sJqrVVa5H6UhFuw==
+  dependencies:
+    ember-cli-babel "^7.26.10"
+    ember-cli-typescript "^5.1.0"
+    ember-tracked-storage-polyfill "^1.0.0"
 
 tracked-maps-and-sets@^2.1.0:
   version "2.2.1"

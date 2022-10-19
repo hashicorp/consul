@@ -60,6 +60,7 @@
                 {{/if}}
               </BlockSlot>
               <BlockSlot @name='content'>
+                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
                 <DataCollection
                   @type='node'
                   @sort={{sort.value}}

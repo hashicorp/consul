@@ -191,6 +191,7 @@
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
+    "tracked-built-ins": "^3.1.0",
     "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1",
     "webpack": "^5.74.0"
