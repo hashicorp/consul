@@ -207,14 +207,9 @@ func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]str
 
 func parseNodeAddr(node *structs.ServiceNode) string {
 	// Prefer the wan address
-	if v, ok := node.TaggedAddresses[structs.TaggedAddressWANIPv4]; ok {
-		return v
-	}
-
 	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
 		return v
 	}
-
 	return node.Address
 }
 
