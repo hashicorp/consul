@@ -219,7 +219,7 @@ func parseNodeAddr(node *structs.ServiceNode) string {
 }
 
 func serverAddresses(state *state.Store) ([]string, error) {
-	_, nodes, err := state.ServiceNodes(nil, "consul", structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
+	_, nodes, err := state.ServiceNodes(nil, structs.ConsulServiceName, structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, err
 	}
