@@ -1,3 +1,23 @@
+## 1.11.11 (October 19, 2022)
+
+FEATURES:
+
+* agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests [[GH-14965](https://github.com/hashicorp/consul/issues/14965)]
+* config-entry(ingress-gateway): Added support for `max_connections` for upstream clusters [[GH-14749](https://github.com/hashicorp/consul/issues/14749)]
+
+IMPROVEMENTS:
+
+* connect/ca: Log a warning message instead of erroring when attempting to update the intermediate pki mount when using the Vault provider. [[GH-15035](https://github.com/hashicorp/consul/issues/15035)]
+* connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters. [[GH-14800](https://github.com/hashicorp/consul/issues/14800)]
+* connect: Bump Envoy 1.20 to 1.20.7 [[GH-14830](https://github.com/hashicorp/consul/issues/14830)]
+
+BUG FIXES:
+
+* agent: avoid leaking the alias check runner goroutine when the check is de-registered [[GH-14935](https://github.com/hashicorp/consul/issues/14935)]
+* ca: fix a masked bug in leaf cert generation that would not be notified of root cert rotation after the first one [[GH-15005](https://github.com/hashicorp/consul/issues/15005)]
+* cache: prevent goroutine leak in agent cache [[GH-14908](https://github.com/hashicorp/consul/issues/14908)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
 ## 1.11.10 (September 22, 2022)
 
 BUG FIXES:
