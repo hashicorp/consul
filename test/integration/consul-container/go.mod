@@ -60,6 +60,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/hashicorp/consul/api => ../../../api
+// replace github.com/hashicorp/consul/api => ../../../api
 
-replace github.com/hashicorp/consul/sdk => ../../../sdk
+// replace github.com/hashicorp/consul/sdk => ../../../sdk

@@ -1,43 +1,31 @@
-"---
+---
 layout: docs
 page_title: Configure Certificate Authority (CA) for Consul on Kubernetes
 description: >-
   Consul includes a built-in CA, but when bootstrapping a cluster on k8s, you can configure your service mesh to use a custom certificate provider instead. Learn how to configure Vault as an external CA in primary and secondary datacenters and manually rotate Vault tokens.
----"
+---
 
-#  Configure Certificate Authority (CA) for Consul on Kubernetes
+#  Configure Certificate Authority for Consul on Kubernetes
 
-~> **NOTE:** The instructions below should only be used for initially bootstrapping a cluster with **Consul K8s 0.38.0+.**
-To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
-please use the [Update CA Configuration Endpoint](/api-docs/connect/ca#update-ca-configuration).
+If `connect` is enabled, the built-in Consul certificate authority (CA) is automatically enabled for the service mesh CA. You can use different CA providers with Consul service mesh. Refer to [Connect Certificate Management](/docs/connect/ca) for supported providers. 
 
-Consul has support for different certificate authority (CA) providers to be used with the Consul Service Mesh.
-Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
-we currently support.
+## Overview
 
-If Connect is enabled, the built-in Consul CA is automatically enabled for the Connect CA.
-To configure an external CA provider via the Consul Helm chart, you need to follow three steps:
+You should only complete the following instructions during the initial cluster bootstrapping procedure with Consul K8s CLI 0.38.0 or later. To update the Consul service mesh CA provider on an existing cluster or to update any provider properties, such as tokens, refer to [Update CA Configuration Endpoint](/api-docs/connect/ca#update-ca-configuration).
+
+To configure an external CA provider using the Consul Helm chart, complete the following steps:
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
 1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-To configure the Vault Connect Provider please see [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
-
-
-~> **NOTE:** The following instructions are only valid for Consul-k8s 0.37.0 and prior.
-
-Below we will go over the process for configuring Vault as the Connect CA.
-However, other providers can similarly be configured during initial bootstrap of the cluster
-by providing the appropriate [`ca_config`] and [`ca_provider`] values for the provider you're using.
+To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
 
 ## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
 
--> **NOTE:** If using Vault as your Connect CA, it's highly recommended to run a Consul version >= 1.8.5 that supports
-token auto-renewal. With this feature, if the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
-then Consul will automatically renew the token periodically. Without this feature, you
-will need to [manually rotate](#manually-rotating-vault-tokens) the Vault
-token before it expires.
+The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. It describes how to configure Vault as the Connect CA. You can configure other providers during initial bootstrap of the cluster by providing the appropriate [`ca_config`] and [`ca_provider`] values for your provider.
+
+-> **Auto-renewal:** If using Vault as your Connect CA, we strongly recommend Consul 1.8.5 or later, which includes support for token auto-renewal. If the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable), then Consul automatically renews the token periodically. Otherwise, you must [manually rotate](#manually-rotating-vault-tokens) the Vault token before it expires.
 
 ### Primary Datacenter
 

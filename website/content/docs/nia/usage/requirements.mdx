@@ -25,13 +25,13 @@ Below are several steps towards a minimum Consul setup required for running CTS.
 
 CTS is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. CTS is not included with the Consul binary and needs to be installed separately.
 
-To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-install).
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/collections/consul/get-started-vms?utm_source=docs).
 
 For information on compatible Consul versions, refer to the [Consul compatibility matrix](/docs/nia/compatibility#consul).
 
 ### Run an agent
 
-The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/docs/agent/index) for information about configuring and starting a Consul agent. For hands-on instructions about running Consul agents, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
+The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/docs/agent) for information about configuring and starting a Consul agent. For hands-on instructions about running Consul agents, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
 
 When running a Consul agent with CTS in production, consider that CTS uses [blocking queries](/api-docs/features/blocking) to monitor task dependencies, such as changes to registered services. This  results in multiple long-running TCP connections between CTS and the agent to poll changes for each dependency. Consul may quickly reach the agent connection limits if CTS is monitoring a high number of services.
 

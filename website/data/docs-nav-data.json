@@ -58,7 +58,7 @@
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://learn.hashicorp.com/tutorials/consul/get-started-install"
+        "href": "https://learn.hashicorp.com/collections/consul/get-started-vms"
       },
       {
         "title": "Manual Bootstrap",
@@ -561,6 +561,19 @@
         "title": "Security",
         "path": "connect/security",
         "hidden": true
+      },
+      {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "connect/dataplane/consul-dataplane"
+          }
+        ]
       }
     ]
   },
@@ -996,6 +1009,19 @@
         ]
       },
       {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "href": "/docs/connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "href": "/docs/connect/dataplane/consul-dataplane"
+          }
+        ]
+      },
+      {
         "title": "Operations",
         "routes": [
           {
@@ -1112,11 +1138,6 @@
   },
   {
     "title": "AWS Lambda",
-    "badge": {
-      "text": "BETA",
-      "type": "outlined",
-      "color": "neutral"
-    },
     "routes": [
       {
         "title": "Overview",
@@ -1124,11 +1145,33 @@
       },
       {
         "title": "Register Lambda Functions",
-        "path": "lambda/registration"
+        "routes":[
+          {
+            "title": "Requirements",
+            "path": "lambda/registration"
+          },
+          {
+            "title": "Automate Registration",
+            "path": "lambda/registration/automate"
+          },
+          {
+            "title": "Manual Registration",
+            "path": "lambda/registration/manual"
+          }
+        ]
       },
       {
-        "title": "Invoke Lambda Functions",
+        "title": "Invoke Lambda Functions from Services",
         "path": "lambda/invocation"
+      },
+      {
+        "title": "Invoke Services from Lambda Functions",
+        "path": "lambda/invoke-from-lambda",
+        "badge": {
+          "text": "BETA",
+          "type": "outlined",
+          "color": "neutral"
+        }    
       }
     ]
   },
