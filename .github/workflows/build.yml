@@ -272,7 +272,7 @@ jobs:
           version: ${{env.version}}
           target: ubi
           arch: amd64
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf/${{env.repo}}:${{env.version}}-ubi
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   build-docker-ubi-dockerhub:
