@@ -14,7 +14,7 @@ var (
 	//
 	// Version must conform to the format expected by github.com/hashicorp/go-version
 	// for tests to work.
-	Version = "1.13.3"
+	Version = "1.13.4"
 
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""
@@ -22,7 +22,7 @@ var (
 	// A pre-release marker for the version. If this is "" (empty string)
 	// then it means that it is a final release. Otherwise, this is a pre-release
 	// such as "dev" (in development), "beta", "rc1", etc.
-	VersionPrerelease = ""
+	VersionPrerelease = "dev"
 
 	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
 	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
