@@ -29,7 +29,8 @@ func TestLeadershipMetrics(t *testing.T) {
 						statsite_address = "127.0.0.1:2180"
 					}`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		})
 
 	numServer := 3
@@ -41,7 +42,8 @@ func TestLeadershipMetrics(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetImage,
+				Version: *utils.TargetVersion,
+				Image:   *utils.TargetImage,
 			})
 
 	}

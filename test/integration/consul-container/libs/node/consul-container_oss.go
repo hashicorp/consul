@@ -2,5 +2,3 @@
 // +build !consulent
 
 package node
-
-const consulImage = "consul"

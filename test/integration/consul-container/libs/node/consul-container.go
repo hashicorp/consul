@@ -144,7 +144,7 @@ func newContainerRequest(config Config, name, configFile, dataDir, license strin
 
 	app := testcontainers.ContainerRequest{
 		NetworkMode: dockercontainer.NetworkMode("container:" + name + "-pod"),
-		Image:       consulImage + ":" + config.Version,
+		Image:       config.Image + ":" + config.Version,
 		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
 		AutoRemove:  false,
 		Name:        name,

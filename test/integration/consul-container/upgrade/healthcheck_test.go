@@ -22,10 +22,10 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, *utils.TargetImage)
+	cluster := serversCluster(t, numServers, *utils.TargetVersion, *utils.TargetImage)
 	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
@@ -78,7 +78,8 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		})
 
 	for i := 1; i < 3; i++ {
@@ -89,7 +90,8 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.LatestImage,
+				Version: *utils.LatestVersion,
+				Image:   *utils.LatestImage,
 			})
 
 	}
@@ -102,7 +104,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
@@ -156,7 +158,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetImage,
+				Version: *utils.TargetVersion,
+				Image:   *utils.TargetImage,
 			})
 
 	}
@@ -166,7 +169,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.LatestImage,
+			Version: *utils.LatestVersion,
+			Image:   *utils.LatestImage,
 		})
 
 	cluster, err := libcluster.New(configs)
@@ -177,7 +181,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
@@ -220,7 +224,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(t *testing.T, numClients int, version string, serfKey string) []node.Node {
+func clientsCreate(t *testing.T, numClients int, image string, version string, serfKey string) []node.Node {
 	clients := make([]node.Node, numClients)
 	for i := 0; i < numClients; i++ {
 		var err error
@@ -232,6 +236,7 @@ func clientsCreate(t *testing.T, numClients int, version string, serfKey string)
 				encrypt = %q`, utils.RandName("consul-client"), serfKey),
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: version,
+				Image:   image,
 			})
 		require.NoError(t, err)
 	}
@@ -251,7 +256,7 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 	return meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, version string) *libcluster.Cluster {
+func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
 	var configs []node.Config
 	for i := 0; i < numServers; i++ {
 		configs = append(configs, node.Config{
@@ -261,6 +266,7 @@ func serversCluster(t *testing.T, numServers int, version string) *libcluster.Cl
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: version,
+			Image:   image,
 		})
 	}
 	cluster, err := libcluster.New(configs)
