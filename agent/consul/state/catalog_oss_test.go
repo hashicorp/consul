@@ -5,6 +5,7 @@ package state
 
 import (
 	"net"
+	"strconv"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -226,7 +227,11 @@ func testIndexerTableGatewayServices() map[string]indexerTestCase {
 		Service: structs.ServiceName{Name: "SerVice"},
 		Port:    50123,
 	}
-	encodedPort := string([]byte{0x96, 0x8f, 0x06, 0, 0, 0, 0, 0, 0, 0})
+	encodedPort := string([]byte{0x80, 0, 0, 0, 0, 0, 0xc3, 0xcb})
+	// On 32-bit systems the int encoding will be different
+	if strconv.IntSize == 32 {
+		encodedPort = string([]byte{0x80, 0, 0xc3, 0xcb})
+	}
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
