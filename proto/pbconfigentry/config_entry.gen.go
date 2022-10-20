@@ -614,22 +614,6 @@ func MeshTLSConfigFromStructs(t *structs.MeshTLSConfig, s *MeshTLSConfig) {
 		s.Outgoing = &x
 	}
 }
-func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealthCheck) {
-	if s == nil {
-		return
-	}
-	t.Interval = structs.DurationFromProto(s.Interval)
-	t.MaxFailures = s.MaxFailures
-	t.EnforcingConsecutive5XX = pointerToUint32FromUint32(s.EnforcingConsecutive5XX)
-}
-func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHealthCheck) {
-	if s == nil {
-		return
-	}
-	s.Interval = structs.DurationToProto(t.Interval)
-	s.MaxFailures = t.MaxFailures
-	s.EnforcingConsecutive5XX = uint32FromPointerToUint32(t.EnforcingConsecutive5XX)
-}
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
 		return
@@ -1025,11 +1009,7 @@ func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
 		UpstreamLimitsToStructs(s.Limits, &x)
 		t.Limits = &x
 	}
-	if s.PassiveHealthCheck != nil {
-		var x structs.PassiveHealthCheck
-		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
-		t.PassiveHealthCheck = &x
-	}
+	t.PassiveHealthCheck = PassiveHealthCheckToStructs(s.PassiveHealthCheck)
 	if s.MeshGateway != nil {
 		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
 	}
@@ -1050,11 +1030,7 @@ func UpstreamConfigFromStructs(t *structs.UpstreamConfig, s *UpstreamConfig) {
 		UpstreamLimitsFromStructs(t.Limits, &x)
 		s.Limits = &x
 	}
-	if t.PassiveHealthCheck != nil {
-		var x PassiveHealthCheck
-		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
-		s.PassiveHealthCheck = &x
-	}
+	s.PassiveHealthCheck = PassiveHealthCheckFromStructs(t.PassiveHealthCheck)
 	{
 		var x MeshGatewayConfig
 		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)

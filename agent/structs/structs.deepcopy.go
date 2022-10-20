@@ -798,9 +798,9 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 				if o.Overrides[i2].PassiveHealthCheck != nil {
 					cp.Overrides[i2].PassiveHealthCheck = new(PassiveHealthCheck)
 					*cp.Overrides[i2].PassiveHealthCheck = *o.Overrides[i2].PassiveHealthCheck
-					if o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5XX != nil {
-						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5XX = new(uint32)
-						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5XX = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5XX
+					if o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
 				}
 			}
@@ -828,9 +828,9 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 		if o.Defaults.PassiveHealthCheck != nil {
 			cp.Defaults.PassiveHealthCheck = new(PassiveHealthCheck)
 			*cp.Defaults.PassiveHealthCheck = *o.Defaults.PassiveHealthCheck
-			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5XX != nil {
-				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5XX = new(uint32)
-				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5XX = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5XX
+			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
 			}
 		}
 	}
