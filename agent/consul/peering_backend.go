@@ -57,20 +57,30 @@ func (b *PeeringBackend) GetAgentCACertificates() ([]string, error) {
 	return b.srv.tlsConfigurator.GRPCManualCAPems(), nil
 }
 
+func parseNodeAddr(node *structs.ServiceNode) string {
+	// Prefer the wan address
+	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
+		return v
+	}
+	return node.Address
+}
+
 // GetServerAddresses looks up server node addresses from the state store.
 func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
 	state := b.srv.fsm.State()
-	_, nodes, err := state.ServiceNodes(nil, "consul", structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
+	_, nodes, err := state.ServiceNodes(nil, structs.ConsulServiceName, structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, err
 	}
 	var addrs []string
 	for _, node := range nodes {
+		addr := parseNodeAddr(node)
+
 		grpcPortStr := node.ServiceMeta["grpc_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err != nil || v < 1 {
 			continue // skip server that isn't exporting public gRPC properly
 		}
-		addrs = append(addrs, node.Address+":"+grpcPortStr)
+		addrs = append(addrs, addr+":"+grpcPortStr)
 	}
 	if len(addrs) == 0 {
 		return nil, fmt.Errorf("a grpc bind port must be specified in the configuration for all servers")
