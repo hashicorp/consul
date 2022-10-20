@@ -1,6 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/itchyny/gojq"
 	"github.com/teris-io/shortid"
 )
 
@@ -15,4 +19,34 @@ func RandName(name string) string {
 
 func StringPointer(s string) *string {
 	return &s
+}
+
+// JQFilter uses the provided "jq" filter to parse json.
+// Matching results are returned as a slice of strings.
+func JQFilter(config, filter string) ([]string, error) {
+	result := []string{}
+	query, err := gojq.Parse(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var m interface{}
+	err = json.Unmarshal([]byte(config), &m)
+	if err != nil {
+		return nil, err
+	}
+
+	iter := query.Run(m)
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return nil, err
+		}
+		s := fmt.Sprintf("%v", v)
+		result = append(result, s)
+	}
+	return result, nil
 }

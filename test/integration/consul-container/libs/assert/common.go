@@ -1,6 +1,8 @@
 package assert
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	defaultTimeout = 5 * time.Second

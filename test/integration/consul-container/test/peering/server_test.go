@@ -2,8 +2,10 @@ package peering
 
 import (
 	"context"
+	"encoding/pem"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -13,6 +15,7 @@ import (
 	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
 	libservice "github.com/hashicorp/consul/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 const (
@@ -20,44 +23,59 @@ const (
 	dialingPeerName   = "dialing-to-acceptor"
 )
 
-// TestBasicConnectService SUMMARY
-// This test makes sure that the peering stream send server address updates between peers.
-// It also verifies that dialing clusters will use this stored information to supersede the addresses
-// encoded in the peering token.
+// TestServer
+// This test runs a few scenarios back to back
+// 1. It makes sure that the peering stream send server address updates between peers.
+//    It also verifies that dialing clusters will use this stored information to supersede the addresses
+//    encoded in the peering token.
+// 2. Rotate the CA in the exporting cluster and ensure services don't break
+// 3. Terminate the server nodes in the exporting cluster and make sure the importing cluster can still dial it's
+//    upstream.
 //
-// Steps:
+// ## Steps
+// ### Part 1
 //  * Create an accepting cluster with 3 servers. 1 client should be used to host a service for export
 //  * Create a single node dialing cluster.
 //	* Create the peering and export the service. Verify it is working
 //  * Incrementally replace the follower nodes.
 // 	* Replace the leader node
 //  * Verify the dialer can reach the new server nodes and the service becomes available.
-func TestServerRotation(t *testing.T) {
-	var wg sync.WaitGroup
+// ### Part 2
+//  * Push an update to the CA Configuration in the exporting cluster and wait for the new root to be generated
+//  * Verify envoy client sidecar has two certificates for the upstream server
+//  * Make sure there is still service connectivity from the importing cluster
+// ### Part 3
+//  * Terminate the server nodes in the exporting cluster
+//  * Make sure there is still service connectivity from the importing cluster
+func TestServer(t *testing.T) {
 	var acceptingCluster, dialingCluster *libcluster.Cluster
 	var acceptingClient, dialingClient *api.Client
-	var clientService libservice.Service
-	wg.Add(1)
-	go func() {
-		acceptingCluster, acceptingClient = creatingAcceptingClusterAndSetup(t)
-		wg.Done()
-	}()
+	var clientSidecarService libservice.Service
+
+	t.Run("setup accepting and dialing clusters", func(t *testing.T) {
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			acceptingCluster, acceptingClient = creatingAcceptingClusterAndSetup(t)
+			wg.Done()
+		}()
+
+		wg.Add(1)
+		go func() {
+			dialingCluster, dialingClient, clientSidecarService = createDialingClusterAndSetup(t)
+			wg.Done()
+		}()
+
+		wg.Wait()
+	})
 	defer func() {
 		terminate(t, acceptingCluster)
-	}()
-
-	wg.Add(1)
-	go func() {
-		dialingCluster, dialingClient, clientService = createDialingClusterAndSetup(t)
-		wg.Done()
 	}()
 	defer func() {
 		terminate(t, dialingCluster)
 	}()
 
-	wg.Wait()
-
-	// Establish Peering
 	generateReq := api.PeeringGenerateTokenRequest{
 		PeerName: acceptingPeerName,
 	}
@@ -74,29 +92,89 @@ func TestServerRotation(t *testing.T) {
 	libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
 
-	_, port := clientService.GetAddr()
+	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port)
 
-	// Start by replacing the Followers
-	leader, err := acceptingCluster.Leader()
-	require.NoError(t, err)
+	t.Run("test rotating servers", func(t *testing.T) {
 
-	followers, err := acceptingCluster.Followers()
-	require.NoError(t, err)
-	require.Len(t, followers, 2)
+		// Start by replacing the Followers
+		leader, err := acceptingCluster.Leader()
+		require.NoError(t, err)
 
-	for idx, follower := range followers {
-		t.Log("Removing follower", idx)
-		rotateServer(t, acceptingCluster, acceptingClient, follower)
-	}
+		followers, err := acceptingCluster.Followers()
+		require.NoError(t, err)
+		require.Len(t, followers, 2)
 
-	t.Log("Removing leader")
-	rotateServer(t, acceptingCluster, acceptingClient, leader)
+		for idx, follower := range followers {
+			t.Log("Removing follower", idx)
+			rotateServer(t, acceptingCluster, acceptingClient, follower)
+		}
 
-	libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
-	libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
+		t.Log("Removing leader")
+		rotateServer(t, acceptingCluster, acceptingClient, leader)
 
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
+
+		libassert.HTTPServiceEchoes(t, "localhost", port)
+	})
+
+	t.Run("rotate exporting cluster's root CA", func(t *testing.T) {
+		config, meta, err := acceptingClient.Connect().CAGetConfig(&api.QueryOptions{})
+		require.NoError(t, err)
+
+		t.Logf("%+v", config)
+
+		req := &api.CAConfig{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKeyType": "ec",
+				"PrivateKeyBits": 384,
+			},
+		}
+		_, err = acceptingClient.Connect().CASetConfig(req, &api.WriteOptions{})
+		require.NoError(t, err)
+
+		// wait up to 30 seconds for the update
+		_, _, err = acceptingClient.Connect().CAGetConfig(&api.QueryOptions{
+			WaitIndex: meta.LastIndex,
+			WaitTime:  30 * time.Second,
+		})
+		require.NoError(t, err)
+
+		// There should be two root certs now
+		rootList, _, err := acceptingClient.Connect().CARoots(&api.QueryOptions{})
+		require.NoError(t, err)
+		require.Len(t, rootList.Roots, 2)
+
+		// Connectivity should still be contained
+		_, port := clientSidecarService.GetAddr()
+		libassert.HTTPServiceEchoes(t, "localhost", port)
+
+		verifySidecarHasTwoRootCAs(t, clientSidecarService)
+
+	})
+
+	t.Run("terminate exporting clusters servers and ensure imported services are still reachable", func(t *testing.T) {
+		// Keep this list for later
+		newNodes, err := acceptingCluster.Clients()
+		require.NoError(t, err)
+
+		serverNodes, err := acceptingCluster.Servers()
+		require.NoError(t, err)
+		for _, node := range serverNodes {
+			require.NoError(t, node.Terminate())
+		}
+
+		// Remove the nodes from the cluster to prevent double-termination
+		acceptingCluster.Nodes = newNodes
+
+		// ensure any transitory actions like replication cleanup would not affect the next verifications
+		time.Sleep(30 * time.Second)
+
+		_, port := clientSidecarService.GetAddr()
+		libassert.HTTPServiceEchoes(t, "localhost", port)
+	})
 }
 
 func terminate(t *testing.T, cluster *libcluster.Cluster) {
@@ -309,4 +387,46 @@ func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client,
 	require.NoError(t, cluster.RemoveNode(node))
 
 	libcluster.WaitForMembers(t, client, 4)
+}
+
+func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
+	connectContainer, ok := sidecar.(*libservice.ConnectContainer)
+	require.True(t, ok)
+	_, adminPort := connectContainer.GetAdminAddr()
+
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		dump, err := libservice.GetEnvoyConfigDump(adminPort)
+		if err != nil {
+			r.Fatal("could not curl envoy configuration")
+		}
+
+		// Make sure there are two certs in the sidecar
+		filter := `.configs[] | select(.["@type"] | contains("type.googleapis.com/envoy.admin.v3.ClustersConfigDump")).dynamic_active_clusters[] | select(.cluster.name | contains("static-server.default.dialing-to-acceptor.external")).cluster.transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_string`
+		results, err := utils.JQFilter(dump, filter)
+		if err != nil {
+			r.Fatal("could not parse envoy configuration")
+		}
+		if len(results) != 1 {
+			r.Fatal("could not find certificates in cluster TLS context")
+		}
+
+		rest := []byte(results[0])
+		var count int
+		for len(rest) > 0 {
+			var p *pem.Block
+			p, rest = pem.Decode(rest)
+			if p == nil {
+				break
+			}
+			count++
+		}
+
+		if count != 2 {
+			r.Fatalf("expected 2 TLS certificates and %d present", count)
+		}
+	})
 }

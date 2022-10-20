@@ -17,6 +17,8 @@ const hashicorpDockerProxy = "docker.mirror.hashicorp.services"
 //go:embed assets/Dockerfile-consul-envoy
 var consulEnvoyDockerfile string
 
+// getDevContainerDockerfile returns the necessary context to build a combined consul and
+// envoy image for running "consul connect envoy ..."
 func getDevContainerDockerfile() (testcontainers.FromDockerfile, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)

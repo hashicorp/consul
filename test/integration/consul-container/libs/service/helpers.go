@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/hashicorp/consul/api"
 	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
@@ -121,4 +123,22 @@ func CreateAndRegisterStaticClientSidecar(node libnode.Node, peerName string, lo
 	}
 
 	return clientConnectProxy, nil
+}
+
+func GetEnvoyConfigDump(port int) (string, error) {
+	client := http.DefaultClient
+	url := fmt.Sprintf("http://localhost:%d/config_dump?include_eds", port)
+
+	res, err := client.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }

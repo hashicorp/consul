@@ -13,16 +13,17 @@ import (
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 )
 
-// connectContainer
-type connectContainer struct {
+// ConnectContainer
+type ConnectContainer struct {
 	ctx       context.Context
 	container testcontainers.Container
 	ip        string
-	port      int
+	appPort   int
+	adminPort int
 	req       testcontainers.ContainerRequest
 }
 
-func (g connectContainer) GetName() string {
+func (g ConnectContainer) GetName() string {
 	name, err := g.container.Name(g.ctx)
 	if err != nil {
 		return ""
@@ -30,20 +31,24 @@ func (g connectContainer) GetName() string {
 	return name
 }
 
-func (g connectContainer) GetAddr() (string, int) {
-	return g.ip, g.port
+func (g ConnectContainer) GetAddr() (string, int) {
+	return g.ip, g.appPort
 }
 
-func (g connectContainer) Start() error {
+func (g ConnectContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
 	return g.container.Start(context.Background())
 }
 
+func (g ConnectContainer) GetAdminAddr() (string, int) {
+	return "localhost", g.adminPort
+}
+
 // Terminate attempts to terminate the container. On failure, an error will be
 // returned and the reaper process (RYUK) will handle cleanup.
-func (c connectContainer) Terminate() error {
+func (c ConnectContainer) Terminate() error {
 	if c.container == nil {
 		return nil
 	}
@@ -102,11 +107,17 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	if err != nil {
 		return nil, err
 	}
+
 	ip, err := container.ContainerIP(ctx)
 	if err != nil {
 		return nil, err
 	}
-	mappedPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", serviceBindPort)))
+
+	mappedAppPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", serviceBindPort)))
+	if err != nil {
+		return nil, err
+	}
+	mappedAdminPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", 19000)))
 	if err != nil {
 		return nil, err
 	}
@@ -124,5 +135,10 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	node.RegisterTermination(terminate)
 
-	return &connectContainer{container: container, ip: ip, port: mappedPort.Int()}, nil
+	return &ConnectContainer{
+		container: container,
+		ip:        ip,
+		appPort:   mappedAppPort.Int(),
+		adminPort: mappedAdminPort.Int(),
+	}, nil
 }

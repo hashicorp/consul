@@ -154,6 +154,25 @@ func (c *Cluster) Followers() ([]node.Node, error) {
 	return followers, nil
 }
 
+// Servers returns the handle to server agent nodes.
+func (c *Cluster) Servers() ([]node.Node, error) {
+	var servers []node.Node
+
+	for _, n := range c.Nodes {
+		info, err := n.GetClient().Agent().Self()
+		consulBuf := info["Stats"]["consul"].(map[string]interface{})
+		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
+		if err != nil {
+			return nil, fmt.Errorf("could not parse agent self response: %w", err)
+		}
+
+		if isServer {
+			servers = append(servers, n)
+		}
+	}
+	return servers, nil
+}
+
 // Clients returns the handle to client agent nodes.
 func (c *Cluster) Clients() ([]node.Node, error) {
 	var clients []node.Node
