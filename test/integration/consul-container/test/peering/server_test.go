@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	libassert "github.com/hashicorp/consul/integration/consul-container/libs/assert"
-	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
-	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
-	libservice "github.com/hashicorp/consul/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -52,29 +52,27 @@ func TestServer(t *testing.T) {
 	var acceptingClient, dialingClient *api.Client
 	var clientSidecarService libservice.Service
 
-	t.Run("setup accepting and dialing clusters", func(t *testing.T) {
-		var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
-		wg.Add(1)
-		go func() {
-			acceptingCluster, acceptingClient = creatingAcceptingClusterAndSetup(t)
-			wg.Done()
-		}()
-
-		wg.Add(1)
-		go func() {
-			dialingCluster, dialingClient, clientSidecarService = createDialingClusterAndSetup(t)
-			wg.Done()
-		}()
-
-		wg.Wait()
-	})
+	wg.Add(1)
+	go func() {
+		acceptingCluster, acceptingClient = creatingAcceptingClusterAndSetup(t)
+		wg.Done()
+	}()
 	defer func() {
 		terminate(t, acceptingCluster)
+	}()
+
+	wg.Add(1)
+	go func() {
+		dialingCluster, dialingClient, clientSidecarService = createDialingClusterAndSetup(t)
+		wg.Done()
 	}()
 	defer func() {
 		terminate(t, dialingCluster)
 	}()
+
+	wg.Wait()
 
 	generateReq := api.PeeringGenerateTokenRequest{
 		PeerName: acceptingPeerName,
@@ -215,7 +213,8 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 					  enabled = true
 					}`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetImage,
+				Version: *utils.TargetVersion,
+				Image:   *utils.TargetImage,
 			},
 		)
 	}
@@ -243,7 +242,8 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 					  enabled = true
 					}`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		},
 	)
 
@@ -318,7 +318,8 @@ connect {
   enabled = true
 }`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		},
 	}
 
@@ -374,7 +375,8 @@ func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client,
 			  enabled = true
 			}`,
 		Cmd:     []string{"agent", "-client=0.0.0.0"},
-		Version: *utils.TargetImage,
+		Version: *utils.TargetVersion,
+		Image:   *utils.TargetImage,
 	}
 
 	c, err := libnode.NewConsulContainer(context.Background(), config)

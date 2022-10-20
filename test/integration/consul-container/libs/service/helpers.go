@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/consul/api"
-	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
+	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
 )
 
 func CreateAndRegisterStaticServerAndSidecar(node libnode.Node) (Service, Service, error) {

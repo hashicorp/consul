@@ -9,8 +9,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
-	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
+	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // exampleContainer

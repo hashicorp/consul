@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	libassert "github.com/hashicorp/consul/integration/consul-container/libs/assert"
-	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
-	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
-	libservice "github.com/hashicorp/consul/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // TestBasicConnectService Summary
@@ -59,7 +59,8 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 					  enabled = true
 					}`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		},
 	}
 
