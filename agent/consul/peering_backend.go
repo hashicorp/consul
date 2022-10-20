@@ -205,23 +205,33 @@ func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]str
 	return addrs, nil
 }
 
+func parseNodeAddr(node *structs.ServiceNode) string {
+	// Prefer the wan address
+	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
+		return v
+	}
+	return node.Address
+}
+
 func serverAddresses(state *state.Store) ([]string, error) {
-	_, nodes, err := state.ServiceNodes(nil, "consul", structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
+	_, nodes, err := state.ServiceNodes(nil, structs.ConsulServiceName, structs.DefaultEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, err
 	}
 	var addrs []string
 	for _, node := range nodes {
+		addr := parseNodeAddr(node)
+
 		// Prefer the TLS port if it is defined.
 		grpcPortStr := node.ServiceMeta["grpc_tls_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			addrs = append(addrs, addr+":"+grpcPortStr)
 			continue
 		}
 		// Fallback to the standard port if TLS is not defined.
 		grpcPortStr = node.ServiceMeta["grpc_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, node.Address+":"+grpcPortStr)
+			addrs = append(addrs, addr+":"+grpcPortStr)
 			continue
 		}
 		// Skip node if neither defined.
