@@ -66,8 +66,6 @@ export function visitable(path, encoder = encodeURIComponent) {
           let path = paths.shift();
           if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
             path = `/:nspace${path}`;
-          } else if (typeof dynamicSegmentsAndQueryParams.partition !== 'undefined') {
-            path = `/:partition${path}`;
           }
           params = assign({}, dynamicSegmentsAndQueryParams);
           let fullPath;

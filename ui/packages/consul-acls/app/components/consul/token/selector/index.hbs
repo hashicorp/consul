@@ -51,7 +51,6 @@
               />
               {{#if (can "use SSO")}}
                 <authForm.Method @matches="sso">
-                  {{log (concat "Partition Parent: " @partition)}}
                   <OidcSelect
                     @dc={{@dc.Name}}
                     @partition={{@partition}}
