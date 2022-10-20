@@ -29,6 +29,7 @@ type consulContainerNode struct {
 	container      testcontainers.Container
 	ip             string
 	port           int
+	datacenter     string
 	config         Config
 	podReq         testcontainers.ContainerRequest
 	consulReq      testcontainers.ContainerRequest
@@ -46,6 +47,10 @@ func (c *consulContainerNode) GetName() string {
 
 func (c *consulContainerNode) GetConfig() Config {
 	return c.config
+}
+
+func (c *consulContainerNode) GetDatacenter() string {
+	return c.datacenter
 }
 
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
@@ -67,7 +72,14 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 
-	name := utils.RandName(fmt.Sprintf("consul-%s", pc.Datacenter))
+	consulType := "client"
+	if pc.Server {
+		consulType = "server"
+	}
+	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
+
+	// Inject new Node name
+	config.HCL += fmt.Sprintf("\nnode_name = \"%s\"", name)
 
 	tmpDirData, err := ioutils.TempDir("", name)
 	if err != nil {
@@ -114,7 +126,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 	consulContainer.FollowOutput(&NodeLogConsumer{
-		Prefix: pc.NodeName,
+		Prefix: name,
 	})
 
 	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
@@ -126,16 +138,17 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	}
 
 	return &consulContainerNode{
-		config:    config,
-		pod:       podContainer,
-		container: consulContainer,
-		ip:        ip,
-		port:      mappedPort.Int(),
-		client:    apiClient,
-		ctx:       ctx,
-		podReq:    podReq,
-		consulReq: consulReq,
-		dataDir:   tmpDirData,
+		config:     config,
+		pod:        podContainer,
+		container:  consulContainer,
+		ip:         ip,
+		port:       mappedPort.Int(),
+		datacenter: pc.Datacenter,
+		client:     apiClient,
+		ctx:        ctx,
+		podReq:     podReq,
+		consulReq:  consulReq,
+		dataDir:    tmpDirData,
 	}, nil
 }
 
@@ -190,6 +203,15 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 
+	consulType := "client"
+	if pc.Server {
+		consulType = "server"
+	}
+	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
+
+	// Inject new Node name
+	config.HCL += fmt.Sprintf("node_name = %s\n", name)
+
 	file, err := createConfigFile(config.HCL)
 	if err != nil {
 		return err
@@ -221,7 +243,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 	container.FollowOutput(&NodeLogConsumer{
-		Prefix: pc.NodeName,
+		Prefix: name,
 	})
 
 	c.container = container
@@ -308,8 +330,8 @@ func createConfigFile(HCL string) (string, error) {
 }
 
 type parsedConfig struct {
-	NodeName   string `hcl:"node_name"`
 	Datacenter string `hcl:"datacenter"`
+	Server     bool   `hcl:"server"`
 }
 
 func readSomeConfigFileFields(HCL string) (parsedConfig, error) {

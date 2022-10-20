@@ -10,6 +10,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	libnode "github.com/hashicorp/consul/integration/consul-container/libs/node"
+	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 )
 
 // exampleContainer
@@ -60,8 +61,8 @@ func (c exampleContainer) Terminate() error {
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libnode.Node) (Service, error) {
-	// TODO (dans): add the dc name into the cluster
-	containerName := fmt.Sprintf("dc1-service-example-%s", name)
+	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
+	containerName := utils.RandName(namePrefix)
 
 	req := testcontainers.ContainerRequest{
 		Image:      hashicorpDockerProxy + "/fortio/fortio",

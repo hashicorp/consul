@@ -60,8 +60,8 @@ func (c connectContainer) Terminate() error {
 }
 
 func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Node) (Service, error) {
-	// TODO (dans): add the dc name into the cluster
-	containerName := fmt.Sprintf("dc1-service-connect-%s", name)
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
+	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
 	buildargs := map[string]*string{
@@ -89,8 +89,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
 			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
 			"--",
-			"--log-level", "debug"},
-		Env: map[string]string{"CONSUL_HTTP_ADDR": fmt.Sprintf("%s:%d", nodeIP, 8500)},
+			"--log-level", "trace"},
 		ExposedPorts: []string{
 			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
 			"19000/tcp",                            // Envoy Admin Port

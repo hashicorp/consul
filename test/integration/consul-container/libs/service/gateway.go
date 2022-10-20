@@ -59,8 +59,8 @@ func (c gatewayContainer) Terminate() error {
 }
 
 func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Node) (Service, error) {
-	// TODO (dans): add the dc name into the cluster
-	containerName := fmt.Sprintf("dc1-service-gateway-%s", name)
+	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
+	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
 	buildargs := map[string]*string{
@@ -80,8 +80,17 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
 		AutoRemove:     false,
 		Name:           containerName,
-		Cmd:            []string{"consul", "connect", "envoy", fmt.Sprintf("-gateway=%s", kind), "-register", "-service", name, "-address", "{{ GetInterfaceIP \"eth0\" }}:8443", fmt.Sprintf("-grpc-addr=%s:%d", nodeIP, 8502), "-admin-bind", "0.0.0.0:19000"},
-		Env:            map[string]string{"CONSUL_HTTP_ADDR": fmt.Sprintf("%s:%d", nodeIP, 8500)},
+		Cmd: []string{
+			"consul", "connect", "envoy",
+			fmt.Sprintf("-gateway=%s", kind),
+			"-register",
+			"-service", name,
+			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
+			fmt.Sprintf("-grpc-addr=%s:%d", nodeIP, 8502),
+			"-admin-bind", "0.0.0.0:19000",
+			"--",
+			"--log-level", "info"},
+		Env: map[string]string{"CONSUL_HTTP_ADDR": fmt.Sprintf("%s:%d", nodeIP, 8500)},
 		ExposedPorts: []string{
 			"8443/tcp",  // Envoy Gateway Listener
 			"19000/tcp", // Envoy Admin Port

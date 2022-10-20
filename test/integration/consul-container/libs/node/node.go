@@ -12,6 +12,7 @@ type Node interface {
 	GetClient() *api.Client
 	GetName() string
 	GetConfig() Config
+	GetDatacenter() string
 	RegisterTermination(func() error)
 	Terminate() error
 	Upgrade(ctx context.Context, config Config) error

@@ -39,7 +39,7 @@ func New(configs []node.Config) (*Cluster, error) {
 
 	nodes := make([]node.Node, len(configs))
 	for idx, c := range configs {
-		c.HCL += fmt.Sprintf(" encrypt=%q", serfKey)
+		c.HCL += fmt.Sprintf("\nencrypt = %q", serfKey)
 
 		n, err := node.NewConsulContainer(context.Background(), c)
 		if err != nil {
