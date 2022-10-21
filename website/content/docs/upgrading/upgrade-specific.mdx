@@ -264,9 +264,10 @@ be replaced with the new [`tls` stanza](/docs/agent/config/config-files#tls-conf
 ### 1.10 Compatibility <EnterpriseAlert inline />
 Consul Enterprise versions 1.10.0 through 1.10.4 contain a latent bug that
 causes those client or server agents to deregister their own services or health
-checks when some of the servers have been upgraded to 1.11. Before upgrading Consul Enterprise servers to 1.11, all Consul agents should first
-be upgraded to 1.10.7 or higher to ensure forward compatibility and prevent
-flapping of catalog registrations.
+checks when some of the servers have been upgraded to 1.11 or later.
+Before upgrading Consul Enterprise servers to 1.11 or later,
+you should first upgrade all Consul client and server agents to 1.10.7 or higher
+to ensure forward compatibility and prevent flapping of catalog registrations.
 
 ### Deprecated Agent Config Options
 
