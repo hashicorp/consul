@@ -187,10 +187,12 @@ expected result:
 
 ### Upgrading the primary gateways
 
-Once federation has been established, updates for the addresses of new primary
-gateways are propagated through the gateways in the primary themselves. If the primary
-gateways are upgraded, and their previous instances are decommissioned before
-the updates are propagated, then the primary datacenter will become unreachable.
+Once federation is established, secondary datacenters will continuously request
+updated mesh gateway addresses from the primary datacenter. These requests
+themselves flow through the mesh gateways of the primary datacenter, since
+secondary datacenters cannot dial the primary datacenter's Consul servers directly.
+If the primary gateways are upgraded, and their previous instances are decommissioned
+before the updates are propagated, then the primary datacenter will become unreachable.
 
 To safely upgrade primary gateways, we recommend that you apply one of the following policies:
 - Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
