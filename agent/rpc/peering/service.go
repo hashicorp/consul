@@ -556,7 +556,7 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		// If we got a permission denied error that means out establishment secret is invalid, so we do not retry.
 		grpcErr, ok := grpcstatus.FromError(err)
 		if ok && grpcErr.Code() == codes.PermissionDenied {
-			return nil, fmt.Errorf("a new peering token must be generated: %w", grpcErr.Err())
+			return nil, grpcstatus.Errorf(codes.PermissionDenied, "a new peering token must be generated: %s", grpcErr.Message())
 		}
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret through address %q: %w", addr, err))

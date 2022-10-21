@@ -510,6 +510,9 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 			PeerName:     "my-peer-acceptor",
 			PeeringToken: peeringToken,
 		})
+		grpcErr, ok := grpcstatus.FromError(err)
+		require.True(t, ok)
+		require.Equal(t, codes.PermissionDenied, grpcErr.Code())
 		testutil.RequireErrorContains(t, err, "a new peering token must be generated")
 	})
 

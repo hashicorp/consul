@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -372,6 +374,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 		isForbidden := func(err error) bool {
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
+				return true
+			}
+			if e, ok := status.FromError(err); ok && e.Code() == codes.PermissionDenied {
 				return true
 			}
 			return false
