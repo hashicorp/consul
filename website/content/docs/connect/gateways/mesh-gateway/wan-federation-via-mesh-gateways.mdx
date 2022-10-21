@@ -192,9 +192,8 @@ gateways are propagated through the gateways in the primary themselves. If the p
 gateways are upgraded, and their previous instances are decommissioned before
 the updates are propagated, then the primary datacenter will become unreachable.
 
-To safely upgrade primary gateways it is preferable to do one of the following:
-- Avoid decommissioning primary gateway IP addresses, since the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary
-servers acts as a fallback mechanism to re-establish connectivity to the primary.
+To safely upgrade primary gateways, we recommend that you apply one of the following policies:
+- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
 
 - Verify that addresses of the new mesh gateways in the primary were propagated
 to the secondary datacenters before decommissioning the old mesh gateways in the primary.
