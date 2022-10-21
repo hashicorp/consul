@@ -6,16 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -49,7 +49,7 @@ func TestUIIndex(t *testing.T) {
 
 	// Create file
 	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("test"), 0644); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/configentry"
@@ -347,7 +347,7 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 	// Create
 	require.NoError(t, s.EnsureConfigEntry(0, destination))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -366,7 +366,7 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 
 	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -413,7 +413,7 @@ func TestStore_ServiceDefaults_Kind_NotDestination(t *testing.T) {
 	// Create
 	require.NoError(t, s.EnsureConfigEntry(0, destination))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.False(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -427,7 +427,7 @@ func TestStore_ServiceDefaults_Kind_NotDestination(t *testing.T) {
 
 	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.False(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -476,7 +476,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -507,7 +507,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 
 	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -573,7 +573,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -592,7 +592,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 
 	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -641,7 +641,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -655,7 +655,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 
 	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -880,7 +880,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -894,7 +894,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 
 	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we transitioned to a destination, by default we assume it's not.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -903,7 +903,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
-	ensureConfigEntry := func(s *Store, idx uint64, entry structs.ConfigEntry) error {
+	ensureConfigEntry := func(s *Store, _ uint64, entry structs.ConfigEntry) error {
 		if err := entry.Normalize(); err != nil {
 			return err
 		}

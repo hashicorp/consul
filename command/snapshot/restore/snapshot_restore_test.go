@@ -4,17 +4,17 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSnapshotRestoreCommand_noTabs(t *testing.T) {
@@ -135,7 +135,7 @@ func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
 		require.NoError(t, err)
 		defer rc.Close()
 
-		inputData, err = ioutil.ReadAll(rc)
+		inputData, err = io.ReadAll(rc)
 		require.NoError(t, err)
 	}
 
@@ -150,7 +150,7 @@ func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
 			c := New(ui)
 
 			file := filepath.Join(dir, "backup.tgz")
-			require.NoError(t, ioutil.WriteFile(file, data, 0644))
+			require.NoError(t, os.WriteFile(file, data, 0644))
 			args := []string{
 				"-http-addr=" + a.HTTPAddr(),
 				file,

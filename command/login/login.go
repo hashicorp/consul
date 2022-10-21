@@ -3,13 +3,14 @@ package login
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
+
+	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib/file"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -112,7 +113,7 @@ func (c *cmd) bearerTokenLogin() int {
 		c.UI.Error("Missing required '-bearer-token-file' flag")
 		return 1
 	} else {
-		data, err := ioutil.ReadFile(c.bearerTokenFile)
+		data, err := os.ReadFile(c.bearerTokenFile)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1

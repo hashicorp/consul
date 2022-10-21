@@ -2,14 +2,13 @@ package consul
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -61,7 +60,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	resetPath := filepath.Join(dir, "acl-bootstrap-reset")
-	require.NoError(t, ioutil.WriteFile(resetPath, []byte(fmt.Sprintf("%d", resetIdx)), 0600))
+	require.NoError(t, os.WriteFile(resetPath, []byte(fmt.Sprintf("%d", resetIdx)), 0600))
 
 	oldID := out.AccessorID
 	// Finally, make sure that another attempt is rejected.
@@ -2944,7 +2943,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 
 	t.Parallel()
 
-	tempDir, err := ioutil.TempDir("", "consul")
+	tempDir, err := os.MkdirTemp("", "consul")
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(tempDir) })
 	_, srv, codec := testACLServerWithConfig(t, nil, false)

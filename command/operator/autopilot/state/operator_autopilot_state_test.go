@@ -3,16 +3,17 @@ package state
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 // update allows golden files to be updated based on the current output.
@@ -25,11 +26,11 @@ func golden(t *testing.T, name, got string) string {
 
 	golden := filepath.Join("testdata", name+".golden")
 	if *update && got != "" {
-		err := ioutil.WriteFile(golden, []byte(got), 0644)
+		err := os.WriteFile(golden, []byte(got), 0644)
 		require.NoError(t, err)
 	}
 
-	expected, err := ioutil.ReadFile(golden)
+	expected, err := os.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)
@@ -111,7 +112,7 @@ func TestStateCommand_Formatter(t *testing.T) {
 	for _, name := range cases {
 		t.Run(name, func(t *testing.T) {
 			statePath := filepath.Join("testdata", name, "state.json")
-			input, err := ioutil.ReadFile(statePath)
+			input, err := os.ReadFile(statePath)
 			require.NoError(t, err)
 
 			var state api.AutopilotState

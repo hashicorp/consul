@@ -2,15 +2,16 @@ package rules
 
 import (
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRulesTranslateCommand_noTabs(t *testing.T) {
@@ -52,7 +53,7 @@ func TestRulesTranslateCommand(t *testing.T) {
 
 	// From a file
 	t.Run("file", func(t *testing.T) {
-		err := ioutil.WriteFile(testDir+"/rules.hcl", []byte(rules), 0644)
+		err := os.WriteFile(testDir+"/rules.hcl", []byte(rules), 0644)
 		require.NoError(t, err)
 
 		args := []string{

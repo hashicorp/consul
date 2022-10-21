@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -516,7 +517,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 }
 
 func (m *subscriptionManager) collectPendingEventForDiscoveryChain(
-	ctx context.Context,
+	_ context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
@@ -786,7 +787,7 @@ func (m *subscriptionManager) notifyMeshConfigUpdates(ctx context.Context) <-cha
 	const meshConfigWatch = "mesh-config-entry"
 
 	notifyCh := make(chan cache.UpdateEvent, 1)
-	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(ctx_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
+	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		_, rawEntry, err := store.ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get mesh config entry: %w", err)

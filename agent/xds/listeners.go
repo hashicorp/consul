@@ -1095,7 +1095,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	// Determine listener protocol type from configured service protocol. Don't hard fail on a config typo,
-	//The parse func returns default config if there is an error, so it's safe to continue.
+	// The parse func returns default config if there is an error, so it's safe to continue.
 	cfg, _ := ParseProxyConfig(cfgSnap.Proxy.Config)
 
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
@@ -1340,7 +1340,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 // finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
 // This include L4 authorization filters and TLS context.
-func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, proxyCfg ProxyConfig, useHTTPFilter bool) error {
+func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, _ ProxyConfig, useHTTPFilter bool) error {
 	if !useHTTPFilter {
 		// Best-effort injection of L4 intentions
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {

@@ -1,16 +1,17 @@
 package lock
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 )
 
 func argFail(t *testing.T, args []string, expected string) {
@@ -63,7 +64,7 @@ func TestLockCommand(t *testing.T) {
 	}
 
 	// Check for the file
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -92,7 +93,7 @@ func TestLockCommand_NoShell(t *testing.T) {
 	}
 
 	// Check for the file
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -121,7 +122,7 @@ func TestLockCommand_TryLock(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -159,7 +160,7 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -197,7 +198,7 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -236,7 +237,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -275,7 +276,7 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -314,7 +315,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	_, err := ioutil.ReadFile(filePath)
+	_, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

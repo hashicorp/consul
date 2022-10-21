@@ -946,6 +946,9 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
+// TODO(peering): result 0 (uint64) is never used
+//
+//nolint:unparam
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,

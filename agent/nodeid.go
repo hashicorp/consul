@@ -3,17 +3,17 @@ package agent
 import (
 	"crypto/sha512"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/shirou/gopsutil/v3/host"
+
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 )
 
 // newNodeIDFromConfig will pull the persisted node ID, if any, or create a random one
@@ -36,7 +36,7 @@ func newNodeIDFromConfig(config *config.RuntimeConfig, logger hclog.Logger) (typ
 	// Load saved state, if any. Since a user could edit this, we also validate it.
 	filename := filepath.Join(config.DataDir, "node-id")
 	if _, err := os.Stat(filename); err == nil {
-		rawID, err := ioutil.ReadFile(filename)
+		rawID, err := os.ReadFile(filename)
 		if err != nil {
 			return "", err
 		}
@@ -56,7 +56,7 @@ func newNodeIDFromConfig(config *config.RuntimeConfig, logger hclog.Logger) (typ
 	if err := lib.EnsurePath(filename, false); err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(filename, []byte(id), 0600); err != nil {
+	if err := os.WriteFile(filename, []byte(id), 0600); err != nil {
 		return "", fmt.Errorf("failed to write NodeID to disk: %w", err)
 	}
 	return types.NodeID(id), nil

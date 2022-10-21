@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -69,7 +69,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	signer, _, _ := tlsutil.GeneratePrivateKey()
 	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	cafile := path.Join(dir, "cacert.pem")
-	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(cafile, []byte(ca), 0600))
 
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, func(c *consul.Config) {
@@ -1749,6 +1749,9 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	require.NoError(t, store.ACLTokenBatchSet(101, tokens, state.ACLTokenSetOptions{}))
 }
 
+// TODO(peering): result 0 (string) is never used
+//
+//nolint:unparam
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
 	t.Helper()
 	err := store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{

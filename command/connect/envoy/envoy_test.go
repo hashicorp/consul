@@ -3,7 +3,6 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -998,7 +997,7 @@ func TestGenerateConfig(t *testing.T) {
 			if len(tc.Files) > 0 {
 				for fn, fv := range tc.Files {
 					fullname := filepath.Join(testDir, fn)
-					require.NoError(t, ioutil.WriteFile(fullname, []byte(fv), 0600))
+					require.NoError(t, os.WriteFile(fullname, []byte(fv), 0600))
 				}
 			}
 
@@ -1049,10 +1048,10 @@ func TestGenerateConfig(t *testing.T) {
 			// If we got the arg handling write, verify output
 			golden := filepath.Join("testdata", tc.Name+".golden")
 			if *update {
-				ioutil.WriteFile(golden, actual, 0644)
+				os.WriteFile(golden, actual, 0644)
 			}
 
-			expected, err := ioutil.ReadFile(golden)
+			expected, err := os.ReadFile(golden)
 			require.NoError(t, err)
 			require.Equal(t, string(expected), string(actual))
 		})

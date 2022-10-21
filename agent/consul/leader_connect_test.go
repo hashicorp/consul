@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,7 +12,7 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
@@ -1457,7 +1456,7 @@ func TestNewCARoot(t *testing.T) {
 func readTestData(t *testing.T, name string) string {
 	t.Helper()
 	path := filepath.Join("testdata", name)
-	bs, err := ioutil.ReadFile(path)
+	bs, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading fixture file %s: %s", name, err)
 	}

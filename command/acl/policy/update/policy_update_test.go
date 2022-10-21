@@ -2,16 +2,17 @@ package policyupdate
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPolicyUpdateCommand_noTabs(t *testing.T) {
@@ -47,7 +48,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	assert.NoError(t, err)
 
 	// Create a policy
@@ -97,7 +98,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	assert.NoError(t, err)
 
 	// Create a policy

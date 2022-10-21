@@ -64,7 +64,7 @@ func makeExportedServiceListResponse(
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
 func makeServiceResponse(
-	mst *MutableStatus,
+	_ *MutableStatus,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
 	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)

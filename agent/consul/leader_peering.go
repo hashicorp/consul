@@ -97,7 +97,7 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 	}
 }
 
-func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+func (s *Server) emitPeeringMetricsOnce(_ hclog.Logger, metricsImpl *metrics.Metrics) error {
 	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
 	if err != nil {
 		return err
