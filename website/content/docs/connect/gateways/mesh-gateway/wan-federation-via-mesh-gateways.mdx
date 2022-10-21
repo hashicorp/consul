@@ -188,9 +188,9 @@ expected result:
 ### Upgrading the primary gateways
 
 Once federation is established, secondary datacenters will continuously request
-updated mesh gateway addresses from the primary datacenter. These requests
-themselves flow through the mesh gateways of the primary datacenter, since
-secondary datacenters cannot dial the primary datacenter's Consul servers directly.
+updated mesh gateway addresses from the primary datacenter. Consul routes the requests
+ through the primary datacenter's mesh gateways. This is because
+secondary datacenters cannot directly dial the primary datacenter's Consul servers.
 If the primary gateways are upgraded, and their previous instances are decommissioned
 before the updates are propagated, then the primary datacenter will become unreachable.
 
