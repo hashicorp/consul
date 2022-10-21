@@ -22,7 +22,7 @@ references:
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
-    GO_VERSION: 1.18.1
+    GO_VERSION: 1.19.2
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.20.7"
     - "1.21.5"
@@ -35,7 +35,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.2
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
@@ -1070,24 +1070,24 @@ workflows:
       - go-test:
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-api go1.17"
-          path: api
-          go-version: "1.17"
-          requires: [dev-build]
-      - go-test-lib:
           name: "go-test-api go1.18"
           path: api
           go-version: "1.18"
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-sdk go1.17"
-          path: sdk
-          go-version: "1.17"
-          <<: *filter-ignore-non-go-branches
+          name: "go-test-api go1.19"
+          path: api
+          go-version: "1.19"
+          requires: [ dev-build ]
       - go-test-lib:
           name: "go-test-sdk go1.18"
           path: sdk
           go-version: "1.18"
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.19"
+          path: sdk
+          go-version: "1.19"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
