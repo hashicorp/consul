@@ -30,7 +30,7 @@ at a time, one version at a time.
 
 For more details on the specifics of upgrading, see the [upgrading page](/docs/upgrading).
 
-## Protocol Compatibility Table
+## XDS Protocol Compatibility Table
 
 | Consul Version | Protocol Compatibility                                                       |
 | -------------- | ---------------------------------------------------------------------------- |
@@ -38,6 +38,9 @@ For more details on the specifics of upgrading, see the [upgrading page](/docs/u
 | 0.4            | 1, 2                                                                         |
 | 0.5            | 1, 2. 0.5.X servers cannot be mixed with older servers.                      |
 | 0.6            | 1, 2, 3                                                                      |
-| >= 0.7         | 2, 3. Will automatically use protocol > 2 when speaking to compatible agents |
+| >= 0.7 <= 1.10 | 2, 3. Will automatically use protocol > 2 when speaking to compatible agents |
+| 1.11+.         | 3                                                                            |
+
+-> **Note:** Regarding XDS protocol changes See https://developer.hashicorp.com/consul/docs/upgrading/upgrade-specific#envoy-xds-protocol-upgrades-1 for details.
 
 -> **Note:** Raft Protocol is versioned separately, but maintains compatibility with at least one prior version. See [here](/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility) for details.
