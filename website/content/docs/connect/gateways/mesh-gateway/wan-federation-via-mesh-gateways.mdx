@@ -184,3 +184,18 @@ expected result:
 - Ensure any API request that activates datacenter request forwarding. such as
   [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api-docs/catalog#dc-1)
   succeeds.
+
+### Upgrading the primary gateways
+
+Once federation is established, secondary datacenters will continuously request
+updated mesh gateway addresses from the primary datacenter. Consul routes the requests
+ through the primary datacenter's mesh gateways. This is because
+secondary datacenters cannot directly dial the primary datacenter's Consul servers.
+If the primary gateways are upgraded, and their previous instances are decommissioned
+before the updates are propagated, then the primary datacenter will become unreachable.
+
+To safely upgrade primary gateways, we recommend that you apply one of the following policies:
+- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/docs/agent/config/config-files#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
+
+- Verify that addresses of the new mesh gateways in the primary were propagated
+to the secondary datacenters before decommissioning the old mesh gateways in the primary.
