@@ -3,26 +3,26 @@
 //
 // Example usage:
 //
-//   $ go run connect/certgen/certgen.go -out-dir /tmp/connect-certs
+//	$ go run connect/certgen/certgen.go -out-dir /tmp/connect-certs
 //
 // You can verify a given leaf with a given root using:
 //
-//   $ openssl verify -verbose -CAfile ca1-ca.cert.pem ca1-svc-db.cert.pem
+//	$ openssl verify -verbose -CAfile ca1-ca.cert.pem ca1-svc-db.cert.pem
 //
 // Note that to verify via the cross-signed intermediate, openssl requires it to
 // be bundled with the _root_ CA bundle and will ignore the cert if it's passed
 // with the subject. You can do that with:
 //
-//   $ openssl verify -verbose -CAfile \
-//      <(cat ca1-ca.cert.pem ca2-xc-by-ca1.cert.pem) \
-//      ca2-svc-db.cert.pem
-//   ca2-svc-db.cert.pem: OK
+//	$ openssl verify -verbose -CAfile \
+//	   <(cat ca1-ca.cert.pem ca2-xc-by-ca1.cert.pem) \
+//	   ca2-svc-db.cert.pem
+//	ca2-svc-db.cert.pem: OK
 //
 // Note that the same leaf and root without the intermediate should fail:
 //
-//  $ openssl verify -verbose -CAfile ca1-ca.cert.pem ca2-svc-db.cert.pem
-//  ca2-svc-db.cert.pem: CN = db
-//  error 20 at 0 depth lookup:unable to get local issuer certificate
+//	$ openssl verify -verbose -CAfile ca1-ca.cert.pem ca2-svc-db.cert.pem
+//	ca2-svc-db.cert.pem: CN = db
+//	error 20 at 0 depth lookup:unable to get local issuer certificate
 //
 // NOTE: THIS IS A QUIRK OF OPENSSL; in Connect we distribute the roots alone
 // and stable intermediates like the XC cert to the _leaf_.
@@ -35,9 +35,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/go-testing-interface"
 )
 
 func main() {

@@ -7,12 +7,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -132,7 +133,6 @@ func (c *Controller) updateDrainRateLimit(numProxies uint32) {
 //	0-512 proxies: drain 1 per second
 //	513-2815 proxies: linearly scaled by 1/s for every additional 256 proxies
 //	2816+ proxies: drain 10 per second
-//
 func calcRateLimit(numProxies uint32) rate.Limit {
 	perSecond := math.Floor((float64(numProxies) - 256) / 256)
 
