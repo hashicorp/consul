@@ -225,19 +225,19 @@ type ACLResolverSettings struct {
 //   - Resolving roles remotely via an ACL.RoleResolve RPC
 //
 // Remote Resolution:
-//   Remote resolution can be done synchronously or asynchronously depending
-//   on the ACLDownPolicy in the Config passed to the resolver.
 //
-//   When the down policy is set to async-cache and we have already cached values
-//   then go routines will be spawned to perform the RPCs in the background
-//   and then will update the cache with either the positive or negative result.
+//	Remote resolution can be done synchronously or asynchronously depending
+//	on the ACLDownPolicy in the Config passed to the resolver.
 //
-//   When the down policy is set to extend-cache or the token/policy/role is not already
-//   cached then the same go routines are spawned to do the RPCs in the background.
-//   However in this mode channels are created to receive the results of the RPC
-//   and are registered with the resolver. Those channels are immediately read/blocked
-//   upon.
+//	When the down policy is set to async-cache and we have already cached values
+//	then go routines will be spawned to perform the RPCs in the background
+//	and then will update the cache with either the positive or negative result.
 //
+//	When the down policy is set to extend-cache or the token/policy/role is not already
+//	cached then the same go routines are spawned to do the RPCs in the background.
+//	However in this mode channels are created to receive the results of the RPC
+//	and are registered with the resolver. Those channels are immediately read/blocked
+//	upon.
 type ACLResolver struct {
 	config ACLResolverSettings
 	logger hclog.Logger

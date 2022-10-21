@@ -18,6 +18,7 @@ import (
 )
 
 // Client interface exposes HCP operations that can be invoked by Consul
+//
 //go:generate mockery --name Client --with-expecter --inpackage
 type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
