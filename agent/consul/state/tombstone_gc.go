@@ -16,7 +16,6 @@ import (
 // data is deleted from the KV store, the "latest" row can go backwards if the
 // newest row is removed. The tombstones provide a way to ensure time doesn't
 // move backwards within some interval.
-//
 type TombstoneGC struct {
 	// ttl sets the TTL for tombstones.
 	ttl time.Duration

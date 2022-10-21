@@ -19,7 +19,8 @@ import (
 // Aliases must be lowercase, as keys are compared case-insensitive.
 //
 // Example alias tag:
-//    MyField []string `alias:"old_field_name,otherfieldname"`
+//
+//	MyField []string `alias:"old_field_name,otherfieldname"`
 //
 // This hook should ONLY be used to maintain backwards compatibility with
 // deprecated keys. For new structures use mapstructure struct tags to set the
@@ -143,7 +144,7 @@ type mapstructureFieldTags struct {
 // the target is a slice. This is necessary because this hook would have converted
 // the initial slices into single values on the first pass.
 //
-// Background
+// # Background
 //
 // HCL allows for repeated blocks which forces it to store structures
 // as []map[string]interface{} instead of map[string]interface{}. This is an

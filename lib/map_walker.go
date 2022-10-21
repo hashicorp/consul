@@ -47,12 +47,11 @@ var typByteSlice = reflect.TypeOf([]byte{})
 //
 // In particular we're looking to replace two cases the msgpack codec causes:
 //
-//   1.) String values get turned into byte slices. JSON will base64-encode
-//       this and we don't want that, so we convert them back to strings.
+//	1.) String values get turned into byte slices. JSON will base64-encode
+//	    this and we don't want that, so we convert them back to strings.
 //
-//   2.) Nested maps turn into map[interface{}]interface{}. JSON cannot
-//       encode this, so we need to turn it back into map[string]interface{}.
-//
+//	2.) Nested maps turn into map[interface{}]interface{}. JSON cannot
+//	    encode this, so we need to turn it back into map[string]interface{}.
 type mapWalker struct {
 	lastValue    reflect.Value        // lastValue of map, required for replacement
 	loc, lastLoc reflectwalk.Location // locations
