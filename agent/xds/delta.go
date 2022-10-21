@@ -444,10 +444,6 @@ type xDSDeltaChild struct {
 	childrenNames map[string][]string
 }
 
-func (c *xDSDeltaChild) forceResubscribe(logger *hclog.Logger, parent string, child string) {
-
-}
-
 type xDSDeltaType struct {
 	generator    *ResourceGenerator
 	stream       ADSDeltaStream
@@ -730,7 +726,9 @@ func (t *xDSDeltaType) SendIfNew(
 	// we MUST send new data for all its children. Envoy will NOT re-subscribe to the child data upon
 	// receiving updates for the parent, so we need to handle this ourselves.
 	//
-	// Note that we do not check whether the deltaChild.childType is registered here, since we
+	// Note that we do not check whether the deltaChild.childType is registered here, since we send
+	// parent types before child types, meaning that it's expected on first send of a parent that
+	// there are no subscriptions for the child type.
 	if t.deltaChild != nil {
 		for name := range updates {
 			if children, ok := resourceMap.ChildIndex[t.typeURL][name]; ok {
