@@ -61,7 +61,9 @@ This bug is fixed in Consul versions 1.13.1 and newer.
 
 #### Service mesh deployments using auto-encrypt or auto-config
 
-Upgrade to **Consul version 1.13.2 or later**.
+Upgrade to **Consul version 1.13.2 or later** if using
+[auto-encrypt](/docs/agent/config/config-files#auto_encrypt) or
+[auto-config](/docs/agent/config/config-files#auto_config).
 
 In Consul 1.13.1, auto-encrypt and auto-config both cause Consul
 to require TLS for gRPC communication with Envoy proxies.
