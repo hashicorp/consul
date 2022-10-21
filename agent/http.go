@@ -320,8 +320,8 @@ func (s *HTTPHandlers) nodeName() string {
 // this regular expression is applied, so the regular expression substitution
 // results in:
 //
-// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
-//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//	/v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//	                               ^---- $1 ----^^- $2 -^^-- $3 --^
 //
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.

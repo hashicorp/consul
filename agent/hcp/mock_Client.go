@@ -50,7 +50,7 @@ type MockClient_DiscoverServers_Call struct {
 }
 
 // DiscoverServers is a helper method to define mock.On call
-//  - ctx context.Context
+//   - ctx context.Context
 func (_e *MockClient_Expecter) DiscoverServers(ctx interface{}) *MockClient_DiscoverServers_Call {
 	return &MockClient_DiscoverServers_Call{Call: _e.mock.On("DiscoverServers", ctx)}
 }
@@ -96,7 +96,7 @@ type MockClient_FetchBootstrap_Call struct {
 }
 
 // FetchBootstrap is a helper method to define mock.On call
-//  - ctx context.Context
+//   - ctx context.Context
 func (_e *MockClient_Expecter) FetchBootstrap(ctx interface{}) *MockClient_FetchBootstrap_Call {
 	return &MockClient_FetchBootstrap_Call{Call: _e.mock.On("FetchBootstrap", ctx)}
 }
@@ -133,8 +133,8 @@ type MockClient_PushServerStatus_Call struct {
 }
 
 // PushServerStatus is a helper method to define mock.On call
-//  - ctx context.Context
-//  - status *ServerStatus
+//   - ctx context.Context
+//   - status *ServerStatus
 func (_e *MockClient_Expecter) PushServerStatus(ctx interface{}, status interface{}) *MockClient_PushServerStatus_Call {
 	return &MockClient_PushServerStatus_Call{Call: _e.mock.On("PushServerStatus", ctx, status)}
 }
