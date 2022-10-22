@@ -71,7 +71,7 @@ In environments where Envoy proxies are not already configured
 to use TLS for gRPC, upgrading to Consul 1.13.0 - 1.13.1 will cause
 Envoy proxies to disconnect from the control plane (Consul agents).
 
-If upgrading to version 1.13.2 you must also enable
+If upgrading to version 1.13.2 or later, you must enable
 [tls.grpc.use_auto_cert](/docs/agent/config/config-files#use_auto_cert)
 if you currently use the Connect CA and auto-encrypt certs for TLS
 on the gRPC port, and do not have certificates configured via
