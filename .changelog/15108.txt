@@ -1,0 +1,3 @@
+```release-note:bug
+peering: when wan address is set, peering stream should use the wan address.
+```
