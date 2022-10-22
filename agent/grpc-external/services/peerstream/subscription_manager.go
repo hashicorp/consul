@@ -829,7 +829,13 @@ func (m *subscriptionManager) subscribeServerAddrs(
 			if srv.ExtGRPCPort == 0 {
 				continue
 			}
-			grpcAddr := srv.Address + ":" + strconv.Itoa(srv.ExtGRPCPort)
+			addr := srv.Address
+
+			// wan address is preferred
+			if v, ok := srv.TaggedAddresses[structs.TaggedAddressWAN]; ok && v != "" {
+				addr = v
+			}
+			grpcAddr := addr + ":" + strconv.Itoa(srv.ExtGRPCPort)
 			serverAddrs = append(serverAddrs, grpcAddr)
 		}
 
