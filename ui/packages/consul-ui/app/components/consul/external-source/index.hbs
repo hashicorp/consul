@@ -5,9 +5,10 @@
           <dt>
             <span
               data-test-external-source={{externalSource}}
-              class="consul-external-source {{externalSource}}"
+              class="consul-external-source"
               ...attributes
             >
+              <FlightIcon @name={{external-source-icon-map externalSource}} class="mr-1.5 w-3 h-3"  />
               Registered via {{t (concat "common.brand." externalSource)}}
             </span>
           </dt>
@@ -32,9 +33,10 @@
   {{else if externalSource}}
     <span
       data-test-external-source={{externalSource}}
-      class="consul-external-source {{externalSource}}"
+      class="consul-external-source"
       ...attributes
     >
+      <FlightIcon @name={{external-source-icon-map externalSource}} class="mr-1.5 h-3 w-3" />
       {{#if @label}}
         {{@label}}
       {{else}}
