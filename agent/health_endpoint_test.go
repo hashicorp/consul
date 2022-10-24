@@ -1062,76 +1062,82 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 	for _, tst := range tests {
 		t.Run(tst.name, func(t *testing.T) {
-
 			a := NewTestAgent(t, tst.config)
-			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			waitForStreamingToBeReady(t, a)
+			encodedMeta := url.QueryEscape("somekey:somevalue")
 
-			req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.HealthServiceNodes(resp, req)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			var lastIndex uint64
+			runStep(t, "do initial read", func(t *testing.T) {
+				u := fmt.Sprintf("/v1/health/service/test?dc=dc1&node-meta=%s", encodedMeta)
+				req, err := http.NewRequest("GET", u, nil)
+				require.NoError(t, err)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
 
-			assertIndex(t, resp)
+				lastIndex = getIndex(t, resp)
+				require.True(t, lastIndex > 0)
 
-			cIndex, err := strconv.ParseUint(resp.Header().Get("X-Consul-Index"), 10, 64)
-			require.NoError(t, err)
+				// Should be a non-nil empty list
+				nodes := obj.(structs.CheckServiceNodes)
+				require.NotNil(t, nodes)
+				require.Empty(t, nodes)
+			})
 
-			// Should be a non-nil empty list
-			nodes := obj.(structs.CheckServiceNodes)
-			if nodes == nil || len(nodes) != 0 {
-				t.Fatalf("bad: %v", obj)
-			}
+			require.True(t, lastIndex > 0, "lastindex = %d", lastIndex)
 
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "bar",
-				Address:    "127.0.0.1",
-				NodeMeta:   map[string]string{"somekey": "somevalue"},
-				Service: &structs.NodeService{
-					ID:      "test",
-					Service: "test",
-				},
-			}
+			runStep(t, "register item 1", func(t *testing.T) {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "bar",
+					Address:    "127.0.0.1",
+					NodeMeta:   map[string]string{"somekey": "somevalue"},
+					Service: &structs.NodeService{
+						ID:      "test",
+						Service: "test",
+					},
+				}
 
-			var out struct{}
-			if err := a.RPC("Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+				var ignored struct{}
+				require.NoError(t, a.RPC("Catalog.Register", args, &ignored))
+			})
 
-			args = &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "bar2",
-				Address:    "127.0.0.1",
-				NodeMeta:   map[string]string{"somekey": "othervalue"},
-				Service: &structs.NodeService{
-					ID:      "test2",
-					Service: "test",
-				},
-			}
+			runStep(t, "register item 2", func(t *testing.T) {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "bar2",
+					Address:    "127.0.0.1",
+					NodeMeta:   map[string]string{"somekey": "othervalue"},
+					Service: &structs.NodeService{
+						ID:      "test2",
+						Service: "test",
+					},
+				}
 
-			if err := a.RPC("Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+				var ignored struct{}
+				require.NoError(t, a.RPC("Catalog.Register", args, &ignored))
+			})
 
-			req, _ = http.NewRequest("GET", fmt.Sprintf("/v1/health/service/test?dc=dc1&node-meta=somekey:somevalue&index=%d&wait=10ms", cIndex), nil)
-			resp = httptest.NewRecorder()
-			obj, err = a.srv.HealthServiceNodes(resp, req)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			runStep(t, "do blocking read", func(t *testing.T) {
+				u := fmt.Sprintf("/v1/health/service/test?dc=dc1&node-meta=%s&index=%d&wait=100ms&cached", encodedMeta, lastIndex)
+				req, err := http.NewRequest("GET", u, nil)
+				require.NoError(t, err)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
 
-			assertIndex(t, resp)
+				assertIndex(t, resp)
 
-			// Should be a non-nil empty list for checks
-			nodes = obj.(structs.CheckServiceNodes)
-			if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
-				t.Fatalf("bad: %v", obj)
-			}
+				// Should be a non-nil empty list for checks
+				nodes := obj.(structs.CheckServiceNodes)
+				if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
+					t.Fatalf("bad: %v", obj)
+				}
 
-			require.Equal(t, tst.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+				require.Equal(t, tst.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+			})
 		})
 	}
 }
@@ -1573,6 +1579,7 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 	a := NewTestAgent(t, agentHCL)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	waitForStreamingToBeReady(t, a)
 
 	// Register gateway
 	gatewayArgs := structs.TestRegisterIngressGateway(t)
@@ -1821,4 +1828,10 @@ func TestFilterNonPassing(t *testing.T) {
 	if len(out) != 1 && reflect.DeepEqual(out[0], nodes[2]) {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func waitForStreamingToBeReady(t *testing.T, a *TestAgent) {
+	retry.Run(t, func(r *retry.R) {
+		require.True(r, a.rpcClientHealth.IsReadyForStreaming())
+	})
 }
