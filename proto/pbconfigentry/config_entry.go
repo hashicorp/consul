@@ -116,30 +116,6 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 	return configEntry
 }
 
-func PassiveHealthCheckToStructs(s *PassiveHealthCheck) *structs.PassiveHealthCheck {
-	if s == nil {
-		return nil
-	}
-
-	var t structs.PassiveHealthCheck
-	t.Interval = structs.DurationFromProto(s.Interval)
-	t.MaxFailures = s.MaxFailures
-	t.EnforcingConsecutive5xx = pointerToUint32FromUint32(s.EnforcingConsecutive5Xx)
-	return &t
-}
-
-func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck) *PassiveHealthCheck {
-	if t == nil {
-		return nil
-	}
-
-	var s PassiveHealthCheck
-	s.Interval = structs.DurationToProto(t.Interval)
-	s.MaxFailures = t.MaxFailures
-	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
-	return &s
-}
-
 func tlsVersionToStructs(s string) types.TLSVersion {
 	return types.TLSVersion(s)
 }
