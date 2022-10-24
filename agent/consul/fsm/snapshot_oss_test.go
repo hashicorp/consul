@@ -908,7 +908,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	sink.Write([]byte{byte(structs.MessageType(entMockEntry.ID))})
 	encoder.Encode(entMockEntry)
 
-	require.EqualError(t, fsm.Restore(sink), "msg type <65> is a Consul Enterprise log entry. Consul OSS does not recognize or load it")
+	require.EqualError(t, fsm.Restore(sink), "msg type <65> is a Consul Enterprise log entry. Consul OSS cannot restore it")
 	sink.Cancel()
 }
 
