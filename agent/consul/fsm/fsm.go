@@ -335,4 +335,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	if err != nil {
 		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
 	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceDefaults, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().ServiceDefaultsSnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 }

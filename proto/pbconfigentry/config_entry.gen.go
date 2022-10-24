@@ -20,6 +20,70 @@ func CookieConfigFromStructs(t *structs.CookieConfig, s *CookieConfig) {
 	s.TTL = structs.DurationToProto(t.TTL)
 	s.Path = t.Path
 }
+func DestinationConfigToStructs(s *DestinationConfig, t *structs.DestinationConfig) {
+	if s == nil {
+		return
+	}
+	t.Addresses = s.Addresses
+	t.Port = int(s.Port)
+}
+func DestinationConfigFromStructs(t *structs.DestinationConfig, s *DestinationConfig) {
+	if s == nil {
+		return
+	}
+	s.Addresses = t.Addresses
+	s.Port = int32(t.Port)
+}
+func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
+	if s == nil {
+		return
+	}
+	t.Checks = s.Checks
+	{
+		t.Paths = make([]structs.ExposePath, len(s.Paths))
+		for i := range s.Paths {
+			if s.Paths[i] != nil {
+				ExposePathToStructs(s.Paths[i], &t.Paths[i])
+			}
+		}
+	}
+}
+func ExposeConfigFromStructs(t *structs.ExposeConfig, s *ExposeConfig) {
+	if s == nil {
+		return
+	}
+	s.Checks = t.Checks
+	{
+		s.Paths = make([]*ExposePath, len(t.Paths))
+		for i := range t.Paths {
+			{
+				var x ExposePath
+				ExposePathFromStructs(&t.Paths[i], &x)
+				s.Paths[i] = &x
+			}
+		}
+	}
+}
+func ExposePathToStructs(s *ExposePath, t *structs.ExposePath) {
+	if s == nil {
+		return
+	}
+	t.ListenerPort = int(s.ListenerPort)
+	t.Path = s.Path
+	t.LocalPathPort = int(s.LocalPathPort)
+	t.Protocol = s.Protocol
+	t.ParsedFromCheck = s.ParsedFromCheck
+}
+func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
+	if s == nil {
+		return
+	}
+	s.ListenerPort = int32(t.ListenerPort)
+	s.Path = t.Path
+	s.LocalPathPort = int32(t.LocalPathPort)
+	s.Protocol = t.Protocol
+	s.ParsedFromCheck = t.ParsedFromCheck
+}
 func GatewayServiceTLSConfigToStructs(s *GatewayServiceTLSConfig, t *structs.GatewayServiceTLSConfig) {
 	if s == nil {
 		return
@@ -496,6 +560,18 @@ func MeshDirectionalTLSConfigFromStructs(t *structs.MeshDirectionalTLSConfig, s 
 	s.TLSMaxVersion = tlsVersionFromStructs(t.TLSMaxVersion)
 	s.CipherSuites = cipherSuitesFromStructs(t.CipherSuites)
 }
+func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConfig) {
+	if s == nil {
+		return
+	}
+	t.Mode = meshGatewayModeToStructs(s.Mode)
+}
+func MeshGatewayConfigFromStructs(t *structs.MeshGatewayConfig, s *MeshGatewayConfig) {
+	if s == nil {
+		return
+	}
+	s.Mode = meshGatewayModeFromStructs(t.Mode)
+}
 func MeshHTTPConfigToStructs(s *MeshHTTPConfig, t *structs.MeshHTTPConfig) {
 	if s == nil {
 		return
@@ -538,6 +614,22 @@ func MeshTLSConfigFromStructs(t *structs.MeshTLSConfig, s *MeshTLSConfig) {
 		s.Outgoing = &x
 	}
 }
+func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealthCheck) {
+	if s == nil {
+		return
+	}
+	t.Interval = structs.DurationFromProto(s.Interval)
+	t.MaxFailures = s.MaxFailures
+	t.EnforcingConsecutive5xx = pointerToUint32FromUint32(s.EnforcingConsecutive5Xx)
+}
+func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHealthCheck) {
+	if s == nil {
+		return
+	}
+	s.Interval = structs.DurationToProto(t.Interval)
+	s.MaxFailures = t.MaxFailures
+	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
+}
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
 		return
@@ -563,6 +655,76 @@ func RingHashConfigFromStructs(t *structs.RingHashConfig, s *RingHashConfig) {
 	}
 	s.MinimumRingSize = t.MinimumRingSize
 	s.MaximumRingSize = t.MaximumRingSize
+}
+func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Protocol = s.Protocol
+	t.Mode = proxyModeToStructs(s.Mode)
+	if s.TransparentProxy != nil {
+		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
+	}
+	if s.MeshGateway != nil {
+		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
+	}
+	if s.Expose != nil {
+		ExposeConfigToStructs(s.Expose, &t.Expose)
+	}
+	t.ExternalSNI = s.ExternalSNI
+	if s.UpstreamConfig != nil {
+		var x structs.UpstreamConfiguration
+		UpstreamConfigurationToStructs(s.UpstreamConfig, &x)
+		t.UpstreamConfig = &x
+	}
+	if s.Destination != nil {
+		var x structs.DestinationConfig
+		DestinationConfigToStructs(s.Destination, &x)
+		t.Destination = &x
+	}
+	t.MaxInboundConnections = int(s.MaxInboundConnections)
+	t.LocalConnectTimeoutMs = int(s.LocalConnectTimeoutMs)
+	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
+	t.BalanceInboundConnections = s.BalanceInboundConnections
+	t.Meta = s.Meta
+}
+func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefaults) {
+	if s == nil {
+		return
+	}
+	s.Protocol = t.Protocol
+	s.Mode = proxyModeFromStructs(t.Mode)
+	{
+		var x TransparentProxyConfig
+		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
+		s.TransparentProxy = &x
+	}
+	{
+		var x MeshGatewayConfig
+		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
+		s.MeshGateway = &x
+	}
+	{
+		var x ExposeConfig
+		ExposeConfigFromStructs(&t.Expose, &x)
+		s.Expose = &x
+	}
+	s.ExternalSNI = t.ExternalSNI
+	if t.UpstreamConfig != nil {
+		var x UpstreamConfiguration
+		UpstreamConfigurationFromStructs(t.UpstreamConfig, &x)
+		s.UpstreamConfig = &x
+	}
+	if t.Destination != nil {
+		var x DestinationConfig
+		DestinationConfigFromStructs(t.Destination, &x)
+		s.Destination = &x
+	}
+	s.MaxInboundConnections = int32(t.MaxInboundConnections)
+	s.LocalConnectTimeoutMs = int32(t.LocalConnectTimeoutMs)
+	s.LocalRequestTimeoutMs = int32(t.LocalRequestTimeoutMs)
+	s.BalanceInboundConnections = t.BalanceInboundConnections
+	s.Meta = t.Meta
 }
 func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {
 	if s == nil {
@@ -822,6 +984,20 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
 }
+func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
+	if s == nil {
+		return
+	}
+	t.OutboundListenerPort = int(s.OutboundListenerPort)
+	t.DialedDirectly = s.DialedDirectly
+}
+func TransparentProxyConfigFromStructs(t *structs.TransparentProxyConfig, s *TransparentProxyConfig) {
+	if s == nil {
+		return
+	}
+	s.OutboundListenerPort = int32(t.OutboundListenerPort)
+	s.DialedDirectly = t.DialedDirectly
+}
 func TransparentProxyMeshConfigToStructs(s *TransparentProxyMeshConfig, t *structs.TransparentProxyMeshConfig) {
 	if s == nil {
 		return
@@ -833,4 +1009,112 @@ func TransparentProxyMeshConfigFromStructs(t *structs.TransparentProxyMeshConfig
 		return
 	}
 	s.MeshDestinationsOnly = t.MeshDestinationsOnly
+}
+func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+	t.EnvoyListenerJSON = s.EnvoyListenerJSON
+	t.EnvoyClusterJSON = s.EnvoyClusterJSON
+	t.Protocol = s.Protocol
+	t.ConnectTimeoutMs = int(s.ConnectTimeoutMs)
+	if s.Limits != nil {
+		var x structs.UpstreamLimits
+		UpstreamLimitsToStructs(s.Limits, &x)
+		t.Limits = &x
+	}
+	if s.PassiveHealthCheck != nil {
+		var x structs.PassiveHealthCheck
+		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
+		t.PassiveHealthCheck = &x
+	}
+	if s.MeshGateway != nil {
+		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
+	}
+	t.BalanceOutboundConnections = s.BalanceOutboundConnections
+}
+func UpstreamConfigFromStructs(t *structs.UpstreamConfig, s *UpstreamConfig) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.EnvoyListenerJSON = t.EnvoyListenerJSON
+	s.EnvoyClusterJSON = t.EnvoyClusterJSON
+	s.Protocol = t.Protocol
+	s.ConnectTimeoutMs = int32(t.ConnectTimeoutMs)
+	if t.Limits != nil {
+		var x UpstreamLimits
+		UpstreamLimitsFromStructs(t.Limits, &x)
+		s.Limits = &x
+	}
+	if t.PassiveHealthCheck != nil {
+		var x PassiveHealthCheck
+		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
+		s.PassiveHealthCheck = &x
+	}
+	{
+		var x MeshGatewayConfig
+		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
+		s.MeshGateway = &x
+	}
+	s.BalanceOutboundConnections = t.BalanceOutboundConnections
+}
+func UpstreamConfigurationToStructs(s *UpstreamConfiguration, t *structs.UpstreamConfiguration) {
+	if s == nil {
+		return
+	}
+	{
+		t.Overrides = make([]*structs.UpstreamConfig, len(s.Overrides))
+		for i := range s.Overrides {
+			if s.Overrides[i] != nil {
+				var x structs.UpstreamConfig
+				UpstreamConfigToStructs(s.Overrides[i], &x)
+				t.Overrides[i] = &x
+			}
+		}
+	}
+	if s.Defaults != nil {
+		var x structs.UpstreamConfig
+		UpstreamConfigToStructs(s.Defaults, &x)
+		t.Defaults = &x
+	}
+}
+func UpstreamConfigurationFromStructs(t *structs.UpstreamConfiguration, s *UpstreamConfiguration) {
+	if s == nil {
+		return
+	}
+	{
+		s.Overrides = make([]*UpstreamConfig, len(t.Overrides))
+		for i := range t.Overrides {
+			if t.Overrides[i] != nil {
+				var x UpstreamConfig
+				UpstreamConfigFromStructs(t.Overrides[i], &x)
+				s.Overrides[i] = &x
+			}
+		}
+	}
+	if t.Defaults != nil {
+		var x UpstreamConfig
+		UpstreamConfigFromStructs(t.Defaults, &x)
+		s.Defaults = &x
+	}
+}
+func UpstreamLimitsToStructs(s *UpstreamLimits, t *structs.UpstreamLimits) {
+	if s == nil {
+		return
+	}
+	t.MaxConnections = pointerToIntFromInt32(s.MaxConnections)
+	t.MaxPendingRequests = pointerToIntFromInt32(s.MaxPendingRequests)
+	t.MaxConcurrentRequests = pointerToIntFromInt32(s.MaxConcurrentRequests)
+}
+func UpstreamLimitsFromStructs(t *structs.UpstreamLimits, s *UpstreamLimits) {
+	if s == nil {
+		return
+	}
+	s.MaxConnections = int32FromPointerToInt(t.MaxConnections)
+	s.MaxPendingRequests = int32FromPointerToInt(t.MaxPendingRequests)
+	s.MaxConcurrentRequests = int32FromPointerToInt(t.MaxConcurrentRequests)
 }
