@@ -16,6 +16,7 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.ServiceResolver:   EventTopicServiceResolver,
 	structs.IngressGateway:    EventTopicIngressGateway,
 	structs.ServiceIntentions: EventTopicServiceIntentions,
+	structs.ServiceDefaults:   EventTopicServiceDefaults,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -108,6 +109,12 @@ func (s *Store) IngressGatewaySnapshot(req stream.SubscribeRequest, buf stream.S
 // service-intentions config entries.
 func (s *Store) ServiceIntentionsSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.ServiceIntentions, req, buf)
+}
+
+// ServiceDefaultsSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// service-defaults config entries.
+func (s *Store) ServiceDefaultsSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.ServiceDefaults, req, buf)
 }
 
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
