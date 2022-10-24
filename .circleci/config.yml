@@ -1054,20 +1054,28 @@ jobs:
             echo "mode: set" > cov.txt
             for f in /tmp/coverage/*; do tail -n +2 $f >> cov.txt; done
             go tool cover -func=cov.txt -o /tmp/output/coverage_by_function.txt
-      - store_artifacts:
-          path: /tmp/output
+            cp cov.txt /tmp/output/cov.txt
+      - run: sudo apt-get install jq
       - run:
           name: get diff of test coverage from changes
           command: |
-            git checkout skpratt/temp-debug .github/cover.out
+            file_url_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/consul/contents/.github/cover.out?ref=$TEST_COVERAGE_GOLDEN_BRANCH" \
+            -u $GH_USER:$GH_TOKEN)
+            if [ $(echo $file_url_response | jq length) -eq 0 ]; then
+              echo "No coverage report file found"
+            else
+              file_download_url=$(echo $file_url_response | jq -r '.download_url')
+            fi
+            echo "Downloading $file_download_url"
+            curl "$file_download_url" > main_cov.txt
             echo "mode: set" > diff_cov.txt
-            comm -13 .github/go_test_coverage.txt cov.txt >> diff_cov.txt
-            go tool cover -html=comm_cov.out -o diff_coverage_heatmap.html
+            comm -13 <(sort main_cov.txt) <(sort cov.txt) >> diff_cov.txt
+            go tool cover -html=diff_cov.txt -o /tmp/output/diff_coverage_heatmap.html
+      - store_artifacts:
+          path: /tmp/output
       - run:
           name: post results to GitHub PR
           command: |
-            sudo apt-get install jq
-
             pr_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/consul/pulls?head=hashicorp:$CIRCLE_BRANCH&state=open" \
             -u $GH_USER:$GH_TOKEN)
 
@@ -1078,7 +1086,8 @@ jobs:
             fi
             
             new_cov_percent=$(tail -1 /tmp/output/coverage_by_function.txt | awk -F' ' '{print $NF}')
-            main_go_test_cov_percent=$(tail -1 .github/go_test_coverage.txt | awk -F' ' '{print $NF}')
+            go tool cover -func=main_cov.txt -o main_cov_by_func.txt
+            main_go_test_cov_percent=$(tail -1 main_cov_by_func.txt | awk -F' ' '{print $NF}')
 
             artifacts=$(curl -X GET "https://circleci.com/api/v2/project/github/hashicorp/consul/$CIRCLE_BUILD_NUM/artifacts" \
             -H "Accept: application/json" \
@@ -1086,7 +1095,7 @@ jobs:
             
             heatmap_url=$(echo $artifacts | jq -r '.items|.[]|select(.path | endswith("heatmap.html"))|.url')
             
-            message="All unit tests passed! Your changes bring test coverage to $cov_percent, from $main_go_test_cov_percent. [See coverage delta for your changes]($heatmap_url)"
+            message="All unit tests passed! Your changes bring test coverage over affected code to $new_cov_percent. Total coverage in main is $main_go_test_cov_percent. [See coverage delta for your changes]($heatmap_url)"
             
             curl --location --request POST "$pr_comment_url" \
             -u hc-github-team-consul-core:$HC_GITHUB_TEAM_CONSUL_CORE_GITHUB_TOKEN \
@@ -1094,6 +1103,18 @@ jobs:
             --data-raw '{
              "body": "'"$message"'"
             }'
+      - add_ssh_keys:
+          fingerprints:
+            - "b1:4d:ed:a5:4f:e1:39:28:37:ab:bd:4d:06:e5:24:ca"
+      - run:
+          name: push latest coverage results to github
+          command: |
+            cp cov.txt .github/go_test_coverage.txt
+            git config user.email "github-team-consul-core@hashicorp.com"
+            git config user.name "hc-github-team-consul-core"
+            git add .github/go_test_coverage.txt
+            git commit -m "[skip ci] update test coverage"
+            git push --set-upstream origin $CIRCLE_BRANCH
 
 workflows:
   version: 2
