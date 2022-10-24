@@ -92,18 +92,21 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 		filepath.Join(path, "c.yaml"),
 	}
 
-	t.Run("skip unknown files", func(t *testing.T) {
-		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
+	t.Run("fail on unknown files", func(t *testing.T) {
+		_, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
+		require.Error(t, err)
+	})
+
+	t.Run("skip on unknown files in dir", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: []string{subpath}})
 		require.NoError(t, err)
 
 		expected := []Source{
-			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-			FileSource{Name: paths[1], Format: "json", Data: "content b"},
 			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
 			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
 		}
 		require.Equal(t, expected, b.Sources)
-		require.Len(t, b.Warnings, 2)
+		require.Len(t, b.Warnings, 1)
 	})
 
 	t.Run("force config format", func(t *testing.T) {
