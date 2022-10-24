@@ -17,16 +17,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
-	http2 "golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 func uniqueID() string {
@@ -300,8 +301,6 @@ func TestCheckHTTP(t *testing.T) {
 		{code: 429, status: api.HealthWarning},
 
 		// critical
-		{code: 150, status: api.HealthCritical},
-		{code: 199, status: api.HealthCritical},
 		{code: 300, status: api.HealthCritical},
 		{code: 400, status: api.HealthCritical},
 		{code: 500, status: api.HealthCritical},
