@@ -882,6 +882,34 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	default:
 		require.Fail(t, "Old state not abandoned")
 	}
+
+	// To verify if a proper message is displayed when Consul OSS tries to
+	//  unsuccessfully restore entries from a Consul Ent snapshot.
+	buf = bytes.NewBuffer(nil)
+	sink = &MockSink{buf, false}
+	fsm, _ = New(nil, logger)
+
+	type EntMock struct {
+		ID   int
+		Type string
+	}
+
+	entMockEntry := EntMock{
+		ID:   65,
+		Type: "A Consul Ent Log Type",
+	}
+
+	// Write the header
+	header := SnapshotHeader{
+		LastIndex: 0,
+	}
+	encoder = codec.NewEncoder(sink, structs.MsgpackHandle)
+	encoder.Encode(&header)
+	sink.Write([]byte{byte(structs.MessageType(entMockEntry.ID))})
+	encoder.Encode(entMockEntry)
+
+	require.EqualError(t, fsm.Restore(sink), "msg type <65> is a Consul Enterprise log entry. Consul OSS cannot restore it")
+	sink.Cancel()
 }
 
 // convertACLTokenToLegacy attempts to convert an ACLToken into an legacy ACL.
