@@ -711,6 +711,35 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 		)
 	})
 
+	testutil.RunStep(t, "added server with WAN address", func(t *testing.T) {
+		payload = append(payload, autopilotevents.ReadyServerInfo{
+			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
+			Address:     "198.18.0.3",
+			Version:     "1.13.1",
+			ExtGRPCPort: 9502,
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "198.18.0.103",
+			},
+		})
+		backend.Publish([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   3,
+				Payload: payload,
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502", "198.18.0.103:9502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
 	testutil.RunStep(t, "flipped to peering through mesh gateways", func(t *testing.T) {
 		require.NoError(t, backend.store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
 			Peering: &structs.PeeringMeshConfig{
