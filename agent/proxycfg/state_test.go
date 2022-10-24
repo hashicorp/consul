@@ -401,14 +401,14 @@ func upstreamIDForDC2(uid UpstreamID) UpstreamID {
 // routine. This allows the test to be fully synchronous and deterministic while still being able
 // to validate the logic of most of the watching and state updating.
 //
-// The general strategy here is to
+// The general strategy here is to:
 //
-// 1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
-//    We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
-// 2. Iterate through a list of verification stages performing validation and updates for each.
-//    a. Ensure that the required watches are in place and validate they are correct
-//    b. Process a bunch of UpdateEvents by calling handleUpdate
-//    c. Validate that the ConfigSnapshot has been updated appropriately
+//  1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
+//     We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
+//  2. Iterate through a list of verification stages performing validation and updates for each.
+//     a. Ensure that the required watches are in place and validate they are correct
+//     b. Process a bunch of UpdateEvents by calling handleUpdate
+//     c. Validate that the ConfigSnapshot has been updated appropriately
 func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 

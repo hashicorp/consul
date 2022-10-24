@@ -281,6 +281,7 @@ type ConfigEntry struct {
 	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,3,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
 	RaftIndex      *pbcommon.RaftIndex      `protobuf:"bytes,4,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
 	// Types that are assignable to Entry:
+	//
 	//	*ConfigEntry_MeshConfig
 	//	*ConfigEntry_ServiceResolver
 	//	*ConfigEntry_IngressGateway

@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/testutil"
 
 	caCreate "github.com/hashicorp/consul/command/tls/ca/create"
 )
@@ -285,7 +286,7 @@ func createCA(t *testing.T, domain string) {
 
 // switchToTempDir is meant to be used in a defer statement like:
 //
-//   defer switchToTempDir(t, testDir)()
+//	defer switchToTempDir(t, testDir)()
 //
 // This exploits the fact that the body of a defer is evaluated
 // EXCEPT for the final function call invocation inline with the code

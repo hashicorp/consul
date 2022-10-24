@@ -1297,7 +1297,6 @@ func (r *ServiceResolverRedirect) isEmpty() bool {
 // - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
 // empty at once. When Targets is defined, the other fields should not be
 // populated.
-//
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).
