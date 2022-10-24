@@ -197,7 +197,11 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("Unrecognized msg type %d", msg)
+			if msg >= 64 {
+				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul OSS cannot restore it", msg)
+			} else {
+				return fmt.Errorf("Unrecognized msg type %d", msg)
+			}
 		}
 		return nil
 	}
