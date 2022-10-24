@@ -174,8 +174,8 @@ such as with flags or environment variables like
 #### Modify Vault policy for Vault CA provider
 
 If using the Vault CA provider,
-you must modify the Vault policy used by Consul to interact with Vault
-so that certificates required for service mesh operation can still be generated.
+modify the Vault policy used by Consul to interact with Vault
+to ensure that certificates required for service mesh operation can still be generated.
 The policy must include the `update` capability on the intermediate PKI's tune mount configuration endpoint
 at path `/sys/mounts/<intermediate_pki_mount_name>/tune`.
 Refer to the [Vault CA provider documentation](/docs/connect/ca/vault#vault-acl-policies)
@@ -185,23 +185,25 @@ You are using the Vault CA provider if either of the following configurations ex
 - The Consul server agent configuration option [`connect.ca_provider`](/docs/agent/config/config-files#connect_ca_provider) is set to `vault`, or
 - The Consul on Kubernetes Helm Chart [`global.secretsBackend.vault.connectCA`](/docs/k8s/helm#v-global-secretsbackend-vault-connectca) value is configured.
 
-Though this guidance is listed in the 1.13.x section, it applies to all of the following release series:
-- Consul 1.13.x: applies to 1.13.2+
-- Consul 1.12.x: applies to 1.12.5+
-- Consul 1.11.x: applies to 1.11.9+
-
-Those affected Consul versions contain a
+Though this guidance is listed in the 1.13.x section, it applies to several release series.
+Affected Consul versions contain a
 [bugfix that allows the intermediate CA's TTL configuration to be modified](https://github.com/hashicorp/consul/pull/14516).
 The bugfix requires the `update` capability to tune that configuration.
-Without the `update` capability, those affected Consul versions
+Without the `update` capability, the Consul versions listed in the _breaking change_ column
 cannot provide services with the certificates they need to participate in the mesh.
-In an upcoming patch for each of those release series,
-we will restore the intermediate CA's ability to provide certificates even without the `update` capability on the tune configuration endpoint,
+The Consul versions in the _recommended versions_ column restore the intermediate CA's ability
+to provide certificates even without the `update` capability on the tune configuration endpoint,
 though the `update` capability will still be needed to modify the CA's TTL configuration.
 
-We recommend modifying the Vault policy before upgrading to Consul 1.11 or later
-to ensure your organization does not accidentally miss this guidance when performing subsequent upgrades,
-such as to the latest patch within a release series.
+| Release Series | Versions with breaking change | Recommended versions |
+| -------------- | ----------------------------- | -------------------- |
+| Consul 1.13.x  | 1.13.2                        | 1.13.3 or later      |
+| Consul 1.12.x  | 1.12.5                        | 1.12.6 or later      |
+| Consul 1.11.x  | 1.11.9 - 1.11.10              | 1.11.11 or later     |
+
+As a precaution, we recommend both modifying the Vault policy
+and upgrading to a recommended version as a double protection
+to ensure the operation of your service mesh and to enable CA TTL modification.
 
 ### 1.9 Telemetry Compatibility
 
@@ -215,6 +217,10 @@ If you were using this flag, you must remove it before upgrading.
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.13.2 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.13.3 or later to avoid the breaking nature of that change.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 
@@ -222,6 +228,10 @@ Follow the same guidance as provided in the
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.12.5 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.12.6 or later to avoid the breaking nature of that change.
 
 ### 1.9 Telemetry Compatibility
 
@@ -338,6 +348,10 @@ ensures your sidecars are supported by Consul 1.11.
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.11.9 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.11.11 or later to avoid the breaking nature of that change.
 
 ## Consul 1.10.0
 
