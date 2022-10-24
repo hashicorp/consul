@@ -1414,7 +1414,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	met, err := metrics.New(cfg, sink)
 	require.NoError(t, err)
 
-	errM := s2.emitPeeringMetricsOnce(s2.logger, met)
+	errM := s2.emitPeeringMetricsOnce(met)
 	require.NoError(t, errM)
 
 	retry.Run(t, func(r *retry.R) {

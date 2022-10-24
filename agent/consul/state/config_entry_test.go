@@ -910,7 +910,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		if err := entry.Validate(); err != nil {
 			return err
 		}
-		return s.EnsureConfigEntry(0, entry)
+		return s.EnsureConfigEntry(idx, entry)
 	}
 
 	type tcase struct {

@@ -63,10 +63,7 @@ func makeExportedServiceListResponse(
 // makeServiceResponse handles preparing exported service instance updates to the peer cluster.
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
-func makeServiceResponse(
-	mst *MutableStatus,
-	update cache.UpdateEvent,
-) (*pbpeerstream.ReplicationMessage_Response, error) {
+func makeServiceResponse(update cache.UpdateEvent) (*pbpeerstream.ReplicationMessage_Response, error) {
 	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
 	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
 	if !ok {
