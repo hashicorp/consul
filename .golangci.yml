@@ -37,6 +37,9 @@ issues:
     - linters: [staticcheck]
       text: 'SA1019: "github.com/golang/protobuf/ptypes" is deprecated: Well-known types have specialized functionality directly injected into the generated packages for each message type. See the deprecation notice for each function for the suggested alternative.'
 
+    - linters: [staticcheck]
+      text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
+
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
       text: 'always receives'
