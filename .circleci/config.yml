@@ -22,7 +22,7 @@ references:
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
-    GO_VERSION: 1.19.2
+    GO_VERSION: 1.18.1
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.20.7"
     - "1.21.5"
@@ -35,7 +35,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.2
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
