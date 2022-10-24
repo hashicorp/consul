@@ -1053,10 +1053,10 @@ jobs:
           name: collate coverage output into single file and convert to readable format
           command: |
             mkdir -p /tmp/output
-            echo "mode: set" > cov.txt
-            for f in /tmp/coverage/*; do tail -n +2 $f >> cov.txt; done
-            go tool cover -html=cov.txt -o /tmp/output/coverage_heatmap.html
-            go tool cover -func=cov.txt -o /tmp/output/coverage_by_function.txt
+            echo "mode: set" > /tmp/output/cov.txt
+            for f in /tmp/coverage/*; do tail -n +2 $f >> /tmp/output/cov.txt; done
+            go tool cover -html=/tmp/output/cov.txt -o /tmp/output/coverage_heatmap.html
+            go tool cover -func=/tmp/output/cov.txt -o /tmp/output/coverage_by_function.txt
       - store_artifacts:
           path: /tmp/output
       - run:
