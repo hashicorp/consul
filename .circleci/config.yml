@@ -130,8 +130,6 @@ commands:
     steps:
       - attach_workspace:
           at: /home/circleci/go/bin
-      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
-      - run: sudo service rsyslog start
       - run: go mod download
       - run:
           name: go test
