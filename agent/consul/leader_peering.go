@@ -90,14 +90,14 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
-			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
+			if err := s.emitPeeringMetricsOnce(defaultMetrics()); err != nil {
 				s.logger.Error("error emitting peering stream metrics", "error", err)
 			}
 		}
 	}
 }
 
-func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+func (s *Server) emitPeeringMetricsOnce(metricsImpl *metrics.Metrics) error {
 	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
 	if err != nil {
 		return err
