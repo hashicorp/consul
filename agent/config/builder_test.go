@@ -68,49 +68,11 @@ func TestShouldParseFile(t *testing.T) {
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
-	subpath, paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "json", Data: "content b"},
-		FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
-	}
-	require.Equal(t, expected, b.Sources)
-	require.Len(t, b.Warnings, 2)
-}
-
-func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
-	subpath, paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-		FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-		FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
-		FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
-	}
-	require.Equal(t, expected, b.Sources)
-}
-
-// writes a set of test files into a temp directory, and also to a subdirectory of
-// that temp directory, subpath
-//
-// TODO: this would be much nicer with gotest.tools/fs
-func setupConfigFiles(t *testing.T) (subpath string, paths []string) {
-	t.Helper()
 	path, err := os.MkdirTemp("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
-	subpath = filepath.Join(path, "sub")
+	subpath := filepath.Join(path, "sub")
 	err = os.Mkdir(subpath, 0755)
 	require.NoError(t, err)
 
@@ -124,11 +86,40 @@ func setupConfigFiles(t *testing.T) (subpath string, paths []string) {
 		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
-	return subpath, []string{
+	paths := []string{
 		filepath.Join(path, "a.hcl"),
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
 	}
+
+	t.Run("skip unknown files", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+			FileSource{Name: paths[1], Format: "json", Data: "content b"},
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
+		}
+		require.Equal(t, expected, b.Sources)
+		require.Len(t, b.Warnings, 2)
+	})
+
+	t.Run("force config format", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+			FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
+			FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
+			FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
+		}
+		require.Equal(t, expected, b.Sources)
+	})
 }
 
 func TestLoad_NodeName(t *testing.T) {
