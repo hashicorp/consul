@@ -713,13 +713,19 @@ function run_container_s1-ap1-sidecar-proxy {
 }
 
 function run_container_s1-sidecar-proxy-consul-exec {
-  docker.exe run -d --name $(container_name) \
-    $(network_snippet primary) \
-    consul-dev-envoy:${ENVOY_VERSION} \
-    consul connect envoy -sidecar-for s1 \
+  local CLUSTER="primary"
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
+  local ADMIN_HOST="127.0.0.1"
+  local ADMIN_PORT="19000"
+
+  docker.exe exec -d $CONTAINER_NAME bash \
+    -c "consul connect envoy -sidecar-for s1 \
+    -http-addr $CONTAINER_NAME:8500 \
+    -grpc-addr $CONTAINER_NAME:8502 \
+    -admin-bind $ADMIN_HOST:$ADMIN_PORT \
     -envoy-version ${ENVOY_VERSION} \
     -- \
-    -l trace >/dev/null
+    -l trace >/dev/null"
 }
 
 function run_container_s2-sidecar-proxy {
