@@ -147,6 +147,25 @@ http {
 
 		require.True(t, proxy.HTTP.SanitizeXForwardedClientCert)
 	})
+
+	// Test that if name isn't set (which isn't required for proxy-defaults because the name defaults to
+	// "global"), the CLI response still says "config entry written proxy-defaults/global".
+	t.Run("proxy defaults config entry without name set", func(t *testing.T) {
+		stdin := new(bytes.Buffer)
+		stdin.WriteString(`
+kind = "proxy-defaults"
+`)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdin
+
+		code := c.Run([]string{"-http-addr=" + a.HTTPAddr(), "-"})
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: proxy-defaults/global`)
+		require.Equal(t, 0, code)
+	})
 }
 
 func requireContainsLower(t *testing.T, haystack, needle string) {
