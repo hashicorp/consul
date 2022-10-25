@@ -1,0 +1,3 @@
+```release-note:bug
+cache: refactor agent cache fetching to prevent unnecessary fetches on error
+```

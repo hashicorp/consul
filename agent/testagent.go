@@ -216,6 +216,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+			// Lower the maximum backoff period of a cache refresh just for
+			// tests see #14956 for more.
+			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
 		}
 		return result, err
 	}
