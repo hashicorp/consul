@@ -2,6 +2,10 @@
   @extend %pill-200, %frame-gray-600, %p1;
 }
 
+.consul-external-source > svg {
+  color: rgb(var(--black));
+}
+
 .consul-external-source::before {
   --icon-size: icon-300;
 }
