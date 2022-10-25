@@ -5,14 +5,6 @@
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "LOGICAL_DNS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          },
-          "resourceApiVersion": "V3"
-        }
-      },
       "connectTimeout": "5s",
       "loadAssignment": {
         "clusterName": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
