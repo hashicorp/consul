@@ -33,7 +33,7 @@ span.policy-service-identity::before {
 // %pill.kubernetes::before {
 //   @extend %with-logo-kubernetes-color-icon, %as-pseudo;
 // }
-%pill.aws-iam::before {
-  --icon-name: icon-aws-color;
-  content: '';
-}
+// %pill.aws-iam::before {
+//   --icon-name: icon-aws-color;
+//   content: '';
+// }

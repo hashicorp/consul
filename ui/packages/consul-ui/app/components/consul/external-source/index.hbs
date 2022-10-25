@@ -8,7 +8,7 @@
               class="consul-external-source"
               ...attributes
             >
-              <FlightIcon @name={{external-source-icon-map externalSource}} class="mr-1.5 w-3 h-3"  />
+              <FlightIcon @name={{icon-mapping externalSource}} class="mr-1.5 w-4 h-4"  />
               Registered via {{t (concat "common.brand." externalSource)}}
             </span>
           </dt>
@@ -36,7 +36,7 @@
       class="consul-external-source"
       ...attributes
     >
-      <FlightIcon @name={{external-source-icon-map externalSource}} class="mr-1.5 h-3 w-3" />
+      <FlightIcon @name={{icon-mapping externalSource}} class="mr-1.5 h-4 w-4" />
       {{#if @label}}
         {{@label}}
       {{else}}

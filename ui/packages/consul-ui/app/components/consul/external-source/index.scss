@@ -29,9 +29,9 @@
 // .consul-external-source.leader::before {
 //   @extend %with-star-outline-mask, %as-pseudo;
 // }
-// .consul-external-source.jwt::before {
-//   @extend %with-logo-jwt-color-icon, %as-pseudo;
-// }
+.consul-external-source.jwt::before {
+  @extend %with-logo-jwt-color-icon, %as-pseudo;
+}
 .consul-external-source.oidc::before {
   @extend %with-logo-oidc-color-icon, %as-pseudo;
 }
