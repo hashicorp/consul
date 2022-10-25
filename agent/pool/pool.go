@@ -592,14 +592,14 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	var codec rpc.ClientCodec
 	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error establishing connection: %w", err)
+		return fmt.Errorf("rpcinsecure: error establishing connection: %w", err)
 	}
 	codec = msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 
 	// Make the RPC call
 	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error making call: %w", err)
+		return fmt.Errorf("rpcinsecure: error making call: %w", err)
 	}
 
 	return nil
