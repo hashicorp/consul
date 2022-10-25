@@ -75,8 +75,6 @@
 // @import './lock-open/index.scss';
 // @import './logo-alicloud-color/index.scss';
 // @import './logo-alicloud-monochrome/index.scss';
-// @import './logo-aws-color/index.scss';
-// @import './logo-aws-monochrome/index.scss';
 // @import './logo-azure-color/index.scss';
 // @import './logo-azure-dev-ops-color/index.scss';
 // @import './logo-azure-dev-ops-monochrome/index.scss';
@@ -192,10 +190,6 @@
 // @import './auth0-color/index.scss';
 // @import './auto-apply/index.scss';
 // @import './award/index.scss';
-@import './aws/index.scss';
-@import './aws-color/index.scss';
-// @import './aws-ec2/index.scss';
-// @import './aws-ec2-color/index.scss';
 // @import './azure/index.scss';
 // @import './azure-color/index.scss';
 // @import './azure-devops/index.scss';
@@ -455,8 +449,6 @@
 @import './network-alt/index.scss';
 // @import './newspaper/index.scss';
 // @import './node/index.scss';
-// @import './nomad/index.scss';
-// @import './nomad-color/index.scss';
 // @import './octagon/index.scss';
 // @import './okta/index.scss';
 // @import './okta-color/index.scss';
@@ -635,17 +627,13 @@
 // @import './layers/index.scss';
 @import './loading-motion/index.scss';
 @import './logo-auth0-color/index.scss';
-@import './logo-consul-color/index.scss';
 @import './logo-ember-circle-color/index.scss';
 @import './logo-glimmer-color/index.scss';
 // @import './logo-hashicorp-color/index.scss';
 @import './logo-jwt-color/index.scss';
 @import './logo-microsoft-color/index.scss';
-@import './logo-nomad-color/index.scss';
 @import './logo-oidc-color/index.scss';
 @import './logo-okta-color/index.scss';
-@import './logo-terraform-color/index.scss';
-// @import './logo-vault-color/index.scss';
 @import './mesh/index.scss';
 // @import './path/index.scss';
 @import './port/index.scss';
