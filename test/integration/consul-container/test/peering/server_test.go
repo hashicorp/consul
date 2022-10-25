@@ -11,9 +11,9 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -35,10 +35,10 @@ const (
 // ## Steps
 // ### Part 1
 //  * Create an accepting cluster with 3 servers. 1 client should be used to host a service for export
-//  * Create a single node dialing cluster.
+//  * Create a single agent dialing cluster.
 //	* Create the peering and export the service. Verify it is working
 //  * Incrementally replace the follower nodes.
-// 	* Replace the leader node
+// 	* Replace the leader agent
 //  * Verify the dialer can reach the new server nodes and the service becomes available.
 // ### Part 2
 //  * Push an update to the CA Configuration in the exporting cluster and wait for the new root to be generated
@@ -165,7 +165,7 @@ func TestServer(t *testing.T) {
 		}
 
 		// Remove the nodes from the cluster to prevent double-termination
-		acceptingCluster.Nodes = newNodes
+		acceptingCluster.Agents = newNodes
 
 		// ensure any transitory actions like replication cleanup would not affect the next verifications
 		time.Sleep(30 * time.Second)
@@ -184,35 +184,20 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 // It also creates and registers a service+sidecar.
 // The API client returned is pointed at the client agent.
 func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Client) {
-	var configs []libnode.Config
+	var configs []libagent.Config
+
+	serverConf, err := libagent.NewConfigBuilder().
+		Bootstrap(3).
+		Peering(true).
+		ToString()
+	require.NoError(t, err)
 
 	numServer := 3
 	for i := 0; i < numServer; i++ {
 		configs = append(configs,
-			libnode.Config{
-				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					ports {
-					  dns = 8600
-					  http = 8500
-					  https = 8501
-					  grpc = 8502
-    				  grpc_tls = 8503
-					  serf_lan = 8301
-					  serf_wan = 8302
-					  server = 8300
-					}	
-					bind_addr = "0.0.0.0"
-					advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
-					log_level="DEBUG"
-					server=true
-					peering {
-						enabled=true
-					}
-					bootstrap_expect=3
-					connect {
-					  enabled = true
-					}`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
+			libagent.Config{
+				JSON:    serverConf,
+				Cmd:     []string{"agent"},
 				Version: *utils.TargetVersion,
 				Image:   *utils.TargetImage,
 			},
@@ -220,28 +205,16 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 	}
 
 	// Add a stable client to register the service
+	clientConf, err := libagent.NewConfigBuilder().
+		Client().
+		Peering(true).
+		ToString()
+	require.NoError(t, err)
+
 	configs = append(configs,
-		libnode.Config{
-			HCL: `node_name="` + utils.RandName("consul-client") + `"
-					ports {
-					  dns = 8600
-					  http = 8500
-					  https = 8501
-					  grpc = 8502
-    				  grpc_tls = 8503
-					  serf_lan = 8301
-					  serf_wan = 8302
-					}	
-					bind_addr = "0.0.0.0"
-					advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
-					log_level="DEBUG"
-					peering {
-						enabled=true
-					}
-					connect {
-					  enabled = true
-					}`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
+		libagent.Config{
+			JSON:    clientConf,
+			Cmd:     []string{"agent"},
 			Version: *utils.TargetVersion,
 			Image:   *utils.TargetImage,
 		},
@@ -251,7 +224,7 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 	require.NoError(t, err)
 
 	// Use the client agent as the HTTP endpoint since we will not rotate it
-	clientNode := cluster.Nodes[3]
+	clientNode := cluster.Agents[3]
 	client := clientNode.GetClient()
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 4)
@@ -293,31 +266,16 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 
 // createDialingClusterAndSetup creates a cluster for peering with a single dev agent
 func createDialingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Client, libservice.Service) {
-	configs := []libnode.Config{
+	conf, err := libagent.NewConfigBuilder().
+		Datacenter("dc2").
+		Peering(true).
+		ToString()
+	require.NoError(t, err)
+
+	configs := []libagent.Config{
 		{
-			HCL: `ports {
-  dns = 8600
-  http = 8500
-  https = 8501
-  grpc = 8502
-  grpc_tls = 8503
-  serf_lan = 8301
-  serf_wan = 8302
-  server = 8300
-}
-bind_addr = "0.0.0.0"
-advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
-log_level="DEBUG"
-server=true
-bootstrap = true
-peering {
-	enabled=true
-}
-datacenter = "dc2"
-connect {
-  enabled = true
-}`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
+			JSON:    conf,
+			Cmd:     []string{"agent"},
 			Version: *utils.TargetVersion,
 			Image:   *utils.TargetImage,
 		},
@@ -326,7 +284,7 @@ connect {
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 
-	node := cluster.Nodes[0]
+	node := cluster.Agents[0]
 	client := node.GetClient()
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
@@ -349,44 +307,30 @@ connect {
 	return cluster, client, clientProxyService
 }
 
-// rotateServer add a new server node to the cluster, then forces the prior node to leave.
-func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, node libnode.Node) {
-	config := libnode.Config{
-		HCL: `encrypt="` + cluster.EncryptKey + `"
-			node_name="` + utils.RandName("consul-server") + `"
-			ports {
-			  dns = 8600
-			  http = 8500
-			  https = 8501
-			  grpc = 8502
-			  grpc_tls = 8503
-			  serf_lan = 8301
-			  serf_wan = 8302
-			  server = 8300
-			}	
-			bind_addr = "0.0.0.0"
-			advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
-			log_level="DEBUG"
-			server=true
-			peering {
-				enabled=true
-			}
-			connect {
-			  enabled = true
-			}`,
-		Cmd:     []string{"agent", "-client=0.0.0.0"},
+// rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
+func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, node libagent.Agent) {
+
+	// TODO (dans): need to address the encryption key
+	conf, err := libagent.NewConfigBuilder().
+		Bootstrap(0).
+		Peering(true).
+		ToString()
+
+	config := libagent.Config{
+		JSON:    conf,
+		Cmd:     []string{"agent"},
 		Version: *utils.TargetVersion,
 		Image:   *utils.TargetImage,
 	}
 
-	c, err := libnode.NewConsulContainer(context.Background(), config)
+	c, err := libagent.NewConsulContainer(context.Background(), config)
 	require.NoError(t, err, "could not start new node")
 
-	require.NoError(t, cluster.AddNodes([]libnode.Node{c}))
+	require.NoError(t, cluster.Add([]libagent.Agent{c}))
 
 	libcluster.WaitForMembers(t, client, 5)
 
-	require.NoError(t, cluster.RemoveNode(node))
+	require.NoError(t, cluster.Remove(node))
 
 	libcluster.WaitForMembers(t, client, 4)
 }

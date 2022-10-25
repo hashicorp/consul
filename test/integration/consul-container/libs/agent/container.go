@@ -1,7 +1,8 @@
-package node
+package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,7 +10,7 @@ import (
 
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/hashicorp/hcl"
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -20,13 +21,14 @@ import (
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
-// consulContainerNode implements the Node interface by running a Consul node
+// consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
 type consulContainerNode struct {
 	ctx            context.Context
 	client         *api.Client
 	pod            testcontainers.Container
 	container      testcontainers.Container
+	serverMode     bool
 	ip             string
 	port           int
 	datacenter     string
@@ -53,6 +55,10 @@ func (c *consulContainerNode) GetDatacenter() string {
 	return c.datacenter
 }
 
+func (c *consulContainerNode) IsServer() bool {
+	return c.serverMode
+}
+
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -60,14 +66,14 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-// NewConsulContainer starts a Consul node in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
+// NewConsulContainer starts a Consul agent in a container with the given config.
+func NewConsulContainer(ctx context.Context, config Config) (Agent, error) {
 	license, err := readLicense()
 	if err != nil {
 		return nil, err
 	}
 
-	pc, err := readSomeConfigFileFields(config.HCL)
+	pc, err := readSomeConfigFileFields(config.JSON)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +84,8 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	}
 	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
 
-	// Inject new Node name
-	config.HCL += fmt.Sprintf("\nnode_name = \"%s\"", name)
+	// Inject new Agent name
+	config.Cmd = append(config.Cmd, "-node", name)
 
 	tmpDirData, err := ioutils.TempDir("", name)
 	if err != nil {
@@ -90,7 +96,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 
-	configFile, err := createConfigFile(config.HCL)
+	configFile, err := createConfigFile(config.JSON)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +131,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	if err := consulContainer.StartLogProducer(ctx); err != nil {
 		return nil, err
 	}
-	consulContainer.FollowOutput(&NodeLogConsumer{
+	consulContainer.FollowOutput(&LogConsumer{
 		Prefix: name,
 	})
 
@@ -141,6 +147,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		config:     config,
 		pod:        podContainer,
 		container:  consulContainer,
+		serverMode: pc.Server,
 		ip:         ip,
 		port:       mappedPort.Int(),
 		datacenter: pc.Datacenter,
@@ -172,7 +179,7 @@ func newContainerRequest(config Config, name, configFile, dataDir, license strin
 		AutoRemove:  false,
 		Name:        name,
 		Mounts: []testcontainers.ContainerMount{
-			{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.json"},
 			{Source: testcontainers.DockerBindMountSource{HostPath: dataDir}, Target: "/consul/data"},
 		},
 		Cmd:        config.Cmd,
@@ -183,12 +190,12 @@ func newContainerRequest(config Config, name, configFile, dataDir, license strin
 	return pod, app
 }
 
-// GetClient returns an API client that can be used to communicate with the Node.
+// GetClient returns an API client that can be used to communicate with the Agent.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
 }
 
-// GetAddr return the network address associated with the Node.
+// GetAddr return the network address associated with the Agent.
 func (c *consulContainerNode) GetAddr() (string, int) {
 	return c.ip, c.port
 }
@@ -198,7 +205,7 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 }
 
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
-	pc, err := readSomeConfigFileFields(config.HCL)
+	pc, err := readSomeConfigFileFields(config.JSON)
 	if err != nil {
 		return err
 	}
@@ -209,10 +216,10 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	}
 	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
 
-	// Inject new Node name
-	config.HCL += fmt.Sprintf("node_name = %s\n", name)
+	// Inject new Agent name
+	config.Cmd = append(config.Cmd, "-node", name)
 
-	file, err := createConfigFile(config.HCL)
+	file, err := createConfigFile(config.JSON)
 	if err != nil {
 		return err
 	}
@@ -242,7 +249,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	if err := container.StartLogProducer(ctx); err != nil {
 		return err
 	}
-	container.FollowOutput(&NodeLogConsumer{
+	container.FollowOutput(&LogConsumer{
 		Prefix: name,
 	})
 
@@ -251,13 +258,13 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	return nil
 }
 
-// Terminate attempts to terminate the node container.
-// This might also include running termination functions for containers associated with the node.
+// Terminate attempts to terminate the agent container.
+// This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
 
 	// Services might register a termination function that should also fire
-	// when the "node" is cleaned up
+	// when the "agent" is cleaned up
 	for _, f := range c.terminateFuncs {
 		err := f()
 		if err != nil {
@@ -330,14 +337,14 @@ func createConfigFile(HCL string) (string, error) {
 }
 
 type parsedConfig struct {
-	Datacenter string `hcl:"datacenter"`
-	Server     bool   `hcl:"server"`
+	Datacenter string `json:"datacenter"`
+	Server     bool   `json:"server"`
 }
 
-func readSomeConfigFileFields(HCL string) (parsedConfig, error) {
+func readSomeConfigFileFields(JSON string) (parsedConfig, error) {
 	var pc parsedConfig
-	if err := hcl.Decode(&pc, HCL); err != nil {
-		return pc, fmt.Errorf("Failed to parse config file: %w", err)
+	if err := json.Unmarshal([]byte(JSON), &pc); err != nil {
+		return pc, errors.Wrap(err, "failed to parse config file")
 	}
 	if pc.Datacenter == "" {
 		pc.Datacenter = "dc1"

@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,19 +14,19 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
-// in integration tests, with nodes running in containers.
+// in integration tests, with agents running in containers.
 type Cluster struct {
-	Nodes      []node.Node
+	Agents     []agent.Agent
 	EncryptKey string
 }
 
-// New creates a Consul cluster. A node will be started for each of the given
+// New creates a Consul cluster. A agent will be started for each of the given
 // configs and joined to the cluster.
-func New(configs []node.Config) (*Cluster, error) {
+func New(configs []agent.Config) (*Cluster, error) {
 	serfKey, err := newSerfEncryptionKey()
 	if err != nil {
 		return nil, err
@@ -37,51 +36,52 @@ func New(configs []node.Config) (*Cluster, error) {
 		EncryptKey: serfKey,
 	}
 
-	nodes := make([]node.Node, len(configs))
+	agents := make([]agent.Agent, len(configs))
 	for idx, c := range configs {
-		c.HCL += fmt.Sprintf("\nencrypt = %q", serfKey)
+		// TODO (dans): replace with autoconfig
+		//c.JSON += fmt.Sprintf("\nencrypt = %q", serfKey)
 
-		n, err := node.NewConsulContainer(context.Background(), c)
+		n, err := agent.NewConsulContainer(context.Background(), c)
 		if err != nil {
 			return nil, err
 		}
-		nodes[idx] = n
+		agents[idx] = n
 	}
-	if err := cluster.AddNodes(nodes); err != nil {
+	if err := cluster.Add(agents); err != nil {
 		return nil, err
 	}
 	return &cluster, nil
 }
 
-// AddNodes joins the given nodes to the cluster.
-func (c *Cluster) AddNodes(nodes []node.Node) error {
+// Add joins the given agent to the cluster.
+func (c *Cluster) Add(agents []agent.Agent) error {
 	var joinAddr string
-	if len(c.Nodes) >= 1 {
-		joinAddr, _ = c.Nodes[0].GetAddr()
-	} else if len(nodes) >= 1 {
-		joinAddr, _ = nodes[0].GetAddr()
+	if len(c.Agents) >= 1 {
+		joinAddr, _ = c.Agents[0].GetAddr()
+	} else if len(agents) >= 1 {
+		joinAddr, _ = agents[0].GetAddr()
 	}
 
-	for _, n := range nodes {
+	for _, n := range agents {
 		err := n.GetClient().Agent().Join(joinAddr, false)
 		if err != nil {
 			return err
 		}
-		c.Nodes = append(c.Nodes, n)
+		c.Agents = append(c.Agents, n)
 	}
 	return nil
 }
 
-// RemoveNode instructs the node to leave the cluster then removes it
-// from the cluster Node list.
-func (c *Cluster) RemoveNode(n node.Node) error {
+// Remove instructs the agent to leave the cluster then removes it
+// from the cluster Agent list.
+func (c *Cluster) Remove(n agent.Agent) error {
 	err := n.GetClient().Agent().Leave()
 	if err != nil {
 		return err
 	}
 
 	foundIdx := -1
-	for idx, this := range c.Nodes {
+	for idx, this := range c.Agents {
 		if this == n {
 			foundIdx = idx
 			break
@@ -89,17 +89,17 @@ func (c *Cluster) RemoveNode(n node.Node) error {
 	}
 
 	if foundIdx == -1 {
-		return fmt.Errorf("could not find node in cluster")
+		return fmt.Errorf("could not find agent in cluster")
 	}
 
-	c.Nodes = append(c.Nodes[:foundIdx], c.Nodes[foundIdx+1:]...)
+	c.Agents = append(c.Agents[:foundIdx], c.Agents[foundIdx+1:]...)
 	return nil
 }
 
-// Terminate will attempt to terminate all nodes in the cluster. If any node
+// Terminate will attempt to terminate all agents in the cluster. If any agent
 // termination fails, Terminate will abort and return an error.
 func (c *Cluster) Terminate() error {
-	for _, n := range c.Nodes {
+	for _, n := range c.Agents {
 		err := n.Terminate()
 		if err != nil {
 			return err
@@ -108,20 +108,20 @@ func (c *Cluster) Terminate() error {
 	return nil
 }
 
-// Leader returns the cluster leader node, or an error if no leader is
+// Leader returns the cluster leader agent, or an error if no leader is
 // available.
-func (c *Cluster) Leader() (node.Node, error) {
-	if len(c.Nodes) < 1 {
-		return nil, fmt.Errorf("no node available")
+func (c *Cluster) Leader() (agent.Agent, error) {
+	if len(c.Agents) < 1 {
+		return nil, fmt.Errorf("no agent available")
 	}
-	n0 := c.Nodes[0]
+	n0 := c.Agents[0]
 
 	leaderAdd, err := GetLeader(n0.GetClient())
 	if err != nil {
 		return nil, err
 	}
 
-	for _, n := range c.Nodes {
+	for _, n := range c.Agents {
 		addr, _ := n.GetAddr()
 		if strings.Contains(leaderAdd, addr) {
 			return n, nil
@@ -131,61 +131,40 @@ func (c *Cluster) Leader() (node.Node, error) {
 }
 
 // Followers returns the cluster following servers.
-func (c *Cluster) Followers() ([]node.Node, error) {
-	var followers []node.Node
+func (c *Cluster) Followers() ([]agent.Agent, error) {
+	var followers []agent.Agent
 
 	leader, err := c.Leader()
 	if err != nil {
 		return nil, fmt.Errorf("could not determine leader: %w", err)
 	}
 
-	for _, n := range c.Nodes {
-		info, err := n.GetClient().Agent().Self()
-		consulBuf := info["Stats"]["consul"].(map[string]interface{})
-		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
-		if err != nil {
-			return nil, fmt.Errorf("could not parse agent self response: %w", err)
-		}
-
-		if n != leader && isServer {
+	for _, n := range c.Agents {
+		if n != leader && n.IsServer() {
 			followers = append(followers, n)
 		}
 	}
 	return followers, nil
 }
 
-// Servers returns the handle to server agent nodes.
-func (c *Cluster) Servers() ([]node.Node, error) {
-	var servers []node.Node
+// Servers returns the handle to server agents
+func (c *Cluster) Servers() ([]agent.Agent, error) {
+	var servers []agent.Agent
 
-	for _, n := range c.Nodes {
-		info, err := n.GetClient().Agent().Self()
-		consulBuf := info["Stats"]["consul"].(map[string]interface{})
-		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
-		if err != nil {
-			return nil, fmt.Errorf("could not parse agent self response: %w", err)
-		}
-
-		if isServer {
+	for _, n := range c.Agents {
+		if n.IsServer() {
 			servers = append(servers, n)
 		}
 	}
 	return servers, nil
 }
 
-// Clients returns the handle to client agent nodes.
-func (c *Cluster) Clients() ([]node.Node, error) {
-	var clients []node.Node
+// Clients returns the handle to client agents
+func (c *Cluster) Clients() ([]agent.Agent, error) {
+	var clients []agent.Agent
 
-	for _, n := range c.Nodes {
-		info, err := n.GetClient().Agent().Self()
-		consulBuf := info["Stats"]["consul"].(map[string]interface{})
-		isServer, err := strconv.ParseBool(consulBuf["server"].(string))
-		if err != nil {
-			return nil, fmt.Errorf("could not parse agent self response: %w", err)
-		}
-
-		if !isServer {
+	for _, n := range c.Agents {
+		if !n.IsServer() {
 			clients = append(clients, n)
 		}
 	}

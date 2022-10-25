@@ -8,7 +8,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -58,7 +58,7 @@ func (c gatewayContainer) Terminate() error {
 	return err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Node) (Service, error) {
+func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -115,7 +115,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 	if err := container.StartLogProducer(ctx); err != nil {
 		return nil, err
 	}
-	container.FollowOutput(&ServiceLogConsumer{
+	container.FollowOutput(&LogConsumer{
 		Prefix: containerName,
 	})
 

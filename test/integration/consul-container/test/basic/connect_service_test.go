@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/node"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -17,7 +17,7 @@ import (
 // A simulated client (a direct HTTP call) talks to it's upstream proxy through the
 //
 // Steps:
-//  * Create a single node cluster.
+//  * Create a single agent cluster.
 //	* Create the example static-server and sidecar containers, then register them both with Consul
 //  * Create an example static-client sidecar, then register both the service and sidecar with Consul
 //  * Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
@@ -38,27 +38,14 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 
 // createCluster
 func createCluster(t *testing.T) *libcluster.Cluster {
-	configs := []libnode.Config{
+	conf, err := libagent.NewConfigBuilder().ToString()
+	require.NoError(t, err)
+	t.Logf("Cluster config:\n%s", conf)
+
+	configs := []libagent.Config{
 		{
-			HCL: `ports {
-					  dns = 8600
-					  http = 8500
-					  https = 8501
-					  grpc = 8502
-					  grpc_tls = 8503
-					  serf_lan = 8301
-					  serf_wan = 8302
-					  server = 8300
-					}
-					bind_addr = "0.0.0.0"
-					advertise_addr = "{{ GetInterfaceIP \"eth0\" }}"
-					log_level="DEBUG"
-					server=true
-					bootstrap = true
-					connect {
-					  enabled = true
-					}`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
+			JSON:    conf,
+			Cmd:     []string{"agent"},
 			Version: *utils.TargetVersion,
 			Image:   *utils.TargetImage,
 		},
@@ -67,7 +54,7 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 
-	node := cluster.Nodes[0]
+	node := cluster.Agents[0]
 	client := node.GetClient()
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
@@ -81,7 +68,7 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
-	node := cluster.Nodes[0]
+	node := cluster.Agents[0]
 	client := node.GetClient()
 
 	// Create a service and proxy instance
