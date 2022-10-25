@@ -50,15 +50,15 @@
       },
       {
         "title": "Learn HCP Consul",
-        "href": "https://learn.hashicorp.com/tutorials/cloud/get-started-consul"
+        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
       },
       {
         "title": "Learn Consul on Kubernetes",
-        "href": "https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy"
+        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes"
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://learn.hashicorp.com/collections/consul/get-started-vms"
+        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-vms"
       },
       {
         "title": "Manual Bootstrap",
