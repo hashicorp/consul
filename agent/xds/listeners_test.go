@@ -533,6 +533,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-gateway-nil-config-entry",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+			},
+		},
+		{
 			name: "ingress-gateway-bind-addrs",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", func(ns *structs.NodeService) {
