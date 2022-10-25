@@ -78,11 +78,10 @@
       </BlockSlot>
       <BlockSlot @name='options'>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option
-            class='kubernetes'
-            @value='kubernetes'
-            @selected={{includes 'kubernetes' @filter.kind.value}}
-          >Kubernetes</Option>
+          <Option @value='kubernetes' @selected={{includes 'kubernetes' @filter.kind.value}}>
+            <FlightIcon @name='kubernetes-color' class='mr-2.5' />
+            Kubernetes
+          </Option>
           <Option
             class='jwt'
             @value='jwt'
