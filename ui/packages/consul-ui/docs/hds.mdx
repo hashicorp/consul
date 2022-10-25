@@ -28,11 +28,11 @@ Regular TailwindCSS colors aren't available.
 </h2>
 ```
 
-### HDS tokens
+### HDS core styles
 
-HDS tokens are available via the provided `hds`-[utility-classes](https://design-system-components-hashicorp.vercel.app/foundations/typography) made available via `@hashicorp/design-system-tokens`.
+HDS core styles are available via the provided `hds`-[utility-classes](https://design-system-components-hashicorp.vercel.app/foundations/typography) made available via `@hashicorp/design-system-tokens`.
 
-You for example would work with HDS' typography tokens in this way:
+You for example would work with HDS' typography styles in this way:
 
 ```hbs preview-template
 <p class='hds-typography-display-400'>
@@ -40,7 +40,7 @@ You for example would work with HDS' typography tokens in this way:
 </p>
 ```
 
-Because HDS provides utility classes for typography you should not be using Tailwind classes to customize typography.
+Because HDS provides utility classes for core styles, you should not be using Tailwind classes to customize core styles like typography.
 
 ### Combining HDS and Tailwind
 
@@ -58,7 +58,7 @@ All components from Hashicorp Design System are available for you to use. Here's
 
 ```hbs preview-template
 <nav
-  class='h-16 w-full bg-[color:var(--token-color-palette-neutral-700)] flex items-center justify-between px-4 hds-font-weight-medium'
+  class='h-16 w-full consul-surface-nav flex items-center justify-between px-4 hds-font-weight-medium'
 >
   <ul class='flex items-center'>
     <li>
@@ -96,3 +96,19 @@ All components from Hashicorp Design System are available for you to use. Here's
   </ul>
 </nav>
 ```
+
+Please notice the custom `consul-surface-nav`-utility class. This class has been created because at the moment of writing,
+there wasn't a `hds-surface-` that matched what we needed for this navigation header. If you run into situations like
+that, you can add a `consul-`-utility class to the `utilities`-layer in `tailwind.scss`.
+
+```css
+// consul-ui/app/styles/tailwind.scss
+@layer utilities {
+  .consul-surface-nav {
+    background: var(--token-color-palette-neutral-700);
+  }
+  // ...
+}
+```
+
+This should only be used as a last resort and you should stick to `hds-`-utilities whenever possible.
