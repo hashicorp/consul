@@ -17,6 +17,7 @@ module.exports = function (defaults, $ = process.env) {
 
   $ = utils.env($);
   const env = EmberApp.env();
+  const isProd = ['production'].includes(env);
   const prodlike = ['production', 'staging'];
   const devlike = ['development', 'staging'];
   const sourcemaps = !['production'].includes(env) && !$('BABEL_DISABLE_SOURCEMAPS', false);
@@ -197,6 +198,7 @@ module.exports = function (defaults, $ = process.env) {
       autoImport: {
         // allows use of a CSP without 'unsafe-eval' directive
         forbidEval: true,
+        publicAssetURL: isProd ? '{{.ContentPath}}assets' : undefined,
       },
       codemirror: {
         keyMaps: ['sublime'],
