@@ -3,6 +3,7 @@ package peerstream
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -141,6 +142,7 @@ func (s *Server) processResponse(
 	partition string,
 	mutableStatus *MutableStatus,
 	resp *pbpeerstream.ReplicationMessage_Response,
+	serviceUpdateBatchCh chan<- *serviceInstCheckUpdate,
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
@@ -173,7 +175,7 @@ func (s *Server) processResponse(
 			), err
 		}
 
-		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
+		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource, serviceUpdateBatchCh); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -207,6 +209,7 @@ func (s *Server) handleUpsert(
 	resourceURL string,
 	resourceID string,
 	resource *anypb.Any,
+	serviceUpdateBatchCh chan<- *serviceInstCheckUpdate,
 ) error {
 	if resource.TypeUrl != resourceURL {
 		return fmt.Errorf("mismatched resourceURL %q and Any typeUrl %q", resourceURL, resource.TypeUrl)
@@ -234,7 +237,7 @@ func (s *Server) handleUpsert(
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		err := s.handleUpdateService(peerName, partition, sn, export)
+		err := s.handleUpdateService(peerName, partition, sn, export, serviceUpdateBatchCh)
 		if err != nil {
 			return fmt.Errorf("did not increment imported services count for service=%q: %w", sn.String(), err)
 		}
@@ -289,7 +292,7 @@ func (s *Server) handleUpsertExportedServiceList(
 	}
 	for _, sn := range serviceList {
 		if _, ok := exportedServices[sn]; !ok {
-			err := s.handleUpdateService(peerName, partition, sn, nil)
+			err := s.handleUpdateService(peerName, partition, sn, nil, nil)
 
 			if err != nil {
 				return fmt.Errorf("failed to delete unexported service: %w", err)
@@ -316,6 +319,7 @@ func (s *Server) handleUpdateService(
 	partition string,
 	sn structs.ServiceName,
 	export *pbpeerstream.ExportedService,
+	serviceUpdateBatchCh chan<- *serviceInstCheckUpdate,
 ) error {
 	// Capture instances in the state store for reconciliation later.
 	_, storedInstances, err := s.GetStore().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
@@ -351,6 +355,8 @@ func (s *Server) handleUpdateService(
 			}
 		}
 
+		updateReqsBatch := []*serviceInstCheckUpdate{}
+
 		// Then register all services on that node - skip the unchanged ones
 		for _, svcSnap := range nodeSnap.Services {
 			changed = true
@@ -361,9 +367,19 @@ func (s *Server) handleUpdateService(
 			}
 
 			if changed {
-				req.Service = svcSnap.Service
-				if err := s.Backend.CatalogRegister(&req); err != nil {
-					return fmt.Errorf("failed to register service: %w", err)
+				if serviceUpdateBatchCh != nil {
+					svcReq := nodeSnap.Node.ToRegisterRequest()
+					svcReq.Service = svcSnap.Service
+					updateReq := &serviceInstCheckUpdate{
+						id:  makeNodeCheckID(nodeSnap.Node.ID, svcSnap.Service.ID, ""),
+						req: &svcReq,
+					}
+					updateReqsBatch = append(updateReqsBatch, updateReq)
+				} else {
+					req.Service = svcSnap.Service
+					if err := s.Backend.CatalogRegister(&req); err != nil {
+						return fmt.Errorf("failed to register service: %w", err)
+					}
 				}
 			}
 		}
@@ -387,9 +403,31 @@ func (s *Server) handleUpdateService(
 		}
 
 		if len(chks) > 0 {
-			req.Checks = chks
-			if err := s.Backend.CatalogRegister(&req); err != nil {
-				return fmt.Errorf("failed to register check: %w", err)
+			if serviceUpdateBatchCh != nil {
+				checkReq := nodeSnap.Node.ToRegisterRequest()
+				checkReq.Service = nil
+				chksID := ""
+				sort.Sort(chks)
+				for _, ch := range chks {
+					chksID += string(ch.CheckID) + ":"
+					checkReq.Checks = append(checkReq.Checks, ch)
+				}
+				updateReq := &serviceInstCheckUpdate{
+					id:  makeNodeCheckID(nodeSnap.Node.ID, "", types.CheckID(chksID)),
+					req: &checkReq,
+				}
+				updateReqsBatch = append(updateReqsBatch, updateReq)
+			} else {
+				req.Checks = chks
+				if err := s.Backend.CatalogRegister(&req); err != nil {
+					return fmt.Errorf("failed to register check: %w", err)
+				}
+			}
+		}
+
+		if len(updateReqsBatch) > 0 {
+			for _, req := range updateReqsBatch {
+				serviceUpdateBatchCh <- req
 			}
 		}
 	}

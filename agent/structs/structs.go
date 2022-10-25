@@ -1986,6 +1986,21 @@ func (c *HealthCheck) CheckType() *CheckType {
 // HealthChecks is a collection of HealthCheck structs.
 type HealthChecks []*HealthCheck
 
+func (hs HealthChecks) Len() int {
+	return len(hs)
+}
+
+func (hs HealthChecks) Less(i, j int) bool {
+	if hs[i].CheckID <= hs[j].CheckID {
+		return true
+	}
+	return false
+}
+
+func (hs HealthChecks) Swap(i, j int) {
+	hs[i], hs[j] = hs[j], hs[i]
+}
+
 // CheckServiceNode is used to provide the node, its service
 // definition, as well as a HealthCheck that is associated.
 type CheckServiceNode struct {

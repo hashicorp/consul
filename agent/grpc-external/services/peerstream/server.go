@@ -20,8 +20,10 @@ import (
 // extracted from private peering
 
 const (
-	defaultOutgoingHeartbeatInterval = 15 * time.Second
-	defaultIncomingHeartbeatTimeout  = 2 * time.Minute
+	defaultOutgoingHeartbeatInterval    = 15 * time.Second
+	defaultIncomingHeartbeatTimeout     = 2 * time.Minute
+	defaultReplicationRaftApplyInterval = 500 * time.Millisecond
+	defaultOutgoingStreamSendLimit      = 10 // ops / second
 )
 
 type Server struct {
@@ -45,6 +47,13 @@ type Config struct {
 
 	// incomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
 	incomingHeartbeatTimeout time.Duration
+
+	// replicationRaftApplyRate is how often we apply the batched update to raft
+	replicationRaftApplyInterval time.Duration
+
+	// outgoingStreamSendLimit is the max number of streamSend
+	// that we allow during a one second period.
+	outgoingStreamSendLimit int
 }
 
 //go:generate mockery --name ACLResolver --inpackage
@@ -65,6 +74,12 @@ func NewServer(cfg Config) *Server {
 	}
 	if cfg.incomingHeartbeatTimeout == 0 {
 		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
+	}
+	if cfg.replicationRaftApplyInterval == 0 {
+		cfg.replicationRaftApplyInterval = defaultReplicationRaftApplyInterval
+	}
+	if cfg.outgoingStreamSendLimit == 0 {
+		cfg.outgoingStreamSendLimit = defaultOutgoingStreamSendLimit
 	}
 	return &Server{
 		Config:  cfg,

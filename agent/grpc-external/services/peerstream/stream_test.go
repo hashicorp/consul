@@ -1159,7 +1159,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 10 * time.Millisecond
+		c.incomingHeartbeatTimeout = 500 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1216,7 +1216,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	}
 
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 50 * time.Millisecond
+		c.incomingHeartbeatTimeout = 500 * time.Millisecond
 	})
 	srv.Tracker.setClock(it.Now)
 
@@ -1255,7 +1255,7 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	outgoingHeartbeatInterval := 5 * time.Millisecond
+	outgoingHeartbeatInterval := 100 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.outgoingHeartbeatInterval = outgoingHeartbeatInterval
@@ -1308,7 +1308,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 50 * time.Millisecond
+	incomingHeartbeatTimeout := 500 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -1618,7 +1618,7 @@ func Test_processResponse_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse(peerName, "", mst, tc.in)
+		reply, err := srv.processResponse(peerName, "", mst, tc.in, nil)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1979,25 +1979,60 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 			Resource:    makeAnyPB(t, tc.input),
 		}
 
+		// simulate the realHandleStream's handle update batch
+		serviceUpdateBatchCh := make(chan *serviceInstCheckUpdate)
+		ctx, cancel := context.WithTimeout(context.Background(), defaultReplicationRaftApplyInterval+500*time.Millisecond)
+		defer cancel()
+		go func() {
+			logger := srv.Logger.Named("stream-resources")
+			srv.handleUpdateBatch(ctx, logger, serviceUpdateBatchCh)
+			close(serviceUpdateBatchCh)
+		}()
+
 		// Simulate an update arriving for billing/api.
-		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in)
+		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in, serviceUpdateBatchCh)
 		require.NoError(t, err)
+
+		// Simulate an subsequent update arriving for billing/api.
+		if len(tc.input.Nodes) > 0 {
+			tc.input.Nodes[0].Service.Meta = map[string]string{
+				"foo": "bar",
+			}
+			in.Nonce = "2"
+			in.Resource = makeAnyPB(t, tc.input)
+			_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in, serviceUpdateBatchCh)
+			require.NoError(t, err)
+		}
 
 		if len(tc.exportedServices) > 0 {
 			resp := &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedServiceList,
 				ResourceID:  subExportedServiceList,
-				Nonce:       "2",
+				Nonce:       "3",
 				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
 				Resource:    makeAnyPB(t, &pbpeerstream.ExportedServiceList{Services: tc.exportedServices}),
 			}
 
 			// Simulate an update arriving for billing/api.
-			_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, resp)
+			_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, resp, nil)
 			require.NoError(t, err)
 			// Test the count and contents separately to ensure the count code path is hit.
 			require.Equal(t, mst.GetImportedServicesCount(), len(tc.exportedServices))
 			require.ElementsMatch(t, mst.ImportedServices, tc.exportedServices)
+		}
+
+		// wait until batch channel closed
+	wait_batch:
+		for {
+			select {
+			case <-time.After(2 * time.Second):
+				break wait_batch
+			case _, ok := <-serviceUpdateBatchCh:
+				if !ok {
+					break wait_batch
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
 		}
 
 		_, allServices, err := srv.GetStore().ServiceList(nil, &defaultMeta, peerName)
@@ -2103,6 +2138,9 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Service:        "api",
 							EnterpriseMeta: defaultMeta,
 							PeerName:       peerName,
+							Meta: map[string]string{
+								"foo": "bar",
+							},
 						},
 						Checks: []*structs.HealthCheck{
 							{
@@ -2298,6 +2336,9 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Service:        "api",
 							EnterpriseMeta: defaultMeta,
 							PeerName:       peerName,
+							Meta: map[string]string{
+								"foo": "bar",
+							},
 						},
 						Checks: []*structs.HealthCheck{
 							{
@@ -2644,6 +2685,9 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Service:        "api",
 							EnterpriseMeta: defaultMeta,
 							PeerName:       peerName,
+							Meta: map[string]string{
+								"foo": "bar",
+							},
 						},
 						Checks: []*structs.HealthCheck{},
 					},
@@ -2746,6 +2790,9 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Service:        "api",
 							EnterpriseMeta: defaultMeta,
 							PeerName:       peerName,
+							Meta: map[string]string{
+								"foo": "bar",
+							},
 						},
 						Checks: []*structs.HealthCheck{
 							{
@@ -2884,6 +2931,9 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Service:        "api",
 							EnterpriseMeta: defaultMeta,
 							PeerName:       peerName,
+							Meta: map[string]string{
+								"foo": "bar",
+							},
 						},
 						Checks: []*structs.HealthCheck{
 							{
@@ -3002,6 +3052,7 @@ func requireEqualInstances(t *testing.T, expect, got structs.CheckServiceNodes) 
 		require.Equal(t, expect[i].Service.ID, got[i].Service.ID, "service id mismatch")
 		require.Equal(t, expect[i].Service.PeerName, got[i].Service.PeerName, "peer name mismatch")
 		require.Equal(t, expect[i].Service.PartitionOrDefault(), got[i].Service.PartitionOrDefault(), "partition mismatch")
+		require.Equal(t, expect[i].Service.Meta, got[i].Service.Meta, "service meta mismatch")
 
 		// Check equality
 		require.Equal(t, len(expect[i].Checks), len(got[i].Checks), "got differing number of check")

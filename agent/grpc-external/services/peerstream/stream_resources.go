@@ -309,6 +309,11 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 	return nil
 }
 
+type serviceInstCheckUpdate struct {
+	id  nodeCheckIdentity
+	req *structs.RegisterRequest
+}
+
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
 func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
@@ -448,6 +453,18 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		}
 	}()
 
+	// Start a go routine to deduplicate service update as a form of rate limit
+	// - received service update is placed in a map whose key is (node-id, service id)
+	// - apply the update very s.replicationRaftApplyInterval second
+	serviceUpdateBatchCh := make(chan *serviceInstCheckUpdate)
+	go func() {
+		// serviceUpdateBatchCh is closed after handleStreamCtx is done
+		defer func() {
+			close(serviceUpdateBatchCh)
+		}()
+		s.handleUpdateBatch(handleStreamCtx, logger, serviceUpdateBatchCh)
+	}()
+
 	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
 	incomingHeartbeatCtx, incomingHeartbeatCtxCancel :=
 		context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
@@ -461,6 +478,8 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// The nonce is used to correlate response/(ack|nack) pairs.
 	var nonce uint64
 
+	streamSendTicker := time.NewTicker(time.Second / time.Duration(s.outgoingStreamSendLimit)) // limit to 100 ops per second
+	defer streamSendTicker.Stop()
 	// The main loop that processes sends and receives.
 	for {
 		select {
@@ -610,7 +629,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if resp := msg.GetResponse(); resp != nil {
-				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, serviceUpdateBatchCh)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackRecvError(err.Error())
@@ -697,6 +716,12 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			nonce++
 			resp.Nonce = fmt.Sprintf("%08x", nonce)
 
+			select {
+			case <-status.Done():
+				return nil
+			case <-streamSendTicker.C:
+				// nothing to do - just rate limiting
+			}
 			replResp := makeReplicationResponse(resp)
 			if err := streamSend(replResp); err != nil {
 				// note: govet warns of context leak but it is cleaned up in a defer
@@ -717,6 +742,56 @@ func getTrustDomain(store StateStore, logger hclog.Logger) (string, error) {
 		return "", grpcstatus.Error(codes.Unavailable, "Connect CA is not yet initialized")
 	}
 	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
+}
+
+func (s *Server) handleUpdateBatch(handleStreamCtx context.Context, logger hclog.Logger, serviceUpdateBatchCh <-chan *serviceInstCheckUpdate) {
+	serviceUpdateBatch := map[nodeCheckIdentity]*serviceInstCheckUpdate{}
+	checkUpdateBatch := map[nodeCheckIdentity]*serviceInstCheckUpdate{}
+	var serviceUpdateBatchLock sync.RWMutex
+
+	// tick := time.NewTicker(time.Second / 100) // limit to 10 ops per second
+	tick := time.NewTicker(s.replicationRaftApplyInterval)
+	defer tick.Stop()
+
+	applyUpdates := func() {
+		for _, svcReq := range serviceUpdateBatch {
+			if err := s.Backend.CatalogRegister(svcReq.req); err != nil {
+				logger.Error("failed to register service: %w", err)
+			}
+			// TODO: any metrics to record the error
+		}
+
+		for _, svcReq := range checkUpdateBatch {
+			if err := s.Backend.CatalogRegister(svcReq.req); err != nil {
+				logger.Error("failed to register check: %w", err)
+			}
+			// TODO: any metrics to record the error
+		}
+	}
+
+	for {
+		select {
+		case <-handleStreamCtx.Done():
+			serviceUpdateBatchLock.Lock()
+			applyUpdates()
+			serviceUpdateBatchLock.Unlock()
+			return
+		case update := <-serviceUpdateBatchCh:
+			serviceUpdateBatchLock.Lock()
+			if update.req.Service != nil {
+				serviceUpdateBatch[update.id] = update
+			} else {
+				checkUpdateBatch[update.id] = update
+			}
+			serviceUpdateBatchLock.Unlock()
+		case <-tick.C:
+			serviceUpdateBatchLock.Lock()
+			applyUpdates()
+			serviceUpdateBatch = map[nodeCheckIdentity]*serviceInstCheckUpdate{}
+			checkUpdateBatch = map[nodeCheckIdentity]*serviceInstCheckUpdate{}
+			serviceUpdateBatchLock.Unlock()
+		}
+	}
 }
 
 func (s *Server) StreamStatus(peerID string) (resp Status, found bool) {
