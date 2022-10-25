@@ -2,7 +2,7 @@
   <div class="flex h-24 p-6 overflow-x-auto space-x-12">
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
       >Status</div>
       <div class="flex items-center">
         <Peerings::Badge @peering={{@peering}} />
@@ -10,14 +10,15 @@
     </div>
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
       >Latest heartbeat</div>
       <div class="flex items-center">
         {{#if @peering.LastHeartbeat}}
           {{#let (smart-date-format @peering.LastHeartbeat) as |smartDate|}}
             <FlightIcon
               @name="activity"
-              class="mr-0.5 text-hds-foreground-faint fill-current"
+              @color="var(--token-color-foreground-faint)"
+              class="mr-0.5"
             />
             {{#if smartDate.isNearDate}}
               <span {{tooltip smartDate.friendly}}>{{smartDate.relative}}</span>
@@ -32,7 +33,7 @@
     </div>
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foregrouny-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
       >Latest receipt</div>
       <div class="flex items-center">
         {{#if @peering.LastReceive}}
@@ -50,7 +51,7 @@
     </div>
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
       >Latest send</div>
       <div class="flex items-center">
         {{#if @peering.LastSend}}
