@@ -76,7 +76,7 @@
                   <Consul::Peer::Form @params={{route.params}} as |form|>
                     <form.Form
                       @onchange={{loader.invalidate}}
-                      @onsubmit={{modal.close}}
+                      @onsubmit={{fn this.redirectToPeerShow modal.close}}
                       as |form|
                     >
                       {{did-insert (set this "form" form)}}
