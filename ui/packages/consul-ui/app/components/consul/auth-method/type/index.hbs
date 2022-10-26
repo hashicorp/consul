@@ -1,5 +1,4 @@
 {{#let (icon-mapping @item.Type) as |flightIcon|}}
-  {{log flightIcon}}
   <span class="consul-auth-method-type {{unless flightIcon @item.Type}}" data-test-type={{@item.Type}}>
     {{#if flightIcon}}
       <FlightIcon @name={{flightIcon}} class="mr-1.5 w-4 h-4" />
