@@ -28,3 +28,4 @@ Feature: dc / peers / establish: Peer Establish Peering
     ---
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
+    And the url should be /dc-1/peers/new-peer/imported-services
