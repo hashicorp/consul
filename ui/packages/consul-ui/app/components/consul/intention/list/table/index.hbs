@@ -122,11 +122,12 @@ as |item index|>
           {{else if (can "view CRD intention" item=item)}}
             <li role="none">
               <div role="menu">
-                <InformedAction
-                  class="info kubernetes"
-                >
+                <InformedAction>
                   <:header>
-                    Managed by CRD
+                    <span class="flex flex-nowrap items-center">
+                      <FlightIcon @name="kubernetes-color" class="mr-1.5" />
+                      Managed by CRD
+                    </span>
                   </:header>
                   <:body>
                     <p>
