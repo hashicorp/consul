@@ -551,7 +551,6 @@ export default helper(function ([lib], hash) {
     'logo-azure-monochrome.svg',
     'logo-bitbucket-color.svg',
     'logo-bitbucket-monochrome.svg',
-    'logo-consul-color.svg',
     'logo-ember-circle-color.svg',
     'logo-gcp-color.svg',
     'logo-gcp-monochrome.svg',
