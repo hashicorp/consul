@@ -5,7 +5,7 @@ import { fragment } from 'ember-data-model-fragments/attributes';
 import replace, { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
-export const SLUG_KEY = 'Name';
+export const SLUG_KEY = 'Name,PeerName';
 
 export const Collection = class Collection {
   @tracked items;
