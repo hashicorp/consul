@@ -287,7 +287,6 @@ func (s *Server) handleUpsertExportedServiceList(
 	if err != nil {
 		return err
 	}
-
 	for _, sn := range serviceList {
 		if _, ok := exportedServices[sn]; !ok {
 			err := s.handleUpdateService(peerName, partition, sn, nil)
@@ -324,9 +323,12 @@ func (s *Server) handleUpdateService(
 		return fmt.Errorf("failed to read imported services: %w", err)
 	}
 
-	structsNodes, err := export.CheckServiceNodesToStruct()
-	if err != nil {
-		return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
+	structsNodes := []structs.CheckServiceNode{}
+	if export != nil {
+		structsNodes, err = export.CheckServiceNodesToStruct()
+		if err != nil {
+			return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
+		}
 	}
 
 	// Normalize the data into a convenient form for operation.
