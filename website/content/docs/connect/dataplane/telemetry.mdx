@@ -1,0 +1,92 @@
+---
+layout: docs
+page_title: Consul Dataplane - Enable Telemetry Metrics
+description: >-
+  Configure consul-dataplane telemetry to collect metrics you can use to debug and observe Consul behavior and performance.
+---
+
+# Consul Dataplane Telemetry
+
+Consul Dataplane collects metrics about its own status and performance.
+The following external metrics stores are supported:
+
+- [DogstatsD](https://docs.datadoghq.com/developers/dogstatsd/)
+- [Prometheus](https://prometheus.io/docs/prometheus/latest/)
+- [StatsD](https://github.com/statsd/statsd)
+
+# Configuring Telemetry
+
+<Tabs>
+
+<Tab heading="Kubernetes">
+
+Refer to the [Consul on Kubernetes documentation](/docs/k8s/connect/observability/metrics) to
+configure telemetry for Consul on Kubernetes.
+
+</Tab>
+
+<Tab heading="Reference Documentation">
+
+Consul Dataplane respects the telemetry settings used for Envoy. You must do the following to
+enable telemetry for Consul Dataplane:
+
+- Enable telemetry for Envoy by including metrics configuration in either the `proxy-defaults`
+  configuration entry or directly in the `proxy.config` field. Refer to the [Envoy Bootstrap
+  Configuration](/docs/connect/proxies/envoy#bootstrap-configuration) for details.
+- Pass the
+  [`-telemetry-use-central-config`](/docs/connect/dataplane/consul-dataplane#telemetry-use-central-config)
+  flag to `consul-dataplane`.
+
+## Prometheus Metrics Merging
+
+When Prometheus metrics are used, Consul Dataplane configures Envoy to serve merged metrics through
+a single endpoint. Metrics from the following sources are collected and merged:
+
+- The Envoy process managed by Consul Dataplane
+- Consul Dataplane itself
+- (optionally) Your service that is running alongside Consul Dataplane
+
+If your service supports Prometheus metrics, set the
+[`-telemetry-prom-service-metrics-url`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-service-metrics-url)
+option to the URL where your service exposes Prometheus metrics in order to include metrics for your
+service in the merged metrics.
+
+## Additional Prometheus Options
+
+To configure TLS for communicating to the Prometheus server, use the following flags:
+
+- [`-telemetry-prom-ca-certs-path`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-ca-certs-path)
+- [`-telemetry-prom-cert-file`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-cert-file)
+- [`-telemetry-prom-key-file`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-key-file)
+
+To change the port Consul Dataplane listens on for metrics merging, use the
+[`-telemetry-prom-merge-port`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-merge-port)
+flag. You should set this if your service needs to listen on the default metrics merging port,
+20100, in order to avoid a port conflict.
+
+To change the duration Prometheus metrics are retained for, use the
+[`-telemetry-prom-retention-time`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-retention-time)
+flag. Refer to
+[`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time)
+for details on how this field should be set.
+
+To change the URL path where Envoy serves Prometheus metrics, use the
+[`-telemetry-prom-scrape-path`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-scrape-path)
+flag.
+
+</Tab>
+
+</Tabs>
+
+# Metrics
+
+Consul Dataplane supports the following metrics:
+
+| Metric Name                                  | Description                                                                                                                                                                               | Unit             | Type    |
+| :------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------- | :------ |
+| `consul_dataplane.connect_duration`          | Measures the time `consul-dataplane` spends connecting to a server. This includes everything from discovery of Consul server addresses up to opening an xDS stream to the Consul servers. | ms               | timer   |
+| `consul_dataplane.connected`                 | Indicates whether `consul-dataplane` is currently connected to a Consul server.                                                                                                           | 1 or 0           | gauge   |
+| `consul_dataplane.connection_errors`         | Measures the number of errors encountered on gRPC streams. This is labeled with the gRPC error status code.                                                                               | number of errors | gauge   |
+| `consul_dataplane.discover_servers_duration` | Measures the time `consul-dataplane` spends discovering Consul server IP addresses.                                                                                                       | ms               | timer   |
+| `consul_dataplane.envoy_connected`           | Indicates whether Envoy is currently connected to `consul-dataplane` and able to receive xDS updates.                                                                                     | 1 or 0           | gauge   |
+| `consul_dataplane.login_duration`            | Measures the time `consul-dataplane` spends logging in to an ACL auth method.                                                                                                             | ms               | timer   |

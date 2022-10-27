@@ -572,6 +572,10 @@
           {
             "title": "CLI Reference",
             "path": "connect/dataplane/consul-dataplane"
+          },
+          {
+            "title": "Telemetry",
+            "path": "connect/dataplane/telemetry"
           }
         ]
       }
@@ -1145,7 +1149,7 @@
       },
       {
         "title": "Register Lambda Functions",
-        "routes":[
+        "routes": [
           {
             "title": "Requirements",
             "path": "lambda/registration"
@@ -1171,7 +1175,7 @@
           "text": "BETA",
           "type": "outlined",
           "color": "neutral"
-        }    
+        }
       }
     ]
   },
