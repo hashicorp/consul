@@ -75,7 +75,9 @@
   </:notifications>
 
   <:home-nav>
-    <a href={{href-to 'index' params=(hash peer=undefined)}}><Consul::Logo /></a>
+    <a class='w-8 h-8' href={{href-to 'index' params=(hash peer=undefined)}}>
+      <FlightIcon @size='24' @name='consul-color' @stretched={{true}} />
+    </a>
   </:home-nav>
 
   <:main-nav>
