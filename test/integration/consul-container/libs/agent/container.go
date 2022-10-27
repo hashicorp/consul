@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -35,7 +36,10 @@ type consulContainerNode struct {
 	config         Config
 	podReq         testcontainers.ContainerRequest
 	consulReq      testcontainers.ContainerRequest
+	certDir        string
 	dataDir        string
+	network        string
+	id             int
 	terminateFuncs []func() error
 }
 
@@ -67,7 +71,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
 	license, err := readLicense()
 	if err != nil {
 		return nil, err
@@ -101,7 +105,32 @@ func NewConsulContainer(ctx context.Context, config Config) (Agent, error) {
 		return nil, err
 	}
 
-	podReq, consulReq := newContainerRequest(config, name, configFile, tmpDirData, license)
+	tmpCertData, err := ioutils.TempDir("", fmt.Sprintf("%s-certs", name))
+	if err != nil {
+		return nil, err
+	}
+	err = os.Chmod(tmpCertData, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	for filename, cert := range config.Certs {
+		err := createCertFile(tmpCertData, filename, cert)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to write file %s", filename)
+		}
+	}
+
+	opts := containerOpts{
+		name:              name,
+		certDir:           tmpCertData,
+		configFile:        configFile,
+		dataDir:           tmpDirData,
+		license:           license,
+		addtionalNetworks: []string{"bridge", network},
+		hostname:          fmt.Sprintf("agent-%d", index),
+	}
+	podReq, consulReq := newContainerRequest(config, opts)
 
 	podContainer, err := startContainer(ctx, podReq)
 	if err != nil {
@@ -156,35 +185,52 @@ func NewConsulContainer(ctx context.Context, config Config) (Agent, error) {
 		podReq:     podReq,
 		consulReq:  consulReq,
 		dataDir:    tmpDirData,
+		certDir:    tmpCertData,
+		network:    network,
+		id:         index,
 	}, nil
 }
 
 const pauseImage = "k8s.gcr.io/pause:3.3"
 
-func newContainerRequest(config Config, name, configFile, dataDir, license string) (podRequest, consulRequest testcontainers.ContainerRequest) {
+type containerOpts struct {
+	certDir           string
+	configFile        string
+	dataDir           string
+	hostname          string
+	index             int
+	license           string
+	name              string
+	addtionalNetworks []string
+}
+
+func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
 	pod := testcontainers.ContainerRequest{
 		Image:        pauseImage,
 		AutoRemove:   false,
-		Name:         name + "-pod",
+		Name:         opts.name + "-pod",
 		SkipReaper:   skipReaper,
 		ExposedPorts: []string{"8500/tcp"},
+		Hostname:     opts.hostname,
+		Networks:     opts.addtionalNetworks,
 	}
 
 	app := testcontainers.ContainerRequest{
-		NetworkMode: dockercontainer.NetworkMode("container:" + name + "-pod"),
+		NetworkMode: dockercontainer.NetworkMode("container:" + opts.name + "-pod"),
 		Image:       config.Image + ":" + config.Version,
-		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
+		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(30 * time.Second),
 		AutoRemove:  false,
-		Name:        name,
+		Name:        opts.name,
 		Mounts: []testcontainers.ContainerMount{
-			{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.json"},
-			{Source: testcontainers.DockerBindMountSource{HostPath: dataDir}, Target: "/consul/data"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.certDir}, Target: "/consul/config/certs"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.configFile}, Target: "/consul/config/config.json"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.dataDir}, Target: "/consul/data"},
 		},
 		Cmd:        config.Cmd,
 		SkipReaper: skipReaper,
-		Env:        map[string]string{"CONSUL_LICENSE": license},
+		Env:        map[string]string{"CONSUL_LICENSE": opts.license},
 	}
 
 	return pod, app
@@ -224,14 +270,24 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 
+	for filename, cert := range config.Certs {
+		err := createCertFile(c.certDir, filename, cert)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write file %s", filename)
+		}
+	}
+
 	// We'll keep the same pod.
-	_, consulReq2 := newContainerRequest(
-		config,
-		c.consulReq.Name,
-		file,
-		c.dataDir,
-		"",
-	)
+	opts := containerOpts{
+		name:              c.consulReq.Name,
+		certDir:           c.certDir,
+		configFile:        file,
+		dataDir:           c.dataDir,
+		license:           "",
+		addtionalNetworks: []string{"bridge", c.network},
+		hostname:          fmt.Sprintf("agent-%d", c.id),
+	}
+	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
 
 	_ = c.container.StopLogProducer()
@@ -315,7 +371,7 @@ func readLicense() (string, error) {
 	return license, nil
 }
 
-func createConfigFile(HCL string) (string, error) {
+func createConfigFile(JSON string) (string, error) {
 	tmpDir, err := ioutils.TempDir("", "consul-container-test-config")
 	if err != nil {
 		return "", err
@@ -329,11 +385,21 @@ func createConfigFile(HCL string) (string, error) {
 		return "", err
 	}
 	configFile := tmpDir + "/config/config.hcl"
-	err = os.WriteFile(configFile, []byte(HCL), 0644)
+	err = os.WriteFile(configFile, []byte(JSON), 0644)
 	if err != nil {
 		return "", err
 	}
 	return configFile, nil
+}
+
+func createCertFile(dir, filename, cert string) error {
+	filename = filepath.Base(filename)
+	path := filepath.Join(dir, filename)
+	err := os.WriteFile(path, []byte(cert), 0644)
+	if err != nil {
+		return errors.Wrap(err, "could not write cert file")
+	}
+	return nil
 }
 
 type parsedConfig struct {

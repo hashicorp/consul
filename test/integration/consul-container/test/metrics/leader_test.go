@@ -22,28 +22,15 @@ import (
 func TestLeadershipMetrics(t *testing.T) {
 	var configs []agent.Config
 
-	statsConf, err := libagent.NewConfigBuilder().Telemetry("127.0.0.0:2180").ToString()
+	statsConf, err := libagent.NewConfigBuilder(nil).Telemetry("127.0.0.0:2180").ToAgentConfig()
 	require.NoError(t, err)
-	configs = append(configs,
-		agent.Config{
-			JSON:    statsConf,
-			Cmd:     []string{"agent"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		})
+	configs = append(configs, *statsConf)
 
-	conf, err := libagent.NewConfigBuilder().Bootstrap(3).ToString()
+	conf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
 	require.NoError(t, err)
 	numServer := 3
 	for i := 1; i < numServer; i++ {
-		configs = append(configs,
-			agent.Config{
-				JSON:    conf,
-				Cmd:     []string{"agent"},
-				Version: *utils.TargetVersion,
-				Image:   *utils.TargetImage,
-			})
-
+		configs = append(configs, *conf)
 	}
 
 	cluster, err := libcluster.New(configs)

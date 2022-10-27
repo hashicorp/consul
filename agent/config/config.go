@@ -155,7 +155,7 @@ type Config struct {
 	ClientAddr                       *string             `mapstructure:"client_addr" json:"client_addr,omitempty"`
 	Cloud                            *CloudConfigRaw     `mapstructure:"cloud" json:"-"`
 	ConfigEntries                    ConfigEntries       `mapstructure:"config_entries" json:"-"`
-	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt" json:"-"`
+	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt" json:"auto_encrypt,omitempty"`
 	Connect                          Connect             `mapstructure:"connect" json:"connect,omitempty"`
 	DNS                              DNS                 `mapstructure:"dns_config" json:"-"`
 	DNSDomain                        *string             `mapstructure:"domain" json:"domain,omitempty"`
@@ -233,7 +233,7 @@ type Config struct {
 	StartJoinAddrsLAN                []string            `mapstructure:"start_join" json:"start_join,omitempty"`
 	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan" json:"start_join_wan,omitempty"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility" json:"syslog_facility,omitempty"`
-	TLS                              TLS                 `mapstructure:"tls" json:"-"`
+	TLS                              TLS                 `mapstructure:"tls" json:"tls,omitempty"`
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_a ddresses" json:"tagged_addresses,omitempty"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry" json:"telemetry,omitempty"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs" json:"translate_wan_addrs,omitempty"`
@@ -592,17 +592,17 @@ type ExposePath struct {
 // AutoEncrypt is the agent-global auto_encrypt configuration.
 type AutoEncrypt struct {
 	// TLS enables receiving certificates for clients from servers
-	TLS *bool `mapstructure:"tls"`
+	TLS *bool `mapstructure:"tls" json:"tls,omitempty"`
 
 	// Additional DNS SAN entries that clients request for their certificates.
-	DNSSAN []string `mapstructure:"dns_san"`
+	DNSSAN []string `mapstructure:"dns_san" json:"dns_san,omitempty"`
 
 	// Additional IP SAN entries that clients request for their certificates.
-	IPSAN []string `mapstructure:"ip_san"`
+	IPSAN []string `mapstructure:"ip_san" json:"ip_san,omitempty"`
 
 	// AllowTLS enables the RPC endpoint on the server to answer
 	// AutoEncrypt.Sign requests.
-	AllowTLS *bool `mapstructure:"allow_tls"`
+	AllowTLS *bool `mapstructure:"allow_tls" json:"allow_tls,omitempty"`
 }
 
 // Connect is the agent-global connect configuration.
@@ -873,23 +873,23 @@ type CloudConfigRaw struct {
 }
 
 type TLSProtocolConfig struct {
-	CAFile               *string `mapstructure:"ca_file"`
-	CAPath               *string `mapstructure:"ca_path"`
-	CertFile             *string `mapstructure:"cert_file"`
-	KeyFile              *string `mapstructure:"key_file"`
-	TLSMinVersion        *string `mapstructure:"tls_min_version"`
-	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites"`
-	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
-	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
-	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
-	UseAutoCert          *bool   `mapstructure:"use_auto_cert"`
+	CAFile               *string `mapstructure:"ca_file" json:"ca_file,omitempty"`
+	CAPath               *string `mapstructure:"ca_path" json:"ca_path,omitempty"`
+	CertFile             *string `mapstructure:"cert_file" json:"cert_file,omitempty"`
+	KeyFile              *string `mapstructure:"key_file" json:"key_file,omitempty"`
+	TLSMinVersion        *string `mapstructure:"tls_min_version" json:"tls_min_version,omitempty"`
+	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites" json:"tls_cipher_suites,omitempty"`
+	VerifyIncoming       *bool   `mapstructure:"verify_incoming" json:"verify_incoming,omitempty"`
+	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing" json:"verify_outgoing,omitempty"`
+	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname" json:"verify_server_hostname,omitempty"`
+	UseAutoCert          *bool   `mapstructure:"use_auto_cert" json:"use_auto_cert,omitempty"`
 }
 
 type TLS struct {
-	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
-	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
-	HTTPS       TLSProtocolConfig `mapstructure:"https"`
-	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+	Defaults    TLSProtocolConfig `mapstructure:"defaults" json:"defaults,omitempty"`
+	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc" json:"internal_rpc,omitempty"`
+	HTTPS       TLSProtocolConfig `mapstructure:"https" json:"https,omitempty"`
+	GRPC        TLSProtocolConfig `mapstructure:"grpc" json:"grpc,omitempty"`
 
 	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
 	// modified by the deprecated field mapping (as apposed to a user-provided
@@ -902,7 +902,7 @@ type TLS struct {
 	//
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
-	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-" json:"-"`
 }
 
 type Peering struct {

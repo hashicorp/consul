@@ -17,10 +17,6 @@ func RandName(name string) string {
 	return name + "-" + id
 }
 
-func StringPointer(s string) *string {
-	return &s
-}
-
 // JQFilter uses the provided "jq" filter to parse json.
 // Matching results are returned as a slice of strings.
 func JQFilter(config, filter string) ([]string, error) {
@@ -49,4 +45,16 @@ func JQFilter(config, filter string) ([]string, error) {
 		result = append(result, s)
 	}
 	return result, nil
+}
+
+func IntToPointer(i int) *int {
+	return &i
+}
+
+func BoolToPointer(b bool) *bool {
+	return &b
+}
+
+func StringToPointer(s string) *string {
+	return &s
 }

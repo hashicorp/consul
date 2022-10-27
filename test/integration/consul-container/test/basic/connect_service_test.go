@@ -38,18 +38,18 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 
 // createCluster
 func createCluster(t *testing.T) *libcluster.Cluster {
-	conf, err := libagent.NewConfigBuilder().ToString()
-	require.NoError(t, err)
-	t.Logf("Cluster config:\n%s", conf)
-
-	configs := []libagent.Config{
-		{
-			JSON:    conf,
-			Cmd:     []string{"agent"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		},
+	opts := libagent.BuildOptions{
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
 	}
+	ctx, err := libagent.NewBuildContext(opts)
+	require.NoError(t, err)
+
+	conf, err := libagent.NewConfigBuilder(ctx).ToAgentConfig()
+	require.NoError(t, err)
+	t.Logf("Cluster config:\n%s", conf.JSON)
+
+	configs := []libagent.Config{*conf}
 
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)

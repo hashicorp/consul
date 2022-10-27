@@ -3,6 +3,7 @@ package peering
 import (
 	"context"
 	"encoding/pem"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -50,13 +51,14 @@ const (
 func TestServer(t *testing.T) {
 	var acceptingCluster, dialingCluster *libcluster.Cluster
 	var acceptingClient, dialingClient *api.Client
+	var acceptingCtx *libagent.BuildContext
 	var clientSidecarService libservice.Service
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
-		acceptingCluster, acceptingClient = creatingAcceptingClusterAndSetup(t)
+		acceptingCluster, acceptingClient, acceptingCtx = creatingAcceptingClusterAndSetup(t)
 		wg.Done()
 	}()
 	defer func() {
@@ -105,11 +107,11 @@ func TestServer(t *testing.T) {
 
 		for idx, follower := range followers {
 			t.Log("Removing follower", idx)
-			rotateServer(t, acceptingCluster, acceptingClient, follower)
+			rotateServer(t, acceptingCluster, acceptingClient, acceptingCtx, follower)
 		}
 
 		t.Log("Removing leader")
-		rotateServer(t, acceptingCluster, acceptingClient, leader)
+		rotateServer(t, acceptingCluster, acceptingClient, acceptingCtx, leader)
 
 		libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
@@ -183,42 +185,40 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 // creatingAcceptingClusterAndSetup creates a cluster with 3 servers and 1 client.
 // It also creates and registers a service+sidecar.
 // The API client returned is pointed at the client agent.
-func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Client) {
+func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Client, *libagent.BuildContext) {
 	var configs []libagent.Config
 
-	serverConf, err := libagent.NewConfigBuilder().
-		Bootstrap(3).
-		Peering(true).
-		ToString()
+	opts := libagent.BuildOptions{
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
+	}
+	ctx, err := libagent.NewBuildContext(opts)
 	require.NoError(t, err)
 
 	numServer := 3
 	for i := 0; i < numServer; i++ {
-		configs = append(configs,
-			libagent.Config{
-				JSON:    serverConf,
-				Cmd:     []string{"agent"},
-				Version: *utils.TargetVersion,
-				Image:   *utils.TargetImage,
-			},
-		)
+		serverConf, err := libagent.NewConfigBuilder(ctx).
+			Bootstrap(3).
+			Peering(true).
+			RetryJoin(fmt.Sprintf("agent-%d", (i+1)%3)). // Round-robin join the servers
+			ToAgentConfig()
+		require.NoError(t, err)
+		t.Logf("dc1 server config %d: \n%s", i, serverConf.JSON)
+
+		configs = append(configs, *serverConf)
 	}
 
 	// Add a stable client to register the service
-	clientConf, err := libagent.NewConfigBuilder().
+	clientConf, err := libagent.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
-		ToString()
+		RetryJoin("agent-0", "agent-1", "agent-2").
+		ToAgentConfig()
 	require.NoError(t, err)
 
-	configs = append(configs,
-		libagent.Config{
-			JSON:    clientConf,
-			Cmd:     []string{"agent"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		},
-	)
+	t.Logf("dc1 client config: \n%s", clientConf.JSON)
+
+	configs = append(configs, *clientConf)
 
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
@@ -261,25 +261,26 @@ func creatingAcceptingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.C
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	return cluster, client
+	return cluster, client, ctx
 }
 
 // createDialingClusterAndSetup creates a cluster for peering with a single dev agent
 func createDialingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Client, libservice.Service) {
-	conf, err := libagent.NewConfigBuilder().
-		Datacenter("dc2").
-		Peering(true).
-		ToString()
+	opts := libagent.BuildOptions{
+		Datacenter:             "dc2",
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
+	}
+	ctx, err := libagent.NewBuildContext(opts)
 	require.NoError(t, err)
 
-	configs := []libagent.Config{
-		{
-			JSON:    conf,
-			Cmd:     []string{"agent"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		},
-	}
+	conf, err := libagent.NewConfigBuilder(ctx).
+		Peering(true).
+		ToAgentConfig()
+	require.NoError(t, err)
+	t.Logf("dc2 server config: \n%s", conf.JSON)
+
+	configs := []libagent.Config{*conf}
 
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
@@ -308,25 +309,16 @@ func createDialingClusterAndSetup(t *testing.T) (*libcluster.Cluster, *api.Clien
 }
 
 // rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
-func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, node libagent.Agent) {
-
-	// TODO (dans): need to address the encryption key
-	conf, err := libagent.NewConfigBuilder().
+func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libagent.BuildContext, node libagent.Agent) {
+	conf, err := libagent.NewConfigBuilder(ctx).
 		Bootstrap(0).
 		Peering(true).
-		ToString()
+		RetryJoin("agent-3"). // Always use the client agent since it never leaves the cluster
+		ToAgentConfig()
+	require.NoError(t, err)
 
-	config := libagent.Config{
-		JSON:    conf,
-		Cmd:     []string{"agent"},
-		Version: *utils.TargetVersion,
-		Image:   *utils.TargetImage,
-	}
-
-	c, err := libagent.NewConsulContainer(context.Background(), config)
+	err = cluster.Add([]libagent.Config{*conf})
 	require.NoError(t, err, "could not start new node")
-
-	require.NoError(t, cluster.Add([]libagent.Agent{c}))
 
 	libcluster.WaitForMembers(t, client, 5)
 

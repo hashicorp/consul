@@ -70,7 +70,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 
 	envoyVersion := getEnvoyVersion()
 	buildargs := map[string]*string{
-		"ENVOY_VERSION": utils.StringPointer(envoyVersion),
+		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
 	}
 
 	dockerfileCtx, err := getDevContainerDockerfile()

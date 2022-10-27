@@ -22,6 +22,7 @@ type Agent interface {
 // Config is a set of configurations required to create a Agent
 type Config struct {
 	JSON    string
+	Certs   map[string]string
 	Image   string
 	Version string
 	Cmd     []string

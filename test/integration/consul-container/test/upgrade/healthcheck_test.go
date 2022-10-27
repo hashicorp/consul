@@ -25,9 +25,9 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	cluster := serversCluster(t, numServers, *utils.TargetVersion, *utils.TargetImage)
 	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.Add(clients))
+	require.NoError(t, cluster.Join(clients))
 
 	client := cluster.Agents[0].GetClient()
 
@@ -73,16 +73,10 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	var configs []libagent.Config
 
-	leaderConf, err := libagent.NewConfigBuilder().ToString()
+	leaderConf, err := libagent.NewConfigBuilder(nil).ToAgentConfig()
 	require.NoError(t, err)
 
-	configs = append(configs,
-		libagent.Config{
-			JSON:    leaderConf,
-			Cmd:     []string{"agent"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		})
+	configs = append(configs, *leaderConf)
 
 	// This needs a specialized config since it is using an older version of the agent.
 	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
@@ -113,9 +107,9 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.Add(clients))
+	require.NoError(t, cluster.Join(clients))
 
 	client := clients[0].GetClient()
 
@@ -160,17 +154,10 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	var configs []libagent.Config
 
-	serverConf, err := libagent.NewConfigBuilder().Bootstrap(3).ToString()
-	require.NoError(t, err)
-
 	for i := 0; i < 2; i++ {
-		configs = append(configs,
-			libagent.Config{
-				JSON:    serverConf,
-				Cmd:     []string{"agent"},
-				Version: *utils.TargetVersion,
-				Image:   *utils.TargetImage,
-			})
+		serverConf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
+		require.NoError(t, err)
+		configs = append(configs, *serverConf)
 	}
 
 	leaderConf := `{
@@ -197,9 +184,9 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.Add(clients))
+	require.NoError(t, cluster.Join(clients))
 
 	client := clients[0].GetClient()
 
@@ -227,7 +214,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
 
-	timer := time.NewTimer(1 * time.Second)
+	timer := time.NewTimer(3 * time.Second)
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
@@ -240,7 +227,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(t *testing.T, numClients int, image string, version string, serfKey string) []libagent.Agent {
+func clientsCreate(t *testing.T, numClients int, image string, version string, cluster *libcluster.Cluster) []libagent.Agent {
 	clients := make([]libagent.Agent, numClients)
 
 	// This needs a specialized config since it is using an older version of the agent.
@@ -260,7 +247,9 @@ func clientsCreate(t *testing.T, numClients int, image string, version string, s
 				Cmd:     []string{"agent"},
 				Version: version,
 				Image:   image,
-			})
+			},
+			cluster.NetworkName,
+			cluster.Index)
 		require.NoError(t, err)
 	}
 	return clients
@@ -282,18 +271,13 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
 	var configs []libagent.Config
 
-	conf, err := libagent.NewConfigBuilder().
+	conf, err := libagent.NewConfigBuilder(nil).
 		Bootstrap(3).
-		ToString()
+		ToAgentConfig()
 	require.NoError(t, err)
 
 	for i := 0; i < numServers; i++ {
-		configs = append(configs, libagent.Config{
-			JSON:    conf,
-			Cmd:     []string{"agent"},
-			Version: version,
-			Image:   image,
-		})
+		configs = append(configs, *conf)
 	}
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
