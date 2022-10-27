@@ -69,10 +69,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// //if !peering.FormatIsValid(c.format) { ?????
-	// 	c.UI.Error(fmt.Sprintf("Invalid format, valid formats are {%s}", strings.Join(peering.GetSupportedFormats(), "|")))
-	// 	return 1
-	// }
+	//if !peering.FormatIsValid(c.format) {
+	//c.UI.Error(fmt.Sprintf("Invalid format, valid formats are {%s}", strings.Join(peering.GetSupportedFormats(), "|")))
+	//	return 1
+	//}
 
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -81,6 +81,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	cfg := api.ExportedServicesConfigEntry{
+		Name: "default",
 		Services: []api.ExportedService{
 			{
 				Name: c.serviceName,
@@ -92,7 +93,11 @@ func (c *cmd) Run(args []string) int {
 			},
 		},
 	}
-	client.ConfigEntries().Set(&cfg, &api.WriteOptions{})
+	_, _, err = client.ConfigEntries().Set(&cfg, &api.WriteOptions{})
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error creating config entry: %s", err))
+		return 1
+	}
 	return 0
 }
 
@@ -107,14 +112,12 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Generate a peering token"
+	synopsis = "Export a service"
 	help     = `
 Usage: consul peering export [options] -service <service name> -peers <other cluster name>
 
-  Generate a peering token. The name provided will be used locally by
-  this cluster to refer to the peering connection. Re-generating a token 
-  for a given name will not interrupt any active connection, but will 
-  invalidate any unused token for that name.
+  Export a service. The peers provided will be used locally by
+  this cluster to refer to the other cluster where the services will be exported. 
 
   Example:
 
