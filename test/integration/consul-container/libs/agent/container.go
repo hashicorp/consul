@@ -43,33 +43,6 @@ type consulContainerNode struct {
 	terminateFuncs []func() error
 }
 
-func (c *consulContainerNode) GetName() string {
-	name, err := c.container.Name(c.ctx)
-	if err != nil {
-		return ""
-	}
-	return name
-}
-
-func (c *consulContainerNode) GetConfig() Config {
-	return c.config
-}
-
-func (c *consulContainerNode) GetDatacenter() string {
-	return c.datacenter
-}
-
-func (c *consulContainerNode) IsServer() bool {
-	return c.serverMode
-}
-
-func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
-	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-}
-
 // NewConsulContainer starts a Consul agent in a container with the given config.
 func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
 	license, err := readLicense()
@@ -191,52 +164,24 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 	}, nil
 }
 
-const pauseImage = "k8s.gcr.io/pause:3.3"
-
-type containerOpts struct {
-	certDir           string
-	configFile        string
-	dataDir           string
-	hostname          string
-	index             int
-	license           string
-	name              string
-	addtionalNetworks []string
+func (c *consulContainerNode) GetName() string {
+	name, err := c.container.Name(c.ctx)
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
-func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
-	skipReaper := isRYUKDisabled()
+func (c *consulContainerNode) GetConfig() Config {
+	return c.config
+}
 
-	pod := testcontainers.ContainerRequest{
-		Image:        pauseImage,
-		AutoRemove:   false,
-		Name:         opts.name + "-pod",
-		SkipReaper:   skipReaper,
-		ExposedPorts: []string{"8500/tcp"},
-		Hostname:     opts.hostname,
-		Networks:     opts.addtionalNetworks,
-	}
+func (c *consulContainerNode) GetDatacenter() string {
+	return c.datacenter
+}
 
-	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
-	// If we only wait until the log stream starts, subsequent commands to agents will fail.
-	// TODO: optimize the wait strategy
-	app := testcontainers.ContainerRequest{
-		NetworkMode: dockercontainer.NetworkMode("container:" + opts.name + "-pod"),
-		Image:       config.Image + ":" + config.Version,
-		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(60 * time.Second), // See note above
-		AutoRemove:  false,
-		Name:        opts.name,
-		Mounts: []testcontainers.ContainerMount{
-			{Source: testcontainers.DockerBindMountSource{HostPath: opts.certDir}, Target: "/consul/config/certs"},
-			{Source: testcontainers.DockerBindMountSource{HostPath: opts.configFile}, Target: "/consul/config/config.json"},
-			{Source: testcontainers.DockerBindMountSource{HostPath: opts.dataDir}, Target: "/consul/data"},
-		},
-		Cmd:        config.Cmd,
-		SkipReaper: skipReaper,
-		Env:        map[string]string{"CONSUL_LICENSE": opts.license},
-	}
-
-	return pod, app
+func (c *consulContainerNode) IsServer() bool {
+	return c.serverMode
 }
 
 // GetClient returns an API client that can be used to communicate with the Agent.
@@ -344,6 +289,60 @@ func (c *consulContainerNode) Terminate() error {
 	c.container = nil
 
 	return err
+}
+
+func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+}
+
+const pauseImage = "k8s.gcr.io/pause:3.3"
+
+type containerOpts struct {
+	certDir           string
+	configFile        string
+	dataDir           string
+	hostname          string
+	index             int
+	license           string
+	name              string
+	addtionalNetworks []string
+}
+
+func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
+	skipReaper := isRYUKDisabled()
+
+	pod := testcontainers.ContainerRequest{
+		Image:        pauseImage,
+		AutoRemove:   false,
+		Name:         opts.name + "-pod",
+		SkipReaper:   skipReaper,
+		ExposedPorts: []string{"8500/tcp"},
+		Hostname:     opts.hostname,
+		Networks:     opts.addtionalNetworks,
+	}
+
+	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
+	// If we only wait until the log stream starts, subsequent commands to agents will fail.
+	// TODO: optimize the wait strategy
+	app := testcontainers.ContainerRequest{
+		NetworkMode: dockercontainer.NetworkMode("container:" + opts.name + "-pod"),
+		Image:       config.Image + ":" + config.Version,
+		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(60 * time.Second), // See note above
+		AutoRemove:  false,
+		Name:        opts.name,
+		Mounts: []testcontainers.ContainerMount{
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.certDir}, Target: "/consul/config/certs"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.configFile}, Target: "/consul/config/config.json"},
+			{Source: testcontainers.DockerBindMountSource{HostPath: opts.dataDir}, Target: "/consul/data"},
+		},
+		Cmd:        config.Cmd,
+		SkipReaper: skipReaper,
+		Env:        map[string]string{"CONSUL_LICENSE": opts.license},
+	}
+	return pod, app
 }
 
 // isRYUKDisabled returns whether the reaper process (RYUK) has been disabled

@@ -24,31 +24,33 @@ const (
 	dialingPeerName   = "dialing-to-acceptor"
 )
 
-// TestServer
+// TestPeering_RotateServerAndCAThenFail_
 // This test runs a few scenarios back to back
-// 1. It makes sure that the peering stream send server address updates between peers.
-//    It also verifies that dialing clusters will use this stored information to supersede the addresses
-//    encoded in the peering token.
-// 2. Rotate the CA in the exporting cluster and ensure services don't break
-// 3. Terminate the server nodes in the exporting cluster and make sure the importing cluster can still dial it's
-//    upstream.
+//  1. It makes sure that the peering stream send server address updates between peers.
+//     It also verifies that dialing clusters will use this stored information to supersede the addresses
+//     encoded in the peering token.
+//  2. Rotate the CA in the exporting cluster and ensure services don't break
+//  3. Terminate the server nodes in the exporting cluster and make sure the importing cluster can still dial it's
+//     upstream.
 //
 // ## Steps
 // ### Part 1
-//  * Create an accepting cluster with 3 servers. 1 client should be used to host a service for export
-//  * Create a single agent dialing cluster.
-//	* Create the peering and export the service. Verify it is working
-//  * Incrementally replace the follower nodes.
-// 	* Replace the leader agent
-//  * Verify the dialer can reach the new server nodes and the service becomes available.
+//   - Create an accepting cluster with 3 servers. 1 client should be used to host a service for export
+//   - Create a single agent dialing cluster.
+//   - Create the peering and export the service. Verify it is working
+//   - Incrementally replace the follower nodes.
+//   - Replace the leader agent
+//   - Verify the dialer can reach the new server nodes and the service becomes available.
+//
 // ### Part 2
-//  * Push an update to the CA Configuration in the exporting cluster and wait for the new root to be generated
-//  * Verify envoy client sidecar has two certificates for the upstream server
-//  * Make sure there is still service connectivity from the importing cluster
+//   - Push an update to the CA Configuration in the exporting cluster and wait for the new root to be generated
+//   - Verify envoy client sidecar has two certificates for the upstream server
+//   - Make sure there is still service connectivity from the importing cluster
+//
 // ### Part 3
-//  * Terminate the server nodes in the exporting cluster
-//  * Make sure there is still service connectivity from the importing cluster
-func TestServer(t *testing.T) {
+//   - Terminate the server nodes in the exporting cluster
+//   - Make sure there is still service connectivity from the importing cluster
+func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 	var acceptingCluster, dialingCluster *libcluster.Cluster
 	var acceptingClient, dialingClient *api.Client
 	var acceptingCtx *libagent.BuildContext
