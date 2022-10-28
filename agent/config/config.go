@@ -234,7 +234,7 @@ type Config struct {
 	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan" json:"start_join_wan,omitempty"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility" json:"syslog_facility,omitempty"`
 	TLS                              TLS                 `mapstructure:"tls" json:"tls,omitempty"`
-	TaggedAddresses                  map[string]string   `mapstructure:"tagged_a ddresses" json:"tagged_addresses,omitempty"`
+	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses" json:"tagged_addresses,omitempty"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry" json:"telemetry,omitempty"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs" json:"translate_wan_addrs,omitempty"`
 	XDS                              XDS                 `mapstructure:"xds" json:"-"`
