@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net"
 	"testing"
 	"time"
@@ -1445,7 +1444,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
 
-		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
+		require.Equal(r, float32(0), healthyMetric3.Value)
 	})
 }
 
