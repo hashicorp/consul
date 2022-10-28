@@ -86,7 +86,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 	if pc.Server {
 		consulType = "server"
 	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
+	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
@@ -217,10 +217,13 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 		Networks:     opts.addtionalNetworks,
 	}
 
+	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
+	// If we only wait until the log stream starts, subsequent commands to agents will fail.
+	// TODO: optimize the wait strategy
 	app := testcontainers.ContainerRequest{
 		NetworkMode: dockercontainer.NetworkMode("container:" + opts.name + "-pod"),
 		Image:       config.Image + ":" + config.Version,
-		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(30 * time.Second),
+		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(60 * time.Second), // See note above
 		AutoRemove:  false,
 		Name:        opts.name,
 		Mounts: []testcontainers.ContainerMount{
@@ -250,7 +253,7 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
-func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
+func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
 	pc, err := readSomeConfigFileFields(config.JSON)
 	if err != nil {
 		return err
@@ -260,7 +263,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	if pc.Server {
 		consulType = "server"
 	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s", pc.Datacenter, consulType))
+	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
