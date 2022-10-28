@@ -82,6 +82,8 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - For **case-grpc** we increased the `envoy_stats_flush_interval` value from 1s to 5s, on Windows, the original value caused the test to pass or fail randomly.
 - For **case-wanfed-gw** a new script was created: **global-setup-windows.sh**, this file replaces global-setup.sh when running this test in Windows. The new script uses the windows/consul:local Docker image to generate the required TLS files and copies them into host's workdir directory.
 - To use the **debug_dump_volumes** function, you need to use it via Powershell and execute the following command: `bash run-tests.windows.sh debug_dump_volumes` Make sure to be positioned with your terminal in the correct directory.
+- For **case-consul-exec** this case can only be run when using the consul-dev Docker image on this repository, since it relies on features implemented only here. These features are: Windows valid default value for "-admin-access-log-path" and `consul connect envoy` command starts Envoy. This features have also been submitted in [PR#15114](https://github.com/hashicorp/consul/pull/15114).  
+
 
 ## Volume Issues
 
