@@ -159,12 +159,13 @@ dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	#  'consul:local' tag is needed to run the integration tests
-	@docker buildx use default && docker buildx build -t 'consul:local' \
-	--platform linux/$(GOARCH) \
-	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-	--load \
-	-f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
+	@#  'consul:local' tag is needed to run the integration tests
+	@#  'consul-dev:latest' is needed by older workflows
+	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
+       --platform linux/$(GOARCH) \
+	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --load \
+       -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
