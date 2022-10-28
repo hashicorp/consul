@@ -122,19 +122,14 @@ func (s *Server) emitPeeringMetricsOnce(metricsImpl *metrics.Metrics) error {
 		}
 
 		// peering health metric
-		if status.NeverConnected {
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(math.NaN()), labels)
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
-		} else {
-			healthy := s.peerStreamServer.Tracker.IsHealthy(status)
-			healthyInt := 0
-			if healthy {
-				healthyInt = 1
-			}
-
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthyInt), labels)
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthyInt), labels)
+		healthy := 0
+		switch {
+		case status.NeverConnected:
+		case s.peerStreamServer.Tracker.IsHealthy(status):
+			healthy = 1
 		}
+		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthy), labels)
+		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthy), labels)
 	}
 
 	return nil
