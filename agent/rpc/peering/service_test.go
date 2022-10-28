@@ -1589,6 +1589,7 @@ func (s testingServer) ClientConn(t *testing.T) *gogrpc.ClientConn {
 
 	conn, err := gogrpc.DialContext(ctx, rpcAddr,
 		gogrpc.WithContextDialer(newServerDialer(rpcAddr)),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
