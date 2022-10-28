@@ -46,6 +46,7 @@ func TestPeeringBackend_RejectsPartition(t *testing.T) {
 
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
@@ -88,6 +89,7 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)

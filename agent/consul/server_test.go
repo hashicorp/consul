@@ -308,6 +308,7 @@ func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.C
 	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
 	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	//nolint:staticcheck
 	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	require.NoError(t, err)
 

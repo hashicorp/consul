@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/armon/go-metrics"
@@ -129,7 +130,7 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		target,
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
 		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
