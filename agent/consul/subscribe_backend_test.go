@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -73,6 +75,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
 
+		waitForGRPCToBeReady(t, conn)
+
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
@@ -109,6 +113,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
+
+		waitForGRPCToBeReady(t, conn)
 
 		retryFailedConn(t, conn)
 
@@ -189,6 +195,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
+
+	// waitForGRPCToBeReady(t, conn)
 
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -324,6 +332,8 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
 
+	waitForGRPCToBeReady(t, conn)
+
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 
 	// Now start a whole bunch of streamers in parallel to maximise chance of
@@ -341,6 +351,13 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	// Wait until all subscribers have verified the first bunch of updates all got
 	// delivered.
 	require.NoError(t, g.Wait())
+
+	/*
+			nt/consul/subscribe_backend_test.go:374
+		        	Error:      	Received unexpected error:
+		        	            	subscriber 00004: at index 1036: expected port 20, got 19
+		        	Test:       	TestSubscribeBackend_Integr
+	*/
 
 	// Sanity check that at least some non-snapshot messages were delivered. We
 	// can't know exactly how many because it's timing dependent based on when
@@ -422,7 +439,6 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 				logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
 				expectPort++
 			case expectPort - 1:
-				// atomic.AddUint64(updateCount, 1)
 				logger.Logf("subscriber %05d: got event with repeated prior port=%d at index %d", i, expectPort-1, event.Index)
 			default:
 				return fmt.Errorf("subscriber %05d: at index %d: expected port %d, got %d",
@@ -460,4 +476,14 @@ func svcOrErr(event *pbsubscribe.Event) (*pbservice.NodeService, error) {
 		return nil, fmt.Errorf("nil service: %#v", event)
 	}
 	return csn.Service, nil
+}
+
+func waitForGRPCToBeReady(t *testing.T, conn *gogrpc.ClientConn) {
+	t.Helper()
+	require.NotNil(t, conn)
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, connectivity.Ready, conn.GetState(),
+			"connection was not ready expect %q got %q",
+			connectivity.Ready.String(), conn.GetState().String())
+	})
 }
