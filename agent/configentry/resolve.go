@@ -134,10 +134,10 @@ func ComputeResolvedServiceConfig(
 
 	// Then store upstreams inferred from service-defaults and mapify the overrides.
 	var (
-		upstreamConfigs  = make(map[structs.ServiceID]*structs.UpstreamConfig)
-		upstreamDefaults *structs.UpstreamConfig
-		// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
-		usConfigs = make(map[structs.ServiceID]map[string]interface{})
+		upstreamOverrides = make(map[structs.ServiceID]*structs.UpstreamConfig)
+		upstreamDefaults  *structs.UpstreamConfig
+		// resolvedConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
+		resolvedConfigs = make(map[structs.ServiceID]map[string]interface{})
 	)
 	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
 		for i, override := range serviceConf.UpstreamConfig.Overrides {
@@ -152,7 +152,7 @@ func ComputeResolvedServiceConfig(
 				continue // skip this impossible condition
 			}
 			seenUpstreams[override.ServiceID()] = struct{}{}
-			upstreamConfigs[override.ServiceID()] = override
+			upstreamOverrides[override.ServiceID()] = override
 		}
 		if serviceConf.UpstreamConfig.Defaults != nil {
 			upstreamDefaults = serviceConf.UpstreamConfig.Defaults
@@ -161,9 +161,12 @@ func ComputeResolvedServiceConfig(
 			// upstreams that are inferred from intentions and do not have explicit upstream configuration.
 			cfgMap := make(map[string]interface{})
 			upstreamDefaults.MergeInto(cfgMap)
+			if !args.MeshGateway.IsZero() {
+				cfgMap["mesh_gateway"] = args.MeshGateway
+			}
 
 			wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WithWildcardNamespace())
-			usConfigs[wildcard] = cfgMap
+			resolvedConfigs[wildcard] = cfgMap
 		}
 	}
 
@@ -190,34 +193,37 @@ func ComputeResolvedServiceConfig(
 			resolvedCfg["protocol"] = protocol
 		}
 
-		// Merge centralized defaults for all upstreams before configuration for specific upstreams
-		if upstreamDefaults != nil {
-			upstreamDefaults.MergeInto(resolvedCfg)
-		}
-
 		// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
 		// because it is specific to the proxy instance.
 		//
-		// The goal is to flatten the mesh gateway mode in this order:
-		// 	0. Value from centralized upstream_defaults
-		// 	1. Value from local proxy registration
-		// 	2. Value from centralized upstream_config
-		// 	3. Value from local upstream definition. This last step is done in the client's service manager.
+		// The goal is to flatten the mesh gateway mode in this order (larger number wins):
+		//  1. Value from the proxy-defaults
+		//  2. Value from centralized upstream defaults (ServiceDefaults.UpstreamConfig.Defaults)
+		//  3. Value from local proxy registration (NodeService.Proxy.MeshGateway)
+		//  4. Value from centralized upstream override (ServiceDefaults.UpstreamConfig.Overrides)
+		//  5. Value from local upstream definition (NodeProxy.Proxy.Upstreams[].MeshGateway)
+		//     This last step (5) is done in the client's service manager.
+		if proxyConf != nil && !proxyConf.MeshGateway.IsZero() {
+			resolvedCfg["mesh_gateway"] = proxyConf.MeshGateway
+		}
+		if upstreamDefaults != nil {
+			upstreamDefaults.MergeInto(resolvedCfg)
+		}
 		if !args.MeshGateway.IsZero() {
+			// This means each upstream inherits the value from the `NodeService.Proxy.MeshGateway` field.
 			resolvedCfg["mesh_gateway"] = args.MeshGateway
 		}
-
-		if upstreamConfigs[upstream] != nil {
-			upstreamConfigs[upstream].MergeInto(resolvedCfg)
+		if upstreamOverrides[upstream] != nil {
+			upstreamOverrides[upstream].MergeInto(resolvedCfg)
 		}
 
 		if len(resolvedCfg) > 0 {
-			usConfigs[upstream] = resolvedCfg
+			resolvedConfigs[upstream] = resolvedCfg
 		}
 	}
 
 	// don't allocate the slices just to not fill them
-	if len(usConfigs) == 0 {
+	if len(resolvedConfigs) == 0 {
 		return &thisReply, nil
 	}
 
@@ -225,14 +231,14 @@ func ComputeResolvedServiceConfig(
 		// For legacy upstreams we return a map that is only keyed on the string ID, since they precede namespaces
 		thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
 
-		for us, conf := range usConfigs {
+		for us, conf := range resolvedConfigs {
 			thisReply.UpstreamConfigs[us.ID] = conf
 		}
 
 	} else {
-		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(usConfigs))
+		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(resolvedConfigs))
 
-		for us, conf := range usConfigs {
+		for us, conf := range resolvedConfigs {
 			thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
 				structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
 		}
