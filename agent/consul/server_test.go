@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -258,7 +258,9 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
 
+		protocol := grpcmiddleware.ProtocolPlaintext
 		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			protocol = grpcmiddleware.ProtocolTLS
 			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
 			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
 				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
@@ -273,9 +275,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 				}
 			}
 
-			// Wrap the listener with TLS.
-			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
 		}
+		ln = grpcmiddleware.LabelledListener{Listener: ln, Protocol: protocol}
 
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
@@ -329,7 +330,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil)
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator)
 	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
