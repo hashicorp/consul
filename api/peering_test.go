@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"reflect"
 	"testing"
 	"time"
@@ -223,35 +222,6 @@ func TestAPI_Peering_List(t *testing.T) {
 		require.True(t, peerExistsInPeerListings(peering1, peeringsList), "expected to find peering in list response")
 		require.True(t, peerExistsInPeerListings(peering2, peeringsList), "expected to find peering in list response")
 	})
-}
-
-func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
-	t.Parallel()
-
-	c, s := makeClient(t) // this is "dc1"
-	defer s.Stop()
-	s.WaitForSerfCheck(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	externalAddress := "32.1.2.3:8502"
-
-	// Generate a token happy path
-	p1 := PeeringGenerateTokenRequest{
-		PeerName:                "peer1",
-		Meta:                    map[string]string{"foo": "bar"},
-		ServerExternalAddresses: []string{externalAddress},
-	}
-	resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotNil(t, resp)
-
-	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-	require.NoError(t, err)
-
-	require.Contains(t, string(tokenJSON), externalAddress)
 }
 
 // TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:

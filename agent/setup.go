@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 
@@ -24,6 +23,7 @@ import (
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -53,7 +53,7 @@ type BaseDeps struct {
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
@@ -63,9 +63,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
-	d.Logger, err = logging.Setup(logConf, logOut)
-	if err != nil {
-		return d, err
+
+	if providedLogger != nil {
+		d.Logger = providedLogger
+	} else {
+		d.Logger, err = logging.Setup(logConf, logOut)
+		if err != nil {
+			return d, err
+		}
 	}
 
 	grpcLogInitOnce.Do(func() {
@@ -181,10 +186,10 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
-		Timeout:          config.RPCHoldTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
+	pool.SetRPCClientTimeout(config.RPCClientTimeout)
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute
 		pool.MaxStreams = 64

@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -764,13 +762,8 @@ func (s *ConfigSnapshot) Valid() bool {
 
 // Clone makes a deep copy of the snapshot we can send to other goroutines
 // without worrying that they will racily read or mutate shared maps etc.
-func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
-	snapCopy, err := copystructure.Copy(s)
-	if err != nil {
-		return nil, err
-	}
-
-	snap := snapCopy.(*ConfigSnapshot)
+func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
+	snap := s.DeepCopy()
 
 	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
@@ -797,7 +790,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
 
-	return snap, nil
+	return snap
 }
 
 func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {

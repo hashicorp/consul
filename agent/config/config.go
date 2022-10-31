@@ -237,6 +237,7 @@ type Config struct {
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs"`
+	XDS                              XDS                 `mapstructure:"xds"`
 
 	// DEPRECATED (ui-config) - moved to the ui_config stanza
 	UI *bool `mapstructure:"ui"`
@@ -422,6 +423,7 @@ type CheckDefinition struct {
 	TTL                            *string             `mapstructure:"ttl"`
 	H2PING                         *string             `mapstructure:"h2ping"`
 	H2PingUseTLS                   *bool               `mapstructure:"h2ping_use_tls"`
+	OSService                      *string             `mapstructure:"os_service"`
 	SuccessBeforePassing           *int                `mapstructure:"success_before_passing"`
 	FailuresBeforeWarning          *int                `mapstructure:"failures_before_warning"`
 	FailuresBeforeCritical         *int                `mapstructure:"failures_before_critical"`
@@ -714,6 +716,7 @@ type UnixSocket struct {
 type Limits struct {
 	HTTPMaxConnsPerClient *int     `mapstructure:"http_max_conns_per_client"`
 	HTTPSHandshakeTimeout *string  `mapstructure:"https_handshake_timeout"`
+	RPCClientTimeout      *string  `mapstructure:"rpc_client_timeout"`
 	RPCHandshakeTimeout   *string  `mapstructure:"rpc_handshake_timeout"`
 	RPCMaxBurst           *int     `mapstructure:"rpc_max_burst"`
 	RPCMaxConnsPerClient  *int     `mapstructure:"rpc_max_conns_per_client"`
@@ -908,4 +911,8 @@ type Peering struct {
 	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
 	// This always gets overridden in NonUserSource()
 	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
+}
+
+type XDS struct {
+	UpdateMaxPerSecond *float64 `mapstructure:"update_max_per_second"`
 }

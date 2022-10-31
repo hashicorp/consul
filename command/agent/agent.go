@@ -199,7 +199,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	bd, err := agent.NewBaseDeps(loader, logGate)
+	bd, err := agent.NewBaseDeps(loader, logGate, nil)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1

@@ -7,12 +7,13 @@ SHELL = bash
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.46.2'
+GOLANGCI_LINT_VERSION='v1.50.1'
 MOCKERY_VERSION='v2.12.2'
 BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.3.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
+DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -148,14 +149,17 @@ dev: dev-build
 dev-build:
 	mkdir -p bin
 	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
-	cp -f ${MAIN_GOPATH}/bin/consul ./bin/consul
+	# rm needed due to signature caching (https://apple.stackexchange.com/a/428388)
+	rm -f ./bin/consul
+	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
-dev-docker: linux
+dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	#  'consul:local' tag is needed to run the integration tests
-	@docker buildx use default && docker buildx build -t 'consul:local' \
+	@#  'consul:local' tag is needed to run the integration tests
+	@#  'consul-dev:latest' is needed by older workflows
+	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
@@ -320,6 +324,15 @@ lint-tools:
 .PHONY: proto-tools
 proto-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
+
+.PHONY: codegen-tools
+codegen-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
+
+.PHONY: deep-copy
+deep-copy:
+	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "

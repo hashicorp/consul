@@ -245,7 +245,6 @@ type RPCInfo interface {
 	TokenSecret() string
 	SetTokenSecret(string)
 	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error)
-	Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -344,7 +343,8 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+// BlockingTimeout implements pool.BlockableQuery
+func (q QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
@@ -355,13 +355,15 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 		// Timeout after maximum jitter has elapsed.
 		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
-		return q.MaxQueryTime + rpcHoldTimeout
+		return q.MaxQueryTime
 	}
-	return rpcHoldTimeout
+	return 0
 }
 
 func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+	// In addition to BlockingTimeout, allow for an additional rpcHoldTimeout buffer
+	// in case we need to wait for a leader election.
+	return time.Since(start) > rpcHoldTimeout+q.BlockingTimeout(maxQueryTime, defaultQueryTime), nil
 }
 
 type WriteRequest struct {
@@ -387,12 +389,8 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 	w.Token = s
 }
 
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
-}
-
-func (w WriteRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	return rpcHoldTimeout
+func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
+	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 type QueryBackend int
@@ -1793,6 +1791,7 @@ type HealthCheckDefinition struct {
 	TCP                            string              `json:",omitempty"`
 	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
+	OSService                      string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
@@ -1944,6 +1943,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		TCP:                            c.Definition.TCP,
 		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
+		OSService:                      c.Definition.OSService,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
@@ -2009,6 +2009,14 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 }
 
 type CheckServiceNodes []CheckServiceNode
+
+func (csns CheckServiceNodes) DeepCopy() CheckServiceNodes {
+	dup := make(CheckServiceNodes, len(csns))
+	for idx, v := range csns {
+		dup[idx] = *v.DeepCopy()
+	}
+	return dup
+}
 
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
 func (nodes CheckServiceNodes) Shuffle() {

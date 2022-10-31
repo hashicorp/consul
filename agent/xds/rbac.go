@@ -431,10 +431,10 @@ type rbacLocalInfo struct {
 // Enterprise). Each intention in this flat list (sorted by precedence) can either
 // be an allow rule or a deny rule. Here’s a concrete example of this at work:
 //
-//     intern/trusted-app => billing/payment-svc : ALLOW (prec=9)
-//     intern/*           => billing/payment-svc : DENY  (prec=8)
-//     */*                => billing/payment-svc : ALLOW (prec=7)
-//     ::: ACL default policy :::                : DENY  (prec=N/A)
+//	intern/trusted-app => billing/payment-svc : ALLOW (prec=9)
+//	intern/*           => billing/payment-svc : DENY  (prec=8)
+//	*/*                => billing/payment-svc : ALLOW (prec=7)
+//	::: ACL default policy :::                : DENY  (prec=N/A)
 //
 // In contrast, Envoy lets you either configure a filter to be based on an
 // allow-list or a deny-list based on the action attribute of the RBAC rules
@@ -452,25 +452,25 @@ type rbacLocalInfo struct {
 // models. For clarity I’ll rewrite the earlier example intentions in an
 // abbreviated form:
 //
-//     A         : ALLOW
-//     B         : DENY
-//     C         : ALLOW
-//     <default> : DENY
+//	A         : ALLOW
+//	B         : DENY
+//	C         : ALLOW
+//	<default> : DENY
 //
-// 1. Given that the overall intention default is set to deny, we start by
-//    choosing to build an allow-list in Envoy (this is also the variant that I find
-//    easier to think about).
-// 2. Next we traverse the list in precedence order (top down) and any DENY
-//    intentions are combined with later intentions using logical operations.
-// 3. Now that all of the intentions result in the same action (allow) we have
-//    successfully removed precedence and we can express this in as a set of Envoy
-//    RBAC policies.
+//	 1. Given that the overall intention default is set to deny, we start by
+//	    choosing to build an allow-list in Envoy (this is also the variant that I find
+//	    easier to think about).
+//	 2. Next we traverse the list in precedence order (top down) and any DENY
+//	    intentions are combined with later intentions using logical operations.
+//	 3. Now that all of the intentions result in the same action (allow) we have
+//	    successfully removed precedence and we can express this in as a set of Envoy
+//	    RBAC policies.
 //
 // After this the earlier A/B/C/default list becomes:
 //
-//     A            : ALLOW
-//     C AND NOT(B) : ALLOW
-//     <default>    : DENY
+//	A            : ALLOW
+//	C AND NOT(B) : ALLOW
+//	<default>    : DENY
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
 func makeRBACRules(

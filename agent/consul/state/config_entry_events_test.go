@@ -178,6 +178,47 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 				},
 			},
 		},
+		"upsert service defaults": {
+			mutate: func(tx *txn) error {
+				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+					Name: "web",
+				})
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceDefaults,
+					Index: changeIndex,
+					Payload: EventPayloadConfigEntry{
+						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: &structs.ServiceConfigEntry{
+							Name: "web",
+						},
+					},
+				},
+			},
+		},
+		"delete service defaults": {
+			setup: func(tx *txn) error {
+				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+					Name: "web",
+				})
+			},
+			mutate: func(tx *txn) error {
+				return deleteConfigEntryTxn(tx, 0, structs.ServiceDefaults, "web", nil)
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceDefaults,
+					Index: changeIndex,
+					Payload: EventPayloadConfigEntry{
+						Op: pbsubscribe.ConfigEntryUpdate_Delete,
+						Value: &structs.ServiceConfigEntry{
+							Name: "web",
+						},
+					},
+				},
+			},
+		},
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -376,11 +417,11 @@ func TestServiceIntentionsSnapshot(t *testing.T) {
 
 	ixn1 := &structs.ServiceIntentionsConfigEntry{
 		Kind: structs.ServiceIntentions,
-		Name: "gw1",
+		Name: "svc1",
 	}
 	ixn2 := &structs.ServiceIntentionsConfigEntry{
 		Kind: structs.ServiceIntentions,
-		Name: "gw2",
+		Name: "svc2",
 	}
 
 	store := testStateStore(t)
@@ -431,6 +472,74 @@ func TestServiceIntentionsSnapshot(t *testing.T) {
 			buf := &snapshotAppender{}
 
 			idx, err := store.ServiceIntentionsSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestServiceDefaultsSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "svc1",
+	}
+	ixn2 := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "svc2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceDefaults,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceDefaults,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicServiceDefaults,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.ServiceDefaultsSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
 			require.NoError(t, err)
 			require.Equal(t, index, idx)
 			require.Len(t, buf.events, 1)

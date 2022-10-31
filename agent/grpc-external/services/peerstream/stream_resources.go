@@ -367,6 +367,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		// resources, not request/ack messages.
 		if msg.GetResponse() != nil {
 			if err != nil {
+				if id := msg.GetResponse().GetResourceID(); id != "" {
+					logger.Error("failed to send resource", "resourceID", id, "error", err)
+					status.TrackSendError(err.Error())
+					return nil
+				}
 				status.TrackSendError(err.Error())
 			} else {
 				status.TrackSendSuccess()
@@ -653,7 +658,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					continue
 				}
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(status, update)
+				resp, err = makeServiceResponse(update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)
@@ -704,7 +709,7 @@ func getTrustDomain(store StateStore, logger hclog.Logger) (string, error) {
 		return "", grpcstatus.Error(codes.Internal, "failed to read Connect CA Config")
 	case cfg == nil:
 		logger.Warn("cannot begin stream because Connect CA is not yet initialized")
-		return "", grpcstatus.Error(codes.FailedPrecondition, "Connect CA is not yet initialized")
+		return "", grpcstatus.Error(codes.Unavailable, "Connect CA is not yet initialized")
 	}
 	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
 }

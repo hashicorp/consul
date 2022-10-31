@@ -18,6 +18,7 @@ type Node interface {
 // Config is a set of configurations required to create a Node
 type Config struct {
 	HCL     string
+	Image   string
 	Version string
 	Cmd     []string
 }

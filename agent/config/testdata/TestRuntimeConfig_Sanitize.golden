@@ -78,6 +78,8 @@
     "BootstrapExpect": 0,
     "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
+        "CacheRefreshBackoffMin": 0,
+        "CacheRefreshMaxWait": "0s",
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
@@ -110,6 +112,7 @@
             "Notes": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
+            "OSService": "",
             "ServiceID": "",
             "Shell": "",
             "Status": "",
@@ -264,6 +267,7 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
+    "RPCClientTimeout": "0s",
     "RaftBoltDBConfig": {
         "NoFreelistSync": false
     },
@@ -334,6 +338,7 @@
                 "Shell": "",
                 "Status": "",
                 "SuccessBeforePassing": 0,
+                "OSService": "",
                 "TCP": "",
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
@@ -479,5 +484,6 @@
     "Version": "",
     "VersionMetadata": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSUpdateRateLimit": 0
 }

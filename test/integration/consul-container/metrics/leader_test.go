@@ -12,9 +12,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/integration/consul-container/libs/node"
-	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/node"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
@@ -29,7 +29,8 @@ func TestLeadershipMetrics(t *testing.T) {
 						statsite_address = "127.0.0.1:2180"
 					}`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetImage,
+			Version: *utils.TargetVersion,
+			Image:   *utils.TargetImage,
 		})
 
 	numServer := 3
@@ -41,7 +42,8 @@ func TestLeadershipMetrics(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetImage,
+				Version: *utils.TargetVersion,
+				Image:   *utils.TargetImage,
 			})
 
 	}

@@ -18,7 +18,7 @@ Feature: dc / peers / show: Peers show
     Then the url should be /dc-1/peers/a-peer/imported-services
     Then I see importedServicesIsVisible on the tabs
     And I see exportedServicesIsVisible on the tabs
-    And I don't see addressesIsVisible on the tabs
+    And I don't see serverAddressesIsVisible on the tabs
   
   Scenario: Receiver side tabs
     And 1 datacenter model with the value "dc-1"
@@ -38,7 +38,7 @@ Feature: dc / peers / show: Peers show
     Then the url should be /dc-1/peers/a-peer/imported-services
     Then I see importedServicesIsVisible on the tabs
     And I see exportedServicesIsVisible on the tabs
-    And I see addressesIsVisible on the tabs
+    And I see serverAddressesIsVisible on the tabs
 
   Scenario: Imported Services Empty
     And 1 datacenter model with the value "dc-1"

@@ -102,6 +102,47 @@ func TestConfigSnapshotIngressGateway(
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
+// TestConfigSnapshotIngressGateway_NilConfigEntry is used to test when
+// the update event for the config entry returns nil
+// since this always happens on the first watch if it doesn't exist.
+func TestConfigSnapshotIngressGateway_NilConfigEntry(
+	t testing.T,
+) *ConfigSnapshot {
+	roots, placeholderLeaf := TestCerts(t)
+
+	baseEvents := []UpdateEvent{
+		{
+			CorrelationID: rootsWatchID,
+			Result:        roots,
+		},
+		{
+			CorrelationID: gatewayConfigWatchID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
+			},
+		},
+		{
+			CorrelationID: leafWatchID,
+			Result:        placeholderLeaf,
+		},
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: nil,
+			},
+		},
+	}
+
+	return testConfigSnapshotFixture(t, &structs.NodeService{
+		Kind:            structs.ServiceKindIngressGateway,
+		Service:         "ingress-gateway",
+		Port:            9999,
+		Address:         "1.2.3.4",
+		Meta:            nil,
+		TaggedAddresses: nil,
+	}, nil, nil, testSpliceEvents(baseEvents, nil))
+}
+
 func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *ConfigSnapshot {
 	secureUID := UpstreamIDFromString("secure")
 	secureChain := discoverychain.TestCompileConfigEntries(

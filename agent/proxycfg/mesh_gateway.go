@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-hclog"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -564,7 +565,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			peeringListCtx, cancel := context.WithCancel(ctx)
 			err := s.dataSources.PeeringList.Notify(peeringListCtx, &cachetype.PeeringListRequest{
 				Request: &pbpeering.PeeringListRequest{
-					Partition: structs.WildcardSpecifier,
+					Partition: acl.WildcardPartitionName,
 				},
 			}, peerServersWatchID, s.ch)
 			if err != nil {

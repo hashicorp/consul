@@ -369,6 +369,12 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-gateway-nil-config-entry",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+			},
+		},
+		{
 			name: "ingress-gateway-no-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",

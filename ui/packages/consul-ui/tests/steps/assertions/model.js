@@ -1,8 +1,25 @@
 export default function (scenario, assert, find, currentPage, pauseUntil, pluralize) {
+  function getModelItems(model, component) {
+    let obj;
+    if (component) {
+      obj = find(component);
+    } else {
+      obj = currentPage();
+    }
+
+    let found = obj[pluralize(model)];
+
+    if (typeof found === 'function') {
+      found = found();
+    }
+
+    return found;
+  }
+
   scenario
     .then('pause until I see $number $model model[s]?', function (num, model) {
       return pauseUntil(function (resolve, reject, retry) {
-        const len = currentPage()[pluralize(model)].filter(function (item) {
+        const len = getModelItems(model).filter(function (item) {
           return item.isVisible;
         }).length;
         if (len === num) {
@@ -15,8 +32,7 @@ export default function (scenario, assert, find, currentPage, pauseUntil, plural
       'pause until I see $number $model model[s]? on the $component component',
       function (num, model, component) {
         return pauseUntil(function (resolve, reject, retry) {
-          const obj = find(component);
-          const len = obj[pluralize(model)].filter(function (item) {
+          const len = getModelItems(model, component).filter(function (item) {
             return item.isVisible;
           }).length;
           if (len === num) {
@@ -27,7 +43,7 @@ export default function (scenario, assert, find, currentPage, pauseUntil, plural
       }
     )
     .then(['I see $num $model model[s]?'], function (num, model) {
-      const len = currentPage()[pluralize(model)].filter(function (item) {
+      const len = getModelItems(model).filter(function (item) {
         return item.isVisible;
       }).length;
       assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
@@ -35,15 +51,13 @@ export default function (scenario, assert, find, currentPage, pauseUntil, plural
     .then(
       ['I see $num $model model[s]? on the $component component'],
       function (num, model, component) {
-        const obj = find(component);
-        const len = obj[pluralize(model)].filter(function (item) {
+        const len = getModelItems(model, component).filter(function (item) {
           return item.isVisible;
         }).length;
 
         assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
       }
     )
-    // TODO: I${ dont } see
     .then(
       [`I see $num $model model[s]? with the $property "$value"`],
       function (
@@ -53,7 +67,7 @@ export default function (scenario, assert, find, currentPage, pauseUntil, plural
         property,
         value
       ) {
-        const len = currentPage()[pluralize(model)].filter(function (item) {
+        const len = getModelItems(model).filter(function (item) {
           if (item.isVisible) {
             let prop = item[property];
             // cope with pageObjects that can have a multiple: true

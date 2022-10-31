@@ -103,10 +103,6 @@ type PeeringGenerateTokenRequest struct {
 	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
-	// ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
-	// load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
-	// addresses obtained from the "consul" service.
-	ServerExternalAddresses []string `json:",omitempty"`
 }
 
 type PeeringGenerateTokenResponse struct {

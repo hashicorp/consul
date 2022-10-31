@@ -27,9 +27,9 @@ upgrade flow.
 
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
-Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration 
-for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config- 
-files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14, 
+Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
+files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14,
 `ports.grpc_tls` is the recommended configuration to encrypt gRPC traffic.
 
 For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
@@ -51,7 +51,7 @@ review the following guidances relevant to your deployment:
 
 Upgrade to **Consul version 1.13.1 or later**.
 
-Consul 1.13.0 contains a bug that prevents Consul server agents from restoring 
+Consul 1.13.0 contains a bug that prevents Consul server agents from restoring
 saved state on startup if the state
 
 1. was generated before Consul 1.13 (such as during an upgrade), and
@@ -61,25 +61,22 @@ This bug is fixed in Consul versions 1.13.1 and newer.
 
 #### Service mesh deployments using auto-encrypt or auto-config
 
-**Do not upgrade to Consul 1.13 yet** if using
+Upgrade to **Consul version 1.13.2 or later** if using
 [auto-encrypt](/docs/agent/config/config-files#auto_encrypt) or
 [auto-config](/docs/agent/config/config-files#auto_config).
 
-In Consul 1.13, auto-encrypt and auto-config both cause Consul
+In Consul 1.13.0 - 1.13.1, auto-encrypt and auto-config both cause Consul
 to require TLS for gRPC communication with Envoy proxies.
 In environments where Envoy proxies are not already configured
-to use TLS for gRPC, upgrading Consul 1.13 will cause
+to use TLS for gRPC, upgrading to Consul 1.13.0 - 1.13.1 will cause
 Envoy proxies to disconnect from the control plane (Consul agents).
 
-The underlying cause is the same as discussed in
-[deployments without the HTTPS port enabled on Consul agents](#service-mesh-deployments-without-the-https-port-enabled-on-consul-agents).
-However, when using auto-encrypt or auto-config,
-the problem **cannot** currently be avoided by 
-[modifying the agent's TLS configuration](#modify-the-consul-agent-s-tls-configuration)
-because auto-encrypt and auto-config automatically set
-interface-generic TLS configuration in a manner similar to
-[`tls.defaults`](/docs/agent/config/config-files#tls_defaults).
-We are working to address this problem in an upcoming 1.13 patch release.
+If upgrading to version 1.13.2 or later, you must enable
+[tls.grpc.use_auto_cert](/docs/agent/config/config-files#use_auto_cert)
+if you currently rely on Consul agents presenting the auto-encrypt or
+auto-config certs as the TLS server certs on the gRPC port.
+The new `use_auto_cert` flag enables TLS for gRPC based on the presence
+of auto-encrypt certs.
 
 #### Service mesh deployments without the HTTPS port enabled on Consul agents ((#grpc-tls))
 
@@ -174,8 +171,8 @@ such as with flags or environment variables like
 #### Modify Vault policy for Vault CA provider
 
 If using the Vault CA provider,
-you must modify the Vault policy used by Consul to interact with Vault
-so that certificates required for service mesh operation can still be generated.
+modify the Vault policy used by Consul to interact with Vault
+to ensure that certificates required for service mesh operation can still be generated.
 The policy must include the `update` capability on the intermediate PKI's tune mount configuration endpoint
 at path `/sys/mounts/<intermediate_pki_mount_name>/tune`.
 Refer to the [Vault CA provider documentation](/docs/connect/ca/vault#vault-acl-policies)
@@ -185,23 +182,25 @@ You are using the Vault CA provider if either of the following configurations ex
 - The Consul server agent configuration option [`connect.ca_provider`](/docs/agent/config/config-files#connect_ca_provider) is set to `vault`, or
 - The Consul on Kubernetes Helm Chart [`global.secretsBackend.vault.connectCA`](/docs/k8s/helm#v-global-secretsbackend-vault-connectca) value is configured.
 
-Though this guidance is listed in the 1.13.x section, it applies to all of the following release series:
-- Consul 1.13.x: applies to 1.13.2+
-- Consul 1.12.x: applies to 1.12.5+
-- Consul 1.11.x: applies to 1.11.9+
-
-Those affected Consul versions contain a
+Though this guidance is listed in the 1.13.x section, it applies to several release series.
+Affected Consul versions contain a
 [bugfix that allows the intermediate CA's TTL configuration to be modified](https://github.com/hashicorp/consul/pull/14516).
 The bugfix requires the `update` capability to tune that configuration.
-Without the `update` capability, those affected Consul versions
+Without the `update` capability, the Consul versions listed in the _breaking change_ column
 cannot provide services with the certificates they need to participate in the mesh.
-In an upcoming patch for each of those release series,
-we will restore the intermediate CA's ability to provide certificates even without the `update` capability on the tune configuration endpoint,
+The Consul versions in the _recommended versions_ column restore the intermediate CA's ability
+to provide certificates even without the `update` capability on the tune configuration endpoint,
 though the `update` capability will still be needed to modify the CA's TTL configuration.
 
-We recommend modifying the Vault policy before upgrading to Consul 1.11 or later
-to ensure your organization does not accidentally miss this guidance when performing subsequent upgrades,
-such as to the latest patch within a release series.
+| Release Series | Versions with breaking change | Recommended versions |
+| -------------- | ----------------------------- | -------------------- |
+| Consul 1.13.x  | 1.13.2                        | 1.13.3 or later      |
+| Consul 1.12.x  | 1.12.5                        | 1.12.6 or later      |
+| Consul 1.11.x  | 1.11.9 - 1.11.10              | 1.11.11 or later     |
+
+As a precaution, we recommend both modifying the Vault policy
+and upgrading to a recommended version as a double protection
+to ensure the operation of your service mesh and to enable CA TTL modification.
 
 ### 1.9 Telemetry Compatibility
 
@@ -215,6 +214,10 @@ If you were using this flag, you must remove it before upgrading.
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.13.2 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.13.3 or later to avoid the breaking nature of that change.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 
@@ -222,6 +225,10 @@ Follow the same guidance as provided in the
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.12.5 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.12.6 or later to avoid the breaking nature of that change.
 
 ### 1.9 Telemetry Compatibility
 
@@ -264,9 +271,10 @@ be replaced with the new [`tls` stanza](/docs/agent/config/config-files#tls-conf
 ### 1.10 Compatibility <EnterpriseAlert inline />
 Consul Enterprise versions 1.10.0 through 1.10.4 contain a latent bug that
 causes those client or server agents to deregister their own services or health
-checks when some of the servers have been upgraded to 1.11. Before upgrading Consul Enterprise servers to 1.11, all Consul agents should first
-be upgraded to 1.10.7 or higher to ensure forward compatibility and prevent
-flapping of catalog registrations.
+checks when some of the servers have been upgraded to 1.11 or later.
+Before upgrading Consul Enterprise servers to 1.11 or later,
+you should first upgrade all Consul client and server agents to 1.10.7 or higher
+to ensure forward compatibility and prevent flapping of catalog registrations.
 
 ### Deprecated Agent Config Options
 
@@ -338,6 +346,10 @@ ensures your sidecars are supported by Consul 1.11.
 
 Follow the same guidance as provided in the
 [1.13 upgrade section for modifying the Vault policy if using the Vault CA provider](#modify-vault-policy-for-vault-ca-provider).
+A breaking change was made in Consul 1.11.9 that impacts service mesh operation
+if the Vault policy is not modified as described.
+As a precaution, we recommend both modifying the Vault policy and upgrading
+to Consul 1.11.11 or later to avoid the breaking nature of that change.
 
 ## Consul 1.10.0
 
@@ -1219,7 +1231,7 @@ and the agents need to be running version 0.7 or later in order to use this
 feature.
 
 These translated addresses could break HTTP endpoint consumers that are
-expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api-docs#translated-addresses)
+expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/api-docs/api-structure#translated-addresses)
 header was added to allow clients to detect if translation is enabled for HTTP
 responses. A "lan" tag was added to `TaggedAddresses` for clients that need
 the local address regardless of translation.

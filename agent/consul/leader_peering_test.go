@@ -7,11 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/google/tcpproxy"
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
@@ -272,6 +273,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	insertNode := func(i int) {
 		req := structs.RegisterRequest{
 			Datacenter: "dc1",
+			ID:         types.NodeID(generateUUID()),
 			Node:       fmt.Sprintf("node%d", i+1),
 			Address:    fmt.Sprintf("127.0.0.%d", i+1),
 			NodeMeta: map[string]string{
@@ -567,7 +569,7 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 	}
 
 	// Since the Establish RPC dials the remote cluster, it will yield the TLS error.
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	_, err = s2Client.Establish(ctx, &establishReq)
 	require.Contains(t, err.Error(), expectErr)
@@ -1139,8 +1141,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedServsCount: 4, // 3 services from above + the "consul" service
-			expectedExportedServsCount: 4, // 3 services from above + the "consul" service
+			expectedImportedServsCount: 3, // 3 services from above
+			expectedExportedServsCount: 3, // 3 services from above
 		},
 		{
 			name:        "no sync",
@@ -1148,8 +1150,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 			exportedService: structs.ExportedServicesConfigEntry{
 				Name: "default",
 			},
-			expectedImportedServsCount: 0, // we want to see this decremented from 4 --> 0
-			expectedExportedServsCount: 0, // we want to see this decremented from 4 --> 0
+			expectedImportedServsCount: 0, // we want to see this decremented from 3 --> 0
+			expectedExportedServsCount: 0, // we want to see this decremented from 3 --> 0
 		},
 		{
 			name:        "just a, b services",
@@ -1411,7 +1413,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	met, err := metrics.New(cfg, sink)
 	require.NoError(t, err)
 
-	errM := s2.emitPeeringMetricsOnce(s2.logger, met)
+	errM := s2.emitPeeringMetricsOnce(met)
 	require.NoError(t, errM)
 
 	retry.Run(t, func(r *retry.R) {
@@ -1442,7 +1444,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
 
-		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
+		require.Equal(r, float32(0), healthyMetric3.Value)
 	})
 }
 
@@ -1686,14 +1688,35 @@ func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
 	}, allErrors)
 }
 
-func Test_isFailedPreconditionErr(t *testing.T) {
-	st := grpcstatus.New(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
-	err := st.Err()
-	assert.True(t, isFailedPreconditionErr(err))
+func Test_isErrCode(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectedCode codes.Code
+	}{
+		{
+			name:         "cannot establish a peering stream on a follower node",
+			expectedCode: codes.FailedPrecondition,
+		},
+		{
+			name:         "received message larger than max ",
+			expectedCode: codes.ResourceExhausted,
+		},
+		{
+			name:         "deadline exceeded",
+			expectedCode: codes.DeadlineExceeded,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			st := grpcstatus.New(tc.expectedCode, tc.name)
+			err := st.Err()
+			assert.True(t, isErrCode(err, tc.expectedCode))
 
-	// test that wrapped errors are checked correctly
-	werr := fmt.Errorf("wrapped: %w", err)
-	assert.True(t, isFailedPreconditionErr(werr))
+			// test that wrapped errors are checked correctly
+			werr := fmt.Errorf("wrapped: %w", err)
+			assert.True(t, isErrCode(werr, tc.expectedCode))
+		})
+	}
 }
 
 func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
@@ -1839,4 +1862,240 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 			require.False(r, status.Connected)
 		})
 	})
+}
+
+func Test_Leader_PeeringSync_PeerThroughMeshGateways_ServerFallBack(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	ca := connect.TestCA(t, nil)
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
+	})
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
+
+	// Configure peering to go through mesh gateways
+	store := dialer.fsm.State()
+	require.NoError(t, store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
+		Peering: &structs.PeeringMeshConfig{
+			PeerThroughMeshGateways: true,
+		},
+	}))
+
+	// Register a gateway that isn't actually listening.
+	require.NoError(t, store.EnsureRegistration(2, &structs.RegisterRequest{
+		ID:      types.NodeID(testUUID()),
+		Node:    "gateway-node-1",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindMeshGateway,
+			ID:      "mesh-gateway-1",
+			Service: "mesh-gateway",
+			Port:    freeport.GetOne(t),
+		},
+	}))
+
+	// Create a peering at dialer by establishing a peering with acceptor's token
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
+
+	establishReq := pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
+
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+	require.NoError(t, err)
+
+	// The peering should eventually connect because we fall back to the token's server addresses.
+	retry.Run(t, func(r *retry.R) {
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+}
+
+func Test_Leader_PeeringSync_PeerThroughMeshGateways_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	ca := connect.TestCA(t, nil)
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
+	})
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
+
+	// Configure peering to go through mesh gateways
+	store := dialer.fsm.State()
+	require.NoError(t, store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
+		Peering: &structs.PeeringMeshConfig{
+			PeerThroughMeshGateways: true,
+		},
+	}))
+
+	// Register a mesh gateway and a tcpproxy listening at its address.
+	gatewayPort := freeport.GetOne(t)
+	gatewayAddr := fmt.Sprintf("127.0.0.1:%d", gatewayPort)
+
+	require.NoError(t, store.EnsureRegistration(3, &structs.RegisterRequest{
+		ID:      types.NodeID(testUUID()),
+		Node:    "gateway-node-2",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindMeshGateway,
+			ID:      "mesh-gateway-2",
+			Service: "mesh-gateway",
+			Port:    gatewayPort,
+		},
+	}))
+
+	// Configure a TCP proxy with an SNI route corresponding to the acceptor cluster.
+	var proxy tcpproxy.Proxy
+	target := &connWrapper{
+		proxy: tcpproxy.DialProxy{
+			Addr: fmt.Sprintf("127.0.0.1:%d", acceptor.config.GRPCTLSPort),
+		},
+	}
+	proxy.AddSNIRoute(gatewayAddr, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", target)
+	proxy.AddStopACMESearch(gatewayAddr)
+
+	require.NoError(t, proxy.Start())
+	t.Cleanup(func() {
+		proxy.Close()
+		proxy.Wait()
+	})
+
+	// Create a peering at dialer by establishing a peering with acceptor's token
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
+
+	establishReq := pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
+
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
+	require.NoError(t, err)
+
+	// The peering should eventually connect through the gateway address.
+	retry.Run(t, func(r *retry.R) {
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	// target.called is true when the tcproxy's conn handler was invoked.
+	// This lets us know that the "Establish" success flowed through the proxy masquerading as a gateway.
+	require.True(t, target.called)
+}
+
+// connWrapper is a wrapper around tcpproxy.DialProxy to enable tracking whether the proxy handled a connection.
+type connWrapper struct {
+	proxy  tcpproxy.DialProxy
+	called bool
+}
+
+func (w *connWrapper) HandleConn(src net.Conn) {
+	w.called = true
+	w.proxy.HandleConn(src)
 }

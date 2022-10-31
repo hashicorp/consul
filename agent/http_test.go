@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -982,7 +982,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler(false).ServeHTTP(resp, req)
 
-	require.Equal(t, http.StatusUnauthorized, resp.Code)
+	require.Equal(t, http.StatusNotFound, resp.Code)
 }
 
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
