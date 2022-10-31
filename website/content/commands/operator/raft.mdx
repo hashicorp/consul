@@ -110,7 +110,7 @@ The return code will indicate success or failure.
 Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/api-docs/operator/raft#transfer-raft-leadership)
 
 This command transfer the Consul leader to another server agent. If an `id` is provided, raft leadership will be transferred
-to the server with that id.
+to the server with that id. It provides a way to transition leadership without restarting the leader node, maintaining quorum and workload capacity.
 
 
 The table below shows this command's [required ACLs](/api-docs#authentication). Configuration of
