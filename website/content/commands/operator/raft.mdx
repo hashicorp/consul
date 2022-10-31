@@ -112,10 +112,6 @@ Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/a
 This command transfer the Consul leader to another server agent. If an `id` is provided, raft leadership will be transferred
 to the server with that id.
 
-[`consul members`](/commands/members) command, it is preferable to
-clean up by simply running
-[`consul force-leave`](/commands/force-leave)
-instead of this command.
 
 The table below shows this command's [required ACLs](/api-docs#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
