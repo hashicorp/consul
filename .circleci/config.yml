@@ -24,10 +24,10 @@ references:
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.19.2
   envoy-versions: &supported_envoy_versions
-    - &default_envoy_version "1.20.7"
-    - "1.21.5"
+    - &default_envoy_version "1.21.5"
     - "1.22.5"
-    - "1.23.1"
+    - "1.23.2"
+    - "1.24.0"
   nomad-versions: &supported_nomad_versions
     - &default_nomad_version "1.3.3"
     - "1.2.10"
