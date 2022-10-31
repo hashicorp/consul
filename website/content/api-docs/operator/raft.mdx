@@ -151,8 +151,6 @@ $ curl \
 This endpoint transfers the raft leadership from the current raft leader to a different raft peer.
 The new leader will be randomly selected unless explicitly specified with the `id` parameter.
 
-If ACLs are enabled, the client will need to supply an ACL Token with `operator`
-write privileges.
 
 | Method   | Path                  | Produces           |
 | -------- | --------------------- | ------------------ |
