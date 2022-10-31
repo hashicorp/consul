@@ -127,6 +127,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator raft transfer-leader -id="server id"`
 
-- `-id` - ID of the server to transfer leadership to.
+- `-id` - Specifies the node ID of the raft peer to transfer leadership to.
+If empty, leadership will be transferred to a random server agent.
 
 The return code will indicate success or failure.
