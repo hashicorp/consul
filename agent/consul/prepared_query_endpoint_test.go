@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1612,9 +1613,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				{codec2, "dc2"},
 				{codec3, "dc3"},
 			} {
+				nodeID, _ := uuid.GenerateUUID()
 				req := structs.RegisterRequest{
 					Datacenter: d.dc,
 					Node:       fmt.Sprintf("node%d", i+1),
+					ID:         types.NodeID(nodeID),
 					Address:    fmt.Sprintf("127.0.0.%d", i+1),
 					NodeMeta: map[string]string{
 						"group":         fmt.Sprintf("%d", i/5),
@@ -2449,7 +2452,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Ensure the foo service has fully replicated.
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(&retry.Timer{Timeout: 3 * time.Second, Wait: 25 * time.Millisecond}, t, func(r *retry.R) {
 		_, nodes, err := s1.fsm.State().CheckServiceNodes(nil, "foo", nil, acceptingPeerName)
 		require.NoError(r, err)
 		require.Len(r, nodes, 10)
