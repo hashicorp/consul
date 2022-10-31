@@ -444,13 +444,17 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 			if err != nil {
 				return err
 			}
-			if expectPort != svc.Port {
+			switch svc.Port {
+			case expectPort:
+				atomic.AddUint64(updateCount, 1)
+				logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
+				expectPort++
+			case expectPort - 1:
+				logger.Logf("subscriber %05d: got event with repeated prior port=%d at index %d", i, expectPort-1, event.Index)
+			default:
 				return fmt.Errorf("subscriber %05d: at index %d: expected port %d, got %d",
 					i, event.Index, expectPort, svc.Port)
 			}
-			atomic.AddUint64(updateCount, 1)
-			logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
-			expectPort++
 		default:
 			// snapshot events
 			svc, err := svcOrErr(event)
