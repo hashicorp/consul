@@ -65,6 +65,8 @@ var (
 	maxFastConnRetries = uint(5)
 	// maxFastRetryBackoff is the maximum amount of time we'll wait between retries following the fast path.
 	maxFastRetryBackoff = 8192 * time.Millisecond
+	// maxRetryBackoffPeering is the maximum number of seconds we'll wait between retries when attempting to re-establish a peering connection.
+	maxRetryBackoffPeering = 64
 )
 
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
@@ -713,10 +715,10 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 	}
 
 	// Else we go with the default backoff from retryLoopBackoff.
-	if (1 << failedAttempts) < maxRetryBackoff {
+	if (1 << failedAttempts) < maxRetryBackoffPeering {
 		return (1 << failedAttempts) * time.Second
 	}
-	return time.Duration(maxRetryBackoff) * time.Second
+	return time.Duration(maxRetryBackoffPeering) * time.Second
 }
 
 // isErrCode returns true if err is a gRPC error with given error code.
