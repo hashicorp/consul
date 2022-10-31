@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -415,8 +416,10 @@ func TestNodesWatch(t *testing.T) {
 	{
 		catalog := c.Catalog()
 
+		nodeID, _ := uuid.GenerateUUID()
 		reg := &api.CatalogRegistration{
 			Node:       "foobar",
+			ID:         nodeID,
 			Address:    "1.1.1.1",
 			Datacenter: "dc1",
 		}
