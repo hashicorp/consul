@@ -148,9 +148,8 @@ $ curl \
 
 ## Transfer Raft Leadership
 
-This endpoint transfer the raft leadership from the current raft leader to a new node or
-the node with the provided id.
-
+This endpoint transfers the raft leadership from the current raft leader to a different raft peer.
+The new leader will be randomly selected unless explicitly specified with the `id` parameter.
 
 If ACLs are enabled, the client will need to supply an ACL Token with `operator`
 write privileges.
@@ -169,12 +168,12 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator raft tranfer-leader`](/commands/operator/raft#tranfer-leader).
+The corresponding CLI command is [`consul operator raft transfer-leader`](/commands/operator/raft#transfer-leader).
 
 ### Query Parameters
 
-- `id` `(string: "")` - Specifies the ID of the raft peer to transfer leadership to, if empty the leadership
-will be transferred to a random server.
+- `id` `(string: "")` - Specifies the node ID of the raft peer to transfer leadership to.
+If empty, leadership will be transferred to a random server agent.
 
 ### Sample Request
 

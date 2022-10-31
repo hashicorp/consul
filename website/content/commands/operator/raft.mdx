@@ -107,9 +107,9 @@ The return code will indicate success or failure.
 
 ## transfer-leader
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/api-docs/operator/raft#transfer-leader)
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/api-docs/operator/raft#transfer-raft-leadership)
 
-This command transfer the Consul leader to another server. If an `id` is provided, raft leadership will be transferred
+This command transfer the Consul leader to another server agent. If an `id` is provided, raft leadership will be transferred
 to the server with that id.
 
 [`consul members`](/commands/members) command, it is preferable to
