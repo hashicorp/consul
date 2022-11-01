@@ -46,8 +46,8 @@ The following options are required when starting `consul-dataplane` with the CLI
 
 - `-addresses` - Consul server gRPC addresses. Can be a DNS name or an executable command. Refer to [go-netaddrs](https://github.com/hashicorp/go-netaddrs#summary) for details and examples.
 - `-ca-certs` - The path to a file or directory containing CA certificates used to verify the server's certificate.
-- `-consul-dns-bind-addr` - The address that will be bound to the consul dns proxy. Default is `"127.0.0.1"`.
-- `-consul-dns-bind-port` - The port the consul dns proxy will listen on. By default -1 disables the dns proxy Default is `-1`.
+- `-consul-dns-bind-addr` - The address bound to the Consul DNS proxy. Default is `"127.0.0.1"`.
+- `-consul-dns-bind-port` - The port that the Consul DNS proxy listens on. Default is `-1`, which disables the DNS proxy.
 - `-credential-type` - The type of credentials used to authenticate with Consul servers, either `"static"` or `"login"`.
 - `-envoy-admin-bind-address` - The address the Envoy admin server is available on. Default is `"127.0.0.1"`.
 - `-envoy-admin-bind-port` - The port the Envoy admin server is available on. Default is `19000`.
