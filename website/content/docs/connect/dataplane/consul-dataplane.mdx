@@ -74,10 +74,10 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-telemetry-prom-ca-certs-path` - The path to a file or directory containing CA certificates used to verify the Prometheus server's certificate.
 - `-telemetry-prom-cert-file` - The path to the client certificate used to serve Prometheus metrics.
 - `-telemetry-prom-key-file` - The path to the client private key used to serve Prometheus metrics.
-- `-telemetry-prom-merge-port` - The port to serve merged Prometheus metrics. Default is `20100`.
-- `-telemetry-prom-retention-time` - The duration for Prometheus metrics aggregation. Default is `1m0s`.
+- `-telemetry-prom-merge-port` - The local port used to serve merged Prometheus metrics. Default is `20100`. If your service instance uses the same default port, this flag must be set to a different port in order to avoid a port conflict.
+- `-telemetry-prom-retention-time` - The duration for Prometheus metrics aggregation. Default is `1m0s`. Refer to [`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time) for details on setting this value.
 - `-telemetry-prom-scrape-path` - The URL path where Envoy serves Prometheus metrics. Default is `"/metrics"`.
-- `-telemetry-prom-service-metrics-url` - Prometheus metrics at this URL are scraped and included in Consul Dataplane's main Prometheus metrics.
+- `-telemetry-prom-service-metrics-url` - The URL where your service instance serves Prometheus metrics. If this is set, the metrics at this URL are included in Consul Dataplane's merged Prometheus metrics.
 - `-telemetry-use-central-config` - Controls whether the proxy applies the central telemetry configuration. Default is `true`.
 - `-tls-cert` - The path to a client certificate file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server.
 - `-tls-disabled` - Communicate with Consul servers over a plaintext connection. Useful for testing, but not recommended for production. Default is `false`.
@@ -86,6 +86,8 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-tls-server-name` - The hostname to expect in the server certificate's subject. This flag is required if `-addresses` is not a DNS name.
 - `-version` - Print the current version of `consul-dataplane`.
 - `-xds-bind-addr` - The address the Envoy xDS server is available on. Default is `"127.0.0.1"`.
+- `-xds-bind-port` - The port on which the Envoy xDS server is available. Default is `0`. When set
+  to `0`, an available port is selected at random.
 
 ## Examples
 
