@@ -1481,7 +1481,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4803632738), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4820915609), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
