@@ -14,71 +14,21 @@ The following external metrics stores are supported:
 - [Prometheus](https://prometheus.io/docs/prometheus/latest/)
 - [StatsD](https://github.com/statsd/statsd)
 
-# Configuring Telemetry
-
-<Tabs>
-
-<Tab heading="Kubernetes">
-
-Refer to the [Consul on Kubernetes documentation](/docs/k8s/connect/observability/metrics) to
-configure telemetry for Consul on Kubernetes.
-
-</Tab>
-
-<Tab heading="Reference Documentation">
-
-Consul Dataplane respects the telemetry settings used for Envoy. You must do the following to
-enable telemetry for Consul Dataplane:
-
-- Enable telemetry for Envoy by including metrics configuration in either the `proxy-defaults`
-  configuration entry or directly in the `proxy.config` field. Refer to the [Envoy Bootstrap
-  Configuration](/docs/connect/proxies/envoy#bootstrap-configuration) for details.
-- Pass the
-  [`-telemetry-use-central-config`](/docs/connect/dataplane/consul-dataplane#telemetry-use-central-config)
-  flag to `consul-dataplane`.
+Consul Dataplane respects the telemetry settings used for Envoy. The external metrics store can be
+specified in the `proxy-defaults` configuration entry or directly in the `proxy.config` field of the
+proxy service definition. Refer to the [Envoy bootstrap
+configuration](/docs/connect/proxies/envoy#bootstrap-configuration) for details.
 
 ## Prometheus Metrics Merging
 
 When Prometheus metrics are used, Consul Dataplane configures Envoy to serve merged metrics through
 a single endpoint. Metrics from the following sources are collected and merged:
 
-- The Envoy process managed by Consul Dataplane
 - Consul Dataplane itself
-- (optionally) Your service that is running alongside Consul Dataplane
+- The Envoy process managed by Consul Dataplane
+- (optionally) Your service instance running alongside Consul Dataplane
 
-If your service supports Prometheus metrics, set the
-[`-telemetry-prom-service-metrics-url`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-service-metrics-url)
-option to the URL where your service exposes Prometheus metrics in order to include metrics for your
-service in the merged metrics.
-
-## Additional Prometheus Options
-
-To configure TLS for communicating to the Prometheus server, use the following flags:
-
-- [`-telemetry-prom-ca-certs-path`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-ca-certs-path)
-- [`-telemetry-prom-cert-file`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-cert-file)
-- [`-telemetry-prom-key-file`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-key-file)
-
-To change the port Consul Dataplane listens on for metrics merging, use the
-[`-telemetry-prom-merge-port`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-merge-port)
-flag. You should set this if your service needs to listen on the default metrics merging port,
-20100, in order to avoid a port conflict.
-
-To change the duration Prometheus metrics are retained for, use the
-[`-telemetry-prom-retention-time`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-retention-time)
-flag. Refer to
-[`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time)
-for details on how this field should be set.
-
-To change the URL path where Envoy serves Prometheus metrics, use the
-[`-telemetry-prom-scrape-path`](/docs/connect/dataplane/consul-dataplane#telemetry-prom-scrape-path)
-flag.
-
-</Tab>
-
-</Tabs>
-
-# Metrics
+## Metrics Reference
 
 Consul Dataplane supports the following metrics:
 
