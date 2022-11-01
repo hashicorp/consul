@@ -94,7 +94,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
 			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
 			"--",
-			"--log-level", "trace"},
+			"--log-level", envoyLogLevel},
 		ExposedPorts: []string{
 			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
 			"19000/tcp",                            // Envoy Admin Port
