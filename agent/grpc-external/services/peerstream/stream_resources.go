@@ -631,7 +631,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			if resp := msg.GetResponse(); resp != nil {
 				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, serviceUpdateBatchCh)
 				if err != nil {
-					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
+					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID, "err", err.Error())
 					status.TrackRecvError(err.Error())
 				} else {
 					status.TrackRecvResourceSuccess()
