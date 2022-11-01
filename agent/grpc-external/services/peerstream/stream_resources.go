@@ -718,6 +718,21 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			select {
 			case <-status.Done():
+				logger.Info("ending stream")
+				term := &pbpeerstream.ReplicationMessage{
+					Payload: &pbpeerstream.ReplicationMessage_Terminated_{
+						Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
+					},
+				}
+				if err := streamSend(term); err != nil {
+					// Nolint directive needed due to bug in govet that doesn't see that the cancel
+					// func of the incomingHeartbeatTimer _does_ get called.
+					//nolint:govet
+					return fmt.Errorf("failed to send to stream: %v", err)
+				}
+
+				logger.Trace("deleting stream status")
+				s.Tracker.DeleteStatus(streamReq.LocalID)
 				return nil
 			case <-streamSendTicker.C:
 				// nothing to do - just rate limiting
