@@ -42,5 +42,5 @@ load helpers
 @test "ingress should be able to connect to s1 via configured port" {
   run retry_default curl -s -f -d hello localhost:9999
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
