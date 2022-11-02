@@ -30,9 +30,16 @@ func TestGRPCMiddleware_restrictPeeringEndpoints(t *testing.T) {
 			endpoint:   "/hashicorp.consul.internal.peerstream.PeerStreamService/SomeEndpoint",
 		},
 		{
-			name:      "deny_invalid_credentials",
-			authInfo:  invalidAuthInfo{},
-			expectErr: "invalid transport credentials",
+			name:       "peering_not_enabled",
+			authInfo:   nil,
+			peeringSNI: "",
+			endpoint:   "/hashicorp.consul.internal.peerstream.PeerStreamService/SomeEndpoint",
+		},
+		{
+			name:       "deny_invalid_credentials",
+			authInfo:   invalidAuthInfo{},
+			peeringSNI: "expected-server-sni",
+			expectErr:  "invalid transport credentials",
 		},
 		{
 			name: "peering_sni_with_invalid_endpoint",
@@ -72,6 +79,7 @@ func TestGRPCMiddleware_restrictPeeringEndpoints(t *testing.T) {
 			if tc.expectErr == "" {
 				require.NoError(t, err)
 			} else {
+				require.NotNil(t, err)
 				require.Contains(t, err.Error(), tc.expectErr)
 			}
 		})
