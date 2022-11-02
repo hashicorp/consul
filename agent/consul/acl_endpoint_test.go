@@ -1231,7 +1231,26 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := a.TokenSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this token")
+		testutil.RequireErrorContains(t, err, "missing the datacenter field")
+	})
+	t.Run("invalid node identity - invalid format for datacenter", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "invalid<dc",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := a.TokenSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter is not in a valid format")
 	})
 }
 
@@ -2738,7 +2757,27 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		resp := structs.ACLRole{}
 
 		err := a.RoleSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this role")
+		testutil.RequireErrorContains(t, err, "missing the datacenter field")
+	})
+	t.Run("invalid node identity - invalid datacenter", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name: roleNameGen(t),
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "invalid<dc",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		resp := structs.ACLRole{}
+
+		err := a.RoleSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter is not in a valid format")
 	})
 }
 

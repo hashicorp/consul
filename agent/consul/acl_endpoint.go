@@ -1318,8 +1318,8 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		if nodeid.NodeName == "" {
 			return fmt.Errorf("Node identity is missing the node name field on this role")
 		}
-		if nodeid.Datacenter == "" {
-			return fmt.Errorf("Node identity is missing the datacenter field on this role")
+		if !lib.IsValidBasicName(nodeid.Datacenter, false) {
+			return fmt.Errorf("Node identity is either missing the datacenter field or the provided datacenter is not in a valid format (lowercase alphanumeric, - or _ characters)")
 		}
 		if !acl.IsValidNodeIdentityName(nodeid.NodeName) {
 			return fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")
