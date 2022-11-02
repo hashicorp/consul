@@ -438,8 +438,8 @@ func (w *TokenWriter) normalizeNodeIdentities(nodeIDs structs.ACLNodeIdentities)
 		if id.NodeName == "" {
 			return nil, errors.New("Node identity is missing the node name field on this token")
 		}
-		if id.Datacenter == "" {
-			return nil, errors.New("Node identity is missing the datacenter field on this token")
+		if !lib.IsValidBasicName(id.Datacenter, false) {
+			return nil, errors.New("Node identity is either missing the datacenter field or the provided datacenter is not in a valid format (lowercase alphanumeric, - or _ characters)")
 		}
 		if !acl.IsValidNodeIdentityName(id.NodeName) {
 			return nil, fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")

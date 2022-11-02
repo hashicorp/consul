@@ -332,6 +332,10 @@ func TestTokenWriter_NodeIdentities(t *testing.T) {
 			input:         []*structs.ACLNodeIdentity{{NodeName: "web"}},
 			errorContains: "missing the datacenter field",
 		},
+		"invalid datacenter": {
+			input:         []*structs.ACLNodeIdentity{{NodeName: "web:invalid-dc>"}},
+			errorContains: "datacenter is not in a valid format",
+		},
 		"invalid node name": {
 			input:         []*structs.ACLNodeIdentity{{NodeName: "INVALID!", Datacenter: "dc1"}},
 			errorContains: "has an invalid name",
