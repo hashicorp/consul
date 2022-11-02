@@ -66,6 +66,10 @@ func (a *AuthInterceptor) InterceptStream(
 // present a mutual TLS certificate, and is allowed to bypass the `tls.grpc.verify_incoming`
 // check as a special case. See the `tlsutil.Configurator` for this bypass.
 func restrictPeeringEndpoints(authInfo credentials.AuthInfo, peeringSNI string, endpoint string) error {
+	// No peering connection has been configured
+	if peeringSNI == "" {
+		return nil
+	}
 	// This indicates a plaintext connection.
 	if authInfo == nil {
 		return nil
@@ -75,6 +79,7 @@ func restrictPeeringEndpoints(authInfo credentials.AuthInfo, peeringSNI string, 
 	if !ok {
 		return status.Error(codes.Unauthenticated, "invalid transport credentials")
 	}
+
 	if tlsAuth.State.ServerName == peeringSNI {
 		// Prevent any calls, except those in the PeerStreamService
 		if !strings.HasPrefix(endpoint, AllowedPeerEndpointPrefix) {
