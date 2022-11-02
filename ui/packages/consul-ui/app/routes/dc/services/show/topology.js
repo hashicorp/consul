@@ -15,7 +15,7 @@ export default class TopologyRoute extends Route {
     try {
       // intentions will be a proxy object
       let intentions = await this.intentions;
-      let intention = intentions.find(item => {
+      let intention = intentions.find((item) => {
         return (
           item.Datacenter === source.Datacenter &&
           item.SourceName === source.Name &&
@@ -56,7 +56,7 @@ export default class TopologyRoute extends Route {
       ...this.paramsFor('dc.services.show'),
     };
     this.intentions = this.data.source(
-      uri =>
+      (uri) =>
         uri`/${params.partition}/${params.nspace}/${params.dc}/intentions/for-service/${params.name}`
     );
   }

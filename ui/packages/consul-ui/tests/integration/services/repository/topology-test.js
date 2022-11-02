@@ -2,12 +2,12 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 
-module('Integration | Service | topology', function(hooks) {
+module('Integration | Service | topology', function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'slug';
   const kind = '';
-  test('findBySlug returns the correct data for item endpoint', function(assert) {
+  test('findBySlug returns the correct data for item endpoint', function (assert) {
     return repo(
       'Service',
       'findBySlug',
@@ -21,7 +21,7 @@ module('Integration | Service | topology', function(hooks) {
         return service.findBySlug({ id, kind, dc });
       },
       function performAssertion(actual, expected) {
-        const result = expected(function(payload) {
+        const result = expected(function (payload) {
           return Object.assign(
             {},
             {

@@ -4,11 +4,11 @@ export default Controller.extend({
   dom: service('dom'),
   builder: service('form'),
   isScoped: false,
-  init: function() {
+  init: function () {
     this._super(...arguments);
     this.form = this.builder.form('token');
   },
-  setProperties: function(model) {
+  setProperties: function (model) {
     // essentially this replaces the data with changesets
     this._super(
       Object.keys(model).reduce((prev, key, i) => {
@@ -22,7 +22,7 @@ export default Controller.extend({
     );
   },
   actions: {
-    change: function(e, value, item) {
+    change: function (e, value, item) {
       const event = this.dom.normalizeEvent(e, value);
       const form = this.form;
       try {

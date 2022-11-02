@@ -1,10 +1,11 @@
 ---
 layout: docs
-page_title: Metrics
-description: Metrics for Consul on Kubernetes
+page_title: Configure metrics for Consul on Kubernetes
+description: >-
+  Use the `connectInject.metrics` Helm values to enable Prometheus and Grafana integrations and capture metrics. Consul can collect metrics from the service mesh, sidecar proxies, agents, and gateways in a k8s cluster and then display service traffic metrics in Consul’s UI for additional observability.
 ---
 
-# Metrics
+# Configure Metrics for Consul on Kubernetes
 
 Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh. The metrics
 available are:
@@ -108,7 +109,7 @@ global:
 
 ## Metrics in the UI Topology Visualization
 
-Consul’s built-in UI has a topology visualization for services part of the Consul Service Mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/docs/connect/observability/ui-visualization).
+Consul's built-in UI has a topology visualization for services part of the Consul Service Mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/docs/connect/observability/ui-visualization).
 
 The diagram below illustrates how the UI displays service metrics for a sample application:
 
@@ -137,7 +138,7 @@ The Prometheus deployment is designed to allow quick bootstrapping for trial and
 Prometheus will be installed in the same namespace as Consul, and will be installed
 and uninstalled along with the Consul installation.
 
-Grafana can optionally be utilized with Prometheus to display metrics. The installation and configuration of Grafana must be managed separately from the Consul Helm chart. The [Layer 7 Observability with Prometheus, Grafana, and Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes)) tutorial provides an installation walkthrough using Helm.
+Grafana can optionally be utilized with Prometheus to display metrics. The installation and configuration of Grafana must be managed separately from the Consul Helm chart. The [Layer 7 Observability with Prometheus, Grafana, and Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes?in=consul/kubernetes)) tutorial provides an installation walkthrough using Helm.
 
 ```yaml
 prometheus:

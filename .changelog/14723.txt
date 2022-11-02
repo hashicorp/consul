@@ -1,0 +1,3 @@
+```release-note:improvement
+agent/hcp: add initial HashiCorp Cloud Platform integration
+```

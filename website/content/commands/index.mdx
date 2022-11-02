@@ -94,7 +94,7 @@ Command Options
 
 ## Authentication
 
-When the [ACL system is enabled](/docs/agent/options#acl_enabled) the Consul CLI will
+When the [ACL system is enabled](/docs/agent/config/config-files#acl) the Consul CLI will
 require an [ACL token](/docs/security/acl#tokens) to perform API requests.
 
 The ACL token can be provided directly on the command line using the `-token` command line flag,
@@ -123,7 +123,7 @@ list-peers   remove-peer
 ## Arguments with URL-Invalid Characters
 
 The CLI automatically URL-encodes arguments, which are then
-[URL-decoded by the underlying HTTP API endpoints](/api-docs#url-encoded-resource-names).
+[URL-decoded by the underlying HTTP API endpoints](/api-docs/api-structure#url-encoded-resource-names).
 To avoid double-encoding arguments, do not URL-encode arguments passed to the CLI.
 
 ## Environment Variables

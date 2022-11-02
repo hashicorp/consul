@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -28,6 +30,8 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
 )
+
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
 
 type deltaRecvResponse int
 
@@ -86,6 +90,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		return err
 	}
 
+	session, err := s.SessionLimiter.BeginSession()
+	if err != nil {
+		return errOverwhelmed
+	}
+	defer session.End()
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -95,6 +105,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready       bool   // set to true after the first snapshot arrives
+
+		streamStartTime = time.Now()
+		streamStartOnce sync.Once
 	)
 
 	var (
@@ -159,6 +172,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-session.Terminated():
+			generator.Logger.Debug("draining stream to rebalance load")
+			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {
@@ -269,7 +286,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Start watching config for that proxy
 			var err error
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
+			options, err := external.QueryOptionsFromContext(stream.Context())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
+
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
@@ -341,6 +363,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
+
+			streamStartOnce.Do(func() {
+				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
+			})
 
 			for _, op := range xDSUpdateOrder {
 				err, sent := handlers[op.TypeUrl].SendIfNew(

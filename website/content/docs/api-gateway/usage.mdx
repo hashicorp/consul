@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: Consul API Gateway Basic Usage
-description:  >-
-  This topic describes how to use Consul API Gateway.
+page_title: Use Consul API Gateway
+description: >-
+  Learn how to apply a configured Consul API Gateway to your Kubernetes cluster, review the required fields for rerouting HTTP requests, and troubleshoot an error message.
 ---
 
-
-# Usage
+# Use Consul API Gateway
 
 This topic describes how to use Consul API Gateway.
 
@@ -15,8 +14,8 @@ This topic describes how to use Consul API Gateway.
 Complete the following steps to use Consul API Gateway in your network.
 
 1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
-1. Verify that the Consul API Gateway CRDs and controller have been installed and applied (see [Installation](/docs/api-gateway/consul-api-gateway-install)).
-1. Configure your [`Gateway`](/docs/api-gateway/configuration/gateway) and [`Routes`](/docs/api-gateway/configuration/routes) . as describe in the [Configuration](/docs/api-gateway/configuration) section.
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
+1. Configure your [`Gateway`](/docs/api-gateway/configuration/gateway) and [`Routes`](/docs/api-gateway/configuration/routes) as describe in the [Configuration](/docs/api-gateway/configuration) section.
 
   <CodeBlockConfig hideClipboard filename="values.yaml">
 
@@ -28,7 +27,7 @@ Complete the following steps to use Consul API Gateway in your network.
 
   </CodeBlockConfig>
 
-1. Issue the `kubectl apply` command to implement the configurations, e.g.:
+1. Issue the `kubectl apply` command to implement the configurations:
 
   ```shell-session
     $ kubectl apply -f gateway.yaml routes.yaml

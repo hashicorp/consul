@@ -584,10 +584,16 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		if req.Peering.State == pbpeering.PeeringState_UNDEFINED {
 			req.Peering.State = existing.State
 		}
-		// TODO(peering): Confirm behavior when /peering/token is called more than once.
-		// We may need to avoid clobbering existing values.
-		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
-		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
+
+		// Prevent RemoteInfo from being overwritten with empty data
+		if !existing.Remote.IsEmpty() && req.Peering.Remote.IsEmpty() {
+			req.Peering.Remote = &pbpeering.RemoteInfo{
+				Partition:  existing.Remote.Partition,
+				Datacenter: existing.Remote.Datacenter,
+			}
+		}
+
+		req.Peering.StreamStatus = nil
 		req.Peering.CreateIndex = existing.CreateIndex
 		req.Peering.ModifyIndex = idx
 	} else {
@@ -716,7 +722,7 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string, dc str
 	return exportedServicesForPeerTxn(ws, tx, peering, dc)
 }
 
-func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
+func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -727,7 +733,7 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl
 
 	out := make(map[string]structs.ServiceList)
 	for _, peering := range peerings {
-		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, "")
+		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, dc)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
 		}
@@ -755,6 +761,11 @@ func exportedServicesForPeerTxn(
 	peering *pbpeering.Peering,
 	dc string,
 ) (uint64, *structs.ExportedServiceList, error) {
+	// The DC must be specified in order to compile discovery chains.
+	if dc == "" {
+		return 0, nil, fmt.Errorf("datacenter cannot be empty")
+	}
+
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
@@ -782,6 +793,10 @@ func exportedServicesForPeerTxn(
 	// - use connect native mode
 
 	for _, svc := range conf.Services {
+		// Prevent exporting the "consul" service.
+		if svc.Name == structs.ConsulServiceName {
+			continue
+		}
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -792,7 +807,7 @@ func exportedServicesForPeerTxn(
 				// Service was covered by a wildcard that was already accounted for
 				continue
 			}
-			if consumer.PeerName != peering.Name {
+			if consumer.Peer != peering.Name {
 				continue
 			}
 			sawPeer = true
@@ -812,6 +827,10 @@ func exportedServicesForPeerTxn(
 				maxIdx = idx
 			}
 			for _, s := range typicalServices {
+				// Prevent exporting the "consul" service.
+				if s.Service.Name == structs.ConsulServiceName {
+					continue
+				}
 				normalSet[s.Service] = struct{}{}
 			}
 
@@ -850,18 +869,24 @@ func exportedServicesForPeerTxn(
 		}
 		info.Protocol = protocol
 
-		if dc != "" && !structs.IsProtocolHTTPLike(protocol) {
-			// We only need to populate the targets for replication purposes for L4 protocols, which
-			// do not ultimately get intercepted by the mesh gateways.
-			idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
-			}
+		idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
 
-			if idx > maxIdx {
-				maxIdx = idx
+		// Prevent the consul service from being exported by a discovery chain.
+		for _, t := range targets {
+			if t.Service == structs.ConsulServiceName {
+				return nil
 			}
+		}
 
+		// We only need to populate the targets for replication purposes for L4 protocols, which
+		// do not ultimately get intercepted by the mesh gateways.
+		if !structs.IsProtocolHTTPLike(protocol) {
 			sort.Slice(targets, func(i, j int) bool {
 				return targets[i].ID < targets[j].ID
 			})
@@ -921,6 +946,7 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
+//nolint:unparam
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,
@@ -938,7 +964,7 @@ func listServicesExportedToAnyPeerByConfigEntry(
 
 		sawPeer := false
 		for _, consumer := range svc.Consumers {
-			if consumer.PeerName == "" {
+			if consumer.Peer == "" {
 				continue
 			}
 			sawPeer = true
@@ -1310,8 +1336,8 @@ func peersForServiceTxn(
 	}
 
 	for _, c := range entry.Services[targetIdx].Consumers {
-		if c.PeerName != "" {
-			results = append(results, c.PeerName)
+		if c.Peer != "" {
+			results = append(results, c.Peer)
 		}
 	}
 	return idx, results, nil

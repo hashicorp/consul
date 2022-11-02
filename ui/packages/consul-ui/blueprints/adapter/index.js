@@ -7,13 +7,11 @@ module.exports = {
 
   root: __dirname,
 
-  fileMapTokens(options) {
-  },
+  fileMapTokens(options) {},
   locals(options) {
     // Return custom template variables here.
-    return {
-    };
-  }
+    return {};
+  },
 
   // afterInstall(options) {
   //   // Perform extra work here.

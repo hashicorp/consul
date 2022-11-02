@@ -1,10 +1,9 @@
 import { module, skip, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-import { get } from '@ember/object';
 import repo from 'consul-ui/tests/helpers/repo';
 import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
 
-module(`Integration | Service | role`, function(hooks) {
+module(`Integration | Service | role`, function (hooks) {
   setupTest(hooks);
   const now = new Date().getTime();
   const dc = 'dc-1';
@@ -12,11 +11,11 @@ module(`Integration | Service | role`, function(hooks) {
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/role');
 
-      get(subject, 'store').serializerFor('role').timestamp = function() {
+      subject.store.serializerFor('role').timestamp = function () {
         return now;
       };
       return repo(
@@ -41,17 +40,18 @@ module(`Integration | Service | role`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(item =>
+            expected(function (payload) {
+              return payload.map((item) =>
                 Object.assign({}, item, {
                   SyncTime: now,
                   Datacenter: dc,
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.ID}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.ID}"]`,
                   Policies: createPolicies(item),
                 })
               );
@@ -61,7 +61,7 @@ module(`Integration | Service | role`, function(hooks) {
       );
     });
     // FIXME: For some reason this tries to initialize the metrics service?
-    skip(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function(assert) {
+    skip(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/role');
 
       return repo(
@@ -84,16 +84,17 @@ module(`Integration | Service | role`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
+            expected(function (payload) {
               const item = payload;
               return Object.assign({}, item, {
                 Datacenter: dc,
                 Namespace: item.Namespace || undefinedNspace,
                 Partition: item.Partition || undefinedPartition,
-                uid: `["${partition || undefinedPartition}","${item.Namespace ||
-                  undefinedNspace}","${dc}","${item.ID}"]`,
+                uid: `["${partition || undefinedPartition}","${
+                  item.Namespace || undefinedNspace
+                }","${dc}","${item.ID}"]`,
                 Policies: createPolicies(item),
               });
             })

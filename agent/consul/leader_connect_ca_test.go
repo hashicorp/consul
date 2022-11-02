@@ -24,6 +24,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -435,7 +436,6 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 		errorMsg              string
 	}{
 		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
-		{"intermediate expired", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "intermediate expired: certificate expired, expiration date"},
 		{"root expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), true, "root expired: certificate expired, expiration date"},
 		// a cert that is not yet valid is ok, assume it will be valid soon enough
 		{"intermediate in the future", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), false, ""},
@@ -1042,4 +1042,181 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	})
 	require.NoError(t, err, "failed to set signed intermediate")
 	return lib.EnsureTrailingNewline(buf.String())
+}
+
+func TestCAManager_Sign_SpiffeIDServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	roots := structs.IndexedCARoots{}
+
+	retry.Run(t, func(r *retry.R) {
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
+		require.NoError(r, err)
+		require.Len(r, roots.Roots, 1)
+	})
+
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	// Request a leaf certificate for a server.
+	spiffeID := &connect.SpiffeIDServer{
+		Host:       roots.TrustDomain,
+		Datacenter: "dc1",
+	}
+	csr, err := connect.CreateCSR(spiffeID, pk, nil, nil)
+	require.NoError(t, err)
+
+	req := structs.CASignRequest{CSR: csr}
+	cert := structs.IssuedCert{}
+	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
+	require.NoError(t, err)
+
+	// Verify the chain of trust.
+	verifyLeafCert(t, roots.Roots[0], cert.CertPEM)
+
+	// Verify the Server's URI.
+	require.Equal(t, fmt.Sprintf("spiffe://%s/agent/server/dc/dc1", roots.TrustDomain), cert.ServerURI)
+}
+
+func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {
+	conf := DefaultConfig()
+	conf.PrimaryDatacenter = "dc1"
+	conf.Datacenter = "dc2"
+	manager := NewCAManager(nil, nil, testutil.Logger(t), conf)
+
+	agentURL := connect.SpiffeIDAgent{
+		Agent:      "test-agent",
+		Datacenter: conf.PrimaryDatacenter,
+		Host:       "test-host",
+	}.URI()
+	serviceURL := connect.SpiffeIDService{
+		Datacenter: conf.PrimaryDatacenter,
+		Namespace:  "ns1",
+		Service:    "test-service",
+	}.URI()
+	meshURL := connect.SpiffeIDMeshGateway{
+		Datacenter: conf.PrimaryDatacenter,
+		Host:       "test-host",
+		Partition:  "test-partition",
+	}.URI()
+
+	tests := []struct {
+		name      string
+		expectErr string
+		getCSR    func() *x509.CertificateRequest
+		authAllow bool
+	}{
+		{
+			name:      "err_not_one_uri",
+			expectErr: "CSR SAN contains an invalid number of URIs",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{agentURL, agentURL},
+				}
+			},
+		},
+		{
+			name:      "err_email",
+			expectErr: "CSR SAN does not allow specifying email addresses",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs:           []*url.URL{agentURL},
+					EmailAddresses: []string{"test@example.com"},
+				}
+			},
+		},
+		{
+			name:      "err_invalid_spiffe_id",
+			expectErr: "SPIFFE ID is not in the expected format",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{connect.SpiffeIDAgent{}.URI()},
+				}
+			},
+		},
+		{
+			name:      "err_service_write_not_allowed",
+			expectErr: "Permission denied",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{serviceURL},
+				}
+			},
+		},
+		{
+			name:      "err_service_different_dc",
+			expectErr: "SPIFFE ID in CSR from a different datacenter",
+			authAllow: true,
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{serviceURL},
+				}
+			},
+		},
+		{
+			name:      "err_agent_write_not_allowed",
+			expectErr: "Permission denied",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{agentURL},
+				}
+			},
+		},
+		{
+			name:      "err_meshgw_write_not_allowed",
+			expectErr: "Permission denied",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{meshURL},
+				}
+			},
+		},
+		{
+			name:      "err_meshgw_different_dc",
+			expectErr: "SPIFFE ID in CSR from a different datacenter",
+			authAllow: true,
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{meshURL},
+				}
+			},
+		},
+		{
+			name:      "err_invalid_spiffe_type",
+			expectErr: "SPIFFE ID in CSR must be a service, mesh-gateway, or agent ID",
+			getCSR: func() *x509.CertificateRequest {
+				u := connect.SpiffeIDSigning{
+					ClusterID: "test-cluster-id",
+					Domain:    "test-domain",
+				}.URI()
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{u},
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			authz := acl.DenyAll()
+			if tc.authAllow {
+				authz = acl.AllowAll()
+			}
+
+			cert, err := manager.AuthorizeAndSignCertificate(tc.getCSR(), authz)
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, cert)
+			}
+		})
+	}
 }

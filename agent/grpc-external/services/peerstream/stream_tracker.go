@@ -214,6 +214,9 @@ type Status struct {
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
+	// LastSendSuccess tracks the time we last successfully sent a resource TO the peer.
+	LastSendSuccess time.Time
+
 	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
 	LastRecvHeartbeat time.Time
 
@@ -230,9 +233,9 @@ type Status struct {
 
 	// TODO(peering): consider keeping track of imported and exported services thru raft
 	// ImportedServices keeps track of which service names are imported for the peer
-	ImportedServices map[string]struct{}
+	ImportedServices []string
 	// ExportedServices keeps track of which service names a peer asks to export
-	ExportedServices map[string]struct{}
+	ExportedServices []string
 }
 
 func (s *Status) GetImportedServicesCount() uint64 {
@@ -268,6 +271,12 @@ func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
 	s.LastSendError = s.timeNow().UTC()
 	s.LastSendErrorMessage = error
+	s.mu.Unlock()
+}
+
+func (s *MutableStatus) TrackSendSuccess() {
+	s.mu.Lock()
+	s.LastSendSuccess = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
@@ -345,22 +354,15 @@ func (s *MutableStatus) GetStatus() Status {
 	return copy
 }
 
-func (s *MutableStatus) RemoveImportedService(sn structs.ServiceName) {
+func (s *MutableStatus) SetImportedServices(serviceNames []structs.ServiceName) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.ImportedServices, sn.String())
-}
+	s.ImportedServices = make([]string, len(serviceNames))
 
-func (s *MutableStatus) TrackImportedService(sn structs.ServiceName) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.ImportedServices == nil {
-		s.ImportedServices = make(map[string]struct{})
+	for i, sn := range serviceNames {
+		s.ImportedServices[i] = sn.Name
 	}
-
-	s.ImportedServices[sn.String()] = struct{}{}
 }
 
 func (s *MutableStatus) GetImportedServicesCount() int {
@@ -370,22 +372,15 @@ func (s *MutableStatus) GetImportedServicesCount() int {
 	return len(s.ImportedServices)
 }
 
-func (s *MutableStatus) RemoveExportedService(sn structs.ServiceName) {
+func (s *MutableStatus) SetExportedServices(serviceNames []structs.ServiceName) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.ExportedServices, sn.String())
-}
+	s.ExportedServices = make([]string, len(serviceNames))
 
-func (s *MutableStatus) TrackExportedService(sn structs.ServiceName) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.ExportedServices == nil {
-		s.ExportedServices = make(map[string]struct{})
+	for i, sn := range serviceNames {
+		s.ExportedServices[i] = sn.Name
 	}
-
-	s.ExportedServices[sn.String()] = struct{}{}
 }
 
 func (s *MutableStatus) GetExportedServicesCount() int {

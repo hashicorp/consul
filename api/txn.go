@@ -67,6 +67,7 @@ const (
 	KVLock           KVOp = "lock"
 	KVUnlock         KVOp = "unlock"
 	KVGet            KVOp = "get"
+	KVGetOrEmpty     KVOp = "get-or-empty"
 	KVGetTree        KVOp = "get-tree"
 	KVCheckSession   KVOp = "check-session"
 	KVCheckIndex     KVOp = "check-index"

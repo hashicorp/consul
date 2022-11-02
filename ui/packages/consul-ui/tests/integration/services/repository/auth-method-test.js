@@ -2,15 +2,15 @@ import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { module, skip, test } from 'qunit';
 
-module(`Integration | Service | auth-method`, function(hooks) {
+module(`Integration | Service | auth-method`, function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'auth-method-name';
   const undefinedNspace = 'default';
   const undefinedPartition = 'default';
   const partition = 'default';
-  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`findAllByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+  [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
+    test(`findAllByDatacenter returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/auth-method');
 
       return repo(
@@ -35,16 +35,17 @@ module(`Integration | Service | auth-method`, function(hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
-              return payload.map(function(item) {
+            expected(function (payload) {
+              return payload.map(function (item) {
                 return Object.assign({}, item, {
                   Datacenter: dc,
                   Namespace: item.Namespace || undefinedNspace,
                   Partition: item.Partition || undefinedPartition,
-                  uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                    undefinedNspace}","${dc}","${item.Name}"]`,
+                  uid: `["${item.Partition || undefinedPartition}","${
+                    item.Namespace || undefinedNspace
+                  }","${dc}","${item.Name}"]`,
                 });
               });
             })
@@ -52,7 +53,7 @@ module(`Integration | Service | auth-method`, function(hooks) {
         }
       );
     });
-    skip(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function(assert) {
+    skip(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
       const subject = this.owner.lookup('service:repository/auth-method');
 
       return repo(
@@ -70,9 +71,9 @@ module(`Integration | Service | auth-method`, function(hooks) {
           return service.findBySlug(id, dc, nspace || undefinedNspace);
         },
         function performAssertion(actual, expected) {
-          assert.deepEqual(
+          assert.propContains(
             actual,
-            expected(function(payload) {
+            expected(function (payload) {
               const item = payload;
               return Object.assign({}, item, {
                 Datacenter: dc,

@@ -27,16 +27,12 @@ export default class HttpService extends Service {
   persist(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return this.client.request(
-      request => repo.persist(instance, request)
-    );
+    return this.client.request((request) => repo.persist(instance, request));
   }
 
   remove(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return this.client.request(
-      request => repo.remove(instance, request)
-    );
+    return this.client.request((request) => repo.remove(instance, request));
   }
 }

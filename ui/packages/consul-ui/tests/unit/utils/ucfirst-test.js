@@ -1,8 +1,8 @@
 import { module, test } from 'qunit';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
-module('Unit | Utils | ucfirst', function() {
-  test('it returns the first letter in uppercase', function(assert) {
+module('Unit | Utils | ucfirst', function () {
+  test('it returns the first letter in uppercase', function (assert) {
     [
       {
         test: 'hello world',
@@ -20,7 +20,7 @@ module('Unit | Utils | ucfirst', function() {
         test: 'hELLO WORLD',
         expected: 'HELLO WORLD',
       },
-    ].forEach(function(item) {
+    ].forEach(function (item) {
       const actual = ucfirst(item.test);
       assert.equal(actual, item.expected);
     });

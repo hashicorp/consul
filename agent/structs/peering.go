@@ -7,6 +7,12 @@ type PeeringToken struct {
 	ServerName          string
 	PeerID              string
 	EstablishmentSecret string
+	Remote              PeeringTokenRemote
+}
+
+type PeeringTokenRemote struct {
+	Partition  string
+	Datacenter string
 }
 
 type IndexedExportedServiceList struct {

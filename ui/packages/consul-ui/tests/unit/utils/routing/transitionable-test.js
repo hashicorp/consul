@@ -1,7 +1,7 @@
 import transitionable from 'consul-ui/utils/routing/transitionable';
 import { module, test } from 'qunit';
 
-const makeRoute = function(name, params = {}, parent) {
+const makeRoute = function (name, params = {}, parent) {
   return {
     name: name,
     paramNames: Object.keys(params),
@@ -9,8 +9,8 @@ const makeRoute = function(name, params = {}, parent) {
     parent: parent,
   };
 };
-module('Unit | Utility | routing/transitionable', function() {
-  test('it walks up the route tree to resolve all the required parameters', function(assert) {
+module('Unit | Utility | routing/transitionable', function () {
+  test('it walks up the route tree to resolve all the required parameters', function (assert) {
     const expected = ['dc.service.instance', 'dc-1', 'service-0', 'node-0', 'service-instance-0'];
     const dc = makeRoute('dc', { dc: 'dc-1' });
     const service = makeRoute('dc.service', { service: 'service-0' }, dc);
@@ -22,7 +22,7 @@ module('Unit | Utility | routing/transitionable', function() {
     const actual = transitionable(instance, {});
     assert.deepEqual(actual, expected);
   });
-  test('it walks up the route tree to resolve all the required parameters whilst replacing specified params', function(assert) {
+  test('it walks up the route tree to resolve all the required parameters whilst replacing specified params', function (assert) {
     const expected = [
       'dc.service.instance',
       'dc-1',

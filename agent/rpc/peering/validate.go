@@ -38,9 +38,7 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		}
 	}
 
-	// TODO(peering): validate name matches SNI?
-	// TODO(peering): validate name well formed?
-	if tok.ServerName == "" {
+	if len(tok.CA) > 0 && tok.ServerName == "" {
 		return errPeeringTokenEmptyServerName
 	}
 

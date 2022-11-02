@@ -10,9 +10,9 @@ export default Component.extend(Slotted, {
   dom: service('dom'),
   isConfirmation: false,
   actions: {
-    connect: function($el) {
+    connect: function ($el) {
       next(() => {
-        if(!this.isDestroyed) {
+        if (!this.isDestroyed) {
           // if theres only a single choice in the menu and it doesn't have an
           // immediate button/link/label to click then it will be a
           // confirmation/informed action
@@ -24,7 +24,7 @@ export default Component.extend(Slotted, {
         }
       });
     },
-    change: function(e) {
+    change: function (e) {
       const id = e.target.getAttribute('id');
       const $trigger = this.dom.element(`[for='${id}']`);
       const $panel = this.dom.element('[role=menu]', $trigger.parentElement);

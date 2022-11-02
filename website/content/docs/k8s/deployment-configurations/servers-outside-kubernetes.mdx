@@ -1,15 +1,16 @@
 ---
 layout: docs
-page_title: Consul Servers Outside of Kubernetes - Kubernetes
-description: Running Consul servers outside of Kubernetes
+page_title: Join External Servers to Consul on Kubernetes
+description: >-
+  Client agents that run on Kubernetes pods can join existing clusters whose server agents run outside of k8s. Learn how to expose gossip ports and bootstrap ACLs by configuring the Helm chart.
 ---
 
-# Consul Servers Outside of Kubernetes
+# Join External Servers to Consul on Kubernetes
 
 If you have a Consul cluster already running, you can configure your
 Consul clients inside Kubernetes to join this existing cluster.
 
-The below `config.yaml` file shows how to configure the Helm chart to install
+The below `values.yaml` file shows how to configure the Helm chart to install
 Consul clients that will join an existing cluster.
 
 The `global.enabled` value first disables all chart components by default
@@ -23,11 +24,11 @@ their pod IPs (`false`).
 
 Finally, `client.join` is set to an array of valid
 [`-retry-join` values](/docs/agent/config/cli-flags#retry-join). In the
-example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join)
+example above, a fake [cloud auto-join](/docs/install/cloud-auto-join)
 value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -46,7 +47,7 @@ client:
 
 -> **Networking:** Note that for the Kubernetes nodes to join an existing
 cluster, the nodes (and specifically the agent pods) must be able to connect
-to all other server and client agents inside and _outside_ of Kubernetes over [LAN](/docs/glossary#lan-gossip).
+to all other server and client agents inside and _outside_ of Kubernetes over [LAN](/docs/install/glossary#lan-gossip).
 If this isn't possible, consider running a separate Consul cluster inside Kubernetes
 and federating it with your cluster outside Kubernetes.
 You may also consider adopting Consul Enterprise for
@@ -66,7 +67,7 @@ If you would like to use this feature with external Consul servers, you need to 
 so that it can retrieve the clients' CA to use for securing the rest of the cluster.
 To do that, you must add the following values, in addition to the values mentioned above:
 
-<CodeBlockConfig filename="config.yaml" highlight="2-8">
+<CodeBlockConfig filename="values.yaml" highlight="2-8">
 
 ```yaml
 global:
@@ -106,7 +107,7 @@ kubectl create secret generic bootstrap-token --from-literal='token=<your bootst
 
 Then provide that secret to the Helm chart:
 
-<CodeBlockConfig filename="config.yaml" highlight="4-6">
+<CodeBlockConfig filename="values.yaml" highlight="4-6">
 
 ```yaml
 global:
@@ -131,7 +132,7 @@ to create policies, tokens, and an auth method. If you are [enabling Consul Conn
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/security/acl/auth-methods/kubernetes)
 with `consul login`.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 externalServers:
@@ -145,7 +146,7 @@ externalServers:
 
 Your resulting Helm configuration will end up looking similar to this:
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -176,7 +177,7 @@ externalServers:
 If you would like the Helm chart to call the bootstrapping API and set the server tokens for you, then the steps are similar.
 The only difference is that you don't need to set the bootstrap token. The Helm chart will save the bootstrap token as a Kubernetes secret.
 
-<CodeBlockConfig filename="config.yaml">
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:

@@ -65,6 +65,21 @@ func TestListCommand(t *testing.T) {
 		require.Contains(t, output, "no peering connections")
 	})
 
+	t.Run("no results - json", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + acceptor.HTTPAddr(),
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code)
+		output := ui.OutputWriter.String()
+		require.Contains(t, output, "[]")
+	})
+
 	t.Run("two results for pretty print", func(t *testing.T) {
 
 		generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo"}
@@ -92,21 +107,6 @@ func TestListCommand(t *testing.T) {
 		require.Contains(t, lines[0], "Name")
 		require.Contains(t, lines[1], "bar")
 		require.Contains(t, lines[2], "foo")
-	})
-
-	t.Run("no results - json", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		args := []string{
-			"-http-addr=" + acceptor.HTTPAddr(),
-			"-format=json",
-		}
-
-		code := cmd.Run(args)
-		require.Equal(t, 0, code)
-		output := ui.OutputWriter.String()
-		require.Contains(t, output, "[]")
 	})
 
 	t.Run("two results for JSON print", func(t *testing.T) {

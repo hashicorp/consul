@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -142,6 +143,26 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	}
 }
 
+func StreamStatusToAPI(status *StreamStatus) api.PeeringStreamStatus {
+	return api.PeeringStreamStatus{
+		ImportedServices: status.ImportedServices,
+		ExportedServices: status.ExportedServices,
+		LastHeartbeat:    structs.TimeFromProto(status.LastHeartbeat),
+		LastReceive:      structs.TimeFromProto(status.LastReceive),
+		LastSend:         structs.TimeFromProto(status.LastSend),
+	}
+}
+
+func StreamStatusFromAPI(status api.PeeringStreamStatus) *StreamStatus {
+	return &StreamStatus{
+		ImportedServices: status.ImportedServices,
+		ExportedServices: status.ExportedServices,
+		LastHeartbeat:    structs.TimeToProto(status.LastHeartbeat),
+		LastReceive:      structs.TimeToProto(status.LastReceive),
+		LastSend:         structs.TimeToProto(status.LastSend),
+	}
+}
+
 func (p *Peering) IsActive() bool {
 	if p == nil || p.State == PeeringState_TERMINATED {
 		return false
@@ -241,6 +262,13 @@ func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
 	return &t
 }
 
+func (r *RemoteInfo) IsEmpty() bool {
+	if r == nil {
+		return true
+	}
+	return r.Partition == "" && r.Datacenter == ""
+}
+
 // convenience
 func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *GenerateTokenRequest {
 	if req == nil {
@@ -274,4 +302,15 @@ func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
 		return nil
 	}
 	return structs.TimeToProto(*s)
+}
+
+// DeepCopy returns a copy of the PeeringTrustBundle that can be passed around
+// without worrying about the receiver unsafely modifying it. It is used by the
+// generated DeepCopy methods in proxycfg.
+func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
+	cp, ok := proto.Clone(o).(*PeeringTrustBundle)
+	if !ok {
+		panic(fmt.Sprintf("failed to clone *PeeringTrustBundle, got: %T", cp))
+	}
+	return cp
 }

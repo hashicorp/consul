@@ -102,6 +102,7 @@ as |route|>
                   <BlockSlot @name="body">
                     {{t 'routes.dc.services.show.intentions.index.empty.body'
                       items=items.length
+                      canUseACLs=(can 'use acls')
                       htmlSafe=true
                     }}
                   </BlockSlot>

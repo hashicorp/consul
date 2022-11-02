@@ -68,6 +68,7 @@ config_entries {
         destination {
           service_subset           = "v2"
           retry_on_connect_failure = true       # TODO: test
+          retry_on                 = ["reset"]  # TODO: test
           retry_on_status_codes    = [500, 512] # TODO: test
         }
       },

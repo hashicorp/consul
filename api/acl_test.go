@@ -538,7 +538,6 @@ func TestAPI_ACLToken_Clone(t *testing.T) {
 	require.Equal(t, cloned, read)
 }
 
-//
 func TestAPI_AuthMethod_List(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)

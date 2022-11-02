@@ -35,11 +35,11 @@ export default class IntentionSerializer extends Serializer {
 
   respondForQuery(respond, query) {
     return super.respondForQuery(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => this.ensureID(item))
+            body.map((item) => this.ensureID(item))
           );
         }),
       query
@@ -48,7 +48,7 @@ export default class IntentionSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           body = this.ensureID(body);
           return cb(headers, body);

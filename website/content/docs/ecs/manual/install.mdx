@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Manual Installation - AWS ECS
+page_title: Install Manually - Consul on AWS Elastic Container Service (ECS)
 description: >-
-  Manually Install Consul Service Mesh on AWS ECS (Elastic Container Service).
+  Manually install Consul on Amazon Web Services ECS by using the Docker `consul-ecs` image to create task definitions that include required containers. Learn how to configure task definitions with example configurations.
 ---
 
-# Manual Installation
+# Manual Installation of Consul on AWS Elastic Container Service (ECS)
 
 The following instructions describe how to use the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs) to manually create the ECS task definition without Terraform. If you prefer to use Terraform, refer to [Consul ECS Terraform module](/docs/ecs/terraform/install).
 
@@ -304,7 +304,7 @@ The following table describes the values that you should use to configure the `c
 -> **NOTE**: Use `exec` to start the Consul agent so that the Consul agent runs as PID 1. This ensures
 the Consul agent directly receives signals from ECS, which is important for graceful shutdown of the Consul agent.
 
-Refer to the [Consul Agent documentation](/docs/agent/options#configuration_files) for a complete reference of Consul agent
+Refer to the [Consul Agent documentation](/docs/agent/config/config-files#configuration_files) for a complete reference of Consul agent
 configuration options.
 
 ## `consul-ecs-mesh-init` container

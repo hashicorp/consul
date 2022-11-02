@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -125,7 +126,9 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
 
 	// add the token to the requests context
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	// setup the server
 	server := NewServer(Config{
@@ -198,7 +201,9 @@ func TestWatchServers_ACLToken_PermissionDenied(t *testing.T) {
 		Return(testutils.TestAuthorizerDenyAll(t), nil).Once()
 
 	// add the token to the requests context
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	// setup the server
 	server := NewServer(Config{
@@ -229,7 +234,9 @@ func TestWatchServers_ACLToken_Unauthenticated(t *testing.T) {
 		Return(resolver.Result{}, acl.ErrNotFound).Once()
 
 	// add the token to the requests context
-	ctx := external.ContextWithToken(context.Background(), testACLToken)
+	options := structs.QueryOptions{Token: testACLToken}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
 
 	// setup the server
 	server := NewServer(Config{

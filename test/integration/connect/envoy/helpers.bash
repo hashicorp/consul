@@ -51,34 +51,6 @@ function retry_long {
   retry 30 1 "$@"
 }
 
-function echored {
-  tput setaf 1
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echogreen {
-  tput setaf 2
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoyellow {
-  tput setaf 3
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoblue {
-  tput setaf 4
-  tput bold
-  echo $@
-  tput sgr0
-}
-
 function is_set {
    # Arguments:
    #   $1 - string value to check its truthiness
@@ -1024,4 +996,24 @@ function varsub {
   for v in "$@"; do
     sed -i "s/\${$v}/${!v}/g" $file
   done
+}
+
+function get_url_header {
+  local URL=$1
+  local HEADER=$2
+  run curl -s -f -X GET -I "${URL}"
+  [ "$status" == 0 ]
+  RESP=$(echo "$output" | tr -d '\r')
+  RESP=$(echo "$RESP" | grep -E "^${HEADER}: ")
+  RESP=$(echo "$RESP" | sed "s/^${HEADER}: //g")
+  echo "$RESP"
+}
+
+function assert_url_header {
+  local URL=$1
+  local HEADER=$2
+  local VALUE=$3
+  run get_url_header "$URL" "$HEADER"
+  [ "$status" == 0 ]
+  [ "$VALUE" = "$output" ]
 }

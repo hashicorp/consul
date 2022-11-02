@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -752,7 +753,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					mergedsn := sn
 					ns := sn.ToNodeService()
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -960,7 +961,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 							Datacenter:   args.Datacenter,
 							QueryOptions: args.QueryOptions,
 						}
-						cfgIndex, mergedns, err = mergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
 						if err != nil {
 							return err
 						}

@@ -40,7 +40,7 @@ func (s *serverExportedPeeredServices) Notify(ctx context.Context, req *structs.
 				return 0, nil, err
 			}
 
-			index, serviceMap, err := store.ExportedServicesForAllPeersByName(ws, req.EnterpriseMeta)
+			index, serviceMap, err := store.ExportedServicesForAllPeersByName(ws, req.Datacenter, req.EnterpriseMeta)
 			if err != nil {
 				return 0, nil, err
 			}

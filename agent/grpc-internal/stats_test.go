@@ -4,9 +4,7 @@ import (
 	"context"
 	"net"
 	"sort"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/google/go-cmp/cmp"
@@ -16,20 +14,20 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/internal/testservice"
+	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
+	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/proto/prototest"
 )
 
 func noopRegister(*grpc.Server) {}
 
 func TestHandler_EmitsStats(t *testing.T) {
-	sink, reset := patchGlobalMetrics(t)
+	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister)
-	reset()
+	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj)
 
-	testservice.RegisterSimpleServer(handler.srv, &simple{})
+	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -71,80 +69,35 @@ func TestHandler_EmitsStats(t *testing.T) {
 	// Occasionally the active_stream=0 metric may be emitted before the
 	// active_conns=0 metric. The order of those metrics is not really important
 	// so we sort the calls to match the expected.
-	sort.Slice(sink.gaugeCalls, func(i, j int) bool {
+	sort.Slice(sink.GaugeCalls, func(i, j int) bool {
 		if i < 2 || j < 2 {
 			return i < j
 		}
-		if len(sink.gaugeCalls[i].key) < 4 || len(sink.gaugeCalls[j].key) < 4 {
+		if len(sink.GaugeCalls[i].Key) < 4 || len(sink.GaugeCalls[j].Key) < 4 {
 			return i < j
 		}
-		return sink.gaugeCalls[i].key[3] < sink.gaugeCalls[j].key[3]
+		return sink.GaugeCalls[i].Key[3] < sink.GaugeCalls[j].Key[3]
 	})
 
-	cmpMetricCalls := cmp.AllowUnexported(metricCall{})
-	expectedGauge := []metricCall{
-		{key: []string{"testing", "grpc", "server", "connections"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "streams"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "connections"}, val: 0},
-		{key: []string{"testing", "grpc", "server", "streams"}, val: 0},
+	cmpMetricCalls := cmp.AllowUnexported(testutil.MetricCall{})
+	expLabels := []metrics.Label{{
+		Name:  "server_type",
+		Value: "internal",
+	}}
+	expectedGauge := []testutil.MetricCall{
+		{Key: []string{"testing", "grpc", "server", "connections"}, Val: 1, Labels: expLabels},
+		{Key: []string{"testing", "grpc", "server", "streams"}, Val: 1, Labels: expLabels},
+		{Key: []string{"testing", "grpc", "server", "connections"}, Val: 0, Labels: expLabels},
+		{Key: []string{"testing", "grpc", "server", "streams"}, Val: 0, Labels: expLabels},
 	}
-	prototest.AssertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
+	prototest.AssertDeepEqual(t, expectedGauge, sink.GaugeCalls, cmpMetricCalls)
 
-	expectedCounter := []metricCall{
-		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
+	expectedCounter := []testutil.MetricCall{
+		{Key: []string{"testing", "grpc", "server", "connection", "count"}, Val: 1, Labels: expLabels},
+		{Key: []string{"testing", "grpc", "server", "request", "count"}, Val: 1, Labels: expLabels},
+		{Key: []string{"testing", "grpc", "server", "stream", "count"}, Val: 1, Labels: expLabels},
 	}
-	prototest.AssertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
-}
-
-func patchGlobalMetrics(t *testing.T) (*fakeMetricsSink, func()) {
-	t.Helper()
-
-	sink := &fakeMetricsSink{}
-	cfg := &metrics.Config{
-		ServiceName:      "testing",
-		TimerGranularity: time.Millisecond, // Timers are in milliseconds
-		ProfileInterval:  time.Second,      // Poll runtime every second
-		FilterDefault:    true,
-	}
-	var err error
-	defaultMetrics = func() *metrics.Metrics {
-		m, _ := metrics.New(cfg, sink)
-		return m
-	}
-	require.NoError(t, err)
-	reset := func() {
-		t.Helper()
-		defaultMetrics = metrics.Default
-		require.NoError(t, err, "failed to reset global metrics")
-	}
-	return sink, reset
-}
-
-type fakeMetricsSink struct {
-	lock sync.Mutex
-	metrics.BlackholeSink
-	gaugeCalls       []metricCall
-	incrCounterCalls []metricCall
-}
-
-func (f *fakeMetricsSink) SetGaugeWithLabels(key []string, val float32, labels []metrics.Label) {
-	f.lock.Lock()
-	f.gaugeCalls = append(f.gaugeCalls, metricCall{key: key, val: val, labels: labels})
-	f.lock.Unlock()
-}
-
-func (f *fakeMetricsSink) IncrCounterWithLabels(key []string, val float32, labels []metrics.Label) {
-	f.lock.Lock()
-	f.incrCounterCalls = append(f.incrCounterCalls, metricCall{key: key, val: val, labels: labels})
-	f.lock.Unlock()
-}
-
-type metricCall struct {
-	key    []string
-	val    float32
-	labels []metrics.Label
+	prototest.AssertDeepEqual(t, expectedCounter, sink.IncrCounterCalls, cmpMetricCalls)
 }
 
 func logError(t *testing.T, f func() error) func() {

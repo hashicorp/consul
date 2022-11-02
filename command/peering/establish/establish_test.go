@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -32,11 +33,11 @@ func TestEstablishCommand(t *testing.T) {
 	acceptor := agent.NewTestAgent(t, ``)
 	t.Cleanup(func() { _ = acceptor.Shutdown() })
 
-	dialer := agent.NewTestAgent(t, ``)
+	dialer := agent.NewTestAgent(t, `datacenter = "dc2"`)
 	t.Cleanup(func() { _ = dialer.Shutdown() })
 
 	testrpc.WaitForTestAgent(t, acceptor.RPC, "dc1")
-	testrpc.WaitForTestAgent(t, dialer.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, dialer.RPC, "dc2")
 
 	acceptingClient := acceptor.Client()
 	dialingClient := dialer.Client()
@@ -84,10 +85,12 @@ func TestEstablishCommand(t *testing.T) {
 			fmt.Sprintf("-peering-token=%s", res.PeeringToken),
 		}
 
-		code := cmd.Run(args)
-		require.Equal(t, 0, code)
-		output := ui.OutputWriter.String()
-		require.Contains(t, output, "Success")
+		retry.Run(t, func(r *retry.R) {
+			code := cmd.Run(args)
+			require.Equal(r, 0, code)
+			output := ui.OutputWriter.String()
+			require.Contains(r, output, "Success")
+		})
 	})
 
 	t.Run("establish connection with options", func(t *testing.T) {
@@ -107,12 +110,14 @@ func TestEstablishCommand(t *testing.T) {
 			"-meta=region=us-west-1",
 		}
 
-		code := cmd.Run(args)
-		require.Equal(t, 0, code)
-		output := ui.OutputWriter.String()
-		require.Contains(t, output, "Success")
+		retry.Run(t, func(r *retry.R) {
+			code := cmd.Run(args)
+			require.Equal(r, 0, code)
+			output := ui.OutputWriter.String()
+			require.Contains(r, output, "Success")
+		})
 
-		//Meta
+		// Meta
 		peering, _, err := dialingClient.Peerings().Read(context.Background(), "bar", &api.QueryOptions{})
 		require.NoError(t, err)
 

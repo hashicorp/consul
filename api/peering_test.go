@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"reflect"
 	"testing"
 	"time"
@@ -26,8 +25,7 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(peer.State == aPeer.State) &&
 			(peer.CreateIndex == aPeer.CreateIndex) &&
 			(peer.ModifyIndex == aPeer.ModifyIndex) &&
-			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
-			(peer.ExportedServiceCount == aPeer.ExportedServiceCount)
+			(reflect.DeepEqual(peer.StreamStatus, aPeer.StreamStatus))
 
 		if isEqual {
 			return true
@@ -42,7 +40,6 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5300
 	})
 	defer s1.Stop()
 
@@ -50,7 +47,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5301
+		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
 
@@ -227,42 +224,13 @@ func TestAPI_Peering_List(t *testing.T) {
 	})
 }
 
-func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
-	t.Parallel()
-
-	c, s := makeClient(t) // this is "dc1"
-	defer s.Stop()
-	s.WaitForSerfCheck(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	externalAddress := "32.1.2.3:8502"
-
-	// Generate a token happy path
-	p1 := PeeringGenerateTokenRequest{
-		PeerName:                "peer1",
-		Meta:                    map[string]string{"foo": "bar"},
-		ServerExternalAddresses: []string{externalAddress},
-	}
-	resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, wm)
-	require.NotNil(t, resp)
-
-	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-	require.NoError(t, err)
-
-	require.Contains(t, string(tokenJSON), externalAddress)
-}
-
 // TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:
 // a server creates a peering token, reads the token, then another server calls establish peering
 // finally, we delete the token on the first server
 func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t) // this is "dc1"
+	c, s := makeClientWithConfig(t, nil, nil) // this is "dc1"
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 

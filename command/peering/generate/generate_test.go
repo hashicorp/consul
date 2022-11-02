@@ -78,7 +78,7 @@ func TestGenerateCommand(t *testing.T) {
 		require.Equal(t, 0, code)
 		token, err := base64.StdEncoding.DecodeString(ui.OutputWriter.String())
 		require.NoError(t, err, "error decoding token")
-		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.consul\"")
+		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.peering.11111111-2222-3333-4444-555555555555.consul\"")
 	})
 
 	t.Run("generate token with options", func(t *testing.T) {
@@ -88,7 +88,6 @@ func TestGenerateCommand(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-name=bar",
-			"-server-external-addresses=1.2.3.4,5.6.7.8",
 			"-meta=env=production",
 			"-meta=region=us-east-1",
 		}
@@ -97,13 +96,9 @@ func TestGenerateCommand(t *testing.T) {
 		require.Equal(t, 0, code)
 		token, err := base64.StdEncoding.DecodeString(ui.OutputWriter.String())
 		require.NoError(t, err, "error decoding token")
-		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.consul\"")
+		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.peering.11111111-2222-3333-4444-555555555555.consul\"")
 
-		//ServerExternalAddresses
-		require.Contains(t, string(token), "1.2.3.4")
-		require.Contains(t, string(token), "5.6.7.8")
-
-		//Meta
+		// Meta
 		peering, _, err := client.Peerings().Read(context.Background(), "bar", &api.QueryOptions{})
 		require.NoError(t, err)
 
@@ -136,6 +131,6 @@ func TestGenerateCommand(t *testing.T) {
 
 		token, err := base64.StdEncoding.DecodeString(outputRes.PeeringToken)
 		require.NoError(t, err, "error decoding token")
-		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.consul\"")
+		require.Contains(t, string(token), "\"ServerName\":\"server.dc1.peering.11111111-2222-3333-4444-555555555555.consul\"")
 	})
 }

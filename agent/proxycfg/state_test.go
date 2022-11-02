@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -106,7 +107,7 @@ func TestStateChanged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			proxyID := ProxyID{ServiceID: tt.ns.CompoundServiceID()}
-			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)})
+			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)}, rate.NewLimiter(rate.Inf, 1))
 			require.NoError(t, err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
@@ -133,6 +134,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		IntentionUpstreamsDestination:   typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		InternalServiceDump:             typedWatchRecorder[*structs.ServiceDumpRequest]{wr},
 		LeafCertificate:                 typedWatchRecorder[*cachetype.ConnectCALeafRequest]{wr},
+		PeeringList:                     typedWatchRecorder[*cachetype.PeeringListRequest]{wr},
 		PeeredUpstreams:                 typedWatchRecorder[*structs.PartitionSpecificRequest]{wr},
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
@@ -238,6 +240,14 @@ func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRe
 		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Request.Kind)
 		require.True(t, acl.EqualPartitions(partition, reqReal.Request.Partition), "%q != %q", partition, reqReal.Request.Partition)
 		require.NotEmpty(t, reqReal.Request.ServiceName)
+	}
+}
+
+func genVerifyPeeringListWatchForMeshGateway() verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*cachetype.PeeringListRequest)
+		require.True(t, ok)
+		require.Equal(t, acl.WildcardPartitionName, reqReal.Request.Partition)
 	}
 }
 
@@ -391,14 +401,14 @@ func upstreamIDForDC2(uid UpstreamID) UpstreamID {
 // routine. This allows the test to be fully synchronous and deterministic while still being able
 // to validate the logic of most of the watching and state updating.
 //
-// The general strategy here is to
+// The general strategy here is to:
 //
-// 1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
-//    We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
-// 2. Iterate through a list of verification stages performing validation and updates for each.
-//    a. Ensure that the required watches are in place and validate they are correct
-//    b. Process a bunch of UpdateEvents by calling handleUpdate
-//    c. Validate that the ConfigSnapshot has been updated appropriately
+//  1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
+//     We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
+//  2. Iterate through a list of verification stages performing validation and updates for each.
+//     a. Ensure that the required watches are in place and validate they are correct
+//     b. Process a bunch of UpdateEvents by calling handleUpdate
+//     c. Validate that the ConfigSnapshot has been updated appropriately
 func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 
@@ -779,6 +789,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Service: "mesh-gateway",
 				Address: "10.0.1.1",
 				Port:    443,
+				Meta: map[string]string{
+					structs.MetaWANFederationKey: "1",
+				},
 			},
 			sourceDC: "dc1",
 			stages: []verificationStage{
@@ -790,6 +803,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
 						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
+						consulServerListWatchID:    genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -826,6 +840,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.MeshGateway.ServiceGroups)
 						require.Empty(t, snap.MeshGateway.ServiceResolvers)
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
+						require.Empty(t, snap.MeshGateway.WatchedPeeringServices)
+						require.Empty(t, snap.MeshGateway.WatchedPeers)
+						require.Empty(t, snap.MeshGateway.PeeringServices)
 					},
 				},
 				{
@@ -893,8 +910,22 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 						{
 							CorrelationID: peeringTrustBundlesWatchID,
-							Result: &pbpeering.TrustBundleListByServiceResponse{
-								Bundles: nil,
+							Result:        peerTrustBundles,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+								},
+							},
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-10"},
+								},
 							},
 						},
 					},
@@ -902,6 +933,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 1)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 1)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 1)
 					},
 				},
 				{
@@ -916,18 +951,40 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+									{Name: "service-2"},
+									{Name: "service-3"},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{},
+							},
+							Err: nil,
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 2)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 3)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 0)
 					},
 				},
 				{
 					events: []UpdateEvent{
 						{
 							CorrelationID: "mesh-gateway:dc4",
-							Result: &structs.IndexedNodesWithGateways{
+							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: TestGatewayNodesDC4Hostname(t),
 							},
 							Err: nil,
@@ -1011,6 +1068,249 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 						}
 						require.Equal(t, snap.MeshGateway.HostnameDatacenters["dc5"], expect)
+					},
+				},
+			},
+		},
+		"mesh-gateway-peering-control-plane": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Address: "10.0.1.1",
+				Port:    443,
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						datacentersWatchID:         verifyDatacentersWatch,
+						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
+						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
+						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "gateway without root is not valid")
+					},
+				},
+				{
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									Peering: &structs.PeeringMeshConfig{
+										PeerThroughMeshGateways: true,
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: exportedServiceListWatchID,
+							Result: &structs.IndexedExportedServiceList{
+								Services: nil,
+							},
+						},
+						{
+							CorrelationID: serviceListWatchID,
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{},
+							},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.True(t, snap.MeshGateway.PeeringTrustBundlesSet)
+						require.True(t, snap.MeshGateway.MeshConfigSet)
+
+						require.True(t, snap.Valid(), "gateway without services is valid")
+						require.True(t, snap.ConnectProxy.isEmpty())
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						consulServerListWatchID: genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
+						peerServersWatchID:      genVerifyPeeringListWatchForMeshGateway(),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: consulServerListWatchID,
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "node1",
+											Address:    "127.0.0.1",
+										},
+										Service: &structs.NodeService{
+											ID:      structs.ConsulServiceID,
+											Service: structs.ConsulServiceName,
+										},
+									},
+									{
+										Node: &structs.Node{
+											Datacenter: "dc1",
+											Node:       "replica1",
+											Address:    "127.0.0.1",
+										},
+										Service: &structs.NodeService{
+											ID:      structs.ConsulServiceID,
+											Service: structs.ConsulServiceName,
+											Meta:    map[string]string{"read_replica": "true"},
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshGateway.PeerServersWatchCancel)
+
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
+						require.True(t, ok)
+
+						expect := structs.CheckServiceNodes{
+							{
+								Node: &structs.Node{
+									Datacenter: "dc1",
+									Node:       "node1",
+									Address:    "127.0.0.1",
+								},
+								Service: &structs.NodeService{
+									ID:      structs.ConsulServiceID,
+									Service: structs.ConsulServiceName,
+								},
+							},
+							{
+								Node: &structs.Node{
+									Datacenter: "dc1",
+									Node:       "replica1",
+									Address:    "127.0.0.1",
+								},
+								Service: &structs.NodeService{
+									ID:      structs.ConsulServiceID,
+									Service: structs.ConsulServiceName,
+									Meta:    map[string]string{"read_replica": "true"},
+								},
+							},
+						}
+						require.Equal(t, expect, servers)
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						consulServerListWatchID: genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
+						peerServersWatchID:      genVerifyPeeringListWatchForMeshGateway(),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: peerServersWatchID,
+							Result: &pbpeering.PeeringListResponse{
+								Peerings: []*pbpeering.Peering{
+									{
+										Name:                "peer-bar",
+										PeerServerName:      "server.bar.peering.bar-domain",
+										PeerServerAddresses: []string{"1.2.3.4:8443", "2.3.4.5:8443"},
+										ModifyIndex:         30,
+									},
+									{
+										Name:                "peer-broken",
+										PeerServerName:      "server.broken.peering.broken-domain",
+										PeerServerAddresses: []string{},
+										ModifyIndex:         45,
+									},
+									{
+										Name:                "peer-foo-zap",
+										PeerServerName:      "server.foo.peering.foo-domain",
+										PeerServerAddresses: []string{"elb.now-aws.com:8443", "1.2.3.4:8443"},
+										ModifyIndex:         20,
+									},
+									{
+										Name:                "peer-foo-zip",
+										PeerServerName:      "server.foo.peering.foo-domain",
+										PeerServerAddresses: []string{"1.2.3.4:8443", "2.3.4.5:8443"},
+										ModifyIndex:         12,
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshGateway.PeerServersWatchCancel)
+
+						expect := map[string]PeerServersValue{
+							"server.foo.peering.foo-domain": {
+								Addresses: []structs.ServiceAddress{{Address: "elb.now-aws.com", Port: 8443}},
+								UseCDS:    true,
+								Index:     20,
+							},
+							"server.bar.peering.bar-domain": {
+								Addresses: []structs.ServiceAddress{{Address: "1.2.3.4", Port: 8443}, {Address: "2.3.4.5", Port: 8443}},
+								UseCDS:    false,
+								Index:     30,
+							},
+						}
+						require.Equal(t, expect, snap.MeshGateway.PeerServers)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									Peering: &structs.PeeringMeshConfig{
+										PeerThroughMeshGateways: false,
+									},
+								},
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshConfig())
+
+						require.Nil(t, snap.MeshGateway.PeerServersWatchCancel)
+						require.Empty(t, snap.MeshGateway.PeerServers)
+
+						require.False(t, snap.MeshGateway.WatchedLocalServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
+						require.False(t, ok)
+						require.Empty(t, servers)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: nil,
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Nil(t, snap.MeshConfig())
+
+						require.False(t, snap.MeshGateway.WatchedLocalServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
+						require.False(t, ok)
+						require.Empty(t, servers)
 					},
 				},
 			},
@@ -3164,7 +3464,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			}
 			wr := recordWatches(&sc)
 
-			state, err := newState(proxyID, &tc.ns, testSource, "", sc)
+			state, err := newState(proxyID, &tc.ns, testSource, "", sc, rate.NewLimiter(rate.Inf, 0))
 
 			// verify building the initial state worked
 			require.NoError(t, err)

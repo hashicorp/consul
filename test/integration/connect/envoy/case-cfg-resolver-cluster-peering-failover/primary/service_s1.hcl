@@ -8,6 +8,10 @@ services {
           {
             destination_name = "s2"
             local_bind_port  = 5000
+          },
+          {
+            destination_name = "virtual-s2"
+            local_bind_port  = 5001
           }
         ]
       }

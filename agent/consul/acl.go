@@ -132,6 +132,7 @@ type ACLResolverBackend interface {
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
+	IsServerManagementToken(token string) bool
 	// TODO: separate methods for each RPC call (there are 4)
 	RPC(method string, args interface{}, reply interface{}) error
 	EnterpriseACLResolverDelegate
@@ -224,19 +225,19 @@ type ACLResolverSettings struct {
 //   - Resolving roles remotely via an ACL.RoleResolve RPC
 //
 // Remote Resolution:
-//   Remote resolution can be done synchronously or asynchronously depending
-//   on the ACLDownPolicy in the Config passed to the resolver.
 //
-//   When the down policy is set to async-cache and we have already cached values
-//   then go routines will be spawned to perform the RPCs in the background
-//   and then will update the cache with either the positive or negative result.
+//	Remote resolution can be done synchronously or asynchronously depending
+//	on the ACLDownPolicy in the Config passed to the resolver.
 //
-//   When the down policy is set to extend-cache or the token/policy/role is not already
-//   cached then the same go routines are spawned to do the RPCs in the background.
-//   However in this mode channels are created to receive the results of the RPC
-//   and are registered with the resolver. Those channels are immediately read/blocked
-//   upon.
+//	When the down policy is set to async-cache and we have already cached values
+//	then go routines will be spawned to perform the RPCs in the background
+//	and then will update the cache with either the positive or negative result.
 //
+//	When the down policy is set to extend-cache or the token/policy/role is not already
+//	cached then the same go routines are spawned to do the RPCs in the background.
+//	However in this mode channels are created to receive the results of the RPC
+//	and are registered with the resolver. Those channels are immediately read/blocked
+//	upon.
 type ACLResolver struct {
 	config ACLResolverSettings
 	logger hclog.Logger
@@ -978,6 +979,10 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 
 	if r.tokens.IsAgentRecoveryToken(token) {
 		return structs.NewAgentRecoveryTokenIdentity(r.config.NodeName, token), r.agentRecoveryAuthz, true
+	}
+
+	if r.backend.IsServerManagementToken(token) {
+		return structs.NewACLServerIdentity(token), acl.ManageAll(), true
 	}
 
 	return r.resolveLocallyManagedEnterpriseToken(token)

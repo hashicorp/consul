@@ -1,4 +1,4 @@
 export default {
-  Name: item => item.Name,
-  DisplayName: item => item.DisplayName,
+  Name: (item) => item.Name,
+  DisplayName: (item) => item.DisplayName,
 };

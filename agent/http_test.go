@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,7 +148,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -982,7 +982,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler(false).ServeHTTP(resp, req)
 
-	require.Equal(t, http.StatusUnauthorized, resp.Code)
+	require.Equal(t, http.StatusNotFound, resp.Code)
 }
 
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
@@ -1549,7 +1549,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -1621,7 +1621,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 
 			// Fire up an agent with TLS enabled.
 			a := StartTestAgent(t, TestAgent{
-				UseTLS: tc.tlsEnabled,
+				UseHTTPS: tc.tlsEnabled,
 				HCL: hclPrefix + `
 					limits {
 						http_max_conns_per_client = 2

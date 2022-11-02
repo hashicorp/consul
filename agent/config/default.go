@@ -98,6 +98,7 @@ func DefaultSource() Source {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
 			rpc_handshake_timeout = "5s"
+			rpc_client_timeout = "60s"
 			rpc_rate = -1
 			rpc_max_burst = 1000
 			rpc_max_conns_per_client = 100
@@ -135,6 +136,9 @@ func DefaultSource() Source {
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 
+		xds {
+			update_max_per_second = 250
+		}
 	`,
 	}
 }

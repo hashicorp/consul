@@ -1,14 +1,14 @@
 ---
 layout: docs
-page_title: Consul K8s CLI Reference
+page_title: Consul on Kubernetes CLI Reference
 description: >-
-  The Consul on Kubernetes CLI (consul-k8s) is a tool for installing and managing Consul on Kubernetes.
+  The Consul on Kubernetes CLI tool enables you to manage Consul with the `consul-k8s` command instead of direct interaction with Helm, kubectl, or Consul’s CLI. Learn about commands, their flags, and review examples in this reference guide.
 ---
 
 # Consul on Kubernetes CLI Reference
 
 The Consul on Kubernetes CLI, `consul-k8s`, is a tool for managing Consul
-that does not require direct interaction with Helm, the [Consul CLI](/commands/index),
+that does not require direct interaction with Helm, the [Consul CLI](/commands),
 or `kubectl`.
 
 For guidance on how to install `consul-k8s`, refer to the
@@ -126,7 +126,7 @@ This command lists proxies and their `Type`. Types of proxies include:
 - `Terminating Gateway`: These pods run a proxy to control connections to
   external services. Read more about [terminating gateways](/docs/k8s/connect/terminating-gateways).
 - `Mesh Gateway`: These pods run a proxy to manage connections between
-  Consul clusters connected using mesh federation. Read more about [Consul Mesh Federation](/docs/k8s/installation/multi-cluster/kubernetes).
+  Consul clusters connected using mesh federation. Read more about [Consul Mesh Federation](/docs/k8s/deployment-configurations/multi-cluster/kubernetes).
 
 #### Example Commands
 

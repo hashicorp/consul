@@ -12,6 +12,7 @@ import (
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -510,7 +511,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				ranOnce = true
 			}
 
-			thisReply, err := computeResolvedServiceConfig(
+			thisReply, err := configentry.ComputeResolvedServiceConfig(
 				args,
 				upstreamIDs,
 				legacyUpstreams,

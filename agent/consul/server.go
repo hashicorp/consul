@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +18,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-version"
@@ -29,8 +31,6 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -46,6 +47,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -59,6 +61,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	cslversion "github.com/hashicorp/consul/version"
 )
 
 // NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
@@ -253,7 +256,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -374,10 +377,16 @@ type Server struct {
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer *peering.Server
 
+	// xdsCapacityController controls the number of concurrent xDS streams the
+	// server is able to handle.
+	xdsCapacityController *xdscapacity.Controller
+
+	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
+	hcpManager *hcp.Manager
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
-
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)
@@ -443,6 +452,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 	}
+
+	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+		Client:   flat.HCP.Client,
+		StatusFn: s.hcpServerStatus(flat),
+		Logger:   logger.Named("hcp_manager"),
+	})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -750,6 +765,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
 
+	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
+		Logger:         s.logger.Named(logging.XDSCapacityController),
+		GetStore:       func() xdscapacity.Store { return s.fsm.State() },
+		SessionLimiter: flat.XDSStreamLimiter,
+	})
+	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
@@ -777,6 +799,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 
 	// Start the metrics handlers.
 	go s.updateMetrics()
+
+	// Now we are setup, configure the HCP manager
+	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil
 }
@@ -819,7 +844,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.externalConnectCAServer.Register(srv)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -1359,6 +1384,11 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
+// GetPeeringBackend is a test helper.
+func (s *Server) GetPeeringBackend() peering.Backend {
+	return s.peeringBackend
+}
+
 // RemoveFailedNode is used to remove a failed node from the cluster.
 func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
@@ -1615,6 +1645,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
+	s.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader
@@ -1696,10 +1727,68 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+
+			// Trigger sending an update to HCP status
+			s.hcpManager.SendUpdate()
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
 		}
+	}
+}
+
+// hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
+// enabled.
+func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
+	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+		status.Name = s.config.NodeName
+		status.ID = string(s.config.NodeID)
+		status.Version = cslversion.GetHumanVersion()
+		status.LanAddress = s.config.RPCAdvertise.IP.String()
+		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
+		status.RPCPort = s.config.RPCAddr.Port
+
+		tlsCert := s.tlsConfigurator.Cert()
+		if tlsCert != nil {
+			status.TLS.Enabled = true
+			leaf := tlsCert.Leaf
+			if leaf == nil {
+				// Parse the leaf cert
+				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+				if err != nil {
+					// Shouldn't be possible
+					return
+				}
+			}
+			status.TLS.CertName = leaf.Subject.CommonName
+			status.TLS.CertSerial = leaf.SerialNumber.String()
+			status.TLS.CertExpiry = leaf.NotAfter
+			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
+			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
+			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		}
+
+		status.Raft.IsLeader = s.raft.State() == raft.Leader
+		_, leaderID := s.raft.LeaderWithID()
+		status.Raft.KnownLeader = leaderID != ""
+		status.Raft.AppliedIndex = s.raft.AppliedIndex()
+		if !status.Raft.IsLeader {
+			status.Raft.TimeSinceLastContact = time.Since(s.raft.LastContact())
+		}
+
+		apState := s.autopilot.GetState()
+		status.Autopilot.Healthy = apState.Healthy
+		status.Autopilot.FailureTolerance = apState.FailureTolerance
+		status.Autopilot.NumServers = len(apState.Servers)
+		status.Autopilot.NumVoters = len(apState.Voters)
+		status.Autopilot.MinQuorum = int(s.getAutopilotConfigOrDefault().MinQuorum)
+
+		status.ScadaStatus = "unknown"
+		if deps.HCP.Provider != nil {
+			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
+		}
+
+		return status, nil
 	}
 }
 

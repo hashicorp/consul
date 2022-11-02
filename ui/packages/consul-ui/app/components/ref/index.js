@@ -3,7 +3,7 @@ import { set } from '@ember/object';
 
 export default Component.extend({
   tagName: '',
-  didReceiveAttrs: function() {
+  didReceiveAttrs: function () {
     set(this.target, this.name, this.value);
   },
 });

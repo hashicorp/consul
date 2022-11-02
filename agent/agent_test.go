@@ -29,11 +29,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -43,6 +46,8 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -418,6 +423,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
+	duration3s, _ := time.ParseDuration("3s")
+	duration10s, _ := time.ParseDuration("10s")
+
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -463,6 +471,50 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		},
+		{
+			"one http check with interval and duration",
+			&structs.NodeService{
+				ID:             "svcid1",
+				Service:        "svcname1",
+				Tags:           []string{"tag1"},
+				Weights:        nil, // nil weights...
+				Port:           8100,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+			// ... should be populated to avoid "IsSame" returning true during AE.
+			func(ns *structs.NodeService) {
+				ns.Weights = &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				}
+			},
+			[]*structs.CheckType{
+				{
+					CheckID:  "check1",
+					Name:     "name1",
+					HTTP:     "http://localhost:8100/",
+					Interval: duration10s,
+					Timeout:  duration3s,
+					Notes:    "note1",
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": {
+					Node:           "node1",
+					CheckID:        "check1",
+					Name:           "name1",
+					Interval:       "10s",
+					Timeout:        "3s",
+					Status:         "critical",
+					Notes:          "note1",
+					ServiceID:      "svcid1",
+					ServiceName:    "svcname1",
+					ServiceTags:    []string{"tag1"},
+					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
@@ -1861,7 +1913,7 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func TestAgent_AddCheck_Alias(t *testing.T) {
+func TestAgent_Alias_AddRemove(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1871,29 +1923,39 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	health := &structs.HealthCheck{
-		Node:    "foo",
-		CheckID: "aliashealth",
-		Name:    "Alias health check",
-		Status:  api.HealthCritical,
-	}
-	chk := &structs.CheckType{
-		AliasService: "foo",
-	}
-	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(t, err)
+	cid := structs.NewCheckID("aliashealth", nil)
 
-	// Ensure we have a check mapping
-	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(t, api.HealthCritical, sChk.Status)
+	testutil.RunStep(t, "add check", func(t *testing.T) {
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: cid.ID,
+			Name:    "Alias health check",
+			Status:  api.HealthCritical,
+		}
+		chk := &structs.CheckType{
+			AliasService: "foo",
+		}
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		require.NoError(t, err)
 
-	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(t, ok, "missing aliashealth check")
-	require.Equal(t, "", chkImpl.RPCReq.Token)
+		sChk := requireCheckExists(t, a, cid.ID)
+		require.Equal(t, api.HealthCritical, sChk.Status)
 
-	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(t, cs)
-	require.Equal(t, "", cs.Token)
+		chkImpl, ok := a.checkAliases[cid]
+		require.True(t, ok, "missing aliashealth check")
+		require.Equal(t, "", chkImpl.RPCReq.Token)
+
+		cs := a.State.CheckState(cid)
+		require.NotNil(t, cs)
+		require.Equal(t, "", cs.Token)
+	})
+
+	testutil.RunStep(t, "remove check", func(t *testing.T) {
+		require.NoError(t, a.RemoveCheck(cid, false))
+
+		requireCheckMissing(t, a, cid.ID)
+		requireCheckMissingMap(t, a.checkAliases, cid.ID)
+	})
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
@@ -2095,7 +2157,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := StartTestAgent(t, TestAgent{
-			UseTLS: true,
+			UseHTTPS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
 
@@ -2786,7 +2848,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 	}
 
-	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	connectSrv, _, _, err := sidecarServiceFromNodeService(srv, "")
 	require.NoError(t, err)
 
 	// First persist the check
@@ -2959,9 +3021,22 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
-	requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
+	sidecarSvc := requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq-sidecar-proxy", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
+	}
+
+	// Verify default checks have been added
+	wantChecks := sidecarDefaultChecks(sidecarSvc.ID, sidecarSvc.Address, sidecarSvc.Proxy.LocalServiceAddress, sidecarSvc.Port)
+	gotChecks := a.State.ChecksForService(sidecarSvc.CompoundServiceID(), true)
+	gotChkNames := make(map[string]types.CheckID)
+	for _, check := range gotChecks {
+		requireCheckExists(t, a, check.CheckID)
+		gotChkNames[check.Name] = check.CheckID
+	}
+	for _, check := range wantChecks {
+		chkName := check.Name
+		require.NotNil(t, gotChkNames[chkName])
 	}
 
 	// Sanity check rabbitmq service should NOT have sidecar info in state since
@@ -3860,7 +3935,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := TestAgent{UseTLS: true}
+	a := TestAgent{UseHTTPS: true}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -4081,6 +4156,28 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 }
 
+func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` xds { update_max_per_second = 1000 }`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
+}
+
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4099,6 +4196,36 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
+}
+
+func TestAgent_ReloadConfigRPCClientConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	hcl := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := NewTestAgent(t, hcl)
+
+	defaultRPCTimeout := 60 * time.Second
+	require.Equal(t, defaultRPCTimeout, a.baseDeps.ConnPool.RPCClientTimeout())
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		limits {
+			rpc_client_timeout = "2m"
+		}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, 2*time.Minute, a.baseDeps.ConnPool.RPCClientTimeout())
 }
 
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
@@ -4668,19 +4795,19 @@ services {
 
 	deadlineCh := time.After(10 * time.Second)
 	start := time.Now()
-LOOP:
 	for {
 		select {
 		case evt := <-ch:
 			// We may receive several notifications of an error until we get the
 			// first successful reply.
 			require.Equal(t, "foo", evt.CorrelationID)
-			if evt.Err != nil {
-				break LOOP
+			if evt.Err == nil {
+				require.NoError(t, evt.Err)
+				require.NotNil(t, evt.Result)
+				t.Logf("took %s to get first success", time.Since(start))
+				return
 			}
-			require.NoError(t, evt.Err)
-			require.NotNil(t, evt.Result)
-			t.Logf("took %s to get first success", time.Since(start))
+			t.Logf("saw error: %v", evt.Err)
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
 		}
@@ -5207,7 +5334,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
 		}
 		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
-		UseTLS: true,
+		UseHTTPS: true,
 	})
 
 	defer client.Shutdown()
@@ -5922,6 +6049,130 @@ func TestAgent_startListeners(t *testing.T) {
 		require.Contains(r, err.Error(), "address already in use")
 	})
 
+}
+
+func TestAgent_ServerCertificate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const expectURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/agent/server/dc/dc1"
+
+	// Leader should acquire a sever cert after bootstrapping.
+	a1 := NewTestAgent(t, `
+node_name = "a1"
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a1.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+
+	// Join a follower, and it should be able to acquire a server cert as well.
+	a2 := NewTestAgent(t, `
+node_name = "a2"
+bootstrap = false
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a2.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+}
+
+func TestAgent_startListeners_scada(t *testing.T) {
+	t.Parallel()
+	pvd := scada.NewMockProvider(t)
+	c := capability.NewAddr("testcap")
+	pvd.EXPECT().Listen(c.Capability()).Return(nil, nil).Once()
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+			HCP: hcp.Deps{
+				Provider: pvd,
+			},
+		},
+		RuntimeConfig: &config.RuntimeConfig{},
+		Cache:         cache.New(cache.Options{}),
+	}
+
+	bd, err := initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	_, err = agent.startListeners([]net.Addr{c})
+	require.NoError(t, err)
+}
+
+func TestAgent_scadaProvider(t *testing.T) {
+	pvd := scada.NewMockProvider(t)
+
+	// this listener is used when mocking out the scada provider
+	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
+	require.NoError(t, err)
+	defer require.NoError(t, l.Close())
+
+	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
+	pvd.EXPECT().Start().Return(nil).Once()
+	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
+	pvd.EXPECT().Stop().Return(nil).Once()
+	pvd.EXPECT().SessionStatus().Return("test")
+	a := TestAgent{
+		OverrideDeps: func(deps *BaseDeps) {
+			deps.HCP.Provider = pvd
+		},
+		Overrides: `
+cloud {
+  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
+  client_id = "test"
+  client_secret = "test"
+}`,
+	}
+	defer a.Shutdown()
+	require.NoError(t, a.Start(t))
+
+	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
+	require.NoError(t, err)
 }
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {

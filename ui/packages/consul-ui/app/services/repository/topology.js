@@ -24,7 +24,7 @@ export default class TopologyService extends RepositoryService {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
-    return this.store.queryRecord(this.getModelName(), params).catch(e => {
+    return this.store.queryRecord(this.getModelName(), params).catch((e) => {
       const code = get(e, 'errors.firstObject.status');
       const body = (get(e, 'errors.firstObject.detail') || '').trim();
       switch (code) {

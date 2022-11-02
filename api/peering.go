@@ -39,6 +39,13 @@ const (
 	PeeringStateTerminated PeeringState = "TERMINATED"
 )
 
+type PeeringRemoteInfo struct {
+	// Partition is the remote peer's partition.
+	Partition string
+	// Datacenter is the remote peer's datacenter.
+	Datacenter string
+}
+
 type Peering struct {
 	// ID is a datacenter-scoped UUID for the peering.
 	ID string
@@ -62,14 +69,27 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
-	// ImportedServiceCount is the count of how many services are imported from this peering.
-	ImportedServiceCount uint64
-	// ExportedServiceCount is the count of how many services are exported to this peering.
-	ExportedServiceCount uint64
+	// StreamStatus contains information computed on read based on the state of the stream.
+	StreamStatus PeeringStreamStatus
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
-	// ModifyIndex is the latest Raft index at which the Peering. was modified.
+	// ModifyIndex is the latest Raft index at which the Peering was modified.
 	ModifyIndex uint64
+	// Remote contains metadata for the remote peer.
+	Remote PeeringRemoteInfo
+}
+
+type PeeringStreamStatus struct {
+	// ImportedServices is the list of services imported from this peering.
+	ImportedServices []string
+	// ExportedServices is the list of services exported to this peering.
+	ExportedServices []string
+	// LastHeartbeat represents when the last heartbeat message was received.
+	LastHeartbeat time.Time
+	// LastReceive represents when any message was last received, regardless of success or error.
+	LastReceive time.Time
+	// LastSend represents when any message was last sent, regardless of success or error.
+	LastSend time.Time
 }
 
 type PeeringReadResponse struct {
@@ -83,10 +103,6 @@ type PeeringGenerateTokenRequest struct {
 	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
-	// ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
-	// load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
-	// addresses obtained from the "consul" service.
-	ServerExternalAddresses []string `json:",omitempty"`
 }
 
 type PeeringGenerateTokenResponse struct {

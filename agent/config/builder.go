@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -125,10 +127,10 @@ type LoadResult struct {
 //
 // The sources are merged in the following order:
 //
-//  * default configuration
-//  * config files in alphabetical order
-//  * command line arguments
-//  * overrides
+//   - default configuration
+//   - config files in alphabetical order
+//   - command line arguments
+//   - overrides
 //
 // The config sources are merged sequentially and later values overwrite
 // previously set values. Slice values are merged by concatenating the two slices.
@@ -433,6 +435,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
+	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -563,6 +566,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
 	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
+	grpcTlsAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc_tls", c.Addresses.GRPCTLS), clientAddrs, grpcTlsPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -957,6 +961,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
+		Cloud:                                  b.cloudConfigVal(c.Cloud),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -987,8 +992,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
-		GRPCPort:                   grpcPort,
 		GRPCAddrs:                  grpcAddrs,
+		GRPCPort:                   grpcPort,
+		GRPCTLSAddrs:               grpcTlsAddrs,
+		GRPCTLSPort:                grpcTlsPort,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
@@ -1024,6 +1031,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                       rpcBindAddr,
 		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
@@ -1069,6 +1077,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
+		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 	}
 
@@ -1556,6 +1565,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
 		Shell:                          stringVal(v.Shell),
@@ -1572,6 +1582,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
 		H2PingUseTLS:                   H2PingUseTLSVal,
+		OSService:                      stringVal(v.OSService),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -2442,6 +2453,21 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
+	if v == nil {
+		return val
+	}
+
+	val.ResourceID = stringVal(v.ResourceID)
+	val.ClientID = stringVal(v.ClientID)
+	val.ClientSecret = stringVal(v.ClientSecret)
+	val.AuthURL = stringVal(v.AuthURL)
+	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
+
+	return val
+}
+
 // decodeBytes returns the encryption key decoded.
 func decodeBytes(key string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(key)
@@ -2592,6 +2618,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	mapCommon("grpc", t.GRPC, &c.GRPC)
 	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
 
+	c.ServerMode = rt.ServerMode
 	c.ServerName = rt.ServerName
 	c.NodeName = rt.NodeName
 	c.Domain = rt.DNSDomain

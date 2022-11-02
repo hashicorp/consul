@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/armon/go-metrics"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -13,18 +14,27 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+var (
+	metricsLabels = []metrics.Label{{
+		Name:  "server_type",
+		Value: "internal",
+	}}
+)
+
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
-func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)) *Handler {
-	metrics := defaultMetrics()
+func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics) *Handler {
+	if metricsObj == nil {
+		metricsObj = metrics.Default()
+	}
 
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
-		grpc.StatsHandler(newStatsHandler(metrics)),
+		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -32,7 +42,7 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 		middleware.WithStreamServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.StreamServerInterceptor(recoveryOpts...),
-			(&activeStreamCounter{metrics: metrics}).Intercept,
+			agentmiddleware.NewActiveStreamCounter(metricsObj, metricsLabels).Intercept,
 		),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime: 15 * time.Second,

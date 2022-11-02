@@ -13,14 +13,16 @@
                   </YieldSlot>
               </nav>
               <div class="title">
-                <YieldSlot @name="header">
-                    {{yield}}
-                </YieldSlot>
-                <div class="actions">
-                    <YieldSlot @name="actions">
-                      <PortalTarget @name="app-view-actions" />
+                <div class="title-left-container">
+                  <YieldSlot @name="header">
                       {{yield}}
-                    </YieldSlot>
+                  </YieldSlot>
+                </div>
+                <div class="actions">
+                  <YieldSlot @name="actions">
+                    <PortalTarget @name="app-view-actions" />
+                    {{yield}}
+                  </YieldSlot>
                 </div>
               </div>
               <YieldSlot @name="nav">

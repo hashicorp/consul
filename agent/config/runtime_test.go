@@ -21,6 +21,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
@@ -177,6 +179,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Bootstrap = true
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -194,6 +197,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.BootstrapExpect = 3
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -208,6 +212,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
+			rt.TLS.ServerMode = false
 			rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4")}
 			rt.DNSAddrs = []net.Addr{tcpAddr("1.2.3.4:8600"), udpAddr("1.2.3.4:8600")}
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:8500")}
@@ -319,6 +324,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfBindAddrLAN = tcpAddr("127.0.0.1:8301")
 			rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "127.0.0.1",
@@ -659,6 +665,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -841,6 +848,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
@@ -1881,6 +1889,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1898,6 +1907,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 2
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1918,6 +1928,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 4
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
@@ -1937,6 +1948,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.LeaveOnTerm = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 			rt.SkipLeaveOnInt = false
 			rt.DataDir = dataDir
 		},
@@ -2444,6 +2456,40 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 		},
 	})
+	run(t, testCase{
+		desc: "os_service check no interval",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo" }`,
+		},
+		expectedErr: `Interval must be > 0 for Script, HTTP, H2PING, TCP, UDP or OSService checks`,
+	})
+	run(t, testCase{
+		desc: "os_service check",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo", "interval": "30s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo", interval = "30s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a",
+					OSService:     "foo",
+					Interval:      30 * time.Second,
+					OutputMaxSize: checks.DefaultBufSize,
+				},
+			}
+			rt.DataDir = dataDir
+		}})
 	run(t, testCase{
 		desc: "multiple service files",
 		args: []string{
@@ -3056,6 +3102,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3087,6 +3134,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3115,6 +3163,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3140,6 +3189,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -3162,6 +3212,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// rpc.enable_streaming make no sense in not-server mode
 			rt.RPCConfig.EnableStreaming = true
 			rt.ServerMode = false
+			rt.TLS.ServerMode = false
 		},
 	})
 	run(t, testCase{
@@ -3185,6 +3236,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.UseStreamingBackend = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 		},
@@ -3602,6 +3654,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectMeshGatewayWANFederationEnabled = true
 			// server things
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
@@ -4512,7 +4565,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Defaults sanity checks
 
 	run(t, testCase{
@@ -4528,14 +4581,16 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// defaults are changed from these values forcing that change to be
 			// intentional.
 			rt.RPCHandshakeTimeout = 5 * time.Second
+			rt.RPCClientTimeout = 60 * time.Second
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
 			rt.SegmentLimit = 64
+			rt.XDSUpdateRateLimit = 250
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Auto Config related tests
 	run(t, testCase{
 		desc: "auto config and auto encrypt error",
@@ -5026,6 +5081,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.LeaveOnTerm = false
 			rt.ServerMode = true
+			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
@@ -5838,6 +5894,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
+				OSService:                      "aAjE6m9Z",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
@@ -5867,6 +5924,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
+				OSService:                      "aqq95BhP",
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
@@ -5895,6 +5953,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
+				OSService:                      "aZaCAXww",
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
@@ -5974,44 +6033,52 @@ func TestLoad_FullConfig(t *testing.T) {
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
 		ConnectServerlessPluginEnabled:         true,
-		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
-		DNSARecordLimit:                        29907,
-		DNSAllowStale:                          true,
-		DNSDisableCompression:                  true,
-		DNSDomain:                              "7W1xXSqd",
-		DNSAltDomain:                           "1789hsd",
-		DNSEnableTruncate:                      true,
-		DNSMaxStale:                            29685 * time.Second,
-		DNSNodeTTL:                             7084 * time.Second,
-		DNSOnlyPassing:                         true,
-		DNSPort:                                7001,
-		DNSRecursorStrategy:                    "sequential",
-		DNSRecursorTimeout:                     4427 * time.Second,
-		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
-		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
-		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
-		DNSUDPAnswerLimit:                      29909,
-		DNSNodeMetaTXT:                         true,
-		DNSUseCache:                            true,
-		DNSCacheMaxAge:                         5 * time.Minute,
-		DataDir:                                dataDir,
-		Datacenter:                             "rzo029wg",
-		DefaultQueryTime:                       16743 * time.Second,
-		DisableAnonymousSignature:              true,
-		DisableCoordinates:                     true,
-		DisableHostNodeID:                      true,
-		DisableHTTPUnprintableCharFilter:       true,
-		DisableKeyringFile:                     true,
-		DisableRemoteExec:                      true,
-		DisableUpdateCheck:                     true,
-		DiscardCheckOutput:                     true,
-		DiscoveryMaxStale:                      5 * time.Second,
-		EnableAgentTLSForChecks:                true,
-		EnableCentralServiceConfig:             false,
-		EnableDebug:                            true,
-		EnableRemoteScriptChecks:               true,
-		EnableLocalScriptChecks:                true,
-		EncryptKey:                             "A4wELWqH",
+		Cloud: hcpconfig.CloudConfig{
+			ResourceID:   "N43DsscE",
+			ClientID:     "6WvsDZCP",
+			ClientSecret: "lCSMHOpB",
+			Hostname:     "DH4bh7aC",
+			AuthURL:      "332nCdR2",
+			ScadaAddress: "aoeusth232",
+		},
+		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:                  29907,
+		DNSAllowStale:                    true,
+		DNSDisableCompression:            true,
+		DNSDomain:                        "7W1xXSqd",
+		DNSAltDomain:                     "1789hsd",
+		DNSEnableTruncate:                true,
+		DNSMaxStale:                      29685 * time.Second,
+		DNSNodeTTL:                       7084 * time.Second,
+		DNSOnlyPassing:                   true,
+		DNSPort:                          7001,
+		DNSRecursorStrategy:              "sequential",
+		DNSRecursorTimeout:               4427 * time.Second,
+		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
+		DNSUDPAnswerLimit:                29909,
+		DNSNodeMetaTXT:                   true,
+		DNSUseCache:                      true,
+		DNSCacheMaxAge:                   5 * time.Minute,
+		DataDir:                          dataDir,
+		Datacenter:                       "rzo029wg",
+		DefaultQueryTime:                 16743 * time.Second,
+		DisableAnonymousSignature:        true,
+		DisableCoordinates:               true,
+		DisableHostNodeID:                true,
+		DisableHTTPUnprintableCharFilter: true,
+		DisableKeyringFile:               true,
+		DisableRemoteExec:                true,
+		DisableUpdateCheck:               true,
+		DiscardCheckOutput:               true,
+		DiscoveryMaxStale:                5 * time.Second,
+		EnableAgentTLSForChecks:          true,
+		EnableCentralServiceConfig:       false,
+		EnableDebug:                      true,
+		EnableRemoteScriptChecks:         true,
+		EnableLocalScriptChecks:          true,
+		EncryptKey:                       "A4wELWqH",
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -6019,6 +6086,8 @@ func TestLoad_FullConfig(t *testing.T) {
 
 		GRPCPort:              4881,
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
+		GRPCTLSPort:           5201,
+		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6051,6 +6120,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:             tcpAddr("16.99.34.17:3757"),
 		RPCHandshakeTimeout:     1932 * time.Millisecond,
+		RPCClientTimeout:        62 * time.Second,
 		RPCHoldTimeout:          15707 * time.Second,
 		RPCProtocol:             30793,
 		RPCRateLimit:            12029.43,
@@ -6108,6 +6178,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
 						H2PingUseTLS:                   false,
+						OSService:                      "amfeO5if",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
@@ -6160,6 +6231,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "MN3oA9D2",
 						H2PING:                         "OV6Q2XEg",
 						H2PingUseTLS:                   false,
+						OSService:                      "GTti9hCA",
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
@@ -6305,6 +6377,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
 						H2PingUseTLS:                   false,
+						OSService:                      "ZA99e9Ka",
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
@@ -6331,6 +6404,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
 						H2PingUseTLS:                   false,
+						OSService:                      "GAaO6Mpr",
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
@@ -6357,6 +6431,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
 						H2PingUseTLS:                   false,
+						OSService:                      "RAa85Dv8",
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
@@ -6442,6 +6517,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			NodeName:                "otlLxGaI",
 			ServerName:              "Oerr9n1G",
+			ServerMode:              true,
 			Domain:                  "7W1xXSqd",
 			EnableAgentTLSForChecks: true,
 		},
@@ -6490,6 +6566,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		XDSUpdateRateLimit:               9526.2,
 		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
@@ -6752,6 +6829,11 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 		Cache: cache.Options{
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
+		},
+		Cloud: hcpconfig.CloudConfig{
+			ResourceID:   "cluster1",
+			ClientID:     "id",
+			ClientSecret: "secret",
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RaftProtocol:                 3,

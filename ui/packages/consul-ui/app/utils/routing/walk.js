@@ -1,18 +1,18 @@
 import { runInDebug } from '@ember/debug';
 
-export const walk = function(routes) {
+export const walk = function (routes) {
   const keys = Object.keys(routes);
   keys.forEach((item, i) => {
     if (item === '_options') {
       return;
     }
-    if(routes[item] === null) {
+    if (routes[item] === null) {
       return;
     }
     const options = routes[item]._options;
     let cb;
     if (Object.keys(routes[item]).length > 1) {
-      cb = function() {
+      cb = function () {
         walk.apply(this, [routes[item]]);
       };
     }
@@ -34,8 +34,8 @@ export const walk = function(routes) {
  *
  * @param {object} routes - JSON representation of routes
  */
-export default function(routes) {
-  return function() {
+export default function (routes) {
+  return function () {
     walk.apply(this, [routes]);
   };
 }
@@ -43,10 +43,8 @@ export default function(routes) {
 export let dump = (routes) => {};
 
 runInDebug(() => {
-  const indent = function(num) {
-    return Array(num)
-      .fill('  ', 0, num)
-      .join('');
+  const indent = function (num) {
+    return Array(num).fill('  ', 0, num).join('');
   };
   /**
    * String dumper to produce Router.map code
@@ -56,11 +54,11 @@ runInDebug(() => {
    * @param {object} routes - JSON representation of routes
    * @example `console.log(dump(routes));`
    */
-  dump = function(routes) {
+  dump = function (routes) {
     let level = 2;
     const obj = {
       out: '',
-      route: function(name, options, cb) {
+      route: function (name, options, cb) {
         this.out += `${indent(level)}this.route('${name}', ${JSON.stringify(options)}`;
         if (cb) {
           level++;

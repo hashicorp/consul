@@ -18,4 +18,14 @@ config_entries {
       }
     }
   }
+
+  bootstrap {
+    kind = "service-resolver"
+    name = "virtual-s2"
+
+    redirect = {
+      service = "s2"
+      peer = "primary-to-alpha"
+    }
+  }
 }

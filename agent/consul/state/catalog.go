@@ -1267,8 +1267,8 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 // The service_last_extinction is set to the last raft index when a service
 // was unregistered (or 0 if no services were ever unregistered). This
 // allows blocking queries to
-//   * return when the last instance of a service is removed
-//   * block until an instance for this service is available, or another
+//   - return when the last instance of a service is removed
+//   - block until an instance for this service is available, or another
 //     service is unregistered.
 func maxIndexForService(tx ReadTxn, serviceName string, serviceExists, checks bool, entMeta *acl.EnterpriseMeta, peerName string) uint64 {
 	idx, _ := maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks, entMeta, peerName)
@@ -1280,8 +1280,8 @@ func maxIndexForService(tx ReadTxn, serviceName string, serviceExists, checks bo
 // index. The service_last_extinction is set to the last raft index when a
 // service was unregistered (or 0 if no services were ever unregistered). This
 // allows blocking queries to
-//   * return when the last instance of a service is removed
-//   * block until an instance for this service is available, or another
+//   - return when the last instance of a service is removed
+//   - block until an instance for this service is available, or another
 //     service is unregistered.
 //
 // It also _may_ return a watch chan to add to a WatchSet. It will only return

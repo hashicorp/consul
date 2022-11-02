@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/consul/stream"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
@@ -17,15 +15,16 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
-// ServerDataSourceDeps contains the dependencies needed for sourcing data from
-// server-local sources (e.g. materialized views).
-type ServerDataSourceDeps struct {
-	Datacenter     string
-	ViewStore      *submatview.Store
-	EventPublisher *stream.EventPublisher
-	Logger         hclog.Logger
-	ACLResolver    submatview.ACLResolver
-	GetStore       func() Store
+// CacheConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
+// data from the agent cache.
+func CacheConfigEntry(c *cache.Cache) proxycfg.ConfigEntry {
+	return &cacheProxyDataSource[*structs.ConfigEntryQuery]{c, cachetype.ConfigEntryName}
+}
+
+// CacheConfigEntryList satisfies the proxycfg.ConfigEntryList interface by
+// sourcing data from the agent cache.
+func CacheConfigEntryList(c *cache.Cache) proxycfg.ConfigEntryList {
+	return &cacheProxyDataSource[*structs.ConfigEntryQuery]{c, cachetype.ConfigEntryListName}
 }
 
 // ServerConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
@@ -61,6 +60,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_ServiceResolver
 	case structs.IngressGateway:
 		topic = pbsubscribe.Topic_IngressGateway
+	case structs.ServiceDefaults:
+		topic = pbsubscribe.Topic_ServiceDefaults
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}

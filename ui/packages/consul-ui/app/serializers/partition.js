@@ -7,11 +7,11 @@ export default class PartitionSerializer extends Serializer {
 
   respondForQuery(respond, query, data, modelClass) {
     return super.respondForQuery(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => {
+            body.map((item) => {
               item.Partition = '*';
               item.Namespace = '*';
               return item;

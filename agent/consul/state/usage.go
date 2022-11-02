@@ -325,7 +325,7 @@ func (s *Store) NodeUsage() (uint64, NodeUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	nodes, err := firstUsageEntry(tx, tableNodes)
+	nodes, err := firstUsageEntry(nil, tx, tableNodes)
 	if err != nil {
 		return 0, NodeUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -347,7 +347,7 @@ func (s *Store) PeeringUsage() (uint64, PeeringUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	peerings, err := firstUsageEntry(tx, tablePeering)
+	peerings, err := firstUsageEntry(nil, tx, tablePeering)
 	if err != nil {
 		return 0, PeeringUsage{}, fmt.Errorf("failed peerings lookup: %s", err)
 	}
@@ -365,23 +365,23 @@ func (s *Store) PeeringUsage() (uint64, PeeringUsage, error) {
 
 // ServiceUsage returns the latest seen Raft index, a compiled set of service
 // usage data, and any errors.
-func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
+func (s *Store) ServiceUsage(ws memdb.WatchSet) (uint64, ServiceUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	serviceInstances, err := firstUsageEntry(tx, tableServices)
+	serviceInstances, err := firstUsageEntry(ws, tx, tableServices)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
-	services, err := firstUsageEntry(tx, serviceNamesUsageTable)
+	services, err := firstUsageEntry(ws, tx, serviceNamesUsageTable)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
 	serviceKindInstances := make(map[string]int)
 	for _, kind := range allConnectKind {
-		usage, err := firstUsageEntry(tx, connectUsageTableName(kind))
+		usage, err := firstUsageEntry(ws, tx, connectUsageTableName(kind))
 		if err != nil {
 			return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 		}
@@ -393,7 +393,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 		Services:                services.Count,
 		ConnectServiceInstances: serviceKindInstances,
 	}
-	results, err := compileEnterpriseServiceUsage(tx, usage)
+	results, err := compileEnterpriseServiceUsage(ws, tx, usage)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
@@ -405,7 +405,7 @@ func (s *Store) KVUsage() (uint64, KVUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	kvs, err := firstUsageEntry(tx, "kvs")
+	kvs, err := firstUsageEntry(nil, tx, "kvs")
 	if err != nil {
 		return 0, KVUsage{}, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -428,7 +428,7 @@ func (s *Store) ConfigEntryUsage() (uint64, ConfigEntryUsage, error) {
 	configEntries := make(map[string]int)
 	var maxIdx uint64
 	for _, kind := range structs.AllConfigEntryKinds {
-		configEntry, err := firstUsageEntry(tx, configEntryUsageTableName(kind))
+		configEntry, err := firstUsageEntry(nil, tx, configEntryUsageTableName(kind))
 		if configEntry.Index > maxIdx {
 			maxIdx = configEntry.Index
 		}
@@ -448,11 +448,12 @@ func (s *Store) ConfigEntryUsage() (uint64, ConfigEntryUsage, error) {
 	return maxIdx, results, nil
 }
 
-func firstUsageEntry(tx ReadTxn, id string) (*UsageEntry, error) {
-	usage, err := tx.First(tableUsage, indexID, id)
+func firstUsageEntry(ws memdb.WatchSet, tx ReadTxn, id string) (*UsageEntry, error) {
+	watch, usage, err := tx.FirstWatch(tableUsage, indexID, id)
 	if err != nil {
 		return nil, err
 	}
+	ws.Add(watch)
 
 	// If no elements have been inserted, the usage entry will not exist. We
 	// return a valid value so that can be certain the return value is not nil

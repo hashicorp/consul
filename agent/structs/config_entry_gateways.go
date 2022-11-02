@@ -31,9 +31,18 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
+	// Defaults contains default configuration for all upstream service instances
+	Defaults *IngressServiceConfig `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+type IngressServiceConfig struct {
+	MaxConnections        uint32
+	MaxPendingRequests    uint32
+	MaxConcurrentRequests uint32
 }
 
 type IngressListener struct {
@@ -89,6 +98,10 @@ type IngressService struct {
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
+	MaxConnections        uint32 `json:",omitempty" alias:"max_connections"`
+	MaxPendingRequests    uint32 `json:",omitempty" alias:"max_pending_requests"`
+	MaxConcurrentRequests uint32 `json:",omitempty" alias:"max_concurrent_requests"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

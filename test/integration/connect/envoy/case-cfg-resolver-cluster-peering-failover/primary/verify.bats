@@ -42,6 +42,8 @@ load helpers
   assert_service_has_healthy_instances s2 1 primary "" "" primary-to-alpha
 }
 
+# Failover
+
 @test "s1 upstream should have healthy endpoints for s2 in both primary and failover" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary.internal HEALTHY 1
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary-to-alpha.external HEALTHY 1
@@ -66,15 +68,19 @@ load helpers
   assert_service_has_healthy_instances s2 0 primary
 }
 
+
 @test "s1 upstream should have healthy endpoints for s2 in the failover cluster peer" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary.internal UNHEALTHY 1
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary-to-alpha.external HEALTHY 1
 }
 
-@test "reset envoy statistics" {
+@test "reset envoy statistics for failover" {
   reset_envoy_metrics 127.0.0.1:19000
 }
 
+@test "gateway-alpha should have healthy endpoints for s2" {
+  assert_upstream_has_endpoints_in_status consul-alpha-client:19003 exported~s2.default.alpha HEALTHY 1
+}
 
 @test "s1 upstream should be able to connect to s2 in the failover cluster peer" {
   run retry_default curl -s -f -d hello localhost:5000
@@ -84,4 +90,24 @@ load helpers
 
 @test "s1 upstream made 1 connection to s2 through the cluster peer" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.failover-target~s2.default.primary-to-alpha.external.*cx_total" 1
+}
+
+# Redirect
+
+@test "reset envoy statistics for redirect" {
+  reset_envoy_metrics 127.0.0.1:19000
+}
+
+@test "s1 upstream should have healthy endpoints for s2 (virtual-s2) in the cluster peer" {
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary-to-alpha.external HEALTHY 1
+}
+
+@test "s1 upstream should be able to connect to s2 via virtual-s2" {
+  run retry_default curl -s -f -d hello localhost:5001
+  [ "$status" -eq 0 ]
+  [ "$output" = "hello" ]
+}
+
+@test "s1 upstream made 1 connection to s2 via virtual-s2 through the cluster peer" {
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
 }

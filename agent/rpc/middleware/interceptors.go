@@ -49,7 +49,8 @@ func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC strin
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start).Milliseconds()
+	elapsed := time.Since(start).Microseconds()
+	elapsedMs := float32(elapsed) / 1000
 	reqType := requestType(request)
 	isLeader := r.getServerLeadership()
 
@@ -64,7 +65,7 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 	labels = r.addOptionalLabels(request, labels)
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
-	r.RecorderFunc(metricRPCRequest, float32(elapsed), labels)
+	r.RecorderFunc(metricRPCRequest, elapsedMs, labels)
 
 	labelsArr := flattenLabels(labels)
 	r.Logger.Trace(requestLogName, labelsArr...)

@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -104,6 +104,13 @@ function init_workdir {
     mv workdir/${CLUSTER}/consul/server.hcl workdir/${CLUSTER}/consul-server/server.hcl
   fi
 
+  if test -f "workdir/${CLUSTER}/consul/peering_server.hcl" -a $REQUIRE_PEERS = "1"
+  then
+    mv workdir/${CLUSTER}/consul/peering_server.hcl workdir/${CLUSTER}/consul-server/peering_server.hcl
+  else
+    rm workdir/${CLUSTER}/consul/peering_server.hcl
+  fi
+
   # copy the ca-certs for SDS so we can verify the right ones are served
   mkdir -p workdir/test-sds-server/certs
   cp test-sds-server/certs/ca-root.crt workdir/test-sds-server/certs/ca-root.crt
@@ -180,7 +187,7 @@ function start_consul {
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
   #
-  # This is nessasary because servers and clients source configuration data in
+  # This is necessary because servers and clients source configuration data in
   # different ways (client agents use an RPC-backed cache and servers use their
   # own local data) and we want to catch regressions in both.
   #
@@ -216,11 +223,6 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
-    server_grpc_port="-1"
-    if is_set $REQUIRE_PEERS; then
-      server_grpc_port="8502"
-    fi
-
     docker run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -231,7 +233,6 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
@@ -354,10 +355,10 @@ function verify {
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
     bats-verify \
-    --pretty /workdir/${CLUSTER}/bats ; then
-    echogreen "✓ PASS"
+    --formatter tap /workdir/${CLUSTER}/bats ; then
+    echo "✓ PASS"
   else
-    echored "⨯ FAIL"
+    echo "⨯ FAIL"
     res=1
   fi
 
@@ -472,7 +473,7 @@ function run_tests {
 
   # Allow vars.sh to set a reason to skip this test case based on the ENV
   if [ "$SKIP_CASE" != "" ] ; then
-    echoyellow "SKIPPING CASE: $SKIP_CASE"
+    echo "SKIPPING CASE: $SKIP_CASE"
     return 0
   fi
 

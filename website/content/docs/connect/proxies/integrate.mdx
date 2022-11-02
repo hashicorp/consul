@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Proxy Integration
+page_title: Custom Proxy Configuration | Service Mesh
 description: >-
-  A Connect-aware proxy enables unmodified applications to use Connect. A
-  per-service proxy sidecar transparently handles inbound and outbound service
-  connections, automatically wrapping and verifying TLS connections.
+  Consul supports custom proxy integrations for service discovery and sidecar instantiation. Learn about proxy requirements for service mesh operations, as well as how to authorize inbound and outbound connections for your custom proxy.
 ---
 
-# Connect Custom Proxy Integration
+# Custom Proxy Configuration for Service Mesh
 
 This topic describes the process and API endpoints you can use to extend proxies for integration with Consul.
 
@@ -210,9 +208,8 @@ ID for the name specified in `-sidecar-for` flag.
 
 
 
-[`/v1/agent/connect/ca/leaf/`]: /api/agent/connect#service-leaf-certificate
-[`/v1/agent/connect/ca/roots`]: /api/agent/connect#certificate-authority-ca-roots
-[`/v1/health/connect/:service_id`]: /api/health#list-nodes-for-connect-capable-service
+[`/v1/agent/connect/ca/leaf/`]: /api-docs/agent/connect#service-leaf-certificate
+[`/v1/agent/connect/ca/roots`]: /api-docs/agent/connect#certificate-authority-ca-roots
 [`api` package]: https://github.com/hashicorp/consul/tree/main/api
 [`consul/connect/proxy/config.go`]: https://github.com/hashicorp/consul/blob/v1.8.3/connect/proxy/config.go#L187
 [`consul/connect/tls.go`]: https://github.com/hashicorp/consul/blob/v1.8.3/connect/tls.go#L232-L237

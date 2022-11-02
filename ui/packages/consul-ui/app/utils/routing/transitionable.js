@@ -1,9 +1,9 @@
-const filter = function(routeName, atts, params) {
+const filter = function (routeName, atts, params) {
   return [routeName, ...atts];
 };
-const replaceRouteParams = function(route, params = {}) {
+const replaceRouteParams = function (route, params = {}) {
   return (route.paramNames || [])
-    .map(function(item) {
+    .map(function (item) {
       if (typeof params[item] !== 'undefined') {
         return params[item];
       }
@@ -11,7 +11,7 @@ const replaceRouteParams = function(route, params = {}) {
     })
     .reverse();
 };
-export default function(route, params = {}, container) {
+export default function (route, params = {}, container) {
   if (route === null) {
     route = container.lookup('route:application');
   }

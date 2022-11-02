@@ -1,0 +1,3 @@
+```release-note:security
+auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr.
+```

@@ -105,6 +105,7 @@ type Backend interface {
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
 	CatalogDeregister(req *structs.DeregisterRequest) error
+	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 }
 
 // StateStore provides a read-only interface for querying Peering data.
@@ -121,5 +122,7 @@ type StateStore interface {
 	NodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeServices, error)
 	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error)
+	ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error)
 	AbandonCh() <-chan struct{}
 }
