@@ -49,11 +49,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary-to-alpha.external HEALTHY 1
 }
 
-
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "s1 upstream made 1 connection" {
@@ -67,7 +66,6 @@ load helpers
 @test "s2 proxies should be unhealthy in primary" {
   assert_service_has_healthy_instances s2 0 primary
 }
-
 
 @test "s1 upstream should have healthy endpoints for s2 in the failover cluster peer" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary.internal UNHEALTHY 1
@@ -85,7 +83,7 @@ load helpers
 @test "s1 upstream should be able to connect to s2 in the failover cluster peer" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "s1 upstream made 1 connection to s2 through the cluster peer" {
@@ -105,7 +103,7 @@ load helpers
 @test "s1 upstream should be able to connect to s2 via virtual-s2" {
   run retry_default curl -s -f -d hello localhost:5001
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "s1 upstream made 1 connection to s2 via virtual-s2 through the cluster peer" {
