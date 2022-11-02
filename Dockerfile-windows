@@ -1,5 +1,5 @@
 FROM docker.mirror.hashicorp.services/windows/servercore:1809
-ARG VERSION=1.13.1
+ARG VERSION=1.13.3
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \

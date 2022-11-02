@@ -1,6 +1,6 @@
-# From Consul Version 1.13.2 / 1.12.4 / 1.11.8
-ARG VERSION=1.13.2-local
-# From Envoy version 1.23.1 / 1.22.3 / 1.21.4 / 1.20.6 / 1.19.5
+# From Consul Version 1.13.3 / 1.12.6 / 1.11.11
+ARG VERSION=1.13.3-dev
+# From Envoy version 1.23.1 / 1.21.5 / 1.20.7
 ARG ENVOY_VERSION
 
 FROM docker.mirror.hashicorp.services/windows/envoy-windows:v${ENVOY_VERSION} as envoy

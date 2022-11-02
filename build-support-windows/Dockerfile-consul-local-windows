@@ -1,4 +1,4 @@
-ARG VERSION=1.13.1
+ARG VERSION=1.13.3
 
 FROM windows/test-sds-server as test-sds-server
 FROM docker.mirror.hashicorp.services/windows/openzipkin as openzipkin
@@ -13,6 +13,7 @@ RUN tar -xf fortio.zip -C fortio
 RUN choco install openssl -yf
 RUN choco install jq -yf
 RUN choco install netcat -yf
+RUN choco install openjdk -yf
 
 # Install Bats
 ENV BATS_URL=https://github.com/bats-core/bats-core/archive/refs/tags/v1.7.0.zip
@@ -38,7 +39,6 @@ COPY --from=test-sds-server ["C:/go/src/", "C:/test-sds-server/"]
 
 # Copy openzipkin .jar file
 COPY --from=openzipkin ["C:/zipkin", "C:/zipkin"]
-COPY --from=openzipkin ["C:/openjdk-18", "C:/openjdk-18"]
 
 EXPOSE 8300
 EXPOSE 8301 8301/udp 8302 8302/udp
@@ -49,4 +49,4 @@ EXPOSE 19000 19001 19002 19003 19004
 EXPOSE 21000 21001 21002 21003 21004
 EXPOSE 5000 1234 2345
 
-RUN SETX /M path "%PATH%;C:\consul;C:\fortio;C:\jaeger;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;C:\Program Files\OpenSSL-Win64\bin;C:\bats\bin\;C:\ProgramData\chocolatey\lib\jq\tools;C:\socat;C:\openjdk-18\bin"
+RUN SETX /M path "%PATH%;C:\consul;C:\fortio;C:\jaeger;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;C:\Program Files\OpenSSL-Win64\bin;C:\bats\bin\;C:\ProgramData\chocolatey\lib\jq\tools;C:\socat"
