@@ -1,0 +1,3 @@
+[submodule "consul-k8s"]
+	path = consul-k8s
+	url = git@github.com:hashicorp/consul-k8s.git

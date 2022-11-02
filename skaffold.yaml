@@ -1,0 +1,50 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: consul-k8s
+build:
+# Consider a different tagging policy to eliminate image rebuilds
+  artifacts:
+  - image: hashicorp/consul
+    context: .
+    custom:
+      buildCommand: |
+        CONSUL_DEV_IMAGE=$IMAGE make dev-docker
+      dependencies:
+#          dockerfile:
+#            path: ./build-support/docker/Consul-Dev.dockerfile
+#            buildArgs:
+#              CONSUL_IMAGE_VERSION: latest
+        paths:
+        - ./agent/**/*.go
+        - ./acl/**/*.go
+        - ./command/**/*.go
+        - ./connect/**/*.go
+        - ./lib/**/*.go
+        ignore:
+        - ./**/*_test.go
+#    - image: hashicorp/consul-k8s-control-plane
+#      context: ./consul-k8s/control-plane
+#      docker:
+#        dockerfile: ./consul-k8s/control-plane/Dockerfile
+#        target: dev
+  local:
+    useBuildkit: true
+    concurrency: 0
+manifests:
+  helm:
+    releases:
+    - name: consul-dev
+      chartPath: ./consul-k8s/charts/consul
+      setValueTemplates:
+        image.repository: '{{.IMAGE_REPO}}'
+        image.tag: '{{.IMAGE_TAG}}@{{.IMAGE_DIGEST}}'
+deploy:
+  helm: {}
+
+# TODO port forward the UI
+#portForward:
+#  - resourceType: service
+#    resourceName: consul-ui # TODO: fix
+#    port: 8000              # TODO: fix
+#    localPort: 8080         # TODO: fix

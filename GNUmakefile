@@ -164,6 +164,11 @@ dev-docker: linux dev-build
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
+ifeq ($(PUSH_IMAGE),true)
+	# This is used with Skaffold under some conditions to push an image to a remote cluster. Use
+	# with caution as you may have an architecture mismatch
+	@docker push '$(CONSUL_DEV_IMAGE)'
+endif
 
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
