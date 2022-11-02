@@ -233,9 +233,6 @@ func decodeStringKey(key string) ([]byte, error) {
 func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 	var reply structs.KeyringResponses
 
-	if _, ok := a.delegate.(*consul.Server); !ok {
-		return nil, fmt.Errorf("keyring operations must run against a server node")
-	}
 	if err := a.RPC("Internal.KeyringOperation", args, &reply); err != nil {
 		return &reply, err
 	}

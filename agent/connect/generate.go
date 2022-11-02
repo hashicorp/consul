@@ -20,11 +20,11 @@ const (
 	DefaultIntermediateCertTTL = 24 * 365 * time.Hour
 )
 
-func pemEncodeKey(key []byte, blockType string) (string, error) {
+func pemEncode(value []byte, blockType string) (string, error) {
 	var buf bytes.Buffer
 
-	if err := pem.Encode(&buf, &pem.Block{Type: blockType, Bytes: key}); err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
+	if err := pem.Encode(&buf, &pem.Block{Type: blockType, Bytes: value}); err != nil {
+		return "", fmt.Errorf("error encoding value %v: %s", blockType, err)
 	}
 	return buf.String(), nil
 }
@@ -38,7 +38,7 @@ func generateRSAKey(keyBits int) (crypto.Signer, string, error) {
 	}
 
 	bs := x509.MarshalPKCS1PrivateKey(pk)
-	pemBlock, err := pemEncodeKey(bs, "RSA PRIVATE KEY")
+	pemBlock, err := pemEncode(bs, "RSA PRIVATE KEY")
 	if err != nil {
 		return nil, "", err
 	}
@@ -73,7 +73,7 @@ func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
 		return nil, "", fmt.Errorf("error marshaling ECDSA private key: %s", err)
 	}
 
-	pemBlock, err := pemEncodeKey(bs, "EC PRIVATE KEY")
+	pemBlock, err := pemEncode(bs, "EC PRIVATE KEY")
 	if err != nil {
 		return nil, "", err
 	}

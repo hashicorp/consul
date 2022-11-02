@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Ensure we always display the Policy default preview in the Namespace editing form
+```

@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Certificate Management
+page_title: Service Mesh Certificate Authority - AWS Certificate Manager
 description: >-
-  Consul can be used with AWS Certificate Manager Private CA to manage and sign
-  certificates.
+  You can use the AWS Certificate Manager Private Certificate Authority as the Consul service mesh's certificate authority to secure your service mesh. Learn how to configure the AWS ACM Private CA, its limitations in Consul, and cost planning considerations.
 ---
 
-# AWS Certificate Manager Private CA as a Connect CA
+# AWS Certificate Manager as a Service Mesh Certificate Authority
 
 Consul can be used with [AWS Certificate Manager (ACM) Private Certificate
 Authority
@@ -173,11 +172,11 @@ So monthly cost would be calculated as:
   - 500 ⨉ 13.3 = 6,650 certificates issued in dc3
 
 The number of certificates issued could be reduced by increasing
-[`leaf_cert_ttl`](/docs/agent/options#ca_leaf_cert_ttl) in the CA Provider
+[`leaf_cert_ttl`](/docs/agent/config/config-files#ca_leaf_cert_ttl) in the CA Provider
 configuration if the longer lived credentials are an acceptable risk tradeoff
 against the cost.
 
 <!-- Reference style links -->
-[`ca_config`]: /docs/agent/options#connect_ca_config
-[`ca_provider`]: /docs/agent/options#connect_ca_provider
+[`ca_config`]: /docs/agent/config/config-files#connect_ca_config
+[`ca_provider`]: /docs/agent/config/config-files#connect_ca_provider
 [`/connect/ca/configuration`]: /api-docs/connect/ca#update-ca-configuration

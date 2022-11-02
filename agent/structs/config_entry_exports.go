@@ -14,10 +14,10 @@ type ExportedServicesConfigEntry struct {
 
 	// Services is a list of services to be exported and the list of partitions
 	// to expose them to.
-	Services []ExportedService
+	Services []ExportedService `json:",omitempty"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -31,13 +31,18 @@ type ExportedService struct {
 	Namespace string `json:",omitempty"`
 
 	// Consumers is a list of downstream consumers of the service to be exported.
-	Consumers []ServiceConsumer
+	Consumers []ServiceConsumer `json:",omitempty"`
 }
 
 // ServiceConsumer represents a downstream consumer of the service to be exported.
+// At most one of Partition or Peer must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
-	Partition string
+	// Deprecated: Peer should be used for both remote peers and local partitions.
+	Partition string `json:",omitempty"`
+
+	// Peer is the name of the peer to export the service to.
+	Peer string `json:",omitempty" alias:"peer_name"`
 }
 
 func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
@@ -99,53 +104,56 @@ func (e *ExportedServicesConfigEntry) Normalize() error {
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
-		e.Services[i].Namespace = NamespaceOrDefault(e.Services[i].Namespace)
+		e.Services[i].Namespace = acl.NormalizeNamespace(e.Services[i].Namespace)
 	}
 
 	return nil
 }
 
 func (e *ExportedServicesConfigEntry) Validate() error {
-	if e.Name == "" {
-		return fmt.Errorf("Name is required")
-	}
-	if e.Name == WildcardSpecifier {
-		return fmt.Errorf("exported-services Name must be the name of a partition, and not a wildcard")
-	}
-
-	if err := requireEnterprise(e.GetKind()); err != nil {
+	if err := validateExportedServicesName(e.Name); err != nil {
 		return err
 	}
+
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
 
-	for _, svc := range e.Services {
+	for i, svc := range e.Services {
 		if svc.Name == "" {
-			return fmt.Errorf("service name cannot be empty")
+			return fmt.Errorf("Services[%d]: service name cannot be empty", i)
+		}
+		if svc.Namespace == WildcardSpecifier && svc.Name != WildcardSpecifier {
+			return fmt.Errorf("Services[%d]: service name must be wildcard if namespace is wildcard", i)
 		}
 		if len(svc.Consumers) == 0 {
-			return fmt.Errorf("service %q must have at least one consumer", svc.Name)
+			return fmt.Errorf("Services[%d]: must have at least one consumer", i)
 		}
-		for _, consumer := range svc.Consumers {
+		for j, consumer := range svc.Consumers {
+			if consumer.Peer != "" && consumer.Partition != "" {
+				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of Peer or Partition", i, j)
+			}
 			if consumer.Partition == WildcardSpecifier {
-				return fmt.Errorf("exporting to all partitions (wildcard) is not yet supported")
+				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all partitions (wildcard) is not supported", i, j)
+			}
+			if consumer.Peer == WildcardSpecifier {
+				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all peers (wildcard) is not supported", i, j)
 			}
 		}
 	}
 	return nil
 }
 
-func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshRead(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
-func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *ExportedServicesConfigEntry) GetRaftIndex() *RaftIndex {
@@ -156,7 +164,7 @@ func (e *ExportedServicesConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ExportedServicesConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ExportedServicesConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

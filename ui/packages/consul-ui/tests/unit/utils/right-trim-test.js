@@ -1,9 +1,8 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import rightTrim from 'consul-ui/utils/right-trim';
 
-module('Unit | Utility | right trim', function() {
-  test('it trims characters from the right hand side', function(assert) {
+module('Unit | Utility | right trim', function () {
+  test('it trims characters from the right hand side', function (assert) {
     [
       {
         args: ['/a/folder/here/', '/'],
@@ -53,7 +52,7 @@ module('Unit | Utility | right trim', function() {
         args: ['/here', '/here'],
         expected: '',
       },
-    ].forEach(function(item) {
+    ].forEach(function (item) {
       const actual = rightTrim(...item.args);
       assert.equal(actual, item.expected);
     });

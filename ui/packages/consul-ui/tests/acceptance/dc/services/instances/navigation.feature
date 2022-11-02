@@ -11,14 +11,14 @@ Feature: dc / services / instances / navigation
     And 3 instance models from yaml
     ---
     - Service:
-        Name: service-0
+        Service: service-0
         ID: service-a
       Node:
         Node: node-0
       Checks:
       - Status: critical
     - Service:
-        Name: service-0
+        Service: service-0
         ID: service-b
       Node:
         Node: node-0
@@ -29,7 +29,7 @@ Feature: dc / services / instances / navigation
     # proxy on request.0 from yaml', 'And 1 proxy on request.1 from yaml' or
     # similar
     - Service:
-        Name: service-0-proxy
+        Service: service-0-proxy
         ID: service-a-proxy
       Node:
         Node: node-0
@@ -46,13 +46,13 @@ Feature: dc / services / instances / navigation
     Then the url should be /dc-1/services/service-0/instances
     Then I see 3 instance models
     When I click instance on the instances component
-    Then a GET request was made to "/v1/catalog/connect/service-0?dc=dc-1&ns=@namespace"
-    Then a GET request was made to "/v1/health/service/service-0-proxy?dc=dc-1&ns=@namespace"
+    Then a GET request was made to "/v1/catalog/connect/service-0?dc=dc-1&merge-central-config&ns=@namespace"
+    Then a GET request was made to "/v1/health/service/service-0-proxy?dc=dc-1&merge-central-config&ns=@namespace"
     Then the url should be /dc-1/services/service-0/instances/node-0/service-a/health-checks
     And I click "[data-test-back]"
     Then the url should be /dc-1/services/service-0/topology
     And I click instances on the tabs
     When I click instance on the instances component
-    Then a GET request was made to "/v1/catalog/connect/service-0?dc=dc-1&ns=@namespace"
-    Then a GET request was made to "/v1/health/service/service-0-proxy?dc=dc-1&ns=@namespace"
+    Then a GET request was made to "/v1/catalog/connect/service-0?dc=dc-1&merge-central-config&ns=@namespace"
+    Then a GET request was made to "/v1/health/service/service-0-proxy?dc=dc-1&merge-central-config&ns=@namespace"
     Then the url should be /dc-1/services/service-0/instances/node-0/service-a/health-checks

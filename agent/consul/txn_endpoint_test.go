@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -233,7 +234,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	_, n, err := state.GetNode("foo", nil)
+	_, n, err := state.GetNode("foo", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -241,7 +242,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, s, err := state.NodeService("foo", "svc-foo", nil)
+	_, s, err := state.NodeService(nil, "foo", "svc-foo", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -249,7 +250,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil)
+	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -345,7 +346,8 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	id := createToken(t, rpcClient(t, s1), testTxnRules)
+	token := createTokenFull(t, rpcClient(t, s1), testTxnRules)
+	id := token.SecretID
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.
@@ -554,57 +556,64 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	}
 
 	// Verify the transaction's return value.
-	var expected structs.TxnResponse
+	var outPos int
 	for i, op := range arg.Ops {
+		err := out.Errors[outPos]
 		switch {
 		case op.KV != nil:
 			switch op.KV.Verb {
 			case api.KVGet, api.KVGetTree:
 				// These get filtered but won't result in an error.
-
+			case api.KVSet, api.KVDelete, api.KVDeleteCAS, api.KVDeleteTree, api.KVCAS, api.KVLock, api.KVUnlock, api.KVCheckNotExists:
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceKey, acl.AccessWrite, "nope")
+				outPos++
 			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
+				outPos++
 			}
 		case op.Node != nil:
 			switch op.Node.Verb {
 			case api.NodeGet:
 				// These get filtered but won't result in an error.
-
+			case api.NodeSet, api.NodeDelete, api.NodeDeleteCAS, api.NodeCAS:
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessWrite, "nope")
+				outPos++
 			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessRead, "nope")
+				outPos++
 			}
 		case op.Service != nil:
 			switch op.Service.Verb {
 			case api.ServiceGet:
 				// These get filtered but won't result in an error.
-
+			case api.ServiceSet, api.ServiceCAS, api.ServiceDelete, api.ServiceDeleteCAS:
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceService, acl.AccessWrite, "nope")
+				outPos++
 			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceService, acl.AccessRead, "nope")
+				outPos++
 			}
 		case op.Check != nil:
 			switch op.Check.Verb {
 			case api.CheckGet:
 				// These get filtered but won't result in an error.
-
+			case api.CheckSet, api.CheckCAS, api.CheckDelete, api.CheckDeleteCAS:
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessWrite, "nope")
+				outPos++
 			default:
-				expected.Errors = append(expected.Errors, &structs.TxnError{
-					OpIndex: i,
-					What:    acl.ErrPermissionDenied.Error(),
-				})
+				require.Equal(t, err.OpIndex, i)
+				acl.RequirePermissionDeniedMessage(t, err.What, token.AccessorID, nil, acl.ResourceNode, acl.AccessRead, "nope")
+				outPos++
 			}
 		}
 	}
-
-	require.Equal(t, expected, out)
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
@@ -817,6 +826,7 @@ func TestTxn_Read(t *testing.T) {
 		},
 		QueryMeta: structs.QueryMeta{
 			KnownLeader: true,
+			Index:       1,
 		},
 	}
 	require.Equal(t, expected, out)
@@ -865,12 +875,12 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
 	state.EnsureCheck(4, &check)
 
-	id := createToken(t, codec, testTxnRules)
+	token := createTokenFull(t, codec, testTxnRules)
 
 	t.Run("simple read operations (results get filtered out)", func(t *testing.T) {
 		arg := structs.TxnReadRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: id},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 			Ops: structs.TxnOps{
 				{
 					KV: &structs.TxnKVOp{
@@ -902,7 +912,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	t.Run("complex operations (return permission denied errors)", func(t *testing.T) {
 		arg := structs.TxnReadRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: id},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 			Ops: structs.TxnOps{
 				{
 					KV: &structs.TxnKVOp{
@@ -926,10 +936,9 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		var out structs.TxnReadResponse
 		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out)
 		require.NoError(t, err)
-		require.Equal(t, structs.TxnErrors{
-			{OpIndex: 0, What: acl.ErrPermissionDenied.Error()},
-			{OpIndex: 1, What: acl.ErrPermissionDenied.Error()},
-		}, out.Errors)
+		acl.RequirePermissionDeniedMessage(t, out.Errors[0].What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
+		acl.RequirePermissionDeniedMessage(t, out.Errors[1].What, token.AccessorID, nil, acl.ResourceKey, acl.AccessRead, "nope")
+
 		require.Empty(t, out.Results)
 	})
 }

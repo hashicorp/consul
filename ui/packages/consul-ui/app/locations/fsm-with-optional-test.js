@@ -33,11 +33,11 @@ export default class FSMWithOptionalTestLocation extends FSMWithOptionalLocation
 
     // taken from emberjs/application/instance:visit but cleaned up a little
     // https://github.com/emberjs/ember.js/blob/21bd70c773dcc4bfe4883d7943e8a68d203b5bad/packages/%40ember/application/instance.js#L236-L277
-    const handleTransitionResolve = async _ => {
+    const handleTransitionResolve = async (_) => {
       await settled();
-      return new Promise(resolve => setTimeout(resolve(app), 0));
+      return new Promise((resolve) => setTimeout(resolve(app), 0));
     };
-    const handleTransitionReject = error => {
+    const handleTransitionReject = (error) => {
       if (error.error) {
         throw error.error;
       } else if (error.name === 'TransitionAborted' && router._routerMicrolib.activeTransition) {

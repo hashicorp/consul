@@ -1,0 +1,117 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-node/${node}'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+      node=route.params.name
+    )
+  }} as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let api.data as |items|}}
+    <div class="tab-section">
+      <DataWriter
+        @sink={{uri '/${partition}/${dc}/${nspace}/session/'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+          )
+        }}
+        @type="session"
+        @label="Lock Session"
+        @ondelete={{refresh-route}}
+      as |writer|>
+
+        <BlockSlot @name="removed" as |after|>
+          <Consul::LockSession::Notifications
+            {{notification
+              after=(action after)
+            }}
+            @type="remove"
+          />
+        </BlockSlot>
+
+        <BlockSlot @name="error" as |after error|>
+          <Consul::LockSession::Notifications
+            {{notification
+              after=(action after)
+            }}
+            @type="remove"
+            @error={{error}}
+          />
+        </BlockSlot>
+
+        <BlockSlot @name="content">
+
+          <DataCollection
+            @type="session"
+            @items={{items}}
+          as |collection|>
+
+            <collection.Collection>
+              <Consul::LockSession::List
+                @items={{collection.items}}
+                @ondelete={{writer.delete}}
+              />
+            </collection.Collection>
+
+            <collection.Empty>
+              <EmptyState
+                @login={{route.model.app.login.open}}
+              >
+              <BlockSlot @name="header">
+                <h2>
+                  {{t 'routes.dc.nodes.show.sessions.empty.header'
+                    items=items.length
+                  }}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                {{t 'routes.dc.nodes.show.sessions.empty.body'
+                  canUseACLs=(can "use acls")
+                  htmlSafe=true
+                }}
+              </BlockSlot>
+
+                <BlockSlot @name="actions">
+                  <li class="docs-link">
+                    <Action
+                      @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
+                      @external={{true}}
+                    >
+                      Documentation on Lock Sessions
+                    </Action>
+                  </li>
+                  <li class="learn-link">
+                    <Action
+                      @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore"
+                      @external={{true}}
+                    >
+                      Take the tutorial
+                    </Action>
+                  </li>
+                </BlockSlot>
+
+              </EmptyState>
+            </collection.Empty>
+
+          </DataCollection>
+
+        </BlockSlot>
+      </DataWriter>
+    </div>
+{{/let}}
+  </BlockSlot>
+</DataLoader>
+</Route>

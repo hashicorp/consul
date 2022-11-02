@@ -8,6 +8,16 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *IndexedCheckServiceNodes) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *IndexedCheckServiceNodes) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *CheckServiceNode) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

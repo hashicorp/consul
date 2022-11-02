@@ -23,19 +23,27 @@ export default class NodeAdapter extends Adapter {
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri, peer }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
+    }
+    let options = {
+      ns,
+      partition,
+      index,
+    };
+
+    if (peer) {
+      options = {
+        ...options,
+        peer,
+      };
     }
     return request`
       GET /v1/internal/ui/node/${id}?${{ dc }}
       X-Request-ID: ${uri}
 
-      ${{
-        ns,
-        partition,
-        index,
-      }}
+      ${options}
     `;
   }
 
@@ -50,10 +58,10 @@ export default class NodeAdapter extends Adapter {
 
   queryLeader(store, type, id, snapshot) {
     return this.rpc(
-      function(adapter, request, serialized, unserialized) {
+      function (adapter, request, serialized, unserialized) {
         return adapter.requestForQueryLeader(request, serialized, unserialized);
       },
-      function(serializer, respond, serialized, unserialized) {
+      function (serializer, respond, serialized, unserialized) {
         return serializer.respondForQueryLeader(respond, serialized, unserialized);
       },
       snapshot,

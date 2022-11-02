@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Fix a bug that resulted in Lambda services not using the payload-passthrough option as expected.
+```

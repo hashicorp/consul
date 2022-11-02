@@ -51,34 +51,6 @@ function retry_long {
   retry 30 1 "$@"
 }
 
-function echored {
-  tput setaf 1
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echogreen {
-  tput setaf 2
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoyellow {
-  tput setaf 3
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoblue {
-  tput setaf 4
-  tput bold
-  echo $@
-  tput sgr0
-}
-
 function is_set {
    # Arguments:
    #   $1 - string value to check its truthiness
@@ -178,6 +150,17 @@ function assert_envoy_version {
   echo "---"
   echo "Got version=$VERSION"
   echo "Want version=$ENVOY_VERSION"
+
+  # 1.20.2, 1.19.3 and 1.18.6 are special snowflakes in that the version for
+  # the release is reported with a '-dev' suffix (eg 1.20.2-dev).
+  if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
+    ENVOY_VERSION="1.20.2-dev"
+  elif [ "$ENVOY_VERSION" = "1.19.3" ] ; then
+    ENVOY_VERSION="1.19.3-dev"
+  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+    ENVOY_VERSION="1.18.6-dev"
+  fi
+
   echo $VERSION | grep "/$ENVOY_VERSION/"
 }
 
@@ -346,7 +329,6 @@ function get_upstream_endpoint_in_status_count {
   local HEALTH_STATUS=$3
   run curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
-  # echo "$output" >&3
   echo "$output" | jq --raw-output "
 .cluster_statuses[]
 | select(.name|startswith(\"${CLUSTER_NAME}\"))
@@ -466,28 +448,34 @@ function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
   local NS=$3
+  local AP=$4
+  local PEER_NAME=$5
 
-  run curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
+  run curl -s -f ${HEADERS} "consul-${DC}-client:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
+
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
 
 function assert_alive_wan_member_count {
-  local EXPECT_COUNT=$1
-  run retry_long assert_alive_wan_member_count_once $EXPECT_COUNT
+  local DC=$1
+  local EXPECT_COUNT=$2
+  run retry_long assert_alive_wan_member_count_once $DC $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
 function assert_alive_wan_member_count_once {
-  local EXPECT_COUNT=$1
+  local DC=$1
+  local EXPECT_COUNT=$2
 
-  GOT_COUNT=$(get_alive_wan_member_count)
+  GOT_COUNT=$(get_alive_wan_member_count $DC)
 
   [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
 }
 
 function get_alive_wan_member_count {
-  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  local DC=$1
+  run retry_default curl -sL -f "consul-${DC}-server:8500/v1/agent/members?wan=1"
   [ "$status" -eq 0 ]
   # echo "$output" >&3
   echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
@@ -497,9 +485,11 @@ function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
-  local NS=$4
+  local NS=${4:-}
+  local AP=${5:-}
+  local PEER_NAME=${6:-}
 
-  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS")
+  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS" "$AP" "$PEER_NAME")
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -508,9 +498,11 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
-  local NS=$4
+  local NS=${4:-}
+  local AP=${5:-}
+  local PEER_NAME=${6:-}
 
-  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS"
+  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS" "$AP" "$PEER_NAME"
   [ "$status" -eq 0 ]
 }
 
@@ -542,14 +534,14 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 consul:local "$@" 2> /dev/null
 }
 
 function docker_wget {
@@ -561,7 +553,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul:local "$@"
 }
 
 function docker_exec {
@@ -786,7 +778,14 @@ function delete_config_entry {
 
 function register_services {
   local DC=${1:-primary}
+  wait_for_leader "$DC"
   docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
+}
+
+# wait_for_leader waits until a leader is elected.
+# Its first argument must be the datacenter name.
+function wait_for_leader {
+  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
 }
 
 function setup_upsert_l4_intention {
@@ -929,4 +928,92 @@ function assert_expected_fortio_host_header {
     echo "expected Host header: $EXPECT_HOST, actual Host header: $GOT" 1>&2
     return 1
   fi
+}
+
+function create_peering {
+  local GENERATE_PEER=$1
+  local ESTABLISH_PEER=$2
+  run curl -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
+  # echo "$output" >&3
+  [ "$status" == 0 ]
+
+  local token
+  token="$(echo "$output" | jq -r .PeeringToken)"
+  [ -n "$token" ]
+
+  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  # echo "$output" >&3
+  [ "$status" == 0 ]
+}
+
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+}
+
+function register_lambdas {
+  local DC=${1:-primary}
+  # register lambdas to the catalog
+  for f in $(find workdir/${DC}/register -type f -name 'lambda_*.json'); do
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
+      echo "Registered Lambda: $(jq -r .Service.Service $f)"
+  done
+  # write service-defaults config entries for lambdas
+  for f in $(find workdir/${DC}/register -type f -name 'service_defaults_*.json'); do
+    varsub ${f} AWS_LAMBDA_REGION AWS_LAMBDA_ARN
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
+      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
+  done
+}
+
+function assert_lambda_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+
+  local BODY=$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)
+  [ -n "$BODY" ]
+
+  [ "$(echo $BODY | jq -r '.cluster.transport_socket.typed_config.sni')" == '*.amazonaws.com' ]
+}
+
+function assert_lambda_envoy_dynamic_http_filter_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local ARN=$3
+
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
+  [ -n "$FILTER" ]
+
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
+}
+
+function varsub {
+  local file=$1 ; shift
+  for v in "$@"; do
+    sed -i "s/\${$v}/${!v}/g" $file
+  done
+}
+
+function get_url_header {
+  local URL=$1
+  local HEADER=$2
+  run curl -s -f -X GET -I "${URL}"
+  [ "$status" == 0 ]
+  RESP=$(echo "$output" | tr -d '\r')
+  RESP=$(echo "$RESP" | grep -E "^${HEADER}: ")
+  RESP=$(echo "$RESP" | sed "s/^${HEADER}: //g")
+  echo "$RESP"
+}
+
+function assert_url_header {
+  local URL=$1
+  local HEADER=$2
+  local VALUE=$3
+  run get_url_header "$URL" "$HEADER"
+  [ "$status" == 0 ]
+  [ "$VALUE" = "$output" ]
 }

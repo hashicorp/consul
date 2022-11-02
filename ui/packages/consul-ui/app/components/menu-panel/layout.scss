@@ -1,114 +1,6 @@
-%menu-panel {
-  position: absolute;
-}
-%menu-panel [type='checkbox'] {
-  display: none;
-}
-%menu-panel {
-  overflow: hidden;
-  transition: min-height 150ms, max-height 150ms;
-  min-height: 0;
-}
-%menu-panel:not(.confirmation) [type='checkbox'] ~ * {
-  transition: transform 150ms;
-}
-%menu-panel [type='checkbox']:checked ~ * {
-  transform: translateX(calc(-100% - 10px));
-}
-%menu-panel.confirmation [role='menu'] {
-  min-height: 200px !important;
-}
-%menu-panel [role='menuitem'] {
-  display: flex;
-  justify-content: space-between;
-}
-%menu-panel [role='menuitem']:after {
-  @extend %as-pseudo;
-  display: block !important;
-  background-position: center right !important;
-}
-%menu-panel-sub-panel {
-  position: absolute;
-  top: 0;
-  left: calc(100% + 10px);
-  display: none;
-}
-/* TODO: once everything is using ListCollection */
-/* this can go */
-%menu-panel [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
-}
-%menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] * [role='menu'],
-%menu-panel [id$='-']:first-child:checked ~ ul > li > [role='menu'] {
-  display: block;
-}
-/**/
-%menu-panel > ul > li > div[role='menu'] {
-  @extend %menu-panel-sub-panel;
-}
-%menu-panel > ul > li > *:not(div[role='menu']) {
-  position: relative;
-}
-%menu-panel:not(.left) {
-  right: 0px;
-  left: auto;
-}
-%menu-panel.left {
-  left: 0px;
-}
-%menu-panel:not(.above) {
-  top: 28px;
-}
-%menu-panel.above {
-  bottom: 42px;
-}
-%menu-panel > ul {
-  margin: 0;
-  padding: 4px 0;
-}
-%menu-panel > ul,
-%menu-panel > ul > li,
-%menu-panel > ul > li > * {
-  width: 100%;
-}
-%menu-panel > ul > li > * {
-  text-align: left !important;
-}
-%menu-panel-separator {
-  padding-top: 0.35em;
-}
-%menu-panel-separator:not(:first-child) {
-  margin-top: 0.35em;
-}
-%menu-panel-separator:not(:empty) {
-  padding-left: 1em;
-  padding-right: 1em;
-  padding-bottom: 0.1em;
-}
 %menu-panel-header {
-  padding: 10px;
+  padding: 0.625rem var(--padding-x); /* 10px */
   white-space: normal;
-}
-/* here the !important is only needed for what seems to be a difference */
-/* with the CSS before and after compression */
-/* i.e. before compression this style is applied */
-/* after compression it is in the source but doesn't seem to get */
-/* applied (unless you add the !important) */
-%menu-panel .is-active {
-  position: relative !important;
-}
-%menu-panel .is-active > *::after {
-  position: absolute;
-  top: 50%;
-  margin-top: -8px;
-  right: 10px;
-}
-%menu-panel-header::before {
-  position: absolute;
-  left: 15px;
-  top: calc(10px + 0.1em);
 }
 %menu-panel-header {
   max-width: fit-content;
@@ -117,4 +9,64 @@
   %menu-panel-header {
     max-width: 200px;
   }
+}
+%menu-panel-header::before {
+  position: absolute;
+  left: 15px;
+  top: calc(10px + 0.1em);
+}
+
+%menu-panel-body {
+  margin: 0;
+  padding: calc(var(--padding-y) - 0.625rem) 0; /* 10px */
+}
+%menu-panel-body,
+%menu-panel-item,
+%menu-panel-item > * {
+  width: 100%;
+}
+%menu-panel-item,
+%menu-panel-button {
+  text-align: left;
+}
+%menu-panel-badge {
+  padding: 0 8px;
+  margin-left: 0.5rem; /* 8px */
+}
+%menu-panel-button {
+  display: flex;
+}
+%menu-panel-button::after {
+  margin-left: auto;
+  /* as we are using margin-left for right align */
+  /* we can't use it for an absolute margin-left */
+  /* so cheat with a bit of padding/translate */
+  padding-right: var(--padding-x);
+  transform: translate(calc(var(--padding-x) / 2), 0);
+}
+%menu-panel-separator {
+  padding-top: 0.375rem; /* 6px */
+}
+%menu-panel-separator:not(:first-child) {
+  margin-top: 0.275rem; /* 6px */
+}
+%menu-panel-separator:not(:empty) {
+  padding-left: var(--padding-x);
+  padding-right: var(--padding-x);
+  padding-bottom: 0.125rem; /* 2px */
+}
+
+%menu-panel.menu-panel-confirming {
+  overflow: hidden;
+}
+%menu-panel-confirmation {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+}
+%menu-panel-body {
+  transition: transform 150ms;
+}
+%menu-panel.menu-panel-confirming > ul {
+  transform: translateX(calc(-100% - 10px));
 }

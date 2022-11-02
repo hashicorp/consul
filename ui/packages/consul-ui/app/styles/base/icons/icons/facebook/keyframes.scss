@@ -1,0 +1,9 @@
+@keyframes icon-facebook {
+  100% {
+
+    -webkit-mask-image: var(--icon-facebook-color-16);
+    mask-image: var(--icon-facebook-color-16);
+    background-color: var(--icon-color, var(--color-facebook-500, currentColor));
+
+  }
+}

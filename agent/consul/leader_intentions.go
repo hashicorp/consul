@@ -170,7 +170,8 @@ func (s *Server) legacyIntentionsMigrationCleanupPhase(quiet bool) error {
 	req := structs.IntentionRequest{
 		Op: structs.IntentionOpDeleteAll,
 	}
-	if _, err := s.raftApply(structs.IntentionRequestType, req); err != nil {
+
+	if _, err := s.leaderRaftApply("Intentions.DeleteAll", structs.IntentionRequestType, req); err != nil {
 		return err
 	}
 
@@ -410,7 +411,9 @@ func (s *Server) replicateLegacyIntentionsOnce(ctx context.Context, lastFetchInd
 	for _, ops := range txnOpSets {
 		txnReq := structs.TxnRequest{Ops: ops}
 
-		resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
+		// TODO(rpc-metrics-improv) -- verify labels
+		resp, err := s.leaderRaftApply("Txn.Apply", structs.TxnRequestType, &txnReq)
+
 		if err != nil {
 			return 0, false, err
 		}

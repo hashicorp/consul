@@ -19,7 +19,7 @@
       @item={{data}}
       @data={{null}}
       @onchange={{action dispatch "SUCCESS"}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+      @onerror={{action "error"}}
     />
   </State>
 
@@ -28,7 +28,7 @@
       @sink={{sink}}
       @item={{data}}
       @onchange={{action dispatch "SUCCESS"}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+      @onerror={{action "error"}}
     />
   </State>
 
@@ -108,6 +108,8 @@ as |after|}}
             There was an error saving your {{or label type}}.
         {{#if (and api.error.status api.error.detail)}}
             <br />{{api.error.status}}: {{api.error.detail}}
+        {{else if api.error.message}}
+            <br />{{api.error.message}}
         {{/if}}
           </p>
         </notice.Body>

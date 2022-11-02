@@ -1,0 +1,109 @@
+# PagedCollection
+
+A renderless component to act as a helper for different types of pagination.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    Provide a widget so we can try switching between two pagination methods
+  </figcaption>
+  <select
+    onchange={{action (mut this.type) value="target.value"}}
+  >
+    <option>virtual-scroll</option>
+    <option>index</option>
+  </select>
+</figure>
+
+<figure>
+  <figcaption>Get some data and page it</figcaption>
+  <DataSource
+    @src={{uri "/partition/default/dc-1/nodes"}}
+  as |source|>
+    <PagedCollection
+      @type={{or this.type "virtual-scroll"}}
+      @items={{or source.data (array)}}
+      @perPage={{8}}
+      @page={{or this.page 1}}
+      @rowHeight="43"
+    as |pager|>
+      <div
+        style={{{style-map
+          (array 'outline' '1px solid rgb(var(--tone-gray-300))')
+          (array 'max-height' '360' 'px')
+          (array '--paged-row-height' (if (not-eq this.type 'index') '43px'))
+        }}}
+        {{did-insert pager.viewport}}
+        {{on-resize pager.resize}}
+      >
+        <ul
+          style={{{style-map
+            (array 'height' pager.totalHeight 'px')
+            (array '--paged-start' pager.startHeight 'px')
+          }}}
+        >
+        {{#each pager.items as |item|}}
+          <li
+            style={{{style-map
+              (array 'height' '43' 'px')
+              (array 'outline' '1px solid rgb(var(--tone-gray-100))')
+            }}}
+          >
+            {{item.Node}}
+          </li>
+        {{/each}}
+        </ul>
+      </div>
+      <pager.Pager>
+        <div
+          style={{{style-map
+            (array 'display' 'flex')
+            (array 'flex-direction' (if (not-eq pager.page pager.totalPages) 'row-reverse'))
+            (array 'justify-content' 'space-between')
+          }}}
+        >
+        {{#if (not-eq pager.page pager.totalPages)}}
+        <Action
+          {{on 'click' (set this 'page' (add pager.page 1))}}
+        >
+          Next
+        </Action>
+        {{/if}}
+        {{#if (not-eq pager.page 1)}}
+          <Action
+            {{on 'click' (set this 'page' (sub pager.page 1))}}
+          >
+            Prev
+          </Action>
+        {{/if}}
+        </div>
+      </pager.Pager>
+    </PagedCollection>
+  </DataSource>
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `type` | `(native-scroll \| virtual-scroll \| index)` | `native-scroll` | The type of pagination |
+| `items` | `array` | `undefined` | An array or items to be paginated |
+| `rowHeight` | `(string \| number)` | `undefined` | When `@type=virtual-scroll` this informs the scroller of the size of each row in the scroll pane. For the moment this _must_ be the same for every row. |
+| `page` | `number` | `undefined` | When `@type=index` this is the current page number to show |
+| `perPage` | `number` | `undefined` | When `@type=index` this is the amount of rows to show per page |
+
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `items` | `array` | An array of the items to be shown on the current page |
+| `page` | `number` | The current page number (a mirror of @page) |
+| `resize` | `Function` | Function to be called on the resize of the viewport |
+| `viewport` | `Function` | Function to be called on the `did-insert` of the viewport to be used for scrolling |
+| `rowHeight` | `Function` | Function to be called to set the rowHeight of the virtual-scroller |
+| `startHeight` | `number` | Size of the area before the panel to be virtually-scroller, usually you should use this to set `--paged-start` wrapping element of the scrollable items |
+| `totalHeight` | `number` | Size of the of the entire panel in order to show the correctly sized scroll thumb |
+| `totalPages` | `number` | Totol number of pages |
+
+

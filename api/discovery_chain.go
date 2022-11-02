@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 		method = "POST"
 	}
 
-	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", url.PathEscape(name)))
+	r := d.c.newRequest(method, fmt.Sprintf("/v1/discovery-chain/%s", name))
 	r.setQueryOptions(q)
 
 	if opts != nil {
@@ -110,8 +109,16 @@ type CompiledDiscoveryChain struct {
 	// non-customized versions.
 	CustomizationHash string
 
+	// Default indicates if this discovery chain is based on no
+	// service-resolver, service-splitter, or service-router config entries.
+	Default bool
+
 	// Protocol is the overall protocol shared by everything in the chain.
 	Protocol string
+
+	// ServiceMeta is the metadata from the underlying service-defaults config
+	// entry for the service named ServiceName.
+	ServiceMeta map[string]string
 
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
@@ -227,9 +234,46 @@ type DiscoveryTarget struct {
 	Namespace     string
 	Datacenter    string
 
-	MeshGateway MeshGatewayConfig
-	Subset      ServiceResolverSubset
-	External    bool
-	SNI         string
-	Name        string
+	MeshGateway    MeshGatewayConfig
+	Subset         ServiceResolverSubset
+	ConnectTimeout time.Duration
+	External       bool
+	SNI            string
+	Name           string
+}
+
+func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type Alias DiscoveryTarget
+	exported := &struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: t.ConnectTimeout.String(),
+		Alias:          (*Alias)(t),
+	}
+	if t.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
+	type Alias DiscoveryTarget
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if t.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }

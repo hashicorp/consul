@@ -14,8 +14,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
 
-	grpc "github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
@@ -29,8 +29,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	// TODO(rb): add tests for the wanfed/alpn variations
 
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	conf1.RPCConfig.EnableStreaming = true
 	configureTLS(conf1)
 	server, err := newServer(t, conf1)
@@ -76,7 +76,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+		req := &pbsubscribe.SubscribeRequest{
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
+		}
 		streamHandle, err := streamClient.Subscribe(ctx, req)
 		require.NoError(t, err)
 
@@ -115,7 +122,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+		req := &pbsubscribe.SubscribeRequest{
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
+		}
 		streamHandle, err := streamClient.Subscribe(ctx, req)
 		require.NoError(t, err)
 
@@ -161,11 +175,11 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 
 	// Set up a server with initially bad certificates.
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
-	conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
-	conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
-	conf1.TLSConfig.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.CAFile = "../../test/ca/root.cer"
+	conf1.TLSConfig.InternalRPC.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+	conf1.TLSConfig.InternalRPC.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
 	conf1.RPCConfig.EnableStreaming = true
 
 	server, err := newServer(t, conf1)
@@ -193,14 +207,21 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+	req := &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "redis",
+			},
+		},
+	}
 	_, err = streamClient.Subscribe(ctx, req)
 	require.Error(t, err)
 
 	// Reload the server with valid certs
 	newConf := server.config.TLSConfig
-	newConf.CertFile = "../../test/key/ourdomain.cer"
-	newConf.KeyFile = "../../test/key/ourdomain.key"
+	newConf.InternalRPC.CertFile = "../../test/key/ourdomain.cer"
+	newConf.InternalRPC.KeyFile = "../../test/key/ourdomain.key"
 	server.tlsConfigurator.Update(newConf)
 
 	// Try the subscribe call again
@@ -212,7 +233,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 }
 
 func clientConfigVerifyOutgoing(config *Config) {
-	config.TLSConfig.VerifyOutgoing = true
+	config.TLSConfig.InternalRPC.VerifyOutgoing = true
 }
 
 // retryFailedConn forces the ClientConn to reset its backoff timer and retry the connection,
@@ -383,7 +404,14 @@ type testLogger interface {
 }
 
 func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client pbsubscribe.StateChangeSubscriptionClient, i int, updateCount *uint64) error {
-	req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+	req := &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "redis",
+			},
+		},
+	}
 	streamHandle, err := client.Subscribe(ctx, req)
 	switch {
 	case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
@@ -416,13 +444,17 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 			if err != nil {
 				return err
 			}
-			if expectPort != svc.Port {
+			switch svc.Port {
+			case expectPort:
+				atomic.AddUint64(updateCount, 1)
+				logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
+				expectPort++
+			case expectPort - 1:
+				logger.Logf("subscriber %05d: got event with repeated prior port=%d at index %d", i, expectPort-1, event.Index)
+			default:
 				return fmt.Errorf("subscriber %05d: at index %d: expected port %d, got %d",
 					i, event.Index, expectPort, svc.Port)
 			}
-			atomic.AddUint64(updateCount, 1)
-			logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
-			expectPort++
 		default:
 			// snapshot events
 			svc, err := svcOrErr(event)

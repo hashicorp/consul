@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerIngressGateway struct {
@@ -16,7 +17,7 @@ type handlerIngressGateway struct {
 func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -25,8 +26,20 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 		return snap, err
 	}
 
+	// Get information about the entire service mesh.
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch this ingress gateway's config entry
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.IngressGateway,
 		Name:           s.service,
 		Datacenter:     s.source.Datacenter,
@@ -38,7 +51,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	}
 
 	// Watch the ingress-gateway's list of upstreams
-	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
+	err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
@@ -55,10 +68,13 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	snap.IngressGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.IngressGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
+	snap.IngressGateway.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
+	snap.IngressGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
+	snap.IngressGateway.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 	return snap, nil
 }
 
-func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -75,6 +91,9 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+		if resp.Entry == nil {
+			return nil
+		}
 		gatewayConf, ok := resp.Entry.(*structs.IngressGatewayConfigEntry)
 		if !ok {
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
@@ -84,6 +103,9 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
 		snap.IngressGateway.TracingStrategy = gatewayConf.TracingStrategy
 		snap.IngressGateway.TracingPercentage = gatewayConf.TracingPercentage
+		if gatewayConf.Defaults != nil {
+			snap.IngressGateway.Defaults = *gatewayConf.Defaults
+		}
 
 		// Load each listener's config from the config entry so we don't have to
 		// pass listener config through "upstreams" types as that grows.
@@ -111,6 +133,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 			uid := NewUpstreamID(&u)
 
+			// TODO(peering): pipe destination_peer here
 			watchOpts := discoveryChainWatchOpts{
 				id:         uid,
 				name:       u.DestinationName,
@@ -138,6 +161,18 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 		for uid, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
 			if _, ok := watchedSvcs[uid]; !ok {
+				for targetID, cancelUpstreamFn := range snap.IngressGateway.WatchedUpstreams[uid] {
+					delete(snap.IngressGateway.WatchedUpstreams[uid], targetID)
+					delete(snap.IngressGateway.WatchedUpstreamEndpoints[uid], targetID)
+					cancelUpstreamFn()
+
+					targetUID := NewUpstreamIDFromTargetID(targetID)
+					if targetUID.Peer != "" {
+						snap.IngressGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
+						snap.IngressGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+					}
+				}
+
 				cancelFn()
 				delete(snap.IngressGateway.WatchedDiscoveryChains, uid)
 			}
@@ -174,7 +209,7 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 }
 
 func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
-	// Note that we DON'T test for TLS.Enabled because we need a leaf cert for the
+	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
 	// gateway even without TLS to use as a client cert.
 	if !snap.IngressGateway.GatewayConfigLoaded || !snap.IngressGateway.HostsSet {
 		return nil
@@ -185,7 +220,7 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 		snap.IngressGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+	err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.service,

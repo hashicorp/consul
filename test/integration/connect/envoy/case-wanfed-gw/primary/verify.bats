@@ -19,7 +19,7 @@ load helpers
 }
 
 @test "gateway-secondary should be up and listening" {
-  retry_long nc -z consul-secondary:4432
+  retry_long nc -z consul-secondary-client:4432
 }
 
 @test "primary should be able to rpc to the secondary" {
@@ -27,5 +27,5 @@ load helpers
 }
 
 @test "wan pool should show 2 healthy nodes" {
-  assert_alive_wan_member_count 2
+  assert_alive_wan_member_count primary 2
 }

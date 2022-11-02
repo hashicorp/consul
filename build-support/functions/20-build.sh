@@ -139,56 +139,11 @@ function build_ui {
    # Copy UI over ready to be packaged into the binary
    if test ${ret} -eq 0
    then
-      rm -rf ${1}/pkg/web_ui
-      mkdir -p ${1}/pkg
-      cp -r ${1}/ui/dist ${1}/pkg/web_ui
+      rm -rf ${1}/agent/uiserver/dist
+      cp -r ${1}/ui/dist ${1}/agent/uiserver/
    fi
 
    popd > /dev/null
-   return $ret
-}
-
-function build_assetfs {
-   # Arguments:
-   #   $1 - Path to the top level Consul source
-   #   $2 - The docker image to run the build within (optional)
-   #
-   # Returns:
-   #   0 - success
-   #   * - error
-   #
-   # Note:
-   #   The GIT_COMMIT and GIT_DIRTY environment variables will be used if present
-
-   if ! test -d "$1"
-   then
-      err "ERROR: '$1' is not a directory. build_assetfs must be called with the path to the top level source as the first argument'"
-      return 1
-   fi
-
-   local sdir="$1"
-   local image_name=${GO_BUILD_CONTAINER_DEFAULT}
-   if test -n "$2"
-   then
-      image_name="$2"
-   fi
-
-   pushd ${sdir} > /dev/null
-   status "Creating the Go Build Container with image: ${image_name}"
-   local container_id=$(docker create -it -e GIT_COMMIT=${GIT_COMMIT} -e GIT_DIRTY=${GIT_DIRTY} ${image_name} make static-assets ASSETFS_PATH=bindata_assetfs.go)
-   local ret=$?
-   if test $ret -eq 0
-   then
-      status "Copying the sources from '${sdir}/(pkg/web_ui|GNUmakefile)' to /consul/pkg"
-      (
-         tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/consul &&
-         status "Running build in container" && docker start -i ${container_id} &&
-         status "Copying back artifacts" && docker cp ${container_id}:/consul/bindata_assetfs.go ${sdir}/agent/uiserver/bindata_assetfs.go
-      )
-      ret=$?
-      docker rm ${container_id} > /dev/null
-   fi
-   popd >/dev/null
    return $ret
 }
 
@@ -316,7 +271,7 @@ function build_consul {
       status "Ensuring Go modules are up to date"
       # ensure our go module cache is correct
       go_mod_assert || return 1
-      # setup to bind mount our hosts module cache into the container
+      # Setup to bind mount our hosts module cache into the container
       volume_mount="--mount=type=bind,source=${MAIN_GOPATH}/pkg/mod,target=/go/pkg/mod"
    fi
 
@@ -326,8 +281,7 @@ function build_consul {
       -e CGO_ENABLED=0 \
       -e GOLDFLAGS="${GOLDFLAGS}" \
       -e GOTAGS="${GOTAGS}" \
-      ${image_name} \
-      ./build-support/scripts/build-local.sh -o "${XC_OS}" -a "${XC_ARCH}")
+      ${image_name} make linux)
    ret=$?
 
    if test $ret -eq 0
@@ -353,111 +307,4 @@ function build_consul {
    fi
    popd > /dev/null
    return $ret
-}
-
-function build_consul_local {
-   # Arguments:
-   #   $1 - Path to the top level Consul source
-   #   $2 - Space separated string of OSes to build. If empty will use env vars for determination.
-   #   $3 - Space separated string of architectures to build. If empty will use env vars for determination.
-   #   $4 - Subdirectory to put binaries in under pkg/bin (optional)
-   #
-   # Returns:
-   #   0 - success
-   #   * - error
-   #
-   # Note:
-   #   The GOLDFLAGS and GOTAGS environment variables will be used if set
-   #   If the CONSUL_DEV environment var is truthy only the local platform/architecture is built.
-   #   If the XC_OS or the XC_ARCH environment vars are present then only those platforms/architectures
-   #   will be built. Otherwise all supported platform/architectures are built
-   #   The GOXPARALLEL environment variable is used if set
-
-   if ! test -d "$1"
-   then
-      err "ERROR: '$1' is not a directory. build_consul must be called with the path to the top level source as the first argument'"
-      return 1
-   fi
-
-   local sdir="$1"
-   local build_os="$2"
-   local build_arch="$3"
-   local extra_dir_name="$4"
-   local extra_dir=""
-
-   if test -n "${extra_dir_name}"
-   then
-      extra_dir="${extra_dir_name}/"
-   fi
-
-   pushd ${sdir} > /dev/null
-   if is_set "${CONSUL_DEV}"
-   then
-      if test -z "${XC_OS}"
-      then
-         XC_OS=$(go env GOOS)
-      fi
-
-      if test -z "${XC_ARCH}"
-      then
-         XC_ARCH=$(go env GOARCH)
-      fi
-   fi
-   XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
-   XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
-
-   if test -z "${build_os}"
-   then
-      build_os="${XC_OS}"
-   fi
-
-   if test -z "${build_arch}"
-   then
-      build_arch="${XC_ARCH}"
-   fi
-
-   status_stage "==> Building Consul - OSes: ${build_os}, Architectures: ${build_arch}"
-   mkdir pkg.bin.new 2> /dev/null
-
-   status "Building sequentially with go install"
-   for os in ${build_os}
-   do
-      for arch in ${build_arch}
-      do
-         outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
-         osarch="${os}/${arch}"
-
-         if ! supported_osarch "${osarch}"
-         then
-            continue
-         fi
-         echo "--->   ${osarch}"
-
-         mkdir -p "${outdir}"
-         GOBIN_EXTRA=""
-         if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
-         then
-            GOBIN_EXTRA="${os}_${arch}/"
-         fi
-         binname="consul"
-         if [ $os == "windows" ];then
-               binname="consul.exe"
-         fi
-         debug_run env CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
-         if test $? -ne 0
-         then
-            err "ERROR: Failed to build Consul for ${osarch}"
-            rm -r pkg.bin.new
-            return 1
-         fi
-      done
-   done
-
-   build_consul_post "${sdir}" "${extra_dir_name}"
-   if test $? -ne 0
-   then
-      err "ERROR: Failed postprocessing Consul binaries"
-      return 1
-   fi
-   return 0
 }

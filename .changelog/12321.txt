@@ -1,0 +1,3 @@
+```release-note:improvement
+server: conditionally avoid writing a config entry to raft if it was already the same
+```

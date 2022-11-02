@@ -28,7 +28,7 @@ load helpers
 }
 
 @test "gateway-secondary should have healthy endpoints for s2" {
-   assert_upstream_has_endpoints_in_status consul-secondary:19003 s2 HEALTHY 1
+   assert_upstream_has_endpoints_in_status consul-secondary-client:19003 s2 HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2" {

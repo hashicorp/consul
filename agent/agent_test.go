@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,13 +25,18 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -40,6 +46,8 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -415,6 +423,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
+	duration3s, _ := time.ParseDuration("3s")
+	duration10s, _ := time.ParseDuration("10s")
+
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -452,12 +463,58 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					Notes:          "note1",
 					ServiceID:      "svcid1",
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		},
+		{
+			"one http check with interval and duration",
+			&structs.NodeService{
+				ID:             "svcid1",
+				Service:        "svcname1",
+				Tags:           []string{"tag1"},
+				Weights:        nil, // nil weights...
+				Port:           8100,
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+			// ... should be populated to avoid "IsSame" returning true during AE.
+			func(ns *structs.NodeService) {
+				ns.Weights = &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				}
+			},
+			[]*structs.CheckType{
+				{
+					CheckID:  "check1",
+					Name:     "name1",
+					HTTP:     "http://localhost:8100/",
+					Interval: duration10s,
+					Timeout:  duration3s,
+					Notes:    "note1",
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": {
+					Node:           "node1",
+					CheckID:        "check1",
+					Name:           "name1",
+					Interval:       "10s",
+					Timeout:        "3s",
+					Status:         "critical",
+					Notes:          "note1",
+					ServiceID:      "svcid1",
+					ServiceName:    "svcname1",
+					ServiceTags:    []string{"tag1"},
+					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
@@ -500,6 +557,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check1",
 					Name:           "name1",
+					Interval:       "",
+					Timeout:        "", // these are empty bcause a TTL was provided
 					Status:         "critical",
 					Notes:          "note1",
 					ServiceID:      "svcid2",
@@ -512,6 +571,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "check-noname",
 					Name:           "Service 'svcname2' check",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -523,6 +584,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "service:svcid2:3",
 					Name:           "check-noid",
+					Interval:       "",
+					Timeout:        "", // these are empty becuase a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -534,6 +597,8 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					Node:           "node1",
 					CheckID:        "service:svcid2:4",
 					Name:           "Service 'svcname2' check",
+					Interval:       "",
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -1848,7 +1913,7 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func TestAgent_AddCheck_Alias(t *testing.T) {
+func TestAgent_Alias_AddRemove(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1858,29 +1923,39 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	health := &structs.HealthCheck{
-		Node:    "foo",
-		CheckID: "aliashealth",
-		Name:    "Alias health check",
-		Status:  api.HealthCritical,
-	}
-	chk := &structs.CheckType{
-		AliasService: "foo",
-	}
-	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(t, err)
+	cid := structs.NewCheckID("aliashealth", nil)
 
-	// Ensure we have a check mapping
-	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(t, api.HealthCritical, sChk.Status)
+	testutil.RunStep(t, "add check", func(t *testing.T) {
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: cid.ID,
+			Name:    "Alias health check",
+			Status:  api.HealthCritical,
+		}
+		chk := &structs.CheckType{
+			AliasService: "foo",
+		}
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		require.NoError(t, err)
 
-	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(t, ok, "missing aliashealth check")
-	require.Equal(t, "", chkImpl.RPCReq.Token)
+		sChk := requireCheckExists(t, a, cid.ID)
+		require.Equal(t, api.HealthCritical, sChk.Status)
 
-	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(t, cs)
-	require.Equal(t, "", cs.Token)
+		chkImpl, ok := a.checkAliases[cid]
+		require.True(t, ok, "missing aliashealth check")
+		require.Equal(t, "", chkImpl.RPCReq.Token)
+
+		cs := a.State.CheckState(cid)
+		require.NotNil(t, cs)
+		require.Equal(t, "", cs.Token)
+	})
+
+	testutil.RunStep(t, "remove check", func(t *testing.T) {
+		require.NoError(t, a.RemoveCheck(cid, false))
+
+		requireCheckMissing(t, a, cid.ID)
+		requireCheckMissingMap(t, a.checkAliases, cid.ID)
+	})
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
@@ -2082,7 +2157,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := StartTestAgent(t, TestAgent{
-			UseTLS: true,
+			UseHTTPS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
 
@@ -2773,7 +2848,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 	}
 
-	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	connectSrv, _, _, err := sidecarServiceFromNodeService(srv, "")
 	require.NoError(t, err)
 
 	// First persist the check
@@ -2946,9 +3021,22 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
-	requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
+	sidecarSvc := requireServiceExists(t, a, "rabbitmq-sidecar-proxy")
 	if token := a.State.ServiceToken(structs.NewServiceID("rabbitmq-sidecar-proxy", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
+	}
+
+	// Verify default checks have been added
+	wantChecks := sidecarDefaultChecks(sidecarSvc.ID, sidecarSvc.Address, sidecarSvc.Proxy.LocalServiceAddress, sidecarSvc.Port)
+	gotChecks := a.State.ChecksForService(sidecarSvc.CompoundServiceID(), true)
+	gotChkNames := make(map[string]types.CheckID)
+	for _, check := range gotChecks {
+		requireCheckExists(t, a, check.CheckID)
+		gotChkNames[check.Name] = check.CheckID
+	}
+	for _, check := range wantChecks {
+		chkName := check.Name
+		require.NotNil(t, gotChkNames[chkName])
 	}
 
 	// Sanity check rabbitmq service should NOT have sidecar info in state since
@@ -3847,7 +3935,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := TestAgent{UseTLS: true}
+	a := TestAgent{UseHTTPS: true}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -3921,9 +4009,11 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
+
 	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 
 	hcl = `
 		data_dir = "` + dataDir + `"
@@ -3936,9 +4026,11 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
+
 	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.ClientCAs, cmpCertPool)
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
@@ -4008,8 +4100,9 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tlsConf)
 	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 
 	hcl = `
 		data_dir = "` + dataDir + `"
@@ -4024,8 +4117,9 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.ClientCAs, cmpCertPool)
 }
 
 func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
@@ -4056,8 +4150,32 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
+}
+
+func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` xds { update_max_per_second = 1000 }`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
@@ -4078,6 +4196,36 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
+}
+
+func TestAgent_ReloadConfigRPCClientConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	hcl := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := NewTestAgent(t, hcl)
+
+	defaultRPCTimeout := 60 * time.Second
+	require.Equal(t, defaultRPCTimeout, a.baseDeps.ConnPool.RPCClientTimeout())
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		limits {
+			rpc_client_timeout = "2m"
+		}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, 2*time.Minute, a.baseDeps.ConnPool.RPCClientTimeout())
 }
 
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
@@ -4647,19 +4795,19 @@ services {
 
 	deadlineCh := time.After(10 * time.Second)
 	start := time.Now()
-LOOP:
 	for {
 		select {
 		case evt := <-ch:
 			// We may receive several notifications of an error until we get the
 			// first successful reply.
 			require.Equal(t, "foo", evt.CorrelationID)
-			if evt.Err != nil {
-				break LOOP
+			if evt.Err == nil {
+				require.NoError(t, evt.Err)
+				require.NotNil(t, evt.Result)
+				t.Logf("took %s to get first success", time.Since(start))
+				return
 			}
-			require.NoError(t, evt.Err)
-			require.NotNil(t, evt.Result)
-			t.Logf("took %s to get first success", time.Since(start))
+			t.Logf("saw error: %v", evt.Err)
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
 		}
@@ -5186,7 +5334,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
 		}
 		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
-		UseTLS: true,
+		UseHTTPS: true,
 	})
 
 	defer client.Shutdown()
@@ -5318,9 +5466,753 @@ func uniqueAddrs(srvs []apiServer) map[string]struct{} {
 	return result
 }
 
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+func TestAgent_AutoReloadDoReload_WhenCertAndKeyUpdated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	certsDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	serverName := "server.dc1.consul"
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+
+	certFile := filepath.Join(certsDir, "cert.pem")
+	caFile := filepath.Join(certsDir, "cacert.pem")
+	keyFile := filepath.Join(certsDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	hclConfig := TestACLConfigWithParams(nil) + `
+		encrypt = "` + gossipKeyEncoded + `"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "` + caFile + `"
+		cert_file = "` + certFile + `"
+		key_file = "` + keyFile + `"
+		connect { enabled = true }
+		auto_reload_config = true
+	`
+
+	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	aeCert := srv.tlsConfigurator.Cert()
+	require.NotNil(t, aeCert)
+
+	cert2, privateKey2, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert2), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey2), 0600))
+
+	retry.Run(t, func(r *retry.R) {
+		aeCert2 := srv.tlsConfigurator.Cert()
+		require.NotEqual(r, aeCert.Certificate, aeCert2.Certificate)
+	})
+
+}
+
+func TestAgent_AutoReloadDoNotReload_WhenCaUpdated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	certsDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	serverName := "server.dc1.consul"
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+
+	certFile := filepath.Join(certsDir, "cert.pem")
+	caFile := filepath.Join(certsDir, "cacert.pem")
+	keyFile := filepath.Join(certsDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	hclConfig := TestACLConfigWithParams(nil) + `
+		encrypt = "` + gossipKeyEncoded + `"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "` + caFile + `"
+		cert_file = "` + certFile + `"
+		key_file = "` + keyFile + `"
+		connect { enabled = true }
+		auto_reload_config = true
+	`
+
+	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig})
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	aeCA := srv.tlsConfigurator.ManualCAPems()
+	require.NotNil(t, aeCA)
+
+	ca2, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca2), 0600))
+
+	// wait a bit to see if it get updated.
+	time.Sleep(time.Second)
+
+	aeCA2 := srv.tlsConfigurator.ManualCAPems()
+	require.NotNil(t, aeCA2)
+	require.Equal(t, aeCA, aeCA2)
+}
+
+func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	certsDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	serverName := "server.dc1.consul"
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+
+	certFile := filepath.Join(certsDir, "cert.pem")
+	caFile := filepath.Join(certsDir, "cacert.pem")
+	keyFile := filepath.Join(certsDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	hclConfig := TestACLConfigWithParams(nil)
+
+	configFile := testutil.TempDir(t, "config") + "/config.hcl"
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFile+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}})
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
+
+	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	certFileNew := filepath.Join(certsDir, "cert_new.pem")
+	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFileNew+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	// cert should not change as we did not update the associated key
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
+	})
+
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+
+	// cert should change as we did not update the associated key
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		require.NotEqual(r, cert1Pub, srv.tlsConfigurator.Cert().Certificate)
+		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
+	})
+}
+
+func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	certsDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	serverName := "server.dc1.consul"
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+
+	certFile := filepath.Join(certsDir, "cert.pem")
+	caFile := filepath.Join(certsDir, "cacert.pem")
+	keyFile := filepath.Join(certsDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	hclConfig := TestACLConfigWithParams(nil)
+
+	configFile := testutil.TempDir(t, "config") + "/config.hcl"
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFile+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	srv := StartTestAgent(t, TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}})
+
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
+
+	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	certFileNew := filepath.Join(certsDir, "cert_new.pem")
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+	// cert should not change as we did not update the associated key
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
+	})
+
+	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFileNew+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	// cert should change as we did not update the associated key
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.NotEqual(r, cert1Key, cert.Certificate)
+		require.NotEqual(r, cert1Key, cert.PrivateKey)
+	})
+	cert2Pub := srv.tlsConfigurator.Cert().Certificate
+	cert2Key := srv.tlsConfigurator.Cert().PrivateKey
+
+	certNew2, privateKeyNew2, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew2), 0600))
+	// cert should not change as we did not update the associated cert
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert2Pub, cert.Certificate)
+		require.Equal(r, cert2Key, cert.PrivateKey)
+	})
+
+	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew2), 0600))
+
+	// cert should change as we did  update the associated key
+	time.Sleep(1 * time.Second)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.NotEqual(r, cert2Pub, cert.Certificate)
+		require.NotEqual(r, cert2Key, cert.PrivateKey)
+	})
+}
+
+func Test_coalesceTimerTwoPeriods(t *testing.T) {
+
+	certsDir := testutil.TempDir(t, "auto-config")
+
+	// write some test TLS certificates out to the cfg dir
+	serverName := "server.dc1.consul"
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	require.NoError(t, err)
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+
+	certFile := filepath.Join(certsDir, "cert.pem")
+	caFile := filepath.Join(certsDir, "cacert.pem")
+	keyFile := filepath.Join(certsDir, "key.pem")
+
+	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+
+	// generate a gossip key
+	gossipKey := make([]byte, 32)
+	n, err := rand.Read(gossipKey)
+	require.NoError(t, err)
+	require.Equal(t, 32, n)
+	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
+
+	hclConfig := TestACLConfigWithParams(nil)
+
+	configFile := testutil.TempDir(t, "config") + "/config.hcl"
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFile+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	coalesceInterval := 100 * time.Millisecond
+	testAgent := TestAgent{Name: "TestAgent-Server", HCL: hclConfig, configFiles: []string{configFile}, Config: &config.RuntimeConfig{
+		AutoReloadConfigCoalesceInterval: coalesceInterval,
+	}}
+	srv := StartTestAgent(t, testAgent)
+	defer srv.Shutdown()
+
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
+
+	cert1Pub := srv.tlsConfigurator.Cert().Certificate
+	cert1Key := srv.tlsConfigurator.Cert().PrivateKey
+
+	certNew, privateKeyNew, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
+	certFileNew := filepath.Join(certsDir, "cert_new.pem")
+	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+		encrypt = "`+gossipKeyEncoded+`"
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true
+		verify_incoming = true
+		verify_outgoing = true
+		verify_server_hostname = true
+		ca_file = "`+caFile+`"
+		cert_file = "`+certFileNew+`"
+		key_file = "`+keyFile+`"
+		connect { enabled = true }
+		auto_reload_config = true
+	`), 0600))
+
+	// cert should not change as we did not update the associated key
+	time.Sleep(coalesceInterval * 2)
+	retry.Run(t, func(r *retry.R) {
+		cert := srv.tlsConfigurator.Cert()
+		require.NotNil(r, cert)
+		require.Equal(r, cert1Pub, cert.Certificate)
+		require.Equal(r, cert1Key, cert.PrivateKey)
+	})
+
+	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+
+	// cert should change as we did not update the associated key
+	time.Sleep(coalesceInterval * 2)
+	retry.Run(t, func(r *retry.R) {
+		require.NotEqual(r, cert1Pub, srv.tlsConfigurator.Cert().Certificate)
+		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
+	})
+
+}
+
+func TestAgent_startListeners(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	ports := freeport.GetN(t, 3)
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+		},
+		RuntimeConfig: &config.RuntimeConfig{
+			HTTPAddrs: []net.Addr{},
+		},
+		Cache: cache.New(cache.Options{}),
+	}
+
+	bd, err := initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	// use up an address
+	used := net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[2]}
+	l, err := net.Listen("tcp", used.String())
+	require.NoError(t, err)
+	t.Cleanup(func() { l.Close() })
+
+	var lns []net.Listener
+	t.Cleanup(func() {
+		for _, ln := range lns {
+			ln.Close()
+		}
+	})
+
+	// first two addresses open listeners but third address should fail
+	lns, err = agent.startListeners([]net.Addr{
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[2]},
+	})
+	require.Contains(t, err.Error(), "address already in use")
+
+	// first two ports should be freed up
+	retry.Run(t, func(r *retry.R) {
+		lns, err = agent.startListeners([]net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		})
+		require.NoError(r, err)
+		require.Len(r, lns, 2)
+	})
+
+	// first two ports should be in use
+	retry.Run(t, func(r *retry.R) {
+		_, err = agent.startListeners([]net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		})
+		require.Contains(r, err.Error(), "address already in use")
+	})
+
+}
+
+func TestAgent_ServerCertificate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	const expectURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/agent/server/dc/dc1"
+
+	// Leader should acquire a sever cert after bootstrapping.
+	a1 := NewTestAgent(t, `
+node_name = "a1"
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a1.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+
+	// Join a follower, and it should be able to acquire a server cert as well.
+	a2 := NewTestAgent(t, `
+node_name = "a2"
+bootstrap = false
+acl {
+	enabled = true
+	tokens {
+		initial_management = "root"
+		default = "root"
+	}
+}
+connect {
+	enabled = true
+}
+peering {
+	enabled = true
+}`)
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		cert := a2.tlsConfigurator.AutoEncryptCert()
+		require.NotNil(r, cert)
+		require.Len(r, cert.URIs, 1)
+		require.Equal(r, expectURI, cert.URIs[0].String())
+	})
+}
+
+func TestAgent_startListeners_scada(t *testing.T) {
+	t.Parallel()
+	pvd := scada.NewMockProvider(t)
+	c := capability.NewAddr("testcap")
+	pvd.EXPECT().Listen(c.Capability()).Return(nil, nil).Once()
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+			HCP: hcp.Deps{
+				Provider: pvd,
+			},
+		},
+		RuntimeConfig: &config.RuntimeConfig{},
+		Cache:         cache.New(cache.Options{}),
+	}
+
+	bd, err := initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	_, err = agent.startListeners([]net.Addr{c})
+	require.NoError(t, err)
+}
+
+func TestAgent_scadaProvider(t *testing.T) {
+	pvd := scada.NewMockProvider(t)
+
+	// this listener is used when mocking out the scada provider
+	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
+	require.NoError(t, err)
+	defer require.NoError(t, l.Close())
+
+	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
+	pvd.EXPECT().Start().Return(nil).Once()
+	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
+	pvd.EXPECT().Stop().Return(nil).Once()
+	pvd.EXPECT().SessionStatus().Return("test")
+	a := TestAgent{
+		OverrideDeps: func(deps *BaseDeps) {
+			deps.HCP.Provider = pvd
+		},
+		Overrides: `
+cloud {
+  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
+  client_id = "test"
+  client_secret = "test"
+}`,
+	}
+	defer a.Shutdown()
+	require.NoError(t, a.Start(t))
+
+	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
+	require.NoError(t, err)
+}
+
+func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	require.NoError(t, err)
+	if !pool.AppendCertsFromPEM(data) {
+		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
+	}
+	return pool
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		require.NoError(t, err)
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }

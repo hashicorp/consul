@@ -1,0 +1,9 @@
+@keyframes icon-chevrons-right {
+  100% {
+
+    -webkit-mask-image: var(--icon-chevrons-right-16);
+    mask-image: var(--icon-chevrons-right-16);
+    background-color: var(--icon-color, var(--color-chevrons-right-500, currentColor));
+
+  }
+}

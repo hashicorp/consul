@@ -57,7 +57,7 @@ func (p *Proxy) Serve() error {
 				// Setup telemetry if configured
 				// NOTE(kit): As far as I can tell, all of the metrics in the proxy are generated at runtime, so we
 				//  don't have any static metrics we initialize at start.
-				_, err := lib.InitTelemetry(newCfg.Telemetry)
+				_, err := lib.InitTelemetry(newCfg.Telemetry, p.logger)
 				if err != nil {
 					p.logger.Error("proxy telemetry config error", "error", err)
 				}
@@ -75,12 +75,7 @@ func (p *Proxy) Serve() error {
 					tcfg := service.ServerTLSConfig()
 					cert, _ := tcfg.GetCertificate(nil)
 					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
-					roots, err := connect.CommonNamesFromCertPool(tcfg.RootCAs)
-					if err != nil {
-						p.logger.Error("Failed to parse root subjects", "error", err)
-					} else {
-						p.logger.Info("Parsed TLS identity", "uri", leaf.URIs[0], "roots", roots)
-					}
+					p.logger.Info("Parsed TLS identity", "uri", leaf.URIs[0])
 
 					// Only start a listener if we have a port set. This allows
 					// the configuration to disable our public listener.
@@ -128,6 +123,9 @@ func (p *Proxy) Serve() error {
 			cfg = newCfg
 
 		case <-p.stopChan:
+			if p.service != nil {
+				p.service.Close()
+			}
 			return nil
 		}
 	}
@@ -158,7 +156,4 @@ func (p *Proxy) startListener(name string, l *Listener) error {
 // called only once.
 func (p *Proxy) Close() {
 	close(p.stopChan)
-	if p.service != nil {
-		p.service.Close()
-	}
 }

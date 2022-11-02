@@ -21,18 +21,25 @@ export default class IntentionSerializer extends Serializer {
       item.Legacy = true;
       item.LegacyID = item.ID;
     }
-    item.ID = this
-      .uri`${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+
+    if (item.SourcePeer) {
+      item.ID = this
+        .uri`peer:${item.SourcePeer}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+    } else {
+      item.ID = this
+        .uri`${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}`;
+    }
+
     return item;
   }
 
   respondForQuery(respond, query) {
     return super.respondForQuery(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => this.ensureID(item))
+            body.map((item) => this.ensureID(item))
           );
         }),
       query
@@ -41,7 +48,7 @@ export default class IntentionSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return super.respondForQueryRecord(
-      cb =>
+      (cb) =>
         respond((headers, body) => {
           body = this.ensureID(body);
           return cb(headers, body);

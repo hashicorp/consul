@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixes an issue where client side validation errors were not showing in certain areas
+```

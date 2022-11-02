@@ -1,0 +1,9 @@
+@keyframes icon-slack {
+  100% {
+
+    -webkit-mask-image: var(--icon-slack-color-16);
+    mask-image: var(--icon-slack-color-16);
+    background-color: var(--icon-color, var(--color-slack-500, currentColor));
+
+  }
+}

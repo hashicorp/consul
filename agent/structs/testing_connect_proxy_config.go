@@ -1,6 +1,10 @@
 package structs
 
-import "github.com/mitchellh/go-testing-interface"
+import (
+	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // TestConnectProxyConfig returns a ConnectProxyConfig representing a valid
 // Connect proxy.
@@ -22,7 +26,7 @@ func TestUpstreams(t testing.T) Upstreams {
 			Config: map[string]interface{}{
 				// Float because this is how it is decoded by JSON decoder so this
 				// enables the value returned to be compared directly to a decoded JSON
-				// response without spurios type loss.
+				// response without spurious type loss.
 				"connect_timeout_ms": float64(1000),
 			},
 		},
@@ -44,7 +48,7 @@ func TestUpstreams(t testing.T) Upstreams {
 // TestUpstreams) and adds default values that are populated during
 // registration. Use this for generating the expected Upstreams value after
 // registration.
-func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream, entMeta EnterpriseMeta) Upstreams {
+func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream, entMeta acl.EnterpriseMeta) Upstreams {
 	ups := make([]Upstream, len(upstreams))
 	for i := range upstreams {
 		ups[i] = upstreams[i]

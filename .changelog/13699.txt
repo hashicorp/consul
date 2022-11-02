@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Fix a bug where terminating gateway upstream clusters weren't configured properly when the service protocol was `http2`.
+```

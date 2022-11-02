@@ -40,6 +40,14 @@ Please make sure you use the `uri` helper to specify src URIs, this ensures that
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the data. |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `data`  | `object` | The loaded dataset once any data has been loaded successfully |
+| `error` | `Error` |The error thrown if an error is encountered whilst loading data |
+| `invalidate` | `function` | Invalidate the data represented by the datasource, therefore forcing a re-request of data for the DataSource |
+
 The component takes a `src` or an identifier (a uri) for some data and then emits `onchange` events whenever that data changes. If an error occurs whilst listening for data changes, an `onerror` event is emitted.
 
 Setting `@loading="lazy"` uses `IntersectionObserver` to activate/deactive event emitting until the `<DataSource />` element is displayed in the DOM. This means you can use CSS `display: none|block;` to control the loading and stopping loading of data for usage with CSS based tabs and such-like.

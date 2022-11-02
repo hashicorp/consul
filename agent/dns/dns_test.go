@@ -3,8 +3,9 @@ package dns
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestDNS_Recursor_StrategyRandom(t *testing.T) {
@@ -18,7 +19,7 @@ func TestDNS_Recursor_StrategyRandom(t *testing.T) {
 		}
 
 		// Ensure the slices contain the same elements
-		require.ElementsMatch(t, configuredRecursors, recursorsToQuery)
+		require.ElementsMatch(r, configuredRecursors, recursorsToQuery)
 
 		// Ensure the elements are not in the same order
 		require.NotEqual(r, configuredRecursors, recursorsToQuery)

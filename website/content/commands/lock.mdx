@@ -18,7 +18,7 @@ communication is disrupted, the child process is terminated.
 
 The number of lock holders is configurable with the `-n` flag. By default,
 a single holder is allowed, and a lock is used for mutual exclusion. This
-uses the [leader election algorithm](https://learn.hashicorp.com/consul/developer-configuration/elections).
+uses the [leader election algorithm](https://learn.hashicorp.com/tutorials/consul/application-leader-elections).
 
 If the lock holder count is more than one, then a semaphore is used instead.
 A semaphore allows more than a single holder, but this is less efficient than
@@ -45,12 +45,6 @@ interrupted, the child process will receive a `SIGTERM`. After a grace period
 of 5 seconds, a `SIGKILL` will be used to force termination. For Consul agents
 on Windows, the child process is always terminated with a `SIGKILL`, since
 Windows has no POSIX compatible notion for `SIGTERM`.
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
 
 #### Command Options
 
@@ -81,6 +75,12 @@ Windows has no POSIX compatible notion for `SIGTERM`.
   are "ns", "us" (or "µs"), "ms", "s", "m", "h". The default value is 0.
 
 - `-verbose` - Enables verbose output.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## SHELL
 

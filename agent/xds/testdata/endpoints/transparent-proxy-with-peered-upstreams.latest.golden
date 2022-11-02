@@ -1,0 +1,60 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "1.2.3.4",
+                    "portValue": 0
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "2.3.4.5",
+                    "portValue": 0
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "endpoints": [
+        {
+
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+  "nonce": "00000001"
+}

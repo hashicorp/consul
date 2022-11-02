@@ -5,14 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Query is a type used to query any single value index that may include an
 // enterprise identifier.
 type Query struct {
-	Value string
-	structs.EnterpriseMeta
+	Value    string
+	PeerName string
+	acl.EnterpriseMeta
+}
+
+func (q Query) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 func (q Query) IDValue() string {
@@ -33,7 +39,7 @@ func (q Query) PartitionOrDefault() string {
 
 type MultiQuery struct {
 	Value []string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (q MultiQuery) IDValue() []string {
@@ -54,12 +60,7 @@ func (q MultiQuery) PartitionOrDefault() string {
 
 // indexFromQuery builds an index key where Query.Value is lowercase, and is
 // a required value.
-func indexFromQuery(arg interface{}) ([]byte, error) {
-	q, ok := arg.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
-
+func indexFromQuery(q Query) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(q.Value))
 	return b.Bytes(), nil
@@ -118,7 +119,7 @@ func parseUUIDString(uuid string) ([]byte, error) {
 // enterprise identifier.
 type BoolQuery struct {
 	Value bool
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -136,9 +137,14 @@ func (q BoolQuery) PartitionOrDefault() string {
 // KeyValueQuery is a type used to query for both a key and a value that may
 // include an enterprise identifier.
 type KeyValueQuery struct {
-	Key   string
-	Value string
-	structs.EnterpriseMeta
+	Key      string
+	Value    string
+	PeerName string
+	acl.EnterpriseMeta
+}
+
+func (q KeyValueQuery) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -153,12 +159,8 @@ func (q KeyValueQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
 }
 
-func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
+func indexFromKeyValueQuery(q KeyValueQuery) ([]byte, error) {
 	// NOTE: this is case-sensitive!
-	q, ok := arg.(KeyValueQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
 
 	var b indexBuilder
 	b.String(q.Key)
@@ -168,8 +170,8 @@ func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
 
 type AuthMethodQuery struct {
 	Value             string
-	AuthMethodEntMeta structs.EnterpriseMeta
-	structs.EnterpriseMeta
+	AuthMethodEntMeta acl.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

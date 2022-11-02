@@ -1,0 +1,63 @@
+section[data-route='dc.show.license'] {
+  @extend %license-route;
+}
+%license-route .validity {
+  @extend %license-validity;
+}
+%license-route aside {
+  @extend %license-route-learn-more;
+}
+
+%license-route h2 {
+  @extend %h200;
+}
+
+%license-validity p {
+  color: rgb(var(--tone-gray-700));
+}
+%license-validity dl {
+  @extend %horizontal-kv-list;
+  font-size: var(--typo-size-400);
+}
+%license-validity dl .expired + dd {
+  @extend %visually-hidden;
+}
+%license-validity dl dt::before {
+  content: '';
+  margin-right: 0.25rem; /* 4px */
+}
+%license-validity dl .expired::before {
+  --icon-name: icon-x-circle;
+  --icon-color: rgb(var(--red-500));
+}
+%license-validity dl .warning::before {
+  --icon-name: icon-alert-circle;
+  --icon-color: rgb(var(--orange-500));
+}
+%license-validity dl .valid:not(.warning)::before {
+  --icon-name: icon-check-circle;
+  --icon-color: rgb(var(--green-500));
+}
+
+%license-route-learn-more {
+  @extend %panel;
+  box-shadow: var(--decor-elevation-000);
+  padding: var(--padding-y) var(--padding-x);
+  width: 40%;
+  min-width: 413px;
+  margin-top: 1rem; /* 16px */
+}
+%license-route-learn-more header > :first-child {
+  @extend %h300;
+}
+%license-route-learn-more header {
+  margin-bottom: 1rem; /* 16px */
+}
+%license-route-learn-more li {
+  margin-bottom: 0.25rem; /* 4px */
+}
+%license-route-learn-more a::before {
+  --icon-name: icon-docs-link;
+  content: '';
+  margin-right: 0.375rem; /* 6px */
+}

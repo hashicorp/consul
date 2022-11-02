@@ -1,0 +1,15 @@
+```release-note:deprecation
+agent: deprecate older syntax for specifying TLS min version values
+```
+```release-note:deprecation
+agent: remove support for specifying insecure TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 and TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 cipher suites
+```
+```release-note:enhancement
+agent: add additional validation to TLS config
+```
+```release-note:enhancement
+agent: bump default min version for connections to TLS 1.2
+```
+```release-note:enhancement
+agent: add support for specifying TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 and TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 cipher suites
+```

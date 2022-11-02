@@ -1,20 +1,19 @@
 ---
 layout: docs
-page_title: OIDC Auth Method
+page_title: OpenID Connect (OIDC) Auth Method
 description: >-
-  The OIDC auth method can be used to authenticate with Consul using OpenID
-  Connect (OIDC). This method allows authentication via a configured OIDC
-  provider using the user's web browser. This method may be initiated from the
-  Consul UI or the command line.
+  Use the OIDC auth method type to authenticate to Consul through a web browser with an OpenID Connect provider. Learn how to configure the auth method parameters using this reference page and example configuration.
 ---
 
-# OIDC Auth Method
+# OpenID Connect (OIDC) Auth Method
 
-<EnterpriseAlert />
+<EnterpriseAlert>
 
-This feature is available in [Consul
-Enterprise](https://www.hashicorp.com/products/consul/) version 1.8.0 and
-newer.
+This feature requires version 1.8.0+ of
+self-managed Consul Enterprise.
+Refer to the [enterprise feature matrix](/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
 
 The `oidc` auth method can be used to authenticate with Consul using
 [OIDC](https://en.wikipedia.org/wiki/OpenID_Connect). This method allows
@@ -34,7 +33,7 @@ processing of the claims data in the JWT.
 
 ## Config Parameters
 
-The following auth method [`Config`](/api/acl/auth-methods#config)
+The following auth method [`Config`](/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
 `oidc`:
 

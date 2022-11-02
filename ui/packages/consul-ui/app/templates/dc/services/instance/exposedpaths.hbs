@@ -7,9 +7,7 @@ as |route|>
 as |item proxy|}}
   <div class="tab-section">
   {{#if (gt proxy.ServiceProxy.Expose.Paths.length 0)}}
-    <p>
-      The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <Action @href={{concat (env 'CONSUL_DOCS_URL') '/connect/registration/service-registration#expose-paths-configuration-reference'}} @external={{true}}>documentation</Action>.
-    </p>
+    {{t 'routes.dc.services.instance.exposedpaths.intro' htmlSafe=true}}
     <Consul::ExposedPath::List
       @items={{proxy.ServiceProxy.Expose.Paths}}
       @address={{or item.Service.Address item.Node.Address}}
@@ -17,9 +15,7 @@ as |item proxy|}}
   {{else}}
     <EmptyState>
       <BlockSlot @name="body">
-        <p>
-          There are no individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <Action @href={{concat (env 'CONSUL_DOCS_URL') '/connect/registration/service-registration#expose-paths-configuration-reference'}} @external={{true}}>documentation</Action>.
-        </p>
+        {{t 'routes.dc.services.instance.exposedpaths.empty.body' htmlSafe=true}}
       </BlockSlot>
     </EmptyState>
   {{/if}}

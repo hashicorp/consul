@@ -1,0 +1,9 @@
+@keyframes icon-diamond {
+  100% {
+
+    -webkit-mask-image: var(--icon-diamond-16);
+    mask-image: var(--icon-diamond-16);
+    background-color: var(--icon-color, var(--color-diamond-500, currentColor));
+
+  }
+}

@@ -1,0 +1,3 @@
+```release-note:feature
+ca: Leaf certificates can now be obtained via the gRPC API: `Sign`
+```

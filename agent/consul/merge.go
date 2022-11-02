@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-version"
@@ -38,7 +39,7 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			nodeID := types.NodeID(rawID)
 
 			// See if there's another node that conflicts with us.
-			if (nodeID == md.nodeID) && (m.Name != md.nodeName) {
+			if (nodeID == md.nodeID) && !strings.EqualFold(m.Name, md.nodeName) {
 				return fmt.Errorf("Member '%s' has conflicting node ID '%s' with this agent's ID",
 					m.Name, nodeID)
 			}

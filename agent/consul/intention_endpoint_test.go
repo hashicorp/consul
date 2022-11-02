@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -270,6 +271,41 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
+}
+
+// TestIntentionApply_NoSourcePeer makes sure that no intention is created with a SourcePeer since this is not supported
+func TestIntentionApply_NoSourcePeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServer(t)
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			SourcePeer:      "peer1",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			SourceType:      structs.IntentionSourceConsul,
+			Meta:            map[string]string{},
+		},
+	}
+	var reply string
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
+	require.Error(t, err)
+	require.Contains(t, err, "SourcePeer field is not supported on this endpoint. Use config entries instead")
+	require.Empty(t, reply)
 }
 
 // Shouldn't be able to update a non-existent intention
@@ -1740,6 +1776,98 @@ func TestIntentionMatch_good(t *testing.T) {
 		})
 	}
 	require.Equal(t, expected, actual)
+}
+
+func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	run := func(t *testing.T, dataPrefix string, expectMatches int) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := &structs.IntentionQueryRequest{
+					Datacenter: "dc1",
+					Match: &structs.IntentionQueryMatch{
+						Type: structs.IntentionMatchDestination,
+						Entries: []structs.IntentionMatchEntry{
+							{Name: "bar"},
+						},
+					},
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.IndexedIntentionMatches
+				errCh := channelCallRPC(s1, "Intention.Match", args, &out, func() error {
+					if len(out.Matches) != 1 {
+						return fmt.Errorf("expected 1 match got %d", len(out.Matches))
+					}
+					if len(out.Matches[0]) != expectMatches {
+						return fmt.Errorf("expected %d inner matches got %d", expectMatches, len(out.Matches[0]))
+					}
+					return nil
+				})
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out string
+				return channelCallRPC(s1, "Intention.Apply", &structs.IntentionRequest{
+					Datacenter: "dc1",
+					Op:         structs.IntentionOpCreate,
+					Intention: &structs.Intention{
+						// {"default", "*", "default", "baz"}, // shouldn't match
+						SourceNS:        "default",
+						SourceName:      "*",
+						DestinationNS:   "default",
+						DestinationName: fmt.Sprintf(dataPrefix+"%d", i),
+						Action:          structs.IntentionActionAllow,
+					},
+				}, &out, nil)
+			},
+		)
+	}
+
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other", 0)
+	})
+
+	// Create some records
+	{
+		insert := [][]string{
+			{"default", "*", "default", "*"},
+			{"default", "*", "default", "bar"},
+			{"default", "*", "default", "baz"}, // shouldn't match
+		}
+
+		for _, v := range insert {
+			var out string
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					SourceNS:        v[0],
+					SourceName:      v[1],
+					DestinationNS:   v[2],
+					DestinationName: v[3],
+					Action:          structs.IntentionActionAllow,
+				},
+			}, &out))
+		}
+	}
+
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other", 2)
+	})
 }
 
 // Test matching with ACLs

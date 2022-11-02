@@ -1,0 +1,9 @@
+@keyframes icon-layout {
+  100% {
+
+    -webkit-mask-image: var(--icon-layout-16);
+    mask-image: var(--icon-layout-16);
+    background-color: var(--icon-color, var(--color-layout-500, currentColor));
+
+  }
+}

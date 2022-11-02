@@ -1,0 +1,12 @@
+{
+  "Node": "lambdas",
+  "SkipNodeUpdate": true,
+  "NodeMeta": {
+    "external-node": "true",
+    "external-probe": "true"
+  },
+  "Service": {
+    "ID": "l1",
+    "Service": "l1"
+  }
+}

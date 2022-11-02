@@ -1,0 +1,9 @@
+@keyframes icon-health {
+  100% {
+
+    -webkit-mask-image: var(--icon-activity-16);
+    mask-image: var(--icon-activity-16);
+    background-color: var(--icon-color, var(--color-health-500, currentColor));
+
+  }
+}

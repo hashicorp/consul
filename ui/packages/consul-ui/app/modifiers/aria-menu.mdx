@@ -1,0 +1,96 @@
+# aria-menu
+
+Modifier based `{{aria-menu}}` helper based on GitHub top menu keyboard interactions.
+
+Functionality is based on a11y focussed keyboard navigation of aria menus and currently only supports vertical-like navigation (but feel free to add horizontal, it should be straight forwards.
+
+Features:
+
+- `Enter`/`Space` to open the menu and immediately focus the first item
+- Click to open the menu but _not_ focus the first item
+- `Escape` to close the menu and focus the original trigger (`aria-labelledby`)
+- When open, arrow keys will cycle through the menu items, and therefore not leave the menu.
+- When open, tabbing through the menu items will _not_ cycle but instead return to the natural DOM tabbing flow once the start/end is reached.
+
+ARIA attributes are not automatically added for you and you should make use of `role="menu"`, `role="menuitem"`, `role="none"` and `role="separator"` (if required). You should also take care to use the `aria-labelledby` attribute along with a correct `id` attribute on the trigger for the menu.
+
+You should also take care to use `aria-haspopup="menu"` and `aria-controls="id"` if required. BUt only if you require the additional disclosure type functionality. These additional aria attributes are not functionally relevant to `{{aria-menu}}` itself.
+
+Clicking outside will _not_ close the menu by default, if you require this functionality please combine with our `{{on-outside 'click'}}` modifier (see example).
+
+In the example below, the Before Trigger and After Trigger don't do anything, they are only there to demonstrate tabbing functionality with natural DOM tabbing order.
+
+```hbs preview-template
+<div
+  style={{style-map
+    (array 'display' 'flex')
+  }}
+>
+  <button
+    type="button"
+  >
+    Before trigger
+  </button>
+  <div
+    style={{style-map
+      (array 'position' 'relative')
+    }}
+  >
+    <button
+      {{on 'click'
+        (queue
+          (set this 'event')
+          (set this 'open' (not this.open))
+        )
+      }}
+      id="trigger"
+      type="button"
+      aria-haspopup="menu"
+      aria-controls="menu-id"
+    >
+      Trigger
+    </button>
+{{#if this.open}}
+    <ul
+      id="menu-id"
+      style={{style-map
+        (array 'position' 'absolute')
+        (array 'padding' '1rem')
+        (array 'border' '1px solid rgb(var(--tone-gray-500))')
+        (array 'top' '2rem')
+        (array 'background-color' 'rgb(var(--tone-gray-000))')
+      }}
+      role="menu"
+      aria-labelledby="trigger"
+      {{on-outside 'click' (set this 'open' false)}}
+      {{aria-menu
+        openEvent=this.event
+        onclose=(set this 'open' false)
+      }}
+    >
+      <li role="none">
+        <button type="button" role="menuitem">Item 1</button>
+      </li>
+      <li role="none">
+        <button type="button" role="menuitem">Item 2</button>
+      </li>
+      <li role="none">
+        <button type="button" role="menuitem">Item 3</button>
+      </li>
+    </ul>
+{{/if}}
+  </div>
+  <button
+    type="button"
+  >
+    After trigger
+  </button>
+</div>
+```
+
+## Named Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `openEvent` | `Event` |  | The Event used to open the menu, if `pointerType` is empty the first menu element is focussed when open |
+| `onclose` | `function` |  | A callback called when the menu is closed |

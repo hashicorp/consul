@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestCatalogListServices(t *testing.T) {
@@ -104,7 +105,7 @@ func TestCatalogListServices_IntegrationWithCache_NotModifiedResponse(t *testing
 		},
 	}
 
-	err := c.Prepopulate(CatalogListServicesName, last, "dc1", "token", req.CacheInfo().Key)
+	err := c.Prepopulate(CatalogListServicesName, last, "dc1", "", "token", req.CacheInfo().Key)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())

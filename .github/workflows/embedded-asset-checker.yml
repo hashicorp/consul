@@ -1,0 +1,37 @@
+# This workflow detects if there is a diff in the `agent/uiserver/dist` directory
+# which is used by Consul to serve its embedded UI.
+# `agent/uiserver/dist` should not be manually updated.
+
+name: Embedded Asset Checker
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled, reopened]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  dist-check:
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/update-ui-assets') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      - name: Check for agent/uiserver/dist dir change in diff
+        run: |
+          dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- agent/uiserver/dist)
+          if [[ -z "${dist_files}" ]]; then
+            exit 0
+          fi
+          
+          echo "Found diffs in dir agent/uiserver/dist"
+          github_message="This PR has diffs in \`agent/uiserver/dist\`. If the changes are intentional, add the label \`pr/update-ui-assets\`. Otherwise, revert changes to \`agent/uiserver/dist\`."
+          curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+            -X POST \
+            -d "{ \"body\": \"${github_message}\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
+          exit 1

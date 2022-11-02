@@ -1,0 +1,20 @@
+<li 
+  class="peers-separator"
+  role="separator"
+  ...attributes
+>
+  Organization
+</li>
+<li
+  data-test-main-nav-peers
+  class={{if (is-href 'dc.peers' @dc.Name) 'is-active'}}
+>
+    <a
+      href={{href-to 'dc.peers' @dc.Name
+        params=(hash peer=undefined)
+      }}
+    >
+      Peers
+    </a>
+</li>
+

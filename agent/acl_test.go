@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
@@ -39,11 +40,25 @@ type TestACLAgent struct {
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
 	t.Helper()
 
+	if resolveIdent == nil {
+		resolveIdent = func(s string) (structs.ACLIdentity, error) {
+			return nil, nil
+		}
+	}
+
 	a := &TestACLAgent{resolveAuthzFn: resolveAuthz, resolveIdentFn: resolveIdent}
 
 	dataDir := testutil.TempDir(t, "acl-agent")
 
 	logBuffer := testutil.NewLogBuffer(t)
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       name,
+		Level:      testutil.TestLogLevel,
+		Output:     logBuffer,
+		TimeFormat: "04:05.000",
+	})
+
 	loader := func(source config.Source) (config.LoadResult, error) {
 		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
 		opts := config.LoadOpts{
@@ -56,16 +71,12 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logBuffer)
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
 	require.NoError(t, err)
 
-	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:       name,
-		Level:      hclog.Debug,
-		Output:     logBuffer,
-		TimeFormat: "04:05.000",
-	})
-	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	bd.MetricsConfig = &lib.MetricsConfig{
+		Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+	}
 
 	agent, err := New(bd)
 	require.NoError(t, err)
@@ -86,26 +97,15 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	return authz, err
 }
 
-func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (structs.ACLIdentity, acl.Authorizer, error) {
-	if a.resolveAuthzFn == nil {
-		return nil, nil, fmt.Errorf("ResolveTokenToIdentityAndAuthorizer call is unexpected - no authz resolver callback set")
-	}
-
-	return a.resolveAuthzFn(secretID)
-}
-
-func (a *TestACLAgent) ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error) {
-	if a.resolveIdentFn == nil {
-		return nil, fmt.Errorf("ResolveTokenToIdentity call is unexpected - no ident resolver callback set")
-	}
-
-	return a.resolveIdentFn(secretID)
-}
-
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
+	authz, err := a.ResolveToken(secretID)
 	if err != nil {
-		return nil, err
+		return resolver.Result{}, err
+	}
+
+	identity, err := a.resolveIdentFn(secretID)
+	if err != nil {
+		return resolver.Result{}, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -119,7 +119,7 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *stru
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return authz, err
+	return resolver.Result{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // All of these are stubs to satisfy the interface
@@ -138,10 +138,10 @@ func (a *TestACLAgent) LANMembers(f consul.LANMemberFilter) ([]serf.Member, erro
 func (a *TestACLAgent) AgentLocalMember() serf.Member {
 	return serf.Member{}
 }
-func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
+func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error) {
 	return 0, fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {
@@ -276,10 +276,10 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 	// Try to register over a service without write privs to the existing
 	// service.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
-	}, "")
+	}, nil, "")
 	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
@@ -306,10 +306,10 @@ func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	require.Contains(t, err.Error(), "Unknown service")
 
 	// Update with write privs.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	err = vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
@@ -363,10 +363,10 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 
 	// Try to register over a service check without write privs to the
 	// existing service.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
@@ -412,10 +412,10 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	require.Contains(t, err.Error(), "Unknown check")
 
 	// Update service check with write privs.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",
@@ -522,23 +522,4 @@ func TestACL_filterChecksWithAuthorizer(t *testing.T) {
 	require.False(t, ok)
 	_, ok = checks["my-other"]
 	require.False(t, ok)
-}
-
-// TODO: remove?
-func TestACL_ResolveIdentity(t *testing.T) {
-	t.Parallel()
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
-
-	// this test is meant to ensure we are calling the correct function
-	// which is ResolveTokenToIdentity on the Agent delegate. Our
-	// nil authz resolver will cause it to emit an error if used
-	ident, err := a.delegate.ResolveTokenToIdentity(nodeROSecret)
-	require.NoError(t, err)
-	require.NotNil(t, ident)
-
-	// just double checkingto ensure if we had used the wrong function
-	// that an error would be produced
-	_, err = a.delegate.ResolveTokenAndDefaultMeta(nodeROSecret, nil, nil)
-	require.Error(t, err)
-
 }

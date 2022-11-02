@@ -8,15 +8,22 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if headerNS := req.Header.Get("X-Consul-Namespace"); headerNS != "" {
-		return BadRequestError{Reason: "Invalid header: \"X-Consul-Namespace\" - Namespaces are a Consul Enterprise feature"}
+		return HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Invalid header: \"X-Consul-Namespace\" - Namespaces are a Consul Enterprise feature",
+		}
 	}
 	if queryNS := req.URL.Query().Get("ns"); queryNS != "" {
-		return BadRequestError{Reason: "Invalid query parameter: \"ns\" - Namespaces are a Consul Enterprise feature"}
+		return HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Invalid query parameter: \"ns\" - Namespaces are a Consul Enterprise feature",
+		}
 	}
 
 	return s.parseEntMetaPartition(req, entMeta)
@@ -31,7 +38,10 @@ func (s *HTTPHandlers) validateEnterpriseIntentionPartition(logName, partition s
 
 	// No special handling for wildcard namespaces as they are pointless in OSS.
 
-	return BadRequestError{Reason: "Invalid " + logName + "(" + partition + ")" + ": Partitions is a Consul Enterprise feature"}
+	return HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Reason:     "Invalid " + logName + "(" + partition + ")" + ": Partitions is a Consul Enterprise feature",
+	}
 }
 
 func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, _ bool) error {
@@ -43,10 +53,13 @@ func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, 
 
 	// No special handling for wildcard namespaces as they are pointless in OSS.
 
-	return BadRequestError{Reason: "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature"}
+	return HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Reason:     "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature",
+	}
 }
 
-func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *acl.EnterpriseMeta) error {
 	return s.parseEntMeta(req, nil)
 }
 
@@ -71,7 +84,10 @@ func (s *HTTPHandlers) rewordUnknownEnterpriseFieldError(err error) error {
 
 func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMethodEnterpriseMeta) error {
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
-		return BadRequestError{Reason: "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature"}
+		return HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature",
+		}
 	}
 
 	return nil
@@ -88,12 +104,18 @@ func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) erro
 	return nil
 }
 
-func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *acl.EnterpriseMeta) error {
 	if headerAP := req.Header.Get("X-Consul-Partition"); headerAP != "" {
-		return BadRequestError{Reason: "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature"}
+		return HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature",
+		}
 	}
 	if queryAP := req.URL.Query().Get("partition"); queryAP != "" {
-		return BadRequestError{Reason: "Invalid query parameter: \"partition\" - Partitions are a Consul Enterprise feature"}
+		return HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Invalid query parameter: \"partition\" - Partitions are a Consul Enterprise feature",
+		}
 	}
 
 	return nil

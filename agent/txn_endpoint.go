@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
@@ -16,7 +17,7 @@ const (
 	// maxTxnOps is used to set an upper limit on the number of operations
 	// inside a transaction. If there are more operations than this, then the
 	// client is likely abusing transactions.
-	maxTxnOps = 64
+	maxTxnOps = 128
 )
 
 // decodeValue decodes the value member of the given operation.
@@ -63,7 +64,7 @@ func isWrite(op api.KVOp) bool {
 // internal RPC format. This returns a count of the number of write ops, and
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
-func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
+func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, error) {
 	// The TxnMaxReqLen limit and KVMaxValueSize limit both default to the
 	// suggested raft data size and can be configured independently. The
 	// TxnMaxReqLen is enforced on the cumulative size of the transaction,
@@ -87,13 +88,11 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 
 	// Check Content-Length first before decoding to return early
 	if req.ContentLength > maxTxnLen {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp,
-			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
-			req.ContentLength, maxTxnLen,
-			"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
-		)
-		return nil, 0, false
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
+			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
+				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
+		}
 	}
 
 	var ops api.TxnOps
@@ -102,30 +101,26 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		if err.Error() == "http: request body too large" {
 			// The request size is also verified during decoding to double check
 			// if the Content-Length header was not set by the client.
-			resp.WriteHeader(http.StatusRequestEntityTooLarge)
-			fmt.Fprintf(resp,
-				"Request body too large, max size: %d bytes. See %s.",
-				maxTxnLen,
-				"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
-			)
+			return nil, 0, HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
+				Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
+					maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
+			}
 		} else {
 			// Note the body is in API format, and not the RPC format. If we can't
 			// decode it, we will return a 400 since we don't have enough context to
 			// associate the error with a given operation.
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Failed to parse body: %v", err)
+			return nil, 0, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to parse body: %v", err)}
 		}
-		return nil, 0, false
 	}
 
 	// Enforce a reasonable upper limit on the number of operations in a
 	// transaction in order to curb abuse.
 	if size := len(ops); size > maxTxnOps {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Transaction contains too many operations (%d > %d)",
-			size, maxTxnOps)
-
-		return nil, 0, false
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
+			Reason:     fmt.Sprintf("Transaction contains too many operations (%d > %d)", size, maxTxnOps),
+		}
 	}
 
 	// Convert the KV API format into the RPC format. Note that fixupKVOps
@@ -138,9 +133,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		case in.KV != nil:
 			size := len(in.KV.Value)
 			if int64(size) > kvMaxValueSize {
-				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize)
-				return nil, 0, false
+				return nil, 0, HTTPError{
+					StatusCode: http.StatusRequestEntityTooLarge,
+					Reason:     fmt.Sprintf("Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize),
+				}
 			}
 
 			verb := in.KV.Verb
@@ -156,7 +152,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Value:   in.KV.Value,
 						Flags:   in.KV.Flags,
 						Session: in.KV.Session,
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							in.KV.Partition,
 							in.KV.Namespace,
 						),
@@ -189,6 +185,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Address:         node.Address,
 						Datacenter:      node.Datacenter,
 						TaggedAddresses: node.TaggedAddresses,
+						PeerName:        node.PeerName,
 						Meta:            node.Meta,
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: node.ModifyIndex,
@@ -211,6 +208,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 					Service: structs.NodeService{
 						ID:      svc.ID,
 						Service: svc.Service,
+						Kind:    structs.ServiceKind(svc.Kind),
 						Tags:    svc.Tags,
 						Address: svc.Address,
 						Meta:    svc.Meta,
@@ -220,7 +218,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							svc.Partition,
 							svc.Namespace,
 						),
@@ -229,6 +227,39 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						},
 					},
 				},
+			}
+
+			if svc.Proxy != nil {
+				out.Service.Service.Proxy = structs.ConnectProxyConfig{}
+				t := &out.Service.Service.Proxy
+				if svc.Proxy.DestinationServiceName != "" {
+					t.DestinationServiceName = svc.Proxy.DestinationServiceName
+				}
+				if svc.Proxy.DestinationServiceID != "" {
+					t.DestinationServiceID = svc.Proxy.DestinationServiceID
+				}
+				if svc.Proxy.LocalServiceAddress != "" {
+					t.LocalServiceAddress = svc.Proxy.LocalServiceAddress
+				}
+				if svc.Proxy.LocalServicePort != 0 {
+					t.LocalServicePort = svc.Proxy.LocalServicePort
+				}
+				if svc.Proxy.LocalServiceSocketPath != "" {
+					t.LocalServiceSocketPath = svc.Proxy.LocalServiceSocketPath
+				}
+				if svc.Proxy.MeshGateway.Mode != "" {
+					t.MeshGateway.Mode = structs.MeshGatewayMode(svc.Proxy.MeshGateway.Mode)
+				}
+
+				if svc.Proxy.TransparentProxy != nil {
+					if svc.Proxy.TransparentProxy.DialedDirectly {
+						t.TransparentProxy.DialedDirectly = svc.Proxy.TransparentProxy.DialedDirectly
+					}
+
+					if svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+						t.TransparentProxy.OutboundListenerPort = svc.Proxy.TransparentProxy.OutboundListenerPort
+					}
+				}
 			}
 			opsRPC = append(opsRPC, out)
 
@@ -269,6 +300,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						ServiceID:   check.ServiceID,
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,
+						PeerName:    check.PeerName,
+						ExposedPort: check.ExposedPort,
 						Definition: structs.HealthCheckDefinition{
 							HTTP:                           check.Definition.HTTP,
 							TLSServerName:                  check.Definition.TLSServerName,
@@ -279,11 +312,12 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							TCP:                            check.Definition.TCP,
 							GRPC:                           check.Definition.GRPC,
 							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
+							OSService:                      check.Definition.OSService,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							check.Partition,
 							check.Namespace,
 						),
@@ -297,7 +331,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		}
 	}
 
-	return opsRPC, writes, true
+	return opsRPC, writes, nil
 }
 
 // Txn handles requests to apply multiple operations in a single, atomic
@@ -306,9 +340,9 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 // and everything else will be routed through Raft like a normal write.
 func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Convert the ops from the API format to the internal format.
-	ops, writes, ok := s.convertOps(resp, req)
-	if !ok {
-		return nil, nil
+	ops, writes, err := s.convertOps(resp, req)
+	if err != nil {
+		return nil, err
 	}
 
 	// Fast-path a transaction with only writes to the read-only endpoint,

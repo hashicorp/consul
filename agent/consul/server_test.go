@@ -1,37 +1,47 @@
 package consul
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net"
-	"net/rpc"
 	"os"
+	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-
-	"github.com/hashicorp/consul/ipaddr"
-
-	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/hcp"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -66,7 +76,6 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 	return cert, privateKey, ca, nil
 }
 
-// testServerACLConfig setup some common ACL configurations.
 func testServerACLConfig(c *Config) {
 	c.PrimaryDatacenter = "dc1"
 	c.ACLsEnabled = true
@@ -75,9 +84,9 @@ func testServerACLConfig(c *Config) {
 }
 
 func configureTLS(config *Config) {
-	config.TLSConfig.CAFile = "../../test/ca/root.cer"
-	config.TLSConfig.CertFile = "../../test/key/ourdomain.cer"
-	config.TLSConfig.KeyFile = "../../test/key/ourdomain.key"
+	config.TLSConfig.InternalRPC.CAFile = "../../test/ca/root.cer"
+	config.TLSConfig.InternalRPC.CertFile = "../../test/key/ourdomain.cer"
+	config.TLSConfig.InternalRPC.KeyFile = "../../test/key/ourdomain.key"
 }
 
 var id int64
@@ -106,7 +115,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.GetN(t, 3)
+	ports := freeport.GetN(t, 4) // {server, serf_lan, serf_wan, grpc}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -160,7 +169,9 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	// TODO (slackpad) - We should be able to run all tests w/o this, but it
 	// looks like several depend on it.
-	config.RPCHoldTimeout = 5 * time.Second
+	config.RPCHoldTimeout = 10 * time.Second
+
+	config.GRPCPort = ports[3]
 
 	config.ConnectEnabled = true
 	config.CAConfig = &structs.CAConfiguration{
@@ -173,6 +184,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
+	config.PeeringEnabled = true
 	return dir, config
 }
 
@@ -211,27 +223,67 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var dir string
 	var srv *Server
 
+	var config *Config
+	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		var config *Config
 		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		srv, err = newServer(t, config)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
+	t.Cleanup(func() { srv.Shutdown() })
+
+	for _, grpcPort := range []int{srv.config.GRPCPort, srv.config.GRPCTLSPort} {
+		if grpcPort == 0 {
+			continue
+		}
+
+		// Normally the gRPC server listener is created at the agent level and
+		// passed down into the Server creation.
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
+		require.NoError(t, err)
+
+		protocol := grpcmiddleware.ProtocolPlaintext
+		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			protocol = grpcmiddleware.ProtocolTLS
+			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
+			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
+				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
+				cert, _ := srv.config.CAConfig.Config["RootCert"].(string)
+				if key != "" && cert != "" {
+					ca := &structs.CARoot{
+						SigningKey: key,
+						RootCert:   cert,
+					}
+					require.NoError(t, deps.TLSConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, srv.config.Datacenter, ca)))
+					deps.TLSConfigurator.UpdateAutoTLSPeeringServerName(connect.PeeringServerSAN("dc1", connect.TestTrustDomain))
+				}
+			}
+
+		}
+		ln = grpcmiddleware.LabelledListener{Listener: ln, Protocol: protocol}
+
+		go func() {
+			_ = srv.externalGRPCServer.Serve(ln)
+		}()
+		t.Cleanup(srv.externalGRPCServer.Stop)
+	}
+
 	return dir, srv
 }
 
@@ -252,7 +304,23 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
+func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn, rpc.ClientCodec) {
+	_, srv, codec := testACLServerWithConfig(t, cb, false)
+
+	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = conn.Close() })
+
+	return srv, conn, codec
+}
+
 func newServer(t *testing.T, c *Config) (*Server, error) {
+	return newServerWithDeps(t, c, newDefaultDeps(t, c))
+}
+
+func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -262,8 +330,8 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 			oldNotify()
 		}
 	}
-
-	srv, err := NewServer(c, newDefaultDeps(t, c))
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator)
+	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
 	}
@@ -709,12 +777,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Bob.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Bob.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Bob.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Bob.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -728,12 +796,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Betty.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Betty.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Betty.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Betty.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -747,12 +815,12 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Bonnie.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Bonnie.key"
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Bonnie.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Bonnie.key"
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -1129,6 +1197,225 @@ func TestServer_RPC(t *testing.T) {
 	}
 }
 
+// TestServer_RPC_MetricsIntercept_Off proves that we can turn off net/rpc interceptors all together.
+func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	storage := &sync.Map{} // string -> float32
+	keyMakingFunc := func(key []string, labels []metrics.Label) string {
+		allKey := strings.Join(key, "+")
+
+		for _, label := range labels {
+			if label.Name == "method" {
+				allKey = allKey + "+" + label.Value
+			}
+		}
+
+		return allKey
+	}
+
+	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
+		storage.Store(keyMakingFunc(key, labels), val)
+	}
+
+	t.Run("test no net/rpc interceptor metric with nil func", func(t *testing.T) {
+		_, conf := testServerConfig(t)
+		deps := newDefaultDeps(t, conf)
+
+		// "disable" metrics net/rpc interceptor
+		deps.GetNetRPCInterceptorFunc = nil
+		// "hijack" the rpc recorder for asserts;
+		// note that there will be "internal" net/rpc calls made
+		// that will still show up; those don't go thru the net/rpc interceptor;
+		// see consul.agent.rpc.middleware.RPCTypeInternal for context
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+			// for the purposes of this test, we don't need isLeader or localDC
+			return &middleware.RequestRecorder{
+				Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
+				RecorderFunc: simpleRecorderFunc,
+			}
+		}
+
+		s1, err := NewServer(conf, deps, grpc.NewServer())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		t.Cleanup(func() { s1.Shutdown() })
+
+		var out struct{}
+		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
+
+		if _, ok := storage.Load(key); ok {
+			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
+		}
+	})
+
+	t.Run("test no net/rpc interceptor metric with func that gives nil", func(t *testing.T) {
+		_, conf := testServerConfig(t)
+		deps := newDefaultDeps(t, conf)
+
+		// "hijack" the rpc recorder for asserts;
+		// note that there will be "internal" net/rpc calls made
+		// that will still show up; those don't go thru the net/rpc interceptor;
+		// see consul.agent.rpc.middleware.RPCTypeInternal for context
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+			// for the purposes of this test, we don't need isLeader or localDC
+			return &middleware.RequestRecorder{
+				Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
+				RecorderFunc: simpleRecorderFunc,
+			}
+		}
+
+		deps.GetNetRPCInterceptorFunc = func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor {
+			return nil
+		}
+
+		s2, err := NewServer(conf, deps, grpc.NewServer())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		t.Cleanup(func() { s2.Shutdown() })
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		var out struct{}
+		if err := s2.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
+
+		if _, ok := storage.Load(key); ok {
+			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
+		}
+	})
+}
+
+// TestServer_RPC_RequestRecorder proves that we cannot make a server without a valid RequestRecorder provider func
+// or a non nil RequestRecorder.
+func TestServer_RPC_RequestRecorder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Run("test nil func provider", func(t *testing.T) {
+		_, conf := testServerConfig(t)
+		deps := newDefaultDeps(t, conf)
+		deps.NewRequestRecorderFunc = nil
+
+		s1, err := NewServer(conf, deps, grpc.NewServer())
+
+		require.Error(t, err, "need err when provider func is nil")
+		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
+
+		t.Cleanup(func() {
+			if s1 != nil {
+				s1.Shutdown()
+			}
+		})
+	})
+
+	t.Run("test nil RequestRecorder", func(t *testing.T) {
+		_, conf := testServerConfig(t)
+		deps := newDefaultDeps(t, conf)
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+			return nil
+		}
+
+		s2, err := NewServer(conf, deps, grpc.NewServer())
+
+		require.Error(t, err, "need err when RequestRecorder is nil")
+		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
+
+		t.Cleanup(func() {
+			if s2 != nil {
+				s2.Shutdown()
+			}
+		})
+	})
+}
+
+// TestServer_RPC_MetricsIntercept mocks a request recorder and asserts that RPC calls are observed.
+func TestServer_RPC_MetricsIntercept(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, conf := testServerConfig(t)
+	deps := newDefaultDeps(t, conf)
+
+	// The method used to record metric observations here is similar to that used in
+	// interceptors_test.go.
+	storage := &sync.Map{} // string -> float32
+	keyMakingFunc := func(key []string, labels []metrics.Label) string {
+		allKey := strings.Join(key, "+")
+
+		for _, label := range labels {
+			allKey = allKey + "+" + label.Value
+		}
+
+		return allKey
+	}
+
+	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
+		storage.Store(keyMakingFunc(key, labels), val)
+	}
+	deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+		// for the purposes of this test, we don't need isLeader or localDC
+		return &middleware.RequestRecorder{
+			Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
+			RecorderFunc: simpleRecorderFunc,
+		}
+	}
+
+	deps.GetNetRPCInterceptorFunc = func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor {
+		return func(reqServiceMethod string, argv, replyv reflect.Value, handler func() error) {
+			reqStart := time.Now()
+
+			err := handler()
+
+			recorder.Record(reqServiceMethod, "test", reqStart, argv.Interface(), err != nil)
+		}
+	}
+
+	s, err := newServerWithDeps(t, conf, deps)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s.Shutdown()
+	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
+
+	// asserts
+	t.Run("test happy path for metrics interceptor", func(t *testing.T) {
+		var out struct{}
+		if err := s.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		expectedLabels := []metrics.Label{
+			{Name: "method", Value: "Status.Ping"},
+			{Name: "errored", Value: "false"},
+			{Name: "request_type", Value: "read"},
+			{Name: "rpc_type", Value: "test"},
+			{Name: "server_role", Value: "unreported"},
+		}
+
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
+
+		if _, ok := storage.Load(key); !ok {
+			// the compound key will look like: "rpc+server+call+Status.Ping+false+read+test+unreported"
+			t.Fatalf("Did not find key %s in the metrics log, ", key)
+		}
+	})
+}
+
 func TestServer_JoinLAN_TLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1136,8 +1423,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -1148,8 +1435,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
-	conf2.TLSConfig.VerifyIncoming = true
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	s2, err := newServer(t, conf2)
 	if err != nil {
@@ -1410,9 +1697,9 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1442,10 +1729,10 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 	// Add a second server with TLS and VerifyOutgoing set
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
-		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1464,10 +1751,10 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
-		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1477,9 +1764,9 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
-		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
-		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.InternalRPC.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1530,6 +1817,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -1543,7 +1831,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
+	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+
 	rc := ReloadableConfig{
+		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
@@ -1571,6 +1862,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check RPC client timeout got updated
+	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
 
 	// Check raft config
 	defaults := DefaultConfig()
@@ -1606,6 +1900,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1617,6 +1913,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1628,6 +1926,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1639,6 +1939,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      78910,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1647,11 +1949,15 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				RaftSnapshotThreshold: 123456,
 				RaftSnapshotInterval:  13 * time.Minute,
 				RaftTrailingLogs:      78910,
+				ElectionTimeout:       300 * time.Millisecond,
+				HeartbeatTimeout:      400 * time.Millisecond,
 			},
 			want: raft.ReloadableConfig{
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      78910,
+				ElectionTimeout:   300 * time.Millisecond,
+				HeartbeatTimeout:  400 * time.Millisecond,
 			},
 		},
 	}
@@ -1687,4 +1993,75 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+// TestServer_Peering_LeadershipCheck tests that a peering service can receive the leader address
+// through the LeaderAddress IRL.
+func TestServer_Peering_LeadershipCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// given two servers: s1 (leader), s2 (follower)
+	_, conf1 := testServerConfig(t)
+	s1, err := newServer(t, conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+
+	_, conf2 := testServerConfig(t)
+	conf2.Bootstrap = false
+	s2, err := newServer(t, conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s2.Shutdown()
+
+	// Try to join
+	joinLAN(t, s2, s1)
+
+	// Verify Raft has established a peer
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
+
+	// the actual tests
+	// when leadership has been established s2 should have the address of s1
+	// in the peering service
+	peeringLeaderAddr := s2.peeringBackend.GetLeaderAddress()
+
+	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
+	// test corollary by transitivity to future-proof against any setup bugs
+	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
+}
+
+func TestServer_hcpManager(t *testing.T) {
+	_, conf1 := testServerConfig(t)
+	conf1.BootstrapExpect = 1
+	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	hcp1 := hcp.NewMockClient(t)
+	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcp.ServerStatus) bool {
+		return status.ID == string(conf1.NodeID)
+	})).Run(func(ctx context.Context, status *hcp.ServerStatus) {
+		require.Equal(t, status.LanAddress, "127.0.0.2")
+	}).Call.Return(nil)
+
+	deps1 := newDefaultDeps(t, conf1)
+	deps1.HCP.Client = hcp1
+	s1, err := newServerWithDeps(t, conf1, deps1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+	require.NotNil(t, s1.hcpManager)
+	waitForLeaderEstablishment(t, s1)
+	hcp1.AssertExpectations(t)
+
 }

@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: improve log messages when a service with a critical health check is deregistered due to exceeding the deregister_critical_service_after timeout
+```

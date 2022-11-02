@@ -8,11 +8,12 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -27,11 +28,10 @@ func TestServiceHealthSnapshot(t *testing.T) {
 	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2))
 	require.NoError(t, err)
 
-	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealth)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web"}
+	req := stream.SubscribeRequest{Topic: EventTopicServiceHealth, Subject: EventSubjectService{Key: "web"}}
 
-	idx, err := fn(req, buf)
+	idx, err := store.ServiceHealthSnapshot(req, buf)
 	require.NoError(t, err)
 	require.Equal(t, counter.Last(), idx)
 
@@ -67,7 +67,7 @@ func TestServiceHealthSnapshot(t *testing.T) {
 			}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
@@ -104,11 +104,10 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "tgate1", regTerminatingGateway))
 	require.NoError(t, err)
 
-	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealthConnect)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web", Topic: topicServiceHealthConnect}
+	req := stream.SubscribeRequest{Subject: EventSubjectService{Key: "web"}, Topic: EventTopicServiceHealthConnect}
 
-	idx, err := fn(req, buf)
+	idx, err := store.ServiceHealthSnapshot(req, buf)
 	require.NoError(t, err)
 	require.Equal(t, counter.Last(), idx)
 
@@ -168,7 +167,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 				}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 type snapshotAppender struct {
@@ -266,7 +265,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// Should only publish deregistration for that service
@@ -286,7 +285,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteNodeTxn(tx, tx.Index, "node1", nil)
+			return s.deleteNodeTxn(tx, tx.Index, "node1", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// Should publish deregistration events for all services
@@ -339,7 +338,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// We should see both a regular service dereg event and a connect one
@@ -403,7 +402,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete only the sidecar
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web_sidecar_proxy", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web_sidecar_proxy", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// We should see both a regular service dereg event and a connect one
@@ -869,7 +868,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete only the node-level check
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "serf-health", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "serf-health", nil, ""); err != nil {
 				return err
 			}
 			return nil
@@ -923,11 +922,11 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete the service-level check for the main service
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web", nil, ""); err != nil {
 				return err
 			}
 			// Also delete for a proxy
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web_sidecar_proxy", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web_sidecar_proxy", nil, ""); err != nil {
 				return err
 			}
 			return nil
@@ -988,10 +987,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			// In one transaction the operator moves the web service and it's
 			// sidecar from node2 back to node1 and deletes them from node2
 
-			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web", nil); err != nil {
+			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web", nil, ""); err != nil {
 				return err
 			}
-			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web_sidecar_proxy", nil); err != nil {
+			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web_sidecar_proxy", nil, ""); err != nil {
 				return err
 			}
 
@@ -1475,6 +1474,18 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t, "srv1", evNodeUnchanged),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1503,10 +1514,22 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "srv1", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "srv1", nil, "")
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t, "srv1"),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1608,7 +1631,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition())
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition(), "")
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
@@ -1625,6 +1648,92 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
 				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+		},
+	})
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "destination1",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1")),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1"),
+			),
+		},
+	})
+
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults wildcard",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("*"),
+			),
 		},
 	})
 }
@@ -1667,7 +1776,7 @@ func (tc eventsTestCase) run(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
+	prototest.AssertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 }
 
 func runCase(t *testing.T, name string, fn func(t *testing.T)) bool {
@@ -1700,7 +1809,7 @@ func evServiceTermingGateway(name string) func(e *stream.Event) error {
 			}
 		}
 
-		if e.Topic == topicServiceHealthConnect {
+		if e.Topic == EventTopicServiceHealthConnect {
 			payload := e.Payload.(EventPayloadCheckServiceNode)
 			payload.overrideKey = name
 			e.Payload = payload
@@ -1760,18 +1869,11 @@ func evServiceIndex(idx uint64) func(e *stream.Event) error {
 	}
 }
 
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
-}
-
 // cmpPartialOrderEvents returns a compare option which sorts events so that
 // all events for a particular topic are grouped together. The sort is
 // stable so events with the same key retain their relative order.
 //
-// This sort should match the logic in EventPayloadCheckServiceNode.MatchesKey
+// This sort should match the logic in EventPayloadCheckServiceNode.Subject
 // to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
@@ -2060,7 +2162,7 @@ func evConnectNative(e *stream.Event) error {
 // depending on which topic they are published to and they determine this from
 // the event.
 func evConnectTopic(e *stream.Event) error {
-	e.Topic = topicServiceHealthConnect
+	e.Topic = EventTopicServiceHealthConnect
 	return nil
 }
 
@@ -2099,7 +2201,7 @@ func evSidecar(e *stream.Event) error {
 		csn.Checks[1].ServiceName = svc + "_sidecar_proxy"
 	}
 
-	if e.Topic == topicServiceHealthConnect {
+	if e.Topic == EventTopicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
 		payload.overrideKey = svc
 		e.Payload = payload
@@ -2202,7 +2304,7 @@ func evRenameService(e *stream.Event) error {
 	taggedAddr.Address = "240.0.0.2"
 	csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = taggedAddr
 
-	if e.Topic == topicServiceHealthConnect {
+	if e.Topic == EventTopicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
 		payload.overrideKey = csn.Service.Proxy.DestinationServiceName
 		e.Payload = payload
@@ -2314,7 +2416,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Register,
@@ -2385,7 +2487,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 // adding too many options to callers.
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Deregister,
@@ -2418,107 +2520,6 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 	}
 }
 
-func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
-	type testCase struct {
-		name      string
-		payload   EventPayloadCheckServiceNode
-		key       string
-		namespace string
-		partition string // TODO(partitions): create test cases for this being set
-		expected  bool
-	}
-
-	fn := func(t *testing.T, tc testCase) {
-		if tc.namespace != "" && pbcommon.DefaultEnterpriseMeta.Namespace == "" {
-			t.Skip("cant test namespace matching without namespace support")
-		}
-
-		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace, tc.partition))
-	}
-
-	var testCases = []testCase{
-		{
-			name:     "no key or namespace",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			expected: true,
-		},
-		{
-			name:      "no key, with namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:     "no namespace, with key match",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			key:      "srv1",
-			expected: true,
-		},
-		{
-			name:      "key match, namespace mismatch",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  false,
-		},
-		{
-			name:      "key mismatch, namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv2",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", ""),
-			key:       "srv1",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "override key mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", ""),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns2"),
-			key:       "proxy",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override namespace mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override both key and namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", "ns2"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override both key and namespace mismatch namespace",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			fn(t, tc)
-		})
-	}
-}
-
 func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServiceNode {
 	return EventPayloadCheckServiceNode{
 		Value: &structs.CheckServiceNode{
@@ -2541,5 +2542,116 @@ func newPayloadCheckServiceNodeWithOverride(
 		},
 		overrideKey:       overrideKey,
 		overrideNamespace: overrideNamespace,
+	}
+}
+
+func TestServiceListUpdateSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureRegistration(index, testServiceRegistration(t, "db")))
+
+	buf := &snapshotAppender{}
+	idx, err := store.ServiceListSnapshot(stream.SubscribeRequest{Subject: stream.SubjectNone}, buf)
+	require.NoError(t, err)
+	require.NotZero(t, idx)
+
+	require.Len(t, buf.events, 1)
+	require.Len(t, buf.events[0], 1)
+
+	payload := buf.events[0][0].Payload.(*EventPayloadServiceListUpdate)
+	require.Equal(t, pbsubscribe.CatalogOp_Register, payload.Op)
+	require.Equal(t, "db", payload.Name)
+}
+
+func TestServiceListUpdateEventsFromChanges(t *testing.T) {
+	const changeIndex = 123
+
+	testCases := map[string]struct {
+		setup  func(*Store, *txn) error
+		mutate func(*Store, *txn) error
+		events []stream.Event
+	}{
+		"register new service": {
+			mutate: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceList,
+					Index: changeIndex,
+					Payload: &EventPayloadServiceListUpdate{
+						Op:             pbsubscribe.CatalogOp_Register,
+						Name:           "db",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				},
+			},
+		},
+		"service already registered": {
+			setup: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			events: nil,
+		},
+		"deregister last instance of service": {
+			setup: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.deleteServiceTxn(tx, tx.Index, "node1", "db", nil, "")
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceList,
+					Index: changeIndex,
+					Payload: &EventPayloadServiceListUpdate{
+						Op:             pbsubscribe.CatalogOp_Deregister,
+						Name:           "db",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				},
+			},
+		},
+		"deregister (not the last) instance of service": {
+			setup: func(store *Store, tx *txn) error {
+				if err := store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false); err != nil {
+					return err
+				}
+				if err := store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db", regNode2), false); err != nil {
+					return err
+				}
+				return nil
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.deleteServiceTxn(tx, tx.Index, "node1", "db", nil, "")
+			},
+			events: nil,
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			store := testStateStore(t)
+
+			if tc.setup != nil {
+				tx := store.db.WriteTxn(0)
+				require.NoError(t, tc.setup(store, tx))
+				require.NoError(t, tx.Commit())
+			}
+
+			tx := store.db.WriteTxn(0)
+			t.Cleanup(tx.Abort)
+
+			if tc.mutate != nil {
+				require.NoError(t, tc.mutate(store, tx))
+			}
+
+			events, err := ServiceListUpdateEventsFromChanges(tx, Changes{Index: changeIndex, Changes: tx.Changes()})
+			require.NoError(t, err)
+			require.Equal(t, tc.events, events)
+		})
 	}
 }

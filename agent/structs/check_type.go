@@ -37,7 +37,9 @@ type CheckType struct {
 	Header                 map[string][]string
 	Method                 string
 	Body                   string
+	DisableRedirects       bool
 	TCP                    string
+	UDP                    string
 	Interval               time.Duration
 	AliasNode              string
 	AliasService           string
@@ -45,6 +47,7 @@ type CheckType struct {
 	Shell                  string
 	GRPC                   string
 	GRPCUseTLS             bool
+	OSService              string
 	TLSServerName          string
 	TLSSkipVerify          bool
 	Timeout                time.Duration
@@ -178,13 +181,13 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 
 // Validate returns an error message if the check is invalid
 func (c *CheckType) Validate() error {
-	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.GRPC != "" || c.H2PING != ""
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.UDP != "" || c.GRPC != "" || c.H2PING != "" || c.OSService != ""
 
 	if c.Interval > 0 && c.TTL > 0 {
 		return fmt.Errorf("Interval and TTL cannot both be specified")
 	}
 	if intervalCheck && c.Interval <= 0 {
-		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, or TCP checks")
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, TCP, UDP or OSService checks")
 	}
 	if intervalCheck && c.IsAlias() {
 		return fmt.Errorf("Interval cannot be set for Alias checks")
@@ -240,6 +243,10 @@ func (c *CheckType) IsTCP() bool {
 	return c.TCP != "" && c.Interval > 0
 }
 
+func (c *CheckType) IsUDP() bool {
+	return c.UDP != "" && c.Interval > 0
+}
+
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
 	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
@@ -255,6 +262,11 @@ func (c *CheckType) IsH2PING() bool {
 	return c.H2PING != "" && c.Interval > 0
 }
 
+// IsOSService checks if this is a WindowsService/systemd type
+func (c *CheckType) IsOSService() bool {
+	return c.OSService != "" && c.Interval > 0
+}
+
 func (c *CheckType) Type() string {
 	switch {
 	case c.IsGRPC():
@@ -265,6 +277,8 @@ func (c *CheckType) Type() string {
 		return "ttl"
 	case c.IsTCP():
 		return "tcp"
+	case c.IsUDP():
+		return "udp"
 	case c.IsAlias():
 		return "alias"
 	case c.IsDocker():
@@ -273,6 +287,8 @@ func (c *CheckType) Type() string {
 		return "script"
 	case c.IsH2PING():
 		return "h2ping"
+	case c.IsOSService():
+		return "os_service"
 	default:
 		return ""
 	}

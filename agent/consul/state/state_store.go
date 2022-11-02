@@ -1,13 +1,12 @@
 package state
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -108,10 +107,6 @@ type Store struct {
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
 
-	// TODO: refactor abondonCh to use a context so that both can use the same
-	// cancel mechanism.
-	stopEventPublisher func()
-
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
 
@@ -143,7 +138,7 @@ type sessionCheck struct {
 	Session string
 
 	CheckID structs.CheckID
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NewStateStore creates a new in-memory state storage layer.
@@ -158,11 +153,10 @@ func NewStateStore(gc *TombstoneGC) *Store {
 		panic(fmt.Sprintf("failed to create state store: %v", err))
 	}
 	s := &Store{
-		schema:             schema,
-		abandonCh:          make(chan struct{}),
-		kvsGraveyard:       NewGraveyard(gc),
-		lockDelay:          NewDelay(),
-		stopEventPublisher: func() {},
+		schema:       schema,
+		abandonCh:    make(chan struct{}),
+		kvsGraveyard: NewGraveyard(gc),
+		lockDelay:    NewDelay(),
 		db: &changeTrackerDB{
 			db:             db,
 			publisher:      stream.NoOpEventPublisher{},
@@ -172,22 +166,11 @@ func NewStateStore(gc *TombstoneGC) *Store {
 	return s
 }
 
-func NewStateStoreWithEventPublisher(gc *TombstoneGC) *Store {
+func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) *Store {
 	store := NewStateStore(gc)
-	ctx, cancel := context.WithCancel(context.TODO())
-	store.stopEventPublisher = cancel
+	store.db.publisher = publisher
 
-	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(store.db.db)), 10*time.Second)
-	store.db.publisher = pub
-
-	go pub.Run(ctx)
 	return store
-}
-
-// EventPublisher returns the stream.EventPublisher used by the Store to
-// publish events.
-func (s *Store) EventPublisher() EventPublisher {
-	return s.db.publisher
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
@@ -276,30 +259,29 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
-	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
 // maxIndex is a helper used to retrieve the highest known index
-// amongst a set of tables in the db.
-func (s *Store) maxIndex(tables ...string) uint64 {
+// amongst a set of index keys (e.g. table names) in the db.
+func (s *Store) maxIndex(keys ...string) uint64 {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return maxIndexTxn(tx, tables...)
+	return maxIndexTxn(tx, keys...)
 }
 
 // maxIndexTxn is a helper used to retrieve the highest known index
-// amongst a set of tables in the db.
-func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
-	return maxIndexWatchTxn(tx, nil, tables...)
+// amongst a set of index keys (e.g. table names) in the db.
+func maxIndexTxn(tx ReadTxn, keys ...string) uint64 {
+	return maxIndexWatchTxn(tx, nil, keys...)
 }
 
-func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, keys ...string) uint64 {
 	var lindex uint64
-	for _, table := range tables {
-		ch, ti, err := tx.FirstWatch(tableIndex, "id", table)
+	for _, key := range keys {
+		ch, ti, err := tx.FirstWatch(tableIndex, "id", key)
 		if err != nil {
-			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
+			panic(fmt.Sprintf("unknown index: %s err: %s", key, err))
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value
@@ -309,10 +291,9 @@ func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	return lindex
 }
 
-// indexUpdateMaxTxn is used when restoring entries and sets the table's index to
-// the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
-	ti, err := tx.First(tableIndex, indexID, table)
+// indexUpdateMaxTxn sets the table's index to the given idx only if it's greater than the current index.
+func indexUpdateMaxTxn(tx WriteTxn, idx uint64, key string) error {
+	ti, err := tx.First(tableIndex, indexID, key)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
 	}
@@ -329,7 +310,7 @@ func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
 		}
 	}
 
-	if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{key, idx}); err != nil {
 		return fmt.Errorf("failed updating index %s", err)
 	}
 	return nil

@@ -1,0 +1,9 @@
+@keyframes icon-lock-closed-outline {
+  100% {
+
+    -webkit-mask-image: var(--icon-lock-16);
+    mask-image: var(--icon-lock-16);
+    background-color: var(--icon-color, var(--color-lock-closed-outline-500, currentColor));
+
+  }
+}

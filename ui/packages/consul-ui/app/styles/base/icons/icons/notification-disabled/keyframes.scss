@@ -1,0 +1,9 @@
+@keyframes icon-notification-disabled {
+  100% {
+
+    -webkit-mask-image: var(--icon-bell-off-16);
+    mask-image: var(--icon-bell-off-16);
+    background-color: var(--icon-color, var(--color-notification-disabled-500, currentColor));
+
+  }
+}

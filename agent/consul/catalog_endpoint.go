@@ -3,16 +3,20 @@ package consul
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -71,9 +75,36 @@ type Catalog struct {
 	logger hclog.Logger
 }
 
+func hasPeerNameInRequest(req *structs.RegisterRequest) bool {
+	if req == nil {
+		return false
+	}
+	// nodes, services, checks
+	if req.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	if req.Service != nil && req.Service.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	if req.Check != nil && req.Check.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	for _, check := range req.Checks {
+		if check.PeerName != structs.DefaultPeerKeyword {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Register a service and/or check(s) in a node, creating the node if it doesn't exist.
 // It is valid to pass no service or checks to simply create the node itself.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
+	if !c.srv.config.PeeringTestAllowPeerRegistrations && hasPeerNameInRequest(args) {
+		return fmt.Errorf("cannot register requests with PeerName in them")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Register", args, reply); done {
 		return err
 	}
@@ -132,7 +163,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	_, ns, err := state.NodeServices(nil, args.Node, entMeta)
+	_, ns, err := state.NodeServices(nil, args.Node, entMeta, args.PeerName)
 	if err != nil {
 		return fmt.Errorf("Node lookup failed: %v", err)
 	}
@@ -158,7 +189,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCtxFill func(*acl.AuthorizerContext)) error {
+func servicePreApply(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -173,7 +204,7 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCt
 
 	// Verify ServiceName provided if ID.
 	if service.ID != "" && service.Service == "" {
-		return fmt.Errorf("Must provide service name with ID")
+		return fmt.Errorf("Must provide service name (Service.Service) when service ID is provided")
 	}
 
 	// Check the service address here and in the agent endpoint
@@ -191,15 +222,15 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCt
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+			return err
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -228,7 +259,7 @@ func checkPreApply(check *structs.HealthCheck) {
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
 func vetRegisterWithACL(
-	authz acl.Authorizer,
+	authz resolver.Result,
 	subj *structs.RegisterRequest,
 	ns *structs.NodeServices,
 ) error {
@@ -240,16 +271,18 @@ func vetRegisterWithACL(
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
 
-	if needsNode && authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if needsNode {
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+			return err
+		}
 	}
 
 	// Vet the service change. This includes making sure they can register
 	// the given service, and that we can write to any existing service that
 	// is being modified by id (if any).
 	if subj.Service != nil {
-		if authz.ServiceWrite(subj.Service.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(subj.Service.Service, &authzContext); err != nil {
+			return err
 		}
 
 		if ns != nil {
@@ -262,7 +295,7 @@ func vetRegisterWithACL(
 				var secondaryCtx acl.AuthorizerContext
 				other.FillAuthzContext(&secondaryCtx)
 
-				if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+				if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(other.Service, &secondaryCtx); err != nil {
 					return acl.ErrPermissionDenied
 				}
 			}
@@ -285,15 +318,15 @@ func vetRegisterWithACL(
 		// note in state_store.go to ban this down there in Consul 0.8,
 		// but it's good to leave this here because it's required for
 		// correctness wrt. ACLs.
-		if check.Node != subj.Node {
+		if !strings.EqualFold(check.Node, subj.Node) {
 			return fmt.Errorf("Node '%s' for check '%s' doesn't match register request node '%s'",
 				check.Node, check.CheckID, subj.Node)
 		}
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 			continue
 		}
@@ -323,8 +356,8 @@ func vetRegisterWithACL(
 		var secondaryCtx acl.AuthorizerContext
 		other.FillAuthzContext(&secondaryCtx)
 
-		if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(other.Service, &secondaryCtx); err != nil {
+			return err
 		}
 	}
 
@@ -364,7 +397,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var ns *structs.NodeService
 	if args.ServiceID != "" {
-		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
+		_, ns, err = state.NodeService(nil, args.Node, args.ServiceID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Service lookup failed: %v", err)
 		}
@@ -372,7 +405,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var nc *structs.HealthCheck
 	if args.CheckID != "" {
-		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
+		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Check lookup failed: %v", err)
 		}
@@ -392,7 +425,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
 func vetDeregisterWithACL(
-	authz acl.Authorizer,
+	authz resolver.Result,
 	subj *structs.DeregisterRequest,
 	ns *structs.NodeService,
 	nc *structs.HealthCheck,
@@ -407,7 +440,8 @@ func vetDeregisterWithACL(
 	// Allow service deregistration if the token has write permission for the node.
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
-	if authz.NodeWrite(subj.Node, &authzContext) == acl.Allow {
+	nodeWriteErr := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext)
+	if nodeWriteErr == nil {
 		return nil
 	}
 
@@ -422,8 +456,8 @@ func vetDeregisterWithACL(
 
 		ns.FillAuthzContext(&authzContext)
 
-		if authz.ServiceWrite(ns.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(ns.Service, &authzContext); err != nil {
+			return err
 		}
 	} else if subj.CheckID != "" {
 		if nc == nil {
@@ -433,18 +467,18 @@ func vetDeregisterWithACL(
 		nc.FillAuthzContext(&authzContext)
 
 		if nc.ServiceID != "" {
-			if authz.ServiceWrite(nc.ServiceName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(nc.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
-			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(subj.Node, &authzContext); err != nil {
+				return err
 			}
 		}
 	} else {
 		// Since NodeWrite is not given - otherwise the earlier check
 		// would've returned already - we can deny here.
-		return acl.ErrPermissionDenied
+		return nodeWriteErr
 	}
 
 	return nil
@@ -482,9 +516,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -532,6 +566,11 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
+	filter, err := bexpr.CreateFilter(args.Filter, nil, []*structs.ServiceNode{})
+	if err != nil {
+		return err
+	}
+
 	// Set reply enterprise metadata after resolving and validating the token so
 	// that we can properly infer metadata from the token.
 	reply.EnterpriseMeta = args.EnterpriseMeta
@@ -541,10 +580,11 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
+			var serviceNodes structs.ServiceNodes
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -555,9 +595,41 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return nil
 			}
 
+			raw, err := filter.Execute(serviceNodes)
+			if err != nil {
+				return err
+			}
+
+			reply.Services = servicesTagsByName(raw.(structs.ServiceNodes))
+
 			c.srv.filterACLWithAuthorizer(authz, reply)
+
 			return nil
 		})
+}
+
+func servicesTagsByName(services []*structs.ServiceNode) structs.Services {
+	unique := make(map[string]map[string]struct{})
+	for _, svc := range services {
+		tags, ok := unique[svc.ServiceName]
+		if !ok {
+			unique[svc.ServiceName] = make(map[string]struct{})
+			tags = unique[svc.ServiceName]
+		}
+		for _, tag := range svc.ServiceTags {
+			tags[tag] = struct{}{}
+		}
+	}
+
+	// Generate the output structure.
+	var results = make(structs.Services)
+	for service, tags := range unique {
+		results[service] = make([]string, 0, len(tags))
+		for tag := range tags {
+			results[service] = append(results[service], tag)
+		}
+	}
+	return results
 }
 
 // ServiceList is used to query the services in a DC.
@@ -580,7 +652,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta)
+			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -607,13 +679,13 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	switch {
 	case args.Connect:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
-			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 
 	default:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
 			if args.ServiceAddress != "" {
-				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta)
+				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta, args.PeerName)
 			}
 
 			if args.TagFilter {
@@ -626,10 +698,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					tags = []string{args.ServiceTag}
 				}
 
-				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta)
+				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta, args.PeerName)
 			}
 
-			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 	}
 
@@ -646,6 +718,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
+		// TODO(acl-error-enhancements) can this be improved? What happens if we returned an error here?
+		// Is this similar to filters where we might want to return a hint?
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
@@ -657,6 +731,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	err = c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -666,10 +745,53 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 
-			reply.Index, reply.ServiceNodes = index, services
+			mergedServices := services
+
+			if args.MergeCentralConfig {
+				var mergedServiceNodes structs.ServiceNodes
+				for _, sn := range services {
+					mergedsn := sn
+					ns := sn.ToNodeService()
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+						mergedsn = mergedns.ToServiceNode(sn.Node)
+					}
+					mergedServiceNodes = append(mergedServiceNodes, mergedsn)
+				}
+				if len(mergedServiceNodes) > 0 {
+					mergedServices = mergedServiceNodes
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
+			reply.Index, reply.ServiceNodes = index, mergedServices
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
-				for _, service := range services {
+				for _, service := range mergedServices {
 					if structs.SatisfiesMetaFilters(service.NodeMeta, args.NodeMetaFilters) {
 						filtered = append(filtered, service)
 					}
@@ -762,7 +884,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -814,19 +936,69 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
 
+			mergedServices := services
+			var cfgIndex uint64
+			if services != nil && args.MergeCentralConfig {
+				var mergedNodeServices []*structs.NodeService
+				for _, ns := range services.Services {
+					mergedns := ns
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+					}
+					mergedNodeServices = append(mergedNodeServices, mergedns)
+				}
+				if len(mergedNodeServices) > 0 {
+					mergedServices.Services = mergedNodeServices
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
 			reply.Index = index
 
-			if services != nil {
-				reply.NodeServices = *services
+			if mergedServices != nil {
+				reply.NodeServices = *mergedServices
 
 				raw, err := filter.Execute(reply.NodeServices.Services)
 				if err != nil {
@@ -861,8 +1033,8 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 		return err
 	}
 
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	return c.srv.blockingQuery(
@@ -925,11 +1097,12 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	state := c.srv.fsm.State()
-	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
+	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+	*reply, err = state.VirtualIPForService(psn)
 	return err
 }

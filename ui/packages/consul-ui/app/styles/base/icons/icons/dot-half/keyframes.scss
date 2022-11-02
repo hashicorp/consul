@@ -1,0 +1,9 @@
+@keyframes icon-dot-half {
+  100% {
+
+    -webkit-mask-image: var(--icon-dot-half-16);
+    mask-image: var(--icon-dot-half-16);
+    background-color: var(--icon-color, var(--color-dot-half-500, currentColor));
+
+  }
+}

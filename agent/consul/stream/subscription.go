@@ -21,11 +21,20 @@ const (
 	// subStateUnsub indicates the subscription was closed by the caller, and
 	// will not return new events.
 	subStateUnsub = 2
+
+	// subStateShutting down indicates the subscription was closed due to
+	// the server being shut down.
+	subStateShuttingDown = 3
 )
 
 // ErrSubForceClosed is a error signalling the subscription has been
 // closed. The client should Unsubscribe, then re-Subscribe.
 var ErrSubForceClosed = errors.New("subscription closed by server, client must reset state and resubscribe")
+
+// ErrShuttingDown is an error to signal that the subscription has
+// been closed because the server is shutting down. The client should
+// subscribe to a different server to get streaming event updates.
+var ErrShuttingDown = errors.New("subscription closed by server, server is shutting down")
 
 // Subscription provides events on a Topic. Events may be filtered by Key.
 // Events are returned by Next(), and may start with a Snapshot of events.
@@ -51,27 +60,32 @@ type Subscription struct {
 }
 
 // SubscribeRequest identifies the types of events the subscriber would like to
-// receiver. Topic and Token are required.
+// receive. Topic, Subject, and Token are required.
 type SubscribeRequest struct {
-	// Topic to subscribe to
+	// Topic to subscribe to (e.g. service health).
 	Topic Topic
-	// Key used to filter events in the topic. Only events matching the key will
-	// be returned by the subscription. A blank key will return all events. Key
-	// is generally the name of the resource.
-	Key string
-	// Namespace used to filter events in the topic. Only events matching the
-	// namespace will be returned by the subscription.
-	Namespace string
-	// Partition used to filter events in the topic. Only events matching the
-	// partition will be returned by the subscription.
-	Partition string // TODO(partitions): make this work
+
+	// Subject identifies the subset of Topic events the subscriber wishes to
+	// receive (e.g. events for a specific service). SubjectNone may be provided
+	// if all events on the given topic are "global" and not further partitioned
+	// by subject.
+	Subject Subject
+
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
+
 	// Index is the last index the client received. If non-zero the
 	// subscription will be resumed from this index. If the index is out-of-date
 	// a NewSnapshotToFollow event will be sent.
 	Index uint64
+}
+
+func (req SubscribeRequest) topicSubject() topicSubject {
+	return topicSubject{
+		Topic:   req.Topic.String(),
+		Subject: req.Subject.String(),
+	}
 }
 
 // newSubscription return a new subscription. The caller is responsible for
@@ -104,11 +118,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace, s.req.Partition) {
-			continue
-		}
-		return event, nil
+		return newEventFromBatch(s.req, next.Events), nil
 	}
 }
 
@@ -116,6 +126,8 @@ func (s *Subscription) requireStateOpen() error {
 	switch atomic.LoadUint32(&s.state) {
 	case subStateForceClosed:
 		return ErrSubForceClosed
+	case subStateShuttingDown:
+		return ErrShuttingDown
 	case subStateUnsub:
 		return fmt.Errorf("subscription was closed by unsubscribe")
 	default:
@@ -140,6 +152,13 @@ func newEventFromBatch(req SubscribeRequest, events []Event) Event {
 // It is safe to call from any goroutine.
 func (s *Subscription) forceClose() {
 	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateForceClosed) {
+		close(s.closed)
+	}
+}
+
+// Close the subscription and indicate that the server is being shut down.
+func (s *Subscription) shutDown() {
+	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateShuttingDown) {
 		close(s.closed)
 	}
 }

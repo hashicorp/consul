@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fix up a problem where occasionally an intention can
+visually disappear from the listing after saving
+```

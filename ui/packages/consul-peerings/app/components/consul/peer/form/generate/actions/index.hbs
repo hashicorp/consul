@@ -1,0 +1,10 @@
+<Action
+  form={{@id}}
+  @type="submit"
+  {{disabled (or
+    (eq @item.Name.length 0)
+  )}}
+  ...attributes
+>
+  Generate token
+</Action>

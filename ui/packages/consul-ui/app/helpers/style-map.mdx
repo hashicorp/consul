@@ -1,0 +1,58 @@
+# style-map
+
+`{{style-map}}` is used to easily add a list of styles, conditionally, and
+have them all formatted nicely to be printed in a DOM `style` attribute.
+
+As well as an entry-like array you can also pass an additional `unit` property
+as the 3rd item in the array. This is to make it easier to do mathamatical
+calculations for units without having to use `(concat)`.
+
+If any property has a value of `null` or `undefined`, that style property will
+not be included in the resulting string.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    This div has the correct style added/omitted.
+  </figcaption>
+  <div
+    style={{style-map
+      (array 'outline' '1px solid red')
+      (array 'width' '600px')
+      (array 'height' 100 'px')
+      (array 'padding' 1 'rem')
+      (array 'background' null)
+    }}
+  >
+    <code>
+      style={{style-map
+        (array 'outline' '1px solid red')
+        (array 'width' '600px')
+        (array 'height' 100 'px')
+        (array 'padding' 1 'rem')
+        (array 'background' null)
+      }}
+    </code>
+  </div>
+</figure>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `entries` | `styleInfo[]` |  | An array of `styleInfo`s to map |
+
+## Named Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `transform` | `boolean` | true | whether to perform the build-time 'helper to modifier' transpilation |
+
+## Types
+
+| Type | Default | Description |
+| --- | --- | --- |
+| `styleInfo` | `([string, (string \| undefined), string] \| [string, (string \| undefined)])` |  |
+
+

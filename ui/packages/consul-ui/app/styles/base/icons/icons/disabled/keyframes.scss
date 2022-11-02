@@ -1,0 +1,9 @@
+@keyframes icon-disabled {
+  100% {
+
+    -webkit-mask-image: var(--icon-skip-16);
+    mask-image: var(--icon-skip-16);
+    background-color: var(--icon-color, var(--color-disabled-500, currentColor));
+
+  }
+}

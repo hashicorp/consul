@@ -1,0 +1,14 @@
+%consul-server-list ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(215px, 25%));
+  gap: 12px;
+}
+
+.consul-server-list {
+  @extend %consul-server-list;
+}
+
+%consul-server-list a:hover div {
+  box-shadow: var(--decor-elevation-800);
+  --tone-border: var(--tone-gray-500);
+}

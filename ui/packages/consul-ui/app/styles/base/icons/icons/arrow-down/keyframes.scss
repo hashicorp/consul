@@ -1,0 +1,9 @@
+@keyframes icon-arrow-down {
+  100% {
+
+    -webkit-mask-image: var(--icon-arrow-down-16);
+    mask-image: var(--icon-arrow-down-16);
+    background-color: var(--icon-color, var(--color-arrow-down-500, currentColor));
+
+  }
+}

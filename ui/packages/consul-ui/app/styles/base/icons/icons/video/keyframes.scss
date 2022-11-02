@@ -1,0 +1,9 @@
+@keyframes icon-video {
+  100% {
+
+    -webkit-mask-image: var(--icon-video-16);
+    mask-image: var(--icon-video-16);
+    background-color: var(--icon-color, var(--color-video-500, currentColor));
+
+  }
+}

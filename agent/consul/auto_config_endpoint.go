@@ -5,15 +5,15 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto"
 
 	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/proto/pbautoconf"
@@ -32,7 +32,7 @@ type AutoConfigOptions struct {
 }
 
 func (opts AutoConfigOptions) PartitionOrDefault() string {
-	return structs.PartitionOrDefault(opts.Partition)
+	return acl.PartitionOrDefault(opts.Partition)
 }
 
 type AutoConfigAuthorizer interface {
@@ -53,6 +53,11 @@ type jwtAuthorizer struct {
 	claimAssertions []string
 }
 
+// Invalidate any quote or whitespace characters that could cause an escape with bexpr.
+// This includes an extra single-quote character not specified in the grammar for safety in case it is later added.
+// https://github.com/hashicorp/go-bexpr/blob/v0.1.11/grammar/grammar.peg#L188-L191
+var invalidSegmentName = regexp.MustCompile("[`'\"\\s]+")
+
 func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
 	identity, err := a.validator.ValidateLogin(context.Background(), req.JWT)
@@ -61,6 +66,21 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 		return AutoConfigOptions{}, acl.PermissionDenied("Failed JWT authorization: %v", err)
 	}
 
+	// Ensure provided data cannot escape the RHS of a bexpr for security.
+	// This is not the cleanest way to prevent this behavior. Ideally, the bexpr would allow us to
+	// inject a variable on the RHS for comparison as well, but it would be a complex change to implement
+	// that would likely break backwards-compatibility in certain circumstances.
+	if dns.InvalidNameRe.MatchString(req.Node) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "node", req.Node)
+	}
+	if invalidSegmentName.MatchString(req.Segment) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "segment", req.Segment)
+	}
+	if req.Partition != "" && !dns.IsValidLabel(req.Partition) {
+		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "partition", req.Partition)
+	}
+
+	// Ensure that every value in this mapping is safe to interpolate before using it.
 	varMap := map[string]string{
 		"node":      req.Node,
 		"segment":   req.Segment,
@@ -101,7 +121,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 			return AutoConfigOptions{}, err
 		}
 
-		if id.Agent != req.Node || !structs.EqualPartitions(id.Partition, req.Partition) {
+		if id.Agent != req.Node || !acl.EqualPartitions(id.Partition, req.Partition) {
 			return AutoConfigOptions{},
 				fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)",
 					printNodeName(id.Agent, id.Partition),
@@ -166,7 +186,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 		}
 
 		// convert to the protobuf form of the issued certificate
-		pbcert, err := translateIssuedCertToProtobuf(cert)
+		pbcert, err := pbconnect.NewIssuedCertFromStructs(cert)
 		if err != nil {
 			return err
 		}
@@ -179,7 +199,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 	}
 
 	// convert to the protobuf form of the issued certificate
-	pbroots, err := translateCARootsToProtobuf(connectRoots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(connectRoots)
 	if err != nil {
 		return err
 	}
@@ -282,19 +302,9 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 		return nil
 	}
 
-	// add in TLS configuration
-	if resp.Config.TLS == nil {
-		resp.Config.TLS = &pbconfig.TLS{}
-	}
-
-	resp.Config.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
-	base := ac.tlsConfigurator.Base()
-	resp.Config.TLS.VerifyOutgoing = base.VerifyOutgoing
-	resp.Config.TLS.MinVersion = base.TLSMinVersion
-	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
-
 	var err error
-	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
+
+	resp.Config.TLS, err = ac.tlsConfigurator.AutoConfigTLSSettings()
 	return err
 }
 
@@ -384,9 +394,12 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 		return nil, nil, fmt.Errorf("Failed to parse CSR: %w", err)
 	}
 
-	// ensure that a URI SAN is present
-	if len(x509CSR.URIs) < 1 {
-		return nil, nil, fmt.Errorf("CSR didn't include any URI SANs")
+	// ensure that exactly one URI SAN is present
+	if len(x509CSR.URIs) != 1 {
+		return nil, nil, fmt.Errorf("CSR SAN contains an invalid number of URIs: %v", len(x509CSR.URIs))
+	}
+	if len(x509CSR.EmailAddresses) > 0 {
+		return nil, nil, fmt.Errorf("CSR SAN does not allow specifying email addresses")
 	}
 
 	// Parse the SPIFFE ID
@@ -403,39 +416,8 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 	return x509CSR, agentID, nil
 }
 
-func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
-	var out pbconnect.CARoots
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
-	var out pbconnect.IssuedCert
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookTimeToPBTimestamp,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
-}
-
 func printNodeName(nodeName, partition string) string {
-	if structs.IsDefaultPartition(partition) {
+	if acl.IsDefaultPartition(partition) {
 		return nodeName
 	}
 	return partition + "/" + nodeName

@@ -4,67 +4,70 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-// TestCacheTypes encapsulates all the different cache types proxycfg.State will
-// watch/request for controlling one during testing.
-type TestCacheTypes struct {
-	roots             *ControllableCacheType
-	leaf              *ControllableCacheType
-	intentions        *ControllableCacheType
-	health            *ControllableCacheType
-	query             *ControllableCacheType
-	compiledChain     *ControllableCacheType
-	serviceHTTPChecks *ControllableCacheType
-}
-
-// NewTestCacheTypes creates a set of ControllableCacheTypes for all types that
-// proxycfg will watch suitable for testing a proxycfg.State or Manager.
-func NewTestCacheTypes(t testing.T) *TestCacheTypes {
-	t.Helper()
-	ct := &TestCacheTypes{
-		roots:             NewControllableCacheType(t),
-		leaf:              NewControllableCacheType(t),
-		intentions:        NewControllableCacheType(t),
-		health:            NewControllableCacheType(t),
-		query:             NewControllableCacheType(t),
-		compiledChain:     NewControllableCacheType(t),
-		serviceHTTPChecks: NewControllableCacheType(t),
+func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
+	return &pbpeering.TrustBundleListByServiceResponse{
+		Bundles: []*pbpeering.PeeringTrustBundle{
+			{
+				PeerName:    "peer-a",
+				TrustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
+				RootPEMs: []string{`-----BEGIN CERTIFICATE-----
+MIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV
+UzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v
+MRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B
+CQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0
+NFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh
+ZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl
+ci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B
+AQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV
+c2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR
+2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC
+AwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk
+yto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy
+0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH
+ZAuKN1aoKA==
+-----END CERTIFICATE-----`},
+			},
+			{
+				PeerName:    "peer-b",
+				TrustDomain: "d89ac423-e95a-475d-94f2-1c557c57bf31.consul",
+				RootPEMs: []string{`-----BEGIN CERTIFICATE-----
+MIICcTCCAdoCCQDyGxC08cD0BDANBgkqhkiG9w0BAQsFADB9MQswCQYDVQQGEwJV
+UzELMAkGA1UECAwCQ0ExETAPBgNVBAcMCENhcmxzYmFkMQwwCgYDVQQKDANGb28x
+EDAOBgNVBAsMB2V4YW1wbGUxDzANBgNVBAMMBnBlZXItYjEdMBsGCSqGSIb3DQEJ
+ARYOZm9vQHBlZXItYi5jb20wHhcNMjIwNTI2MDExNjE2WhcNMjMwNTI2MDExNjE2
+WjB9MQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExETAPBgNVBAcMCENhcmxzYmFk
+MQwwCgYDVQQKDANGb28xEDAOBgNVBAsMB2V4YW1wbGUxDzANBgNVBAMMBnBlZXIt
+YjEdMBsGCSqGSIb3DQEJARYOZm9vQHBlZXItYi5jb20wgZ8wDQYJKoZIhvcNAQEB
+BQADgY0AMIGJAoGBAL4i5erdZ5vKk3mzW9Qt6Wvw/WN/IpMDlL0a28wz9oDCtMLN
+cD/XQB9yT5jUwb2s4mD1lCDZtee8MHeD8zygICozufWVB+u2KvMaoA50T9GMQD0E
+z/0nz/Z703I4q13VHeTpltmEpYcfxw/7nJ3leKA34+Nj3zteJ70iqvD/TNBBAgMB
+AAEwDQYJKoZIhvcNAQELBQADgYEAbL04gicH+EIznDNhZJEb1guMBtBBJ8kujPyU
+ao8xhlUuorDTLwhLpkKsOhD8619oSS8KynjEBichidQRkwxIaze0a2mrGT+tGBMf
+pVz6UeCkqpde6bSJ/ozEe/2seQzKqYvRT1oUjLwYvY7OIh2DzYibOAxh6fewYAmU
+5j5qNLc=
+-----END CERTIFICATE-----`},
+			},
+		},
 	}
-	ct.query.blocking = false
-	return ct
-}
-
-// TestCacheWithTypes registers ControllableCacheTypes for all types that
-// proxycfg will watch suitable for testing a proxycfg.State or Manager.
-func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
-	c := cache.New(cache.Options{})
-	c.RegisterType(cachetype.ConnectCARootName, types.roots)
-	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
-	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
-	c.RegisterType(cachetype.HealthServicesName, types.health)
-	c.RegisterType(cachetype.PreparedQueryName, types.query)
-	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
-	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
-
-	return c
 }
 
 // TestCerts generates a CA and Leaf suitable for returning as mock CA
@@ -100,21 +103,50 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 	}
 }
 
+// TestCertsForMeshGateway generates a CA and Leaf suitable for returning as
+// mock CA root/leaf cache requests in a mesh-gateway for peering.
+func TestCertsForMeshGateway(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
+	t.Helper()
+
+	ca := connect.TestCA(t, nil)
+	roots := &structs.IndexedCARoots{
+		ActiveRootID: ca.ID,
+		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
+		Roots:        []*structs.CARoot{ca},
+	}
+	return roots, TestMeshGatewayLeafForCA(t, ca)
+}
+
+// TestMeshGatewayLeafForCA generates new mesh-gateway Leaf suitable for returning as mock CA
+// leaf cache response, signed by an existing CA.
+func TestMeshGatewayLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
+	leafPEM, pkPEM := connect.TestMeshGatewayLeaf(t, "default", ca)
+
+	leafCert, err := connect.ParseCert(leafPEM)
+	require.NoError(t, err)
+
+	return &structs.IssuedCert{
+		SerialNumber:  connect.EncodeSerialNumber(leafCert.SerialNumber),
+		CertPEM:       leafPEM,
+		PrivateKeyPEM: pkPEM,
+		Kind:          structs.ServiceKindMeshGateway,
+		KindURI:       leafCert.URIs[0].String(),
+		ValidAfter:    leafCert.NotBefore,
+		ValidBefore:   leafCert.NotAfter,
+	}
+}
+
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions() *structs.IndexedIntentionMatches {
-	return &structs.IndexedIntentionMatches{
-		Matches: []structs.Intentions{
-			[]*structs.Intention{
-				{
-					ID:              "foo",
-					SourceNS:        "default",
-					SourceName:      "billing",
-					DestinationNS:   "default",
-					DestinationName: "web",
-					Action:          structs.IntentionActionAllow,
-				},
-			},
+func TestIntentions() structs.Intentions {
+	return structs.Intentions{
+		{
+			ID:              "foo",
+			SourceNS:        "default",
+			SourceName:      "billing",
+			DestinationNS:   "default",
+			DestinationName: "web",
+			Action:          structs.IntentionActionAllow,
 		},
 	}
 }
@@ -666,1512 +698,144 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
-// TestConfigSnapshot returns a fully populated snapshot
-func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
+type noopDataSource[ReqType any] struct{}
 
-	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-
-	upstreams := structs.TestUpstreams(t)
-
-	return &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindConnectProxy,
-		Service:  "web-sidecar-proxy",
-		ProxyID:  structs.NewServiceID("web-sidecar-proxy", nil),
-		Address:  "0.0.0.0",
-		Port:     9999,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceID:   "web",
-			DestinationServiceName: "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-			Upstreams: upstreams,
-		},
-		Roots: roots,
-		ConnectProxy: configSnapshotConnectProxy{
-			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-				Leaf:           leaf,
-				UpstreamConfig: UpstreamsToMap(upstreams),
-				DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
-					UpstreamIDFromString("db"): dbChain,
-				},
-				WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
-					UpstreamIDFromString("db"): {
-						"db.default.default.dc1": TestUpstreamNodes(t, "db"),
-					},
-				},
-			},
-			PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{
-				UpstreamIDFromString("prepared_query:geo-cache"): TestPreparedQueryNodes(t, "geo-cache"),
-			},
-			Intentions:    nil, // no intentions defined
-			IntentionsSet: true,
-		},
-		Datacenter: "dc1",
-	}
+func (*noopDataSource[ReqType]) Notify(context.Context, ReqType, string, chan<- UpdateEvent) error {
+	return nil
 }
 
-// TestConfigSnapshotDiscoveryChain returns a fully populated snapshot using a discovery chain
-func TestConfigSnapshotDiscoveryChain(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "simple")
-}
-
-func TestConfigSnapshotDiscoveryChainExternalSNI(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "external-sni")
-}
-
-func TestConfigSnapshotDiscoveryChainWithOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "simple-with-overrides")
-}
-
-func TestConfigSnapshotDiscoveryChainWithFailover(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover")
-}
-
-func TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway")
-}
-
-func TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered")
-}
-
-func TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway")
-}
-
-func TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered")
-}
-
-func TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway")
-}
-
-func TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered")
-}
-
-func TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway")
-}
-
-func TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered")
-}
-
-func TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc")
-}
-
-func TestConfigSnapshotDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "simple", additionalEntries...)
-}
-
-func TestConfigSnapshotDiscoveryChainDefaultWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "default", additionalEntries...)
-}
-
-func TestConfigSnapshotDiscoveryChainDefault(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "default")
-}
-
-func TestConfigSnapshotDiscoveryChainWithSplitter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "chain-and-splitter")
-}
-
-func TestConfigSnapshotDiscoveryChainWithGRPCRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "grpc-router")
-}
-
-func TestConfigSnapshotDiscoveryChainWithRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "chain-and-router")
-}
-
-func TestConfigSnapshotDiscoveryChainWithLB(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotDiscoveryChain(t, "lb-resolver")
-}
-
-func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
-
-	snap := &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindConnectProxy,
-		Service:  "web-sidecar-proxy",
-		ProxyID:  structs.NewServiceID("web-sidecar-proxy", nil),
-		Address:  "0.0.0.0",
-		Port:     9999,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceID:   "web",
-			DestinationServiceName: "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-			Upstreams: structs.TestUpstreams(t),
-		},
-		Roots: roots,
-		ConnectProxy: configSnapshotConnectProxy{
-			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
-				t, variation, leaf, additionalEntries...,
-			),
-			PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{
-				UpstreamIDFromString("prepared_query:geo-cache"): TestPreparedQueryNodes(t, "geo-cache"),
-			},
-			Intentions:    nil, // no intentions defined
-			IntentionsSet: true,
-		},
-		Datacenter: "dc1",
-	}
-
-	return snap
-}
-
-func setupTestVariationConfigEntriesAndSnapshot(
+// testConfigSnapshotFixture helps you execute normal proxycfg event machinery
+// to assemble a ConfigSnapshot via standard means to ensure test data used in
+// any tests is actually a valid configuration.
+//
+// The provided ns argument will be manipulated by the nsFn callback if present
+// before it is used.
+//
+// The events provided in the updates slice will be fed into the event
+// machinery.
+func testConfigSnapshotFixture(
 	t testing.T,
-	variation string,
-	leaf *structs.IssuedCert,
-	additionalEntries ...structs.ConfigEntry,
-) ConfigSnapshotUpstreams {
-	// Compile a chain.
-	var (
-		entries      []structs.ConfigEntry
-		compileSetup func(req *discoverychain.CompileRequest)
-	)
-
-	switch variation {
-	case "default":
-		// no config entries
-	case "simple-with-overrides":
-		compileSetup = func(req *discoverychain.CompileRequest) {
-			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
-			req.OverrideProtocol = "grpc"
-			req.OverrideConnectTimeout = 66 * time.Second
-		}
-		fallthrough
-	case "simple":
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-			},
-		)
-	case "external-sni":
-		entries = append(entries,
-			&structs.ServiceConfigEntry{
-				Kind:        structs.ServiceDefaults,
-				Name:        "db",
-				ExternalSNI: "db.some.other.service.mesh",
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-			},
-		)
-	case "failover":
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Service: "fail",
-					},
-				},
-			},
-		)
-	case "failover-through-remote-gateway-triggered":
-		fallthrough
-	case "failover-through-remote-gateway":
-		entries = append(entries,
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "db",
-				MeshGateway: structs.MeshGatewayConfig{
-					Mode: structs.MeshGatewayModeRemote,
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Datacenters: []string{"dc2"},
-					},
-				},
-			},
-		)
-	case "failover-through-double-remote-gateway-triggered":
-		fallthrough
-	case "failover-through-double-remote-gateway":
-		entries = append(entries,
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "db",
-				MeshGateway: structs.MeshGatewayConfig{
-					Mode: structs.MeshGatewayModeRemote,
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Datacenters: []string{"dc2", "dc3"},
-					},
-				},
-			},
-		)
-	case "failover-through-local-gateway-triggered":
-		fallthrough
-	case "failover-through-local-gateway":
-		entries = append(entries,
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "db",
-				MeshGateway: structs.MeshGatewayConfig{
-					Mode: structs.MeshGatewayModeLocal,
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Datacenters: []string{"dc2"},
-					},
-				},
-			},
-		)
-	case "failover-through-double-local-gateway-triggered":
-		fallthrough
-	case "failover-through-double-local-gateway":
-		entries = append(entries,
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "db",
-				MeshGateway: structs.MeshGatewayConfig{
-					Mode: structs.MeshGatewayModeLocal,
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Datacenters: []string{"dc2", "dc3"},
-					},
-				},
-			},
-		)
-	case "splitter-with-resolver-redirect-multidc":
-		entries = append(entries,
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
-			&structs.ServiceSplitterConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db",
-				Splits: []structs.ServiceSplit{
-					{Weight: 50, Service: "db-dc1"},
-					{Weight: 50, Service: "db-dc2"},
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db-dc1",
-				Redirect: &structs.ServiceResolverRedirect{
-					Service:       "db",
-					ServiceSubset: "v1",
-					Datacenter:    "dc1",
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db-dc2",
-				Redirect: &structs.ServiceResolverRedirect{
-					Service:       "db",
-					ServiceSubset: "v2",
-					Datacenter:    "dc2",
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db",
-				Subsets: map[string]structs.ServiceResolverSubset{
-					"v1": {
-						Filter: "Service.Meta.version == v1",
-					},
-					"v2": {
-						Filter: "Service.Meta.version == v2",
-					},
-				},
-			},
-		)
-	case "chain-and-splitter":
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-			},
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
-			&structs.ServiceSplitterConfigEntry{
-				Kind: structs.ServiceSplitter,
-				Name: "db",
-				Splits: []structs.ServiceSplit{
-					{
-						Weight:  95.5,
-						Service: "big-side",
-						RequestHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "big"},
-						},
-						ResponseHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "big"},
-						},
-					},
-					{
-						Weight:  4,
-						Service: "goldilocks-side",
-						RequestHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "goldilocks"},
-						},
-						ResponseHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "goldilocks"},
-						},
-					},
-					{
-						Weight:  0.5,
-						Service: "lil-bit-side",
-						RequestHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "small"},
-						},
-						ResponseHeaders: &structs.HTTPHeaderModifiers{
-							Set: map[string]string{"x-split-leg": "small"},
-						},
-					},
-				},
-			},
-		)
-	case "grpc-router":
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-			},
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "grpc",
-				},
-			},
-			&structs.ServiceRouterConfigEntry{
-				Kind: structs.ServiceRouter,
-				Name: "db",
-				Routes: []structs.ServiceRoute{
-					{
-						Match: &structs.ServiceRouteMatch{
-							HTTP: &structs.ServiceRouteHTTPMatch{
-								PathExact: "/fgrpc.PingServer/Ping",
-							},
-						},
-						Destination: &structs.ServiceRouteDestination{
-							Service: "prefix",
-						},
-					},
-				},
-			},
-		)
-	case "chain-and-router":
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				ConnectTimeout: 33 * time.Second,
-			},
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
-			&structs.ServiceSplitterConfigEntry{
-				Kind: structs.ServiceSplitter,
-				Name: "split-3-ways",
-				Splits: []structs.ServiceSplit{
-					{Weight: 95.5, Service: "big-side"},
-					{Weight: 4, Service: "goldilocks-side"},
-					{Weight: 0.5, Service: "lil-bit-side"},
-				},
-			},
-			&structs.ServiceRouterConfigEntry{
-				Kind: structs.ServiceRouter,
-				Name: "db",
-				Routes: []structs.ServiceRoute{
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/prefix",
-						}),
-						Destination: toService("prefix"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathExact: "/exact",
-						}),
-						Destination: toService("exact"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathRegex: "/regex",
-						}),
-						Destination: toService("regex"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:    "x-debug",
-							Present: true,
-						}),
-						Destination: toService("hdr-present"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:    "x-debug",
-							Present: true,
-							Invert:  true,
-						}),
-						Destination: toService("hdr-not-present"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:  "x-debug",
-							Exact: "exact",
-						}),
-						Destination: toService("hdr-exact"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:   "x-debug",
-							Prefix: "prefix",
-						}),
-						Destination: toService("hdr-prefix"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:   "x-debug",
-							Suffix: "suffix",
-						}),
-						Destination: toService("hdr-suffix"),
-					},
-					{
-						Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-							Name:  "x-debug",
-							Regex: "regex",
-						}),
-						Destination: toService("hdr-regex"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							Methods: []string{"GET", "PUT"},
-						}),
-						Destination: toService("just-methods"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							Header: []structs.ServiceRouteHTTPMatchHeader{
-								{
-									Name:  "x-debug",
-									Exact: "exact",
-								},
-							},
-							Methods: []string{"GET", "PUT"},
-						}),
-						Destination: toService("hdr-exact-with-method"),
-					},
-					{
-						Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-							Name:  "secretparam1",
-							Exact: "exact",
-						}),
-						Destination: toService("prm-exact"),
-					},
-					{
-						Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-							Name:  "secretparam2",
-							Regex: "regex",
-						}),
-						Destination: toService("prm-regex"),
-					},
-					{
-						Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-							Name:    "secretparam3",
-							Present: true,
-						}),
-						Destination: toService("prm-present"),
-					},
-					{
-						Match:       nil,
-						Destination: toService("nil-match"),
-					},
-					{
-						Match:       &structs.ServiceRouteMatch{},
-						Destination: toService("empty-match-1"),
-					},
-					{
-						Match: &structs.ServiceRouteMatch{
-							HTTP: &structs.ServiceRouteHTTPMatch{},
-						},
-						Destination: toService("empty-match-2"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/prefix",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:       "prefix-rewrite-1",
-							PrefixRewrite: "/",
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/prefix",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:       "prefix-rewrite-2",
-							PrefixRewrite: "/nested/newlocation",
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/timeout",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:        "req-timeout",
-							RequestTimeout: 33 * time.Second,
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-connect",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:               "retry-connect",
-							NumRetries:            15,
-							RetryOnConnectFailure: true,
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-codes",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:            "retry-codes",
-							NumRetries:         15,
-							RetryOnStatusCodes: []uint32{401, 409, 451},
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-both",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service:               "retry-both",
-							RetryOnConnectFailure: true,
-							RetryOnStatusCodes:    []uint32{401, 409, 451},
-						},
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/split-3-ways",
-						}),
-						Destination: toService("split-3-ways"),
-					},
-					{
-						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathExact: "/header-manip",
-						}),
-						Destination: &structs.ServiceRouteDestination{
-							Service: "header-manip",
-							RequestHeaders: &structs.HTTPHeaderModifiers{
-								Add: map[string]string{
-									"request": "bar",
-								},
-								Set: map[string]string{
-									"bar": "baz",
-								},
-								Remove: []string{"qux"},
-							},
-							ResponseHeaders: &structs.HTTPHeaderModifiers{
-								Add: map[string]string{
-									"response": "bar",
-								},
-								Set: map[string]string{
-									"bar": "baz",
-								},
-								Remove: []string{"qux"},
-							},
-						},
-					},
-				},
-			},
-		)
-	case "lb-resolver":
-		entries = append(entries,
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
-			&structs.ServiceSplitterConfigEntry{
-				Kind: structs.ServiceSplitter,
-				Name: "db",
-				Splits: []structs.ServiceSplit{
-					{Weight: 95.5, Service: "something-else"},
-					{Weight: 4.5, Service: "db"},
-				},
-			},
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db",
-				LoadBalancer: &structs.LoadBalancer{
-					Policy: "ring_hash",
-					RingHashConfig: &structs.RingHashConfig{
-						MinimumRingSize: 20,
-						MaximumRingSize: 30,
-					},
-					HashPolicies: []structs.HashPolicy{
-						{
-							Field:      "cookie",
-							FieldValue: "chocolate-chip",
-							Terminal:   true,
-						},
-						{
-							Field:        "cookie",
-							FieldValue:   "chocolate-chip",
-							CookieConfig: &structs.CookieConfig{Session: true},
-						},
-						{
-							Field:      "header",
-							FieldValue: "x-user-id",
-						},
-						{
-							SourceIP: true,
-							Terminal: true,
-						},
-					},
-				},
-			},
-		)
-	case "http-multiple-services":
-	default:
-		t.Fatalf("unexpected variation: %q", variation)
-		return ConfigSnapshotUpstreams{}
-	}
-
-	if len(additionalEntries) > 0 {
-		entries = append(entries, additionalEntries...)
-	}
-
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
-
-	dbUID := UpstreamIDFromString("db")
-
-	upstreams := structs.TestUpstreams(t)
-	snap := ConfigSnapshotUpstreams{
-		Leaf: leaf,
-		DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
-			dbUID: dbChain,
-		},
-		WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
-			dbUID: {
-				"db.default.default.dc1": TestUpstreamNodes(t, "db"),
-			},
-		},
-		UpstreamConfig: UpstreamsToMap(upstreams),
-	}
-
-	switch variation {
-	case "default":
-	case "simple-with-overrides":
-	case "simple":
-	case "external-sni":
-	case "failover":
-		snap.WatchedUpstreamEndpoints[dbUID]["fail.default.default.dc1"] =
-			TestUpstreamNodesAlternate(t)
-	case "failover-through-remote-gateway-triggered":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"] =
-			TestUpstreamNodesInStatus(t, "critical")
-		fallthrough
-	case "failover-through-remote-gateway":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc2"] =
-			TestUpstreamNodesDC2(t)
-		snap.WatchedGatewayEndpoints = map[UpstreamID]map[string]structs.CheckServiceNodes{
-			dbUID: {
-				"dc2": TestGatewayNodesDC2(t),
-			},
-		}
-	case "failover-through-double-remote-gateway-triggered":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"] =
-			TestUpstreamNodesInStatus(t, "critical")
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc2"] =
-			TestUpstreamNodesInStatusDC2(t, "critical")
-		fallthrough
-	case "failover-through-double-remote-gateway":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
-		snap.WatchedGatewayEndpoints = map[UpstreamID]map[string]structs.CheckServiceNodes{
-			dbUID: {
-				"dc2": TestGatewayNodesDC2(t),
-				"dc3": TestGatewayNodesDC3(t),
-			},
-		}
-	case "failover-through-local-gateway-triggered":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"] =
-			TestUpstreamNodesInStatus(t, "critical")
-		fallthrough
-	case "failover-through-local-gateway":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc2"] =
-			TestUpstreamNodesDC2(t)
-		snap.WatchedGatewayEndpoints = map[UpstreamID]map[string]structs.CheckServiceNodes{
-			dbUID: {
-				"dc1": TestGatewayNodesDC1(t),
-			},
-		}
-	case "failover-through-double-local-gateway-triggered":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc1"] =
-			TestUpstreamNodesInStatus(t, "critical")
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc2"] =
-			TestUpstreamNodesInStatusDC2(t, "critical")
-		fallthrough
-	case "failover-through-double-local-gateway":
-		snap.WatchedUpstreamEndpoints[dbUID]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
-		snap.WatchedGatewayEndpoints = map[UpstreamID]map[string]structs.CheckServiceNodes{
-			dbUID: {
-				"dc1": TestGatewayNodesDC1(t),
-			},
-		}
-	case "splitter-with-resolver-redirect-multidc":
-		snap.WatchedUpstreamEndpoints[dbUID] = map[string]structs.CheckServiceNodes{
-			"v1.db.default.default.dc1": TestUpstreamNodes(t, "db"),
-			"v2.db.default.default.dc2": TestUpstreamNodesDC2(t),
-		}
-	case "chain-and-splitter":
-	case "grpc-router":
-	case "chain-and-router":
-	case "http-multiple-services":
-		snap.WatchedUpstreamEndpoints[UpstreamIDFromString("foo")] = map[string]structs.CheckServiceNodes{
-			"foo.default.default.dc1": TestUpstreamNodes(t, "foo"),
-		}
-		snap.WatchedUpstreamEndpoints[UpstreamIDFromString("bar")] = map[string]structs.CheckServiceNodes{
-			"bar.default.default.dc1": TestUpstreamNodesAlternate(t),
-		}
-	case "lb-resolver":
-	default:
-		t.Fatalf("unexpected variation: %q", variation)
-		return ConfigSnapshotUpstreams{}
-	}
-
-	return snap
-}
-
-func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotMeshGateway(t, true, false)
-}
-
-func TestConfigSnapshotMeshGatewayUsingFederationStates(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotMeshGateway(t, true, true)
-}
-
-func TestConfigSnapshotMeshGatewayNewerInformationInFederationStates(t testing.T) *ConfigSnapshot {
-	snap := TestConfigSnapshotMeshGateway(t)
-
-	// Create a duplicate entry in FedStateGateways, with a high ModifyIndex, to
-	// verify that fresh data in the federation state is preferred over stale data
-	// in GatewayGroups.
-	svc := structs.TestNodeServiceMeshGatewayWithAddrs(t,
-		"10.0.1.3", 8443,
-		structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
-		structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
-	)
-	svc.RaftIndex.ModifyIndex = math.MaxUint64
-
-	snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
-		"dc2": {
-			{
-				Node:    snap.MeshGateway.GatewayGroups["dc2"][0].Node,
-				Service: svc,
-			},
-		},
-	}
-
-	return snap
-}
-
-func TestConfigSnapshotMeshGatewayOlderInformationInFederationStates(t testing.T) *ConfigSnapshot {
-	snap := TestConfigSnapshotMeshGateway(t)
-
-	// Create a duplicate entry in FedStateGateways, with a low ModifyIndex, to
-	// verify that stale data in the federation state is ignored in favor of the
-	// fresher data in GatewayGroups.
-	svc := structs.TestNodeServiceMeshGatewayWithAddrs(t,
-		"10.0.1.3", 8443,
-		structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
-		structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
-	)
-	svc.RaftIndex.ModifyIndex = 0
-
-	snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
-		"dc2": {
-			{
-				Node:    snap.MeshGateway.GatewayGroups["dc2"][0].Node,
-				Service: svc,
-			},
-		},
-	}
-
-	return snap
-}
-
-func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotMeshGateway(t, false, false)
-}
-
-func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFederationStates bool) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
-	snap := &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindMeshGateway,
-		Service:  "mesh-gateway",
-		ProxyID:  structs.NewServiceID("mesh-gateway", nil),
-		Address:  "1.2.3.4",
-		Port:     8443,
-		Proxy: structs.ConnectProxyConfig{
-			Config: map[string]interface{}{},
-		},
-		TaggedAddresses: map[string]structs.ServiceAddress{
-			structs.TaggedAddressLAN: {
-				Address: "1.2.3.4",
-				Port:    8443,
-			},
-			structs.TaggedAddressWAN: {
-				Address: "198.18.0.1",
-				Port:    443,
-			},
-		},
-		Roots:      roots,
-		Datacenter: "dc1",
-		MeshGateway: configSnapshotMeshGateway{
-			WatchedServicesSet: true,
-		},
-	}
-
-	if populateServices {
-		snap.MeshGateway = configSnapshotMeshGateway{
-			WatchedServices: map[structs.ServiceName]context.CancelFunc{
-				structs.NewServiceName("foo", nil): nil,
-				structs.NewServiceName("bar", nil): nil,
-			},
-			WatchedServicesSet: true,
-			WatchedGateways: map[string]context.CancelFunc{
-				"dc2": nil,
-			},
-			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
-				structs.NewServiceName("foo", nil): TestGatewayServiceGroupFooDC1(t),
-				structs.NewServiceName("bar", nil): TestGatewayServiceGroupBarDC1(t),
-			},
-			GatewayGroups: map[string]structs.CheckServiceNodes{
-				"dc2": TestGatewayNodesDC2(t),
-				"dc4": TestGatewayNodesDC4Hostname(t),
-				"dc6": TestGatewayNodesDC6Hostname(t),
-			},
-			HostnameDatacenters: map[string]structs.CheckServiceNodes{
-				"dc4": {
-					structs.CheckServiceNode{
-						Node: &structs.Node{
-							ID:         "mesh-gateway-1",
-							Node:       "mesh-gateway",
-							Address:    "10.30.1.1",
-							Datacenter: "dc4",
-						},
-						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
-							"10.30.1.1", 8443,
-							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
-							structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
-					},
-					structs.CheckServiceNode{
-						Node: &structs.Node{
-							ID:         "mesh-gateway-2",
-							Node:       "mesh-gateway",
-							Address:    "10.30.1.2",
-							Datacenter: "dc4",
-						},
-						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
-							"10.30.1.2", 8443,
-							structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
-							structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
-					},
-				},
-				"dc6": {
-					structs.CheckServiceNode{
-						Node: &structs.Node{
-							ID:         "mesh-gateway-1",
-							Node:       "mesh-gateway",
-							Address:    "10.30.1.1",
-							Datacenter: "dc6",
-						},
-						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
-							"10.30.1.1", 8443,
-							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
-							structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),
-						Checks: structs.HealthChecks{
-							{
-								Status: api.HealthCritical,
-							},
-						},
-					},
-				},
-			},
-		}
-		if useFederationStates {
-			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
-				"dc2": TestGatewayNodesDC2(t),
-				"dc4": TestGatewayNodesDC4Hostname(t),
-				"dc6": TestGatewayNodesDC6Hostname(t),
-			}
-
-			delete(snap.MeshGateway.GatewayGroups, "dc2")
-		}
-	}
-
-	return snap
-}
-
-func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple")
-}
-
-func TestConfigSnapshotIngressWithTLSListener(t testing.T) *ConfigSnapshot {
-	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
-	snap.IngressGateway.TLSConfig.Enabled = true
-	return snap
-}
-
-func TestConfigSnapshotIngressWithGatewaySDS(t testing.T) *ConfigSnapshot {
-	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
-	snap.IngressGateway.TLSConfig.SDS = &structs.GatewayTLSSDSConfig{
-		ClusterName:  "sds-cluster",
-		CertResource: "cert-resource",
-	}
-	return snap
-}
-
-func TestConfigSnapshotIngressWithOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple-with-overrides")
-}
-func TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "splitter-with-resolver-redirect-multidc")
-}
-
-func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "http-multiple-services")
-}
-
-func TestConfigSnapshotIngressExternalSNI(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "external-sni")
-}
-
-func TestConfigSnapshotIngressWithFailover(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover")
-}
-
-func TestConfigSnapshotIngressWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway")
-}
-
-func TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway-triggered")
-}
-
-func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway")
-}
-
-func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway-triggered")
-}
-
-func TestConfigSnapshotIngressWithFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway")
-}
-
-func TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway-triggered")
-}
-
-func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway")
-}
-
-func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway-triggered")
-}
-
-func TestConfigSnapshotIngressWithSplitter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-splitter")
-}
-
-func TestConfigSnapshotIngressWithGRPCRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "grpc-router")
-}
-
-func TestConfigSnapshotIngressWithRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-router")
-}
-
-func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "tcp", "default")
-}
-
-func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
-}
-
-func TestConfigSnapshotIngressWithLB(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "lb-resolver")
-}
-
-func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "http", "simple", additionalEntries...)
-}
-
-func testConfigSnapshotIngressGateway(
-	t testing.T, populateServices bool, protocol, variation string,
-	additionalEntries ...structs.ConfigEntry,
+	ns *structs.NodeService,
+	nsFn func(ns *structs.NodeService),
+	serverSNIFn ServerSNIFunc,
+	updates []UpdateEvent,
 ) *ConfigSnapshot {
-	roots, leaf := TestCerts(t)
+	const token = ""
 
-	snap := &ConfigSnapshot{
-		Locality:   GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:       structs.ServiceKindIngressGateway,
-		Service:    "ingress-gateway",
-		ProxyID:    structs.NewServiceID("ingress-gateway", nil),
-		Address:    "1.2.3.4",
-		Roots:      roots,
-		Datacenter: "dc1",
+	if nsFn != nil {
+		nsFn(ns)
 	}
-	if populateServices {
-		snap.IngressGateway = configSnapshotIngressGateway{
-			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
-				t, variation, leaf, additionalEntries...,
-			),
-			Upstreams: map[IngressListenerKey]structs.Upstreams{
-				{protocol, 9191}: {
-					{
-						// We rely on this one having default type in a few tests...
-						DestinationName:      "db",
-						DestinationPartition: "default",
-						LocalBindPort:        9191,
-						LocalBindAddress:     "2.3.4.5",
-					},
-				},
-			},
-			Listeners: map[IngressListenerKey]structs.IngressListener{
-				{protocol, 9191}: {
-					Port:     9191,
-					Protocol: protocol,
-					Services: []structs.IngressService{
-						{Name: "db"},
-					},
-				},
-			},
-		}
-	}
-	return snap
-}
 
-func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
-	return &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindConnectProxy,
-		Service:  "web-proxy",
-		ProxyID:  structs.NewServiceID("web-proxy", nil),
-		Address:  "1.2.3.4",
-		Port:     8080,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			DestinationServiceID:   "web",
-			LocalServicePort:       8080,
-			Expose: structs.ExposeConfig{
-				Checks: false,
-				Paths: []structs.ExposePath{
-					{
-						LocalPathPort: 8080,
-						Path:          "/health1",
-						ListenerPort:  21500,
-					},
-					{
-						LocalPathPort: 8080,
-						Path:          "/health2",
-						ListenerPort:  21501,
-					},
-				},
-			},
+	config := stateConfig{
+		logger: hclog.NewNullLogger(),
+		source: &structs.QuerySource{
+			Datacenter: "dc1",
 		},
-		Datacenter: "dc1",
-	}
-}
-
-func TestConfigSnapshotTerminatingGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGateway(t, true)
-}
-
-func TestConfigSnapshotTerminatingGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGateway(t, false)
-}
-
-func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
-
-	snap := &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindTerminatingGateway,
-		Service:  "terminating-gateway",
-		ProxyID:  structs.NewServiceID("terminating-gateway", nil),
-		Address:  "1.2.3.4",
-		TaggedAddresses: map[string]structs.ServiceAddress{
-			structs.TaggedAddressWAN: {
-				Address: "198.18.0.1",
-				Port:    443,
-			},
+		dataSources: DataSources{
+			CARoots:                         &noopDataSource[*structs.DCSpecificRequest]{},
+			CompiledDiscoveryChain:          &noopDataSource[*structs.DiscoveryChainRequest]{},
+			ConfigEntry:                     &noopDataSource[*structs.ConfigEntryQuery]{},
+			ConfigEntryList:                 &noopDataSource[*structs.ConfigEntryQuery]{},
+			Datacenters:                     &noopDataSource[*structs.DatacentersRequest]{},
+			FederationStateListMeshGateways: &noopDataSource[*structs.DCSpecificRequest]{},
+			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			ServiceGateways:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
+			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
+			Intentions:                      &noopDataSource[*structs.ServiceSpecificRequest]{},
+			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
+			IntentionUpstreamsDestination:   &noopDataSource[*structs.ServiceSpecificRequest]{},
+			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
+			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
+			PeeringList:                     &noopDataSource[*cachetype.PeeringListRequest]{},
+			PeeredUpstreams:                 &noopDataSource[*structs.PartitionSpecificRequest]{},
+			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
+			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
+			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
+			TrustBundle:                     &noopDataSource[*cachetype.TrustBundleReadRequest]{},
+			TrustBundleList:                 &noopDataSource[*cachetype.TrustBundleListRequest]{},
+			ExportedPeeredServices:          &noopDataSource[*structs.DCSpecificRequest]{},
 		},
-		Port:       8443,
-		Roots:      roots,
-		Datacenter: "dc1",
-	}
-	if populateServices {
-		web := structs.NewServiceName("web", nil)
-		webNodes := TestUpstreamNodes(t, web.Name)
-		webNodes[0].Service.Meta = map[string]string{
-			"version": "1",
-		}
-		webNodes[1].Service.Meta = map[string]string{
-			"version": "2",
-		}
-
-		api := structs.NewServiceName("api", nil)
-		apiNodes := structs.CheckServiceNodes{
-			structs.CheckServiceNode{
-				Node: &structs.Node{
-					ID:         "api",
-					Node:       "test1",
-					Address:    "10.10.1.1",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "api",
-					Address: "api.mydomain",
-					Port:    8081,
-				},
-				Checks: structs.HealthChecks{
-					{
-						Status: "critical",
-					},
-				},
-			},
-			structs.CheckServiceNode{
-				Node: &structs.Node{
-					ID:         "test2",
-					Node:       "test2",
-					Address:    "10.10.1.2",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "api",
-					Address: "api.altdomain",
-					Port:    8081,
-					Meta: map[string]string{
-						"domain": "alt",
-					},
-				},
-			},
-			structs.CheckServiceNode{
-				Node: &structs.Node{
-					ID:         "test3",
-					Node:       "test3",
-					Address:    "10.10.1.3",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "api",
-					Address: "10.10.1.3",
-					Port:    8081,
-				},
-			},
-			structs.CheckServiceNode{
-				Node: &structs.Node{
-					ID:         "test4",
-					Node:       "test4",
-					Address:    "10.10.1.4",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "api",
-					Address: "api.thirddomain",
-					Port:    8081,
-				},
-			},
-		}
-
-		// Has failing instance
-		db := structs.NewServiceName("db", nil)
-		dbNodes := structs.CheckServiceNodes{
-			structs.CheckServiceNode{
-				Node: &structs.Node{
-					ID:         "db",
-					Node:       "test4",
-					Address:    "10.10.1.4",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "db",
-					Address: "db.mydomain",
-					Port:    8081,
-				},
-				Checks: structs.HealthChecks{
-					{
-						Status: "critical",
-					},
-				},
-			},
-		}
-
-		// Has passing instance but failing subset
-		cache := structs.NewServiceName("cache", nil)
-		cacheNodes := structs.CheckServiceNodes{
-			{
-				Node: &structs.Node{
-					ID:         "cache",
-					Node:       "test5",
-					Address:    "10.10.1.5",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "cache",
-					Address: "cache.mydomain",
-					Port:    8081,
-				},
-			},
-			{
-				Node: &structs.Node{
-					ID:         "cache",
-					Node:       "test5",
-					Address:    "10.10.1.5",
-					Datacenter: "dc1",
-				},
-				Service: &structs.NodeService{
-					Service: "cache",
-					Address: "cache.mydomain",
-					Port:    8081,
-					Meta: map[string]string{
-						"Env": "prod",
-					},
-				},
-				Checks: structs.HealthChecks{
-					{
-						Status: "critical",
-					},
-				},
-			},
-		}
-
-		snap.TerminatingGateway = configSnapshotTerminatingGateway{
-			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
-				web:   webNodes,
-				api:   apiNodes,
-				db:    dbNodes,
-				cache: cacheNodes,
-			},
-			ServiceResolversSet: map[structs.ServiceName]bool{
-				web:   true,
-				api:   true,
-				db:    true,
-				cache: true,
-			},
-			GatewayServices: map[structs.ServiceName]structs.GatewayService{
-				web: {
-					Service: web,
-					CAFile:  "ca.cert.pem",
-				},
-				api: {
-					Service:  api,
-					CAFile:   "ca.cert.pem",
-					CertFile: "api.cert.pem",
-					KeyFile:  "api.key.pem",
-				},
-				db: {
-					Service: db,
-				},
-				cache: {
-					Service: cache,
-				},
-			},
-			HostnameServices: map[structs.ServiceName]structs.CheckServiceNodes{
-				api:   {apiNodes[0], apiNodes[1]},
-				db:    {dbNodes[0]},
-				cache: {cacheNodes[0], cacheNodes[1]},
-			},
-		}
-
-		snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
-			web: {
-				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
-			},
-			api: {
-				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
-			},
-			db: {
-				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
-			},
-			cache: {
-				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
-			},
-		}
-		snap.TerminatingGateway.Intentions = map[structs.ServiceName]structs.Intentions{
-			// no intentions defined for thse services
-			web:   nil,
-			api:   nil,
-			db:    nil,
-			cache: nil,
-		}
-
-		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
-			web: {
-				CertPEM:       golden(t, "test-leaf-cert"),
-				PrivateKeyPEM: golden(t, "test-leaf-key"),
-			},
-			api: {
-				CertPEM:       golden(t, "alt-test-leaf-cert"),
-				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
-			},
-			db: {
-				CertPEM:       golden(t, "db-test-leaf-cert"),
-				PrivateKeyPEM: golden(t, "db-test-leaf-key"),
-			},
-			cache: {
-				CertPEM:       golden(t, "cache-test-leaf-cert"),
-				PrivateKeyPEM: golden(t, "cache-test-leaf-key"),
-			},
-		}
-	}
-	return snap
-}
-
-func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
-	return &ConfigSnapshot{
-		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
-		Kind:     structs.ServiceKindConnectProxy,
-		Service:  "grpc-proxy",
-		ProxyID:  structs.NewServiceID("grpc-proxy", nil),
-		Address:  "1.2.3.4",
-		Port:     8080,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "grpc",
-			DestinationServiceID:   "grpc",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"protocol": "grpc",
-			},
-			Expose: structs.ExposeConfig{
-				Checks: false,
-				Paths: []structs.ExposePath{
-					{
-						LocalPathPort: 8090,
-						Path:          "/healthz",
-						ListenerPort:  21500,
-						Protocol:      "http",
-					},
-				},
-			},
+		dnsConfig: DNSConfig{ // TODO: make configurable
+			Domain:    "consul",
+			AltDomain: "",
 		},
-		Datacenter: "dc1",
+		serverSNIFn:           serverSNIFn,
+		intentionDefaultAllow: false, // TODO: make configurable
 	}
-}
-
-func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
-	snap := TestConfigSnapshotIngress_HTTPMultipleServices(t)
-
-	snap.IngressGateway.Upstreams = map[IngressListenerKey]structs.Upstreams{
-		{Protocol: "http", Port: 8080}: {
-			{
-				DestinationName: "foo",
-				LocalBindPort:   8080,
-			},
-			{
-				DestinationName: "bar",
-				LocalBindPort:   8080,
-			},
-		},
-		{Protocol: "http", Port: 443}: {
-			{
-				DestinationName: "foo",
-				LocalBindPort:   443,
-			},
-		},
+	testConfigSnapshotFixtureEnterprise(&config)
+	s, err := newServiceInstanceFromNodeService(ProxyID{ServiceID: ns.CompoundServiceID()}, ns, token)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+		return nil
 	}
 
-	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-
-	snap.IngressGateway.DiscoveryChain = map[UpstreamID]*structs.CompiledDiscoveryChain{
-		UpstreamIDFromString("foo"): fooChain,
-		UpstreamIDFromString("bar"): barChain,
+	handler, err := newKindHandler(config, s, nil) // NOTE: nil channel
+	if err != nil {
+		t.Fatalf("err: %v", err)
+		return nil
 	}
 
-	return snap
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	snap, err := handler.initialize(ctx)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+		return nil
+	}
+
+	for _, u := range updates {
+		if err := handler.handleUpdate(ctx, u, &snap); err != nil {
+			t.Fatalf("Failed to handle update from watch %q: %v", u.CorrelationID, err)
+			return nil
+		}
+	}
+	return &snap
 }
 
-func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {
-	return &structs.ServiceRouteMatch{HTTP: http}
+func testSpliceEvents(base, extra []UpdateEvent) []UpdateEvent {
+	if len(extra) == 0 {
+		return base
+	}
+	var (
+		hasExtra      = make(map[string]UpdateEvent)
+		completeExtra = make(map[string]struct{})
+
+		allEvents []UpdateEvent
+	)
+
+	for _, e := range extra {
+		hasExtra[e.CorrelationID] = e
+	}
+
+	// Override base events with extras if they share the same correlationID,
+	// then put the rest of the extras at the end.
+	for _, e := range base {
+		if extraEvt, ok := hasExtra[e.CorrelationID]; ok {
+			if extraEvt.Result != nil { // nil results are tombstones
+				allEvents = append(allEvents, extraEvt)
+			}
+			completeExtra[e.CorrelationID] = struct{}{}
+		} else {
+			allEvents = append(allEvents, e)
+		}
+	}
+	for _, e := range extra {
+		if _, ok := completeExtra[e.CorrelationID]; !ok {
+			allEvents = append(allEvents, e)
+		}
+	}
+	return allEvents
 }
-func httpMatchHeader(headers ...structs.ServiceRouteHTTPMatchHeader) *structs.ServiceRouteMatch {
-	return httpMatch(&structs.ServiceRouteHTTPMatch{
-		Header: headers,
-	})
-}
-func httpMatchParam(params ...structs.ServiceRouteHTTPMatchQueryParam) *structs.ServiceRouteMatch {
-	return httpMatch(&structs.ServiceRouteHTTPMatch{
-		QueryParam: params,
-	})
-}
-func toService(svc string) *structs.ServiceRouteDestination {
-	return &structs.ServiceRouteDestination{Service: svc}
+
+func testSpliceNodeServiceFunc(prev, next func(ns *structs.NodeService)) func(ns *structs.NodeService) {
+	return func(ns *structs.NodeService) {
+		if prev != nil {
+			prev(ns)
+		}
+		next(ns)
+	}
 }
 
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
@@ -2258,9 +922,186 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 func golden(t testing.T, name string) string {
 	t.Helper()
 
-	golden := filepath.Join("../xds/testdata", name+".golden")
+	golden := filepath.Join(projectRoot(), "../", "/xds/testdata", name+".golden")
 	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)
+}
+
+func projectRoot() string {
+	_, base, _, _ := runtime.Caller(0)
+	return filepath.Dir(base)
+}
+
+// NewTestDataSources creates a set of data sources that can be used to provide
+// the Manager with data in tests.
+func NewTestDataSources() *TestDataSources {
+	srcs := &TestDataSources{
+		CARoots:                         NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedCARoots](),
+		CompiledDiscoveryChain:          NewTestDataSource[*structs.DiscoveryChainRequest, *structs.DiscoveryChainResponse](),
+		ConfigEntry:                     NewTestDataSource[*structs.ConfigEntryQuery, *structs.ConfigEntryResponse](),
+		ConfigEntryList:                 NewTestDataSource[*structs.ConfigEntryQuery, *structs.IndexedConfigEntries](),
+		Datacenters:                     NewTestDataSource[*structs.DatacentersRequest, *[]string](),
+		FederationStateListMeshGateways: NewTestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes](),
+		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
+		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
+		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
+		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
+		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
+		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
+		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
+		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
+		PeeringList:                     NewTestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse](),
+		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
+		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
+		ServiceList:                     NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList](),
+		TrustBundle:                     NewTestDataSource[*cachetype.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse](),
+		TrustBundleList:                 NewTestDataSource[*cachetype.TrustBundleListRequest, *pbpeering.TrustBundleListByServiceResponse](),
+	}
+	srcs.buildEnterpriseSources()
+	return srcs
+}
+
+type TestDataSources struct {
+	CARoots                         *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedCARoots]
+	CompiledDiscoveryChain          *TestDataSource[*structs.DiscoveryChainRequest, *structs.DiscoveryChainResponse]
+	ConfigEntry                     *TestDataSource[*structs.ConfigEntryQuery, *structs.ConfigEntryResponse]
+	ConfigEntryList                 *TestDataSource[*structs.ConfigEntryQuery, *structs.IndexedConfigEntries]
+	FederationStateListMeshGateways *TestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes]
+	Datacenters                     *TestDataSource[*structs.DatacentersRequest, *[]string]
+	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
+	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
+	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
+	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
+	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
+	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
+	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
+	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]
+	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
+	PeeringList                     *TestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse]
+	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
+	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
+	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
+	ServiceList                     *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList]
+	TrustBundle                     *TestDataSource[*cachetype.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse]
+	TrustBundleList                 *TestDataSource[*cachetype.TrustBundleListRequest, *pbpeering.TrustBundleListByServiceResponse]
+
+	TestDataSourcesEnterprise
+}
+
+func (t *TestDataSources) ToDataSources() DataSources {
+	ds := DataSources{
+		CARoots:                       t.CARoots,
+		CompiledDiscoveryChain:        t.CompiledDiscoveryChain,
+		ConfigEntry:                   t.ConfigEntry,
+		ConfigEntryList:               t.ConfigEntryList,
+		Datacenters:                   t.Datacenters,
+		GatewayServices:               t.GatewayServices,
+		ServiceGateways:               t.ServiceGateways,
+		Health:                        t.Health,
+		HTTPChecks:                    t.HTTPChecks,
+		Intentions:                    t.Intentions,
+		IntentionUpstreams:            t.IntentionUpstreams,
+		IntentionUpstreamsDestination: t.IntentionUpstreamsDestination,
+		InternalServiceDump:           t.InternalServiceDump,
+		LeafCertificate:               t.LeafCertificate,
+		PeeringList:                   t.PeeringList,
+		PeeredUpstreams:               t.PeeredUpstreams,
+		PreparedQuery:                 t.PreparedQuery,
+		ResolvedServiceConfig:         t.ResolvedServiceConfig,
+		ServiceList:                   t.ServiceList,
+		TrustBundle:                   t.TrustBundle,
+		TrustBundleList:               t.TrustBundleList,
+	}
+	t.fillEnterpriseDataSources(&ds)
+	return ds
+}
+
+// NewTestDataSource creates a test data source that accepts requests to Notify
+// of type RequestType and dispatches UpdateEvents with a result of type ValType.
+//
+// TODO(agentless): we still depend on cache.Request here because it provides the
+// CacheInfo method used for hashing the request - this won't work when we extract
+// this package into a shared library.
+func NewTestDataSource[ReqType cache.Request, ValType any]() *TestDataSource[ReqType, ValType] {
+	return &TestDataSource[ReqType, ValType]{
+		data:    make(map[string]ValType),
+		trigger: make(chan struct{}),
+	}
+}
+
+type TestDataSource[ReqType cache.Request, ValType any] struct {
+	mu      sync.Mutex
+	data    map[string]ValType
+	lastReq ReqType
+
+	// Note: trigger is currently global for all requests of the given type, so
+	// Manager may receive duplicate events - as the dispatch goroutine will be
+	// woken up whenever *any* requested data changes.
+	trigger chan struct{}
+}
+
+// Notify satisfies the interfaces used by Manager to subscribe to data.
+func (t *TestDataSource[ReqType, ValType]) Notify(ctx context.Context, req ReqType, correlationID string, ch chan<- UpdateEvent) error {
+	t.mu.Lock()
+	t.lastReq = req
+	t.mu.Unlock()
+
+	go t.dispatch(ctx, correlationID, t.reqKey(req), ch)
+
+	return nil
+}
+
+func (t *TestDataSource[ReqType, ValType]) dispatch(ctx context.Context, correlationID, key string, ch chan<- UpdateEvent) {
+	for {
+		t.mu.Lock()
+		val, ok := t.data[key]
+		trigger := t.trigger
+		t.mu.Unlock()
+
+		if ok {
+			event := UpdateEvent{
+				CorrelationID: correlationID,
+				Result:        val,
+			}
+
+			select {
+			case ch <- event:
+			case <-ctx.Done():
+			}
+		}
+
+		select {
+		case <-trigger:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (t *TestDataSource[ReqType, ValType]) reqKey(req ReqType) string {
+	return req.CacheInfo().Key
+}
+
+// Set broadcasts the given value to consumers that subscribed with the given
+// request.
+func (t *TestDataSource[ReqType, ValType]) Set(req ReqType, val ValType) error {
+	t.mu.Lock()
+	t.data[t.reqKey(req)] = val
+	oldTrigger := t.trigger
+	t.trigger = make(chan struct{})
+	t.mu.Unlock()
+
+	close(oldTrigger)
+
+	return nil
+}
+
+// LastReq returns the request from the last call to Notify that was received.
+func (t *TestDataSource[ReqType, ValType]) LastReq() ReqType {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	return t.lastReq
 }

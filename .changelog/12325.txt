@@ -1,0 +1,7 @@
+```release-note:improvement
+raft: add additional logging of snapshot restore progress
+```
+
+```release-note:bug
+raft: fixed a race condition in leadership transfer that could result in reelection of the current leader
+```

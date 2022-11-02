@@ -1,17 +1,17 @@
 ---
 layout: docs
-page_title: Upgrading to 1.8.13
+page_title: Upgrading to Latest 1.8.x
 description: >-
   Specific versions of Consul may have additional information about the upgrade
   process beyond the standard flow.
 ---
 
-# Upgrading to 1.8.13
+# Upgrading to Latest 1.8.x
 
 ## Introduction
 
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
-a version of Consul >= 1.6.9 and < 1.8.13 while maintaining replication. If you are on a version
+a version of Consul >= 1.6.9 and < 1.8.19 while maintaining replication. If you are on a version
 older than 1.6.9, please follow the link for the version you are on from [here](/docs/upgrading/instructions).
 
 In this guide, we will be using an example with two datacenters (DCs) and will be
@@ -19,7 +19,7 @@ referring to them as DC1 and DC2. DC1 will be the primary datacenter.
 
 ## Requirements
 
-- All Consul servers should be on a version of Consul >= 1.6.9 and < 1.8.13.
+- All Consul servers should be on a version of Consul >= 1.6.9 and < 1.8.19.
 
 ## Assumptions
 
@@ -87,7 +87,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade the Consul agents in all DCs to version 1.8.13 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process).
+**3.** Upgrade the Consul agents in all DCs to version 1.8.19 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process).
 
 **4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
 consul server in that DC:

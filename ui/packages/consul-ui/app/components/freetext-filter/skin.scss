@@ -23,7 +23,9 @@
     border: none;
   }
   &_label::after {
-    @extend %as-pseudo;
+    visibility: visible;
+    --icon-name: icon-search;
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -31,9 +33,6 @@
     height: 16px;
     margin-left: -8px;
     margin-top: -8px;
-  }
-  &_label::after {
-    @extend %with-search-mask;
   }
   .popover-menu {
     background-color: rgb(var(--tone-gray-050));

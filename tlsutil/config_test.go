@@ -7,9 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,244 +19,885 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
-func startRPCTLSServer(config *Config) (net.Conn, chan error) {
-	return startTLSServer(config, nil, false)
+func TestConfigurator_IncomingConfig_Common(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
+	testCases := map[string]struct {
+		setupFn  func(ProtocolConfig) Config
+		configFn func(*Configurator) *tls.Config
+	}{
+		"Internal RPC": {
+			func(lc ProtocolConfig) Config { return Config{InternalRPC: lc} },
+			func(c *Configurator) *tls.Config { return c.IncomingRPCConfig() },
+		},
+		"gRPC": {
+			func(lc ProtocolConfig) Config { return Config{GRPC: lc} },
+			func(c *Configurator) *tls.Config { return c.IncomingGRPCConfig() },
+		},
+		"HTTPS": {
+			func(lc ProtocolConfig) Config { return Config{HTTPS: lc} },
+			func(c *Configurator) *tls.Config { return c.IncomingHTTPSConfig() },
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			t.Run("MinTLSVersion", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					TLSMinVersion: "TLSv1_3",
+					CertFile:      "../test/hostname/Alice.crt",
+					KeyFile:       "../test/hostname/Alice.key",
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				tlsClient := tls.Client(client, &tls.Config{
+					InsecureSkipVerify: true,
+					MaxVersion:         tls.VersionTLS12,
+				})
+
+				err := tlsClient.Handshake()
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "version not supported")
+			})
+
+			t.Run("CipherSuites", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
+					CertFile:     "../test/hostname/Alice.crt",
+					KeyFile:      "../test/hostname/Alice.key",
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				tlsClient := tls.Client(client, &tls.Config{
+					InsecureSkipVerify: true,
+					MaxVersion:         tls.VersionTLS12, // TLS 1.3 cipher suites are not configurable.
+				})
+				require.NoError(t, tlsClient.Handshake())
+
+				cipherSuite := tlsClient.ConnectionState().CipherSuite
+				require.Equal(t, tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, cipherSuite)
+			})
+
+			t.Run("manually configured certificate is preferred over AutoTLS", func(t *testing.T) {
+				// Manually configure Alice's certifcate.
+				cfg := ProtocolConfig{
+					CertFile: "../test/hostname/Alice.crt",
+					KeyFile:  "../test/hostname/Alice.key",
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				// Set Bob's certificate via auto TLS.
+				bobCert := loadFile(t, "../test/hostname/Bob.crt")
+				bobKey := loadFile(t, "../test/hostname/Bob.key")
+				require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				// Perform a handshake and check the server presented Alice's certificate.
+				tlsClient := tls.Client(client, &tls.Config{InsecureSkipVerify: true})
+				require.NoError(t, tlsClient.Handshake())
+
+				certificates := tlsClient.ConnectionState().PeerCertificates
+				require.NotEmpty(t, certificates)
+				require.Equal(t, "Alice", certificates[0].Subject.CommonName)
+
+				// Check the server side of the handshake succeded.
+				require.NoError(t, <-errc)
+			})
+
+			t.Run("AutoTLS certificate is presented if no certificate was configured manually", func(t *testing.T) {
+				// No manually configured certificate.
+				c := makeConfigurator(t, Config{})
+
+				// Set Bob's certificate via auto TLS.
+				bobCert := loadFile(t, "../test/hostname/Bob.crt")
+				bobKey := loadFile(t, "../test/hostname/Bob.key")
+				require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				// Perform a handshake and check the server presented Bobs's certificate.
+				tlsClient := tls.Client(client, &tls.Config{InsecureSkipVerify: true})
+				require.NoError(t, tlsClient.Handshake())
+
+				certificates := tlsClient.ConnectionState().PeerCertificates
+				require.NotEmpty(t, certificates)
+				require.Equal(t, "Bob", certificates[0].Subject.CommonName)
+
+				// Check the server side of the handshake succeded.
+				require.NoError(t, <-errc)
+			})
+
+			t.Run("VerifyIncoming enabled - successful handshake", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Alice.crt",
+					KeyFile:        "../test/hostname/Alice.key",
+					VerifyIncoming: true,
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				tlsClient := tls.Client(client, &tls.Config{
+					InsecureSkipVerify: true,
+					GetClientCertificate: func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+						cert, err := tls.LoadX509KeyPair("../test/hostname/Bob.crt", "../test/hostname/Bob.key")
+						return &cert, err
+					},
+				})
+				require.NoError(t, tlsClient.Handshake())
+				require.NoError(t, <-errc)
+			})
+
+			t.Run("VerifyIncoming enabled - client provides no certificate", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Alice.crt",
+					KeyFile:        "../test/hostname/Alice.key",
+					VerifyIncoming: true,
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				tlsClient := tls.Client(client, &tls.Config{InsecureSkipVerify: true})
+				require.NoError(t, tlsClient.Handshake())
+
+				err := <-errc
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "client didn't provide a certificate")
+			})
+
+			t.Run("VerifyIncoming enabled - client certificate signed by an unknown CA", func(t *testing.T) {
+				cfg := ProtocolConfig{
+					CAFile:         "../test/ca/root.cer",
+					CertFile:       "../test/hostname/Alice.crt",
+					KeyFile:        "../test/hostname/Alice.key",
+					VerifyIncoming: true,
+				}
+				c := makeConfigurator(t, tc.setupFn(cfg))
+
+				client, errc, _ := startTLSServer(tc.configFn(c))
+				if client == nil {
+					t.Fatalf("startTLSServer err: %v", <-errc)
+				}
+
+				tlsClient := tls.Client(client, &tls.Config{
+					InsecureSkipVerify: true,
+					GetClientCertificate: func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+						cert, err := tls.LoadX509KeyPair("../test/hostname/Bob.crt", "../test/hostname/Bob.key")
+						return &cert, err
+					},
+				})
+				require.NoError(t, tlsClient.Handshake())
+
+				err := <-errc
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "signed by unknown authority")
+			})
+		})
+	}
 }
 
-func startALPNRPCTLSServer(config *Config, alpnProtos []string) (net.Conn, chan error) {
-	return startTLSServer(config, alpnProtos, true)
-}
-
-func startTLSServer(config *Config, alpnProtos []string, doAlpnVariant bool) (net.Conn, chan error) {
-	errc := make(chan error, 1)
-
-	c, err := NewConfigurator(*config, nil)
-	if err != nil {
-		errc <- err
-		return nil, errc
+func TestConfigurator_IncomingGRPCConfig_Peering(t *testing.T) {
+	// Manually configure Alice's certificates
+	cfg := Config{
+		GRPC: ProtocolConfig{
+			CertFile: "../test/hostname/Alice.crt",
+			KeyFile:  "../test/hostname/Alice.key",
+		},
 	}
-	var tlsConfigServer *tls.Config
-	if doAlpnVariant {
-		tlsConfigServer = c.IncomingALPNRPCConfig(alpnProtos)
-	} else {
-		tlsConfigServer = c.IncomingRPCConfig()
-	}
-	client, server := net.Pipe()
+	c := makeConfigurator(t, cfg)
 
-	// Use yamux to buffer the reads, otherwise it's easy to deadlock
-	muxConf := yamux.DefaultConfig()
-	serverSession, _ := yamux.Server(server, muxConf)
-	clientSession, _ := yamux.Client(client, muxConf)
-	clientConn, _ := clientSession.Open()
-	serverConn, _ := serverSession.Accept()
+	// Set Bob's certificate via auto TLS.
+	bobCert := loadFile(t, "../test/hostname/Bob.crt")
+	bobKey := loadFile(t, "../test/hostname/Bob.key")
+	require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
 
-	go func() {
-		tlsServer := tls.Server(serverConn, tlsConfigServer)
-		if err := tlsServer.Handshake(); err != nil {
-			errc <- err
+	peeringServerName := "server.dc1.peering.1234"
+	c.UpdateAutoTLSPeeringServerName(peeringServerName)
+
+	testutil.RunStep(t, "with peering name", func(t *testing.T) {
+		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
 		}
-		close(errc)
+		tlsClient := tls.Client(client, &tls.Config{
+			// When the peering server name is provided the server should present
+			// the certificates configured via AutoTLS (Bob).
+			ServerName:         peeringServerName,
+			InsecureSkipVerify: true,
+		})
+		require.NoError(t, tlsClient.Handshake())
 
-		// Because net.Pipe() is unbuffered, if both sides
-		// Close() simultaneously, we will deadlock as they
-		// both send an alert and then block. So we make the
-		// server read any data from the client until error or
-		// EOF, which will allow the client to Close(), and
-		// *then* we Close() the server.
-		io.Copy(ioutil.Discard, tlsServer)
-		tlsServer.Close()
-	}()
-	return clientConn, errc
+		certificates := tlsClient.ConnectionState().PeerCertificates
+		require.NotEmpty(t, certificates)
+		require.Equal(t, "Bob", certificates[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
+
+	testutil.RunStep(t, "without name", func(t *testing.T) {
+		client, errc, _ := startTLSServer(c.IncomingGRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		tlsClient := tls.Client(client, &tls.Config{
+			// ServerName:         peeringServerName,
+			InsecureSkipVerify: true,
+		})
+		require.NoError(t, tlsClient.Handshake())
+
+		certificates := tlsClient.ConnectionState().PeerCertificates
+		require.NotEmpty(t, certificates)
+
+		// Should default to presenting the manually configured certificates.
+		require.Equal(t, "Alice", certificates[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
 }
-
-func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
+func TestConfigurator_IncomingInsecureRPCConfig(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	config := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Alice.crt",
-		KeyFile:              "../test/hostname/Alice.key",
-		VerifyServerHostname: true,
-		VerifyOutgoing:       true,
-		Domain:               "consul",
+	cfg := Config{
+		InternalRPC: ProtocolConfig{
+			CAFile:         "../test/hostname/CertAuth.crt",
+			CertFile:       "../test/hostname/Alice.crt",
+			KeyFile:        "../test/hostname/Alice.key",
+			VerifyIncoming: true,
+		},
 	}
 
-	client, errc := startRPCTLSServer(&config)
+	c := makeConfigurator(t, cfg)
+
+	client, errc, _ := startTLSServer(c.IncomingInsecureRPCConfig())
 	if client == nil {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingRPCWrapper()
-	require.NotNil(t, wrap)
+	tlsClient := tls.Client(client, &tls.Config{InsecureSkipVerify: true})
+	require.NoError(t, tlsClient.Handshake())
 
-	tlsClient, err := wrap("dc1", client)
-	require.NoError(t, err)
-
-	defer tlsClient.Close()
-	err = tlsClient.(*tls.Conn).Handshake()
-	require.NoError(t, err)
-
-	err = <-errc
-	require.NoError(t, err)
+	// Check the server side of the handshake succeded.
+	require.NoError(t, <-errc)
 }
 
-func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
+func TestConfigurator_ALPNRPCConfig(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	config := Config{
-		VerifyOutgoing: true,
-		CAFile:         "../test/hostname/CertAuth.crt",
-		CertFile:       "../test/hostname/Alice.crt",
-		KeyFile:        "../test/hostname/Alice.key",
-		Domain:         "consul",
-	}
+	t.Run("successful protocol negotiation", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Bob.crt",
+				KeyFile:  "../test/hostname/Bob.key",
+			},
+		})
 
-	client, errc := startRPCTLSServer(&config)
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
+		client, errc, _ := startTLSServer(serverCfg.IncomingALPNRPCConfig([]string{"some-protocol"}))
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
 
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingRPCWrapper()
-	require.NotNil(t, wrap)
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Alice.crt",
+				KeyFile:  "../test/hostname/Alice.key",
+			},
+			Domain: "consul",
+		})
+		wrap := clientCfg.OutgoingALPNRPCWrapper()
 
-	tlsClient, err := wrap("dc1", client)
-	require.NoError(t, err)
+		tlsClient, err := wrap("dc1", "bob", "some-protocol", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
 
-	defer tlsClient.Close()
-	err = tlsClient.(*tls.Conn).Handshake()
-	require.NoError(t, err)
+		tlsConn := tlsClient.(*tls.Conn)
+		require.NoError(t, tlsConn.Handshake())
+		require.Equal(t, "some-protocol", tlsConn.ConnectionState().NegotiatedProtocol)
 
-	err = <-errc
-	require.NoError(t, err)
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
+
+	t.Run("protocol negotiation fails", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Bob.crt",
+				KeyFile:  "../test/hostname/Bob.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingALPNRPCConfig([]string{"some-protocol"}))
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Alice.crt",
+				KeyFile:  "../test/hostname/Alice.key",
+			},
+			Domain: "consul",
+		})
+		wrap := clientCfg.OutgoingALPNRPCWrapper()
+
+		_, err := wrap("dc1", "bob", "other-protocol", client)
+		require.Error(t, err)
+		require.Error(t, <-errc)
+	})
+
+	t.Run("no node name in SAN", func(t *testing.T) {
+		// Note: Alice.crt has server.dc1.consul as its SAN (as apposed to alice.server.dc1.consul).
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Alice.crt",
+				KeyFile:  "../test/hostname/Alice.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingALPNRPCConfig([]string{"some-protocol"}))
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Bob.crt",
+				KeyFile:  "../test/hostname/Bob.key",
+			},
+			Domain: "consul",
+		})
+		wrap := clientCfg.OutgoingALPNRPCWrapper()
+
+		_, err := wrap("dc1", "alice", "some-protocol", client)
+		require.Error(t, err)
+		require.Error(t, <-errc)
+	})
+
+	t.Run("client certificate is always required", func(t *testing.T) {
+		cfg := Config{
+			InternalRPC: ProtocolConfig{
+				VerifyIncoming: false, // this setting is ignored
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+			},
+		}
+		c := makeConfigurator(t, cfg)
+
+		client, errc, _ := startTLSServer(c.IncomingALPNRPCConfig([]string{"some-protocol"}))
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		tlsClient := tls.Client(client, &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{"some-protocol"},
+		})
+		require.NoError(t, tlsClient.Handshake())
+
+		err := <-errc
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "client didn't provide a certificate")
+	})
+
+	t.Run("bad DC", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Alice.crt",
+				KeyFile:  "../test/hostname/Alice.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingALPNRPCConfig([]string{"some-protocol"}))
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Bob.crt",
+				KeyFile:  "../test/hostname/Bob.key",
+			},
+			Domain: "consul",
+		})
+		wrap := clientCfg.OutgoingALPNRPCWrapper()
+
+		_, err := wrap("dc2", "*", "some-protocol", client)
+		require.Error(t, err)
+		require.Error(t, <-errc)
+	})
 }
 
-func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
+func TestConfigurator_OutgoingRPC_ServerMode(t *testing.T) {
+	type testCase struct {
+		clientConfig Config
+		expectName   string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+			ServerMode: true,
+		})
+
+		serverConn, errc, certc := startTLSServer(serverCfg.IncomingRPCConfig())
+		if serverConn == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, tc.clientConfig)
+
+		bettyCert := loadFile(t, "../test/hostname/Betty.crt")
+		bettyKey := loadFile(t, "../test/hostname/Betty.key")
+		require.NoError(t, clientCfg.UpdateAutoTLSCert(bettyCert, bettyKey))
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", serverConn)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
+
+		err = <-errc
+		require.NoError(t, err)
+
+		clientCerts := <-certc
+		require.NotEmpty(t, clientCerts)
+
+		require.Equal(t, tc.expectName, clientCerts[0].Subject.CommonName)
+
+		// Check the server side of the handshake succeeded.
+		require.NoError(t, <-errc)
+	}
+
+	tt := map[string]testCase{
+		"server with manual cert": {
+			clientConfig: Config{
+				InternalRPC: ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Bob.crt",
+					KeyFile:        "../test/hostname/Bob.key",
+				},
+				ServerMode: true,
+			},
+			// Even though an AutoTLS cert is configured, the server will prefer the manually configured cert.
+			expectName: "Bob",
+		},
+		"client with manual cert": {
+			clientConfig: Config{
+				InternalRPC: ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         "../test/hostname/CertAuth.crt",
+					CertFile:       "../test/hostname/Bob.crt",
+					KeyFile:        "../test/hostname/Bob.key",
+				},
+				ServerMode: false,
+			},
+			expectName: "Betty",
+		},
+		"client with auto-TLS": {
+			clientConfig: Config{
+				ServerMode: false,
+				AutoTLS:    true,
+			},
+			expectName: "Betty",
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestConfigurator_OutgoingInternalRPCWrapper(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	config := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Alice.crt",
-		KeyFile:              "../test/hostname/Alice.key",
-		VerifyServerHostname: true,
-		VerifyOutgoing:       true,
-		Domain:               "consul",
-	}
+	t.Run("AutoTLS", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+		})
 
-	client, errc := startRPCTLSServer(&config)
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
 
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingRPCWrapper()
+		clientCfg := makeConfigurator(t, Config{
+			AutoTLS: true,
+		})
+		bobCert := loadFile(t, "../test/hostname/Bob.crt")
+		bobKey := loadFile(t, "../test/hostname/Bob.key")
+		require.NoError(t, clientCfg.UpdateAutoTLSCert(bobCert, bobKey))
 
-	tlsClient, err := wrap("dc2", client)
-	require.NoError(t, err)
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
 
-	err = tlsClient.(*tls.Conn).Handshake()
-	_, ok := err.(x509.HostnameError)
-	require.True(t, ok)
-	tlsClient.Close()
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
 
-	<-errc
-}
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
 
-func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
-	config := Config{
-		CAFile:               "../test/ca/root.cer",
-		CertFile:             "../test/key/ourdomain.cer",
-		KeyFile:              "../test/key/ourdomain.key",
-		VerifyServerHostname: true,
-		VerifyOutgoing:       true,
-		Domain:               "consul",
-	}
+		err = <-errc
+		require.NoError(t, err)
+	})
 
-	client, errc := startRPCTLSServer(&config)
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
+	t.Run("VerifyOutgoing and a manually configured certificate", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+		})
 
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingRPCWrapper()
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
 
-	tlsClient, err := wrap("dc1", client)
-	require.NoError(t, err)
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyOutgoing: true,
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Bob.crt",
+				KeyFile:        "../test/hostname/Bob.key",
+			},
+		})
 
-	err = tlsClient.(*tls.Conn).Handshake()
-	if _, ok := err.(x509.HostnameError); !ok {
-		t.Fatalf("should get hostname err: %v", err)
-	}
-	tlsClient.Close()
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
 
-	<-errc
-}
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
 
-func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
-	// if this test is failing because of expired certificates
-	// use the procedure in test/CA-GENERATION.md
-	config := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Bob.crt",
-		KeyFile:              "../test/hostname/Bob.key",
-		VerifyServerHostname: false, // doesn't matter
-		VerifyOutgoing:       false, // doesn't matter
-		Domain:               "consul",
-	}
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
 
-	client, errc := startALPNRPCTLSServer(&config, []string{"foo", "bar"})
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
+		err = <-errc
+		require.NoError(t, err)
+	})
 
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingALPNRPCWrapper()
-	require.NotNil(t, wrap)
+	t.Run("outgoing TLS not enabled", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+		})
 
-	tlsClient, err := wrap("dc1", "bob", "foo", client)
-	require.NoError(t, err)
-	defer tlsClient.Close()
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
 
-	tlsConn := tlsClient.(*tls.Conn)
-	cs := tlsConn.ConnectionState()
-	require.Equal(t, "foo", cs.NegotiatedProtocol)
+		clientCfg := makeConfigurator(t, Config{})
 
-	err = <-errc
-	require.NoError(t, err)
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		client, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer client.Close()
+
+		_, isTLS := client.(*tls.Conn)
+		require.False(t, isTLS)
+	})
+
+	t.Run("VerifyServerHostname = true", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyOutgoing:       true,
+				VerifyServerHostname: true,
+				CAFile:               "../test/client_certs/rootca.crt",
+				CertFile:             "../test/client_certs/client.crt",
+				KeyFile:              "../test/client_certs/client.key",
+			},
+			Domain: "consul",
+		})
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.Error(t, err)
+		require.Regexp(t, `certificate is valid for ([a-z].+) not server.dc1.consul`, err.Error())
+	})
+
+	t.Run("VerifyServerHostname = true and incorrect DC name", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyServerHostname: true,
+				VerifyOutgoing:       true,
+				CAFile:               "../test/client_certs/rootca.crt",
+				CertFile:             "../test/client_certs/client.crt",
+				KeyFile:              "../test/client_certs/client.key",
+			},
+			Domain: "consul",
+		})
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc2", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.Error(t, err)
+		require.Regexp(t, `certificate is valid for ([a-z].+) not server.dc2.consul`, err.Error())
+	})
+
+	t.Run("VerifyServerHostname = false", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			},
+		})
+
+		client, errc, _ := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyServerHostname: false,
+				VerifyOutgoing:       true,
+				CAFile:               "../test/client_certs/rootca.crt",
+				CertFile:             "../test/client_certs/client.crt",
+				KeyFile:              "../test/client_certs/client.key",
+			},
+			Domain: "other",
+		})
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
+
+		// Check the server side of the handshake succeded.
+		require.NoError(t, <-errc)
+	})
+
+	t.Run("AutoTLS certificate preferred over manually configured certificate", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+		})
+
+		client, errc, certc := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyServerHostname: true,
+				VerifyOutgoing:       true,
+				CAFile:               "../test/hostname/CertAuth.crt",
+				CertFile:             "../test/hostname/Bob.crt",
+				KeyFile:              "../test/hostname/Bob.key",
+			},
+			Domain: "consul",
+		})
+
+		bettyCert := loadFile(t, "../test/hostname/Betty.crt")
+		bettyKey := loadFile(t, "../test/hostname/Betty.key")
+		require.NoError(t, clientCfg.UpdateAutoTLSCert(bettyCert, bettyKey))
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
+
+		err = <-errc
+		require.NoError(t, err)
+
+		clientCerts := <-certc
+		require.NotEmpty(t, clientCerts)
+		require.Equal(t, "Betty", clientCerts[0].Subject.CommonName)
+	})
+
+	t.Run("manually configured certificate is presented if there's no AutoTLS certificate", func(t *testing.T) {
+		serverCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				CAFile:         "../test/hostname/CertAuth.crt",
+				CertFile:       "../test/hostname/Alice.crt",
+				KeyFile:        "../test/hostname/Alice.key",
+				VerifyIncoming: true,
+			},
+		})
+
+		client, errc, certc := startTLSServer(serverCfg.IncomingRPCConfig())
+		if client == nil {
+			t.Fatalf("startTLSServer err: %v", <-errc)
+		}
+
+		clientCfg := makeConfigurator(t, Config{
+			InternalRPC: ProtocolConfig{
+				VerifyServerHostname: true,
+				VerifyOutgoing:       true,
+				CAFile:               "../test/hostname/CertAuth.crt",
+				CertFile:             "../test/hostname/Bob.crt",
+				KeyFile:              "../test/hostname/Bob.key",
+			},
+			Domain: "consul",
+		})
+
+		wrap := clientCfg.OutgoingRPCWrapper()
+		require.NotNil(t, wrap)
+
+		tlsClient, err := wrap("dc1", client)
+		require.NoError(t, err)
+		defer tlsClient.Close()
+
+		err = tlsClient.(*tls.Conn).Handshake()
+		require.NoError(t, err)
+
+		err = <-errc
+		require.NoError(t, err)
+
+		clientCerts := <-certc
+		require.NotEmpty(t, clientCerts)
+		require.Equal(t, "Bob", clientCerts[0].Subject.CommonName)
+	})
 }
 
 func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	srvConfig := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Alice.crt",
-		KeyFile:              "../test/hostname/Alice.key",
-		VerifyServerHostname: false, // doesn't matter
-		VerifyOutgoing:       false, // doesn't matter
-		Domain:               "consul",
+		InternalRPC: ProtocolConfig{
+			CAFile:               "../test/hostname/CertAuth.crt",
+			CertFile:             "../test/hostname/Alice.crt",
+			KeyFile:              "../test/hostname/Alice.key",
+			VerifyOutgoing:       false, // doesn't matter
+			VerifyServerHostname: false, // doesn't matter
+		},
+		Domain: "consul",
 	}
 
-	client, errc := startALPNRPCTLSServer(&srvConfig, []string{"foo", "bar"})
+	client, errc := startALPNRPCTLSServer(t, &srvConfig, []string{"foo", "bar"})
 	if client == nil {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
 	config := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Bob.crt",
-		KeyFile:              "../test/hostname/Bob.key",
-		VerifyServerHostname: false, // doesn't matter
-		VerifyOutgoing:       false, // doesn't matter
-		Domain:               "consul",
+		InternalRPC: ProtocolConfig{
+			CAFile:               "../test/hostname/CertAuth.crt",
+			CertFile:             "../test/hostname/Bob.crt",
+			KeyFile:              "../test/hostname/Bob.key",
+			VerifyOutgoing:       false, // doesn't matter
+			VerifyServerHostname: false, // doesn't matter
+		},
+		Domain: "consul",
 	}
 
 	c, err := NewConfigurator(config, nil)
@@ -271,153 +912,6 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 	client.Close()
 
 	<-errc
-}
-
-func TestConfigurator_outgoingWrapperALPN_BadDC(t *testing.T) {
-	// if this test is failing because of expired certificates
-	// use the procedure in test/CA-GENERATION.md
-	config := Config{
-		CAFile:               "../test/hostname/CertAuth.crt",
-		CertFile:             "../test/hostname/Bob.crt",
-		KeyFile:              "../test/hostname/Bob.key",
-		VerifyServerHostname: false, // doesn't matter
-		VerifyOutgoing:       false, // doesn't matter
-		Domain:               "consul",
-	}
-
-	client, errc := startALPNRPCTLSServer(&config, []string{"foo", "bar"})
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
-
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingALPNRPCWrapper()
-
-	_, err = wrap("dc2", "bob", "foo", client)
-	require.Error(t, err)
-	_, ok := err.(x509.HostnameError)
-	require.True(t, ok)
-	client.Close()
-
-	<-errc
-}
-
-func TestConfigurator_outgoingWrapperALPN_BadCert(t *testing.T) {
-	config := Config{
-		CAFile:               "../test/ca/root.cer",
-		CertFile:             "../test/key/ourdomain.cer",
-		KeyFile:              "../test/key/ourdomain.key",
-		VerifyServerHostname: false, // doesn't matter
-		VerifyOutgoing:       false, // doesn't matter
-		Domain:               "consul",
-	}
-
-	client, errc := startALPNRPCTLSServer(&config, []string{"foo", "bar"})
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
-
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-	wrap := c.OutgoingALPNRPCWrapper()
-
-	_, err = wrap("dc1", "bob", "foo", client)
-	require.Error(t, err)
-	_, ok := err.(x509.HostnameError)
-	require.True(t, ok)
-	client.Close()
-
-	<-errc
-}
-
-func TestConfigurator_wrapTLS_OK(t *testing.T) {
-	config := Config{
-		CAFile:         "../test/ca/root.cer",
-		CertFile:       "../test/key/ourdomain.cer",
-		KeyFile:        "../test/key/ourdomain.key",
-		VerifyOutgoing: true,
-	}
-
-	client, errc := startRPCTLSServer(&config)
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
-
-	c, err := NewConfigurator(config, nil)
-	require.NoError(t, err)
-
-	tlsClient, err := c.wrapTLSClient("dc1", client)
-	require.NoError(t, err)
-
-	tlsClient.Close()
-	err = <-errc
-	require.NoError(t, err)
-}
-
-func TestConfigurator_wrapTLS_BadCert(t *testing.T) {
-	serverConfig := &Config{
-		CertFile: "../test/key/ssl-cert-snakeoil.pem",
-		KeyFile:  "../test/key/ssl-cert-snakeoil.key",
-	}
-
-	client, errc := startRPCTLSServer(serverConfig)
-	if client == nil {
-		t.Fatalf("startTLSServer err: %v", <-errc)
-	}
-
-	clientConfig := Config{
-		CAFile:         "../test/ca/root.cer",
-		VerifyOutgoing: true,
-	}
-
-	c, err := NewConfigurator(clientConfig, nil)
-	require.NoError(t, err)
-	tlsClient, err := c.wrapTLSClient("dc1", client)
-	require.Error(t, err)
-	require.Nil(t, tlsClient)
-
-	err = <-errc
-	require.NoError(t, err)
-}
-
-func TestConfig_ParseCiphers(t *testing.T) {
-	testOk := strings.Join([]string{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	}, ",")
-	ciphers := []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
-	v, err := ParseCiphers(testOk)
-	require.NoError(t, err)
-	if got, want := v, ciphers; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got ciphers %#v want %#v", got, want)
-	}
-
-	_, err = ParseCiphers("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX")
-	require.Error(t, err)
-
-	v, err = ParseCiphers("")
-	require.NoError(t, err)
-	require.Equal(t, []uint16{}, v)
 }
 
 func TestLoadKeyPair(t *testing.T) {
@@ -464,93 +958,192 @@ func TestConfig_SpecifyDC(t *testing.T) {
 	require.Nil(t, conn)
 }
 
-func TestConfigurator_NewConfigurator(t *testing.T) {
-	logger := testutil.Logger(t)
-	c, err := NewConfigurator(Config{}, logger)
-	require.NoError(t, err)
-	require.NotNil(t, c)
+func TestConfigurator_Validation(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
+	const (
+		caFile   = "../test/ca/root.cer"
+		caPath   = "../test/ca_path"
+		certFile = "../test/key/ourdomain.cer"
+		keyFile  = "../test/key/ourdomain.key"
+	)
 
-	c, err = NewConfigurator(Config{VerifyOutgoing: true}, nil)
-	require.Error(t, err)
-	require.Nil(t, c)
-}
+	t.Run("empty config", func(t *testing.T) {
+		_, err := NewConfigurator(Config{}, nil)
+		require.NoError(t, err)
+		require.NoError(t, new(Configurator).Update(Config{}))
+	})
 
-func TestConfigurator_ErrorPropagation(t *testing.T) {
-	type variant struct {
-		config       Config
-		shouldErr    bool
-		excludeCheck bool
-	}
-	cafile := "../test/ca/root.cer"
-	capath := "../test/ca_path"
-	certfile := "../test/key/ourdomain.cer"
-	keyfile := "../test/key/ourdomain.key"
-	variants := []variant{
-		{Config{}, false, false},                                              // 1
-		{Config{TLSMinVersion: "tls9"}, true, false},                          // 1
-		{Config{TLSMinVersion: ""}, false, false},                             // 2
-		{Config{VerifyOutgoing: true, CAFile: "", CAPath: ""}, true, false},   // 6
-		{Config{VerifyOutgoing: false, CAFile: "", CAPath: ""}, false, false}, // 7
-		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: ""},
-			false, false}, // 8
-		{Config{VerifyOutgoing: false, CAFile: "", CAPath: capath},
-			false, false}, // 9
-		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: capath},
-			false, false}, // 10
-		{Config{VerifyOutgoing: true, CAFile: cafile, CAPath: ""},
-			false, false}, // 11
-		{Config{VerifyOutgoing: true, CAFile: "", CAPath: capath},
-			false, false}, // 12
-		{Config{VerifyOutgoing: true, CAFile: cafile, CAPath: capath},
-			false, false}, // 13
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: ""}, true, false}, // 14
-		{Config{VerifyIncomingRPC: true, CAFile: "", CAPath: ""},
-			true, false}, // 15
-		{Config{VerifyIncomingHTTPS: true, CAFile: "", CAPath: ""},
-			true, false}, // 16
-		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, true, false}, // 17
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false}, // 18
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath,
-			CertFile: certfile, KeyFile: keyfile}, false, false}, // 19
-		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true},                   // 20
-		{Config{CAFile: "bogus"}, true, true},                                       // 21
-		{Config{CAPath: "bogus"}, true, true},                                       // 22
-		{Config{VerifyIncoming: true, CAFile: cafile, AutoTLS: true}, false, false}, // 22
-	}
-	for _, v := range tlsVersions() {
-		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
-	}
-
-	c := Configurator{}
-	for i, v := range variants {
-		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
-		_, err1 := NewConfigurator(v.config, nil)
-		err2 := c.Update(v.config)
-
-		var err3 error
-		if !v.excludeCheck {
-			cert, err := loadKeyPair(v.config.CertFile, v.config.KeyFile)
-			require.NoError(t, err, info)
-			pems, err := LoadCAs(v.config.CAFile, v.config.CAPath)
-			require.NoError(t, err, info)
-			pool, err := newX509CertPool(pems)
-			require.NoError(t, err, info)
-			err3 = validateConfig(v.config, pool, cert)
+	t.Run("common fields", func(t *testing.T) {
+		type testCase struct {
+			config  ProtocolConfig
+			isValid bool
 		}
-		if v.shouldErr {
-			require.Error(t, err1, info)
-			require.Error(t, err2, info)
-			if !v.excludeCheck {
-				require.Error(t, err3, info)
-			}
-		} else {
-			require.NoError(t, err1, info)
-			require.NoError(t, err2, info)
-			if !v.excludeCheck {
-				require.NoError(t, err3, info)
+
+		testCases := map[string]testCase{
+			"invalid CAFile": {
+				ProtocolConfig{CAFile: "bogus"},
+				false,
+			},
+			"invalid CAPath": {
+				ProtocolConfig{CAPath: "bogus"},
+				false,
+			},
+			"invalid CertFile": {
+				ProtocolConfig{
+					CertFile: "bogus",
+					KeyFile:  keyFile,
+				},
+				false,
+			},
+			"invalid KeyFile": {
+				ProtocolConfig{
+					CertFile: certFile,
+					KeyFile:  "bogus",
+				},
+				false,
+			},
+			"VerifyIncoming set but no CA": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAFile:         "",
+					CAPath:         "",
+					CertFile:       certFile,
+					KeyFile:        keyFile,
+				},
+				false,
+			},
+			"VerifyIncoming set but no CertFile": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAFile:         caFile,
+					CertFile:       "",
+					KeyFile:        keyFile,
+				},
+				false,
+			},
+			"VerifyIncoming set but no KeyFile": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAFile:         caFile,
+					CertFile:       certFile,
+					KeyFile:        "",
+				},
+				false,
+			},
+			"VerifyIncoming + CAFile": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAFile:         caFile,
+					CertFile:       certFile,
+					KeyFile:        keyFile,
+				},
+				true,
+			},
+			"VerifyIncoming + CAPath": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAPath:         caPath,
+					CertFile:       certFile,
+					KeyFile:        keyFile,
+				},
+				true,
+			},
+			"VerifyIncoming + invalid CAFile": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAFile:         "bogus",
+					CertFile:       certFile,
+					KeyFile:        keyFile,
+				},
+				false,
+			},
+			"VerifyIncoming + invalid CAPath": {
+				ProtocolConfig{
+					VerifyIncoming: true,
+					CAPath:         "bogus",
+					CertFile:       certFile,
+					KeyFile:        keyFile,
+				},
+				false,
+			},
+			"VerifyOutgoing + CAFile": {
+				ProtocolConfig{VerifyOutgoing: true, CAFile: caFile},
+				true,
+			},
+			"VerifyOutgoing + CAPath": {
+				ProtocolConfig{VerifyOutgoing: true, CAPath: caPath},
+				true,
+			},
+			"VerifyOutgoing + CAFile + CAPath": {
+				ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         caFile,
+					CAPath:         caPath,
+				},
+				true,
+			},
+			"VerifyOutgoing but no CA": {
+				ProtocolConfig{
+					VerifyOutgoing: true,
+					CAFile:         "",
+					CAPath:         "",
+				},
+				false,
+			},
+		}
+
+		for desc, tc := range testCases {
+			for _, p := range []string{"internal", "grpc", "https"} {
+				info := fmt.Sprintf("%s => %s", p, desc)
+
+				var cfg Config
+				switch p {
+				case "internal":
+					cfg.InternalRPC = tc.config
+				case "grpc":
+					cfg.GRPC = tc.config
+				case "https":
+					cfg.HTTPS = tc.config
+				default:
+					t.Fatalf("unknown protocol: %s", p)
+				}
+
+				_, err1 := NewConfigurator(cfg, nil)
+				err2 := new(Configurator).Update(cfg)
+
+				if tc.isValid {
+					require.NoError(t, err1, info)
+					require.NoError(t, err2, info)
+				} else {
+					require.Error(t, err1, info)
+					require.Error(t, err2, info)
+				}
 			}
 		}
-	}
+	})
+
+	t.Run("VerifyIncoming + AutoTLS", func(t *testing.T) {
+		cfg := Config{
+			InternalRPC: ProtocolConfig{
+				VerifyIncoming: true,
+				CAFile:         caFile,
+			},
+			GRPC: ProtocolConfig{
+				VerifyIncoming: true,
+				CAFile:         caFile,
+			},
+			HTTPS: ProtocolConfig{
+				VerifyIncoming: true,
+				CAFile:         caFile,
+			},
+			AutoTLS: true,
+		}
+
+		_, err := NewConfigurator(cfg, nil)
+		require.NoError(t, err)
+		require.NoError(t, new(Configurator).Update(cfg))
+	})
 }
 
 func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
@@ -569,7 +1162,7 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 	for _, v := range variants {
 		c, err := NewConfigurator(v.config, nil)
 		require.NoError(t, err)
-		tlsConf := c.commonTLSConfig(false)
+		tlsConf := c.internalRPCTLSConfig(false)
 		require.Empty(t, tlsConf.ServerName)
 	}
 }
@@ -580,15 +1173,16 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		shouldErr      bool
 		isNil          bool
 		count          int
+		expectedCaPool *x509.CertPool
 	}
 	variants := []variant{
-		{"", "", false, true, 0},
-		{"bogus", "", true, true, 0},
-		{"", "bogus", true, true, 0},
-		{"", "../test/bin", true, true, 0},
-		{"../test/ca/root.cer", "", false, false, 1},
-		{"", "../test/ca_path", false, false, 2},
-		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
+		{"", "", false, true, 0, nil},
+		{"bogus", "", true, true, 0, nil},
+		{"", "bogus", true, true, 0, nil},
+		{"", "../test/bin", true, true, 0, nil},
+		{"../test/ca/root.cer", "", false, false, 1, getExpectedCaPoolByFile(t)},
+		{"", "../test/ca_path", false, false, 2, getExpectedCaPoolByDir(t)},
+		{"../test/ca/root.cer", "../test/ca_path", false, false, 1, getExpectedCaPoolByFile(t)},
 	}
 	for i, v := range variants {
 		pems, err1 := LoadCAs(v.cafile, v.capath)
@@ -607,172 +1201,13 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		} else {
 			require.NotEmpty(t, pems, info)
 			require.NotNil(t, pool, info)
-			require.Len(t, pool.Subjects(), v.count, info)
+			assertDeepEqual(t, v.expectedCaPool, pool, cmpCertPool)
 			require.Len(t, pems, v.count, info)
 		}
 	}
 }
 
-func TestConfigurator_CommonTLSConfigInsecureSkipVerify(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	tlsConf := c.commonTLSConfig(false)
-	require.True(t, tlsConf.InsecureSkipVerify)
-
-	require.NoError(t, c.Update(Config{VerifyServerHostname: false}))
-	tlsConf = c.commonTLSConfig(false)
-	require.True(t, tlsConf.InsecureSkipVerify)
-
-	require.NoError(t, c.Update(Config{VerifyServerHostname: true}))
-	tlsConf = c.commonTLSConfig(false)
-	require.False(t, tlsConf.InsecureSkipVerify)
-}
-
-func TestConfigurator_CommonTLSConfigPreferServerCipherSuites(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	tlsConf := c.commonTLSConfig(false)
-	require.False(t, tlsConf.PreferServerCipherSuites)
-
-	require.NoError(t, c.Update(Config{PreferServerCipherSuites: false}))
-	tlsConf = c.commonTLSConfig(false)
-	require.False(t, tlsConf.PreferServerCipherSuites)
-
-	require.NoError(t, c.Update(Config{PreferServerCipherSuites: true}))
-	tlsConf = c.commonTLSConfig(false)
-	require.True(t, tlsConf.PreferServerCipherSuites)
-}
-
-func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	tlsConf := c.commonTLSConfig(false)
-	require.Empty(t, tlsConf.CipherSuites)
-
-	conf := Config{CipherSuites: []uint16{
-		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}}
-	require.NoError(t, c.Update(conf))
-	tlsConf = c.commonTLSConfig(false)
-	require.Equal(t, conf.CipherSuites, tlsConf.CipherSuites)
-}
-
-func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-
-	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
-	require.NoError(t, err)
-	require.NotNil(t, cert)
-	require.Empty(t, cert.Certificate)
-
-	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
-	require.NoError(t, err)
-	c.manual.cert = c1
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.manual.cert, cert)
-
-	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
-	require.NoError(t, err)
-	c.autoTLS.cert = c2
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.autoTLS.cert, cert)
-}
-
-func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-
-	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
-	require.NoError(t, err)
-	require.Nil(t, cert)
-
-	// Setting a certificate as the auto-encrypt cert will return it as the regular server certificate
-	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
-	require.NoError(t, err)
-	c.autoTLS.cert = c1
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.autoTLS.cert, cert)
-
-	// Setting a different certificate as a manual cert will override the auto-encrypt cert and instead return the manual cert
-	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
-	require.NoError(t, err)
-	c.manual.cert = c2
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.manual.cert, cert)
-}
-
-func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	require.Nil(t, c.commonTLSConfig(false).ClientCAs)
-	require.Nil(t, c.commonTLSConfig(false).RootCAs)
-
-	c.caPool = &x509.CertPool{}
-	require.Equal(t, c.caPool, c.commonTLSConfig(false).ClientCAs)
-	require.Equal(t, c.caPool, c.commonTLSConfig(false).RootCAs)
-}
-
-func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
-	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
-	require.NoError(t, err)
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, tlsLookup["tls10"])
-
-	for _, version := range tlsVersions() {
-		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
-		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			tlsLookup[version])
-	}
-
-	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
-}
-
-func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	type variant struct {
-		verify   bool
-		expected tls.ClientAuthType
-	}
-	variants := []variant{
-		{true, tls.RequireAndVerifyClientCert},
-		{false, tls.NoClientCert},
-	}
-	for _, v := range variants {
-		require.Equal(t, v.expected, c.commonTLSConfig(v.verify).ClientAuth)
-	}
-}
-
-func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	type variant struct {
-		verify         bool
-		autoEncryptTLS bool
-		pool           *x509.CertPool
-		expected       bool
-	}
-	variants := []variant{
-		{false, false, nil, false},
-		{true, false, nil, true},
-		{false, true, nil, true},
-		{true, true, nil, true},
-
-		{true, false, &x509.CertPool{}, true},
-		{false, true, &x509.CertPool{}, true},
-		{true, true, &x509.CertPool{}, true},
-	}
-	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
-		c.caPool = v.pool
-		c.base.VerifyOutgoing = v.verify
-		c.base.AutoTLS = v.autoEncryptTLS
-		require.Equal(t, v.expected, c.outgoingRPCTLSEnabled(), info)
-	}
-}
-
-func TestConfigurator_MutualTLSCapable(t *testing.T) {
+func TestConfigurator_InternalRPCMutualTLSCapable(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	t.Run("no ca", func(t *testing.T) {
@@ -787,7 +1222,9 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 
 	t.Run("ca and no keys", func(t *testing.T) {
 		config := Config{
-			CAFile: "../test/hostname/CertAuth.crt",
+			InternalRPC: ProtocolConfig{
+				CAFile: "../test/hostname/CertAuth.crt",
+			},
 			Domain: "consul",
 		}
 		c, err := NewConfigurator(config, nil)
@@ -798,22 +1235,18 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 
 	t.Run("ca and manual key", func(t *testing.T) {
 		config := Config{
-			CAFile:   "../test/hostname/CertAuth.crt",
-			CertFile: "../test/hostname/Bob.crt",
-			KeyFile:  "../test/hostname/Bob.key",
-			Domain:   "consul",
+			InternalRPC: ProtocolConfig{
+				CAFile:   "../test/hostname/CertAuth.crt",
+				CertFile: "../test/hostname/Bob.crt",
+				KeyFile:  "../test/hostname/Bob.key",
+			},
+			Domain: "consul",
 		}
 		c, err := NewConfigurator(config, nil)
 		require.NoError(t, err)
 
 		require.True(t, c.MutualTLSCapable())
 	})
-
-	loadFile := func(t *testing.T, path string) string {
-		data, err := ioutil.ReadFile(path)
-		require.NoError(t, err)
-		return string(data)
-	}
 
 	t.Run("autoencrypt ca and no autoencrypt keys", func(t *testing.T) {
 		config := Config{
@@ -857,104 +1290,9 @@ func TestConfigurator_UpdateAutoTLSCA_DoesNotPanic(t *testing.T) {
 }
 
 func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
-	c := Configurator{base: &Config{
-		VerifyIncomingRPC: true,
-	}}
-	verify := c.VerifyIncomingRPC()
-	require.Equal(t, c.base.VerifyIncomingRPC, verify)
-}
-
-func TestConfigurator_IncomingRPCConfig(t *testing.T) {
-	c, err := NewConfigurator(Config{
-		VerifyIncomingRPC: true,
-		CAFile:            "../test/ca/root.cer",
-		CertFile:          "../test/key/ourdomain.cer",
-		KeyFile:           "../test/key/ourdomain.key",
-	}, nil)
-	require.NoError(t, err)
-	tlsConf := c.IncomingRPCConfig()
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.Empty(t, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-
-	require.NotNil(t, tlsConf.GetConfigForClient)
-	tlsConf, err = tlsConf.GetConfigForClient(nil)
-	require.NoError(t, err)
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.Empty(t, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-}
-
-func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
-	c, err := NewConfigurator(Config{
-		VerifyIncomingRPC: false, // ignored, assumed true
-		CAFile:            "../test/ca/root.cer",
-		CertFile:          "../test/key/ourdomain.cer",
-		KeyFile:           "../test/key/ourdomain.key",
-	}, nil)
-	require.NoError(t, err)
-	tlsConf := c.IncomingALPNRPCConfig([]string{"foo/1", "bar/2"})
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Equal(t, []string{"foo/1", "bar/2"}, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-
-	require.NotNil(t, tlsConf.GetConfigForClient)
-	tlsConf, err = tlsConf.GetConfigForClient(nil)
-	require.NoError(t, err)
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Equal(t, []string{"foo/1", "bar/2"}, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-}
-
-func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-
-	// compare tls.Config.GetConfigForClient by nil/not-nil, since Go can not compare
-	// functions any other way.
-	cmpClientFunc := cmp.Comparer(func(x, y func(*tls.ClientHelloInfo) (*tls.Config, error)) bool {
-		return (x == nil && y == nil) || (x != nil && y != nil)
-	})
-
-	t.Run("default", func(t *testing.T) {
-		c, err := NewConfigurator(Config{}, nil)
-		require.NoError(t, err)
-
-		cfg := c.IncomingHTTPSConfig()
-
-		expected := &tls.Config{
-			NextProtos:         []string{"h2", "http/1.1"},
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
-				return nil, nil
-			},
-		}
-		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
-	})
-
-	t.Run("verify incoming", func(t *testing.T) {
-		c := Configurator{base: &Config{VerifyIncoming: true}}
-
-		cfg := c.IncomingHTTPSConfig()
-
-		expected := &tls.Config{
-			NextProtos:         []string{"h2", "http/1.1"},
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
-				return nil, nil
-			},
-			ClientAuth: tls.RequireAndVerifyClientCert,
-		}
-		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
-	})
-
-}
-
-var cmpTLSConfig = cmp.Options{
-	cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
-	cmpopts.IgnoreUnexported(tls.Config{}),
+	c := Configurator{base: &Config{}}
+	c.base.InternalRPC.VerifyIncoming = true
+	require.True(t, c.VerifyIncomingRPC())
 }
 
 func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
@@ -970,7 +1308,13 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 		configurator, err := tc.conf()
 		require.NoError(t, err)
 		c := configurator.OutgoingTLSConfigForCheck(tc.skipVerify, tc.serverName)
-		assertDeepEqual(t, tc.expected, c, cmpTLSConfig)
+
+		if diff := cmp.Diff(tc.expected, c, cmp.Options{
+			cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
+			cmpopts.IgnoreUnexported(tls.Config{}),
+		}); diff != "" {
+			t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+		}
 	}
 
 	testCases := []testCase{
@@ -985,7 +1329,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, no server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: false,
 				}, nil)
 			},
@@ -996,7 +1342,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
 					NodeName:                "nodename",
@@ -1009,7 +1357,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "default tls, skip verify, check server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
 				}, nil)
@@ -1025,7 +1375,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
 					ServerName:              "servername",
@@ -1040,7 +1392,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, node name for server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
 				}, nil)
@@ -1056,7 +1410,9 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			name: "agent tls, skip verify, with server name override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
-					TLSMinVersion:           "tls12",
+					InternalRPC: ProtocolConfig{
+						TLSMinVersion: types.TLSv1_2,
+					},
 					EnableAgentTLSForChecks: true,
 					ServerName:              "servername",
 				}, nil)
@@ -1078,130 +1434,6 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 	}
 }
 
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
-}
-
-func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}}
-	require.Nil(t, c.OutgoingRPCConfig())
-
-	c, err := NewConfigurator(Config{
-		VerifyOutgoing: true,
-		CAFile:         "../test/ca/root.cer",
-	}, nil)
-	require.NoError(t, err)
-
-	tlsConf := c.OutgoingRPCConfig()
-	require.NotNil(t, tlsConf)
-	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
-	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Empty(t, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-}
-
-func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}}
-	require.Nil(t, c.outgoingALPNRPCConfig())
-
-	c, err := NewConfigurator(Config{
-		VerifyOutgoing: false, // ignored, assumed true
-		CAFile:         "../test/ca/root.cer",
-		CertFile:       "../test/key/ourdomain.cer",
-		KeyFile:        "../test/key/ourdomain.key",
-	}, nil)
-	require.NoError(t, err)
-
-	tlsConf := c.outgoingALPNRPCConfig()
-	require.NotNil(t, tlsConf)
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Empty(t, tlsConf.NextProtos)
-	require.Empty(t, tlsConf.ServerName)
-}
-
-func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}}
-	wrapper := c.OutgoingRPCWrapper()
-	require.NotNil(t, wrapper)
-	conn := &net.TCPConn{}
-	cWrap, err := wrapper("", conn)
-	require.NoError(t, err)
-	require.Equal(t, conn, cWrap)
-
-	c, err = NewConfigurator(Config{
-		VerifyOutgoing: true,
-		CAFile:         "../test/ca/root.cer",
-	}, nil)
-	require.NoError(t, err)
-
-	wrapper = c.OutgoingRPCWrapper()
-	require.NotNil(t, wrapper)
-	cWrap, err = wrapper("", conn)
-	require.EqualError(t, err, "invalid argument")
-	require.NotEqual(t, conn, cWrap)
-}
-
-func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}}
-	wrapper := c.OutgoingRPCWrapper()
-	require.NotNil(t, wrapper)
-	conn := &net.TCPConn{}
-	cWrap, err := wrapper("", conn)
-	require.NoError(t, err)
-	require.Equal(t, conn, cWrap)
-
-	c, err = NewConfigurator(Config{
-		VerifyOutgoing: true,
-		CAFile:         "../test/ca/root.cer",
-	}, nil)
-	require.NoError(t, err)
-
-	wrapper = c.OutgoingRPCWrapper()
-	require.NotNil(t, wrapper)
-	cWrap, err = wrapper("", conn)
-	require.EqualError(t, err, "invalid argument")
-	require.NotEqual(t, conn, cWrap)
-}
-
-func TestConfigurator_UpdateChecks(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	require.NoError(t, c.Update(Config{}))
-	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
-	require.False(t, c.base.VerifyIncoming)
-	require.False(t, c.base.VerifyOutgoing)
-	require.Equal(t, uint64(2), c.version)
-}
-
-func TestConfigurator_UpdateSetsStuff(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
-	require.NoError(t, err)
-	require.Nil(t, c.caPool)
-	require.Nil(t, c.manual.cert)
-	require.Equal(t, c.base, &Config{})
-	require.Equal(t, uint64(1), c.version)
-
-	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Equal(t, uint64(1), c.version)
-
-	config := Config{
-		CAFile:   "../test/ca/root.cer",
-		CertFile: "../test/key/ourdomain.cer",
-		KeyFile:  "../test/key/ourdomain.key",
-	}
-	require.NoError(t, c.Update(config))
-	require.NotNil(t, c.caPool)
-	require.Len(t, c.caPool.Subjects(), 1)
-	require.NotNil(t, c.manual.cert)
-	require.Equal(t, c.base, &config)
-	require.Equal(t, uint64(2), c.version)
-}
-
 func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 	c := Configurator{base: &Config{}}
 	type variant struct {
@@ -1220,52 +1452,19 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 	}
 }
 
-func TestConfigurator_VerifyOutgoing(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	type variant struct {
-		verify         bool
-		autoEncryptTLS bool
-		pool           *x509.CertPool
-		expected       bool
-	}
-	variants := []variant{
-		{false, false, nil, false},
-		{true, false, nil, true},
-		{false, true, nil, false},
-		{true, true, nil, true},
-
-		{false, false, &x509.CertPool{}, false},
-		{true, false, &x509.CertPool{}, true},
-		{false, true, &x509.CertPool{}, true},
-		{true, true, &x509.CertPool{}, true},
-	}
-	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
-		c.caPool = v.pool
-		c.base.VerifyOutgoing = v.verify
-		c.base.AutoTLS = v.autoEncryptTLS
-		require.Equal(t, v.expected, c.verifyOutgoing(), info)
-	}
-}
-
-func TestConfigurator_Domain(t *testing.T) {
-	c := Configurator{base: &Config{Domain: "something"}}
-	require.Equal(t, "something", c.domain())
-}
-
-func TestConfigurator_VerifyServerHostname(t *testing.T) {
+func TestConfigurator_InternalRPCVerifyServerHostname(t *testing.T) {
 	c := Configurator{base: &Config{}}
 	require.False(t, c.VerifyServerHostname())
 
-	c.base.VerifyServerHostname = true
+	c.base.InternalRPC.VerifyServerHostname = true
 	c.autoTLS.verifyServerHostname = false
 	require.True(t, c.VerifyServerHostname())
 
-	c.base.VerifyServerHostname = false
+	c.base.InternalRPC.VerifyServerHostname = false
 	c.autoTLS.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 
-	c.base.VerifyServerHostname = true
+	c.base.InternalRPC.VerifyServerHostname = true
 	c.autoTLS.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 }
@@ -1282,10 +1481,10 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4820915609), c.AutoEncryptCert().NotAfter.Unix())
 }
 
-func TestConfigurator_AuthorizeServerConn(t *testing.T) {
+func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 	caPEM, caPK, err := GenerateCA(CAOpts{Days: 5, Domain: "consul"})
 	require.NoError(t, err)
 
@@ -1294,7 +1493,7 @@ func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
-	// Cert and key are not used, but required to get past validateConfig
+	// Cert and key are not used, but required to get past validation.
 	signer, err := ParseSigner(caPK)
 	require.NoError(t, err)
 	pub, pk, err := GenerateCert(CertOpts{
@@ -1310,15 +1509,16 @@ func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := Config{
-		VerifyServerHostname: true,
-		VerifyIncomingRPC:    true,
-		Domain:               "consul",
-		CAFile:               caPath,
-		CertFile:             certFile,
-		KeyFile:              keyFile,
+		InternalRPC: ProtocolConfig{
+			VerifyServerHostname: true,
+			VerifyIncoming:       true,
+			CAFile:               caPath,
+			CertFile:             certFile,
+			KeyFile:              keyFile,
+		},
+		Domain: "consul",
 	}
-	c, err := NewConfigurator(cfg, hclog.New(nil))
-	require.NoError(t, err)
+	c := makeConfigurator(t, cfg)
 
 	t.Run("wrong DNSName", func(t *testing.T) {
 		signer, err := ParseSigner(caPK)
@@ -1402,10 +1602,12 @@ func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 
 	t.Run("disabled by verify_incoming_rpc", func(t *testing.T) {
 		cfg := Config{
-			VerifyServerHostname: true,
-			VerifyIncomingRPC:    false,
-			Domain:               "consul",
-			CAFile:               caPath,
+			InternalRPC: ProtocolConfig{
+				VerifyServerHostname: true,
+				VerifyIncoming:       false,
+				CAFile:               caPath,
+			},
+			Domain: "consul",
 		}
 		c, err := NewConfigurator(cfg, hclog.New(nil))
 		require.NoError(t, err)
@@ -1414,7 +1616,58 @@ func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 		err = c.AuthorizeServerConn("dc1", s)
 		require.NoError(t, err)
 	})
+}
 
+func TestConfigurator_GRPCServerUseTLS(t *testing.T) {
+	t.Run("certificate manually configured", func(t *testing.T) {
+		c := makeConfigurator(t, Config{
+			GRPC: ProtocolConfig{
+				CertFile: "../test/hostname/Alice.crt",
+				KeyFile:  "../test/hostname/Alice.key",
+			},
+		})
+		require.True(t, c.GRPCServerUseTLS())
+	})
+
+	t.Run("no certificate", func(t *testing.T) {
+		c := makeConfigurator(t, Config{})
+		require.False(t, c.GRPCServerUseTLS())
+	})
+
+	t.Run("AutoTLS (default)", func(t *testing.T) {
+		c := makeConfigurator(t, Config{})
+
+		bobCert := loadFile(t, "../test/hostname/Bob.crt")
+		bobKey := loadFile(t, "../test/hostname/Bob.key")
+		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+		require.False(t, c.GRPCServerUseTLS())
+	})
+
+	t.Run("AutoTLS w/ UseAutoCert Disabled", func(t *testing.T) {
+		c := makeConfigurator(t, Config{
+			GRPC: ProtocolConfig{
+				UseAutoCert: false,
+			},
+		})
+
+		bobCert := loadFile(t, "../test/hostname/Bob.crt")
+		bobKey := loadFile(t, "../test/hostname/Bob.key")
+		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+		require.False(t, c.GRPCServerUseTLS())
+	})
+
+	t.Run("AutoTLS w/ UseAutoCert Enabled", func(t *testing.T) {
+		c := makeConfigurator(t, Config{
+			GRPC: ProtocolConfig{
+				UseAutoCert: true,
+			},
+		})
+
+		bobCert := loadFile(t, "../test/hostname/Bob.crt")
+		bobKey := loadFile(t, "../test/hostname/Bob.key")
+		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+		require.True(t, c.GRPCServerUseTLS())
+	})
 }
 
 type fakeTLSConn struct {
@@ -1438,8 +1691,111 @@ func certChain(t *testing.T, certs ...string) []*x509.Certificate {
 	return result
 }
 
-func TestConfig_tlsVersions(t *testing.T) {
-	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	expected := "tls10, tls11, tls12, tls13"
-	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
+func startRPCTLSServer(t *testing.T, c *Configurator) (net.Conn, <-chan error) {
+	client, errc, _ := startTLSServer(c.IncomingRPCConfig())
+	return client, errc
+}
+
+func startALPNRPCTLSServer(t *testing.T, config *Config, alpnProtos []string) (net.Conn, <-chan error) {
+	cfg := makeConfigurator(t, *config).IncomingALPNRPCConfig(alpnProtos)
+	client, errc, _ := startTLSServer(cfg)
+	return client, errc
+}
+
+func makeConfigurator(t *testing.T, config Config) *Configurator {
+	t.Helper()
+
+	c, err := NewConfigurator(config, nil)
+	require.NoError(t, err)
+
+	return c
+}
+
+func startTLSServer(tlsConfigServer *tls.Config) (net.Conn, <-chan error, <-chan []*x509.Certificate) {
+	errc := make(chan error, 1)
+	certc := make(chan []*x509.Certificate, 1)
+
+	client, server := net.Pipe()
+
+	// Use yamux to buffer the reads, otherwise it's easy to deadlock
+	muxConf := yamux.DefaultConfig()
+	serverSession, _ := yamux.Server(server, muxConf)
+	clientSession, _ := yamux.Client(client, muxConf)
+	clientConn, _ := clientSession.Open()
+	serverConn, _ := serverSession.Accept()
+
+	go func() {
+		tlsServer := tls.Server(serverConn, tlsConfigServer)
+		if err := tlsServer.Handshake(); err != nil {
+			errc <- err
+		}
+		certc <- tlsServer.ConnectionState().PeerCertificates
+		close(errc)
+
+		// Because net.Pipe() is unbuffered, if both sides
+		// Close() simultaneously, we will deadlock as they
+		// both send an alert and then block. So we make the
+		// server read any data from the client until error or
+		// EOF, which will allow the client to Close(), and
+		// *then* we Close() the server.
+		io.Copy(ioutil.Discard, tlsServer)
+		tlsServer.Close()
+	}()
+	return clientConn, errc, certc
+}
+
+func loadFile(t *testing.T, path string) string {
+	t.Helper()
+
+	data, err := ioutil.ReadFile(path)
+	require.NoError(t, err)
+	return string(data)
+}
+
+func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	if err != nil {
+		t.Fatal("could not open test file ../test/ca/root.cer for reading")
+	}
+	if !pool.AppendCertsFromPEM(data) {
+		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
+	}
+	return pool
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	if err != nil {
+		t.Fatal("could not open test dir ../test/ca_path for reading")
+	}
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			t.Fatalf("could not open test file %s for reading", filename)
+		}
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

@@ -1,0 +1,3 @@
+```release-note:feature
+ca: Root certificates can now be consumed from a gRPC streaming endpoint: `WatchRoots`
+```

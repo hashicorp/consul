@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fix for delta xDS reconnect bug in LDS/CDS
+```

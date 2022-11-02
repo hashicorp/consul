@@ -82,9 +82,10 @@ as |route|>
           <collection.Empty>
             <EmptyState>
               <BlockSlot @name="body">
-                <p>
-                  There are no upstreams{{#if (gt items.length 0)}} matching that search{{/if}}.
-                </p>
+                {{t "routes.dc.services.show.upstreams.empty"
+                  items=items.length
+                  htmlSafe=true
+                }}
               </BlockSlot>
             </EmptyState>
           </collection.Empty>

@@ -1,0 +1,6 @@
+#docfy-demo-preview-tile {
+  .tile {
+    @extend %with-tile, %with-leader-tile;
+  }
+}
+

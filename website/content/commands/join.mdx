@@ -22,8 +22,8 @@ state across the cluster.
 An agent which is already part of a cluster may join an agent in a different
 cluster, causing the two clusters to be merged into a single cluster.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required  |
@@ -34,16 +34,16 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul join [options] address ...`
 
-You may call join with multiple addresses if you want to try to join
-multiple clusters. Consul will attempt to join all addresses, and the join
-command will fail only if Consul was unable to join with any.
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
+You may call `join` with multiple addresses if you want attempt to join the cluster
+through multiple nodes. Consul will attempt to join all addresses. The join
+command will fail only if Consul was unable to join any of the specified addresses.
 
 #### Command Options
 
 - `-wan` - For agents running in server mode, the agent will attempt to join
   other servers gossiping in a WAN cluster. This is used to form a bridge between
   multiple datacenters.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

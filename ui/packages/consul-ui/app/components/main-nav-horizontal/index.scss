@@ -5,6 +5,7 @@
 %main-nav-horizontal > ul > li > a,
 %main-nav-horizontal > ul > li > span,
 %main-nav-horizontal > ul > li > button,
+%main-nav-horizontal-popover-menu-trigger,
 %main-nav-horizontal > ul > li > .popover-menu > label > button {
   @extend %main-nav-horizontal-action;
 }

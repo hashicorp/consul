@@ -1,7 +1,12 @@
 [
   {
-    "title": "API Introduction",
-    "path": "index"
+    "title": "Overview",
+    "path": "index",
+    "hidden": true
+  },
+  {
+    "title": "API Structure",
+    "path": "api-structure"
   },
   {
     "title": "API Features",
@@ -88,6 +93,10 @@
   {
     "title": "Catalog",
     "path": "catalog"
+  },
+  {
+    "title": "Cluster Peering",
+    "path": "peering"
   },
   {
     "title": "Config",

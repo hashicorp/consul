@@ -39,10 +39,13 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -72,10 +75,13 @@ func TestUIServerIndex(t *testing.T) {
 			},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "foo",
 					"metrics_provider_options": {
 						"a-very-unlikely-string":1
@@ -93,10 +99,57 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
 			wantUICfgJSON: `{
 				"ACLsEnabled": true,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
 				"UIConfig": {
+					"hcp_enabled": false,
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
+			}`,
+		},
+		{
+			name:         "hcp enabled",
+			cfg:          basicUIEnabledConfig(withHCPEnabled()),
+			path:         "/",
+			wantStatus:   http.StatusOK,
+			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantUICfgJSON: `{
+				"ACLsEnabled": false,
+				"HCPEnabled": true,
+				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
+				"UIConfig": {
+					"hcp_enabled": true,
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
+			}`,
+		},
+		{
+			name: "peering disabled",
+			cfg: basicUIEnabledConfig(
+				withPeeringDisabled(),
+			),
+			path:         "/",
+			wantStatus:   http.StatusOK,
+			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantUICfgJSON: `{
+				"ACLsEnabled": false,
+				"HCPEnabled": false,
+				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"PeeringEnabled": false,
+				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -121,11 +174,14 @@ func TestUIServerIndex(t *testing.T) {
 			},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"SSOEnabled": true,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "bar",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -222,6 +278,7 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 		},
 		Datacenter:        "dc1",
 		PrimaryDatacenter: "dc1",
+		PeeringEnabled:    true,
 	}
 	for _, f := range opts {
 		f(cfg)
@@ -252,6 +309,18 @@ func withMetricsProviderFiles(names ...string) cfgFunc {
 func withMetricsProviderOptions(jsonStr string) cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.UIConfig.MetricsProviderOptionsJSON = jsonStr
+	}
+}
+
+func withHCPEnabled() cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.UIConfig.HCPEnabled = true
+	}
+}
+
+func withPeeringDisabled() cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.PeeringEnabled = false
 	}
 }
 
@@ -384,10 +453,13 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		expected := `{
 		"ACLsEnabled": false,
+		"HCPEnabled": false,
 		"LocalDatacenter": "dc1",
 		"PrimaryDatacenter": "dc1",
 		"ContentPath": "/ui/",
+		"PeeringEnabled": true,
 		"UIConfig": {
+			"hcp_enabled": false,
 			"metrics_provider": "",
 			"metrics_proxy_enabled": false,
 			"dashboard_url_templates": null
@@ -407,10 +479,13 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		expected := `{
 			"ACLsEnabled": false,
+			"HCPEnabled": false,
 			"LocalDatacenter": "dc1",
 			"PrimaryDatacenter": "dc1",
 			"ContentPath": "/ui/",
+			"PeeringEnabled": true,
 			"UIConfig": {
+				"hcp_enabled": false,
 				"metrics_provider": "",
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null

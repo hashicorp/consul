@@ -1,0 +1,3 @@
+```release-note:bug
+raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election.
+```

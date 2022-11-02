@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -21,9 +23,23 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
+)
+
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
+
+type deltaRecvResponse int
+
+const (
+	deltaRecvResponseNack deltaRecvResponse = iota
+	deltaRecvResponseAck
+	deltaRecvNewSubscription
+	deltaRecvUnknownType
 )
 
 // ADSDeltaStream is a shorter way of referring to this thing...
@@ -69,6 +85,17 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	// Handle invalid ACL tokens up-front.
+	if _, err := s.authenticate(stream.Context()); err != nil {
+		return err
+	}
+
+	session, err := s.SessionLimiter.BeginSession()
+	if err != nil {
+		return errOverwhelmed
+	}
+	defer session.End()
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -78,13 +105,16 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready       bool   // set to true after the first snapshot arrives
+
+		streamStartTime = time.Now()
+		streamStartOnce sync.Once
 	)
 
 	var (
 		// resourceMap is the SoTW we are incrementally attempting to sync to envoy.
 		//
 		// type => name => proto
-		resourceMap = emptyIndexedResources()
+		resourceMap = xdscommon.EmptyIndexedResources()
 
 		// currentVersions is the the xDS versioning represented by Resources.
 		//
@@ -94,7 +124,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
-		s.CheckFetcher,
 		s.CfgFetcher,
 		true,
 	)
@@ -104,20 +133,20 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
-		ListenerType: newDeltaType(generator, stream, ListenerType, func(kind structs.ServiceKind) bool {
+		xdscommon.ListenerType: newDeltaType(generator, stream, xdscommon.ListenerType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		RouteType: newDeltaType(generator, stream, RouteType, func(kind structs.ServiceKind) bool {
+		xdscommon.RouteType: newDeltaType(generator, stream, xdscommon.RouteType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		ClusterType: newDeltaType(generator, stream, ClusterType, func(kind structs.ServiceKind) bool {
+		xdscommon.ClusterType: newDeltaType(generator, stream, xdscommon.ClusterType, func(kind structs.ServiceKind) bool {
 			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
 			// no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
 				cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		EndpointType: newDeltaType(generator, stream, EndpointType, nil),
+		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
@@ -129,8 +158,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// representation of envoy state to force an update.
 	//
 	// see: https://github.com/envoyproxy/envoy/issues/13009
-	handlers[ListenerType].childType = handlers[RouteType]
-	handlers[ClusterType].childType = handlers[EndpointType]
+	handlers[xdscommon.ListenerType].childType = handlers[xdscommon.RouteType]
+	handlers[xdscommon.ClusterType].childType = handlers[xdscommon.EndpointType]
 
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
@@ -143,6 +172,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-session.Terminated():
+			generator.Logger.Debug("draining stream to rebalance load")
+			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {
@@ -165,12 +198,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
-			if handler, ok := handlers[req.TypeUrl]; ok {
-				if handler.Recv(req) {
-					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
-				}
-			}
-
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
@@ -180,7 +207,33 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 			}
 
-		case cfgSnap = <-stateCh:
+			if handler, ok := handlers[req.TypeUrl]; ok {
+				switch handler.Recv(req, generator.ProxyFeatures) {
+				case deltaRecvNewSubscription:
+					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+
+				case deltaRecvResponseNack:
+					generator.Logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
+
+					// There is no reason to believe that generating new xDS resources from the same snapshot
+					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
+					// for a new request or snapshot.
+					continue
+				}
+			}
+
+		case cs, ok := <-stateCh:
+			if !ok {
+				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
+				// or by the proxycfg.Manager when an irrecoverable error is encountered
+				// such as the ACL token getting deleted.
+				//
+				// We know for sure that this is the latter case, because in the former we
+				// would've already exited this loop.
+				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
+			}
+			cfgSnap = cs
+
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
@@ -191,6 +244,13 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
+			}
+
+			if s.serverlessPluginEnabled {
+				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
+				if err != nil {
+					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
+				}
 			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {
@@ -215,11 +275,26 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				// is received but lets not panic about it.
 				continue
 			}
+
+			nodeName := node.GetMetadata().GetFields()["node_name"].GetStringValue()
+			if nodeName == "" {
+				nodeName = s.NodeName
+			}
+
 			// Start authentication process, we need the proxyID
 			proxyID = structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
 
 			// Start watching config for that proxy
-			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
+			var err error
+			options, err := external.QueryOptionsFromContext(stream.Context())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
+
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
 			// the end of the current loop iteration. We have to do it in the loop
@@ -289,11 +364,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
-			sentType := make(map[string]struct{}) // use this to only do one kind of mutation per type per execution
+			streamStartOnce.Do(func() {
+				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
+			})
+
 			for _, op := range xDSUpdateOrder {
-				if _, sent := sentType[op.TypeUrl]; sent {
-					continue
-				}
 				err, sent := handlers[op.TypeUrl].SendIfNew(
 					cfgSnap.Kind,
 					currentVersions[op.TypeUrl],
@@ -309,7 +384,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						op.TypeUrl, err)
 				}
 				if sent {
-					sentType[op.TypeUrl] = struct{}{}
+					break // wait until we get an ACK to do more
 				}
 			}
 		}
@@ -318,18 +393,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 var xDSUpdateOrder = []xDSUpdateOperation{
 	// 1. CDS updates (if any) must always be pushed first.
-	{TypeUrl: ClusterType, Upsert: true},
+	{TypeUrl: xdscommon.ClusterType, Upsert: true},
 	// 2. EDS updates (if any) must arrive after CDS updates for the respective clusters.
-	{TypeUrl: EndpointType, Upsert: true},
+	{TypeUrl: xdscommon.EndpointType, Upsert: true},
 	// 3. LDS updates must arrive after corresponding CDS/EDS updates.
-	{TypeUrl: ListenerType, Upsert: true, Remove: true},
+	{TypeUrl: xdscommon.ListenerType, Upsert: true, Remove: true},
 	// 4. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
-	{TypeUrl: RouteType, Upsert: true, Remove: true},
+	{TypeUrl: xdscommon.RouteType, Upsert: true, Remove: true},
 	// 5. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
 	// {},
 	// 6. Stale CDS clusters and related EDS endpoints (ones no longer being referenced) can then be removed.
-	{TypeUrl: ClusterType, Remove: true},
-	{TypeUrl: EndpointType, Remove: true},
+	{TypeUrl: xdscommon.ClusterType, Remove: true},
+	{TypeUrl: xdscommon.EndpointType, Remove: true},
 	// xDS updates can be pushed independently if no new
 	// clusters/routes/listeners are added or if it’s acceptable to
 	// temporarily drop traffic during updates. Note that in case of
@@ -434,9 +509,9 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
-		return false // not something we care about
+		return deltaRecvUnknownType // not something we care about
 	}
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
@@ -481,6 +556,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 			logger.Error("got error response from envoy proxy", "nonce", req.ResponseNonce,
 				"error", status.ErrorProto(req.ErrorDetail))
 			t.nack(req.ResponseNonce)
+			return deltaRecvResponseNack
 		}
 	}
 
@@ -551,7 +627,10 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		}
 	}
 
-	return registeredThisTime
+	if registeredThisTime {
+		return deltaRecvNewSubscription
+	}
+	return deltaRecvResponseAck
 }
 
 func (t *xDSDeltaType) ack(nonce string) {
@@ -600,7 +679,7 @@ func (t *xDSDeltaType) nack(nonce string) {
 func (t *xDSDeltaType) SendIfNew(
 	kind structs.ServiceKind,
 	currentVersions map[string]string, // type => name => version (as consul knows right now)
-	resourceMap *IndexedResources,
+	resourceMap *xdscommon.IndexedResources,
 	nonce *uint64,
 	upsert, remove bool,
 ) (error, bool) {
@@ -660,7 +739,7 @@ func (t *xDSDeltaType) SendIfNew(
 
 func (t *xDSDeltaType) createDeltaResponse(
 	currentVersions map[string]string, // name => version (as consul knows right now)
-	resourceMap *IndexedResources,
+	resourceMap *xdscommon.IndexedResources,
 	upsert, remove bool,
 ) (*envoy_discovery_v3.DeltaDiscoveryResponse, map[string]PendingUpdate, error) {
 	// compute difference
@@ -769,7 +848,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 	return resp, realUpdates, nil
 }
 
-func computeResourceVersions(resourceMap *IndexedResources) (map[string]map[string]string, error) {
+func computeResourceVersions(resourceMap *xdscommon.IndexedResources) (map[string]map[string]string, error) {
 	out := make(map[string]map[string]string)
 	for typeUrl, resources := range resourceMap.Index {
 		m, err := hashResourceMap(resources)
@@ -781,52 +860,27 @@ func computeResourceVersions(resourceMap *IndexedResources) (map[string]map[stri
 	return out, nil
 }
 
-type IndexedResources struct {
-	// Index is a map of typeURL => resourceName => resource
-	Index map[string]map[string]proto.Message
-
-	// ChildIndex is a map of typeURL => parentResourceName => list of
-	// childResourceNames. This only applies if the child and parent do not
-	// share a name.
-	ChildIndex map[string]map[string][]string
-}
-
-func emptyIndexedResources() *IndexedResources {
-	return &IndexedResources{
-		Index: map[string]map[string]proto.Message{
-			ListenerType: make(map[string]proto.Message),
-			RouteType:    make(map[string]proto.Message),
-			ClusterType:  make(map[string]proto.Message),
-			EndpointType: make(map[string]proto.Message),
-		},
-		ChildIndex: map[string]map[string][]string{
-			ListenerType: make(map[string][]string),
-			ClusterType:  make(map[string][]string),
-		},
-	}
-}
-
-func populateChildIndexMap(resourceMap *IndexedResources) error {
+func populateChildIndexMap(resourceMap *xdscommon.IndexedResources) error {
 	// LDS and RDS have a more complicated relationship.
-	for name, res := range resourceMap.Index[ListenerType] {
+	for name, res := range resourceMap.Index[xdscommon.ListenerType] {
 		listener := res.(*envoy_listener_v3.Listener)
 		rdsRouteNames, err := extractRdsResourceNames(listener)
 		if err != nil {
 			return err
 		}
-		resourceMap.ChildIndex[ListenerType][name] = rdsRouteNames
+		resourceMap.ChildIndex[xdscommon.ListenerType][name] = rdsRouteNames
 	}
 
 	// CDS and EDS share exact names.
-	for name := range resourceMap.Index[ClusterType] {
-		resourceMap.ChildIndex[ClusterType][name] = []string{name}
+	for name := range resourceMap.Index[xdscommon.ClusterType] {
+		resourceMap.ChildIndex[xdscommon.ClusterType][name] = []string{name}
 	}
 
 	return nil
 }
 
-func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *IndexedResources {
-	data := emptyIndexedResources()
+func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *xdscommon.IndexedResources {
+	data := xdscommon.EmptyIndexedResources()
 
 	for typeURL, typeRes := range resources {
 		for _, res := range typeRes {

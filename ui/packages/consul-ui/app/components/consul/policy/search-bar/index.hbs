@@ -55,7 +55,7 @@ as |key value|}}
           <BlockSlot @name="options">
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
                 {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
@@ -79,7 +79,7 @@ as |key value|}}
         <BlockSlot @name="options">
       {{#let components.Optgroup components.Option as |Optgroup Option|}}
           {{#each dcs as |dc|}}
-            <Option @value={{dc.Name}} @selected={{contains dc.Name @filter.datacenter.value}}>{{dc.Name}}</Option>
+            <Option @value={{dc.Name}} @selected={{includes dc.Name @filter.datacenter.value}}>{{dc.Name}}</Option>
           {{/each}}
             <DataSource
               @src={{uri "/${partition}/*/*/datacenters"
@@ -107,7 +107,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "global-management" "standard") as |state|}}
-          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.kind.value}}>
+          <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.kind.value}}>
             {{t (concat "components.consul.policy.search-bar.kind.options." state)
                 default=(array
                   (concat "common.search." state)

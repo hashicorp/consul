@@ -9,52 +9,49 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
-func sessionIndexer() indexerSingleWithPrefix {
-	return indexerSingleWithPrefix{
-		readIndex:   readIndex(indexFromQuery),
-		writeIndex:  writeIndex(indexFromSession),
-		prefixIndex: prefixIndex(prefixIndexFromQuery),
+func sessionIndexer() indexerSingleWithPrefix[Query, *structs.Session, any] {
+	return indexerSingleWithPrefix[Query, *structs.Session, any]{
+		readIndex:   indexFromQuery,
+		writeIndex:  indexFromSession,
+		prefixIndex: prefixIndexFromQuery,
 	}
 }
 
-func nodeSessionsIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  readIndex(indexFromIDValueLowerCase),
-		writeIndex: writeIndex(indexNodeFromSession),
+func nodeSessionsIndexer() indexerSingle[singleValueID, *structs.Session] {
+	return indexerSingle[singleValueID, *structs.Session]{
+		readIndex:  indexFromIDValueLowerCase,
+		writeIndex: indexNodeFromSession,
 	}
 }
 
-func idCheckIndexer() indexerSingle {
-	return indexerSingle{
+func idCheckIndexer() indexerSingle[*sessionCheck, *sessionCheck] {
+	return indexerSingle[*sessionCheck, *sessionCheck]{
 		readIndex:  indexFromNodeCheckIDSession,
 		writeIndex: indexFromNodeCheckIDSession,
 	}
 }
 
-func sessionCheckIndexer() indexerSingle {
-	return indexerSingle{
+func sessionCheckIndexer() indexerSingle[Query, *sessionCheck] {
+	return indexerSingle[Query, *sessionCheck]{
 		readIndex:  indexFromQuery,
 		writeIndex: indexSessionCheckFromSession,
 	}
 }
 
-func nodeChecksIndexer() indexerSingle {
-	return indexerSingle{
+func nodeChecksIndexer() indexerSingle[multiValueID, *sessionCheck] {
+	return indexerSingle[multiValueID, *sessionCheck]{
 		readIndex:  indexFromMultiValueID,
 		writeIndex: indexFromNodeCheckID,
 	}
 }
 
 // indexFromNodeCheckID creates an index key from a sessionCheck structure
-func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*sessionCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
+func indexFromNodeCheckID(e *sessionCheck) ([]byte, error) {
 	var b indexBuilder
 	v := strings.ToLower(e.Node)
 	if v == "" {
@@ -121,7 +118,7 @@ func allNodeSessionsTxn(tx ReadTxn, node string, _ string) (structs.Sessions, er
 }
 
 func nodeSessionsTxn(tx ReadTxn,
-	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
+	ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (structs.Sessions, error) {
 
 	sessions, err := tx.Get(tableSessions, indexNode, Query{Value: node})
 	if err != nil {
@@ -136,7 +133,7 @@ func nodeSessionsTxn(tx ReadTxn,
 	return result, nil
 }
 
-func sessionMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+func sessionMaxIndex(tx ReadTxn, entMeta *acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "sessions")
 }
 
@@ -161,7 +158,7 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -184,7 +181,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	return idx, result, nil
 }
 
-func maxIndexTxnSessions(tx *memdb.Txn, _ *structs.EnterpriseMeta) uint64 {
+func maxIndexTxnSessions(tx *memdb.Txn, _ *acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, tableSessions)
 }
 

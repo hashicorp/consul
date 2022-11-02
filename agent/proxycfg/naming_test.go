@@ -8,6 +8,49 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+func TestUpstreamIDFromTargetID(t *testing.T) {
+	type testcase struct {
+		tid    string
+		expect UpstreamID
+	}
+	run := func(t *testing.T, tc testcase) {
+		tc.expect.EnterpriseMeta.Normalize()
+
+		got := NewUpstreamIDFromTargetID(tc.tid)
+		require.Equal(t, tc.expect, got)
+	}
+
+	cases := map[string]testcase{
+		"with subset": {
+			tid: "v1.foo.default.default.dc2",
+			expect: UpstreamID{
+				Name:       "foo",
+				Datacenter: "dc2",
+			},
+		},
+		"without subset": {
+			tid: "foo.default.default.dc2",
+			expect: UpstreamID{
+				Name:       "foo",
+				Datacenter: "dc2",
+			},
+		},
+		"peered": {
+			tid: "foo.default.default.external.cluster-01",
+			expect: UpstreamID{
+				Name: "foo",
+				Peer: "cluster-01",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestUpstreamIDFromString(t *testing.T) {
 	type testcase struct {
 		id     string
@@ -52,6 +95,13 @@ func TestUpstreamIDFromString(t *testing.T) {
 			UpstreamID{
 				Name:       "foo",
 				Datacenter: "dc2",
+			},
+		},
+		"normal with peer": {
+			"foo?peer=payments",
+			UpstreamID{
+				Name: "foo",
+				Peer: "payments",
 			},
 		},
 	}
@@ -122,6 +172,13 @@ func TestUpstreamID_String(t *testing.T) {
 			},
 			prefix + "foo?dc=dc2",
 		},
+		"normal with peer": {
+			UpstreamID{
+				Name: "foo",
+				Peer: "payments",
+			},
+			prefix + "foo?peer=payments",
+		},
 	}
 
 	for name, tc := range cases {
@@ -184,6 +241,13 @@ func TestUpstreamID_EnvoyID(t *testing.T) {
 				Datacenter: "dc2",
 			},
 			"foo?dc=dc2",
+		},
+		"normal with peer": {
+			UpstreamID{
+				Name: "foo",
+				Peer: "billing",
+			},
+			"foo?peer=billing",
 		},
 	}
 

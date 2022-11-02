@@ -44,6 +44,7 @@ addresses = {
     http = "83.39.91.39"
     https = "95.17.17.19"
     grpc = "32.31.61.91"
+    grpc_tls = "23.14.88.19"
 }
 advertise_addr = "17.99.29.16"
 advertise_addr_wan = "78.63.37.19"
@@ -110,6 +111,7 @@ check = {
     }
     method = "Dou0nGT5"
     body = "5PBQd2OT"
+    disable_redirects = true
     tcp = "JY6fTTcw"
     h2ping = "rQ8eyCSF"
     h2ping_use_tls = false
@@ -117,6 +119,7 @@ check = {
     output_max_size = 4096
     docker_container_id = "qF66POS9"
     shell = "sOnDy228"
+    os_service = "aZaCAXww"
     tls_server_name = "7BdnzBYk"
     tls_skip_verify = true
     timeout = "5954s"
@@ -138,6 +141,7 @@ checks = [
         }
         method = "aldrIQ4l"
         body = "wSjTy7dg"
+        disable_redirects = true
         tcp = "RJQND605"
         h2ping = "9N1cSb5B"
         h2ping_use_tls = false
@@ -145,6 +149,7 @@ checks = [
         output_max_size = 4096
         docker_container_id = "ipgdFtjd"
         shell = "qAeOYy0M"
+        os_service = "aAjE6m9Z"
         tls_server_name = "bdeb5f6a"
         tls_skip_verify = true
         timeout = "1813s"
@@ -165,6 +170,7 @@ checks = [
         }
         method = "gLrztrNw"
         body = "0jkKgGUC"
+        disable_redirects = false
         tcp = "4jG5casb"
         h2ping = "HCHU7gEb"
         h2ping_use_tls = false
@@ -172,6 +178,7 @@ checks = [
         output_max_size = 4096
         docker_container_id = "THW6u7rL"
         shell = "C1Zt3Zwh"
+        os_service = "aqq95BhP"
         tls_server_name = "6adc3bfb"
         tls_skip_verify = true
         timeout = "18506s"
@@ -197,6 +204,14 @@ auto_encrypt = {
     ip_san = ["192.168.4.139", "192.168.4.140"]
     allow_tls = true
 }
+cloud {
+    resource_id = "N43DsscE"
+    client_id = "6WvsDZCP"
+    client_secret = "lCSMHOpB"
+    hostname = "DH4bh7aC"
+    auth_url = "332nCdR2"
+    scada_address = "aoeusth232"
+}
 connect {
     ca_provider = "consul"
     ca_config {
@@ -210,6 +225,7 @@ connect {
     }
     enable_mesh_gateway_wan_federation = false
     enabled = true
+    enable_serverless_plugin = true
 }
 gossip_lan {
     gossip_nodes    = 6
@@ -284,6 +300,7 @@ limits {
     http_max_conns_per_client = 100
     https_handshake_timeout = "2391ms"
     rpc_handshake_timeout = "1932ms"
+    rpc_client_timeout = "62s"
     rpc_rate = 12029.43
     rpc_max_burst = 44848
     rpc_max_conns_per_client = 2954
@@ -301,6 +318,9 @@ node_meta {
 node_name = "otlLxGaI"
 non_voting_server = true
 partition = ""
+peering {
+    enabled = true
+}
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -313,6 +333,7 @@ ports {
     https = 15127
     server = 3757
     grpc = 4881
+    grpc_tls = 5201
     proxy_min_port = 2000
     proxy_max_port = 3000
     sidecar_min_port = 8888
@@ -388,12 +409,14 @@ service = {
         }
         method = "9afLm3Mj"
         body = "wVVL2V6f"
+        disable_redirects = true
         tcp = "fjiLFqVd"
         h2ping = "5NbNWhan"
         h2ping_use_tls = false
         interval = "23926s"
         docker_container_id = "dO5TtRHk"
         shell = "e6q2ttES"
+        os_service = "RAa85Dv8"
         tls_server_name = "ECSHk8WF"
         tls_skip_verify = true
         timeout = "38483s"
@@ -413,6 +436,7 @@ service = {
             }
             method = "T66MFBfR"
             body = "OwGjTFQi"
+            disable_redirects = true
             tcp = "bNnNfx2A"
             h2ping = "qC1pidiW"
             h2ping_use_tls = false
@@ -420,6 +444,7 @@ service = {
             output_max_size = 4096
             docker_container_id = "ipgdFtjd"
             shell = "omVZq7Sz"
+            os_service = "ZA99e9Ka"
             tls_server_name = "axw5QPL5"
             tls_skip_verify = true
             timeout = "18913s"
@@ -438,6 +463,7 @@ service = {
             }
             method = "ciYHWors"
             body = "lUVLGYU7"
+            disable_redirects = false
             tcp = "FfvCwlqH"
             h2ping = "spI3muI3"
             h2ping_use_tls = false
@@ -445,6 +471,7 @@ service = {
             output_max_size = 4096
             docker_container_id = "HBndBU6R"
             shell = "hVI33JjA"
+            os_service = "GAaO6Mpr"
             tls_server_name = "7uwWOnUS"
             tls_skip_verify = true
             timeout = "38282s"
@@ -477,6 +504,7 @@ services = [
             }
             method = "X5DrovFc"
             body = "WeikigLh"
+            disable_redirects = true
             tcp = "ICbxkpSF"
             h2ping = "7s7BbMyb"
             h2ping_use_tls = false
@@ -484,6 +512,7 @@ services = [
             output_max_size = 4096
             docker_container_id = "ZKXr68Yb"
             shell = "CEfzx0Fo"
+            os_service = "amfeO5if"
             tls_server_name = "4f191d4F"
             tls_skip_verify = true
             timeout = "38333s"
@@ -519,6 +548,7 @@ services = [
                 }
                 method = "5wkAxCUE"
                 body = "7CRjCJyz"
+                disable_redirects = false
                 tcp = "MN3oA9D2"
                 h2ping = "OV6Q2XEg"
                 h2ping_use_tls = false
@@ -526,6 +556,7 @@ services = [
                 output_max_size = 4096
                 docker_container_id = "cU15LMet"
                 shell = "nEz9qz2l"
+                os_service = "GTti9hCA"
                 tls_server_name = "f43ouY7a"
                 tls_skip_verify = true
                 timeout = "34738s"
@@ -638,16 +669,58 @@ telemetry {
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
+    retry_failed_connection = true
     filter_default = true
     prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
     metrics_prefix = "ftO6DySn"
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
-tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-tls_min_version = "pAOWafkR"
+tls {
+    defaults {
+        ca_file = "a5tY0opl"
+        ca_path = "bN63LpXu"
+        cert_file = "hB4PoxkL"
+        key_file = "Po0hB1tY"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        tls_min_version = "TLSv1_2"
+        verify_incoming = true
+        verify_outgoing = true
+    }
+    internal_rpc {
+        ca_file = "mKl19Utl"
+        ca_path = "lOp1nhPa"
+        cert_file = "dfJ4oPln"
+        key_file = "aL1Knkpo"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_1"
+        verify_incoming = true
+        verify_outgoing = true
+        verify_server_hostname = true
+    }
+    https {
+        ca_file = "7Yu1PolM"
+        ca_path = "nu4PlHzn"
+        cert_file = "1yrhPlMk"
+        key_file = "1bHapOkL"
+        tls_min_version = "TLSv1_3"
+        verify_incoming = true
+        verify_outgoing = true
+    }
+    grpc {
+        ca_file = "lOp1nhJk"
+        ca_path = "fLponKpl"
+        cert_file = "a674klPn"
+        key_file = "1y4prKjl"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_0"
+        verify_incoming = true
+        use_auto_cert   = true
+    }
+}
+tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+tls_min_version = "tls11"
 tls_prefer_server_cipher_suites = true
 translate_wan_addrs = true
 ui_config {
@@ -691,3 +764,6 @@ watches = [{
     key = "sl3Dffu7"
     args = ["dltjDJ2a", "flEa7C2d"]
 }]
+xds {
+  update_max_per_second = 9526.2
+}

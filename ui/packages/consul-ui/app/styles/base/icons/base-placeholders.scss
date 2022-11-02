@@ -1,13 +1,10 @@
-%with-icon {
-  background-repeat: no-repeat;
-  background-position: center;
+%theme-light {
+  --theme-dark-none: ;
+  --theme-light-none: initial;
 }
-%with-mask {
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  background-color: currentColor;
+%theme-dark {
+  --theme-dark-none: initial;
+  --theme-light-none: ;
 }
 %with-glyph-icon {
   font-weight: var(--typo-weight-normal);
@@ -16,13 +13,7 @@
   padding: 0 4px;
 }
 %as-pseudo {
-  display: inline-block;
   content: '';
-  visibility: visible;
-  background-size: contain;
-  width: 1.2em;
-  height: 1.2em;
-  vertical-align: text-top;
 }
 %led-icon {
   position: relative;

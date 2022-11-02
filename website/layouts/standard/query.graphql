@@ -1,6 +1,0 @@
-query UseCasesQuery {
-  useCaseNavItems: allConsulUseCases {
-    url: slug
-    text: heroHeading
-  }
-}

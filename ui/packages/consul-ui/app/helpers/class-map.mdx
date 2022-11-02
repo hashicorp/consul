@@ -1,0 +1,45 @@
+# class-map
+
+`{{class-map}}` is used to easily add a list of classes, conditionally, and
+have them all formatted nicely ready to be printed in a DOM `class` attribute.
+
+For ease, as well as using entries, you can also just provide a simple string
+without the boolean and that class will always be added.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    The correct classes added/omitted
+  </figcaption>
+  <div
+    class={{class-map
+      'component-name'
+      (array 'add-this-class' true)
+      (array 'dont-add-this-class' false)
+      'simple-string-class'
+    }}
+    ...attributes
+  >
+    <code>
+      class="{{class-map
+        (array 'add-this-class' true)
+        (array 'dont-add-this-class' false)
+        'simple-string-class'
+      }}"
+    </code>
+  </div>
+</figure>
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `entries` | `(classInfo \| string)[]` |  | An array of 'entry-like' arrays of `classInfo`s to map |
+
+## Types
+
+| Type | Default | Description |
+| --- | --- | --- |
+| `classInfo` | `([string, boolean] \| [string])` |  |
+

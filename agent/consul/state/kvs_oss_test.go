@@ -3,7 +3,10 @@
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func testIndexerTableKVs() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
@@ -22,7 +25,7 @@ func testIndexerTableKVs() map[string]indexerTestCase {
 					expected: []byte("indexString"),
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{
@@ -51,7 +54,7 @@ func testIndexerTableTombstones() map[string]indexerTestCase {
 					expected: []byte("indexString"),
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{

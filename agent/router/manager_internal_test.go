@@ -25,10 +25,7 @@ func init() {
 
 func GetBufferedLogger() hclog.Logger {
 	localLogBuffer = new(bytes.Buffer)
-	return hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: localLogBuffer,
-	})
+	return hclog.New(&hclog.LoggerOptions{Output: localLogBuffer})
 }
 
 type fauxConnPool struct {

@@ -20,7 +20,10 @@ func TestNewCheckServiceNodeFromStructs_RoundTrip(t *testing.T) {
 		var target structs.CheckServiceNode
 		fuzzer.Fuzz(&target)
 
-		result := CheckServiceNodeToStructs(NewCheckServiceNodeFromStructs(&target))
+		result, err := CheckServiceNodeToStructs(NewCheckServiceNodeFromStructs(&target))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err.Error())
+		}
 		assertEqual(t, &target, result)
 	})
 }

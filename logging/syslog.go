@@ -3,7 +3,7 @@ package logging
 import (
 	"bytes"
 
-	"github.com/hashicorp/go-syslog"
+	gsyslog "github.com/hashicorp/go-syslog"
 )
 
 // levelPriority is used to map a log level to a
@@ -34,7 +34,7 @@ func (s *SyslogWrapper) Write(p []byte) (int, error) {
 		y := bytes.IndexByte(p[x:], ']')
 		if y >= 0 {
 			level = string(p[x+1 : x+y])
-			afterLevel = p[x+y+2:]
+			afterLevel = bytes.TrimLeft(p[x+y+2:], " ")
 		}
 	}
 

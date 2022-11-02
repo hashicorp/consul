@@ -6,11 +6,11 @@ package state
 import (
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 func getCompoundWithTxn(tx ReadTxn, table, index string,
-	_ *structs.EnterpriseMeta, idxVals ...interface{}) (memdb.ResultIterator, error) {
+	_ *acl.EnterpriseMeta, idxVals ...interface{}) (memdb.ResultIterator, error) {
 
 	return tx.Get(table, index, idxVals...)
 }

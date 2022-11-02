@@ -1,7 +1,12 @@
 %progress-indeterminate {
-  @extend %loading-svg-prop;
-  background-image: var(--loading-svg);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --icon-size: icon-700; /* 24px */
+  --icon-name: var(--icon-loading);
+  --icon-color: rgb(var(--tone-gray-500));
+}
+%progress-indeterminate::before {
+  content: '';
 }

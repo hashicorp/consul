@@ -2,6 +2,8 @@ package agent
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -19,12 +22,14 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 )
 
-func TestUiIndex(t *testing.T) {
+func TestUIIndex(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -74,25 +79,53 @@ func TestUiIndex(t *testing.T) {
 	}
 }
 
-func TestUiNodes(t *testing.T) {
+func TestUINodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "test",
-		Address:    "127.0.0.1",
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "test",
+			Address:    "127.0.0.1",
+		},
+		{
+			Datacenter: "dc1",
+			Node:       "foo-peer",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
+		},
 	}
 
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
+	for _, reg := range args {
+		var out struct{}
+		err := a.RPC("Catalog.Register", reg, &out)
+		require.NoError(t, err)
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		peerOne := &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				Name:                "peer1",
+				State:               pbpeering.PeeringState_ESTABLISHING,
+				PeerCAPems:          nil,
+				PeerServerName:      "fooservername",
+				PeerServerAddresses: []string{"addr1"},
+			},
+		}
+		_, err := a.rpcClientPeering.PeeringWrite(ctx, peerOne)
+		require.NoError(t, err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
@@ -103,20 +136,32 @@ func TestUiNodes(t *testing.T) {
 	}
 	assertIndex(t, resp)
 
-	// Should be 2 nodes, and all the empty lists should be non-nil
+	// Should be 3 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
-	if len(nodes) != 2 ||
-		nodes[0].Node != a.Config.NodeName ||
-		nodes[0].Services == nil || len(nodes[0].Services) != 1 ||
-		nodes[0].Checks == nil || len(nodes[0].Checks) != 1 ||
-		nodes[1].Node != "test" ||
-		nodes[1].Services == nil || len(nodes[1].Services) != 0 ||
-		nodes[1].Checks == nil || len(nodes[1].Checks) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
+	require.Len(t, nodes, 3)
+
+	// check local nodes, services and checks
+	require.Equal(t, a.Config.NodeName, nodes[0].Node)
+	require.NotNil(t, nodes[0].Services)
+	require.Len(t, nodes[0].Services, 1)
+	require.NotNil(t, nodes[0].Checks)
+	require.Len(t, nodes[0].Checks, 1)
+	require.Equal(t, "test", nodes[1].Node)
+	require.NotNil(t, nodes[1].Services)
+	require.Len(t, nodes[1].Services, 0)
+	require.NotNil(t, nodes[1].Checks)
+	require.Len(t, nodes[1].Checks, 0)
+
+	// peered node
+	require.Equal(t, "foo-peer", nodes[2].Node)
+	require.Equal(t, "peer1", nodes[2].PeerName)
+	require.NotNil(t, nodes[2].Services)
+	require.Len(t, nodes[2].Services, 0)
+	require.NotNil(t, nodes[1].Checks)
+	require.Len(t, nodes[2].Services, 0)
 }
 
-func TestUiNodes_Filter(t *testing.T) {
+func TestUINodes_Filter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -162,7 +207,7 @@ func TestUiNodes_Filter(t *testing.T) {
 	require.Empty(t, nodes[0].Checks)
 }
 
-func TestUiNodeInfo(t *testing.T) {
+func TestUINodeInfo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -214,14 +259,15 @@ func TestUiNodeInfo(t *testing.T) {
 	}
 }
 
-func TestUiServices(t *testing.T) {
+func TestUIServices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	requests := []*structs.RegisterRequest{
@@ -238,7 +284,7 @@ func TestUiServices(t *testing.T) {
 				},
 			},
 		},
-		//register api service on node foo
+		// register api service on node foo
 		{
 			Datacenter:     "dc1",
 			Node:           "foo",
@@ -318,11 +364,53 @@ func TestUiServices(t *testing.T) {
 				Tags:    []string{},
 			},
 		},
+		// register peer node foo with peer service
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.2",
+				"wan": "198.18.0.2",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "linux",
+			},
+			PeerName: "peer1",
+			Service: &structs.NodeService{
+				Kind:     structs.ServiceKindTypical,
+				ID:       "serviceID",
+				Service:  "service",
+				Port:     1235,
+				Address:  "198.18.1.2",
+				PeerName: "peer1",
+			},
+		},
 	}
 
 	for _, args := range requests {
 		var out struct{}
 		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		peerOne := &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				Name:                "peer1",
+				State:               pbpeering.PeeringState_ESTABLISHING,
+				PeerCAPems:          nil,
+				PeerServerName:      "fooservername",
+				PeerServerAddresses: []string{"addr1"},
+			},
+		}
+		_, err := a.rpcClientPeering.PeeringWrite(ctx, peerOne)
+		require.NoError(t, err)
 	}
 
 	// Register a terminating gateway associated with api and cache
@@ -393,7 +481,7 @@ func TestUiServices(t *testing.T) {
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
 		summary := obj.([]*ServiceListingSummary)
-		require.Len(t, summary, 6)
+		require.Len(t, summary, 7)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
@@ -493,6 +581,21 @@ func TestUiServices(t *testing.T) {
 					EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "service",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  0,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					PeerName:       "peer1",
+				},
+			},
 		}
 		require.ElementsMatch(t, expected, summary)
 	})
@@ -563,6 +666,181 @@ func TestUiServices(t *testing.T) {
 		require.NotNil(t, obj)
 
 		summary := obj.([]*ServiceListingSummary)
+		require.Len(t, summary, 0)
+	})
+}
+
+func TestUIExportedServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := StartTestAgent(t, TestAgent{Overrides: `peering = { test_allow_peer_registrations = true }`})
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	requests := []*structs.RegisterRequest{
+		// register api service
+		{
+			Datacenter:     "dc1",
+			Node:           "node",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "api",
+				ID:      "api-1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node",
+					Name:        "api svc check",
+					ServiceName: "api",
+					ServiceID:   "api-1",
+					Status:      api.HealthWarning,
+				},
+			},
+		},
+		// register api-proxy svc
+		{
+			Datacenter:     "dc1",
+			Node:           "node",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "api-proxy",
+				ID:      "api-proxy-1",
+				Tags:    []string{},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node",
+					Name:        "api proxy listening",
+					ServiceName: "api-proxy",
+					ServiceID:   "api-proxy-1",
+					Status:      api.HealthPassing,
+				},
+			},
+		},
+		// register service web
+		{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "web",
+				ID:      "web-1",
+				Tags:    []string{},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
+				Port:    1234,
+			},
+			Checks: []*structs.HealthCheck{
+				{
+					Node:        "bar",
+					Name:        "web svc check",
+					Status:      api.HealthCritical,
+					ServiceName: "web",
+					ServiceID:   "web-1",
+				},
+			},
+		},
+	}
+
+	for _, args := range requests {
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		req := &pbpeering.GenerateTokenRequest{
+			PeerName: "peer1",
+		}
+		_, err := a.rpcClientPeering.GenerateToken(ctx, req)
+		require.NoError(t, err)
+	}
+
+	{
+		// Register exported services
+		args := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "api",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "peer1",
+						},
+					},
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	t.Run("valid peer", func(t *testing.T) {
+		t.Parallel()
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/exported-services?peer=peer1", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		decoder := json.NewDecoder(resp.Body)
+		var summary []*ServiceListingSummary
+		require.NoError(t, decoder.Decode(&summary))
+		assertIndex(t, resp)
+
+		require.Len(t, summary, 1)
+
+		// internal accounting that users don't see can be blown away
+		for _, sum := range summary {
+			sum.transparentProxySet = false
+			sum.externalSourceSet = nil
+			sum.checks = nil
+		}
+
+		expected := []*ServiceListingSummary{
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		}
+		require.Equal(t, expected, summary)
+	})
+
+	t.Run("invalid peer", func(t *testing.T) {
+		t.Parallel()
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/exported-services?peer=peer2", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		decoder := json.NewDecoder(resp.Body)
+		var summary []*ServiceListingSummary
+		require.NoError(t, decoder.Decode(&summary))
+		assertIndex(t, resp)
+
 		require.Len(t, summary, 0)
 	})
 }
@@ -1281,6 +1559,142 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 			},
+			"Node cnative": {
+				Datacenter: "dc1",
+				Node:       "cnative",
+				Address:    "127.0.0.6",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "cnative",
+						CheckID: "cnative:alive",
+						Name:    "cnative-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service cbackend on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cbackend",
+					Service: "cbackend",
+					Port:    8080,
+					Address: "198.18.1.70",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cbackend",
+						Name:        "cbackend-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cbackend",
+						ServiceName: "cbackend",
+					},
+				},
+			},
+			"Service cbackend-proxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "cbackend-proxy",
+					Service: "cbackend-proxy",
+					Port:    8443,
+					Address: "198.18.1.70",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "cbackend",
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cbackend-proxy",
+						Name:        "cbackend proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "cbackend-proxy",
+						ServiceName: "cbackend-proxy",
+					},
+				},
+			},
+			"Service cfrontend on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cfrontend",
+					Service: "cfrontend",
+					Port:    9080,
+					Address: "198.18.1.70",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cfrontend",
+						Name:        "cfrontend-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cfrontend",
+						ServiceName: "cfrontend",
+					},
+				},
+			},
+			"Service cfrontend-proxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "cfrontend-proxy",
+					Service: "cfrontend-proxy",
+					Port:    9443,
+					Address: "198.18.1.70",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "cfrontend",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "cproxy",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cfrontend-proxy",
+						Name:        "cfrontend proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "cfrontend-proxy",
+						ServiceName: "cfrontend-proxy",
+					},
+				},
+			},
+			"Service cproxy on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cproxy",
+					Service: "cproxy",
+					Port:    1111,
+					Address: "198.18.1.70",
+					Connect: structs.ServiceConnect{Native: true},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cproxy",
+						Name:        "cproxy-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cproxy",
+						ServiceName: "cproxy",
+					},
+				},
+			},
 		}
 		for _, args := range registrations {
 			var out struct{}
@@ -1292,6 +1706,8 @@ func TestUIServiceTopology(t *testing.T) {
 	// wildcard deny intention
 	// api -> web exact intention
 	// web -> redis exact intention
+	// cfrontend -> cproxy exact intention
+	// cproxy -> cbackend exact intention
 	{
 		entries := []structs.ConfigEntryRequest{
 			{
@@ -1391,6 +1807,32 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "cproxy",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "cfrontend",
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "cbackend",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "cproxy",
+						},
+					},
+				},
+			},
 		}
 		for _, req := range entries {
 			out := false
@@ -1409,14 +1851,15 @@ func TestUIServiceTopology(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
-			assert.Nil(r, err)
 
 			if tc.wantErr != "" {
+				assert.NotNil(r, err)
 				assert.Nil(r, tc.want) // should not define a non-nil want
-				require.Equal(r, tc.wantErr, resp.Body.String())
+				require.Contains(r, err.Error(), tc.wantErr)
 				require.Nil(r, obj)
 				return
 			}
+			assert.Nil(r, err)
 
 			require.NoError(r, checkIndex(resp))
 			require.NotNil(r, obj)
@@ -1611,6 +2054,60 @@ func TestUIServiceTopology(t *testing.T) {
 							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceRegistration,
+					},
+				},
+				FilteredByACLs: false,
+			},
+		},
+		{
+			name: "cproxy",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/cproxy?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
+				Protocol:         "http",
+				TransparentProxy: false,
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "cbackend",
+							Datacenter:     "dc1",
+							Nodes:          []string{"cnative"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksWarning:  0,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        true,
+							HasPermissions: false,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceSpecificIntention,
+					},
+				},
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "cfrontend",
+							Datacenter:     "dc1",
+							Nodes:          []string{"cnative"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksWarning:  0,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        true,
+							HasPermissions: false,
 							HasExact:       true,
 						},
 						Source: structs.TopologySourceRegistration,

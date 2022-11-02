@@ -58,6 +58,30 @@ func TestMerge_LAN(t *testing.T) {
 			},
 			expect: "wrong datacenter",
 		},
+		"node ID conflict with delegate's ID but same node name with same casing": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "node0",
+					id:     thisNodeID,
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "",
+		},
+		"node ID conflict with delegate's ID but same node name with different casing": {
+			members: []*serf.Member{
+				makeTestNode(t, testMember{
+					dc:     "dc1",
+					name:   "NoDe0",
+					id:     thisNodeID,
+					server: true,
+					build:  "0.7.5",
+				}),
+			},
+			expect: "",
+		},
 		"node ID conflict with delegate's ID": {
 			members: []*serf.Member{
 				makeTestNode(t, testMember{

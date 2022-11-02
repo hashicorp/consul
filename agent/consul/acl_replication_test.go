@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -752,9 +753,9 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		var tokenResp structs.ACLTokenResponse
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc2",
-			TokenID:      redactedToken,
+			TokenID:      aclfilter.RedactedToken,
 			TokenIDType:  structs.ACLTokenSecret,
-			QueryOptions: structs.QueryOptions{Token: redactedToken},
+			QueryOptions: structs.QueryOptions{Token: aclfilter.RedactedToken},
 		}
 		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
 		// its not an error for the secret to not be found.

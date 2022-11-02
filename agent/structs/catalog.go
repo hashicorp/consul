@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -19,3 +21,38 @@ const (
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
 )
+
+type CatalogContents struct {
+	Nodes    []*Node
+	Services []*ServiceNode
+	Checks   []*HealthCheck
+}
+
+type CatalogSummary struct {
+	Nodes    []HealthSummary
+	Services []HealthSummary
+	Checks   []HealthSummary
+}
+
+type HealthSummary struct {
+	Name string `json:",omitempty"`
+
+	Total    int
+	Passing  int
+	Warning  int
+	Critical int
+
+	acl.EnterpriseMeta
+}
+
+func (h *HealthSummary) Add(status string) {
+	h.Total++
+	switch status {
+	case api.HealthPassing:
+		h.Passing++
+	case api.HealthWarning:
+		h.Warning++
+	case api.HealthCritical:
+		h.Critical++
+	}
+}

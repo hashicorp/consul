@@ -26,7 +26,7 @@ export const softDelete = (repo, item) => {
     repo.getModelName()
   );
   return res;
-}
+};
 export default class RepositoryService extends Service {
   @service('store') store;
   @service('env') env;
@@ -70,7 +70,7 @@ export default class RepositoryService extends Service {
     // inspect the permissions for this segment/slug remotely, if we have zero
     // permissions fire a fake 403 so we don't even request the model/resource
     if (params.resources.length > 0) {
-      const resource = params.resources.find(item => item.Access === access);
+      const resource = params.resources.find((item) => item.Access === access);
       if (resource && resource.Allow === false) {
         // TODO: Here we temporarily make a hybrid HTTPError/ember-data HTTP error
         // we should eventually use HTTPError's everywhere
@@ -114,9 +114,14 @@ export default class RepositoryService extends Service {
   reconcile(meta = {}, params = {}, configuration = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
-      this.store.peekAll(this.getModelName()).forEach(item => {
+      this.store.peekAll(this.getModelName()).forEach((item) => {
         const date = get(item, 'SyncTime');
-        if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date && this.shouldReconcile(item, params)) {
+        if (
+          !item.isDeleted &&
+          typeof date !== 'undefined' &&
+          date != meta.date &&
+          this.shouldReconcile(item, params)
+        ) {
           this.store.unloadRecord(item);
         }
       });
@@ -133,7 +138,7 @@ export default class RepositoryService extends Service {
 
   cached(params) {
     const entries = Object.entries(params);
-    return this.store.peekAll(this.getModelName()).filter(item => {
+    return this.store.peekAll(this.getModelName()).filter((item) => {
       return entries.every(([key, value]) => item[key] === value);
     });
   }
@@ -156,12 +161,12 @@ export default class RepositoryService extends Service {
     try {
       res = await this.store.query(this.getModelName(), params);
       meta = res.meta;
-    } catch(e) {
-      switch(get(e, 'errors.firstObject.status')) {
+    } catch (e) {
+      switch (get(e, 'errors.firstObject.status')) {
         case '404':
         case '403':
           meta = {
-            date: Number.POSITIVE_INFINITY
+            date: Number.POSITIVE_INFINITY,
           };
           error = e;
           break;
@@ -169,10 +174,10 @@ export default class RepositoryService extends Service {
           throw e;
       }
     }
-    if(typeof meta !== 'undefined') {
+    if (typeof meta !== 'undefined') {
       this.reconcile(meta, params, configuration);
     }
-    if(typeof error !== 'undefined') {
+    if (typeof error !== 'undefined') {
       throw error;
     }
     return res;
@@ -210,6 +215,7 @@ export default class RepositoryService extends Service {
       item.execute();
       item = item.data;
     }
+    set(item, 'SyncTime', undefined);
     return item.save();
   }
 
@@ -224,7 +230,7 @@ export default class RepositoryService extends Service {
     if (typeOf(item) === 'object') {
       item = this.store.peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
     }
-    return item.destroyRecord().then(item => {
+    return item.destroyRecord().then((item) => {
       return this.store.unloadRecord(item);
     });
   }

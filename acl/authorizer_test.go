@@ -139,6 +139,20 @@ func (m *mockAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision {
 	return ret.Get(0).(EnforcementDecision)
 }
 
+// PeeringRead determines if the read-only Consul peering functions
+// can be used.
+func (m *mockAuthorizer) PeeringRead(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// PeeringWrite determines if the state-changing Consul peering
+// functions can be used.
+func (m *mockAuthorizer) PeeringWrite(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // OperatorRead determines if the read-only Consul operator functions
 // can be used.	ret := m.Called(segment, ctx)
 func (m *mockAuthorizer) OperatorRead(ctx *AuthorizerContext) EnforcementDecision {
@@ -185,6 +199,12 @@ func (m *mockAuthorizer) ServiceWrite(segment string, ctx *AuthorizerContext) En
 	return ret.Get(0).(EnforcementDecision)
 }
 
+// ServiceWriteAny checks for service:write on any service
+func (m *mockAuthorizer) ServiceWriteAny(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // SessionRead checks for permission to read sessions for a given node.
 func (m *mockAuthorizer) SessionRead(segment string, ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(segment, ctx)
@@ -202,6 +222,10 @@ func (m *mockAuthorizer) SessionWrite(segment string, ctx *AuthorizerContext) En
 func (m *mockAuthorizer) Snapshot(ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(ctx)
 	return ret.Get(0).(EnforcementDecision)
+}
+
+func (p *mockAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: p}
 }
 
 func TestACL_Enforce(t *testing.T) {
@@ -451,6 +475,30 @@ func TestACL_Enforce(t *testing.T) {
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
+		},
+		{
+			method:   "PeeringRead",
+			resource: ResourcePeering,
+			access:   "read",
+			ret:      Allow,
+		},
+		{
+			method:   "PeeringRead",
+			resource: ResourcePeering,
+			access:   "read",
+			ret:      Deny,
+		},
+		{
+			method:   "PeeringWrite",
+			resource: ResourcePeering,
+			access:   "write",
+			ret:      Allow,
+		},
+		{
+			method:   "PeeringWrite",
+			resource: ResourcePeering,
+			access:   "write",
+			ret:      Deny,
 		},
 		{
 			method:   "PreparedQueryRead",

@@ -1,0 +1,3 @@
+```release-note:bug
+ca: fix a bug that caused a non blocking leaf cert query after a blocking leaf cert query to block
+```

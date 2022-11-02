@@ -7,8 +7,8 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/structs"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 )
@@ -202,7 +202,7 @@ func poolName(dc string, wan bool, partition, segment string) string {
 	var suffix string
 	if segment != "" {
 		suffix = fmt.Sprintf(" [%s]", segment)
-	} else if !structs.IsDefaultPartition(partition) {
+	} else if !acl.IsDefaultPartition(partition) {
 		suffix = fmt.Sprintf(" [partition: %s]", partition)
 	}
 	return fmt.Sprintf("%s%s:\n", pool, suffix)

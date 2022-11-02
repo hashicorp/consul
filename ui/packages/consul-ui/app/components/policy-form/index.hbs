@@ -122,7 +122,7 @@
     <div class="checkbox-group" role="group">
       {{#each datacenters as |dc| }}
         <label class="type-checkbox">
-          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
+          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc.Name}} checked={{if (includes dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
           <span>{{dc.Name}}</span>
         </label>
       {{/each}}

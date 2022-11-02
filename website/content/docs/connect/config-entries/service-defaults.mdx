@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Service Defaults'
+page_title: Service Defaults - Configuration Entry Reference
 description: >-
-  The service-defaults config entry kind controls default global values for a
-  service, such as its protocol.
+  The service defaults configuration entry kind defines sets of default configurations that apply to all services in the mesh. Use the examples learn how to define a default protocol, default upstream configuration, and default terminating gateway.
 ---
 
-# Service Defaults
+# Service Defaults Configuration Entry
 
 -> **v1.8.4+:** On Kubernetes, the `ServiceDefaults` custom resource is supported in Consul versions 1.8.4+.<br />
 **v1.5.0+:** On other platforms, this config entry is supported in Consul versions 1.5.0+.
@@ -236,6 +235,50 @@ spec:
 </Tab>
 </Tabs>
 
+### Terminating gateway destination
+
+Create a default destination that will be assigned to a terminating gateway. A destination
+represents a location outside the Consul cluster. They can be dialed directly when transparent proxy mode is enabled.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+  ```hcl
+  Kind = "service-defaults"
+  Name = "test-destination"
+  Protocol = "tcp"
+  Destination {
+    Addresses = ["test.com","test.org"]
+    Port = 443
+  }
+  ```
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceDefaults
+  metadata:
+    name: test-destination
+  spec:
+    destination:
+      addresses:
+        - "test.com"
+        - "test.org"
+      port: 443
+  ```
+
+  ```json
+  {
+    "Kind": "service-defaults",
+    "Name": "test-destination",
+    "Protocol": "http",
+    "Destination": {
+      "Addresses": ["test.com","test.org"],
+      "Port": 443
+    }
+  }
+  ```
+
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
@@ -313,6 +356,15 @@ spec:
                       Supported values are one of \`tcp\`, \`http\`, \`http2\`, or \`grpc\`.`,
     },
     {
+      name: 'BalanceInboundConnections',
+      type: `string: ""`,
+      description: `Sets the strategy for allocating inbound connections to the service across proxy threads.
+                      The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                      Refer to the
+                      [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                      for details.`
+    },
+    {
       name: 'Mode',
       type: `string: ""`,
       description: `One of \`direct\` or \`transparent\`.
@@ -322,7 +374,6 @@ spec:
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'UpstreamConfig',
@@ -404,6 +455,15 @@ spec:
               ],
             },
             {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
+            },
+            {
               name: 'Limits',
               type: 'Limits: <optional>',
               description: `A set of limits to apply when connecting to the upstream service.
@@ -459,6 +519,16 @@ spec:
                   type: 'int: 0',
                   description: `The number of consecutive failures which cause a host to be
                       removed from the load balancer.`,
+                },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
                 },
               ],
             },
@@ -536,6 +606,15 @@ spec:
               ],
             },
             {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
+            },
+            {
               name: 'Limits',
               type: 'Limits: <optional>',
               description: `A set of limits to apply when connecting to the upstream service.
@@ -592,6 +671,16 @@ spec:
                   description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
                 },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                  },
+                },
               ],
             },
           ],
@@ -608,7 +697,6 @@ spec:
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
@@ -624,6 +712,42 @@ spec:
           },
         },
       ],
+    },
+    {
+      name: 'Destination',
+      type: 'DestinationConfig: <optional>',
+      description: `Controls configuration specific to destinations through terminating-gateway. Added in v1.13.0.`,
+      children: [
+        {
+          name: 'Addresses',
+          type: 'array<string>: []',
+          description:`List of addresses associated with the destination. This can be a hostname or an IP address.
+          Wildcards are not accepted.`,
+        },
+        {
+          name: 'Port',
+          type: 'int: 0',
+          description: `Port number associated with the destination.`,
+        },
+      ]
+    },
+    {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
+    },
+    {
+      name: 'LocalConnectTimeoutMs',
+      description: ' The number of milliseconds allowed to make connections to the local application instance before timing out. Defaults to 5000.',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'LocalRequestTimeoutMs',
+      description: ' In milliseconds, the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts (15s).',
+      type: 'int: 0',
+      yaml: false,
     },
     {
       name: 'MeshGateway',
@@ -662,8 +786,8 @@ spec:
           type: 'bool: false',
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-        [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
+        [advertise address](/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+        [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
         Consul on Kubernetes, and Consul agents run in their own pods.`,
         },

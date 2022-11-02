@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -43,7 +44,8 @@ type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
 
-	HCL string
+	configFiles []string
+	HCL         string
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -56,6 +58,7 @@ type TestAgent struct {
 	// The io.Writer must allow concurrent reads and writes. Note that
 	// bytes.Buffer is not safe for concurrent reads and writes.
 	LogOutput io.Writer
+	LogLevel  hclog.Level
 
 	// DataDir may be set to a directory which exists. If is it not set,
 	// TestAgent.Start will create one and set DataDir to the directory path.
@@ -63,9 +66,13 @@ type TestAgent struct {
 	// and the directory will be removed once the test ends.
 	DataDir string
 
-	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
+	// UseHTTPS, if true, will disable the HTTP port and enable the HTTPS
 	// one.
-	UseTLS bool
+	UseHTTPS bool
+
+	// UseGRPCTLS, if true, will disable the GRPC port and enable the GRPC+TLS
+	// one.
+	UseGRPCTLS bool
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
@@ -78,6 +85,9 @@ type TestAgent struct {
 	// non-user settable configurations
 	Overrides string
 
+	// allows the BaseDeps to be modified before starting the embedded agent
+	OverrideDeps func(deps *BaseDeps)
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
@@ -85,10 +95,18 @@ type TestAgent struct {
 
 // NewTestAgent returns a started agent with the given configuration. It fails
 // the test if the Agent could not be started.
-// The caller is responsible for calling Shutdown() to stop the agent and remove
-// temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
+}
+
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) *TestAgent {
+	a := StartTestAgent(t, TestAgent{configFiles: configFiles, HCL: hcl})
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -127,6 +145,9 @@ func TestConfigHCL(nodeID string) string {
 		}
 		performance {
 			raft_multiplier = 1
+		}
+		peering {
+			enabled = true
 		}`, nodeID, connect.TestClusterID,
 	)
 }
@@ -158,14 +179,18 @@ func (a *TestAgent) Start(t *testing.T) error {
 		logOutput = testutil.NewLogBuffer(t)
 	}
 
+	if a.LogLevel == 0 {
+		a.LogLevel = testutil.TestLogLevel
+	}
+
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      hclog.Debug,
+		Level:      a.LogLevel,
 		Output:     logOutput,
 		TimeFormat: "04:05.000",
 		Name:       name,
 	})
 
-	portsConfig := randomPortsSource(t, a.UseTLS)
+	portsConfig := randomPortsSource(t, a.UseHTTPS)
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
@@ -181,6 +206,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 				config.DefaultConsulSource(),
 				config.DevConsulSource(),
 			},
+			ConfigFiles: a.configFiles,
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
@@ -190,10 +216,13 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+			// Lower the maximum backoff period of a cache refresh just for
+			// tests see #14956 for more.
+			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logOutput)
+	bd, err := NewBaseDeps(loader, logOutput, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
@@ -201,10 +230,19 @@ func (a *TestAgent) Start(t *testing.T) error {
 	bd.Logger = logger
 	// if we are not testing telemetry things, let's use a "mock" sink for metrics
 	if bd.RuntimeConfig.Telemetry.Disable {
-		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+		bd.MetricsConfig = &lib.MetricsConfig{
+			Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+		}
 	}
 
+	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {
+		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
+	}
 	a.Config = bd.RuntimeConfig
+
+	if a.OverrideDeps != nil {
+		a.OverrideDeps(&bd)
+	}
 
 	agent, err := New(bd)
 	if err != nil {
@@ -377,11 +415,11 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, tls bool) string {
-	ports := freeport.GetN(t, 7)
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
+	ports := freeport.GetN(t, 8)
 
 	var http, https int
-	if tls {
+	if useHTTPS {
 		http = -1
 		https = ports[2]
 	} else {
@@ -398,6 +436,7 @@ func randomPortsSource(t *testing.T, tls bool) string {
 			serf_wan = ` + strconv.Itoa(ports[4]) + `
 			server = ` + strconv.Itoa(ports[5]) + `
 			grpc = ` + strconv.Itoa(ports[6]) + `
+			grpc_tls = ` + strconv.Itoa(ports[7]) + `
 		}
 	`
 }
@@ -453,6 +492,9 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
+
+	// allows registering objects with the PeerName
+	cfg.PeeringTestAllowPeerRegistrations = true
 
 	return cfg
 }

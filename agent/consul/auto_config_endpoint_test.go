@@ -1,18 +1,23 @@
 package consul
 
 import (
+	"bytes"
+	"crypto"
+	crand "crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/url"
 	"path"
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/memberlist"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -21,8 +26,11 @@ import (
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -89,9 +97,9 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 // TestAutoConfigInitialConfiguration is really an integration test of all the moving parts of the AutoConfig.InitialConfiguration RPC.
 // Full testing of the individual parts will not be done in this test:
 //
-//  * Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
-//  * Each of the individual config generation functions. These can be unit tested separately and should NOT
-//    require running test servers
+//   - Any implementations of the AutoConfigAuthorizer interface (although these test do use the jwtAuthorizer)
+//   - Each of the individual config generation functions. These can be unit tested separately and should NOT
+//     require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -165,14 +173,13 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
-		c.TLSConfig.CAFile = cafile
-		c.TLSConfig.CertFile = certfile
-		c.TLSConfig.KeyFile = keyfile
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.TLSMinVersion = "tls12"
-		c.TLSConfig.PreferServerCipherSuites = true
+		c.TLSConfig.InternalRPC.CAFile = cafile
+		c.TLSConfig.InternalRPC.CertFile = certfile
+		c.TLSConfig.InternalRPC.KeyFile = keyfile
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.TLSMinVersion = types.TLSv1_2
 
 		c.ConnectEnabled = true
 		c.AutoEncryptAllowTLS = true
@@ -186,10 +193,12 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	// TODO: use s.config.TLSConfig directly instead of creating a new one?
 	conf := tlsutil.Config{
-		CAFile:               s.config.TLSConfig.CAFile,
-		VerifyServerHostname: s.config.TLSConfig.VerifyServerHostname,
-		VerifyOutgoing:       s.config.TLSConfig.VerifyOutgoing,
-		Domain:               s.config.TLSConfig.Domain,
+		InternalRPC: tlsutil.ProtocolConfig{
+			CAFile:               s.config.TLSConfig.InternalRPC.CAFile,
+			VerifyServerHostname: s.config.TLSConfig.InternalRPC.VerifyServerHostname,
+			VerifyOutgoing:       s.config.TLSConfig.InternalRPC.VerifyOutgoing,
+		},
+		Domain: s.config.TLSConfig.Domain,
 	}
 	codec, err := insecureRPCClient(s, conf)
 	require.NoError(t, err)
@@ -199,7 +208,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 	roots, err := s.getCARoots(nil, s.fsm.State())
 	require.NoError(t, err)
 
-	pbroots, err := translateCARootsToProtobuf(roots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(roots)
 	require.NoError(t, err)
 
 	joinAddr := &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: s.config.SerfLANConfig.MemberlistConfig.AdvertisePort}
@@ -209,8 +218,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 	// -------------------------------------------------------------------------
 
 	type testCase struct {
-		request       pbautoconf.AutoConfigRequest
-		expected      pbautoconf.AutoConfigResponse
+		request       *pbautoconf.AutoConfigRequest
+		expected      *pbautoconf.AutoConfigResponse
 		patchResponse func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse)
 		err           string
 	}
@@ -219,28 +228,51 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	cases := map[string]testCase{
 		"wrong-datacenter": {
-			request: pbautoconf.AutoConfigRequest{
+			request: &pbautoconf.AutoConfigRequest{
 				Datacenter: "no-such-dc",
 			},
 			err: `invalid datacenter "no-such-dc" - agent auto configuration cannot target a remote datacenter`,
 		},
 		"unverifiable": {
-			request: pbautoconf.AutoConfigRequest{
+			request: &pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				// this is signed using an incorrect private key
 				JWT: signJWTWithStandardClaims(t, altpriv, map[string]interface{}{"consul_node_name": "test-node"}),
 			},
 			err: "Permission denied: Failed JWT authorization: no known key successfully validated the token signature",
 		},
+		"bad-req-node": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node: "bad node",
+				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. node =",
+		},
+		"bad-req-segment": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:    "test-node",
+				Segment: "bad segment",
+				JWT:     signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. segment =",
+		},
+		"bad-req-partition": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:      "test-node",
+				Partition: "bad partition",
+				JWT:       signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+			},
+			err: "Invalid request field. partition =",
+		},
 		"claim-assertion-failed": {
-			request: pbautoconf.AutoConfigRequest{
+			request: &pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"wrong_claim": "test-node"}),
 			},
 			err: "Permission denied: Failed JWT claim assertion",
 		},
 		"bad-csr-id": {
-			request: pbautoconf.AutoConfigRequest{
+			request: &pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
 				CSR:  altCSR,
@@ -248,12 +280,12 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			err: "Spiffe ID agent name (alt) of the certificate signing request is not for the correct node (test-node)",
 		},
 		"good": {
-			request: pbautoconf.AutoConfigRequest{
+			request: &pbautoconf.AutoConfigRequest{
 				Node: "test-node",
 				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
 				CSR:  csr,
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				CARoots:             pbroots,
 				ExtraCACertificates: []string{cacert},
 				Config: &pbconfig.Config{
@@ -280,10 +312,9 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						RetryJoinLAN: []string{joinAddr.String()},
 					},
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     true,
-						MinVersion:               "tls12",
-						PreferServerCipherSuites: true,
+						VerifyOutgoing:       true,
+						VerifyServerHostname: true,
+						MinVersion:           "tls12",
 					},
 				},
 			},
@@ -320,16 +351,16 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	for testName, tcase := range cases {
 		t.Run(testName, func(t *testing.T) {
-			var reply pbautoconf.AutoConfigResponse
-			err := msgpackrpc.CallWithCodec(codec, "AutoConfig.InitialConfiguration", &tcase.request, &reply)
+			reply := &pbautoconf.AutoConfigResponse{}
+			err := msgpackrpc.CallWithCodec(codec, "AutoConfig.InitialConfiguration", &tcase.request, reply)
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {
 				require.NoError(t, err)
 				if tcase.patchResponse != nil {
-					tcase.patchResponse(t, s, &reply)
+					tcase.patchResponse(t, s, reply)
 				}
-				require.Equal(t, tcase.expected, reply)
+				prototest.AssertDeepEqual(t, tcase.expected, reply)
 			}
 		})
 	}
@@ -339,7 +370,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 	type testCase struct {
 		serverConfig Config
 		opts         AutoConfigOptions
-		expected     pbautoconf.AutoConfigResponse
+		expected     *pbautoconf.AutoConfigResponse
 		err          string
 	}
 
@@ -353,7 +384,7 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 				NodeName:    "lBdc0lsH",
 				SegmentName: "HZiwlWpi",
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					Datacenter:        "oSWzfhnU",
 					PrimaryDatacenter: "53XO9mx4",
@@ -377,8 +408,8 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 				config: &tcase.serverConfig,
 			}
 
-			actual := pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err := ac.baseConfig(tcase.opts, &actual)
+			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
+			err := ac.baseConfig(tcase.opts, actual)
 			if tcase.err == "" {
 				require.NoError(t, err)
 				require.Equal(t, tcase.expected, actual)
@@ -387,13 +418,6 @@ func TestAutoConfig_baseConfig(t *testing.T) {
 			}
 		})
 	}
-}
-
-func parseCiphers(t *testing.T, cipherStr string) []uint16 {
-	t.Helper()
-	ciphers, err := tlsutil.ParseCiphers(cipherStr)
-	require.NoError(t, err)
-	return ciphers
 }
 
 func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
@@ -407,48 +431,48 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 
 	type testCase struct {
 		tlsConfig tlsutil.Config
-		expected  pbautoconf.AutoConfigResponse
+		expected  *pbautoconf.AutoConfigResponse
 	}
 
 	cases := map[string]testCase{
 		"secure": {
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        types.TLSv1_2,
+					CAFile:               cafile,
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+				},
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     true,
-						MinVersion:               "tls12",
-						PreferServerCipherSuites: true,
-						CipherSuites:             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+						VerifyOutgoing:       true,
+						VerifyServerHostname: true,
+						MinVersion:           "tls12",
+						CipherSuites:         "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
 			},
 		},
 		"less-secure": {
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     false,
-				TLSMinVersion:            "tls10",
-				PreferServerCipherSuites: false,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: false,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        types.TLSv1_0,
+					CAFile:               cafile,
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+				},
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					TLS: &pbconfig.TLS{
-						VerifyOutgoing:           true,
-						VerifyServerHostname:     false,
-						MinVersion:               "tls10",
-						PreferServerCipherSuites: false,
-						CipherSuites:             "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+						VerifyOutgoing:       true,
+						VerifyServerHostname: false,
+						MinVersion:           "tls10",
+						CipherSuites:         "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 					},
 				},
 			},
@@ -465,8 +489,8 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 				tlsConfigurator: configurator,
 			}
 
-			actual := pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err = ac.updateTLSSettingsInConfig(AutoConfigOptions{}, &actual)
+			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
+			err = ac.updateTLSSettingsInConfig(AutoConfigOptions{}, actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
 		})
@@ -476,7 +500,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 	type testCase struct {
 		conf     memberlist.Config
-		expected pbautoconf.AutoConfigResponse
+		expected *pbautoconf.AutoConfigResponse
 	}
 
 	gossipKey := make([]byte, 32)
@@ -496,7 +520,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				GossipVerifyIncoming: true,
 				GossipVerifyOutgoing: true,
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					Gossip: &pbconfig.Gossip{
 						Encryption: &pbconfig.GossipEncryption{
@@ -514,7 +538,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				GossipVerifyIncoming: false,
 				GossipVerifyOutgoing: false,
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					Gossip: &pbconfig.Gossip{
 						Encryption: &pbconfig.GossipEncryption{
@@ -529,7 +553,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 		"encryption-disabled": {
 			// zero values all around - if no keyring is configured then the gossip
 			// encryption settings should not be set.
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{},
 			},
 		},
@@ -544,8 +568,8 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 				config: cfg,
 			}
 
-			actual := pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err := ac.updateGossipEncryptionInConfig(AutoConfigOptions{}, &actual)
+			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
+			err := ac.updateGossipEncryptionInConfig(AutoConfigOptions{}, actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
 		})
@@ -595,7 +619,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	// translate the fake cert to the protobuf equivalent
 	// for embedding in expected results
-	pbcert, err := translateIssuedCertToProtobuf(&fakeCert)
+	pbcert, err := pbconnect.NewIssuedCertFromStructs(&fakeCert)
 	require.NoError(t, err)
 
 	// generate a CA certificate to use for specifying non-Connect
@@ -613,7 +637,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 
 	// translate the roots response to protobuf to be embedded
 	// into the expected results
-	pbroots, err := translateCARootsToProtobuf(&roots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(&roots)
 	require.NoError(t, err)
 
 	type testCase struct {
@@ -621,7 +645,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 		tlsConfig    tlsutil.Config
 
 		opts     AutoConfigOptions
-		expected pbautoconf.AutoConfigResponse
+		expected *pbautoconf.AutoConfigResponse
 	}
 
 	cases := map[string]testCase{
@@ -630,14 +654,15 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        types.TLSv1_2,
+					CAFile:               cafile,
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+				},
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				CARoots:             pbroots,
 				ExtraCACertificates: []string{cacert},
 				Config:              &pbconfig.Config{},
@@ -648,19 +673,20 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				ConnectEnabled: true,
 			},
 			tlsConfig: tlsutil.Config{
-				VerifyOutgoing:           true,
-				VerifyServerHostname:     true,
-				TLSMinVersion:            "tls12",
-				PreferServerCipherSuites: true,
-				CAFile:                   cafile,
-				CipherSuites:             parseCiphers(t, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+				InternalRPC: tlsutil.ProtocolConfig{
+					VerifyServerHostname: true,
+					VerifyOutgoing:       true,
+					TLSMinVersion:        types.TLSv1_2,
+					CAFile:               cafile,
+					CipherSuites:         []types.TLSCipherSuite{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+				},
 			},
 			opts: AutoConfigOptions{
 				NodeName: "test",
 				CSR:      csr,
 				SpiffeID: &csrID,
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config:              &pbconfig.Config{},
 				CARoots:             pbroots,
 				ExtraCACertificates: []string{cacert},
@@ -671,7 +697,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 			serverConfig: Config{
 				ConnectEnabled: false,
 			},
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{},
 			},
 		},
@@ -692,8 +718,8 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 				backend:         backend,
 			}
 
-			actual := pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err = ac.updateTLSCertificatesInConfig(tcase.opts, &actual)
+			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
+			err = ac.updateTLSCertificatesInConfig(tcase.opts, actual)
 			require.NoError(t, err)
 			require.Equal(t, tcase.expected, actual)
 		})
@@ -703,7 +729,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	type testCase struct {
 		config         Config
-		expected       pbautoconf.AutoConfigResponse
+		expected       *pbautoconf.AutoConfigResponse
 		expectACLToken bool
 		err            error
 	}
@@ -731,7 +757,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: true,
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					ACL: &pbconfig.ACL{
 						Enabled:             true,
@@ -763,7 +789,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: false,
-			expected: pbautoconf.AutoConfigResponse{
+			expected: &pbautoconf.AutoConfigResponse{
 				Config: &pbconfig.Config{
 					ACL: &pbconfig.ACL{
 						Enabled:             false,
@@ -822,8 +848,8 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 
 			ac := AutoConfig{config: &tcase.config, backend: backend}
 
-			actual := pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, &actual)
+			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
+			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, actual)
 			if tcase.err != nil {
 				testutil.RequireErrorContains(t, err, tcase.err.Error())
 			} else {
@@ -851,4 +877,160 @@ func TestAutoConfig_updateJoinAddressesInConfig(t *testing.T) {
 	require.ElementsMatch(t, addrs, actual.Config.Gossip.RetryJoinLAN)
 
 	backend.AssertExpectations(t)
+}
+
+func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
+	// createCSR copies the behavior of connect.CreateCSR with some
+	// customizations to allow for better unit testing.
+	createCSR := func(tmpl *x509.CertificateRequest, privateKey crypto.Signer) (string, error) {
+		connect.HackSANExtensionForCSR(tmpl)
+		bs, err := x509.CreateCertificateRequest(crand.Reader, tmpl, privateKey)
+		require.NoError(t, err)
+		var csrBuf bytes.Buffer
+		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+		require.NoError(t, err)
+		return csrBuf.String(), nil
+	}
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	agentURI := connect.SpiffeIDAgent{
+		Host:       "test-host",
+		Datacenter: "tdc1",
+		Agent:      "test-agent",
+	}.URI()
+
+	tests := []struct {
+		name      string
+		setup     func() string
+		expectErr string
+	}{
+		{
+			name:      "err_garbage_data",
+			expectErr: "Failed to parse CSR",
+			setup:     func() string { return "garbage" },
+		},
+		{
+			name:      "err_not_one_uri",
+			expectErr: "CSR SAN contains an invalid number of URIs",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI, agentURI},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_email",
+			expectErr: "CSR SAN does not allow specifying email addresses",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI},
+					EmailAddresses:     []string{"test@example.com"},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_spiffe_parse_uri",
+			expectErr: "Failed to parse the SPIFFE URI",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{connect.SpiffeIDAgent{}.URI()},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name:      "err_not_agent",
+			expectErr: "SPIFFE ID is not an Agent ID",
+			setup: func() string {
+				spiffe := connect.SpiffeIDService{
+					Namespace:  "tns",
+					Datacenter: "tdc1",
+					Service:    "test-service",
+				}
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{spiffe.URI()},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+		{
+			name: "success",
+			setup: func() string {
+				tmpl := &x509.CertificateRequest{
+					URIs:               []*url.URL{agentURI},
+					SignatureAlgorithm: connect.SigAlgoForKey(pk),
+				}
+				csr, err := createCSR(tmpl, pk)
+				require.NoError(t, err)
+				return csr
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req, spif, err := parseAutoConfigCSR(tc.setup())
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				// TODO better verification of these
+				require.NotNil(t, req)
+				require.NotNil(t, spif)
+			}
+
+		})
+	}
+}
+
+func TestAutoConfig_invalidSegmentName(t *testing.T) {
+	invalid := []string{
+		"\n",
+		"\r",
+		"\t",
+		"`",
+		`'`,
+		`"`,
+		` `,
+		`a b`,
+		`a'b`,
+		`a or b`,
+		`a and b`,
+		`segment name`,
+		`segment"name`,
+		`"segment"name`,
+		`"segment" name`,
+		`segment'name'`,
+	}
+	valid := []string{
+		``,
+		`a`,
+		`a.b`,
+		`a.b.c`,
+		`a-b-c`,
+		`segment.name`,
+	}
+
+	for _, s := range invalid {
+		require.True(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
+	for _, s := range valid {
+		require.False(t, invalidSegmentName.MatchString(s), "incorrect match: %v", s)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,6 +18,32 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
+
+const pkiTestPolicy = `
+path "sys/mounts"
+{
+	capabilities = ["read"]
+}
+path "sys/mounts/pki-root"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "sys/mounts/pki-intermediate"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "sys/mounts/pki-intermediate/tune"
+{
+	capabilities = ["update"]
+}
+path "pki-root/*"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "pki-intermediate/*"
+{
+	capabilities = ["create", "read", "update", "delete", "list"]
+}`
 
 func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
@@ -212,6 +239,52 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	})
 }
 
+func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	require.NoError(t, err)
+	testVault.WaitUntilReady(t)
+
+	// Create a token with a short TTL to be renewed by the provider.
+	ttl := 1 * time.Second
+	tcr := &vaultapi.TokenCreateRequest{
+		TTL: ttl.String(),
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	provider, err := createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+
+	var gotStopped = uint32(0)
+	provider.stopWatcher = func() {
+		atomic.StoreUint32(&gotStopped, 1)
+	}
+
+	// Check the last renewal time.
+	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+	require.NoError(t, err)
+	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+	require.NoError(t, err)
+
+	// Wait past the TTL and make sure the token has been renewed.
+	retry.Run(t, func(r *retry.R) {
+		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+		require.NoError(r, err)
+		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+		require.NoError(r, err)
+		require.Greater(r, lastRenewal, firstRenewal)
+	})
+
+	providerConfig := vaultProviderConfig(t, testVault.Addr, providerToken, nil)
+
+	require.NoError(t, provider.Configure(providerConfig))
+	require.Equal(t, uint32(1), atomic.LoadUint32(&gotStopped))
+}
+
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 
 	SkipIfVaultNotPresent(t)
@@ -238,7 +311,10 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		expectedRootCertTTL string
 	}{
 		{
-			certFunc:            providerWDefaultRootCertTtl.ActiveRoot,
+			certFunc: func() (string, error) {
+				root, err := providerWDefaultRootCertTtl.GenerateRoot()
+				return root.PEM, err
+			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
 			client:              client1,
@@ -323,8 +399,9 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				Service:    "foo",
 			}
 
-			rootPEM, err := provider.ActiveRoot()
+			root, err := provider.GenerateRoot()
 			require.NoError(t, err)
+			rootPEM := root.PEM
 			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 			intPEM, err := provider.ActiveIntermediate()
@@ -407,9 +484,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault1.Stop()
 
 			{
-				rootPEM, err := provider1.ActiveRoot()
+				root, err := provider1.GenerateRoot()
 				require.NoError(t, err)
-				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+				assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
 				intPEM, err := provider1.ActiveIntermediate()
 				require.NoError(t, err)
@@ -424,9 +501,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			defer testVault2.Stop()
 
 			{
-				rootPEM, err := provider2.ActiveRoot()
+				root, err := provider2.GenerateRoot()
 				require.NoError(t, err)
-				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+				assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
 				intPEM, err := provider2.ActiveIntermediate()
 				require.NoError(t, err)
@@ -492,7 +569,8 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
-		require.NoError(t, provider1.GenerateRoot())
+		_, err := provider1.GenerateRoot()
+		require.NoError(t, err)
 
 		// Ensure that we don't configure vault to try and mint leafs that
 		// outlive their CA during the test (which hard fails in vault).
@@ -601,7 +679,7 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 			authMethodType: "userpass",
 			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
 				_, err := vaultClient.Logical().Write("/auth/userpass/users/test",
-					map[string]interface{}{"password": "foo", "policies": "admins"})
+					map[string]interface{}{"password": "foo", "policies": "pki"})
 				require.NoError(t, err)
 				return map[string]interface{}{
 					"Type": "userpass",
@@ -615,7 +693,8 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 		{
 			authMethodType: "approle",
 			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
-				_, err := vaultClient.Logical().Write("auth/approle/role/my-role", nil)
+				_, err := vaultClient.Logical().Write("auth/approle/role/my-role",
+					map[string]interface{}{"token_policies": "pki"})
 				require.NoError(t, err)
 				resp, err := vaultClient.Logical().Read("auth/approle/role/my-role/role-id")
 				require.NoError(t, err)
@@ -641,6 +720,9 @@ func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
 			testVault := NewTestVaultServer(t)
 
 			err := testVault.Client().Sys().EnableAuthWithOptions(c.authMethodType, &vaultapi.EnableAuthOptions{Type: c.authMethodType})
+			require.NoError(t, err)
+
+			err = testVault.Client().Sys().PutPolicy("pki", pkiTestPolicy)
 			require.NoError(t, err)
 
 			authMethodConf := c.configureAuthMethodFunc(t, testVault.Client())
@@ -674,11 +756,18 @@ func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
 
 	testVault := NewTestVaultServer(t)
 
-	err := testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
+	err := testVault.Client().Sys().PutPolicy("pki", pkiTestPolicy)
+	require.NoError(t, err)
+
+	err = testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
 	require.NoError(t, err)
 
 	_, err = testVault.Client().Logical().Write("auth/approle/role/my-role",
-		map[string]interface{}{"token_ttl": "2s", "token_explicit_max_ttl": "2s"})
+		map[string]interface{}{
+			"token_ttl":              "2s",
+			"token_explicit_max_ttl": "2s",
+			"token_policies":         "pki",
+		})
 	require.NoError(t, err)
 	resp, err := testVault.Client().Logical().Read("auth/approle/role/my-role/role-id")
 	require.NoError(t, err)
@@ -721,6 +810,98 @@ func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
+func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	// Set up a standard policy without any sys/mounts/pki-intermediate/tune permissions.
+	policy := `
+	path "sys/mounts"
+	{
+		capabilities = ["read"]
+	}
+	path "sys/mounts/pki-root"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "sys/mounts/pki-intermediate"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "pki-root/*"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}
+	path "pki-intermediate/*"
+	{
+		capabilities = ["create", "read", "update", "delete", "list"]
+	}`
+	testVault := NewTestVaultServer(t)
+
+	err := testVault.Client().Sys().PutPolicy("pki", policy)
+	require.NoError(t, err)
+
+	tcr := &vaultapi.TokenCreateRequest{
+		Policies: []string{"pki"},
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	makeProviderConfWithTTL := func(ttl string) ProviderConfig {
+		conf := map[string]interface{}{
+			"Address":             testVault.Addr,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+			"Token":               providerToken,
+			"IntermediateCertTTL": ttl,
+		}
+		cfg := ProviderConfig{
+			ClusterID:  connect.TestClusterID,
+			Datacenter: "dc1",
+			IsPrimary:  true,
+			RawConfig:  conf,
+		}
+		return cfg
+	}
+
+	provider := NewVaultProvider(hclog.New(nil))
+
+	// Set up the initial provider config
+	t.Cleanup(provider.Stop)
+	err = provider.Configure(makeProviderConfWithTTL("222h"))
+	require.NoError(t, err)
+	_, err = provider.GenerateRoot()
+	require.NoError(t, err)
+	_, err = provider.GenerateIntermediate()
+	require.NoError(t, err)
+
+	// Attempt to update the ttl without permissions for the tune endpoint - shouldn't
+	// return an error.
+	err = provider.Configure(makeProviderConfWithTTL("333h"))
+	require.NoError(t, err)
+
+	// Intermediate TTL shouldn't have changed
+	mountConfig, err := testVault.Client().Sys().MountConfig("pki-intermediate")
+	require.NoError(t, err)
+	require.Equal(t, 222*3600, mountConfig.MaxLeaseTTL)
+
+	// Update the policy and verify we can reconfigure the TTL properly.
+	policy += `
+	path "sys/mounts/pki-intermediate/tune"
+	{
+	  capabilities = ["update"]
+	}`
+	err = testVault.Client().Sys().PutPolicy("pki", policy)
+	require.NoError(t, err)
+
+	err = provider.Configure(makeProviderConfWithTTL("333h"))
+	require.NoError(t, err)
+
+	mountConfig, err = testVault.Client().Sys().MountConfig("pki-intermediate")
+	require.NoError(t, err)
+	require.Equal(t, 333*3600, mountConfig.MaxLeaseTTL)
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
@@ -757,6 +938,28 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 }
 
 func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]interface{}) (*VaultProvider, error) {
+	cfg := vaultProviderConfig(t, addr, token, rawConf)
+
+	provider := NewVaultProvider(hclog.New(nil))
+
+	if !isPrimary {
+		cfg.IsPrimary = false
+		cfg.Datacenter = "dc2"
+	}
+
+	t.Cleanup(provider.Stop)
+	require.NoError(t, provider.Configure(cfg))
+	if isPrimary {
+		_, err := provider.GenerateRoot()
+		require.NoError(t, err)
+		_, err = provider.GenerateIntermediate()
+		require.NoError(t, err)
+	}
+
+	return provider, nil
+}
+
+func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]interface{}) ProviderConfig {
 	conf := map[string]interface{}{
 		"Address":             addr,
 		"Token":               token,
@@ -769,8 +972,6 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 		conf[k] = v
 	}
 
-	provider := NewVaultProvider(hclog.New(nil))
-
 	cfg := ProviderConfig{
 		ClusterID:  connect.TestClusterID,
 		Datacenter: "dc1",
@@ -778,18 +979,5 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 		RawConfig:  conf,
 	}
 
-	if !isPrimary {
-		cfg.IsPrimary = false
-		cfg.Datacenter = "dc2"
-	}
-
-	t.Cleanup(provider.Stop)
-	require.NoError(t, provider.Configure(cfg))
-	if isPrimary {
-		require.NoError(t, provider.GenerateRoot())
-		_, err := provider.GenerateIntermediate()
-		require.NoError(t, err)
-	}
-
-	return provider, nil
+	return cfg
 }

@@ -8,13 +8,15 @@ if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
 
+OPTIONAL.peer = /^:([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+
 const trailingSlashRe = /\/$/;
 
 // see below re: ember double slashes
 // const moreThan1SlashRe = /\/{2,}/g;
 
-const _uuid = function() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+const _uuid = function () {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 3) | 8).toString(16);
   });
@@ -25,7 +27,7 @@ const _uuid = function() {
  * Register a callback to be invoked whenever the browser history changes,
  * including using forward and back buttons.
  */
-const route = function(e) {
+const route = function (e) {
   const path = e.state.path;
   const url = this.getURLForTransition(path);
   // Ignore initial page load popstate event in Chrome
@@ -165,7 +167,7 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return ['partition', 'nspace'].reduce((prev, item) => {
+    return ['partition', 'nspace', 'peer'].reduce((prev, item) => {
       let value = '';
       if (typeof optional[item] !== 'undefined') {
         value = optional[item].match;
@@ -186,16 +188,24 @@ export default class FSMWithOptionalLocation {
   /**
    * Turns a routeName into a full URL string for anchor hrefs etc.
    */
-  hrefTo(routeName, params, hash) {
+  hrefTo(routeName, params, _hash) {
+    // copy to always work with a new hash even when helper persists hash
+    const hash = { ..._hash };
+
     if (typeof hash.dc !== 'undefined') {
       delete hash.dc;
     }
+
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
     if (typeof hash.partition !== 'undefined') {
       hash.partition = `_${hash.partition}`;
     }
+    if (typeof hash.peer !== 'undefined') {
+      hash.peer = `:${hash.peer}`;
+    }
+
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }
@@ -295,11 +305,13 @@ export default class FSMWithOptionalLocation {
 
     if (withOptional) {
       const temp = url.split('/');
-      if (Object.keys(optional || {}).length === 0) {
-        optional = undefined;
-      }
-      optional = Object.values(optional || this.optional || {});
-      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
+      optional = {
+        ...this.optional,
+        ...(optional || {}),
+      };
+      optional = Object.values(optional)
+        .filter((item) => Boolean(item))
+        .map((item) => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

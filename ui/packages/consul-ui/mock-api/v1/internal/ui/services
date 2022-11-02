@@ -19,9 +19,11 @@ ${[0].map(
       function(item, i)
       {
         let kind;
+        let peerName;
         switch(i) {
           case 0:
             kind = '';
+            peerName = 'billing'
             break;
           case 1:
             kind = 'connect-proxy';
@@ -40,6 +42,8 @@ ${[0].map(
         } else {
           name = `service-${i}${ kind !== '' ? `-${kind.replace('connect-', '')}` : '' }`;
         }
+
+        const peerNameString = `"PeerName": "${peerName || ''}",`
         return `
           {
             "Name":"${name}",
@@ -49,6 +53,7 @@ ${typeof location.search.ns !== 'undefined' ? `
 ${typeof location.search.partition !== 'undefined' ? `
             "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
 ` : ``}
+            ${env('CONSUL_PEERINGS_ENABLE') ? peerNameString : ''}
             "Tags": [
                 ${
                     range(
@@ -85,7 +90,16 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
                     range(fake.random.number({min: 1, max: 1})).map(
                         function(item, i)
                         {
-                            return `"${fake.helpers.randomize(['consul-api-gateway', 'vault', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
+                            return `"${fake.helpers.randomize([
+                              'consul-api-gateway',
+                              'vault',
+                              'nomad',
+                              'terraform',
+                              'kubernetes',
+                              'aws',
+                              'lambda',
+                              ''
+                            ])}"`;
                         }
                     )
                 }

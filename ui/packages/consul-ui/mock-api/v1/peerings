@@ -1,0 +1,43 @@
+[
+  ${
+    range(
+      env('CONSUL_PEER_COUNT', Math.floor((Math.random() * 10) + 1))
+    ).map(i => {
+    const id = `${fake.random.uuid()}-${i}`;
+    return `
+
+  {
+    "ID": "${id}",
+    "Name": "${fake.hacker.noun()}-peer-${i}",
+    "State": "${fake.helpers.randomize([
+      'ACTIVE',
+      'PENDING',
+      'ESTABLISHING',
+      'FAILING',
+      'DELETING',
+      'TERMINATED',
+      'UNDEFINED'
+    ])}",
+    "StreamStatus": {
+      "LastHeartbeat": "${fake.date.past(10).toISOString()}",
+      "LastReceive": "${fake.date.past(10).toISOString()}",
+      "LastSend": "${fake.date.past(10).toISOString()}",
+      "ExportedServices": [${range(0, Math.floor(Math.random() * 10)).map((i) => `"exported-service-${i}"`)}],
+      "ImportedServices": [${range(0, Math.floor(Math.random() * 10)).map((i) => `"imported-service-${i}"`)}]
+    },
+    "PeerID": "${id}",
+    "PeerServerName": "${fake.internet.domainName()}",
+    "PeerServerAddresses": [
+${
+  range(
+    env('CONSUL_PEER_ADDRESS_COUNT', Math.floor((Math.random() * 10) + 1))
+  ).map(i => `
+      "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}"
+`)}
+    ],
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  }
+
+`})}
+]

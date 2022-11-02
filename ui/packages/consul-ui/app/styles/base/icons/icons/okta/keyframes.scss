@@ -1,0 +1,9 @@
+@keyframes icon-okta {
+  100% {
+
+    -webkit-mask-image: var(--icon-okta-color-16);
+    mask-image: var(--icon-okta-color-16);
+    background-color: var(--icon-color, var(--color-okta-500, currentColor));
+
+  }
+}

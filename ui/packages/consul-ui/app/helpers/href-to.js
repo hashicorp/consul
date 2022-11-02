@@ -12,7 +12,7 @@ import { routes } from 'consul-ui/router';
 
 const isWildcard = wildcard(routes);
 
-export const hrefTo = function(container, params, hash = {}) {
+export const hrefTo = function (container, params, hash = {}) {
   // TODO: consider getting this from @service('router')._router which is
   // private but we don't need getOwner, and it ensures setupRouter is called
   // How private is 'router:main'? If its less private maybe stick with it?
@@ -34,10 +34,7 @@ export const hrefTo = function(container, params, hash = {}) {
     // if the routeName is a wildcard (*) route url encode all of the params
     if (isWildcard(routeName)) {
       _params = _params.map((item, i) => {
-        return item
-          .split('/')
-          .map(encodeURIComponent)
-          .join('/');
+        return item.split('/').map(encodeURIComponent).join('/');
       });
     }
     return location.hrefTo(routeName, _params, _hash);

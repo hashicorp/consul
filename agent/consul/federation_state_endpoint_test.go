@@ -1,14 +1,15 @@
 package consul
 
 import (
-	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"

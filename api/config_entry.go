@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -178,6 +177,19 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
+	// outbound connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
+}
+
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
+	// Addresses of the endpoint; hostname or IP
+	Addresses []string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
 }
 
 type PassiveHealthCheck struct {
@@ -188,6 +200,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific
@@ -210,21 +227,25 @@ type UpstreamLimits struct {
 }
 
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Protocol         string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-
-	Meta        map[string]string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind                      string
+	Name                      string
+	Partition                 string                  `json:",omitempty"`
+	Namespace                 string                  `json:",omitempty"`
+	Protocol                  string                  `json:",omitempty"`
+	Mode                      ProxyMode               `json:",omitempty"`
+	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig            `json:",omitempty"`
+	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig      `json:",omitempty"`
+	MaxInboundConnections     int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	Meta                      map[string]string       `json:",omitempty"`
+	CreateIndex               uint64
+	ModifyIndex               uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }
@@ -245,13 +266,14 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+
+	Meta        map[string]string `json:",omitempty"`
+	CreateIndex uint64
+	ModifyIndex uint64
 }
 
 func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
-func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetName() string            { return ProxyConfigGlobal }
 func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
 func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
 func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }
@@ -379,7 +401,7 @@ func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (Confi
 		return nil, nil, err
 	}
 
-	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", url.PathEscape(kind), url.PathEscape(name)))
+	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setQueryOptions(q)
 	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
@@ -406,7 +428,7 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 		return nil, nil, fmt.Errorf("The kind parameter must not be empty")
 	}
 
-	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", url.PathEscape(kind)))
+	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", kind))
 	r.setQueryOptions(q)
 	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
@@ -486,7 +508,7 @@ func (conf *ConfigEntries) delete(kind, name string, params map[string]string, w
 		return false, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
 
-	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", url.PathEscape(kind), url.PathEscape(name)))
+	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setWriteOptions(w)
 	for param, value := range params {
 		r.params.Set(param, value)

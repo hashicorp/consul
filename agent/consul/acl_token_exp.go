@@ -100,14 +100,15 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		"amount", len(req.TokenIDs),
 		"locality", locality,
 	)
-	_, err = s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+
+	_, err = s.leaderRaftApply("ACL.TokenDelete", structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)
 	}
 
 	// Purge the identities from the cache
 	for _, secretID := range secretIDs {
-		s.acls.cache.RemoveIdentity(tokenSecretCacheID(secretID))
+		s.ACLResolver.cache.RemoveIdentityWithSecretToken(secretID)
 	}
 
 	return len(req.TokenIDs), nil

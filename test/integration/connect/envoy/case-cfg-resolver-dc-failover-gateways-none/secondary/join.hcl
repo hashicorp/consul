@@ -1,1 +1,1 @@
-retry_join_wan = ["consul-primary"]
+retry_join_wan = ["consul-primary-server"]

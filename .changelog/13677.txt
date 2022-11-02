@@ -1,0 +1,4 @@
+```release-note:feature
+cli: A new flag for config delete to delete a config entry in a
+valid config file, e.g., config delete -filename intention-allow.hcl
+```

@@ -1,30 +1,49 @@
-  {{#if (eq this.healthCheck.check 'empty') }}
-    <dl class={{this.healthCheck.check}}>
+{{#let
+  (group-by "Status" (or @items (array)))
+as |grouped|}}
+  {{! Check the status of each Status of checks in order }}
+  {{! First one to have more than one check wins }}
+  {{! Otherwise we are empty }}
+  {{#let
+    (or
+      (if (gt grouped.critical.length 0) grouped.critical)
+      (if (gt grouped.warning.length 0) grouped.warning)
+      (if (gt grouped.passing.length 0) grouped.passing)
+      (array)
+    )
+  as |checks|}}
+    {{#let
+      checks.firstObject.Status
+    as |status|}}
+    <dl
+      class={{class-map
+        'consul-instance-checks'
+        (array 'empty' (eq checks.length 0))
+        (array status (not-eq checks.length 0))
+      }}
+      ...attributes
+    >
       <dt>
         <Tooltip>
           {{capitalize @type}} Checks
         </Tooltip>
       </dt>
-      <dd>No {{@type}} checks</dd>
+      {{#let
+        (or
+          (if (eq status 'critical') 'failing')
+          (if (eq status 'warning') 'with a warning')
+          status
+        )
+      as |humanized|}}
+        <dd>
+          {{or
+            (if (eq checks.length 0) (concat 'No ' @type ' checks'))
+            (if (eq checks.length @items.length) (concat 'All ' @type ' checks ' humanized))
+            (concat checks.length '/' @items.length ' ' @type ' checks ' humanized)
+          }}
+        </dd>
+      {{/let}}
     </dl>
-  {{else}}
-    {{#if (eq this.healthCheck.count @items.length)}}
-    <dl class={{this.healthCheck.check}}>
-      <dt>
-        <Tooltip>
-          {{capitalize @type}} Checks
-        </Tooltip>
-      </dt>
-      <dd>All {{@type}} checks {{this.healthCheck.status}}</dd>
-    </dl>
-    {{else}}
-    <dl class={{this.healthCheck.check}}>
-      <dt>
-        <Tooltip>
-          {{capitalize @type}} Checks
-        </Tooltip>
-      </dt>
-      <dd>{{this.healthCheck.count}}/{{@items.length}} {{@type}} checks {{this.healthCheck.status}}</dd>
-    </dl>
-    {{/if}}
-  {{/if}}
+    {{/let}}
+  {{/let}}
+{{/let}}

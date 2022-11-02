@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: upgrade ember-composable-helpers to v5.x
+```

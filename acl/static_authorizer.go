@@ -170,6 +170,20 @@ func (s *staticAuthorizer) MeshWrite(*AuthorizerContext) EnforcementDecision {
 	return Deny
 }
 
+func (s *staticAuthorizer) PeeringRead(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) PeeringWrite(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -219,6 +233,13 @@ func (s *staticAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementD
 	return Deny
 }
 
+func (s *staticAuthorizer) ServiceWriteAny(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -238,6 +259,10 @@ func (s *staticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 		return Allow
 	}
 	return Deny
+}
+
+func (s *staticAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: s}
 }
 
 // AllowAll returns an Authorizer that allows all operations

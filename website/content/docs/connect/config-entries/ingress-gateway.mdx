@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Ingress Gateway'
+page_title: Ingress Gateway - Configuration Entry Reference
 description: >-
-  The `ingress-gateway` config entry kind allows for configuring Ingress gateways
-  with listeners that expose a set of services outside the Consul service mesh.
+  The ingress gateway configuration entry kind defines behavior to secure incoming communication between the service mesh and external sources. Use the reference guide to learn about `""ingress-gateway""` config entry parameters and exposing TCP and HTTP listeners.
 ---
 
-# Ingress Gateway
+# Ingress Gateway Configuration Entry
 
 This topic provides reference information for the `ingress-gateway` configuration entry.
 
@@ -16,7 +15,7 @@ You can define an `ingress-gateway` configuration entry to connect the Consul se
 
 Refer to the [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
 
-For other platforms, see [Ingress Gateway](/docs/connect/ingress-gateway).
+For other platforms, see [Ingress Gateway](/docs/connect/gateways/ingress-gateway).
 
 ## Requirements
 
@@ -162,7 +161,7 @@ Refer to the [Available Fields](#available-fields) section for complete informat
 
 ### Scope
 
-[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/ingress-gateway) for more information.
+[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/gateways/ingress-gateway) for more information.
 
 ### Wildcard Service Specification
 
@@ -329,6 +328,7 @@ In the following example, two listeners are configured on an ingress gateway nam
 - The first listener is configured to listen on port `8080` and uses a wildcard (`*`) to proxy traffic to all services in the datacenter.
 - The second listener exposes the `api` and `web` services on port `4567` at user-provided hosts.
 - TLS is enabled on every listener.
+- The `max_connections` of the ingress gateway proxy to each upstream cluster is set to 4096.
 
 The Consul Enterprise version implements the following additional configurations:
 
@@ -345,6 +345,10 @@ Name = "us-east-ingress"
 
 TLS {
   Enabled = true
+}
+
+Defaults {
+  MaxConnections = 4096
 }
 
 Listeners = [
@@ -600,7 +604,12 @@ spec:
       protocol: http
       services:
         - name: api
-          # HTTP Header manipulation is not supported in Kubernetes CRD
+          requestHeaders:
+            add:
+              x-gateway: us-east-ingress
+          responseHeaders:
+            remove:
+              - x-debug
 ```
 
 ```json
@@ -676,7 +685,12 @@ spec:
       services:
         - name: api
           namespace: frontend
-          # HTTP Header manipulation is not supported in Kubernetes CRD
+          requestHeaders:
+            add:
+              x-gateway: us-east-ingress
+          responseHeaders:
+            remove:
+              - x-debug
 ```
 
 ```json
@@ -927,7 +941,7 @@ You can specify the following parameters to configure ingress gateway configurat
       enterprise: true,
       description:
         'Specifies the namespace in which the configuration entry will apply. The value must match the namespace in which the gateway is registered.' +
-        ' If omitted, the namespace will be inherited from the `ns` request parameter (refer to the [`config` API endpoint documentation](/api/config#ns)).' +
+        ' If omitted, the namespace will be inherited from the `ns` request parameter (refer to the [`config` API endpoint documentation](/api-docs/config#ns)).' +
         ' or will default to the `default` namespace.',
       yaml: false,
     },
@@ -959,7 +973,7 @@ You can specify the following parameters to configure ingress gateway configurat
       enterprise: true,
       description:
         'Specifies the admin partition in which the configuration will apply. The value must match the partition in which the gateway is registered.' +
-        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/api/config)).' +
+        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/api-docs/config)).' +
         ' See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
@@ -995,8 +1009,38 @@ You can specify the following parameters to configure ingress gateway configurat
           },
         },
         {
+          name: 'TLSMinVersion',
+          type: 'string: ""',
+          description:
+            "Set the default minimum TLS version supported for the gateway's listeners. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+        },
+        {
+          name: 'TLSMaxVersion',
+          type: 'string: ""',
+          description: {
+            hcl:
+              "Set the default maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.",
+            yaml:
+              "Set the default maximum TLS version supported for the gateway's listeners. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.",
+          },
+        },
+        {
+          name: 'CipherSuites',
+          type: 'array<string>: <optional>',
+          description: `Set the default list of TLS cipher suites for the gateway's
+                        listeners to support when negotiating connections using
+                        TLS 1.2 or earlier. If unspecified, Envoy will use a
+                        [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
+                        The list of supported cipher suites can seen in
+                        [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+                        and is dependent on underlying support in Envoy. Future
+                        releases of Envoy may remove currently-supported but
+                        insecure cipher suites, and future releases of Consul
+                        may add new supported cipher suites if any are added to
+                        Envoy.`,
+        },
+        {
           name: 'SDS',
-          yaml: false,
           type: 'SDSConfig: <optional>',
           description:
             'Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.',
@@ -1014,6 +1058,38 @@ You can specify the following parameters to configure ingress gateway configurat
                 'Specifies an SDS resource name. Consul will request the SDS resource name when fetching the certificate from the SDS service. Setting this causes all listeners to be served exclusively over TLS with this certificate unless overridden by listener-specific TLS configuration.',
             },
           ],
+        },
+      ],
+    },
+    {
+      name: 'Defaults',
+      type: 'IngressServiceConfig: <optional>',
+      description: `Default configuration that applies to all upstreams.`,
+      children: [
+        {
+          name: 'MaxConnections',
+          type: 'int: 0',
+          description: `The maximum number of connections a service instance
+              will be allowed to establish against the given upstream. Use this to limit
+              HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
+        },
+        {
+          name: 'MaxPendingRequests',
+          type: 'int: 0',
+          description: `The maximum number of requests that will be queued
+              while waiting for a connection to be established. For this configuration to
+              be respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
+        },
+        {
+          name: 'MaxConcurrentRequests',
+          type: 'int: 0',
+          description: `The maximum number of concurrent requests that
+              will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+              since HTTP/2 has many requests per connection. For this configuration to be
+              respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
         },
       ],
     },
@@ -1090,7 +1166,6 @@ You can specify the following parameters to configure ingress gateway configurat
               \`*-suffix.example.com\` are not.`,
             },
             {
-              yaml: false,
               name: 'RequestHeaders',
               type: 'HTTPHeaderModifiers: <optional>',
               description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
@@ -1098,7 +1173,6 @@ You can specify the following parameters to configure ingress gateway configurat
               This cannot be used with a \`tcp\` listener.`,
             },
             {
-              yaml: false,
               name: 'ResponseHeaders',
               type: 'HTTPHeaderModifiers: <optional>',
               description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
@@ -1107,7 +1181,6 @@ You can specify the following parameters to configure ingress gateway configurat
             },
             {
               name: 'TLS',
-              yaml: false,
               type: 'ServiceTLSConfig: <optional>',
               description: 'TLS configuration for this service.',
               children: [
@@ -1135,11 +1208,25 @@ You can specify the following parameters to configure ingress gateway configurat
                 },
               ],
             },
+            {
+              name: 'MaxConnections',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
+            {
+              name: 'MaxPendingRequests',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
+            {
+              name: 'MaxConcurrentRequests',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
           ],
         },
         {
           name: 'TLS',
-          yaml: false,
           type: 'TLSConfig: <optional>',
           description: 'TLS configuration for this listener.',
           children: [
@@ -1148,10 +1235,36 @@ You can specify the following parameters to configure ingress gateway configurat
               type: 'bool: false',
               description: {
                 hcl:
-                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
+                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added. TLS can not be disabled for individual listeners if it is enabled on the gateway.",
                 yaml:
-                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in the `hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
+                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in each service's `hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added. TLS can not be disabled for individual listeners if it is enabled on the gateway.",
               },
+            },
+            {
+              name: 'TLSMinVersion',
+              type: 'string: ""',
+              description:
+                'Set the minimum TLS version supported for this listener. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.',
+            },
+            {
+              name: 'TLSMaxVersion',
+              type: 'string: ""',
+              description:
+                'Set the maximum TLS version supported for this listener. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`.',
+            },
+            {
+              name: 'CipherSuites',
+              type: 'array<string>: <optional>',
+              description: `Set the list of TLS cipher suites to support when negotiating
+                            connections using TLS 1.2 or earlier. If unspecified,
+                            Envoy will use a
+                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
+                            The list of supported cipher suites can seen in
+                            [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+                            and is dependent on underlying support in Envoy. Future
+                            releases of Envoy may remove currently-supported but
+                            insecure cipher suites, and future releases of Consul
+                            may add new supported cipher suites if any are added to Envoy.`,
             },
             {
               name: 'SDS',

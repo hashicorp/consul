@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_ConfigEntries(t *testing.T) {
@@ -102,12 +104,22 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			MaxInboundConnections:     5,
+			BalanceInboundConnections: "exact_balance",
+			LocalConnectTimeoutMs:     5000,
+			LocalRequestTimeoutMs:     7000,
+		}
+
+		dest := &DestinationConfig{
+			Addresses: []string{"my.example.com"},
+			Port:      80,
 		}
 
 		service2 := &ServiceConfigEntry{
-			Kind:     ServiceDefaults,
-			Name:     "bar",
-			Protocol: "tcp",
+			Kind:        ServiceDefaults,
+			Name:        "bar",
+			Protocol:    "tcp",
+			Destination: dest,
 		}
 
 		// set it
@@ -136,6 +148,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Protocol, readService.Protocol)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
+		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
+		require.Equal(t, service.BalanceInboundConnections, readService.BalanceInboundConnections)
+		require.Equal(t, service.LocalConnectTimeoutMs, readService.LocalConnectTimeoutMs)
+		require.Equal(t, service.LocalRequestTimeoutMs, readService.LocalRequestTimeoutMs)
 
 		// update it
 		service.Protocol = "tcp"
@@ -183,6 +199,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Kind, readService.Kind)
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
+				require.Equal(t, dest, readService.Destination)
 			}
 		}
 
@@ -209,7 +226,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		}
 		ce := c.ConfigEntries()
 
-		runStep(t, "set and get", func(t *testing.T) {
+		testutil.RunStep(t, "set and get", func(t *testing.T) {
 			_, wm, err := ce.Set(mesh, nil)
 			require.NoError(t, err)
 			require.NotNil(t, wm)
@@ -229,7 +246,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			require.Equal(t, mesh, result)
 		})
 
-		runStep(t, "list", func(t *testing.T) {
+		testutil.RunStep(t, "list", func(t *testing.T) {
 			entries, qm, err := ce.List(MeshConfig, nil)
 			require.NoError(t, err)
 			require.NotNil(t, qm)
@@ -237,7 +254,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			require.Len(t, entries, 1)
 		})
 
-		runStep(t, "delete", func(t *testing.T) {
+		testutil.RunStep(t, "delete", func(t *testing.T) {
 			wm, err := ce.Delete(MeshConfig, MeshConfigMesh, nil)
 			require.NoError(t, err)
 			require.NotNil(t, wm)
@@ -279,13 +296,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, deleted, "entry should have been deleted")
 	})
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func TestDecodeConfigEntry(t *testing.T) {
@@ -438,14 +448,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
 				},
+				"BalanceInboundConnections": "exact_balance",
 				"UpstreamConfig": {
 					"Overrides": [
 						{
 							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
-								"Interval": "2s"
-							}
+								"Interval": "2s",
+								"EnforcingConsecutive5xx": 60
+							},
+							"BalanceOutboundConnections": "exact_balance"
 						},
 						{
 							"Name": "finance--billing",
@@ -489,14 +502,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
+				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uint32Pointer(60),
 							},
+							BalanceOutboundConnections: "exact_balance",
 						},
 						{
 							Name:        "finance--billing",
@@ -518,6 +534,31 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Interval:    4 * time.Second,
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults-endpoint",
+			body: `
+			{
+				"Kind": "service-defaults",
+				"Name": "external",
+				"Protocol": "http",
+				"Destination": {
+					"Addresses": [
+						"1.2.3.4"
+					],
+					"Port": 443
+				}
+			}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{"1.2.3.4"},
+					Port:      443,
 				},
 			},
 		},
@@ -1260,6 +1301,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"TransparentProxy": {
 					"MeshDestinationsOnly": true
+				},
+				"TLS": {
+					"Incoming": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					},
+					"Outgoing": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				},
+				"HTTP": {
+					"SanitizeXForwardedClientCert": true
+				},
+				"Peering": {
+					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -1270,6 +1335,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
@@ -1383,5 +1472,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+
+func uint32Pointer(v uint32) *uint32 {
 	return &v
 }

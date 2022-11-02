@@ -37,11 +37,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	serfLogger := c.logger.
 		NamedIntercept(logging.Serf).
 		NamedIntercept(logging.LAN).
-		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := c.logger.
 		NamedIntercept(logging.Memberlist).
 		NamedIntercept(logging.LAN).
-		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
+		StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
 	conf.Logger = serfLogger
@@ -61,6 +61,8 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
+
+	addSerfMetricsLabels(conf, false, c.config.Segment, c.config.AgentEnterpriseMeta().PartitionOrDefault(), "")
 
 	addEnterpriseSerfTags(conf.Tags, c.config.AgentEnterpriseMeta())
 

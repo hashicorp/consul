@@ -1,0 +1,3 @@
+```release-note:bug
+Fix a data race when a service is added while the agent is shutting down..
+```

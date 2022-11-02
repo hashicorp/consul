@@ -1,0 +1,3 @@
+```release-note:bug
+logging: fix a bug with incorrect severity syslog messages (all messages were sent with NOTICE severity).
+```

@@ -11,6 +11,9 @@ the namespace will be displayed, whereas if the partition is different it will
 show both the partition and namespace (as a namespace called 'team-1' in
 `partition-1` is different to a namespace called 'team-1' in `partition-2`)
 
+When the passed item contains a `PeerName`, this will be displayed in place of
+the `Partition`.
+
 Showing the service name is a tiny bit awkward (different boolean type,
 doesn't care about difference) and could be improved but we only use it for
 the read only view of intentions.
@@ -22,6 +25,20 @@ At the time of writing, this is not currently used across the entire UI
 ```hbs preview-template
   <figure>
     <figcaption>Show everything</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+        Service="service-name"
+        PeerName="billing-app"
+      }}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+      @service={{true}}
+    />
+  </figure>
+  <figure>
+    <figcaption>Show everything without peer</figcaption>
     <Consul::Bucket::List
       @item={{hash
         Namespace="different-nspace"
@@ -46,13 +63,36 @@ At the time of writing, this is not currently used across the entire UI
     />
   </figure>
 
+  <figure>
+    <figcaption>Show only peer-info</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="default"
+        PeerName="billing-app"
+      }}
+      @nspace={{'nspace'}}
+    />
+  </figure>
+
+  <figure>
+    <figcaption>Don't surface anything - no relevant info to show</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="default"
+        Partition="default"
+      }}
+      @nspace={{'default'}}
+      @partition={{'default'}}
+    />
+  </figure>
+
 ```
 
 ## Arguments
 
 | Argument/Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
-| `item` | `array` |  | A Consul object that could have both a `Partition` and a `Namespace` property |
+| `item` | `object` |  | A Consul object that could have a `Partition`, a `Namespace`, a `PeerName` and a `Service` property |
 | `nspace` | `string` | | The name of the current namespace |
 | `partition` | `string` | | The name of the current partition |
 | `service` | `boolean` | | Whether to show the service name on the end or not. Please note you must also pass a item.Service for it to show. We flag this incase an API request has a Service property but you don't want to show it |

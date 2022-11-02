@@ -32,6 +32,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
+				Default:     true,
 				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
 					"resolver:web.default.default.dc1": {
@@ -46,12 +47,13 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				},
 				Targets: map[string]*DiscoveryTarget{
 					"web.default.default.dc1": {
-						ID:         "web.default.default.dc1",
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc1",
-						SNI:        "web.default.dc1.internal." + testClusterID + ".consul",
-						Name:       "web.default.dc1.internal." + testClusterID + ".consul",
+						ID:             "web.default.default.dc1",
+						Service:        "web",
+						Namespace:      "default",
+						Datacenter:     "dc1",
+						ConnectTimeout: 5 * time.Second,
+						SNI:            "web.default.dc1.internal." + testClusterID + ".consul",
+						Name:           "web.default.dc1.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -72,6 +74,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc2",
 				Protocol:    "tcp",
+				Default:     true,
 				StartNode:   "resolver:web.default.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
 					"resolver:web.default.default.dc2": {
@@ -86,12 +89,13 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				},
 				Targets: map[string]*DiscoveryTarget{
 					"web.default.default.dc2": {
-						ID:         "web.default.default.dc2",
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc2",
-						SNI:        "web.default.dc2.internal." + testClusterID + ".consul",
-						Name:       "web.default.dc2.internal." + testClusterID + ".consul",
+						ID:             "web.default.default.dc2",
+						Service:        "web",
+						Namespace:      "default",
+						Datacenter:     "dc2",
+						ConnectTimeout: 5 * time.Second,
+						SNI:            "web.default.dc2.internal." + testClusterID + ".consul",
+						Name:           "web.default.dc2.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -132,12 +136,13 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				},
 				Targets: map[string]*DiscoveryTarget{
 					"web.default.default.dc1": {
-						ID:         "web.default.default.dc1",
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc1",
-						SNI:        "web.default.dc1.internal." + testClusterID + ".consul",
-						Name:       "web.default.dc1.internal." + testClusterID + ".consul",
+						ID:             "web.default.default.dc1",
+						Service:        "web",
+						Namespace:      "default",
+						Datacenter:     "dc1",
+						ConnectTimeout: 33 * time.Second,
+						SNI:            "web.default.dc1.internal." + testClusterID + ".consul",
+						Name:           "web.default.dc1.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -184,8 +189,9 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 						MeshGateway: MeshGatewayConfig{
 							Mode: MeshGatewayModeLocal,
 						},
-						SNI:  "web.default.dc2.internal." + testClusterID + ".consul",
-						Name: "web.default.dc2.internal." + testClusterID + ".consul",
+						ConnectTimeout: 22 * time.Second,
+						SNI:            "web.default.dc2.internal." + testClusterID + ".consul",
+						Name:           "web.default.dc2.internal." + testClusterID + ".consul",
 					},
 				},
 			},

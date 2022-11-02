@@ -73,8 +73,8 @@ type ServiceRouterConfigEntry struct {
 	// the default service.
 	Routes []ServiceRoute
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -228,6 +228,12 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			if route.Destination.PrefixRewrite != "" && !eligibleForPrefixRewrite {
 				return fmt.Errorf("Route[%d] cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix", i)
 			}
+
+			for _, r := range route.Destination.RetryOn {
+				if !isValidRetryCondition(r) {
+					return fmt.Errorf("Route[%d] contains an invalid retry condition: %q", i, r)
+				}
+			}
 		}
 	}
 
@@ -251,11 +257,31 @@ func isValidHTTPMethod(method string) bool {
 	}
 }
 
-func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func isValidRetryCondition(retryOn string) bool {
+	switch retryOn {
+	case "5xx",
+		"gateway-error",
+		"reset",
+		"connect-failure",
+		"envoy-ratelimited",
+		"retriable-4xx",
+		"refused-stream",
+		"cancelled",
+		"deadline-exceeded",
+		"internal",
+		"resource-exhausted",
+		"unavailable":
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -298,7 +324,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	return out
 }
 
-func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -409,6 +435,10 @@ type ServiceRouteDestination struct {
 	// 4 failure bubbling up to layer 7.
 	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
 
+	// RetryOn allows setting envoy specific conditions when a request should
+	// be automatically retried.
+	RetryOn []string `json:",omitempty" alias:"retry_on"`
+
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
@@ -455,7 +485,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 }
 
 func (d *ServiceRouteDestination) HasRetryFeatures() bool {
-	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
+	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0 || len(d.RetryOn) > 0
 }
 
 // ServiceSplitterConfigEntry defines how incoming requests are split across
@@ -485,8 +515,8 @@ type ServiceSplitterConfigEntry struct {
 	// to the FIRST split.
 	Splits []ServiceSplit
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -594,11 +624,11 @@ func scaleWeight(v float32) int {
 	return int(math.Round(float64(v * 100.0)))
 }
 
-func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -610,7 +640,7 @@ func (e *ServiceSplitterConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -815,8 +845,8 @@ type ServiceResolverConfigEntry struct {
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -948,11 +978,15 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
 		}
-		if PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
+		if acl.PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
 		}
 
 		r := e.Redirect
+
+		if err := r.ValidateEnterprise(); err != nil {
+			return fmt.Errorf("Redirect: %s", err.Error())
+		}
 
 		if len(e.Failover) > 0 {
 			return fmt.Errorf("Redirect and Failover cannot both be set")
@@ -960,11 +994,18 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		// TODO(rb): prevent subsets and default subsets from being defined?
 
-		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" {
+		if r.isEmpty() {
 			return fmt.Errorf("Redirect is empty")
 		}
 
-		if r.Service == "" {
+		switch {
+		case r.Peer != "" && r.ServiceSubset != "":
+			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.ServiceSubset")
+		case r.Peer != "" && r.Partition != "":
+			return fmt.Errorf("Redirect.Partition cannot be set with Redirect.Peer")
+		case r.Peer != "" && r.Datacenter != "":
+			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.Datacenter")
+		case r.Service == "":
 			if r.ServiceSubset != "" {
 				return fmt.Errorf("Redirect.ServiceSubset defined without Redirect.Service")
 			}
@@ -974,9 +1015,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			if r.Partition != "" {
 				return fmt.Errorf("Redirect.Partition defined without Redirect.Service")
 			}
-		} else if r.Service == e.Name {
-			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
-				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, r.Service)
+			if r.Peer != "" {
+				return fmt.Errorf("Redirect.Peer defined without Redirect.Service")
+			}
+		case r.ServiceSubset != "" && (r.Service == "" || r.Service == e.Name):
+			if !isSubset(r.ServiceSubset) {
+				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, e.Name)
 			}
 		}
 	}
@@ -988,18 +1032,59 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf("Cross-datacenter failover is only supported in the default partition")
 			}
 
-			if subset != "*" && !isSubset(subset) {
-				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
+			errorPrefix := fmt.Sprintf("Bad Failover[%q]: ", subset)
+
+			if err := f.ValidateEnterprise(); err != nil {
+				return fmt.Errorf(errorPrefix + err.Error())
 			}
 
-			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 {
-				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, or Datacenters is required", subset)
+			if subset != "*" && !isSubset(subset) {
+				return fmt.Errorf(errorPrefix + "not a valid subset subset")
+			}
+
+			if f.isEmpty() {
+				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required")
 			}
 
 			if f.ServiceSubset != "" {
 				if f.Service == "" || f.Service == e.Name {
 					if !isSubset(f.ServiceSubset) {
-						return fmt.Errorf("Bad Failover[%q].ServiceSubset %q is not a valid subset of %q", subset, f.ServiceSubset, f.Service)
+						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, f.ServiceSubset, f.Service)
+					}
+				}
+			}
+
+			if len(f.Datacenters) != 0 && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with Datacenters", subset)
+			}
+
+			if f.ServiceSubset != "" && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with ServiceSubset", subset)
+			}
+
+			if f.Service != "" && len(f.Targets) != 0 {
+				return fmt.Errorf("Bad Failover[%q]: Targets cannot be set with Service", subset)
+			}
+
+			for i, target := range f.Targets {
+				errorPrefix := fmt.Sprintf("Bad Failover[%q].Targets[%d]: ", subset, i)
+
+				if err := target.ValidateEnterprise(); err != nil {
+					return fmt.Errorf(errorPrefix + err.Error())
+				}
+
+				switch {
+				case target.Peer != "" && target.ServiceSubset != "":
+					return fmt.Errorf(errorPrefix + "Peer cannot be set with ServiceSubset")
+				case target.Peer != "" && target.Partition != "":
+					return fmt.Errorf(errorPrefix + "Partition cannot be set with Peer")
+				case target.Peer != "" && target.Datacenter != "":
+					return fmt.Errorf(errorPrefix + "Peer cannot be set with Datacenter")
+				case target.Partition != "" && target.Datacenter != "":
+					return fmt.Errorf(errorPrefix + "Partition cannot be set with Datacenter")
+				case target.ServiceSubset != "" && (target.Service == "" || target.Service == e.Name):
+					if !isSubset(target.ServiceSubset) {
+						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, target.ServiceSubset, e.Name)
 					}
 				}
 			}
@@ -1069,11 +1154,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1085,7 +1170,7 @@ func (e *ServiceResolverConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -1107,9 +1192,24 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 
 	if len(e.Failover) > 0 {
 		for _, failover := range e.Failover {
-			failoverID := NewServiceID(defaultIfEmpty(failover.Service, e.Name), failover.GetEnterpriseMeta(&e.EnterpriseMeta))
-			if failoverID != svcID {
-				found[failoverID] = struct{}{}
+			if len(failover.Targets) == 0 {
+				failoverID := NewServiceID(defaultIfEmpty(failover.Service, e.Name), failover.GetEnterpriseMeta(&e.EnterpriseMeta))
+				if failoverID != svcID {
+					found[failoverID] = struct{}{}
+				}
+				continue
+			}
+
+			for _, target := range failover.Targets {
+				// We can't know about related services on cluster peers.
+				if target.Peer != "" {
+					continue
+				}
+
+				failoverID := NewServiceID(defaultIfEmpty(target.Service, e.Name), target.GetEnterpriseMeta(failover.GetEnterpriseMeta(&e.EnterpriseMeta)))
+				if failoverID != svcID {
+					found[failoverID] = struct{}{}
+				}
 			}
 		}
 	}
@@ -1171,13 +1271,32 @@ type ServiceResolverRedirect struct {
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
+
+	// Peer is the name of the cluster peer to resolve the service from instead
+	// of the current one (optional).
+	Peer string `json:",omitempty"`
+}
+
+func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       r.Service,
+		ServiceSubset: r.ServiceSubset,
+		Namespace:     r.Namespace,
+		Partition:     r.Partition,
+		Datacenter:    r.Datacenter,
+		Peer:          r.Peer,
+	}
+}
+
+func (r *ServiceResolverRedirect) isEmpty() bool {
+	return r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" && r.Peer == ""
 }
 
 // There are some restrictions on what is allowed in here:
 //
-// - Service, ServiceSubset, Namespace, and Datacenters cannot all be
-//   empty at once.
-//
+// - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
+// empty at once. When Targets is defined, the other fields should not be
+// populated.
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).
@@ -1205,6 +1324,56 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
+
+	// Targets specifies a fixed list of failover targets to try. We never try a
+	// target multiple times, so those are subtracted from this list before
+	// proceeding.
+	//
+	// This is a DESTINATION during failover.
+	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
+}
+
+func (t *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+	}
+}
+
+func (f *ServiceResolverFailover) isEmpty() bool {
+	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
+}
+
+type ServiceResolverFailoverTarget struct {
+	// Service specifies the name of the service to try during failover.
+	Service string `json:",omitempty"`
+
+	// ServiceSubset specifies the service subset to try during failover.
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+
+	// Partition specifies the partition to try during failover.
+	Partition string `json:",omitempty"`
+
+	// Namespace specifies the namespace to try during failover.
+	Namespace string `json:",omitempty"`
+
+	// Datacenter specifies the datacenter to try during failover.
+	Datacenter string `json:",omitempty"`
+
+	// Peer specifies the name of the cluster peer to try during failover.
+	Peer string `json:",omitempty"`
+}
+
+func (t *ServiceResolverFailoverTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+		Partition:     t.Partition,
+		Datacenter:    t.Datacenter,
+		Peer:          t.Peer,
+	}
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
@@ -1300,13 +1469,13 @@ type discoveryChainConfigEntry interface {
 	ListRelatedServices() []ServiceID
 }
 
-func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	entry.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-	return authz.ServiceRead(entry.GetName(), &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(entry.GetName(), &authzContext)
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1314,8 +1483,8 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 
 	name := entry.GetName()
 
-	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
-		return false
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(name, &authzContext); err != nil {
+		return err
 	}
 
 	for _, svc := range entry.ListRelatedServices() {
@@ -1326,148 +1495,11 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
-			return false
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(svc.ID, &authzContext); err != nil {
+			return err
 		}
 	}
-	return true
-}
-
-// DiscoveryChainConfigEntries wraps just the raw cross-referenced config
-// entries. None of these are defaulted.
-type DiscoveryChainConfigEntries struct {
-	Routers       map[ServiceID]*ServiceRouterConfigEntry
-	Splitters     map[ServiceID]*ServiceSplitterConfigEntry
-	Resolvers     map[ServiceID]*ServiceResolverConfigEntry
-	Services      map[ServiceID]*ServiceConfigEntry
-	ProxyDefaults map[string]*ProxyConfigEntry
-}
-
-func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
-	return &DiscoveryChainConfigEntries{
-		Routers:       make(map[ServiceID]*ServiceRouterConfigEntry),
-		Splitters:     make(map[ServiceID]*ServiceSplitterConfigEntry),
-		Resolvers:     make(map[ServiceID]*ServiceResolverConfigEntry),
-		Services:      make(map[ServiceID]*ServiceConfigEntry),
-		ProxyDefaults: make(map[string]*ProxyConfigEntry),
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) GetRouter(sid ServiceID) *ServiceRouterConfigEntry {
-	if e.Routers != nil {
-		return e.Routers[sid]
-	}
 	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetSplitter(sid ServiceID) *ServiceSplitterConfigEntry {
-	if e.Splitters != nil {
-		return e.Splitters[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetResolver(sid ServiceID) *ServiceResolverConfigEntry {
-	if e.Resolvers != nil {
-		return e.Resolvers[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetService(sid ServiceID) *ServiceConfigEntry {
-	if e.Services != nil {
-		return e.Services[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetProxyDefaults(partition string) *ProxyConfigEntry {
-	if e.ProxyDefaults != nil {
-		return e.ProxyDefaults[partition]
-	}
-	return nil
-}
-
-// AddRouters adds router configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddRouters(entries ...*ServiceRouterConfigEntry) {
-	if e.Routers == nil {
-		e.Routers = make(map[ServiceID]*ServiceRouterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Routers[NewServiceID(entry.Name, &entry.EnterpriseMeta)] = entry
-	}
-}
-
-// AddSplitters adds splitter configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddSplitters(entries ...*ServiceSplitterConfigEntry) {
-	if e.Splitters == nil {
-		e.Splitters = make(map[ServiceID]*ServiceSplitterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Splitters[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddResolvers adds resolver configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddResolvers(entries ...*ServiceResolverConfigEntry) {
-	if e.Resolvers == nil {
-		e.Resolvers = make(map[ServiceID]*ServiceResolverConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Resolvers[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddServices adds service configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry) {
-	if e.Services == nil {
-		e.Services = make(map[ServiceID]*ServiceConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Services[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddProxyDefaults(entries ...*ProxyConfigEntry) {
-	if e.ProxyDefaults == nil {
-		e.ProxyDefaults = make(map[string]*ProxyConfigEntry)
-	}
-	for _, entry := range entries {
-		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
-	}
-}
-
-// AddEntries adds generic configs. Convenience function for testing. Panics on
-// operator error.
-func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
-	for _, entry := range entries {
-		switch entry.GetKind() {
-		case ServiceRouter:
-			e.AddRouters(entry.(*ServiceRouterConfigEntry))
-		case ServiceSplitter:
-			e.AddSplitters(entry.(*ServiceSplitterConfigEntry))
-		case ServiceResolver:
-			e.AddResolvers(entry.(*ServiceResolverConfigEntry))
-		case ServiceDefaults:
-			e.AddServices(entry.(*ServiceConfigEntry))
-		case ProxyDefaults:
-			if entry.GetName() != ProxyConfigGlobal {
-				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
-			}
-			e.AddProxyDefaults(entry.(*ProxyConfigEntry))
-		default:
-			panic("unhandled config entry kind: " + entry.GetKind())
-		}
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0 && len(e.ProxyDefaults) == 0
-}
-
-func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
-	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
 }
 
 // DiscoveryChainRequest is used when requesting the discovery chain for a

@@ -10,6 +10,7 @@ import intention from 'consul-ui/filter/predicates/intention';
 import token from 'consul-ui/filter/predicates/token';
 import policy from 'consul-ui/filter/predicates/policy';
 import authMethod from 'consul-ui/filter/predicates/auth-method';
+import peer from 'consul-ui/filter/predicates/peer';
 
 const predicates = {
   service: andOr(service),
@@ -21,6 +22,7 @@ const predicates = {
   intention: andOr(intention),
   token: andOr(token),
   policy: andOr(policy),
+  peer: andOr(peer),
 };
 
 export default class FilterService extends Service {

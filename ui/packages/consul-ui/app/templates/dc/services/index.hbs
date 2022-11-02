@@ -3,7 +3,7 @@
 as |route|>
 
   <DataLoader @src={{
-      uri '/${partition}/${nspace}/${dc}/services'
+    uri '/${partition}/${nspace}/${dc}/services'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
@@ -43,10 +43,10 @@ as |route|>
     searchproperty=(hash
       value=(if (not-eq searchproperty undefined)
         (split searchproperty ',')
-        searchProperties
+        this._searchProperties
       )
       change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      default=this._searchProperties
     )
 
   )
@@ -105,21 +105,17 @@ as |sort filters items partition nspace|}}
             >
               <BlockSlot @name="header">
                 <h2>
-                  {{#if (gt items.length 0)}}
-                    No services found
-                  {{else}}
-                    Welcome to Services
-                  {{/if}}
+                  {{t 'routes.dc.services.index.empty.header'
+                    items=items.length
+                  }}
                 </h2>
               </BlockSlot>
               <BlockSlot @name="body">
-                <p>
-                  {{#if (gt items.length 0)}}
-                    No services where found matching that search, or you may not have access to view the services you are searching for.
-                  {{else}}
-                    There don't seem to be any registered services, or you may not have access to view services yet.
-                  {{/if}}
-                </p>
+                {{t 'routes.dc.services.index.empty.body'
+                  items=items.length
+                  canUseACLs=(can "use acls")
+                  htmlSafe=true
+                }}
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li class="docs-link">
@@ -127,7 +123,7 @@ as |sort filters items partition nspace|}}
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/services"
                     @external={{true}}
                   >
-                    Documentation on services
+                    Documentation on Services
                   </Action>
                 </li>
                 <li class="learn-link">
@@ -135,7 +131,7 @@ as |sort filters items partition nspace|}}
                     @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services"
                     @external={{true}}
                   >
-                    Read the guide
+                    Take the tutorial
                   </Action>
                 </li>
               </BlockSlot>

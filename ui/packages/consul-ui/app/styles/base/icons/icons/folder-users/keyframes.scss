@@ -1,0 +1,9 @@
+@keyframes icon-folder-users {
+  100% {
+
+    -webkit-mask-image: var(--icon-folder-users-16);
+    mask-image: var(--icon-folder-users-16);
+    background-color: var(--icon-color, var(--color-folder-users-500, currentColor));
+
+  }
+}

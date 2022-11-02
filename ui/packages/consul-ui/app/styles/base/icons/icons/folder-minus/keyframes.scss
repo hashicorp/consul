@@ -1,0 +1,9 @@
+@keyframes icon-folder-minus {
+  100% {
+
+    -webkit-mask-image: var(--icon-folder-minus-16);
+    mask-image: var(--icon-folder-minus-16);
+    background-color: var(--icon-color, var(--color-folder-minus-500, currentColor));
+
+  }
+}

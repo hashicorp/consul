@@ -1,0 +1,9 @@
+@keyframes icon-clipboard-copy {
+  100% {
+
+    -webkit-mask-image: var(--icon-clipboard-copy-16);
+    mask-image: var(--icon-clipboard-copy-16);
+    background-color: var(--icon-color, var(--color-clipboard-copy-500, currentColor));
+
+  }
+}

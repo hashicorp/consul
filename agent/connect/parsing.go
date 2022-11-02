@@ -56,6 +56,21 @@ func ParseLeafCerts(pemValue string) (*x509.Certificate, *x509.CertPool, error) 
 	return leaf, intermediates, nil
 }
 
+// CertSubjects can be used in debugging to return the subject of each
+// certificate in the PEM bundle. Each subject is separated by a newline.
+func CertSubjects(pem string) string {
+	certs, err := parseCerts(pem)
+	if err != nil {
+		return err.Error()
+	}
+	var buf strings.Builder
+	for _, cert := range certs {
+		buf.WriteString(cert.Subject.String())
+		buf.WriteString("\n")
+	}
+	return buf.String()
+}
+
 // ParseCerts parses the all x509 certificates from a PEM-encoded value.
 // The first returned cert is a leaf cert and any other ones are intermediates.
 //
@@ -90,21 +105,10 @@ func parseCerts(pemValue string) ([]*x509.Certificate, error) {
 	return out, nil
 }
 
-// CalculateCertFingerprint parses the x509 certificate from a PEM-encoded value
-// and calculates the SHA-1 fingerprint.
-func CalculateCertFingerprint(pemValue string) (string, error) {
-	// The _ result below is not an error but the remaining PEM bytes.
-	block, _ := pem.Decode([]byte(pemValue))
-	if block == nil {
-		return "", fmt.Errorf("no PEM-encoded data found")
-	}
-
-	if block.Type != "CERTIFICATE" {
-		return "", fmt.Errorf("first PEM-block should be CERTIFICATE type")
-	}
-
-	hash := sha1.Sum(block.Bytes)
-	return HexString(hash[:]), nil
+// CalculateCertFingerprint calculates the SHA-1 fingerprint from the cert bytes.
+func CalculateCertFingerprint(cert []byte) string {
+	hash := sha1.Sum(cert)
+	return HexString(hash[:])
 }
 
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key

@@ -66,7 +66,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, err := parseConfigEntry(data)
+	entry, err := helpers.ParseConfigEntry(data)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
 		return 1
@@ -98,16 +98,6 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
 	return 0
-}
-
-func parseConfigEntry(data string) (api.ConfigEntry, error) {
-	// parse the data
-	var raw map[string]interface{}
-	if err := hclDecode(&raw, data); err != nil {
-		return nil, fmt.Errorf("Failed to decode config entry input: %v", err)
-	}
-
-	return newDecodeConfigEntry(raw)
 }
 
 // There is a 'structs' variation of this in

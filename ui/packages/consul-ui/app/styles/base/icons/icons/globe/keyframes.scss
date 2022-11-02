@@ -1,0 +1,9 @@
+@keyframes icon-globe {
+  100% {
+
+    -webkit-mask-image: var(--icon-globe-16);
+    mask-image: var(--icon-globe-16);
+    background-color: var(--icon-color, var(--color-globe-500, currentColor));
+
+  }
+}

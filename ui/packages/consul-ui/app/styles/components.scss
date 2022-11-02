@@ -13,6 +13,7 @@
 @import 'consul-ui/components/confirmation-dialog';
 @import 'consul-ui/components/copy-button';
 @import 'consul-ui/components/definition-table';
+@import 'consul-ui/components/disclosure-menu';
 @import 'consul-ui/components/display-toggle';
 @import 'consul-ui/components/dom-recycling-table';
 @import 'consul-ui/components/empty-state';
@@ -25,14 +26,16 @@
 @import 'consul-ui/components/more-popover-menu';
 @import 'consul-ui/components/oidc-select';
 @import 'consul-ui/components/radio-card';
+@import 'consul-ui/components/panel';
+@import 'consul-ui/components/paged-collection';
 @import 'consul-ui/components/pill';
 @import 'consul-ui/components/popover-menu';
 @import 'consul-ui/components/popover-select';
 @import 'consul-ui/components/progress';
 @import 'consul-ui/components/radio-group';
-@import 'consul-ui/components/secret-button';
 @import 'consul-ui/components/sliding-toggle';
 @import 'consul-ui/components/table';
+@import 'consul-ui/components/tile';
 @import 'consul-ui/components/toggle-button';
 @import 'consul-ui/components/tabular-collection';
 @import 'consul-ui/components/tabular-details';
@@ -71,7 +74,7 @@
 @import 'consul-ui/components/informed-action';
 @import 'consul-ui/components/tab-nav';
 @import 'consul-ui/components/search-bar';
-@import 'consul-ui/components/certificate';
+@import 'consul-ui/components/copyable-code';
 
 @import 'consul-ui/components/consul/loader';
 @import 'consul-ui/components/consul/tomography/graph';
@@ -80,6 +83,7 @@
 @import 'consul-ui/components/consul/upstream/list';
 @import 'consul-ui/components/consul/upstream-instance/list';
 @import 'consul-ui/components/consul/health-check/list';
+@import 'consul-ui/components/consul/instance-checks';
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
@@ -87,10 +91,11 @@
 @import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';
+@import 'consul-ui/components/consul/server/list';
+@import 'consul-ui/components/consul/server/card';
 @import 'consul-ui/components/consul/auth-method';
 
 @import 'consul-ui/components/role-selector';
-@import 'consul-ui/components/collapsible-notices';
 @import 'consul-ui/components/topology-metrics';
 @import 'consul-ui/components/topology-metrics/card';
 @import 'consul-ui/components/topology-metrics/source-type';
@@ -98,3 +103,11 @@
 @import 'consul-ui/components/topology-metrics/series';
 @import 'consul-ui/components/topology-metrics/stats';
 @import 'consul-ui/components/topology-metrics/status';
+@import 'consul-ui/components/consul/intention/list/table';
+@import 'consul-ui/components/consul/peer';
+@import 'consul-ui/components/peerings/badge';
+@import 'consul-ui/components/consul/node/peer-info';
+@import 'consul-ui/components/consul/peer/info';
+@import 'consul-ui/components/consul/peer/form';
+@import 'consul-ui/components/consul/hcp/home';
+@import 'consul-ui/components/consul/node/agentless-notice';

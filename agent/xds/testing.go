@@ -83,6 +83,8 @@ type TestEnvoy struct {
 	proxyID string
 	token   string
 
+	EnvoyVersion string
+
 	deltaStream *TestADSDeltaStream // Incremental v3
 }
 
@@ -182,9 +184,14 @@ func (e *TestEnvoy) sendDeltaReq(
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	ev, valid := stringToEnvoyVersion(proxysupport.EnvoyVersions[0])
+	stringVersion := e.EnvoyVersion
+	if stringVersion == "" {
+		stringVersion = proxysupport.EnvoyVersions[0]
+	}
+
+	ev, valid := stringToEnvoyVersion(stringVersion)
 	if !valid {
-		t.Fatal("envoy version is not valid: %s", proxysupport.EnvoyVersions[0])
+		t.Fatal("envoy version is not valid: %s", stringVersion)
 	}
 
 	if req == nil {

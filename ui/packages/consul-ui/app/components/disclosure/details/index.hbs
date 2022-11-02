@@ -1,0 +1,16 @@
+{{#let
+  (unique-id)
+as |id|}}
+{{#if (or
+    (and (eq @auto undefined) @disclosure.expanded)
+    (and (not-eq @auto undefined) (eq @auto false))
+  )
+}}
+{{yield (hash
+  id=id
+  expanded=@disclosure.expanded
+)}}
+{{/if}}
+{{did-insert (fn @disclosure.add id)}}
+{{will-destroy (fn @disclosure.remove id)}}
+{{/let}}

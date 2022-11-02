@@ -3,12 +3,12 @@ package prepared_query
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 
-	"sort"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestWalk_ServiceQuery(t *testing.T) {
@@ -20,7 +20,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 
 	service := &structs.ServiceQuery{
 		Service: "the-service",
-		Failover: structs.QueryDatacenterOptions{
+		Failover: structs.QueryFailoverOptions{
 			Datacenters: []string{"dc1", "dc2"},
 		},
 		Near:           "_agent",
@@ -42,6 +42,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		".Tags[0]:tag1",
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",
+		".Peer:",
 	}
 	expected = append(expected, entMetaWalkFields...)
 	sort.Strings(expected)

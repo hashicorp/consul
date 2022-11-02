@@ -3,6 +3,10 @@
 
 package structs
 
-func (t *DiscoveryTarget) GetEnterpriseMetadata() *EnterpriseMeta {
+import (
+	"github.com/hashicorp/consul/acl"
+)
+
+func (t *DiscoveryTarget) GetEnterpriseMetadata() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }

@@ -1,0 +1,9 @@
+@keyframes icon-pin {
+  100% {
+
+    -webkit-mask-image: var(--icon-pin-16);
+    mask-image: var(--icon-pin-16);
+    background-color: var(--icon-color, var(--color-pin-500, currentColor));
+
+  }
+}

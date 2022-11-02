@@ -12,6 +12,7 @@ node_modules
 .pnp*
 .sass-cache
 .DS_Store
+.tool-versions
 connect.lock
 coverage
 coverage_*

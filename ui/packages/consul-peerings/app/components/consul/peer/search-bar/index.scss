@@ -1,0 +1,24 @@
+.consul-peer-search-bar {
+  li button span {
+    @extend %pill-500;
+  }
+  .value-pending span {
+    @extend %pill-pending;
+  }
+  .value-establishing span {
+    @extend %pill-establishing;
+  }
+  .value-active span {
+    @extend %pill-active;
+  }
+  .value-failing span {
+    @extend %pill-failing;
+  }
+  .value-terminated span {
+    @extend %pill-terminated;
+  }
+  .value-deleting span {
+    @extend %pill-deleting;
+  }
+}
+

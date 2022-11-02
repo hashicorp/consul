@@ -1,0 +1,9 @@
+@keyframes icon-gift-fill {
+  100% {
+
+    -webkit-mask-image: var(--icon-gift-16);
+    mask-image: var(--icon-gift-16);
+    background-color: var(--icon-color, var(--color-gift-fill-500, currentColor));
+
+  }
+}

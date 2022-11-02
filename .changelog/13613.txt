@@ -1,0 +1,4 @@
+```release-note:feature
+connect: Adds a new `destination` field to the `service-default` config entry that allows routing egress traffic
+through a terminating gateway in transparent proxy mode without modifying the catalog.
+```

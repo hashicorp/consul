@@ -7,7 +7,7 @@ import pages from 'consul-ui/tests/pages';
 
 import api from 'consul-ui/tests/helpers/api';
 
-export default function({ assert, utils, library }) {
+export default function ({ assert, utils, library }) {
   return steps({
     assert,
     utils,

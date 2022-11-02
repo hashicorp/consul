@@ -9,7 +9,7 @@
     }
   },
   "node": {
-    "cluster": "test-proxy",
+    "cluster": "test",
     "id": "test-proxy"
   },
   "custom_field": "foo"

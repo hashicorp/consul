@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	discoverhcp "github.com/hashicorp/consul/agent/hcp/discover"
 	discover "github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
 	"github.com/hashicorp/go-hclog"
@@ -114,6 +115,7 @@ func newDiscover() (*discover.Discover, error) {
 		providers[k] = v
 	}
 	providers["k8s"] = &discoverk8s.Provider{}
+	providers["hcp"] = &discoverhcp.Provider{}
 
 	return discover.New(
 		discover.WithUserAgent(lib.UserAgent()),
@@ -226,7 +228,8 @@ func (r *retryJoiner) retryJoin() error {
 	for {
 		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.logger)
 		if len(addrs) > 0 {
-			n, err := r.join(addrs)
+			n := 0
+			n, err = r.join(addrs)
 			if err == nil {
 				if r.variant == retryJoinMeshGatewayVariant {
 					r.logger.Info("Refreshing mesh gateways completed")

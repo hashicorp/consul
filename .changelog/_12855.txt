@@ -1,0 +1,3 @@
+```release-note:bug
+snapshot-agent: **(Enterprise only)** Fix a bug where providing the ACL token to the snapshot agent via a CLI or ENV variable without a license configured results in an error during license auto-retrieval.
+```

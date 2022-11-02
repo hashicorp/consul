@@ -1,0 +1,9 @@
+@keyframes icon-pause-circle {
+  100% {
+
+    -webkit-mask-image: var(--icon-pause-circle-16);
+    mask-image: var(--icon-pause-circle-16);
+    background-color: var(--icon-color, var(--color-pause-circle-500, currentColor));
+
+  }
+}

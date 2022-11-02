@@ -36,6 +36,8 @@ type cmd struct {
 	tokenSinkFile   string
 	meta            map[string]string
 
+	aws AWSLogin
+
 	enterpriseCmd
 }
 
@@ -57,10 +59,10 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.FlagMapValue)(&c.meta), "meta",
 		"Metadata to set on the token, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
-
 	c.initEnterpriseFlags()
 
 	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.aws.flags())
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
@@ -89,21 +91,38 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) bearerTokenLogin() int {
-	if c.bearerTokenFile == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-bearer-token-file' flag"))
-		return 1
-	}
-
-	data, err := ioutil.ReadFile(c.bearerTokenFile)
-	if err != nil {
+	if err := c.aws.checkFlags(); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	c.bearerToken = strings.TrimSpace(string(data))
 
-	if c.bearerToken == "" {
-		c.UI.Error(fmt.Sprintf("No bearer token found in %s", c.bearerTokenFile))
+	if c.aws.autoBearerToken {
+		if c.bearerTokenFile != "" {
+			c.UI.Error("Cannot use '-bearer-token-file' flag with '-aws-auto-bearer-token'")
+			return 1
+		}
+
+		if token, err := c.aws.createAWSBearerToken(); err != nil {
+			c.UI.Error(fmt.Sprintf("Error with aws-iam auth method: %s", err))
+			return 1
+		} else {
+			c.bearerToken = token
+		}
+	} else if c.bearerTokenFile == "" {
+		c.UI.Error("Missing required '-bearer-token-file' flag")
 		return 1
+	} else {
+		data, err := ioutil.ReadFile(c.bearerTokenFile)
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.bearerToken = strings.TrimSpace(string(data))
+
+		if c.bearerToken == "" {
+			c.UI.Error(fmt.Sprintf("No bearer token found in %s", c.bearerTokenFile))
+			return 1
+		}
 	}
 
 	// Ensure that we don't try to use a token when performing a login

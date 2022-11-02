@@ -1,11 +1,16 @@
 package fsm
 
 import (
-	"github.com/hashicorp/go-msgpack/codec"
+	"fmt"
+	"net"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func init() {
@@ -35,6 +40,9 @@ func init() {
 	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
 	registerRestorer(structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP)
 	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
+	registerRestorer(structs.PeeringWriteType, restorePeering)
+	registerRestorer(structs.PeeringTrustBundleWriteType, restorePeeringTrustBundle)
+	registerRestorer(structs.PeeringSecretsWriteType, restorePeeringSecrets)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -86,6 +94,15 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistIndex(sink, encoder); err != nil {
 		return err
 	}
+	if err := s.persistPeerings(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistPeeringTrustBundles(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistPeeringSecrets(sink, encoder); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -103,16 +120,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		n := node.(*structs.Node)
 		nodeEntMeta := n.GetEnterpriseMeta()
 
-		req := structs.RegisterRequest{
-			ID:              n.ID,
-			Node:            n.Node,
-			Datacenter:      n.Datacenter,
-			Address:         n.Address,
-			TaggedAddresses: n.TaggedAddresses,
-			NodeMeta:        n.Meta,
-			RaftIndex:       n.RaftIndex,
-			EnterpriseMeta:  *nodeEntMeta,
-		}
+		req := n.ToRegisterRequest()
 
 		// Register the node itself
 		if _, err := sink.Write([]byte{byte(structs.RegisterRequestType)}); err != nil {
@@ -123,7 +131,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services, err := s.state.Services(n.Node, nodeEntMeta)
+		services, err := s.state.Services(n.Node, nodeEntMeta, n.PeerName)
 		if err != nil {
 			return err
 		}
@@ -139,7 +147,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks, err := s.state.Checks(n.Node, nodeEntMeta)
+		checks, err := s.state.Checks(n.Node, nodeEntMeta, n.PeerName)
 		if err != nil {
 			return err
 		}
@@ -161,7 +169,6 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	if err != nil {
 		return err
 	}
-	// TODO(partitions)
 	for coord := coords.Next(); coord != nil; coord = coords.Next() {
 		if _, err := sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)}); err != nil {
 			return err
@@ -547,6 +554,60 @@ func (s *snapshot) persistVirtualIPs(sink raft.SnapshotSink, encoder *codec.Enco
 	return nil
 }
 
+func (s *snapshot) persistPeerings(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	peerings, err := s.state.Peerings()
+	if err != nil {
+		return err
+	}
+
+	for entry := peerings.Next(); entry != nil; entry = peerings.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.Peering)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *snapshot) persistPeeringTrustBundles(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	ptbs, err := s.state.PeeringTrustBundles()
+	if err != nil {
+		return err
+	}
+
+	for entry := ptbs.Next(); entry != nil; entry = ptbs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringTrustBundleWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.PeeringTrustBundle)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *snapshot) persistPeeringSecrets(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	secrets, err := s.state.PeeringSecrets()
+	if err != nil {
+		return err
+	}
+
+	for entry := secrets.Next(); entry != nil; entry = secrets.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringSecretsWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.PeeringSecrets)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -829,11 +890,43 @@ func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decod
 }
 
 func restoreServiceVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req state.ServiceVirtualIP
+	// state.ServiceVirtualIP was changed in a breaking way in 1.13.0 (2e4cb6f77d2be36b02e9be0b289b24e5b0afb794).
+	// We attempt to reconcile the older type by decoding to a map then decoding that map into
+	// structs.PeeredServiceName first, and then structs.ServiceName.
+	var req struct {
+		Service map[string]interface{}
+		IP      net.IP
+
+		structs.RaftIndex
+	}
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.ServiceVirtualIP(req); err != nil {
+
+	vip := state.ServiceVirtualIP{
+		IP:        req.IP,
+		RaftIndex: req.RaftIndex,
+	}
+
+	// PeeredServiceName is the expected primary key type.
+	var psn structs.PeeredServiceName
+	if err := mapstructure.Decode(req.Service, &psn); err != nil {
+		return fmt.Errorf("cannot decode to structs.PeeredServiceName: %w", err)
+	}
+	vip.Service = psn
+
+	// If the expected primary key field is empty, it must be the older ServiceName type.
+	if vip.Service.ServiceName.Name == "" {
+		var sn structs.ServiceName
+		if err := mapstructure.Decode(req.Service, &sn); err != nil {
+			return fmt.Errorf("cannot decode to structs.ServiceName: %w", err)
+		}
+		vip.Service = structs.PeeredServiceName{
+			ServiceName: sn,
+		}
+	}
+
+	if err := restore.ServiceVirtualIP(vip); err != nil {
 		return err
 	}
 	return nil
@@ -845,6 +938,39 @@ func restoreFreeVirtualIP(header *SnapshotHeader, restore *state.Restore, decode
 		return err
 	}
 	if err := restore.FreeVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeering(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.Peering
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.Peering(&req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeeringTrustBundle(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.PeeringTrustBundle
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.PeeringTrustBundle(&req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeeringSecrets(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.PeeringSecrets
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.PeeringSecrets(&req); err != nil {
 		return err
 	}
 	return nil

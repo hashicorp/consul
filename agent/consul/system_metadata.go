@@ -22,7 +22,9 @@ func (s *Server) setSystemMetadataKey(key, val string) error {
 		Entry: &structs.SystemMetadataEntry{Key: key, Value: val},
 	}
 
-	_, err := s.raftApply(structs.SystemMetadataRequestType, args)
+	// TODO(rpc-metrics-improv): Double check request name here
+	_, err := s.leaderRaftApply("SystemMetadata.Upsert", structs.SystemMetadataRequestType, args)
+
 	return err
 }
 
@@ -32,6 +34,8 @@ func (s *Server) deleteSystemMetadataKey(key string) error {
 		Entry: &structs.SystemMetadataEntry{Key: key},
 	}
 
-	_, err := s.raftApply(structs.SystemMetadataRequestType, args)
+	// TODO(rpc-metrics-improv): Double check request name here
+	_, err := s.leaderRaftApply("SystemMetadata.Delete", structs.SystemMetadataRequestType, args)
+
 	return err
 }

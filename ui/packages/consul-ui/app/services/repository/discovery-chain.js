@@ -21,7 +21,7 @@ export default class DiscoveryChainService extends RepositoryService {
     if (typeof datacenter !== 'undefined' && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }
-    return super.findBySlug(...arguments).catch(e => {
+    return super.findBySlug(...arguments).catch((e) => {
       const code = get(e, 'errors.firstObject.status');
       const body = (get(e, 'errors.firstObject.detail') || '').trim();
       switch (code) {

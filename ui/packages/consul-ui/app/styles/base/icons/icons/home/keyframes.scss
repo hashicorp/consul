@@ -1,0 +1,9 @@
+@keyframes icon-home {
+  100% {
+
+    -webkit-mask-image: var(--icon-home-16);
+    mask-image: var(--icon-home-16);
+    background-color: var(--icon-color, var(--color-home-500, currentColor));
+
+  }
+}

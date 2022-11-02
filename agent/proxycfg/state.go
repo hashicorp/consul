@@ -6,32 +6,26 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
+	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
 
-type CacheNotifier interface {
-	Notify(ctx context.Context, t string, r cache.Request,
-		correlationID string, ch chan<- cache.UpdateEvent) error
-}
-
-type Health interface {
-	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- cache.UpdateEvent) error
-}
-
 const (
 	coalesceTimeout                    = 200 * time.Millisecond
 	rootsWatchID                       = "roots"
+	peeringTrustBundlesWatchID         = "peering-trust-bundles"
 	leafWatchID                        = "leaf"
+	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
+	peeringServiceListWatchID          = "peering-service-list:"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
 	consulServerListWatchID            = "consul-server-list"
 	datacentersWatchID                 = "datacenters"
@@ -44,7 +38,14 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	peerServersWatchID                 = "peer-servers"
+	peeredUpstreamsID                  = "peered-upstreams"
+	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
+	upstreamPeerWatchIDPrefix          = "upstream-peer:"
+	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	DestinationConfigEntryID           = "destination:"
+	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second
@@ -53,8 +54,7 @@ const (
 type stateConfig struct {
 	logger                hclog.Logger
 	source                *structs.QuerySource
-	cache                 CacheNotifier
-	health                Health
+	dataSources           DataSources
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
@@ -64,6 +64,7 @@ type stateConfig struct {
 // connect-proxy service. When a proxy registration is changed, the entire state
 // is discarded and a new one created.
 type state struct {
+	source          ProxySource
 	logger          hclog.Logger
 	serviceInstance serviceInstance
 	handler         kindHandler
@@ -72,9 +73,21 @@ type state struct {
 	// in Watch.
 	cancel func()
 
-	ch     chan cache.UpdateEvent
+	// failedFlag is (atomically) set to 1 (by Close) when run exits because a data
+	// source is in an irrecoverable state. It can be read with failed.
+	failedFlag int32
+
+	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
+
+	rateLimiter *rate.Limiter
+}
+
+// failed returns whether run exited because a data source is in an
+// irrecoverable state.
+func (s *state) failed() bool {
+	return atomic.LoadInt32(&s.failedFlag) == 1
 }
 
 type DNSConfig struct {
@@ -87,7 +100,7 @@ type ServerSNIFunc func(dc, nodeName string) string
 type serviceInstance struct {
 	kind            structs.ServiceKind
 	service         string
-	proxyID         structs.ServiceID
+	proxyID         ProxyID
 	address         string
 	port            int
 	meta            map[string]string
@@ -100,15 +113,8 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	if ns == nil {
 		return structs.ConnectProxyConfig{}, nil
 	}
-	// Copy the config map
-	proxyCfgRaw, err := copystructure.Copy(ns.Proxy)
-	if err != nil {
-		return structs.ConnectProxyConfig{}, err
-	}
-	proxyCfg, ok := proxyCfgRaw.(structs.ConnectProxyConfig)
-	if !ok {
-		return structs.ConnectProxyConfig{}, errors.New("failed to copy proxy config")
-	}
+
+	proxyCfg := *(&ns.Proxy).DeepCopy()
 
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
@@ -124,6 +130,14 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 			if us.DestinationNamespace == "" {
 				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
 			}
+
+			// If PeerName is not empty, the DestinationPartition refers
+			// to the local Partition in which the Peer exists and the
+			// DestinationNamespace refers to the Namespace residing in
+			// the remote peer
+			if us.DestinationPeer == "" {
+				proxyCfg.Upstreams[idx].DestinationPeer = ns.PeerName
+			}
 		}
 	}
 
@@ -137,7 +151,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(ns *structs.NodeService, token string, config stateConfig) (*state, error) {
+func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig, rateLimiter *rate.Limiter) (*state, error) {
 	// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 	// reasonable number of upstream watches to all deliver their initial
 	// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -145,17 +159,35 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	// conservative to handle larger numbers of upstreams correctly but gives
 	// some head room for normal operation to be non-blocking in most typical
 	// cases.
-	ch := make(chan cache.UpdateEvent, 10)
+	ch := make(chan UpdateEvent, 10)
 
-	s, err := newServiceInstanceFromNodeService(ns, token)
+	s, err := newServiceInstanceFromNodeService(id, ns, token)
 	if err != nil {
 		return nil, err
 	}
 
+	handler, err := newKindHandler(config, s, ch)
+	if err != nil {
+		return nil, err
+	}
+
+	return &state{
+		source:          source,
+		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
+		serviceInstance: s,
+		handler:         handler,
+		ch:              ch,
+		snapCh:          make(chan ConfigSnapshot, 1),
+		reqCh:           make(chan chan *ConfigSnapshot, 1),
+		rateLimiter:     rateLimiter,
+	}, nil
+}
+
+func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) (kindHandler, error) {
 	var handler kindHandler
 	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
 
-	switch ns.Kind {
+	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		handler = &handlerConnectProxy{handlerState: h}
 	case structs.ServiceKindTerminatingGateway:
@@ -170,17 +202,10 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
 
-	return &state{
-		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
-		serviceInstance: s,
-		handler:         handler,
-		ch:              ch,
-		snapCh:          make(chan ConfigSnapshot, 1),
-		reqCh:           make(chan chan *ConfigSnapshot, 1),
-	}, nil
+	return handler, nil
 }
 
-func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (serviceInstance, error) {
+func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, token string) (serviceInstance, error) {
 	proxyCfg, err := copyProxyConfig(ns)
 	if err != nil {
 		return serviceInstance{}, err
@@ -199,7 +224,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 	return serviceInstance{
 		kind:            ns.Kind,
 		service:         ns.Service,
-		proxyID:         ns.CompoundServiceID(),
+		proxyID:         id,
 		address:         ns.Address,
 		port:            ns.Port,
 		meta:            meta,
@@ -211,7 +236,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 
 type kindHandler interface {
 	initialize(ctx context.Context) (ConfigSnapshot, error)
-	handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error
+	handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error
 }
 
 // Watch initialized watches on all necessary cache data for the current proxy
@@ -234,9 +259,12 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 }
 
 // Close discards the state and stops any long-running watches.
-func (s *state) Close() error {
+func (s *state) Close(failed bool) error {
 	if s.cancel != nil {
 		s.cancel()
+	}
+	if failed {
+		atomic.StoreInt32(&s.failedFlag, 1)
 	}
 	return nil
 }
@@ -244,7 +272,7 @@ func (s *state) Close() error {
 type handlerState struct {
 	stateConfig     // TODO: un-embed
 	serviceInstance // TODO: un-embed
-	ch              chan cache.UpdateEvent
+	ch              chan UpdateEvent
 }
 
 func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig) ConfigSnapshot {
@@ -279,12 +307,35 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 	sendCh := make(chan struct{})
 	var coalesceTimer *time.Timer
 
+	scheduleUpdate := func() {
+		// Wait for MAX(<rate limiter delay>, coalesceTimeout)
+		delay := s.rateLimiter.Reserve().Delay()
+		if delay < coalesceTimeout {
+			delay = coalesceTimeout
+		}
+		coalesceTimer = time.AfterFunc(delay, func() {
+			// This runs in another goroutine so we can't just do the send
+			// directly here as access to snap is racy. Instead, signal the main
+			// loop above.
+			select {
+			case sendCh <- struct{}{}:
+			case <-ctx.Done():
+			}
+		})
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case u := <-s.ch:
-			s.logger.Trace("A blocking query returned; handling snapshot update", "correlationID", u.CorrelationID)
+			s.logger.Trace("Data source returned; handling snapshot update", "correlationID", u.CorrelationID)
+
+			if IsTerminalError(u.Err) {
+				s.logger.Error("Data source in an irrecoverable state; exiting", "error", u.Err, "correlationID", u.CorrelationID)
+				s.Close(true)
+				return
+			}
 
 			if err := s.handler.handleUpdate(ctx, u, snap); err != nil {
 				s.logger.Error("Failed to handle update from watch",
@@ -298,11 +349,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
+			snapCopy := snap.Clone()
 
 			select {
 			// Try to send
@@ -319,9 +366,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-					sendCh <- struct{}{}
-				})
+				scheduleUpdate()
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -339,12 +384,7 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
-			snapCopy, err := snap.Clone()
-			if err != nil {
-				s.logger.Error("Failed to copy config snapshot for proxy", "error", err)
-				continue
-			}
-			replyCh <- snapCopy
+			replyCh <- snap.Clone()
 
 			// Skip rest of loop - there is nothing to send since nothing changed on
 			// this iteration
@@ -354,15 +394,10 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 		// Check if snap is complete enough to be a valid config to deliver to a
 		// proxy yet.
 		if snap.Valid() {
-			// Don't send it right away, set a short timer that will wait for updates
-			// from any of the other cache values and deliver them all together.
 			if coalesceTimer == nil {
-				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-					// This runs in another goroutine so we can't just do the send
-					// directly here as access to snap is racy. Instead, signal the main
-					// loop above.
-					sendCh <- struct{}{}
-				})
+				// Don't send it right away, set a short timer that will wait for updates
+				// from any of the other cache values and deliver them all together.
+				scheduleUpdate()
 			}
 		}
 	}
@@ -393,7 +428,6 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 
 	i := s.serviceInstance
 	return ns.Kind != i.kind ||
-		i.proxyID != ns.CompoundServiceID() ||
 		i.address != ns.Address ||
 		i.port != ns.Port ||
 		!reflect.DeepEqual(i.proxyCfg, proxyCfg) ||
@@ -412,7 +446,7 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 	)
 
 	for _, n := range nodes {
-		addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
+		_, addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
 		if net.ParseIP(addr) != nil {
 			hasIP = true
 			continue
@@ -432,21 +466,28 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 }
 
 type gatewayWatchOpts struct {
-	notifier   CacheNotifier
-	notifyCh   chan cache.UpdateEvent
-	source     structs.QuerySource
-	token      string
-	key        GatewayKey
-	upstreamID UpstreamID
+	internalServiceDump InternalServiceDump
+	notifyCh            chan UpdateEvent
+	source              structs.QuerySource
+	token               string
+	key                 GatewayKey
+	upstreamID          UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
-	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+	var correlationId string
+	if opts.upstreamID.Name == "" {
+		correlationId = fmt.Sprintf("mesh-gateway:%s", opts.key.String())
+	} else {
+		correlationId = fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String())
+	}
+
+	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
+	}, correlationId, opts.notifyCh)
 }

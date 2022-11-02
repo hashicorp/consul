@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -80,6 +79,12 @@ const (
 	// HTTPPartitionEnvName defines an environment variable name which sets
 	// the HTTP Partition to be used by default. This can still be overridden.
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
+
+	// QueryBackendStreaming Query backend of type streaming
+	QueryBackendStreaming = "streaming"
+
+	// QueryBackendBlockingQuery Query backend of type blocking query
+	QueryBackendBlockingQuery = "blocking-query"
 )
 
 type StatusError struct {
@@ -104,6 +109,9 @@ type QueryOptions struct {
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
+
+	// Providing a peer name in the query option
+	Peer string
 
 	// AllowStale allows any Consul server (non-leader) to service
 	// a read. This allows for lower latency and higher throughput
@@ -184,6 +192,12 @@ type QueryOptions struct {
 	// Filter requests filtering data prior to it being returned. The string
 	// is a go-bexpr compatible expression.
 	Filter string
+
+	// MergeCentralConfig returns a service definition merged with the
+	// proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -277,6 +291,9 @@ type QueryMeta struct {
 	// response is.
 	CacheAge time.Duration
 
+	// QueryBackend represent which backend served the request.
+	QueryBackend string
+
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
 	// defined policy. This can be "allow" which means ACLs are used to
 	// deny-list, or "deny" which means ACLs are allow-lists.
@@ -310,6 +327,11 @@ type Config struct {
 
 	// Scheme is the URI scheme for the Consul server
 	Scheme string
+
+	// Prefix for URIs for when consul is behind an API gateway (reverse
+	// proxy).  The API gateway must strip off the PathPrefix before
+	// passing the request onto consul.
+	PathPrefix string
 
 	// Datacenter to use. If not provided, the default agent datacenter is used.
 	Datacenter string
@@ -703,13 +725,25 @@ func NewClient(config *Config) (*Client, error) {
 			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
+
+		// separate out a reverse proxy prefix, if it is present.
+		// NOTE: Rewriting this code to use url.Parse() instead of
+		// strings.SplitN() breaks existing test cases.
+		switch parts[0] {
+		case "http", "https":
+			parts := strings.SplitN(parts[1], "/", 2)
+			if len(parts) == 2 {
+				config.Address = parts[0]
+				config.PathPrefix = "/" + parts[1]
+			}
+		}
 	}
 
 	// If the TokenFile is set, always use that, even if a Token is configured.
 	// This is because when TokenFile is set it is read into the Token field.
 	// We want any derived clients to have to re-read the token file.
 	if config.TokenFile != "" {
-		data, err := ioutil.ReadFile(config.TokenFile)
+		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error loading token file: %s", err)
 		}
@@ -780,6 +814,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
+	if q.Peer != "" {
+		r.params.Set("peer", q.Peer)
+	}
 	if q.AllowStale {
 		r.params.Set("stale", "")
 	}
@@ -831,6 +868,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		if len(cc) > 0 {
 			r.header.Set("Cache-Control", strings.Join(cc, ", "))
 		}
+	}
+	if q.MergeCentralConfig {
+		r.params.Set("merge-central-config", "")
 	}
 
 	r.ctx = q.ctx
@@ -944,7 +984,7 @@ func (c *Client) newRequest(method, path string) *request {
 		url: &url.URL{
 			Scheme: c.config.Scheme,
 			Host:   c.config.Address,
-			Path:   path,
+			Path:   c.config.PathPrefix + path,
 		},
 		params: make(map[string][]string),
 		header: c.Headers(),
@@ -1024,7 +1064,7 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 		if err := decodeBody(resp, &out); err != nil {
 			return nil, err
 		}
-	} else if _, err := ioutil.ReadAll(resp.Body); err != nil {
+	} else if _, err := io.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
 	return wm, nil
@@ -1096,6 +1136,10 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.CacheAge = time.Duration(age) * time.Second
 	}
 
+	switch v := header.Get("X-Consul-Query-Backend"); v {
+	case QueryBackendStreaming, QueryBackendBlockingQuery:
+		q.QueryBackend = v
+	}
 	return nil
 }
 
@@ -1138,7 +1182,7 @@ func requireHttpCodes(resp *http.Response, httpCodes ...int) error {
 // is necessary to ensure that the http.Client's underlying RoundTripper is able
 // to re-use the TCP connection. See godoc on net/http.Client.Do.
 func closeResponseBody(resp *http.Response) error {
-	_, _ = io.Copy(ioutil.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, resp.Body)
 	return resp.Body.Close()
 }
 

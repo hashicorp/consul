@@ -1,0 +1,9 @@
+@keyframes icon-play {
+  100% {
+
+    -webkit-mask-image: var(--icon-play-16);
+    mask-image: var(--icon-play-16);
+    background-color: var(--icon-color, var(--color-play-500, currentColor));
+
+  }
+}

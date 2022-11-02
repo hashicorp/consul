@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -30,15 +31,11 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		return s.routesForIngressGateway(
-			cfgSnap.IngressGateway.Listeners,
-			cfgSnap.IngressGateway.Upstreams,
-			cfgSnap.IngressGateway.DiscoveryChain,
-		)
+		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
+		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
-		return nil, nil // mesh gateways will never have routes
+		return s.routesForMeshGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -49,17 +46,18 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		if chain.IsDefault() {
+		if chain.Default {
 			continue
 		}
 
 		explicit := cfgSnap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
-		virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, []string{"*"})
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
 		if err != nil {
 			return nil, err
 		}
@@ -74,14 +72,65 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 		resources = append(resources, route)
 	}
+	addressesMap := make(map[string]map[string]string)
+	err := cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig == nil {
+			return nil
+		}
+		if !structs.IsProtocolHTTPLike(svcConfig.Protocol) {
+			// Routes can only be defined for HTTP services
+			return nil
+		}
+
+		for _, address := range svcConfig.Destination.Addresses {
+
+			routeName := clusterNameForDestination(cfgSnap, "~http", fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
+			if _, ok := addressesMap[routeName]; !ok {
+				addressesMap[routeName] = make(map[string]string)
+			}
+			// cluster name is unique per address/port so we should not be doing any override here
+			clusterName := clusterNameForDestination(cfgSnap, svcConfig.Name, address, svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
+			addressesMap[routeName][clusterName] = address
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for routeName, clusters := range addressesMap {
+		routes, err := s.makeRoutesForAddresses(routeName, clusters)
+		if err != nil {
+			return nil, err
+		}
+		if routes != nil {
+			resources = append(resources, routes...)
+		}
+	}
 
 	// TODO(rb): make sure we don't generate an empty result
 	return resources, nil
 }
 
+func (s *ResourceGenerator) makeRoutesForAddresses(routeName string, addresses map[string]string) ([]proto.Message, error) {
+
+	var resources []proto.Message
+
+	route, err := makeNamedAddressesRoute(routeName, addresses)
+	if err != nil {
+		s.Logger.Error("failed to make route", "cluster", "error", err)
+		return nil, err
+	}
+	resources = append(resources, route)
+
+	return resources, nil
+}
+
 // routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
 // For any HTTP service we will return a default route.
-func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -89,45 +138,137 @@ func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxyc
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
-
-		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
-
-		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config: %v", err)
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn(
+				"failed to parse Proxy.Config",
+				"service", svc.String(),
+				"error", err,
+			)
 		}
 		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
 			// Routes can only be defined for HTTP services
 			continue
 		}
-
-		if !hasResolver {
-			// Use a zero value resolver with no timeout and no subsets
-			resolver = &structs.ServiceResolverConfigEntry{}
+		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, true)
+		if err != nil {
+			return nil, err
 		}
-
-		var lb *structs.LoadBalancer
-		if resolver.LoadBalancer != nil {
-			lb = resolver.LoadBalancer
+		if routes != nil {
+			resources = append(resources, routes...)
 		}
+	}
+
+	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		for _, address := range svcConfig.Destination.Addresses {
+			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
+			cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+			if err != nil {
+				// Don't hard fail on a config typo, just warn. The parse func returns
+				// default config if there is an error so it's safe to continue.
+				s.Logger.Warn(
+					"failed to parse Proxy.Config",
+					"service", svc.String(),
+					"error", err,
+				)
+			}
+			if !structs.IsProtocolHTTPLike(cfg.Protocol) {
+				// Routes can only be defined for HTTP services
+				continue
+			}
+			routes, err := s.makeRoutes(cfgSnap, svc, clusterName, false)
+			if err != nil {
+				return nil, err
+			}
+			if routes != nil {
+				resources = append(resources, routes...)
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makeRoutes(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	clusterName string,
+	autoHostRewrite bool) ([]proto.Message, error) {
+	resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+	if !hasResolver {
+		// Use a zero value resolver with no timeout and no subsets
+		resolver = &structs.ServiceResolverConfigEntry{}
+	}
+
+	var resources []proto.Message
+	var lb *structs.LoadBalancer
+	if resolver.LoadBalancer != nil {
+		lb = resolver.LoadBalancer
+	}
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, autoHostRewrite)
+	if err != nil {
+		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
+		return nil, err
+	}
+	resources = append(resources, route)
+
+	// If there is a service-resolver for this service then also setup routes for each subset
+	for name := range resolver.Subsets {
+		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
-			continue
+			return nil, err
 		}
 		resources = append(resources, route)
+	}
+	return resources, nil
+}
 
-		// If there is a service-resolver for this service then also setup routes for each subset
-		for name := range resolver.Subsets {
-			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
-			if err != nil {
-				s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
-				continue
-			}
-			resources = append(resources, route)
+func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	if cfgSnap == nil {
+		return nil, errors.New("nil config given")
+	}
+
+	var resources []proto.Message
+	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
+		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
+
+		if !structs.IsProtocolHTTPLike(chain.Protocol) {
+			continue // ignore; not relevant
 		}
+
+		if cfgSnap.MeshGateway.Leaf == nil {
+			continue // ignore; not ready
+		}
+
+		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
+
+		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(
+			cfgSnap,
+			uid,
+			chain,
+			[]string{"*"},
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		route := &envoy_route_v3.RouteConfiguration{
+			Name:         uid.EnvoyID(),
+			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
+			// ValidateClusters defaults to true when defined statically and false
+			// when done via RDS. Re-set the reasonable value of true to prevent
+			// null-routing traffic.
+			ValidateClusters: makeBoolValue(true),
+		}
+		resources = append(resources, route)
 	}
 
 	return resources, nil
@@ -168,16 +309,41 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 	}, nil
 }
 
+func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*envoy_route_v3.RouteConfiguration, error) {
+	route := &envoy_route_v3.RouteConfiguration{
+		Name: routeName,
+		// ValidateClusters defaults to true when defined statically and false
+		// when done via RDS. Re-set the reasonable value of true to prevent
+		// null-routing traffic.
+		ValidateClusters: makeBoolValue(true),
+	}
+	for clusterName, address := range addresses {
+		action := makeRouteActionFromName(clusterName)
+		virtualHost := &envoy_route_v3.VirtualHost{
+			Name:    clusterName,
+			Domains: []string{address},
+			Routes: []*envoy_route_v3.Route{
+				{
+					Match:  makeDefaultRouteMatch(),
+					Action: action,
+				},
+			},
+		}
+		route.VirtualHosts = append(route.VirtualHosts, virtualHost)
+	}
+
+	// sort virtual hosts to have a stable order
+	sort.SliceStable(route.VirtualHosts, func(i, j int) bool {
+		return route.VirtualHosts[i].Name > route.VirtualHosts[j].Name
+	})
+	return route, nil
+}
+
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
-func (s *ResourceGenerator) routesForIngressGateway(
-	listeners map[proxycfg.IngressListenerKey]structs.IngressListener,
-	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
-	chains map[proxycfg.UpstreamID]*structs.CompiledDiscoveryChain,
-) ([]proto.Message, error) {
-
+func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
-	for listenerKey, upstreams := range upstreams {
+	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		// Do not create any route configuration for TCP listeners
 		if listenerKey.Protocol == "tcp" {
 			continue
@@ -196,27 +362,28 @@ func (s *ResourceGenerator) routesForIngressGateway(
 
 		for _, u := range upstreams {
 			uid := proxycfg.NewUpstreamID(&u)
-			chain := chains[uid]
+			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
 			if chain == nil {
 				continue
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, domains)
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
 			}
 
 			// Lookup listener and service config details from ingress gateway
 			// definition.
-			lCfg, ok := listeners[listenerKey]
+			lCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 			if !ok {
-				return nil, fmt.Errorf("missing ingress listener config (listener on port %d)", listenerKey.Port)
+				return nil, fmt.Errorf("missing ingress listener config (service %q listener on proto/port %s/%d)",
+					u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
 			}
 			svc := findIngressServiceMatchingUpstream(lCfg, u)
 			if svc == nil {
-				return nil, fmt.Errorf("missing service in listener config (service %q listener on port %d)",
-					u.DestinationID(), listenerKey.Port)
+				return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
+					u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
 			}
 
 			if err := injectHeaderManipToVirtualHost(svc, virtualHost); err != nil {
@@ -334,16 +501,24 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	return domains
 }
 
-func makeUpstreamRouteForDiscoveryChain(
-	routeName string,
+func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	uid proxycfg.UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
+	forMeshGateway bool,
 ) (*envoy_route_v3.VirtualHost, error) {
+	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+	}
+
+	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
+	if err != nil && !forMeshGateway {
+		return nil, err
 	}
 
 	switch startNode.Type {
@@ -367,13 +542,17 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
+				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)
 				if err != nil {
 					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
+				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
+				if !ok {
+					continue
+				}
+				routeAction = ra
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -395,29 +574,11 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.RequestTimeout > 0 {
-					routeAction.Route.Timeout = ptypes.DurationProto(destination.RequestTimeout)
+					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
-					retryPolicy := &envoy_route_v3.RetryPolicy{}
-					if destination.NumRetries > 0 {
-						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
-					}
-
-					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
-					if destination.RetryOnConnectFailure {
-						retryPolicy.RetryOn = "connect-failure"
-					}
-					if len(destination.RetryOnStatusCodes) > 0 {
-						if retryPolicy.RetryOn != "" {
-							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
-						} else {
-							retryPolicy.RetryOn = "retriable-status-codes"
-						}
-						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
-					}
-
-					routeAction.Route.RetryPolicy = retryPolicy
+					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
 				}
 
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
@@ -432,11 +593,10 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
+		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
 		if err != nil {
 			return nil, err
 		}
-
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -453,8 +613,10 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
-
+		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
+		if !ok {
+			break
+		}
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -481,6 +643,43 @@ func makeUpstreamRouteForDiscoveryChain(
 	}
 
 	return host, nil
+}
+
+func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
+	retryPolicy := &envoy_route_v3.RetryPolicy{}
+	if destination.NumRetries > 0 {
+		retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+	}
+
+	// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+	var retryStrings []string
+
+	if len(destination.RetryOn) > 0 {
+		retryStrings = append(retryStrings, destination.RetryOn...)
+	}
+
+	if destination.RetryOnConnectFailure {
+		// connect-failure can be enabled by either adding connect-failure to the RetryOn list or by using the legacy RetryOnConnectFailure option
+		// Check that it's not already in the RetryOn list, so we don't set it twice
+		connectFailureExists := false
+		for _, r := range retryStrings {
+			if r == "connect-failure" {
+				connectFailureExists = true
+			}
+		}
+		if !connectFailureExists {
+			retryStrings = append(retryStrings, "connect-failure")
+		}
+	}
+
+	if len(destination.RetryOnStatusCodes) > 0 {
+		retryStrings = append(retryStrings, "retriable-status-codes")
+		retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
+	}
+
+	retryPolicy.RetryOn = strings.Join(retryStrings, ",")
+
+	return retryPolicy
 }
 
 func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
@@ -615,9 +814,17 @@ func makeDefaultRouteMatch() *envoy_route_v3.RouteMatch {
 	}
 }
 
-func makeRouteActionForChainCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoy_route_v3.Route_Route {
-	target := chain.Targets[targetID]
-	return makeRouteActionFromName(CustomizeClusterName(target.Name, chain))
+func (s *ResourceGenerator) makeRouteActionForChainCluster(
+	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+	targetID string,
+	chain *structs.CompiledDiscoveryChain,
+	forMeshGateway bool,
+) (*envoy_route_v3.Route_Route, bool) {
+	td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+	if !ok {
+		return nil, false
+	}
+	return makeRouteActionFromName(td.clusterName), true
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -630,7 +837,12 @@ func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
 	}
 }
 
-func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain) (*envoy_route_v3.Route_Route, error) {
+func (s *ResourceGenerator) makeRouteActionForSplitter(
+	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+	splits []*structs.DiscoverySplit,
+	chain *structs.CompiledDiscoveryChain,
+	forMeshGateway bool,
+) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
@@ -640,15 +852,16 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 		}
 		targetID := nextNode.Resolver.Target
 
-		target := chain.Targets[targetID]
-
-		clusterName := CustomizeClusterName(target.Name, chain)
+		targetOptions, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+		if !ok {
+			continue
+		}
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: makeUint32Value(int(split.Weight * 100)),
-			Name:   clusterName,
+			Name:   targetOptions.clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
 			return nil, err
@@ -707,12 +920,12 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 				cookie.Path = policy.CookieConfig.Path
 
 				if policy.CookieConfig.TTL != 0*time.Second {
-					cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+					cookie.Ttl = durationpb.New(policy.CookieConfig.TTL)
 				}
 
 				// Envoy will generate a session cookie if the ttl is present and zero.
 				if policy.CookieConfig.Session {
-					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
+					cookie.Ttl = durationpb.New(0 * time.Second)
 				}
 			}
 			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{

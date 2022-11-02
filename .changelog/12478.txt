@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: In the datacenter selector order Datacenters by Primary, Local then alpanumerically
+```

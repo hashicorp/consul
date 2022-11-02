@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 const (
@@ -42,6 +43,8 @@ func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
 	if info.Revision != "" {
 		buffer.WriteString(fmt.Sprintf("Revision %s\n", info.Revision))
 	}
+
+	buffer.WriteString(fmt.Sprintf("Build Date %s\n", info.BuildDate.Format(time.RFC3339)))
 
 	var supplement string
 	if info.RPC.Default < info.RPC.Max {

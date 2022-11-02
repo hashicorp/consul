@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/flags"
@@ -46,6 +47,7 @@ type VersionInfo struct {
 	Version      string
 	Revision     string
 	Prerelease   string
+	BuildDate    time.Time
 	RPC          RPCVersionInfo
 }
 
@@ -59,11 +61,20 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
+
+	// We parse this here because consul version is used in our 'smoke' tests and we want to fail early
+	buildDate, err := time.Parse(time.RFC3339, version.BuildDate)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	out, err := formatter.Format(&VersionInfo{
 		HumanVersion: version.GetHumanVersion(),
 		Version:      version.Version,
 		Revision:     version.GitCommit,
 		Prerelease:   version.VersionPrerelease,
+		BuildDate:    buildDate,
 		RPC: RPCVersionInfo{
 			Default: consul.DefaultRPCProtocol,
 			Min:     int(consul.ProtocolVersionMin),

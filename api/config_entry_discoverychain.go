@@ -72,6 +72,7 @@ type ServiceRouteDestination struct {
 	NumRetries            uint32               `json:",omitempty" alias:"num_retries"`
 	RetryOnConnectFailure bool                 `json:",omitempty" alias:"retry_on_connect_failure"`
 	RetryOnStatusCodes    []uint32             `json:",omitempty" alias:"retry_on_status_codes"`
+	RetryOn               []string             `json:",omitempty" alias:"retry_on"`
 	RequestHeaders        *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders       *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
@@ -219,14 +220,25 @@ type ServiceResolverRedirect struct {
 	Namespace     string `json:",omitempty"`
 	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 }
 
 type ServiceResolverFailover struct {
 	Service       string `json:",omitempty"`
 	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 	// Referencing other partitions is not supported.
-	Namespace   string   `json:",omitempty"`
-	Datacenters []string `json:",omitempty"`
+	Namespace   string                          `json:",omitempty"`
+	Datacenters []string                        `json:",omitempty"`
+	Targets     []ServiceResolverFailoverTarget `json:",omitempty"`
+}
+
+type ServiceResolverFailoverTarget struct {
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+	Partition     string `json:",omitempty"`
+	Namespace     string `json:",omitempty"`
+	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

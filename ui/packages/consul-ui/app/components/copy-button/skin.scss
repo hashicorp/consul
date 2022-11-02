@@ -1,22 +1,22 @@
 %copy-button {
   color: rgb(var(--tone-blue-500));
-  background-color: var(--transparent);
+  --icon-color: var(--transparent);
 }
 %copy-button::before {
   @extend %with-copy-action-mask, %as-pseudo;
-  background-color: rgb(var(--tone-gray-500));
+  --icon-color: rgb(var(--tone-gray-500));
 }
 %copy-button::after {
-  background-color: rgb(var(--tone-gray-050));
+  --icon-color: rgb(var(--tone-gray-050));
 }
 %copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
   color: rgb(var(--tone-blue-500));
-  background-color: rgb(var(--tone-gray-050));
+  --icon-color: rgb(var(--tone-gray-050));
 }
 %copy-button:hover::before {
-  background-color: rgb(var(--tone-blue-500));
+  --icon-color: rgb(var(--tone-blue-500));
 }
 %copy-button:active {
-  background-color: rgb(var(--tone-gray-200));
+  --icon-color: rgb(var(--tone-gray-200));
 }

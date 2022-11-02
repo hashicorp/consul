@@ -1,0 +1,9 @@
+@keyframes icon-exit {
+  100% {
+
+    -webkit-mask-image: var(--icon-external-link-16);
+    mask-image: var(--icon-external-link-16);
+    background-color: var(--icon-color, var(--color-exit-500, currentColor));
+
+  }
+}

@@ -49,7 +49,7 @@ remote storage.
 
 Snapshots can be restored using the
 [`consul snapshot restore`](/commands/snapshot/restore) command, or
-the [HTTP API](/api/snapshot).
+the [HTTP API](/api-docs/snapshot).
 
 ## ACL permissions
 
@@ -118,11 +118,7 @@ snapshot agent is deployed across more than one host.
 
 Usage: `consul snapshot agent [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Config File Options:
+#### Config File Options
 
 - `-config-dir` - Directory to look for JSON config files. Files will be read in
   alphabetical order and must end with the extension ".json". This won't
@@ -147,6 +143,12 @@ Usage: `consul snapshot agent [options]`
     "key_file": "",
     "license_path": "",
     "tls_server_name": "",
+    "login": {
+      "auth_method": "",
+      "bearer_token": "",
+      "bearer_token_file": "",
+      "meta": {},
+    },
     "log": {
       "level": "INFO",
       "enable_syslog": false,
@@ -172,7 +174,8 @@ Usage: `consul snapshot agent [options]`
       "s3_bucket": "",
       "s3_key_prefix": "consul-snapshot",
       "s3_server_side_encryption": false,
-      "s3_static_snapshot_name": ""
+      "s3_static_snapshot_name": "",
+      "s3_force_path_style": false
     },
     "azure_blob_storage": {
       "account_name": "",
@@ -229,7 +232,7 @@ if desired.
   provided, this will be disabled. Defaults to "72h".
 
 - `-log-level` - Controls verbosity of snapshot agent logs. Valid options are
-  "TRACE", "DEBUG", "INFO", "WARN", "ERR". Defaults to "INFO".
+  "trace", "debug", "info", "warn", "error". Defaults to "info".
 
 - `-service` - The service name to used when registering the agent with Consul.
   Registering helps monitor running agents and the leader registers an additional
@@ -240,6 +243,16 @@ if desired.
 
 - `-syslog-facility` - Sets the facility to use for forwarding logs to syslog.
   Defaults to "LOCAL0".
+
+- `login-auth-method` - Auth method name to use to log into Consul. If provided, the token obtained with this auth method
+   will be used instead of a static token if it is provided. Currently, only `kubernetes` auth method type is supported.
+
+- `login-bearer-token` - Bearer token to use to log into Consul. Used only if `-login-auth-method` is set.
+
+- `login-bearer-token-file` - A file container bearer token to use for logging into Consul.
+  `-login-bearer-token` is ignored if this flag is provided.
+
+- `login-meta` - Metadata to set on the token, formatted as key=value. This flag may be provided multiple times.
 
 #### Local Storage Options
 
@@ -278,6 +291,10 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or version snapshots, and will save them with the same name each time.
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
+
+- `-aws-s3-force-path-style` - Enables the use of legacy path-based addressing instead of virtual addressing. This flag is required by minio
+  and other 3rd party S3 compatible object storage platforms where DNS or TLS requirements for virtual addressing are prohibitive.
+For more information, refer to the AWS documentation on [Methods for accessing a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html)
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
 
@@ -353,6 +370,10 @@ This integration needs the following information:
 
 - `-gcs-bucket` supplies the bucket to use.
 
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
 ## Examples
 
 Running the agent with no arguments will run a long-running daemon process that will
@@ -372,7 +393,7 @@ leader election or service registration:
 $ consul snapshot agent -interval=0
 ```
 
-Please see the [HTTP API](/api/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.
 
 ## Licensing
@@ -389,6 +410,6 @@ then the order of precedence is as follows:
 2. `CONSUL_LICENSE_PATH` variable
 3. `license_path` configuration.
 
-The ability to load licenses from the configuration or environment was added in v1.10.0, 
-v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for 
+The ability to load licenses from the configuration or environment was added in v1.10.0,
+v1.9.7 and v1.8.13. See the [licensing documentation](/docs/enterprise/license/overview) for
 more information about Consul Enterprise license management.

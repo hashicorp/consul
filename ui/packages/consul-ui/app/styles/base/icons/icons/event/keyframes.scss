@@ -1,0 +1,9 @@
+@keyframes icon-event {
+  100% {
+
+    -webkit-mask-image: var(--icon-event-16);
+    mask-image: var(--icon-event-16);
+    background-color: var(--icon-color, var(--color-event-500, currentColor));
+
+  }
+}

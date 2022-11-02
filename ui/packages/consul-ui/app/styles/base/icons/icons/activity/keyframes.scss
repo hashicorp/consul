@@ -1,0 +1,9 @@
+@keyframes icon-activity {
+  100% {
+
+    -webkit-mask-image: var(--icon-activity-16);
+    mask-image: var(--icon-activity-16);
+    background-color: var(--icon-color, var(--color-activity-500, currentColor));
+
+  }
+}

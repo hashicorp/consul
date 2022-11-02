@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: Service Sync - Kubernetes
+page_title: Service Sync for Consul on Kubernetes
 description: >-
-  The services in Kubernetes and Consul can be automatically synced so that
-  Kubernetes services are available to Consul agents and services in Consul can
-  be available as first-class Kubernetes services.
+  Service sync is a Consul on Kubernetes feature that makes Kubernetes and Consul services available to each other. Learn how to configure Helm values so services can communicate and make Kubernetes services appear in the Consul UI.
 ---
 
-# Syncing Kubernetes and Consul Services
+# Service Sync for Consul on Kubernetes
 
 The services in Kubernetes and Consul can be automatically synced so that Kubernetes
 services are available to Consul agents and services in Consul can be available
@@ -31,6 +29,8 @@ environment variables, etc. This makes it very easy to automate external
 service discovery, including hosted services like databases.
 
 ## Installation and Configuration
+
+~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Please ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/docs/k8s/service-sync#sync-enable-disable).
 
 The service sync is done using an external long-running process in the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s). This process

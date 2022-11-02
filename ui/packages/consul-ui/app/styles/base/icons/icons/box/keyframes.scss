@@ -1,0 +1,9 @@
+@keyframes icon-box {
+  100% {
+
+    -webkit-mask-image: var(--icon-box-16);
+    mask-image: var(--icon-box-16);
+    background-color: var(--icon-color, var(--color-box-500, currentColor));
+
+  }
+}

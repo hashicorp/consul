@@ -14,8 +14,8 @@ default operations is to merge the current auth method with those values
 provided to the command invocation. Therefore to update just one field, only
 the `-name` options and the option to modify must be provided.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -25,12 +25,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 ## Usage
 
 Usage: `consul acl auth-method update [options] [args]`
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
 
 #### Command Options
 
@@ -76,6 +70,8 @@ Usage: `consul acl auth-method update [options] [args]`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
 - `-namespace-rule-bind-namespace=<value>` - Namespace to bind on match. Can
@@ -85,7 +81,11 @@ Usage: `consul acl auth-method update [options] [args]`
   verified identity attributes returned from the auth method during login to
   determine if the namespace rule applies. Added in Consul 1.8.0.
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

@@ -45,6 +45,8 @@ There are four specific cases covered with increasing complexity:
       - [ ] Add that to `DefaultSource` in `agent/config/defaults.go`.
       - [ ] Add a test case to the table test `TestLoad_IntegrationWithFlags` in
         `agent/config/runtime_test.go`.
+      - [ ] If the config needs to be defaulted for the test server used in unit tests,
+            also add it to `DefaultConfig()` in `agent/consul/defaults.go`.
  - [ ] **If** your config should take effect on a reload/HUP.
       - [ ] Add necessary code to to trigger a safe (locked or atomic) update to
         any state the feature needs changing. This needs to be added to one or
@@ -55,7 +57,7 @@ There are four specific cases covered with increasing complexity:
            state for client agent's RPC client.
       - [ ] Add a test to `agent/agent_test.go` similar to others with prefix
         `TestAgent_reloadConfig*`.
- - [ ] Add documentation to `website/content/docs/agent/options.mdx`.
+ - [ ] Add documentation to `website/content/docs/agent/config/config-files.mdx`.
 
 Done! You can now use your new field in a client agent by accessing
 `s.agent.Config.<FieldName>`.
@@ -75,7 +77,7 @@ If the config field also needs a CLI flag, then follow these steps.
    `TestLoad_IntegrationWithFlags` in `agent/config/runtime_test.go` to ensure setting the
    flag works.
  - [ ] Add flag (as well as config file) documentation to
-   `website/source/docs/agent/options.html.md`.
+   `website/source/docs/agent/config/config-files.mdx` and `website/source/docs/agent/config/cli-flags.mdx`.
 
 ## Adding a Simple Config Field for Servers
 Consul servers have a separate Config struct for reasons. Note that Consul

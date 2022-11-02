@@ -1,0 +1,9 @@
+@keyframes icon-box-outline {
+  100% {
+
+    -webkit-mask-image: var(--icon-square-16);
+    mask-image: var(--icon-square-16);
+    background-color: var(--icon-color, var(--color-box-outline-500, currentColor));
+
+  }
+}

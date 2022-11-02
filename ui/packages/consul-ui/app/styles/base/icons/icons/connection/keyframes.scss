@@ -1,0 +1,9 @@
+@keyframes icon-connection {
+  100% {
+
+    -webkit-mask-image: var(--icon-connection-16);
+    mask-image: var(--icon-connection-16);
+    background-color: var(--icon-color, var(--color-connection-500, currentColor));
+
+  }
+}

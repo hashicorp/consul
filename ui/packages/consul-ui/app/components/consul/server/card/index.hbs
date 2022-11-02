@@ -1,0 +1,39 @@
+<div
+  class={{class-map
+    'consul-server-card'
+    (array 'voting-status-leader' (eq @item.Status 'leader'))
+    (array 'voting-status-voter' (and
+      (not @item.ReadReplica)
+      (eq @item.Status 'voter')
+    ))
+    (array 'voting-status-non-voter' (or
+      @item.ReadReplica
+      (includes @item.Status (array 'non-voter' 'staging'))
+    ))
+  }}
+  ...attributes
+>
+  <dl>
+
+    <dt
+      {{tooltip "Leader"}}
+      class="name"
+    >
+    </dt>
+    <dd>
+      {{@item.Name}}
+    </dd>
+
+    <dt class={{class-map
+      'health-status'
+      (array 'healthy' @item.Healthy)
+    }}>
+      Status
+    </dt>
+    <dd>
+      {{if (includes @item.Status (array 'leader' 'voter')) 'Active voter' 'Backup voter'}}
+    </dd>
+
+  </dl>
+</div>
+

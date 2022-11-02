@@ -1,0 +1,50 @@
+# CopyableCode
+
+CopyableCode is used to display code that is likely to be copied by the user.
+
+It also has an option to obfuscate the code, that is then toggleable by the user.
+
+Text within the component is formatted using a `<pre>` tag.
+
+```hbs preview-template
+<figure>
+  <figcaption>Without obfuscation</figcaption>
+  <CopyableCode
+    @value="-----BEGIN CERTIFICATE-----
+  MIIH/TCCBeWgAwIBAgIQaBYE3/M08XHYCnNVmcFBcjANBgkqhkiG9w0BAQsFADBy
+  MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24x
+  ETAPBgNVBAoMCFNTTCBDb3JwMS4wLAYDVQQDDCVTU0wuY29tIEVWIFNTTCBJbnRl
+  -----END CERTIFICATE-----"
+    @name="Name of thing that gets copied e.g. Certificate"
+  />
+</figure>
+```
+
+```hbs preview-template
+<figure>
+  <figcaption>With obfuscation</figcaption>
+  <CopyableCode
+    @obfuscated={{true}}
+    @value="-----BEGIN CERTIFICATE-----
+  MIIH/TCCBeWgAwIBAgIQaBYE3/M08XHYCnNVmcFBcjANBgkqhkiG9w0BAQsFADBy
+  MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24x
+  ETAPBgNVBAoMCFNTTCBDb3JwMS4wLAYDVQQDDCVTU0wuY29tIEVWIFNTTCBJbnRl
+  -----END CERTIFICATE-----"
+    @name="Certificate"
+  />
+</figure>
+```
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `String` | | The code to display/be copied |
+| `name` | `String` | | The 'Name' of the thing to be displayed and copied. Mainly used for giving feedback to the user. |
+| `obfuscated` | `boolean` | | Whether to obfuscate the value until the user clicks to view |
+
+### See
+
+- [Template Source Code](./index.hbs)
+
+---

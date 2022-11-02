@@ -1,0 +1,9 @@
+@keyframes icon-entry-point {
+  100% {
+
+    -webkit-mask-image: var(--icon-entry-point-16);
+    mask-image: var(--icon-entry-point-16);
+    background-color: var(--icon-color, var(--color-entry-point-500, currentColor));
+
+  }
+}

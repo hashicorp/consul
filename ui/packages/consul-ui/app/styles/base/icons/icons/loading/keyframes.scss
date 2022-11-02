@@ -1,0 +1,9 @@
+@keyframes icon-loading {
+  100% {
+
+    -webkit-mask-image: var(--icon-loading-16);
+    mask-image: var(--icon-loading-16);
+    background-color: var(--icon-color, var(--color-loading-500, currentColor));
+
+  }
+}

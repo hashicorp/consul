@@ -7,30 +7,33 @@ import {
   HEADERS_NAMESPACE as NSPACE,
   HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
-module('Integration | Serializer | intention', function(hooks) {
+module('Integration | Serializer | intention', function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'intention-name';
   const nspace = 'default';
   const partition = 'default';
-  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+  test('respondForQuery returns the correct data for list endpoint', function (assert) {
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions?dc=${dc}`,
     };
-    return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
+    return get(request.url).then(function (payload) {
+      const expected = payload.map((item) => {
+        if (item.SourcePeer) {
+          delete item.SourcePeer;
+        }
+        return Object.assign({}, item, {
           Datacenter: dc,
           // TODO: default isn't required here, once we've
           // refactored out our Serializer this can go
           Namespace: nspace,
           Partition: partition,
           uid: `["${partition}","${nspace}","${dc}","${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}"]`,
-        })
-      );
+        });
+      });
       const actual = serializer.respondForQuery(
-        function(cb) {
+        function (cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
@@ -49,7 +52,7 @@ module('Integration | Serializer | intention', function(hooks) {
       assert.equal(actual[0].uid, expected[0].uid);
     });
   });
-  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+  test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,
@@ -62,7 +65,7 @@ module('Integration | Serializer | intention', function(hooks) {
       SourcePartition: 'SourcePartition',
       DestinationPartition: 'DestinationPartition',
     };
-    return get(request.url).then(function(payload) {
+    return get(request.url).then(function (payload) {
       payload = {
         ...payload,
         ...item,
@@ -81,7 +84,7 @@ module('Integration | Serializer | intention', function(hooks) {
         uid: `["${partition}","${nspace}","${dc}","${item.SourcePartition}:${item.SourceNS}:${item.SourceName}:${item.DestinationPartition}:${item.DestinationNS}:${item.DestinationName}"]`,
       });
       const actual = serializer.respondForQueryRecord(
-        function(cb) {
+        function (cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,

@@ -1226,6 +1226,42 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				}, entry.Sources)
 			},
 		},
+		"local and peer intentions are different": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				Sources: []*SourceIntention{
+					{
+						Name:   "foo",
+						Action: IntentionActionAllow,
+					},
+					{
+						Name:   "foo",
+						Peer:   "peer1",
+						Action: IntentionActionAllow,
+					},
+				},
+			},
+		},
+		"already have a peer intention for source": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				Sources: []*SourceIntention{
+					{
+						Name:   "foo",
+						Peer:   "peer1",
+						Action: IntentionActionAllow,
+					},
+					{
+						Name:   "foo",
+						Peer:   "peer1",
+						Action: IntentionActionAllow,
+					},
+				},
+			},
+			validateErr: `Sources[1] defines peer("peer1") "` + fooName.String() + `" more than once`,
+		},
 	}
 	for name, tc := range cases {
 		tc := tc

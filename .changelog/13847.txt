@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway.
+```

@@ -1,0 +1,9 @@
+@keyframes icon-webhook {
+  100% {
+
+    -webkit-mask-image: var(--icon-webhook-16);
+    mask-image: var(--icon-webhook-16);
+    background-color: var(--icon-color, var(--color-webhook-500, currentColor));
+
+  }
+}

@@ -1,0 +1,9 @@
+@keyframes icon-vagrant {
+  100% {
+
+    -webkit-mask-image: var(--icon-vagrant-color-16);
+    mask-image: var(--icon-vagrant-color-16);
+    background-color: var(--icon-color, var(--color-vagrant-500, currentColor));
+
+  }
+}

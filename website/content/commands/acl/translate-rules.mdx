@@ -14,8 +14,8 @@ Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/rules/translate/:accessor_id](
 
 This command translates the legacy ACL rule syntax into the new syntax.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -25,12 +25,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 ### Usage
 
 Usage: `consul acl translate-rules [options] TRANSLATE`
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
 
 #### Command Options
 
@@ -46,6 +40,12 @@ Usage: `consul acl translate-rules [options] TRANSLATE`
 - `-token-accessor` - Specifies that what the `TRANSLATE` argument
   holds is not a rule set but rather the token accessor ID of a
   legacy ACL token that holds the rule set.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ### Examples
 

@@ -1,0 +1,3 @@
+```release-note:bug
+acl: **(Enterprise Only)** fixes a bug preventing ACL policies configured with datacenter restrictions from being created if the cluster had been upgraded to Consul 1.11+ from an earlier version.
+```

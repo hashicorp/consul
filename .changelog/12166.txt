@@ -1,0 +1,3 @@
+```release-note:deprecation
+acl: The `consul.acl.ResolveTokenToIdentity` metric is no longer reported. The values that were previous reported as part of this metric will now be part of the `consul.acl.ResolveToken` metric.
+```

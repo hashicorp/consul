@@ -57,9 +57,19 @@ const REQUIRED_PERMISSIONS = [
     Access: 'write',
   },
 ];
+const PEERING_PERMISSIONS = [
+  {
+    Resource: 'peering',
+    Access: 'read',
+  },
+  {
+    Resource: 'peering',
+    Access: 'write',
+  },
+];
 export default class PermissionService extends RepositoryService {
   @service('env') env;
-  @service('can') _can;
+  @service('abilities') _can;
 
   // TODO: move this to the store, if we want it to use ember-data
   // currently this overwrites an inherited permissions service (this service)
@@ -73,8 +83,8 @@ export default class PermissionService extends RepositoryService {
 
   has(permission) {
     const keys = Object.keys(permission);
-    return this.permissions.some(item => {
-      return keys.every(key => item[key] === permission[key]) && item.Allow === true;
+    return this.permissions.some((item) => {
+      return keys.every((key) => item[key] === permission[key]) && item.Allow === true;
     });
   }
 
@@ -104,7 +114,7 @@ export default class PermissionService extends RepositoryService {
    */
   async authorize(params) {
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
-      return params.resources.map(item => {
+      return params.resources.map((item) => {
         return {
           ...item,
           Allow: true,
@@ -146,7 +156,7 @@ export default class PermissionService extends RepositoryService {
 
   @dataSource('/:partition/:nspace/:dc/permissions')
   async findAll(params) {
-    params.resources = REQUIRED_PERMISSIONS;
+    params.resources = this.permissionsToRequest;
     this.permissions = await this.findByPermissions(params);
     /**/
     // Temporarily revert to pre-1.10 UI functionality by overwriting frontend
@@ -154,12 +164,20 @@ export default class PermissionService extends RepositoryService {
     // still enforced on the backend.
     // This temporary measure should be removed again once https://github.com/hashicorp/consul/issues/11098
     // has been resolved
-    this.permissions.forEach(item => {
+    this.permissions.forEach((item) => {
       if (['key', 'node', 'service', 'intention', 'session'].includes(item.Resource)) {
         item.Allow = true;
       }
     });
     /**/
     return this.permissions;
+  }
+
+  get permissionsToRequest() {
+    if (this._can.can('use peers')) {
+      return [...REQUIRED_PERMISSIONS, ...PEERING_PERMISSIONS];
+    } else {
+      return REQUIRED_PERMISSIONS;
+    }
   }
 }

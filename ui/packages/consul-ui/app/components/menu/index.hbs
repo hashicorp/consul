@@ -1,0 +1,19 @@
+<ul
+  role="menu"
+  style={{{style-map
+    (array 'height' (if (and @pager (not-eq @pager.type 'native-scroll')) @pager.totalHeight) 'px')
+    (array '--paged-start' (if (and @pager (not-eq @pager.type 'native-scroll')) @pager.startHeight) 'px')
+  }}}
+  {{did-insert (optional @pager.pane)}}
+  {{aria-menu
+    onclose=(or @onclose @disclosure.close)
+    openEvent=(or @event @disclosure.event)
+  }}
+>
+  {{yield (hash
+    Action=(component 'menu/action' disclosure=@disclosure)
+    Item=(component 'menu/item')
+    Separator=(component 'menu/separator')
+    items=@pager.items
+  )}}
+</ul>

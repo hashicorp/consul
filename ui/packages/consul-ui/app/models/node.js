@@ -11,6 +11,7 @@ export default class Node extends Model {
   @attr('string') ID;
 
   @attr('string') Datacenter;
+  @attr('string') PeerName;
   @attr('string') Partition;
   @attr('string') Address;
   @attr('string') Node;
@@ -27,9 +28,13 @@ export default class Node extends Model {
   @fragmentArray('health-check') Checks;
   // MeshServiceInstances are all instances that aren't connect-proxies this
   // currently includes gateways as these need to show up in listings
-  @filter('Services', item => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
+  @filter('Services', (item) => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
+  // ProxyServiceInstances are all instances that are connect-proxies
+  @filter('Services', (item) => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
-  @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
+  @filter('Checks', (item) => item.ServiceID === '') NodeChecks;
+
+  @computed('ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
     switch (true) {
       case this.ChecksCritical !== 0:
@@ -43,18 +48,18 @@ export default class Node extends Model {
     }
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksCritical() {
-    return this.Checks.filter(item => item.Status === 'critical').length;
+    return this.NodeChecks.filter((item) => item.Status === 'critical').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksPassing() {
-    return this.Checks.filter(item => item.Status === 'passing').length;
+    return this.NodeChecks.filter((item) => item.Status === 'passing').length;
   }
 
-  @computed('Checks.[]')
+  @computed('NodeChecks.[]')
   get ChecksWarning() {
-    return this.Checks.filter(item => item.Status === 'warning').length;
+    return this.NodeChecks.filter((item) => item.Status === 'warning').length;
   }
 }

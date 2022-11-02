@@ -7,16 +7,18 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -125,12 +127,23 @@ func (c *Conn) markForUse() {
 // streams allowed. If TLS settings are provided outgoing connections
 // use TLS.
 type ConnPool struct {
+	// clientTimeoutMs is the default timeout for client RPC requests
+	// in milliseconds. Stored as an atomic uint32 value to allow for
+	// reloading.
+	// TODO: once we move to go1.19, change to atomic.Uint32.
+	clientTimeoutMs uint32
+
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
 
 	// Logger passed to yamux
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
+
+	// MaxQueryTime is used for calculating timeouts on blocking queries.
+	MaxQueryTime time.Duration
+	// DefaultQueryTime is used for calculating timeouts on blocking queries.
+	DefaultQueryTime time.Duration
 
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
@@ -377,6 +390,18 @@ func (p *ConnPool) dial(
 	return conn, hc, nil
 }
 
+func (p *ConnPool) RPCClientTimeout() time.Duration {
+	return time.Duration(atomic.LoadUint32(&p.clientTimeoutMs)) * time.Millisecond
+}
+
+func (p *ConnPool) SetRPCClientTimeout(timeout time.Duration) {
+	if timeout > time.Hour {
+		// Prevent unreasonably large timeouts that might overflow a uint32
+		timeout = time.Hour
+	}
+	atomic.StoreUint32(&p.clientTimeoutMs, uint32(timeout.Milliseconds()))
+}
+
 // DialRPCViaMeshGateway dials the destination node and sets up the connection
 // to be the correct RPC type using ALPN. This currently is exclusively used to
 // dial other servers in foreign datacenters via mesh gateways.
@@ -411,7 +436,7 @@ func DialRPCViaMeshGateway(
 	}
 
 	if nextProto != ALPN_RPCGRPC {
-		// agent/grpc/client.go:dial() handles this in another way for gRPC
+		// agent/grpc-internal/client.go:dial() handles this in another way for gRPC
 		if tcp, ok := rawConn.(*net.TCPConn); ok {
 			_ = tcp.SetKeepAlive(true)
 			_ = tcp.SetNoDelay(true)
@@ -567,18 +592,29 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	var codec rpc.ClientCodec
 	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error establishing connection: %w", err)
+		return fmt.Errorf("rpcinsecure: error establishing connection: %w", err)
 	}
 	codec = msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 
 	// Make the RPC call
 	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error making call: %w", err)
+		return fmt.Errorf("rpcinsecure: error making call: %w", err)
 	}
 
 	return nil
 }
+
+// BlockableQuery represents a read query which can be blocking or non-blocking.
+// This interface is used to override the rpc_client_timeout for blocking queries.
+type BlockableQuery interface {
+	// BlockingTimeout returns duration > 0 if the query is blocking.
+	// Otherwise returns 0 for non-blocking queries.
+	BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration
+}
+
+var _ BlockableQuery = (*structs.QueryOptions)(nil)
+var _ BlockableQuery = (*pbcommon.QueryOptions)(nil)
 
 func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
@@ -587,6 +623,22 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	conn, sc, err := p.getClient(dc, nodeName, addr)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %w", err)
+	}
+
+	var deadline time.Time
+	timeout := p.RPCClientTimeout()
+	if bq, ok := args.(BlockableQuery); ok {
+		blockingTimeout := bq.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
+		if blockingTimeout > 0 {
+			// override the default client timeout
+			timeout = blockingTimeout
+		}
+	}
+	if timeout > 0 {
+		deadline = time.Now().Add(timeout)
+	}
+	if err := sc.stream.SetReadDeadline(deadline); err != nil {
+		return fmt.Errorf("rpc error setting read deadline: %w", err)
 	}
 
 	// Make the RPC call

@@ -14,21 +14,23 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 	"google.golang.org/grpc"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -547,10 +549,18 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 
 // canRetry returns true if the request and error indicate that a retry is safe.
 func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
-	if info != nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
-		// RPCInfo timeout may include extra time for MaxQueryTime
-		return false
-	} else if info == nil && time.Since(start) > config.RPCHoldTimeout {
+	if info != nil {
+		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
+		if timeoutError != nil {
+			return false
+		}
+
+		if timedOut {
+			return false
+		}
+	}
+
+	if info == nil && time.Since(start) > config.RPCHoldTimeout {
 		// When not RPCInfo, timeout is only RPCHoldTimeout
 		return false
 	}
@@ -833,6 +843,17 @@ func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*st
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 
+// leaderRaftApply is used by the leader to persist data to Raft for internal cluster management activities.
+// This method MUST not be called from RPC endpoints, since it would result in duplicated RPC metrics.
+func (s *Server) leaderRaftApply(method string, t structs.MessageType, msg interface{}) (interface{}, error) {
+	start := time.Now()
+
+	resp, err := s.raftApplyMsgpack(t, msg)
+	s.rpcRecorder.Record(method, middleware.RPCTypeInternal, start, &msg, err != nil)
+
+	return resp, err
+}
+
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
 // raftApplyWithEncoder.
 // Deprecated: use raftApplyMsgpack
@@ -910,123 +931,190 @@ func (s *Server) raftApplyWithEncoder(
 	return resp, nil
 }
 
-// queryFn is used to perform a query operation. If a re-query is needed, the
-// passed-in watch set will be used to block for changes. The passed-in state
-// store should be used (vs. calling fsm.State()) since the given state store
-// will be correctly watched for changes if the state store is restored from
-// a snapshot.
+// queryFn is used to perform a query operation. See Server.blockingQuery for
+// the requirements of this function.
 type queryFn func(memdb.WatchSet, *state.Store) error
 
-// blockingQuery is used to process a potentially blocking query operation.
-func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
-	var cancel func()
+// blockingQueryOptions are options used by Server.blockingQuery to modify the
+// behaviour of the query operation, or to populate response metadata.
+type blockingQueryOptions interface {
+	GetToken() string
+	GetMinQueryIndex() uint64
+	GetMaxQueryTime() (time.Duration, error)
+	GetRequireConsistent() bool
+}
+
+// blockingQueryResponseMeta is an interface used to populate the response struct
+// with metadata about the query and the state of the server.
+type blockingQueryResponseMeta interface {
+	SetLastContact(time.Duration)
+	SetKnownLeader(bool)
+	GetIndex() uint64
+	SetIndex(uint64)
+	SetResultsFilteredByACLs(bool)
+}
+
+// blockingQuery performs a blocking query if opts.GetMinQueryIndex is
+// greater than 0, otherwise performs a non-blocking query. Blocking queries will
+// block until responseMeta.Index is greater than opts.GetMinQueryIndex,
+// or opts.GetMaxQueryTime is reached. Non-blocking queries return immediately
+// after performing the query.
+//
+// If opts.GetRequireConsistent is true, blockingQuery will first verify it is
+// still the cluster leader before performing the query.
+//
+// The query function is expected to be a closure that has access to responseMeta
+// so that it can set the Index. The actual result of the query is opaque to blockingQuery.
+//
+// The query function can return errNotFound, which is a sentinel error. Returning
+// errNotFound indicates that the query found no results, which allows
+// blockingQuery to keep blocking until the query returns a non-nil error.
+// The query function must take care to set the actual result of the query to
+// nil in these cases, otherwise when blockingQuery times out it may return
+// a previous result. errNotFound will never be returned to the caller, it is
+// converted to nil before returning.
+//
+// The query function can return errNotChanged, which is a sentinel error. This
+// can only be returned on calls AFTER the first call, as it would not be
+// possible to detect the absence of a change on the first call. Returning
+// errNotChanged indicates that the query results are identical to the prior
+// results which allows blockingQuery to keep blocking until the query returns
+// a real changed result.
+//
+// The query function must take care to ensure the actual result of the query
+// is either left unmodified or explicitly left in a good state before
+// returning, otherwise when blockingQuery times out it may return an
+// incomplete or unexpected result. errNotChanged will never be returned to the
+// caller, it is converted to nil before returning.
+//
+// If query function returns any other error, the error is returned to the caller
+// immediately.
+//
+// The query function must follow these rules:
+//
+//  1. to access data it must use the passed in state.Store.
+//  2. it must set the responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex if the results return by the query have changed.
+//  3. any channels added to the memdb.WatchSet must unblock when the results
+//     returned by the query have changed.
+//
+// To ensure optimal performance of the query, the query function should make a
+// best-effort attempt to follow these guidelines:
+//
+//  1. only set responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex when the results returned by the query have changed.
+//  2. any channels added to the memdb.WatchSet should only unblock when the
+//     results returned by the query have changed.
+func (s *Server) blockingQuery(
+	opts blockingQueryOptions,
+	responseMeta blockingQueryResponseMeta,
+	query queryFn,
+) error {
 	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
 
-	var queriesBlocking uint64
-	var queryTimeout time.Duration
-
-	// Instrument all queries run
 	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
-	minQueryIndex := queryOpts.GetMinQueryIndex()
-	// Fast path right to the non-blocking query.
+	minQueryIndex := opts.GetMinQueryIndex()
+	// Perform a non-blocking query
 	if minQueryIndex == 0 {
-		goto RUN_QUERY
+		if opts.GetRequireConsistent() {
+			if err := s.consistentRead(); err != nil {
+				return err
+			}
+		}
+
+		var ws memdb.WatchSet
+		err := query(ws, s.fsm.State())
+		s.setQueryMeta(responseMeta, opts.GetToken())
+		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
+			return nil
+		}
+		return err
 	}
 
-	queryTimeout = queryOpts.GetMaxQueryTime()
-	// Restrict the max query time, and ensure there is always one.
-	if queryTimeout > s.config.MaxQueryTime {
-		queryTimeout = s.config.MaxQueryTime
-	} else if queryTimeout <= 0 {
-		queryTimeout = s.config.DefaultQueryTime
+	maxQueryTimeout, err := opts.GetMaxQueryTime()
+	if err != nil {
+		return err
 	}
-
-	// Apply a small amount of jitter to the request.
-	queryTimeout += lib.RandomStagger(queryTimeout / structs.JitterFraction)
-
-	// wrap the base context with a deadline
-	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
+	timeout := s.rpcQueryTimeout(maxQueryTimeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// instrument blockingQueries
-	// atomic inc our server's count of in-flight blockingQueries and store the new value
-	queriesBlocking = atomic.AddUint64(&s.queriesBlocking, 1)
-	// atomic dec when we return from blockingQuery()
+	count := atomic.AddUint64(&s.queriesBlocking, 1)
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(count))
+	// decrement the count when the function returns.
 	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
-	// set the gauge directly to the new value of s.blockingQueries
-	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(queriesBlocking))
 
-RUN_QUERY:
-	// Setup blocking loop
+	var (
+		notFound bool
+		ranOnce  bool
+	)
 
-	// Validate
-	// If the read must be consistent we verify that we are still the leader.
-	if queryOpts.GetRequireConsistent() {
-		if err := s.consistentRead(); err != nil {
-			return err
+	for {
+		if opts.GetRequireConsistent() {
+			if err := s.consistentRead(); err != nil {
+				return err
+			}
 		}
-	}
 
-	// Run query
+		// Operate on a consistent set of state. This makes sure that the
+		// abandon channel goes with the state that the caller is using to
+		// build watches.
+		state := s.fsm.State()
 
-	// Operate on a consistent set of state. This makes sure that the
-	// abandon channel goes with the state that the caller is using to
-	// build watches.
-	state := s.fsm.State()
-
-	// We can skip all watch tracking if this isn't a blocking query.
-	var ws memdb.WatchSet
-	if minQueryIndex > 0 {
-		ws = memdb.NewWatchSet()
-
+		ws := memdb.NewWatchSet()
 		// This channel will be closed if a snapshot is restored and the
 		// whole state store is abandoned.
 		ws.Add(state.AbandonCh())
-	}
 
-	// Execute the queryFn
-	err := fn(ws, state)
+		err := query(ws, state)
+		s.setQueryMeta(responseMeta, opts.GetToken())
 
-	// Update the query metadata.
-	s.setQueryMeta(queryMeta, queryOpts.GetToken())
-
-	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
-	// blocking was requested by client, NOT meta.Index since the state function
-	// might return zero if something is not initialized and care wasn't taken to
-	// handle that special case (in practice this happened a lot so fixing it
-	// systematically here beats trying to remember to add zero checks in every
-	// state method). We also need to ensure that unless there is an error, we
-	// return an index > 0 otherwise the client will never block and burn CPU and
-	// requests.
-	if err == nil && queryMeta.GetIndex() < 1 {
-		queryMeta.SetIndex(1)
-	}
-	// block up to the timeout if we don't see anything fresh.
-	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
-		if err := ws.WatchCtx(ctx); err == nil {
-			// a non-nil error only occurs when the context is cancelled
-
-			// If a restore may have woken us up then bail out from
-			// the query immediately. This is slightly race-ey since
-			// this might have been interrupted for other reasons,
-			// but it's OK to kick it back to the caller in either
-			// case.
-			select {
-			case <-state.AbandonCh():
-			default:
-				// loop back and look for an update again
-				goto RUN_QUERY
+		switch {
+		case errors.Is(err, errNotFound):
+			if notFound {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
 			}
+			notFound = true
+		case errors.Is(err, errNotChanged):
+			if ranOnce {
+				// query result has not changed
+				minQueryIndex = responseMeta.GetIndex()
+			}
+		case err != nil:
+			return err
+		}
+		ranOnce = true
+
+		if responseMeta.GetIndex() > minQueryIndex {
+			return nil
+		}
+
+		// block until something changes, or the timeout
+		if err := ws.WatchCtx(ctx); err != nil {
+			// exit if we've reached the timeout, or other cancellation
+			return nil
+		}
+
+		// exit if the state store has been abandoned
+		select {
+		case <-state.AbandonCh():
+			return nil
+		default:
 		}
 	}
-	return err
 }
+
+var (
+	errNotFound   = fmt.Errorf("no data found for query")
+	errNotChanged = fmt.Errorf("data did not change for query")
+)
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
 //
 // Note: This method must be called *after* filtering query results with ACLs.
-func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
+func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1035,6 +1123,17 @@ func (s *Server) setQueryMeta(m structs.QueryMetaCompat, token string) {
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
 	maskResultsFilteredByACLs(token, m)
+
+	// Always set a non-zero QueryMeta.Index. Generally we expect the
+	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
+	// returned no results we expect it to be set to the max index of the table,
+	// however we can't guarantee this always happens.
+	// To prevent a client from accidentally performing many non-blocking queries
+	// (which causes lots of unnecessary load), we always set a default value of 1.
+	// This is sufficient to prevent the unnecessary load in most cases.
+	if m.GetIndex() < 1 {
+		m.SetIndex(1)
+	}
 }
 
 // consistentRead is used to ensure we do not perform a stale
@@ -1043,7 +1142,7 @@ func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
-		return err //fail fast if leader verification fails
+		return err // fail fast if leader verification fails
 	}
 	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
 	if s.isReadyForConsistentReads() {
@@ -1070,6 +1169,22 @@ func (s *Server) consistentRead() error {
 	return structs.ErrNotReadyForConsistentReads
 }
 
+// rpcQueryTimeout calculates the timeout for the query, ensures it is
+// constrained to the configured limit, and adds jitter to prevent multiple
+// blocking queries from all timing out at the same time.
+func (s *Server) rpcQueryTimeout(queryTimeout time.Duration) time.Duration {
+	// Restrict the max query time, and ensure there is always one.
+	if queryTimeout > s.config.MaxQueryTime {
+		queryTimeout = s.config.MaxQueryTime
+	} else if queryTimeout <= 0 {
+		queryTimeout = s.config.DefaultQueryTime
+	}
+
+	// Apply a small amount of jitter to the request.
+	queryTimeout += lib.RandomStagger(queryTimeout / structs.JitterFraction)
+	return queryTimeout
+}
+
 // maskResultsFilteredByACLs blanks out the ResultsFilteredByACLs flag if the
 // request is unauthenticated, to limit information leaking.
 //
@@ -1082,17 +1197,17 @@ func (s *Server) consistentRead() error {
 //
 // Notes:
 //
-//	* The definition of "unauthenticated" here is incomplete, as it doesn't
-//	  account for the fact that operators can modify the anonymous token with
-//	  custom policies, or set namespace default policies. As these scenarios
-//	  are less common and this flag is a best-effort UX improvement, we think
-//	  the trade-off for reduced complexity is acceptable.
+//   - The definition of "unauthenticated" here is incomplete, as it doesn't
+//     account for the fact that operators can modify the anonymous token with
+//     custom policies, or set namespace default policies. As these scenarios
+//     are less common and this flag is a best-effort UX improvement, we think
+//     the trade-off for reduced complexity is acceptable.
 //
-//	* This method assumes that the given token has already been validated (and
-//	  will only check whether it is blank or not). It's a safe assumption because
-//	  ResultsFilteredByACLs is only set to try when applying the already-resolved
-//	  token's policies.
-func maskResultsFilteredByACLs(token string, meta structs.QueryMetaCompat) {
+//   - This method assumes that the given token has already been validated (and
+//     will only check whether it is blank or not). It's a safe assumption because
+//     ResultsFilteredByACLs is only set to try when applying the already-resolved
+//     token's policies.
+func maskResultsFilteredByACLs(token string, meta blockingQueryResponseMeta) {
 	if token == "" {
 		meta.SetResultsFilteredByACLs(false)
 	}

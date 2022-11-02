@@ -1,0 +1,58 @@
+/* old stuff */
+
+%menu-panel {
+  overflow: hidden;
+}
+%menu-panel-deprecated {
+  position: absolute;
+}
+%menu-panel-deprecated [type='checkbox'] {
+  display: none;
+}
+%menu-panel-deprecated {
+  transition: max-height 150ms;
+}
+%menu-panel-deprecated {
+  transition: min-height 150ms, max-height 150ms;
+  min-height: 0;
+}
+%menu-panel-deprecated:not(.confirmation) [type='checkbox'] ~ * {
+  transition: transform 150ms;
+}
+%menu-panel-deprecated [type='checkbox']:checked ~ * {
+  transform: translateX(calc(-100% - 10px));
+}
+%menu-panel-deprecated.confirmation [role='menu'] {
+  min-height: 205px !important;
+}
+%menu-panel-deprecated [type='checkbox']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 143px;
+  max-height: 143px;
+}
+%menu-panel-deprecated [id$='-']:first-child:checked ~ ul label[for$='-'] * [role='menu'],
+%menu-panel-deprecated [id$='-']:first-child:checked ~ ul > li > [role='menu'] {
+  display: block;
+}
+/**/
+%menu-panel-deprecated > ul > li > div[role='menu'] {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+}
+%menu-panel-deprecated > ul > li > *:not(div[role='menu']) {
+  position: relative;
+}
+%menu-panel-deprecated:not(.left) {
+  right: 0px !important;
+  left: auto !important;
+}
+%menu-panel-deprecated.left {
+  left: 0px;
+}
+%menu-panel-deprecated:not(.above) {
+  top: 28px;
+}
+%menu-panel-deprecated.above {
+  bottom: 42px;
+}

@@ -1,0 +1,9 @@
+@keyframes icon-clipboard {
+  100% {
+
+    -webkit-mask-image: var(--icon-clipboard-16);
+    mask-image: var(--icon-clipboard-16);
+    background-color: var(--icon-color, var(--color-clipboard-500, currentColor));
+
+  }
+}

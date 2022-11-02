@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/go-memdb"
@@ -58,7 +57,7 @@ type changeTrackerDB struct {
 
 type EventPublisher interface {
 	Publish([]stream.Event)
-	Run(context.Context)
+	RegisterHandler(stream.Topic, stream.SnapshotFunc, bool) error
 	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
@@ -179,15 +178,24 @@ func (db *readDB) ReadTxn() AbortTxn {
 }
 
 var (
-	topicServiceHealth        = pbsubscribe.Topic_ServiceHealth
-	topicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
+	EventTopicServiceHealth        = pbsubscribe.Topic_ServiceHealth
+	EventTopicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
+	EventTopicMeshConfig           = pbsubscribe.Topic_MeshConfig
+	EventTopicServiceResolver      = pbsubscribe.Topic_ServiceResolver
+	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
+	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
+	EventTopicServiceDefaults      = pbsubscribe.Topic_ServiceDefaults
+	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	var events []stream.Event
 	fns := []func(tx ReadTxn, changes Changes) ([]stream.Event, error){
 		aclChangeUnsubscribeEvent,
+		caRootsChangeEvents,
 		ServiceHealthEventsFromChanges,
+		ServiceListUpdateEventsFromChanges,
+		ConfigEntryEventsFromChanges,
 		// TODO: add other table handlers here.
 	}
 	for _, fn := range fns {
@@ -198,11 +206,4 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 		events = append(events, e...)
 	}
 	return events, nil
-}
-
-func newSnapshotHandlers(db ReadDB) stream.SnapshotHandlers {
-	return stream.SnapshotHandlers{
-		topicServiceHealth:        serviceHealthSnapshot(db, topicServiceHealth),
-		topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
-	}
 }

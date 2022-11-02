@@ -26,6 +26,16 @@ import (
 //       They are not intended to thoroughly test the backing RPC
 //       functionality as that will be done with other tests.
 
+func isHTTPBadRequest(err error) bool {
+	if err, ok := err.(HTTPError); ok {
+		if err.StatusCode != 400 {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
 func TestACL_Disabled_Response(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -71,7 +81,7 @@ func TestACL_Disabled_Response(t *testing.T) {
 			resp := httptest.NewRecorder()
 			obj, err := tt.fn(resp, req)
 			require.Nil(t, obj)
-			require.ErrorIs(t, err, UnauthorizedError{Reason: "ACL support disabled"})
+			require.ErrorIs(t, err, HTTPError{StatusCode: http.StatusUnauthorized, Reason: "ACL support disabled"})
 		})
 	}
 }
@@ -270,8 +280,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Policy CRUD Missing ID in URL", func(t *testing.T) {
@@ -279,8 +288,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Update", func(t *testing.T) {
@@ -327,8 +335,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Invalid payload", func(t *testing.T) {
@@ -339,8 +346,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Delete", func(t *testing.T) {
@@ -497,8 +503,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Role CRUD Missing ID in URL", func(t *testing.T) {
@@ -506,8 +511,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Update", func(t *testing.T) {
@@ -567,8 +571,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Invalid payload", func(t *testing.T) {
@@ -579,8 +582,7 @@ func TestACL_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Delete", func(t *testing.T) {
@@ -724,6 +726,17 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, expected, token)
 		})
+		t.Run("Read-expanded", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root&expanded=true", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tokenResp, ok := obj.(*structs.ACLTokenExpanded)
+			require.True(t, ok)
+			require.Equal(t, expected, tokenResp.ACLToken)
+			require.Len(t, tokenResp.ExpandedPolicies, 3)
+		})
 		t.Run("Self", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
 			req, _ := http.NewRequest("GET", "/v1/acl/token/self?token="+expected.SecretID, nil)
@@ -807,8 +820,7 @@ func TestACL_HTTP(t *testing.T) {
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
 			require.Nil(t, obj)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 		t.Run("Update Accessor Mismatch", func(t *testing.T) {
 			originalToken := tokenMap[idMap["token-cloned"]]
@@ -830,8 +842,7 @@ func TestACL_HTTP(t *testing.T) {
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
 			require.Nil(t, obj)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 		t.Run("Delete", func(t *testing.T) {
 			req, _ := http.NewRequest("DELETE", "/v1/acl/token/"+idMap["token-cloned"]+"?token=root", nil)
@@ -1131,6 +1142,41 @@ func TestACL_HTTP(t *testing.T) {
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
 		})
+
+		t.Run("Create with uppercase node identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "agent token for foo node",
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "FOO",
+						Datacenter: "bar",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
+
+		t.Run("Create with uppercase service identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for service identity foo",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "FOO",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
 	})
 }
 
@@ -1222,6 +1268,25 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			methodMap[method.Name] = method
 		})
 
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			methodInput := &structs.ACLAuthMethod{
+				Name:        "other",
+				Type:        "testing",
+				Description: "test",
+				Config: map[string]interface{}{
+					"SessionID": testSessionID,
+				},
+				TokenLocality: "global",
+				MaxTokenTTL:   500_000_000_000,
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=remote", jsonBody(methodInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
+			require.Error(t, err)
+			require.True(t, isHTTPBadRequest(err))
+		})
+
 		t.Run("Update Name URL Mismatch", func(t *testing.T) {
 			methodInput := &structs.ACLAuthMethod{
 				Name:        "test",
@@ -1236,8 +1301,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Update", func(t *testing.T) {
@@ -1276,8 +1340,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("List", func(t *testing.T) {
@@ -1394,13 +1457,27 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			ruleMap[rule.ID] = rule
 		})
 
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			ruleInput := &structs.ACLBindingRule{
+				Description: "other",
+				AuthMethod:  "test",
+				Selector:    "serviceaccount.namespace==default",
+				BindType:    structs.BindingRuleBindTypeRole,
+				BindName:    "fancy-role",
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=remote", jsonBody(ruleInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
+			require.EqualError(t, err, "No path to datacenter")
+		})
+
 		t.Run("BindingRule CRUD Missing ID in URL", func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/?token=root", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Update", func(t *testing.T) {
@@ -1448,8 +1525,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("Invalid payload", func(t *testing.T) {
@@ -1460,8 +1536,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		})
 
 		t.Run("List", func(t *testing.T) {
@@ -1970,6 +2045,14 @@ func TestACL_Authorize(t *testing.T) {
 				Access:   "write",
 			},
 			{
+				Resource: "peering",
+				Access:   "read",
+			},
+			{
+				Resource: "peering",
+				Access:   "write",
+			},
+			{
 				Resource: "query",
 				Segment:  "foo",
 				Access:   "read",
@@ -2112,6 +2195,14 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
+			Resource: "peering",
+			Access:   "read",
+		},
+		{
+			Resource: "peering",
+			Access:   "write",
+		},
+		{
 			Resource: "query",
 			Segment:  "foo",
 			Access:   "read",
@@ -2163,6 +2254,8 @@ func TestACL_Authorize(t *testing.T) {
 		true,  // operator:write
 		true,  // mesh:read
 		true,  // mesh:write
+		true,  // peering:read
+		true,  // peering:write
 		false, // query:read
 		false, // query:write
 		true,  // service:read

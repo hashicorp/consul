@@ -91,13 +91,16 @@
 }
 %resolver-card dt {
   font-size: 0;
-  background-size: 80% 80%;
 }
-%resolver-card dl.failover dt {
-  @extend %with-cloud-cross-icon;
+%resolver-card dt::before {
+  content: '';
+  --icon-size: icon-999;
 }
-%resolver-card dl.redirect dt {
-  @extend %with-redirect-icon;
+%resolver-card dl.failover dt::before {
+  --icon-name: icon-cloud-cross;
+}
+%resolver-card dl.redirect dt::before {
+  --icon-name: icon-redirect;
 }
 /**/
 %with-chain-outlet::before {

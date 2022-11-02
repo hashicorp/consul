@@ -1,0 +1,9 @@
+@keyframes icon-crop {
+  100% {
+
+    -webkit-mask-image: var(--icon-crop-16);
+    mask-image: var(--icon-crop-16);
+    background-color: var(--icon-color, var(--color-crop-500, currentColor));
+
+  }
+}

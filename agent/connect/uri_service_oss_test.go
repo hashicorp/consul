@@ -19,16 +19,6 @@ func TestSpiffeIDServiceURI(t *testing.T) {
 		require.Equal(t, "spiffe://1234.consul/ns/default/dc/dc1/svc/web", svc.URI().String())
 	})
 
-	t.Run("partitions are ignored", func(t *testing.T) {
-		svc := &SpiffeIDService{
-			Host:       "1234.consul",
-			Partition:  "other",
-			Datacenter: "dc1",
-			Service:    "web",
-		}
-		require.Equal(t, "spiffe://1234.consul/ns/default/dc/dc1/svc/web", svc.URI().String())
-	})
-
 	t.Run("namespaces are ignored", func(t *testing.T) {
 		svc := &SpiffeIDService{
 			Host:       "1234.consul",

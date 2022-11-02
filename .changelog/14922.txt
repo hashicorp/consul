@@ -1,0 +1,3 @@
+```release-note:feature
+grpc: Added metrics for external gRPC server. Added `server_type=internal|external` label to gRPC metrics.
+```

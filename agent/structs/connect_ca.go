@@ -5,8 +5,11 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -66,19 +69,25 @@ func (r IndexedCARoots) Active() *CARoot {
 
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
-	// ID is a globally unique ID (UUID) representing this CA root.
+	// ID is a globally unique ID (UUID) representing this CA chain. It is
+	// calculated from the SHA1 of the primary CA certificate.
 	ID string
 
 	// Name is a human-friendly name for this CA root. This value is
 	// opaque to Consul and is not used for anything internally.
 	Name string
 
-	// SerialNumber is the x509 serial number of the certificate.
+	// SerialNumber is the x509 serial number of the primary CA certificate.
 	SerialNumber uint64
 
-	// SigningKeyID is the ID of the public key that corresponds to the private
-	// key used to sign leaf certificates. Is is the HexString format of the
-	// raw AuthorityKeyID bytes.
+	// SigningKeyID is the connect.HexString encoded id of the public key that
+	// corresponds to the private key used to sign leaf certificates in the
+	// local datacenter.
+	//
+	// The value comes from x509.Certificate.SubjectKeyId of the local leaf
+	// signing cert.
+	//
+	// See https://www.rfc-editor.org/rfc/rfc3280#section-4.2.1.1 for more detail.
 	SigningKeyID string
 
 	// ExternalTrustDomain is the trust domain this root was generated under. It
@@ -91,9 +100,12 @@ type CARoot struct {
 	// future flexibility.
 	ExternalTrustDomain string
 
-	// Time validity bounds.
+	// NotBefore is the x509.Certificate.NotBefore value of the primary CA
+	// certificate. This value should generally be a time in the past.
 	NotBefore time.Time
-	NotAfter  time.Time
+	// NotAfter is the  x509.Certificate.NotAfter value of the primary CA
+	// certificate. This is the time when the certificate will expire.
+	NotAfter time.Time
 
 	// RootCert is the PEM-encoded public certificate for the root CA. The
 	// certificate is the same for all federated clusters.
@@ -147,7 +159,7 @@ func (c *CARoot) Clone() *CARoot {
 	}
 
 	newCopy := *c
-	newCopy.IntermediateCerts = CloneStringSlice(c.IntermediateCerts)
+	newCopy.IntermediateCerts = stringslice.CloneStringSlice(c.IntermediateCerts)
 	return &newCopy
 }
 
@@ -192,21 +204,34 @@ type IssuedCert struct {
 	// This is encoded in standard hex separated by :.
 	SerialNumber string
 
-	// CertPEM and PrivateKeyPEM are the PEM-encoded certificate and private
-	// key for that cert, respectively. This should not be stored in the
-	// state store, but is present in the sign API response.
-	CertPEM       string `json:",omitempty"`
+	// CertPEM is a PEM encoded bundle of a leaf certificate, optionally followed
+	// by one or more intermediate certificates that will form a chain of trust
+	// back to a root CA.
+	//
+	// This field is not persisted in the state store, but is present in the
+	// sign API response.
+	CertPEM string `json:",omitempty"`
+	// PrivateKeyPEM is the PEM encoded private key associated with CertPEM.
 	PrivateKeyPEM string `json:",omitempty"`
 
 	// Service is the name of the service for which the cert was issued.
+	Service string `json:",omitempty"`
 	// ServiceURI is the cert URI value.
-	Service    string `json:",omitempty"`
 	ServiceURI string `json:",omitempty"`
 
 	// Agent is the name of the node for which the cert was issued.
+	Agent string `json:",omitempty"`
 	// AgentURI is the cert URI value.
-	Agent    string `json:",omitempty"`
 	AgentURI string `json:",omitempty"`
+
+	// ServerURI is the URI value of a cert issued for a server agent.
+	// The same URI is shared by all servers in a Consul datacenter.
+	ServerURI string `json:",omitempty"`
+
+	// Kind is the kind of service for which the cert was issued.
+	Kind ServiceKind `json:",omitempty"`
+	// KindURI is the cert URI value.
+	KindURI string `json:",omitempty"`
 
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.
@@ -214,7 +239,7 @@ type IssuedCert struct {
 	ValidBefore time.Time
 
 	// EnterpriseMeta is the Consul Enterprise specific metadata
-	EnterpriseMeta
+	acl.EnterpriseMeta
 
 	RaftIndex
 }
@@ -357,9 +382,12 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 }
 
 type CommonCAProviderConfig struct {
-	LeafCertTTL         time.Duration
+	LeafCertTTL time.Duration
+	RootCertTTL time.Duration
+
+	// IntermediateCertTTL is only valid in the primary datacenter, and determines
+	// the duration that any signed intermediates are valid for.
 	IntermediateCertTTL time.Duration
-	RootCertTTL         time.Duration
 
 	SkipValidate bool
 
@@ -501,11 +529,13 @@ type CAConsulProviderState struct {
 type VaultCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	Address             string
-	Token               string
-	RootPKIPath         string
-	IntermediatePKIPath string
-	Namespace           string
+	Address                  string
+	Token                    string
+	RootPKIPath              string
+	RootPKINamespace         string
+	IntermediatePKIPath      string
+	IntermediatePKINamespace string
+	Namespace                string
 
 	CAFile        string
 	CAPath        string

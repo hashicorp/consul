@@ -68,6 +68,12 @@ func (authz testAuthorizer) MeshRead(*AuthorizerContext) EnforcementDecision {
 func (authz testAuthorizer) MeshWrite(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) PeeringRead(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) PeeringWrite(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -89,6 +95,9 @@ func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecisi
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) ServiceWriteAny(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -97,6 +106,10 @@ func (authz testAuthorizer) SessionWrite(string, *AuthorizerContext) Enforcement
 }
 func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
+}
+
+func (authz testAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: &authz}
 }
 
 func TestChainedAuthorizer(t *testing.T) {
@@ -121,6 +134,8 @@ func TestChainedAuthorizer(t *testing.T) {
 		checkDenyNodeWrite(t, authz, "foo", nil)
 		checkDenyMeshRead(t, authz, "foo", nil)
 		checkDenyMeshWrite(t, authz, "foo", nil)
+		checkDenyPeeringRead(t, authz, "foo", nil)
+		checkDenyPeeringWrite(t, authz, "foo", nil)
 		checkDenyOperatorRead(t, authz, "foo", nil)
 		checkDenyOperatorWrite(t, authz, "foo", nil)
 		checkDenyPreparedQueryRead(t, authz, "foo", nil)
@@ -153,6 +168,8 @@ func TestChainedAuthorizer(t *testing.T) {
 		checkDenyNodeWrite(t, authz, "foo", nil)
 		checkDenyMeshRead(t, authz, "foo", nil)
 		checkDenyMeshWrite(t, authz, "foo", nil)
+		checkDenyPeeringRead(t, authz, "foo", nil)
+		checkDenyPeeringWrite(t, authz, "foo", nil)
 		checkDenyOperatorRead(t, authz, "foo", nil)
 		checkDenyOperatorWrite(t, authz, "foo", nil)
 		checkDenyPreparedQueryRead(t, authz, "foo", nil)
@@ -185,6 +202,8 @@ func TestChainedAuthorizer(t *testing.T) {
 		checkAllowNodeWrite(t, authz, "foo", nil)
 		checkAllowMeshRead(t, authz, "foo", nil)
 		checkAllowMeshWrite(t, authz, "foo", nil)
+		checkAllowPeeringRead(t, authz, "foo", nil)
+		checkAllowPeeringWrite(t, authz, "foo", nil)
 		checkAllowOperatorRead(t, authz, "foo", nil)
 		checkAllowOperatorWrite(t, authz, "foo", nil)
 		checkAllowPreparedQueryRead(t, authz, "foo", nil)
@@ -217,6 +236,8 @@ func TestChainedAuthorizer(t *testing.T) {
 		checkDenyNodeWrite(t, authz, "foo", nil)
 		checkDenyMeshRead(t, authz, "foo", nil)
 		checkDenyMeshWrite(t, authz, "foo", nil)
+		checkDenyPeeringRead(t, authz, "foo", nil)
+		checkDenyPeeringWrite(t, authz, "foo", nil)
 		checkDenyOperatorRead(t, authz, "foo", nil)
 		checkDenyOperatorWrite(t, authz, "foo", nil)
 		checkDenyPreparedQueryRead(t, authz, "foo", nil)
@@ -247,6 +268,8 @@ func TestChainedAuthorizer(t *testing.T) {
 		checkAllowNodeWrite(t, authz, "foo", nil)
 		checkAllowMeshRead(t, authz, "foo", nil)
 		checkAllowMeshWrite(t, authz, "foo", nil)
+		checkAllowPeeringRead(t, authz, "foo", nil)
+		checkAllowPeeringWrite(t, authz, "foo", nil)
 		checkAllowOperatorRead(t, authz, "foo", nil)
 		checkAllowOperatorWrite(t, authz, "foo", nil)
 		checkAllowPreparedQueryRead(t, authz, "foo", nil)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKVImportCommand_noTabs(t *testing.T) {
@@ -13,6 +14,47 @@ func TestKVImportCommand_noTabs(t *testing.T) {
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
+}
+
+func TestKVImportCommand_EmptyDir(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	const json = `[
+		{
+			"key": "foo/",
+			"flags": 0,
+			"value": ""
+		}
+	]`
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.testStdin = strings.NewReader(json)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-",
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	pair, _, err := client.KV().Get("foo", nil)
+	require.NoError(t, err)
+	require.Nil(t, pair)
+
+	pair, _, err = client.KV().Get("foo/", nil)
+	require.NoError(t, err)
+	require.Equal(t, "foo/", pair.Key)
 }
 
 func TestKVImportCommand(t *testing.T) {

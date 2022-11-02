@@ -17,6 +17,7 @@
 {{yield (hash
   data=this.data
   error=this.error
+  invalidate=this.invalidate
   Source=(if this.data
     (component 'data-source' disabled=(not (eq this.error undefined)))
     ''

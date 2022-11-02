@@ -1,0 +1,9 @@
+@keyframes icon-align-right {
+  100% {
+
+    -webkit-mask-image: var(--icon-align-right-16);
+    mask-image: var(--icon-align-right-16);
+    background-color: var(--icon-color, var(--color-align-right-500, currentColor));
+
+  }
+}

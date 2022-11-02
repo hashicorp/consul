@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/consul/proto/pbcommon"
+
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
@@ -36,9 +37,9 @@ func (s *TestStreamingClient) Subscribe(
 	req *pbsubscribe.SubscribeRequest,
 	_ ...grpc.CallOption,
 ) (pbsubscribe.StateChangeSubscription_SubscribeClient, error) {
-	if req.Namespace != s.expectedNamespace {
-		return nil, fmt.Errorf("wrong SubscribeRequest.Namespace %v, expected %v",
-			req.Namespace, s.expectedNamespace)
+	if ns := req.GetNamedSubject().GetNamespace(); ns != s.expectedNamespace {
+		return nil, fmt.Errorf("wrong SubscribeRequest.NamedSubject.Namespace %v, expected %v",
+			ns, s.expectedNamespace)
 	}
 	c := &subscribeClient{
 		events: make(chan eventOrErr, 32),
@@ -116,11 +117,11 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 				Op: pbsubscribe.CatalogOp_Register,
 				CheckServiceNode: &pbservice.CheckServiceNode{
 					Node: &pbservice.Node{
-						ID:         nodeID,
+						ID:         string(nodeID),
 						Node:       node,
 						Address:    addr,
 						Datacenter: "dc1",
-						RaftIndex: pbcommon.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -129,7 +130,7 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 						ID:      svc,
 						Service: svc,
 						Port:    8080,
-						RaftIndex: pbcommon.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -160,7 +161,7 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 							Passing: 1,
 							Warning: 1,
 						},
-						RaftIndex: pbcommon.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							// The original insertion index since a delete doesn't update
 							// this. This magic value came from state store tests where we
 							// setup at index 10 and then mutate at index 100. It can be

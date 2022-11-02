@@ -1,9 +1,12 @@
-export default function(type, value, doc = document) {
+export default function (type, value, doc = document) {
   const obj = {};
   if (type !== '*') {
     let key = '';
     if (!doc.cookie.includes('CONSUL_ACLS_ENABLE=0')) {
       obj['CONSUL_ACLS_ENABLE'] = 1;
+    }
+    if (!doc.cookie.includes('CONSUL_PEERINGS_ENABLE=0')) {
+      obj['CONSUL_PEERINGS_ENABLE'] = 1;
     }
     switch (type) {
       case 'dc':
@@ -48,6 +51,9 @@ export default function(type, value, doc = document) {
         break;
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
+        break;
+      case 'peer':
+        key = 'CONSUL_PEER_COUNT';
         break;
     }
     if (key) {

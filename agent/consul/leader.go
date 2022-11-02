@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -46,6 +48,9 @@ var LeaderSummaries = []prometheus.SummaryDefinition{
 const (
 	newLeaderEvent      = "consul:new-leader"
 	barrierWriteTimeout = 2 * time.Minute
+
+	defaultDeletionRoundBurst int        = 5  // number replication round bursts
+	defaultDeletionApplyRate  rate.Limit = 10 // raft applies per second
 )
 
 var (
@@ -71,6 +76,12 @@ func (s *Server) monitorLeadership() {
 	var leaderLoop sync.WaitGroup
 	for {
 		select {
+		case <-time.After(s.config.MetricsReportingInterval):
+			if s.IsLeader() {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(1))
+			} else {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(0))
+			}
 		case isLeader := <-raftNotifyCh:
 			switch {
 			case isLeader:
@@ -296,13 +307,19 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	}
 
 	s.getOrCreateAutopilotConfig()
-	s.autopilot.Start(ctx)
+	s.autopilot.EnableReconciliation()
 
 	s.startConfigReplication(ctx)
 
 	s.startFederationStateReplication(ctx)
 
 	s.startFederationStateAntiEntropy(ctx)
+
+	if s.config.PeeringEnabled {
+		s.startPeeringStreamSync(ctx)
+	}
+
+	s.startDeferredDeletion(ctx)
 
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
@@ -341,6 +358,8 @@ func (s *Server) revokeLeadership() {
 
 	s.stopACLReplication()
 
+	s.stopPeeringStreamSync()
+
 	s.stopConnectLeader()
 
 	s.stopACLTokenReaping()
@@ -349,9 +368,7 @@ func (s *Server) revokeLeadership() {
 
 	s.resetConsistentReadReady()
 
-	// Stop returns a chan and we want to block until it is closed
-	// which indicates that autopilot is actually stopped.
-	<-s.autopilot.Stop()
+	s.autopilot.DisableReconciliation()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
@@ -363,7 +380,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Purge the cache, since it could've changed while we were not the
 	// leader.
-	s.acls.cache.Purge()
+	s.ACLResolver.cache.Purge()
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
@@ -371,7 +388,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InPrimaryDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, aclfilter.RedactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -484,6 +501,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			}
 		}
 
+		// Insert the anonymous token if it does not exist.
 		state := s.fsm.State()
 		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 		if err != nil {
@@ -510,6 +528,20 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			}
 			s.logger.Info("Created ACL anonymous token from configuration")
 		}
+
+		// Generate or rotate the server management token on leadership transitions.
+		// This token is used by Consul servers for authn/authz when making
+		// requests to themselves through public APIs such as the agent cache.
+		// It is stored as system metadata because it is internally
+		// managed and users are not meant to see it or interact with it.
+		secretID, err := lib.GenerateUUID(nil)
+		if err != nil {
+			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
+		}
+		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+			return fmt.Errorf("failed to persist server management token: %w", err)
+		}
+
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
 	} else {
@@ -742,6 +774,18 @@ func (s *Server) stopACLReplication() {
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
 }
 
+func (s *Server) startDeferredDeletion(ctx context.Context) {
+	if s.config.PeeringEnabled {
+		s.startPeeringDeferredDeletion(ctx)
+	}
+	s.startTenancyDeferredDeletion(ctx)
+}
+
+func (s *Server) stopDeferredDeletion() {
+	s.leaderRoutineManager.Stop(peeringDeletionRoutineName)
+	s.stopTenancyDeferredDeletion()
+}
+
 func (s *Server) startConfigReplication(ctx context.Context) {
 	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
 		// replication shouldn't run in the primary DC
@@ -795,7 +839,7 @@ func (s *Server) getOrCreateAutopilotConfig() *structs.AutopilotConfig {
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
-	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
+	if _, err = s.leaderRaftApply("AutopilotRequest.Apply", structs.AutopilotRequestType, req); err != nil {
 		logger.Error("failed to initialize config", "error", err)
 		return nil
 	}
@@ -870,7 +914,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}
@@ -882,13 +926,13 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
-func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
 
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny, nodeEntMeta)
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -899,12 +943,12 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs
 		}
 
 		// Check if this node is "known" by serf
-		if _, ok := known[check.Node]; ok {
+		if _, ok := known[strings.ToLower(check.Node)]; ok {
 			continue
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node, nodeEntMeta)
+		_, services, err := state.NodeServices(nil, check.Node, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -915,7 +959,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs
 	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
-				_, node, err := state.GetNode(check.Node, nodeEntMeta)
+				_, node, err := state.GetNode(check.Node, nodeEntMeta, check.PeerName)
 				if err != nil {
 					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
@@ -1015,7 +1059,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1044,6 +1088,13 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.Ente
 			},
 		}
 
+		if parts.ExternalGRPCPort > 0 {
+			service.Meta["grpc_port"] = strconv.Itoa(parts.ExternalGRPCPort)
+		}
+		if parts.ExternalGRPCTLSPort > 0 {
+			service.Meta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
+		}
+
 		// Attempt to join the consul server
 		if err := s.joinConsulServer(member, parts); err != nil {
 			return err
@@ -1052,7 +1103,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.Ente
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -1060,7 +1111,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.Ente
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta)
+			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 			if err != nil {
 				return err
 			}
@@ -1078,7 +1129,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.Ente
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -1121,14 +1172,14 @@ AFTER_CHECK:
 
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -1143,7 +1194,7 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -1183,18 +1234,18 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 
 // handleLeftMember is used to handle members that gracefully
 // left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("left", member, nodeEntMeta)
 }
 
 // handleReapMember is used to handle members that have been
 // reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
 }
 
 // handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1204,7 +1255,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 	// deregister us later.
 	//
 	// TODO(partitions): check partitions here too? server names should be unique in general though
-	if member.Name == s.config.NodeName {
+	if strings.EqualFold(member.Name, s.config.NodeName) {
 		s.logger.Warn("deregistering self should be done by follower",
 			"name", s.config.NodeName,
 			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
@@ -1221,7 +1272,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}

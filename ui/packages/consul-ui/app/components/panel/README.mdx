@@ -1,0 +1,126 @@
+---
+type: css
+---
+# Panel
+
+Very basic 'panel' card-like CSS component currently used for menu-panels.
+
+When building components using `panel` please make use of the CSS custom
+properties available to help maintain consistency within the panel.
+
+**Very important**: Please avoid using style attributes for doing this the
+below is only for illustrative purposes. Please use this CSS component as a
+building block for other CSS instead.
+
+
+```hbs preview-template
+<figure>
+  <figcaption>Panel with no padding (in dark mode)</figcaption>
+  <div
+    class={{class-map
+      "panel"
+      "theme-dark"
+    }}
+    ...attributes
+  >
+    <div>
+      <p>Some text purposefully with no padding</p>
+    </div>
+    <hr />
+    <div>
+      <p>Along with a separator ^ again purposefully with no padding</p>
+    </div>
+  </div>
+</figure>
+<figure>
+  <figcaption>Panel using inherited padding for consistency</figcaption>
+  <div
+    class={{class-map
+      "panel"
+    }}
+    ...attributes
+  >
+    <Action
+      style={{style-map
+        (array 'width' '100%')
+        (array 'border-bottom' '1px solid rgb(var(--tone-border))')
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      Full Width Button
+    </Action>
+    <div
+      style={{style-map
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      <p>Some text with padding</p>
+    </div>
+    <hr />
+    <div
+      style={{style-map
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      <p>Along with a separator ^ again with padding</p>
+    </div>
+  </div>
+</figure>
+<figure>
+  <figcaption>Panel using larger padding and different color borders</figcaption>
+  <div
+    class={{class-map
+      "panel"
+    }}
+      style={{style-map
+        (array '--padding-x' '24px')
+        (array '--padding-y' '24px')
+        (array '--tone-border' 'var(--tone-strawberry-500)')
+      }}
+    ...attributes
+  >
+    <Action
+      style={{style-map
+        (array 'width' '100%')
+        (array 'border-bottom' '1px solid rgb(var(--tone-border))')
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      Full Width Button
+    </Action>
+    <div
+      style={{style-map
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      <p>Some text with padding</p>
+    </div>
+    <hr />
+    <div
+      style={{style-map
+        (array 'padding' 'var(--padding-x) var(--padding-y)')
+      }}
+    >
+      <p>Along with a separator ^ again with padding</p>
+    </div>
+  </div>
+</figure>
+```
+
+
+```css
+.panel {
+  @extend %panel;
+}
+.panel hr {
+  @extend %panel-separator;
+}
+```
+
+## CSS Properties
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--tone-border` | `color` | --tone-gray-300 | Default color for all borders |
+| `--padding-x` | `length` | 14px | Default x padding to be used for padding values within the component |
+| `--padding-y` | `length` | 14px | Default y padding to be used for padding values within the component |

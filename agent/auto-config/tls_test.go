@@ -23,7 +23,7 @@ func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx
 	agentID, ok := spiffeID.(*connect.SpiffeIDAgent)
 	require.True(t, ok, "certificate doesn't have an agent leaf cert URI")
 
-	return &structs.IssuedCert{
+	return issuedCertRoundtrip(t, &structs.IssuedCert{
 		SerialNumber:   cert.SerialNumber.String(),
 		CertPEM:        pub,
 		PrivateKeyPEM:  priv,
@@ -36,21 +36,20 @@ func newLeaf(t *testing.T, agentName, datacenter string, ca *structs.CARoot, idx
 			CreateIndex: idx,
 			ModifyIndex: idx,
 		},
-	}
+	})
 }
 
 func testCerts(t *testing.T, agentName, datacenter string) (*structs.CARoot, *structs.IndexedCARoots, *structs.IssuedCert) {
 	ca := connect.TestCA(t, nil)
-	ca.IntermediateCerts = make([]string, 0)
 	cert := newLeaf(t, agentName, datacenter, ca, 1, 10*time.Minute)
-	indexedRoots := structs.IndexedCARoots{
+	indexedRoots := caRootsRoundtrip(t, &structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
 		TrustDomain:  connect.TestClusterID,
 		Roots: []*structs.CARoot{
 			ca,
 		},
 		QueryMeta: structs.QueryMeta{Index: 1},
-	}
+	})
 
-	return ca, &indexedRoots, cert
+	return ca, indexedRoots, cert
 }

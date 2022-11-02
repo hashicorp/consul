@@ -55,7 +55,7 @@ as |key value|}}
           <BlockSlot @name="options">
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
                 {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
@@ -80,7 +80,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "passing" "warning" "critical" "empty") as |state|}}
-          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.status.value}}>
+          <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
             {{t (concat "common.consul." state)
                 default=(array
                   (concat "common.search." state)
@@ -106,7 +106,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "service" "node") as |item|}}
-          <Option @value={{item}} @selected={{contains item @filter.kind.value}}>
+          <Option @value={{item}} @selected={{includes item @filter.kind.value}}>
             {{t (concat "components.consul.health-check.search-bar.kind.options." item)
                 default=(array
                   (concat "common.search." item)
@@ -132,7 +132,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "alias" "docker" "grpc" "http" "script" "serf" "tcp" "ttl") as |item|}}
-          <Option @value={{item}} @selected={{contains item @filter.check.value}}>
+          <Option @value={{item}} @selected={{includes item @filter.check.value}}>
             {{t (concat "components.consul.health-check.search-bar.check.options." item)
                 default=(array
                   (concat "common.search." item)

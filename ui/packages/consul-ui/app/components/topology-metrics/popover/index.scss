@@ -21,16 +21,16 @@
   &.deny > button::before,
   &.deny .tippy-arrow::after {
     @extend %with-cancel-square-fill-mask, %as-pseudo;
-    background-color: rgb(var(--tone-red-500));
+    --icon-color: rgb(var(--tone-red-500));
   }
   &.l7 > button::before,
   &.l7 .tippy-arrow::after {
     @extend %with-layers-mask, %as-pseudo;
-    background-color: rgb(var(--tone-gray-300));
+    --icon-color: rgb(var(--tone-gray-300));
   }
   &.not-defined > button::before,
   &.not-defined .tippy-arrow::after {
     @extend %with-alert-triangle-mask, %as-pseudo;
-    color: rgb(var(--tone-yellow-500));
+    --icon-color: rgb(var(--tone-yellow-500));
   }
 }

@@ -196,7 +196,7 @@ func TestStateStore_Txn_Node(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Nodes(nil, nil)
+	idx, actual, err := s.Nodes(nil, nil, "")
 	require.NoError(t, err)
 	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
@@ -311,7 +311,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeServices(nil, "node1", nil)
+	idx, actual, err := s.NodeServices(nil, "node1", nil, "")
 	require.NoError(t, err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -464,7 +464,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeChecks(nil, "node1", nil)
+	idx, actual, err := s.NodeChecks(nil, "node1", nil, "")
 	require.NoError(t, err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -574,6 +574,22 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				Verb: api.KVGet,
 				DirEnt: structs.DirEntry{
 					Key: "foo/update",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVGetOrEmpty,
+				DirEnt: structs.DirEntry{
+					Key: "foo/update",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVGetOrEmpty,
+				DirEnt: structs.DirEntry{
+					Key: "foo/not-exists",
 				},
 			},
 		},
@@ -700,6 +716,22 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 					CreateIndex: 5,
 					ModifyIndex: 5,
 				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("stale"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 5,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/not-exists",
+				Value: nil,
 			},
 		},
 		&structs.TxnResult{

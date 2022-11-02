@@ -1,0 +1,9 @@
+@keyframes icon-bookmark-add {
+  100% {
+
+    -webkit-mask-image: var(--icon-bookmark-add-16);
+    mask-image: var(--icon-bookmark-add-16);
+    background-color: var(--icon-color, var(--color-bookmark-add-500, currentColor));
+
+  }
+}

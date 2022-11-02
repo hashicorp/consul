@@ -10,9 +10,7 @@ span.policy-node-identity,
 }
 span.policy-service-identity::before,
 span.policy-node-identity::before {
-  width: auto;
-  align-self: start;
-  font-size: inherit;
+  vertical-align: unset;
 }
 span.policy-node-identity::before {
   content: 'Node Identity: ';
@@ -20,24 +18,8 @@ span.policy-node-identity::before {
 span.policy-service-identity::before {
   content: 'Service Identity: ';
 }
-%pill.kubernetes::before {
-  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
-}
-%pill.terraform::before {
-  @extend %with-logo-terraform-color-icon, %as-pseudo;
-}
-%pill.nomad::before {
-  @extend %with-logo-nomad-color-icon, %as-pseudo;
-}
-%pill.consul::before,
-%pill.consul-api-gateway::before {
-  @extend %with-logo-consul-color-icon, %as-pseudo;
-}
-%pill.vault::before {
-  @extend %with-vault-300;
-}
-%pill.aws::before {
-  @extend %with-logo-aws-color-icon, %as-pseudo;
+%pill::before {
+  --icon-size: icon-300;
 }
 %pill.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;

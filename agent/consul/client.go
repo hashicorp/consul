@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -56,7 +57,7 @@ type Client struct {
 	config *Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
@@ -119,7 +120,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 
 	aclConfig := ACLResolverConfig{
 		Config:          config.ACLResolverSettings,
-		Delegate:        c,
+		Backend:         &clientACLResolverBackend{Client: c},
 		Logger:          c.logger,
 		DisableDuration: aclClientDisabledTTL,
 		CacheConfig:     clientACLCacheConfig,
@@ -127,7 +128,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		Tokens:          deps.Tokens,
 	}
 	var err error
-	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if c.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -172,7 +173,7 @@ func (c *Client) Shutdown() error {
 	// Close the connection pool
 	c.connPool.Shutdown()
 
-	c.acls.Close()
+	c.ACLResolver.Close()
 
 	return nil
 }
@@ -192,7 +193,7 @@ func (c *Client) Leave() error {
 
 // JoinLAN is used to have Consul join the inner-DC pool The target address
 // should be another node inside the DC listening on the Serf LAN address
-func (c *Client) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+func (c *Client) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (int, error) {
 	// Partitions definitely have to match.
 	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
 		return 0, fmt.Errorf("target partition %q must match client agent partition %q",
@@ -240,7 +241,7 @@ func (c *Client) LANMembers(filter LANMemberFilter) ([]serf.Member, error) {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster.
-func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	// Partitions definitely have to match.
 	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
 		return fmt.Errorf("client agent in partition %q cannot remove node in different partition %q",
@@ -290,19 +291,25 @@ TRY:
 	}
 
 	// Move off to another server, and see if we can retry.
-	c.logger.Error("RPC failed to server",
-		"method", method,
-		"server", server.Addr,
-		"error", rpcErr,
-	)
-	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	manager.NotifyFailedServer(server)
 
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
 	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
+		c.logger.Error("RPC failed to server",
+			"method", method,
+			"server", server.Addr,
+			"error", rpcErr,
+		)
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 		return rpcErr
 	}
+
+	c.logger.Warn("Retrying RPC to server",
+		"method", method,
+		"server", server.Addr,
+		"error", rpcErr,
+	)
 
 	// We can wait a bit and retry!
 	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
@@ -390,12 +397,12 @@ func (c *Client) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.
@@ -415,10 +422,11 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (c *Client) ReloadConfig(config ReloadableConfig) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+	c.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 	return nil
 }
 
-func (c *Client) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 	return c.config.AgentEnterpriseMeta()
 }
 

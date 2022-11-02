@@ -7,11 +7,15 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/require"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -45,68 +49,115 @@ func TestConfigEntry_Apply(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	updated := &structs.ServiceConfigEntry{
-		Name: "foo",
-	}
-	// originally target this as going to dc2
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-		Entry:      updated,
-	}
-	out := false
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
-
-	// the previous RPC should not return until the primary has been updated but will return
-	// before the secondary has the data.
-	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for replication to happen
-		state := s2.fsm.State()
-		_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, entry)
-		// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+	testutil.RunStep(t, "send the apply request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+		}
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry:      updated,
+		}
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Apply", &args, &out))
+		require.True(t, out)
 	})
 
-	updated = &structs.ServiceConfigEntry{
-		Name: "foo",
-		MeshGateway: structs.MeshGatewayConfig{
-			Mode: structs.MeshGatewayModeLocal,
-		},
-	}
+	var originalModifyIndex uint64
+	testutil.RunStep(t, "verify the entry was updated in the primary and secondary", func(t *testing.T) {
+		// the previous RPC should not return until the primary has been updated but will return
+		// before the secondary has the data.
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	args = structs.ConfigEntryRequest{
-		Datacenter: "dc1",
-		Op:         structs.ConfigEntryUpsertCAS,
-		Entry:      updated,
-	}
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.False(t, out)
+		retry.Run(t, func(r *retry.R) {
+			// wait for replication to happen
+			_, entry, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, entry)
+			// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
+		})
+		originalModifyIndex = serviceConf.ModifyIndex
+	})
 
-	args.Entry.GetRaftIndex().ModifyIndex = serviceConf.ModifyIndex
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
-	require.True(t, out)
+	testutil.RunStep(t, "update the entry again in the primary", func(t *testing.T) {
+		updated := &structs.ServiceConfigEntry{
+			Name: "foo",
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: structs.MeshGatewayModeLocal,
+			},
+		}
 
-	state = s1.fsm.State()
-	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Op:         structs.ConfigEntryUpsertCAS,
+			Entry:      updated,
+		}
 
-	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, "", serviceConf.Protocol)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		testutil.RunStep(t, "with the wrong CAS", func(t *testing.T) {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.False(t, out)
+		})
+		testutil.RunStep(t, "with the correct CAS", func(t *testing.T) {
+			var out bool
+			args.Entry.GetRaftIndex().ModifyIndex = originalModifyIndex
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+			require.True(t, out)
+		})
+	})
+
+	testutil.RunStep(t, "verify the entry was updated in the state store", func(t *testing.T) {
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+
+		serviceConf, ok := entry.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, "", serviceConf.Protocol)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
+	})
+
+	testutil.RunStep(t, "verify no-op updates do not advance the raft indexes", func(t *testing.T) {
+		var modifyIndex uint64
+		for i := 0; i < 3; i++ {
+			testutil.RunStep(t, fmt.Sprintf("iteration %d", i), func(t *testing.T) {
+				args := structs.ConfigEntryRequest{
+					Datacenter: "dc1",
+					Op:         structs.ConfigEntryUpsert,
+					Entry: &structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "noop",
+						Protocol: "grpc",
+					},
+				}
+				var out bool
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+				require.True(t, out)
+
+				getIndex, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "noop", nil)
+				require.NoError(t, err)
+				require.NotNil(t, entry)
+
+				listIndex, entries, err := s1.fsm.State().ConfigEntries(nil, nil)
+				require.NoError(t, err)
+				require.Len(t, entries, 2)
+
+				if i == 0 {
+					modifyIndex = entry.GetRaftIndex().ModifyIndex
+				} else {
+					require.Equal(t, modifyIndex, entry.GetRaftIndex().ModifyIndex)
+					require.Equal(t, modifyIndex, getIndex)
+					require.Equal(t, modifyIndex, listIndex)
+				}
+			})
+		}
+	})
 }
 
 func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
@@ -255,6 +306,61 @@ func TestConfigEntry_Get(t *testing.T) {
 	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 }
 
+func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "alpha",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind: structs.ServiceDefaults,
+					Name: "does-not-exist",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.ConfigEntryResponse
+				errCh := channelCallRPC(s1, "ConfigEntry.Get", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf("other%d", i),
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	})
+}
+
 func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -356,6 +462,79 @@ func TestConfigEntry_List(t *testing.T) {
 	expected.Kind = structs.ServiceDefaults
 	expected.QueryMeta = out.QueryMeta
 	require.Equal(t, expected, out)
+}
+
+func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ConfigEntryQuery{
+					Kind:       structs.ServiceDefaults,
+					Datacenter: "dc1",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.IndexedConfigEntries
+
+				errCh := channelCallRPC(s1, "ConfigEntry.List", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           fmt.Sprintf(dataPrefix+"%d", i),
+						ConnectTimeout: 33 * time.Second,
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	}
+
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // Create some dummy services in the state store to look up.
+		for _, entry := range []structs.ConfigEntry{
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "bar",
+			},
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		} {
+			var out bool
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+				Entry: entry,
+			}, &out))
+			require.True(t, out)
+		}
+	}
+
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
 }
 
 func TestConfigEntry_ListAll(t *testing.T) {
@@ -623,48 +802,70 @@ func TestConfigEntry_Delete(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	// Create a dummy service in the state store to look up.
-	entry := &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
-	}
-	state := s1.fsm.State()
-	require.NoError(t, state.EnsureConfigEntry(1, entry))
-
-	// Verify it's there.
-	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-
-	serviceConf, ok := existing.(*structs.ServiceConfigEntry)
-	require.True(t, ok)
-	require.Equal(t, "foo", serviceConf.Name)
-	require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
-
-	retry.Run(t, func(r *retry.R) {
-		// wait for it to be replicated into the secondary dc
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.NotNil(r, existing)
+	testutil.RunStep(t, "create a dummy service in the state store to look up", func(t *testing.T) {
+		entry := &structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "foo",
+		}
+		require.NoError(t, s1.fsm.State().EnsureConfigEntry(1, entry))
 	})
 
-	// send the delete request to dc2 - it should get forwarded to dc1.
-	args := structs.ConfigEntryRequest{
-		Datacenter: "dc2",
-	}
-	args.Entry = entry
-	var out struct{}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+	testutil.RunStep(t, "verify it exists in the primary and is replicated to the secondary", func(t *testing.T) {
+		// Verify it's there.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
 
-	// Verify the entry was deleted.
-	_, existing, err = s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-	require.NoError(t, err)
-	require.Nil(t, existing)
+		serviceConf, ok := existing.(*structs.ServiceConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, "foo", serviceConf.Name)
+		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 
-	// verify it gets deleted from the secondary too
-	retry.Run(t, func(r *retry.R) {
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
-		require.NoError(r, err)
-		require.Nil(r, existing)
+		retry.Run(t, func(r *retry.R) {
+			// wait for it to be replicated into the secondary dc
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.NotNil(r, existing)
+		})
+	})
+
+	testutil.RunStep(t, "send the delete request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc2",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
+	})
+
+	testutil.RunStep(t, "verify the entry was deleted in the primary and secondary", func(t *testing.T) {
+		// Verify the entry was deleted.
+		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+		require.NoError(t, err)
+		require.Nil(t, existing)
+
+		// verify it gets deleted from the secondary too
+		retry.Run(t, func(r *retry.R) {
+			_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+			require.NoError(r, err)
+			require.Nil(r, existing)
+		})
+	})
+
+	testutil.RunStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		}
+		var out structs.ConfigEntryDeleteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+		require.True(t, out.Deleted)
 	})
 }
 
@@ -834,6 +1035,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
+		Meta:     map[string]string{"foo": "bar"},
 	}))
 	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
@@ -859,6 +1061,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 				"protocol": "grpc",
 			},
 		},
+		Meta: map[string]string{"foo": "bar"},
 		// Don't know what this is deterministically
 		QueryMeta: out.QueryMeta,
 	}
@@ -928,6 +1131,31 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			expect: structs.ServiceConfigResponse{
 				Mode:             structs.ProxyModeTransparent,
 				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
+			},
+		},
+		{
+			name: "from service-defaults with endpoint",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Mode: structs.ProxyModeTransparent,
+					Destination: &structs.DestinationConfig{
+						Addresses: []string{"hello.world.com"},
+						Port:      443,
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				Datacenter: "dc1",
+			},
+			expect: structs.ServiceConfigResponse{
+				Mode: structs.ProxyModeTransparent,
+				Destination: structs.DestinationConfig{
+					Addresses: []string{"hello.world.com"},
+					Port:      443,
+				},
 			},
 		},
 		{
@@ -1004,11 +1232,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 
 	tt := []struct {
-		name     string
-		entries  []structs.ConfigEntry
-		request  structs.ServiceConfigRequest
-		proxyCfg structs.ConnectProxyConfig
-		expect   structs.ServiceConfigResponse
+		name    string
+		entries []structs.ConfigEntry
+		request structs.ServiceConfigRequest
+		expect  structs.ServiceConfigResponse
 	}{
 		{
 			name: "upstream config entries from Upstreams and service-defaults",
@@ -1172,8 +1399,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 							Protocol:    "http",
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 							PassiveHealthCheck: &structs.PassiveHealthCheck{
-								Interval:    10,
-								MaxFailures: 2,
+								Interval:                10,
+								MaxFailures:             2,
+								EnforcingConsecutive5xx: uintPointer(60),
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -1205,8 +1433,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: wildcard,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":    int64(10),
-								"MaxFailures": int64(2),
+								"Interval":                int64(10),
+								"MaxFailures":             int64(2),
+								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "remote",
@@ -1218,8 +1447,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":    int64(10),
-								"MaxFailures": int64(2),
+								"Interval":                int64(10),
+								"MaxFailures":             int64(2),
+								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",
@@ -1577,8 +1807,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1607,7 +1835,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 	var index uint64
 
-	runStep(t, "foo and bar should be both http", func(t *testing.T) {
+	testutil.RunStep(t, "foo and bar should be both http", func(t *testing.T) {
 		// Verify that we get the results of service-defaults for 'foo' and 'bar'.
 		var out structs.ServiceConfigResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
@@ -1641,7 +1869,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "blocking query for foo wakes on bar entry delete", func(t *testing.T) {
+	testutil.RunStep(t, "blocking query for foo wakes on bar entry delete", func(t *testing.T) {
 		// Now setup a blocking query for 'foo' while we erase the
 		// service-defaults for bar.
 
@@ -1694,7 +1922,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "foo should be http and bar should be unset", func(t *testing.T) {
+	testutil.RunStep(t, "foo should be http and bar should be unset", func(t *testing.T) {
 		// Verify that we get the results of service-defaults for just 'foo'.
 		var out structs.ServiceConfigResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
@@ -1720,7 +1948,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "blocking query for foo wakes on foo entry delete", func(t *testing.T) {
+	testutil.RunStep(t, "blocking query for foo wakes on foo entry delete", func(t *testing.T) {
 		// Now setup a blocking query for 'foo' while we erase the
 		// service-defaults for foo.
 
@@ -1889,6 +2117,119 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 	require.Equal(t, expected, out)
 }
 
+func BenchmarkConfigEntry_ResolveServiceConfig_Hash(b *testing.B) {
+	res := &configentry.ResolvedServiceConfigSet{}
+
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "web",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up1",
+		Protocol: "http",
+	})
+	res.AddServiceDefaults(&structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "up2",
+		Protocol: "http",
+	})
+	res.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := hashstructure_v2.Hash(res, hashstructure_v2.FormatV2, nil)
+		if err != nil {
+			b.Fatalf("error: %v", err)
+		}
+	}
+}
+
+func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	run := func(t *testing.T, dataPrefix string) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := structs.ServiceConfigRequest{
+					Name: "foo",
+					UpstreamIDs: []structs.ServiceID{
+						structs.NewServiceID("bar", nil),
+					},
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.ServiceConfigResponse
+
+				errCh := channelCallRPC(s1, "ConfigEntry.ResolveServiceConfig", &args, &out, nil)
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out bool
+				return channelCallRPC(s1, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+					Entry: &structs.ServiceConfigEntry{
+						Kind: structs.ServiceDefaults,
+						Name: fmt.Sprintf(dataPrefix+"%d", i),
+					},
+				}, &out, func() error {
+					if !out {
+						return fmt.Errorf("[%d] unexpectedly returned false", i)
+					}
+					return nil
+				})
+			},
+		)
+	}
+
+	{ // create one unrelated entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "unrelated",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other")
+	})
+
+	{ // create one relevant entry
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "bar",
+				Protocol: "grpc",
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other")
+	})
+}
+
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2026,13 +2367,6 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
 	require.True(t, ok)
 	require.Equal(t, expose, proxyConf.Expose)
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func Test_gateWriteToSecondary(t *testing.T) {
@@ -2175,4 +2509,8 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 			require.NoError(t, gateWriteToSecondary(tcase.targetDC, tcase.localDC, tcase.primaryDC, tcase.kind))
 		})
 	}
+}
+
+func uintPointer(v uint32) *uint32 {
+	return &v
 }

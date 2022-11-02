@@ -51,19 +51,19 @@ type ACLAuthMethodEnterpriseFields struct{}
 
 type ACLAuthMethodEnterpriseMeta struct{}
 
-func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *EnterpriseMeta) {
+func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *acl.EnterpriseMeta) {
 	// do nothing
 }
 
-func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *EnterpriseMeta {
+func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func aclServiceIdentityRules(svc string, _ *EnterpriseMeta) string {
+func aclServiceIdentityRules(svc string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
 }
 
-func aclNodeIdentityRules(node string, _ *EnterpriseMeta) string {
+func aclNodeIdentityRules(node string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateNodeIdentity, node)
 }
 
@@ -95,6 +95,6 @@ func (r *ACLRole) NodeIdentityList() []*ACLNodeIdentity {
 	return out
 }
 
-func IsValidPartitionAndDatacenter(meta EnterpriseMeta, datacenters []string, primaryDatacenter string) bool {
+func IsValidPartitionAndDatacenter(meta acl.EnterpriseMeta, datacenters []string, primaryDatacenter string) bool {
 	return true
 }

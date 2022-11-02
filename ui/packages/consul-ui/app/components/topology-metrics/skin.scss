@@ -1,3 +1,16 @@
+.topology-notices {
+  button {
+    @extend %button;
+    color: rgb(var(--tone-blue-500));
+  }
+  button::before {
+    @extend %as-pseudo;
+    @extend %with-chevron-down-mask;
+  }
+  button[aria-expanded='true']::before {
+    @extend %with-chevron-up-mask;
+  }
+}
 .topology-container {
   color: rgb(var(--tone-gray-700));
 }

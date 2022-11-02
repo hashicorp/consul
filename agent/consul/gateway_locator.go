@@ -8,14 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 // GatewayLocator assists in selecting an appropriate mesh gateway when wan
@@ -269,7 +270,7 @@ func getRandomItem(items []string) string {
 }
 
 type serverDelegate interface {
-	blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error
+	blockingQuery(queryOpts blockingQueryOptions, queryMeta blockingQueryResponseMeta, fn queryFn) error
 	IsLeader() bool
 	LeaderLastContact() time.Time
 	setDatacenterSupportsFederationStates()
@@ -455,7 +456,7 @@ func retainGateways(full structs.CheckServiceNodes) structs.CheckServiceNodes {
 func renderGatewayAddrs(gateways structs.CheckServiceNodes, wan bool) []string {
 	out := make([]string, 0, len(gateways))
 	for _, csn := range gateways {
-		addr, port := csn.BestAddress(wan)
+		_, addr, port := csn.BestAddress(wan)
 		completeAddr := ipaddr.FormatAddressPort(addr, port)
 		out = append(out, completeAddr)
 	}

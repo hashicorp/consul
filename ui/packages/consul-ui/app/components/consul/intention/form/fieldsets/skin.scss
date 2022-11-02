@@ -1,12 +1,11 @@
 .consul-intention-fieldsets {
   .value-allow > :last-child::before {
-    @extend %with-arrow-right-mask, %as-pseudo;
-    color: rgb(var(--tone-green-500));
+    @extend %with-allow-500;
   }
   .value-deny > :last-child::before {
-    @extend %with-deny-color-icon, %as-pseudo;
+    @extend %with-deny-500;
   }
   .value- > :last-child::before {
-    @extend %with-layers-mask, %as-pseudo;
+    @extend %with-l7-500;
   }
 }

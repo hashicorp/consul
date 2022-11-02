@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -11,7 +10,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+
+	"github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 )
 
 // verifyNodeSort makes sure the order of the nodes in the slice is the same as
@@ -72,10 +73,9 @@ func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, e
 //
 // Here's the layout of the nodes:
 //
-//       node3 node2 node5                         node4       node1
-//   |     |     |     |     |     |     |     |     |     |     |
-//   0     1     2     3     4     5     6     7     8     9     10  (ms)
-//
+//	    node3 node2 node5                         node4       node1
+//	|     |     |     |     |     |     |     |     |     |     |
+//	0     1     2     3     4     5     6     7     8     9     10  (ms)
 func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 	// Register some nodes.
 	for i := 0; i < 5; i++ {

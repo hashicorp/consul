@@ -1,9 +1,8 @@
 ---
 layout: docs
-page_title: Cloud Auto-join
+page_title: Auto-join a Cloud Provider
 description: >-
-  Consul supports automatically joining a Consul datacenter using cloud metadata
-  on various providers.
+  Auto-join enables agents to automatically join other agents running in the cloud. To configure auto-join, specify agent addresses with compute node metadata for the cloud provider instead of an IP address. Use the CLI or an agent configuration file to configure cloud auto-join.
 ---
 
 # Cloud Auto-join
@@ -69,7 +68,7 @@ to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
 <Tab heading="Agent configuration">
 
 The following example configuration overrides the default Serf LAN port using the
-[`ports.serf_lan`](/docs/agent/options#serf_lan_port) configuration option.
+[`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option.
 
 <CodeBlockConfig filename="client-config.hcl">
 
@@ -85,7 +84,7 @@ ports {
 <Tab heading="Command-line flag">
 
 The following example overrides the default Serf LAN port using the
-[`-serf-lan-port`](/docs/agent/options#_serf_lan_port) command line flag.
+[`-serf-lan-port`](/docs/agent/config/cli-flags#_serf_lan_port) command line flag.
 
 ```shell
 $ consul agent -serf-lan-port=8303 -retry-join "provider=..."
@@ -147,7 +146,7 @@ endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-d
 ### Microsoft Azure
 
 This returns the first private IP address of all servers in the given region
-which have the given `tag_name` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in
+which have the given `tag_key` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in
 the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
 ```shell-session
@@ -157,7 +156,7 @@ $ consul agent -retry-join "provider=azure tag_key=... tag_value=... tenant_id=.
 ```json
 {
   "retry_join": [
-    "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+    "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
   ]
 }
 ```
@@ -176,7 +175,7 @@ Variables can also be provided by environmental variables:
 
 Use these configuration parameters when using tags:
 
-- `tag_name` - the name of the tag to auto-join on.
+- `tag_key` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
 Use these configuration parameters (instead of `tag_name` and `tag_value`) when using Virtual Machine Scale Sets (Consul 1.0.3 and later):

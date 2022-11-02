@@ -1,0 +1,3 @@
+```release-note:feature
+acl: Add token information to PermissionDeniedErrors
+```

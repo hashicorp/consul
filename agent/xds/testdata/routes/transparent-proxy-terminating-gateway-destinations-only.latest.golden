@@ -1,0 +1,53 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "virtualHosts": [
+        {
+          "name": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "virtualHosts": [
+        {
+          "name": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce": "00000001"
+}

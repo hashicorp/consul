@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 )
 
@@ -25,10 +26,13 @@ type cmd struct {
 	name        string
 	cas         bool
 	modifyIndex uint64
+	filename    string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+
+	c.flags.StringVar(&c.filename, "filename", "", "The filename of the config entry to delete")
 	c.flags.StringVar(&c.kind, "kind", "", "The kind of configuration to delete.")
 	c.flags.StringVar(&c.name, "name", "", "The name of configuration to delete.")
 	c.flags.BoolVar(&c.cas, "cas", false,
@@ -55,6 +59,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	kind := c.kind
+	name := c.name
+	var err error
+	if c.filename != "" {
+		data, err := helpers.LoadDataSourceNoRaw(c.filename, nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to load data: %v", err))
+			return 1
+		}
+
+		entry, err := helpers.ParseConfigEntry(data)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
+			return 1
+		}
+		kind = entry.GetKind()
+		name = entry.GetName()
+	}
+
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
@@ -64,33 +87,58 @@ func (c *cmd) Run(args []string) int {
 
 	var deleted bool
 	if c.cas {
-		deleted, _, err = entries.DeleteCAS(c.kind, c.name, c.modifyIndex, nil)
+		deleted, _, err = entries.DeleteCAS(kind, name, c.modifyIndex, nil)
 	} else {
-		_, err = entries.Delete(c.kind, c.name, nil)
+		_, err = entries.Delete(kind, name, nil)
 		deleted = err == nil
 	}
 
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error deleting config entry %s/%s: %v", c.kind, c.name, err))
+		c.UI.Error(fmt.Sprintf("Error deleting config entry %s/%s: %v", kind, name, err))
 		return 1
 	}
 
 	if !deleted {
-		c.UI.Error(fmt.Sprintf("Config entry not deleted: %s/%s", c.kind, c.name))
+		c.UI.Error(fmt.Sprintf("Config entry not deleted: %s/%s", kind, name))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Config entry deleted: %s/%s", c.kind, c.name))
+	c.UI.Info(fmt.Sprintf("Config entry deleted: %s/%s", kind, name))
 	return 0
 }
 
 func (c *cmd) validateArgs() error {
-	if c.kind == "" {
-		return errors.New("Must specify the -kind parameter")
+	count := 0
+	if c.filename != "" {
+		count++
 	}
 
-	if c.name == "" {
-		return errors.New("Must specify the -name parameter")
+	if c.kind != "" {
+		count++
+	}
+
+	if c.name != "" {
+		count++
+	}
+
+	if count >= 3 {
+		return errors.New("filename can't be used with kind or name")
+	} else if count == 0 {
+		return errors.New("Must specify the -kind or -filename parameter")
+	}
+
+	if c.filename != "" {
+		if count == 2 {
+			return errors.New("filename can't be used with kind or name")
+		}
+	} else {
+		if c.kind == "" {
+			return errors.New("Must specify the -kind parameter")
+		}
+
+		if c.name == "" {
+			return errors.New("Must specify the -name parameter")
+		}
 	}
 
 	if c.cas && c.modifyIndex == 0 {
@@ -115,12 +163,13 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Delete a centralized config entry"
 	help     = `
-Usage: consul config delete [options] -kind <config kind> -name <config name>
+Usage: consul config delete [options] ([-kind <config kind> -name <config name>] | [-f FILENAME])
 
   Deletes the configuration entry specified by the kind and name.
 
   Example:
 
     $ consul config delete -kind service-defaults -name web
+    $ consul config delete -filename service-defaults-web.hcl
 `
 )

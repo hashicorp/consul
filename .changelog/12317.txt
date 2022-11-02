@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Include partition data when saving an intention from the topology
+visualization
+```

@@ -1,8 +1,10 @@
 package checks
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -334,18 +336,19 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 // or if the request returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckHTTP struct {
-	CheckID         structs.CheckID
-	ServiceID       structs.ServiceID
-	HTTP            string
-	Header          map[string][]string
-	Method          string
-	Body            string
-	Interval        time.Duration
-	Timeout         time.Duration
-	Logger          hclog.Logger
-	TLSClientConfig *tls.Config
-	OutputMaxSize   int
-	StatusHandler   *StatusHandler
+	CheckID          structs.CheckID
+	ServiceID        structs.ServiceID
+	HTTP             string
+	Header           map[string][]string
+	Method           string
+	Body             string
+	Interval         time.Duration
+	Timeout          time.Duration
+	Logger           hclog.Logger
+	TLSClientConfig  *tls.Config
+	OutputMaxSize    int
+	StatusHandler    *StatusHandler
+	DisableRedirects bool
 
 	httpClient *http.Client
 	stop       bool
@@ -391,6 +394,11 @@ func (c *CheckHTTP) Start() {
 		c.httpClient = &http.Client{
 			Timeout:   10 * time.Second,
 			Transport: trans,
+		}
+		if c.DisableRedirects {
+			c.httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
 		}
 		if c.Timeout > 0 {
 			c.httpClient.Timeout = c.Timeout
@@ -644,8 +652,7 @@ func (c *CheckTCP) Start() {
 	if c.dialer == nil {
 		// Create the socket dialer
 		c.dialer = &net.Dialer{
-			Timeout:   10 * time.Second,
-			DualStack: true,
+			Timeout: 10 * time.Second,
 		}
 		if c.Timeout > 0 {
 			c.dialer.Timeout = c.Timeout
@@ -696,6 +703,135 @@ func (c *CheckTCP) check() {
 	}
 	conn.Close()
 	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+}
+
+// CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
+// The check is passing if the connection succeeds, the response is bytes.Equal to the bytes passed
+// in or if the error returned is a timeout error
+// The check is critical if: the connection succeeds but the response is not equal to the bytes passed in,
+// the connection succeeds but the error returned is not a timeout error or the connection fails
+type CheckUDP struct {
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
+	UDP           string
+	Message       string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        hclog.Logger
+	StatusHandler *StatusHandler
+
+	dialer   *net.Dialer
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+}
+
+func (c *CheckUDP) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+
+	if c.dialer == nil {
+		// Create the socket dialer
+		c.dialer = &net.Dialer{
+			Timeout: 10 * time.Second,
+		}
+		if c.Timeout > 0 {
+			c.dialer.Timeout = c.Timeout
+		}
+	}
+
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	go c.run()
+}
+
+func (c *CheckUDP) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+}
+
+func (c *CheckUDP) run() {
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+
+}
+
+func (c *CheckUDP) check() {
+
+	conn, err := c.dialer.Dial(`udp`, c.UDP)
+
+	if err != nil {
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket connection failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
+	}
+	defer conn.Close()
+
+	n, err := fmt.Fprintf(conn, c.Message)
+	if err != nil {
+		c.Logger.Warn("Check socket write failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	if n != len(c.Message) {
+		c.Logger.Warn("Check socket short write",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	if err != nil {
+		c.Logger.Warn("Check socket write failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+	_, err = bufio.NewReader(conn).Read(make([]byte, 1))
+	if err != nil {
+		if strings.Contains(err.Error(), "i/o timeout") {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket read failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
+	} else if err == nil {
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+	}
 }
 
 // CheckDocker is used to periodically invoke a script to
@@ -910,6 +1046,125 @@ func (c *CheckGRPC) Stop() {
 		c.stop = true
 		close(c.stopCh)
 	}
+}
+
+type CheckOSService struct {
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
+	OSService     string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        hclog.Logger
+	StatusHandler *StatusHandler
+	Client        *OSServiceClient
+
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+	stopWg   sync.WaitGroup
+}
+
+func (c *CheckOSService) CheckType() structs.CheckType {
+	return structs.CheckType{
+		CheckID:   c.CheckID.ID,
+		OSService: c.OSService,
+		Interval:  c.Interval,
+		Timeout:   c.Timeout,
+	}
+}
+
+func (c *CheckOSService) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	c.stopWg.Add(1)
+	go c.run()
+}
+
+func (c *CheckOSService) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+
+	// Wait for the c.run() goroutine to complete before returning.
+	c.stopWg.Wait()
+}
+
+func (c *CheckOSService) run() {
+	defer c.stopWg.Done()
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+func (c *CheckOSService) doCheck() (string, error) {
+	err := c.Client.Check(c.OSService)
+	if err == nil {
+		return api.HealthPassing, nil
+	}
+	if errors.Is(err, ErrOSServiceStatusCritical) {
+		return api.HealthCritical, err
+	}
+
+	return api.HealthWarning, err
+}
+
+func (c *CheckOSService) check() {
+	var out string
+	var status string
+	var err error
+
+	waitCh := make(chan error, 1)
+	go func() {
+		status, err = c.doCheck()
+		waitCh <- err
+	}()
+
+	timeout := 30 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	select {
+	case <-time.After(timeout):
+		msg := fmt.Sprintf("Timed out (%s) running check", timeout.String())
+		c.Logger.Warn("Timed out running check",
+			"check", c.CheckID.String(),
+			"timeout", timeout.String(),
+		)
+
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, msg)
+
+		// Now wait for the process to exit so we never start another
+		// instance concurrently.
+		<-waitCh
+		return
+
+	case err = <-waitCh:
+		// The process returned before the timeout, proceed normally
+	}
+
+	out = fmt.Sprintf("Service \"%s\" is healthy", c.OSService)
+	if err != nil {
+		c.Logger.Debug("Check failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		out = err.Error()
+	}
+	c.StatusHandler.updateCheck(c.CheckID, status, out)
 }
 
 // StatusHandler keep tracks of successive error/success counts and ensures

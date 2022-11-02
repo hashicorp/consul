@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -32,9 +31,7 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	// Pull out the service name
 	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
 	if args.State == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing check state")
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing check state"}
 	}
 
 	// Make the RPC request
@@ -78,9 +75,7 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 	// Pull out the service name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing node name")
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -126,9 +121,7 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	// Make the RPC request
@@ -190,11 +183,17 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	s.parsePeerName(req, &args)
+
 	// Check for tags
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
 		args.ServiceTags = params["tag"]
 		args.TagFilter = true
+	}
+
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
 	}
 
 	// Determine the prefix
@@ -214,9 +213,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing service name")
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
@@ -234,9 +231,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	// Filter to only passing if specified
 	filter, err := getBoolQueryParam(params, api.HealthPassing)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Invalid value for ?passing")
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid value for ?passing"}
 	}
 
 	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer

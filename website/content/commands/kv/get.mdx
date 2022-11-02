@@ -20,8 +20,8 @@ can be used with [`kv import`](/commands/kv/import) to move entire trees between
 Consul clusters. Alternatively, the [transaction API](/api-docs/txn) provides
 support for performing up to 64 KV operations atomically.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -32,19 +32,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### KV Get Options
+#### Command Options
 
 - `-base64` - Base 64 encode the value. The default value is false.
 
@@ -63,6 +51,18 @@ Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 - `-separator=<string>` - String to use as a separator for recursive lookups. The
   default value is "/", and only used when paired with the `-keys` flag. This will
   limit the prefix of keys returned, only up to the given separator.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

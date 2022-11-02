@@ -1,0 +1,9 @@
+@keyframes icon-inbox {
+  100% {
+
+    -webkit-mask-image: var(--icon-inbox-16);
+    mask-image: var(--icon-inbox-16);
+    background-color: var(--icon-color, var(--color-inbox-500, currentColor));
+
+  }
+}

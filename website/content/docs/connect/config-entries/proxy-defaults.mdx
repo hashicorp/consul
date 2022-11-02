@@ -1,16 +1,13 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Proxy Defaults'
+page_title: Proxy Defaults - Configuration Entry Reference
 description: >-
-  The proxy-defaults config entry kind allows for configuring global config
-  defaults across all services for Connect proxy configuration. Currently, only
-  one global entry is supported.
+  The proxy defaults configuration entry kind defines default behaviors for sidecar proxies in the service mesh. Use the reference guide to learn about `""proxy-defaults""` config entry parameters and how to expose HTTP paths through Envoy.
 ---
 
-# Proxy Defaults
+# Proxy Defaults Configuration Entry
 
-
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you 
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you
 to configure global defaults across all services for Connect proxy
 configurations. Only one global entry is supported.
 
@@ -28,8 +25,8 @@ service definitions](/docs/connect/registration/sidecar-service).
 ## Requirements
 
 The following Consul binaries are supported:
-* Consul 1.8.4+ on Kubernetes. 
-* Consul 1.5.0+ on other platforms. 
+* Consul 1.8.4+ on Kubernetes.
+* Consul 1.5.0+ on other platforms.
 
 ## Usage
 
@@ -47,7 +44,6 @@ Configure the following parameters to define a `proxy-defaults` configuration en
 <Tab heading="Consul OSS">
 
 <CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -64,7 +60,7 @@ TransparentProxy {
   DialedDirectly       = <true if proxy instances should be dialed directly>
 }
 MeshGateway {
-  Mode = "<name of mesh gatweay configuration for all proxies>"
+  Mode = "<name of mesh gateway configuration for all proxies>"
 }
 Expose {
   Checks = <true to expose all HTTP and gRPC checks through Envoy>
@@ -79,9 +75,6 @@ Expose {
   ]
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -98,7 +91,7 @@ spec:
     outboundListenerPort: <port the proxy should listen on for outbound traffic>
     dialedDirectly: <true if proxy instances should be dialed directly>
   meshGateway:
-    mode: <name of mesh gatweay configuration for all proxies>
+    mode: <name of mesh gateway configuration for all proxies>
   expose:
     checks: <true to expose all HTTP and gRPC checks through Envoy>
     paths:
@@ -107,9 +100,6 @@ spec:
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -127,7 +117,7 @@ spec:
     "DialedDirectly": <true if proxy instances should be dialed directly>
   },
   "MeshGateway": {
-    "Mode": = "<name of mesh gatweay configuration for all proxies>"
+    "Mode": = "<name of mesh gateway configuration for all proxies>"
   },
   "Expose": {
     "Checks": <true to expose all HTTP and gRPC checks through Envoy>,
@@ -143,7 +133,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -153,7 +142,6 @@ spec:
 namespace and it will configure proxies in **all** namespaces.
 
 <CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -171,7 +159,7 @@ TransparentProxy {
   DialedDirectly       = <true if proxy instances should be dialed directly>
 }
 MeshGateway {
-  Mode = "<name of mesh gatweay configuration for all proxies>"
+  Mode = "<name of mesh gateway configuration for all proxies>"
 }
 Expose {
   Checks = <true to expose all HTTP and gRPC checks through Envoy>
@@ -186,9 +174,6 @@ Expose {
   ]
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -206,7 +191,7 @@ spec:
     outboundListenerPort: <port the proxy should listen on for outbound traffic>
     dialedDirectly: <true if proxy instances should be dialed directly>
   meshGateway:
-    mode: <name of mesh gatweay configuration for all proxies>
+    mode: <name of mesh gateway configuration for all proxies>
   expose:
     checks: <true to expose all HTTP and gRPC checks through Envoy>
     paths:
@@ -215,9 +200,6 @@ spec:
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -236,7 +218,7 @@ spec:
     "DialedDirectly": <true if proxy instances should be dialed directly>
   },
   "MeshGateway": {
-    "Mode": = "<name of mesh gatweay configuration for all proxies>"
+    "Mode": = "<name of mesh gateway configuration for all proxies>"
   },
   "Expose": {
     "Checks": <true to expose all HTTP and gRPC checks through Envoy>,
@@ -252,7 +234,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -337,7 +318,6 @@ spec:
                     \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
-      yaml: false,
     },
     {
       name: 'TransparentProxy',
@@ -349,7 +329,6 @@ spec:
           type: 'int: "15001"',
           description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is captured and redirected to.`,
-          yaml: false,
         },
         {
           name: 'DialedDirectly',
@@ -390,8 +369,8 @@ spec:
           type: 'bool: false',
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-        [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
+        [advertise address](/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+        [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost.`,
         },
         {
@@ -441,7 +420,6 @@ The following example configures the default protocol for all sidecar proxies.
 <Tab heading="Consul OSS">
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -450,9 +428,6 @@ Config {
   protocol = "http"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -464,9 +439,6 @@ spec:
     protocol: http
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -477,7 +449,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -487,7 +458,6 @@ spec:
 namespace and it will configure proxies in **all** namespaces.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -497,9 +467,6 @@ Config {
   protocol = "http"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -512,9 +479,6 @@ spec:
     protocol: http
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -526,7 +490,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -537,7 +500,6 @@ spec:
 The following example configures all sidecar proxies to expose Prometheus metrics.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -546,9 +508,6 @@ Config {
   envoy_prometheus_bind_addr = "0.0.0.0:9102"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -560,9 +519,6 @@ spec:
     envoy_prometheus_bind_addr: '0.0.0.0:9102'
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -573,7 +529,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Proxy-specific defaults
@@ -581,7 +536,6 @@ spec:
 The following example configures some custom default values for all sidecar proxies.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -591,9 +545,6 @@ Config {
   handshake_timeout_ms     = 10000
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -606,9 +557,6 @@ spec:
     handshake_timeout_ms: 10000
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -620,7 +568,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## ACLs

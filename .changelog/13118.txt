@@ -1,0 +1,3 @@
+```release-note:bug
+config: fix backwards compatibility bug where setting the (deprecated) top-level `verify_incoming` option would enable TLS client authentication on the gRPC port
+```

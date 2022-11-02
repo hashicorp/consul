@@ -1,8 +1,9 @@
-export default function(visitable, text, clickable, attribute, collection, popoverSelect) {
+export default function (visitable, text, clickable, attribute, collection, popoverSelect) {
   const node = {
     name: text('[data-test-node]'),
     leader: attribute('data-test-leader', '[data-test-leader]'),
     node: clickable('a'),
+    status: attribute('data-test-status', '[data-test-status]'),
   };
   return {
     visit: visitable('/:dc/nodes'),

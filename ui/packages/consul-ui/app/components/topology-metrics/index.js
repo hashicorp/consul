@@ -5,6 +5,7 @@ import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
   @service('env') env;
+  @service() abilities;
 
   // =attributes
   @tracked centerDimensions;
@@ -23,7 +24,7 @@ export default class TopologyMetrics extends Component {
     };
 
     return items
-      .map(item => {
+      .map((item) => {
         const dimensions = item.getBoundingClientRect();
         const src = {
           x: dimensions.x + dimensions.width,
@@ -50,7 +51,7 @@ export default class TopologyMetrics extends Component {
     };
 
     return items
-      .map(item => {
+      .map((item) => {
         const dimensions = item.getBoundingClientRect();
         const dest = {
           x: dimensions.x - dimensions.width - 25,
@@ -87,8 +88,12 @@ export default class TopologyMetrics extends Component {
         Namespace: '',
       });
     } else if (downstreams.length === 0) {
+      const canUsePeers = this.abilities.can('use peers');
+
       items.push({
-        Name: 'No downstreams.',
+        Name: canUsePeers
+          ? 'No downstreams, or the downstreams are imported services.'
+          : 'No downstreams.',
         Datacenter: '',
         Namespace: '',
       });
@@ -99,6 +104,9 @@ export default class TopologyMetrics extends Component {
 
   get upstreams() {
     const upstreams = get(this.args.topology, 'Upstreams') || [];
+    upstreams.forEach((u) => {
+      u.PeerOrDatacenter = u.PeerName || u.Datacenter;
+    });
     const items = [...upstreams];
     const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
     const wildcardIntention = get(this.args.topology, 'wildcardIntention');
@@ -108,18 +116,21 @@ export default class TopologyMetrics extends Component {
       items.push({
         Name: 'Upstreams unknown.',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     } else if (defaultACLPolicy === 'allow' || wildcardIntention) {
       items.push({
         Name: '* (All Services)',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     } else if (upstreams.length === 0) {
       items.push({
         Name: 'No upstreams.',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     }

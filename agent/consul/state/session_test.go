@@ -553,7 +553,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(15, "foo", nil); err != nil {
+	if err := s.DeleteNode(15, "foo", nil, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -608,7 +608,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteService(15, "foo", "api", nil); err != nil {
+	if err := s.DeleteService(15, "foo", "api", nil, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -709,7 +709,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteCheck(15, "foo", "bar", nil); err != nil {
+	if err := s.DeleteCheck(15, "foo", "bar", nil, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -777,7 +777,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(6, "foo", nil); err != nil {
+	if err := s.DeleteNode(6, "foo", nil, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -859,7 +859,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(6, "foo", nil); err != nil {
+	if err := s.DeleteNode(6, "foo", nil, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {

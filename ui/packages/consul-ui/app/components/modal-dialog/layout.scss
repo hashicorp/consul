@@ -61,9 +61,8 @@
 %modal-window > header {
   position: relative;
 }
-%modal-window > header [data-a11y-dialog-hide] {
+%modal-window > header button {
   float: right;
-  text-indent: -9000px;
   width: 24px;
   height: 24px;
   margin-top: -3px;

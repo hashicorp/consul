@@ -9,9 +9,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -41,10 +45,6 @@ var StateCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"acl", "blocked", "node", "registration"},
 		Help: "Increments whenever a registration fails for a node (blocked by an ACL)",
-	},
-	{
-		Name: []string{"acl", "blocked", "node", "deregistration"},
-		Help: "Increments whenever a deregistration fails for a node (blocked by an ACL)",
 	},
 }
 
@@ -150,7 +150,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 }
 
 // State is used to represent the node's services,
@@ -177,7 +177,7 @@ type State struct {
 	// Config is the agent config
 	config Config
 
-	agentEnterpriseMeta structs.EnterpriseMeta
+	agentEnterpriseMeta acl.EnterpriseMeta
 
 	// nodeInfoInSync tracks whether the server has our correct top-level
 	// node information in sync
@@ -252,18 +252,16 @@ func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallback func() str
 	return fallback()
 }
 
-// AddService is used to add a service entry to the local state.
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddService(service *structs.NodeService, token string) error {
-	l.Lock()
-	defer l.Unlock()
-	return l.addServiceLocked(service, token)
-}
-
 func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
+	}
+
+	// Avoid having the stored service have any call-site ownership.
+	var err error
+	service, err = cloneService(service)
+	if err != nil {
+		return err
 	}
 
 	// use the service name as id if the id was omitted
@@ -282,7 +280,9 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	return nil
 }
 
-// AddServiceWithChecks adds a service and its check tp the local state atomically
+// AddServiceWithChecks adds a service entry and its checks to the local state atomically
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
 func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string) error {
 	l.Lock()
 	defer l.Unlock()
@@ -400,11 +400,11 @@ func (l *State) AllServices() map[structs.ServiceID]*structs.NodeService {
 // and are being kept in sync with the server
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+func (l *State) Services(entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	return l.listServices(true, entMeta)
 }
 
-func (l *State) listServices(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+func (l *State) listServices(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -476,7 +476,7 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 // ServiceStates returns a shallow copy of all service state records.
 // The service record still points to the original service record and
 // must not be modified.
-func (l *State) ServiceStates(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*ServiceState {
+func (l *State) ServiceStates(entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*ServiceState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -529,8 +529,12 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("no check")
 	}
 
-	// clone the check since we will be modifying it.
-	check = check.Clone()
+	// Avoid having the stored check have any call-site ownership.
+	var err error
+	check, err = cloneCheck(check)
+	if err != nil {
+		return err
+	}
 
 	if l.discardCheckOutput.Load().(bool) {
 		check.Output = ""
@@ -538,7 +542,7 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 
 	// hard-set the node name and partition
 	check.Node = l.config.NodeName
-	check.EnterpriseMeta = structs.NewEnterpriseMetaWithPartition(
+	check.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(
 		l.agentEnterpriseMeta.PartitionOrEmpty(),
 		check.NamespaceOrEmpty(),
 	)
@@ -737,11 +741,11 @@ func (l *State) AllChecks() map[structs.CheckID]*structs.HealthCheck {
 // agent is aware of and are being kept in sync with the server
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) Checks(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+func (l *State) Checks(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	return l.listChecks(true, entMeta)
 }
 
-func (l *State) listChecks(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+func (l *State) listChecks(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	m := make(map[structs.CheckID]*structs.HealthCheck)
 	for id, c := range l.listCheckStates(filtered, entMeta) {
 		m[id] = c.Check
@@ -831,11 +835,11 @@ func (l *State) AllCheckStates() map[structs.CheckID]*CheckState {
 // The defer timers still point to the original values and must not be modified.
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) CheckStates(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	return l.listCheckStates(true, entMeta)
 }
 
-func (l *State) listCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) listCheckStates(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -868,11 +872,11 @@ func (l *State) AllCriticalCheckStates() map[structs.CheckID]*CheckState {
 // The defer timers still point to the original values and must not be modified.
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) CriticalCheckStates(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	return l.listCriticalCheckStates(true, entMeta)
 }
 
-func (l *State) listCriticalCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) listCriticalCheckStates(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -1082,22 +1086,26 @@ func (l *State) updateSyncState() error {
 			continue
 		}
 
+		// Make a shallow copy since we may mutate it below and other readers
+		// may be reading it and we want to avoid a race.
+		nextService := *ls.Service
+		changed := false
+
 		// If our definition is different, we need to update it. Make a
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
-		if ls.Service.EnableTagOverride {
-			tags := make([]string, len(rs.Tags))
-			copy(tags, rs.Tags)
-			ls.Service.Tags = tags
+		if nextService.EnableTagOverride {
+			nextService.Tags = stringslice.CloneStringSlice(rs.Tags)
+			changed = true
 		}
 
 		// Merge any tagged addresses with the consul- prefix (set by the server)
 		// back into the local state.
-		if !reflect.DeepEqual(ls.Service.TaggedAddresses, rs.TaggedAddresses) {
+		if !reflect.DeepEqual(nextService.TaggedAddresses, rs.TaggedAddresses) {
 			// Make a copy of TaggedAddresses to prevent races when writing
 			// since other goroutines may be reading from the map
 			m := make(map[string]structs.ServiceAddress)
-			for k, v := range ls.Service.TaggedAddresses {
+			for k, v := range nextService.TaggedAddresses {
 				m[k] = v
 			}
 			for k, v := range rs.TaggedAddresses {
@@ -1105,7 +1113,12 @@ func (l *State) updateSyncState() error {
 					m[k] = v
 				}
 			}
-			ls.Service.TaggedAddresses = m
+			nextService.TaggedAddresses = m
+			changed = true
+		}
+
+		if changed {
+			ls.Service = &nextService
 		}
 		ls.InSync = ls.Service.IsSame(rs)
 	}
@@ -1538,7 +1551,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
-	ident, err := l.Delegate.ResolveTokenToIdentity(secretID)
+	ident, err := l.Delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -1546,8 +1559,23 @@ func (l *State) aclAccessorID(secretID string) string {
 		l.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
+	return ident.AccessorID()
+}
+
+func cloneService(ns *structs.NodeService) (*structs.NodeService, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(ns)
+	if err != nil {
+		return nil, err
 	}
-	return ident.ID()
+	return raw.(*structs.NodeService), err
+}
+
+func cloneCheck(check *structs.HealthCheck) (*structs.HealthCheck, error) {
+	// TODO: consider doing a hand-managed clone function
+	raw, err := copystructure.Copy(check)
+	if err != nil {
+		return nil, err
+	}
+	return raw.(*structs.HealthCheck), err
 }

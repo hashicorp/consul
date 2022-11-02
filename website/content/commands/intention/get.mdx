@@ -16,8 +16,8 @@ Consul 1.9.0. Intentions no longer need IDs when represented as
 [`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entries.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required                  |
@@ -42,15 +42,15 @@ Usage:
 
 `SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
 #### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
 
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

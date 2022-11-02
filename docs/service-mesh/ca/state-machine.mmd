@@ -1,0 +1,23 @@
+stateDiagram-v2
+
+    [*] --> Uninitialized
+    Uninitialized --> Initializing : InitializeCA
+    Uninitialized --> Reconfig : UpdateConfiguration
+    Reconfig --> Uninitialized : return
+
+    # Initialized can transition to any state
+    Initialized --> Renew : RenewIntermediate
+    Initialized --> Uninitialized : Stop
+    Initialized --> Reconfig  : UpdateConfiguration
+    Initialized --> Initializing : INVALID
+
+    # Initialized is set using validate=false
+    Uninitialized --> Initialized : INVALID
+    Reconfig --> Initialized : return
+    Initializing --> Initialized : InitializeCA complete
+    Renew --> Initialized : return
+
+    # Uninitialized is set using validate=false
+    Renew --> Uninitialized : Stop
+    Reconfig --> Uninitialized : Stop
+    Initializing --> Uninitialized : Stop

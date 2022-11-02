@@ -11,7 +11,7 @@ import (
 func (s *HTTPHandlers) FederationStateGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	datacenterName := strings.TrimPrefix(req.URL.Path, "/v1/internal/federation-state/")
 	if datacenterName == "" {
-		return nil, BadRequestError{Reason: "Missing datacenter name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing datacenter name"}
 	}
 
 	args := structs.FederationStateQuery{

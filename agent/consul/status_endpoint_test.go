@@ -2,13 +2,14 @@ package consul
 
 import (
 	"net"
-	"net/rpc"
 	"os"
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,17 +18,25 @@ import (
 )
 
 func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
+	codec, err := rpcClientNoClose(s)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	t.Cleanup(func() { codec.Close() })
+	return codec
+}
+
+func rpcClientNoClose(s *Server) (rpc.ClientCodec, error) {
 	addr := s.config.RPCAdvertise
 	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		return nil, err
 	}
 
 	// Write the Consul RPC byte to set the mode
 	conn.Write([]byte{byte(pool.RPCConsul)})
 	codec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
-	t.Cleanup(func() { codec.Close() })
-	return codec
+	return codec, nil
 }
 
 func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {

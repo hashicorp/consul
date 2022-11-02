@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -86,6 +87,13 @@ func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvi
 // These tests may be skipped in CI. They are run as part of a separate
 // integration test suite.
 func SkipIfVaultNotPresent(t testing.T) {
+	// Try to safeguard against tests that will never run in CI.
+	// This substring should match the pattern used by the
+	// test-connect-ca-providers CI job.
+	if !strings.Contains(t.Name(), "Vault") {
+		t.Fatalf("test name must contain Vault, otherwise CI will never run it")
+	}
+
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"

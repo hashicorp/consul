@@ -36,7 +36,7 @@ func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
 
 // SetMaxQueryTime is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
-	q.MaxQueryTime = maxQueryTime
+	q.MaxQueryTime = structs.DurationToProto(maxQueryTime)
 }
 
 // SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
@@ -56,12 +56,12 @@ func (q *QueryOptions) SetUseCache(useCache bool) {
 
 // SetMaxStaleDuration is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxStaleDuration(maxStaleDuration time.Duration) {
-	q.MaxStaleDuration = maxStaleDuration
+	q.MaxStaleDuration = structs.DurationToProto(maxStaleDuration)
 }
 
 // SetMaxAge is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxAge(maxAge time.Duration) {
-	q.MaxAge = maxAge
+	q.MaxAge = structs.DurationToProto(maxAge)
 }
 
 // SetMustRevalidate is needed to implement the structs.QueryOptionsCompat interface
@@ -71,15 +71,23 @@ func (q *QueryOptions) SetMustRevalidate(mustRevalidate bool) {
 
 // SetStaleIfError is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
-	q.StaleIfError = staleIfError
+	q.StaleIfError = structs.DurationToProto(staleIfError)
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	// In addition to BlockingTimeout, allow for an additional rpcHoldTimeout buffer
+	// in case we need to wait for a leader election.
+	return time.Since(start) > rpcHoldTimeout+q.BlockingTimeout(maxQueryTime, defaultQueryTime), nil
+}
+
+// BlockingTimeout implements pool.BlockableQuery
+func (q *QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	maxTime := structs.DurationFromProto(q.MaxQueryTime)
 	o := structs.QueryOptions{
-		MaxQueryTime:  q.MaxQueryTime,
+		MaxQueryTime:  maxTime,
 		MinQueryIndex: q.MinQueryIndex,
 	}
-	return o.HasTimedOut(start, rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+	return o.BlockingTimeout(maxQueryTime, defaultQueryTime)
 }
 
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
@@ -87,39 +95,15 @@ func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
 }
 
-// SetLastContact is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
-	q.LastContact = lastContact
-}
-
-// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
-	q.KnownLeader = knownLeader
-}
-
-// SetIndex is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetIndex(index uint64) {
-	q.Index = index
-}
-
-// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
-	q.ConsistencyLevel = consistencyLevel
-}
-
-func (q *QueryMeta) GetBackend() structs.QueryBackend {
-	return structs.QueryBackend(0)
-}
-
 // WriteRequest only applies to writes, always false
 //
 // IsRead implements structs.RPCInfo
-func (w WriteRequest) IsRead() bool {
+func (w *WriteRequest) IsRead() bool {
 	return false
 }
 
 // SetTokenSecret implements structs.RPCInfo
-func (w WriteRequest) TokenSecret() string {
+func (w *WriteRequest) TokenSecret() string {
 	return w.Token
 }
 
@@ -131,13 +115,13 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // AllowStaleRead returns whether a stale read should be allowed
 //
 // AllowStaleRead implements structs.RPCInfo
-func (w WriteRequest) AllowStaleRead() bool {
+func (w *WriteRequest) AllowStaleRead() bool {
 	return false
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) bool {
-	return time.Since(start) > rpcHoldTimeout
+func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 // IsRead implements structs.RPCInfo
@@ -162,11 +146,40 @@ func (r *ReadRequest) SetTokenSecret(token string) {
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > rpcHoldTimeout
+func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
+	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 // RequestDatacenter implements structs.RPCInfo
-func (td TargetDatacenter) RequestDatacenter() string {
+func (td *TargetDatacenter) RequestDatacenter() string {
 	return td.Datacenter
+}
+
+// SetLastContact is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
+	q.LastContact = structs.DurationToProto(lastContact)
+}
+
+// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
+	q.KnownLeader = knownLeader
+}
+
+// SetIndex is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetIndex(index uint64) {
+	q.Index = index
+}
+
+// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
+	q.ConsistencyLevel = consistencyLevel
+}
+
+func (q *QueryMeta) GetBackend() structs.QueryBackend {
+	return structs.QueryBackend(0)
+}
+
+// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
+	q.ResultsFilteredByACLs = v
 }

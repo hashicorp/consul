@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconnect"
 )
 
 const (
@@ -95,7 +96,7 @@ func (ac *AutoConfig) populateCertificateCache(certs *structs.SignedResponse) er
 	rootRes := cache.FetchResult{Value: &certs.ConnectCARoots, Index: certs.ConnectCARoots.QueryMeta.Index}
 	rootsReq := ac.caRootsRequest()
 	// getting the roots doesn't require a token so in order to potentially share the cache with another
-	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCARootName, rootRes, ac.config.Datacenter, "", rootsReq.CacheInfo().Key); err != nil {
+	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCARootName, rootRes, ac.config.Datacenter, structs.DefaultPeerKeyword, "", rootsReq.CacheInfo().Key); err != nil {
 		return err
 	}
 
@@ -107,7 +108,7 @@ func (ac *AutoConfig) populateCertificateCache(certs *structs.SignedResponse) er
 		Index: certs.IssuedCert.RaftIndex.ModifyIndex,
 		State: cachetype.ConnectCALeafSuccess(connect.EncodeSigningKeyID(cert.AuthorityKeyId)),
 	}
-	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCALeafName, certRes, leafReq.Datacenter, leafReq.Token, leafReq.Key()); err != nil {
+	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCALeafName, certRes, leafReq.Datacenter, structs.DefaultPeerKeyword, leafReq.Token, leafReq.Key()); err != nil {
 		return err
 	}
 
@@ -140,7 +141,7 @@ func (ac *AutoConfig) updateCARoots(roots *structs.IndexedCARoots) error {
 		ac.Lock()
 		defer ac.Unlock()
 		var err error
-		ac.autoConfigResponse.CARoots, err = translateCARootsToProtobuf(roots)
+		ac.autoConfigResponse.CARoots, err = pbconnect.NewCARootsFromStructs(roots)
 		if err != nil {
 			return err
 		}
@@ -167,7 +168,7 @@ func (ac *AutoConfig) updateLeafCert(cert *structs.IssuedCert) error {
 		ac.Lock()
 		defer ac.Unlock()
 		var err error
-		ac.autoConfigResponse.Certificate, err = translateIssuedCertToProtobuf(cert)
+		ac.autoConfigResponse.Certificate, err = pbconnect.NewIssuedCertFromStructs(cert)
 		if err != nil {
 			return err
 		}

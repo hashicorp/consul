@@ -7,23 +7,20 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -33,27 +30,24 @@ var StatsGauges = []prometheus.GaugeDefinition{
 	},
 }
 
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"xds", "server", "streamDrained"},
+		Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
+	},
+}
+
+var StatsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"xds", "server", "streamStart"},
+		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+	},
+}
+
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// Resource types in xDS v3. These are copied from
-	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
-	// the rest of that package.
-	apiTypePrefix = "type.googleapis.com/"
-
-	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
-
-	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
-
-	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
-
-	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
-
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
 
@@ -106,24 +100,22 @@ const (
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
-// HTTPCheckFetcher is the interface the agent needs to expose
-// for the xDS server to fetch a service's HTTP check definitions
-type HTTPCheckFetcher interface {
-	ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType
-}
-
 // ConfigFetcher is the interface the agent needs to expose
 // for the xDS server to fetch agent config, currently only one field is fetched
 type ConfigFetcher interface {
 	AdvertiseAddrLAN() string
 }
 
-// ConfigManager is the interface xds.Server requires to consume proxy config
-// updates. It's satisfied normally by the agent's proxycfg.Manager, but allows
-// easier testing without several layers of mocked cache, local state and
-// proxycfg.Manager.
-type ConfigManager interface {
-	Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+// ProxyConfigSource is the interface xds.Server requires to consume proxy
+// config updates.
+type ProxyConfigSource interface {
+	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
+}
+
+// SessionLimiter is the interface exposed by limiter.SessionLimiter. We depend
+// on an interface rather than the concrete type so we can mock it in tests.
+type SessionLimiter interface {
+	BeginSession() (limiter.Session, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
@@ -132,11 +124,12 @@ type ConfigManager interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	Logger       hclog.Logger
-	CfgMgr       ConfigManager
-	ResolveToken ACLResolverFunc
-	CheckFetcher HTTPCheckFetcher
-	CfgFetcher   ConfigFetcher
+	NodeName       string
+	Logger         hclog.Logger
+	CfgSrc         ProxyConfigSource
+	ResolveToken   ACLResolverFunc
+	CfgFetcher     ConfigFetcher
+	SessionLimiter SessionLimiter
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -145,9 +138,10 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 
 	// ResourceMapMutateFn exclusively exists for testing purposes.
-	ResourceMapMutateFn func(resourceMap *IndexedResources)
+	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
-	activeStreams *activeStreamCounters
+	activeStreams           *activeStreamCounters
+	serverlessPluginEnabled bool
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
@@ -181,20 +175,24 @@ func (c *activeStreamCounters) Increment(xdsVersion string) func() {
 }
 
 func NewServer(
+	nodeName string,
 	logger hclog.Logger,
-	cfgMgr ConfigManager,
+	serverlessPluginEnabled bool,
+	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
-	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
+	limiter SessionLimiter,
 ) *Server {
 	return &Server{
-		Logger:             logger,
-		CfgMgr:             cfgMgr,
-		ResolveToken:       resolveToken,
-		CheckFetcher:       checkFetcher,
-		CfgFetcher:         cfgFetcher,
-		AuthCheckFrequency: DefaultAuthCheckFrequency,
-		activeStreams:      &activeStreamCounters{},
+		NodeName:                nodeName,
+		Logger:                  logger,
+		CfgSrc:                  cfgMgr,
+		ResolveToken:            resolveToken,
+		CfgFetcher:              cfgFetcher,
+		SessionLimiter:          limiter,
+		AuthCheckFrequency:      DefaultAuthCheckFrequency,
+		activeStreams:           &activeStreamCounters{},
+		serverlessPluginEnabled: serverlessPluginEnabled,
 	}
 }
 
@@ -207,44 +205,26 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 	return errors.New("not implemented")
 }
 
-func tokenFromContext(ctx context.Context) string {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ""
-	}
-	toks, ok := md["x-consul-token"]
-	if ok && len(toks) > 0 {
-		return toks[0]
-	}
-	return ""
+// Register the XDS server handlers to the given gRPC server.
+func (s *Server) Register(srv *grpc.Server) {
+	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 }
 
-// NewGRPCServer creates a grpc.Server, registers the Server, and then returns
-// the grpc.Server.
-func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
-	recoveryOpts := agentgrpc.PanicHandlerMiddlewareOpts(s.Logger)
-
-	opts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(2048),
-		middleware.WithUnaryServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.UnaryServerInterceptor(recoveryOpts...),
-		),
-		middleware.WithStreamServerChain(
-			// Add middlware interceptors to recover in case of panics.
-			recovery.StreamServerInterceptor(recoveryOpts...),
-		),
+func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
 	}
-	if tlsConfigurator != nil {
-		if tlsConfigurator.Cert() != nil {
-			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
-			opts = append(opts, grpc.Creds(creds))
-		}
-	}
-	srv := grpc.NewServer(opts...)
-	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 
-	return srv
+	authz, err := s.ResolveToken(options.Token)
+	if acl.IsErrNotFound(err) {
+		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
+	} else if acl.IsErrPermissionDenied(err) {
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	} else if err != nil {
+		return nil, status.Errorf(codes.Internal, "error resolving acl token: %v", err)
+	}
+	return authz, nil
 }
 
 // authorize the xDS request using the token stored in ctx. This authorization is
@@ -262,26 +242,22 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	authz, err := s.ResolveToken(tokenFromContext(ctx))
-	if acl.IsErrNotFound(err) {
-		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
-	} else if acl.IsErrPermissionDenied(err) {
-		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
-	} else if err != nil {
-		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
+	authz, err := s.authenticate(ctx)
+	if err != nil {
+		return err
 	}
 
 	var authzContext acl.AuthorizerContext
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
+			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	default:
 		return status.Errorf(codes.Internal, "Invalid service kind")

@@ -1,5 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
+import { get } from '@ember/object';
 
 import wildcard from 'consul-ui/utils/routing/wildcard';
 import { routes } from 'consul-ui/router';
@@ -57,13 +58,32 @@ export default class RoutletService extends Service {
   @service('env') env;
   @service('router') router;
 
+  @service('repository/permission') permissions;
+
   ready() {
     return this._transition;
   }
 
+  exists(routeName) {
+    if (get(routes, routeName)) {
+      return this.allowed(routeName);
+    }
+    return false;
+  }
+
+  allowed(routeName) {
+    const abilities = get(routes, `${routeName}._options.abilities`) || [];
+    if (abilities.length > 0) {
+      if (!abilities.every((ability) => this.permissions.can(ability))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   transition() {
     let endTransition;
-    this._transition = new Promise(resolve => {
+    this._transition = new Promise((resolve) => {
       endTransition = resolve;
     });
     return endTransition;
@@ -71,7 +91,7 @@ export default class RoutletService extends Service {
 
   findOutlet(name) {
     const keys = [...outlets.keys()];
-    const key = keys.find(item => name.indexOf(item) !== -1);
+    const key = keys.find((item) => name.indexOf(item) !== -1);
     return key;
   }
 
@@ -87,7 +107,7 @@ export default class RoutletService extends Service {
    */
   normalizeParamsFor(name, params = {}) {
     if (isWildcard(name)) {
-      return Object.keys(params).reduce(function(prev, item) {
+      return Object.keys(params).reduce(function (prev, item) {
         if (typeof params[item] !== 'undefined') {
           prev[item] = decodeURIComponent(params[item]);
         } else {
@@ -138,7 +158,6 @@ export default class RoutletService extends Service {
       ...outletParams,
     };
   }
-
 
   // modelFor gets the model for Outlet specified by `name`, not the Route
   modelFor(name) {

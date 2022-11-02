@@ -4,6 +4,7 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     Given 1 datacenter model with the value "datacenter"
     And 1 intention model from yaml
     ---
+    SourcePeer: ""
     SourceName: name
     DestinationName: destination
     SourceNS: default

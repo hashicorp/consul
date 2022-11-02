@@ -5,3 +5,6 @@
 /website/content/api-docs/ @hashicorp/consul-docs
 
 
+# release configuration
+/.release/                              @hashicorp/release-engineering @hashicorp/github-consul-core
+/.github/workflows/build.yml            @hashicorp/release-engineering @hashicorp/github-consul-core

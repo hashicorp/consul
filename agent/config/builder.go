@@ -26,16 +26,20 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
@@ -106,7 +110,8 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
-	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+	watcherFiles := stringslice.CloneStringSlice(opts.ConfigFiles)
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings, WatchedFiles: watcherFiles}, nil
 }
 
 // LoadResult is the result returned from Load. The caller is responsible for
@@ -114,6 +119,7 @@ func Load(opts LoadOpts) (LoadResult, error) {
 type LoadResult struct {
 	RuntimeConfig *RuntimeConfig
 	Warnings      []string
+	WatchedFiles  []string
 }
 
 // builder constructs and validates a runtime configuration from multiple
@@ -121,10 +127,10 @@ type LoadResult struct {
 //
 // The sources are merged in the following order:
 //
-//  * default configuration
-//  * config files in alphabetical order
-//  * command line arguments
-//  * overrides
+//   - default configuration
+//   - config files in alphabetical order
+//   - command line arguments
+//   - overrides
 //
 // The config sources are merged sequentially and later values overwrite
 // previously set values. Slice values are merged by concatenating the two slices.
@@ -429,6 +435,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
+	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -559,6 +566,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
 	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
+	grpcTlsAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc_tls", c.Addresses.GRPCTLS), clientAddrs, grpcTlsPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -640,21 +648,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	// Parse the metric filters
-	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
-	for _, rule := range c.Telemetry.PrefixFilter {
-		if rule == "" {
-			b.warn("Cannot have empty filter rule in prefix_filter")
-			continue
-		}
-		switch rule[0] {
-		case '+':
-			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
-		case '-':
-			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
-		default:
-			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
-		}
-	}
+	telemetryAllowedPrefixes, telemetryBlockedPrefixes := b.parsePrefixFilter(&c.Telemetry)
 
 	// raft performance scaling
 	performanceRaftMultiplier := intVal(c.Performance.RaftMultiplier)
@@ -669,6 +663,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+	serverlessPluginEnabled := boolVal(c.Connect.EnableServerlessPlugin)
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -706,16 +701,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
-			"address":               "Address",
-			"token":                 "Token",
-			"root_pki_path":         "RootPKIPath",
-			"intermediate_pki_path": "IntermediatePKIPath",
-			"ca_file":               "CAFile",
-			"ca_path":               "CAPath",
-			"cert_file":             "CertFile",
-			"key_file":              "KeyFile",
-			"tls_server_name":       "TLSServerName",
-			"tls_skip_verify":       "TLSSkipVerify",
+			"address":                    "Address",
+			"token":                      "Token",
+			"root_pki_path":              "RootPKIPath",
+			"root_pki_namespace":         "RootPKINamespace",
+			"intermediate_pki_path":      "IntermediatePKIPath",
+			"intermediate_pki_namespace": "IntermediatePKINamespace",
+			"ca_file":                    "CAFile",
+			"ca_path":                    "CAPath",
+			"cert_file":                  "CertFile",
+			"key_file":                   "KeyFile",
+			"tls_server_name":            "TLSServerName",
+			"tls_skip_verify":            "TLSSkipVerify",
 
 			// AWS CA config
 			"existing_arn":   "ExistingARN",
@@ -745,18 +742,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
-
-	// VerifyServerHostname implies VerifyOutgoing
-	verifyServerName := boolVal(c.VerifyServerHostname)
-	verifyOutgoing := boolVal(c.VerifyOutgoing)
-	if verifyServerName {
-		// Setting only verify_server_hostname is documented to imply
-		// verify_outgoing. If it doesn't then we risk sending communication over TCP
-		// when we documented it as forcing TLS for RPCs. Enforce this here rather
-		// than in several different places through the code that need to reason
-		// about it. (See CVE-2018-19653)
-		verifyOutgoing = true
-	}
 
 	var configEntries []structs.ConfigEntry
 
@@ -822,6 +807,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
+		VersionMetadata:            stringVal(c.VersionMetadata),
+		// What is a sensible default for BuildDate?
+		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
@@ -931,10 +919,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
-			DisableCompatOneNine:               boolVal(c.Telemetry.DisableCompatOneNine),
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
+			RetryFailedConfiguration:           boolVal(c.Telemetry.RetryFailedConfiguration),
 			FilterDefault:                      boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
@@ -962,9 +950,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
-		CAFile:                                 stringVal(c.CAFile),
-		CAPath:                                 stringVal(c.CAPath),
-		CertFile:                               stringVal(c.CertFile),
+		AutoReloadConfig:                       boolVal(c.AutoReloadConfig),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
@@ -975,10 +961,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
+		Cloud:                                  b.cloudConfigVal(c.Cloud),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
+		ConnectServerlessPluginEnabled:         serverlessPluginEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
@@ -1004,16 +992,20 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                   grpcPort,
 		GRPCAddrs:                  grpcAddrs,
+		GRPCPort:                   grpcPort,
+		GRPCTLSAddrs:               grpcTlsAddrs,
+		GRPCTLSPort:                grpcTlsPort,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                    stringVal(c.KeyFile),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
+		StaticRuntimeConfig: StaticRuntimeConfig{
+			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
+			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
+		},
+
 		Logging: logging.Config{
 			LogLevel:          stringVal(c.LogLevel),
 			LogJSON:           boolVal(c.LogJSON),
@@ -1024,72 +1016,74 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			LogRotateBytes:    intVal(c.LogRotateBytes),
 			LogRotateMaxFiles: intVal(c.LogRotateMaxFiles),
 		},
-		MaxQueryTime:                b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                      types.NodeID(stringVal(c.NodeID)),
-		NodeMeta:                    c.NodeMeta,
-		NodeName:                    b.nodeName(c.NodeName),
-		ReadReplica:                 boolVal(c.ReadReplica),
-		PidFile:                     stringVal(c.PidFile),
-		PrimaryDatacenter:           primaryDatacenter,
-		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
-		PrimaryGatewaysInterval:     b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
-		RPCAdvertiseAddr:            rpcAdvertiseAddr,
-		RPCBindAddr:                 rpcBindAddr,
-		RPCHandshakeTimeout:         b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                 intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:        intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                 intVal(c.RPCProtocol),
-		RPCRateLimit:                rate.Limit(float64Val(c.Limits.RPCRate)),
-		RPCConfig:                   consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
-		RaftProtocol:                intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:       intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:            intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:            boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:     intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:     intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                 stringVal(c.SegmentName),
-		Segments:                    segments,
-		SegmentLimit:                intVal(c.SegmentLimit),
-		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:         serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:         serfAllowedCIDRSWAN,
-		SerfBindAddrLAN:             serfBindAddrLAN,
-		SerfBindAddrWAN:             serfBindAddrWAN,
-		SerfPortLAN:                 serfPortLAN,
-		SerfPortWAN:                 serfPortWAN,
-		ServerMode:                  serverMode,
-		ServerName:                  stringVal(c.ServerName),
-		ServerPort:                  serverPort,
-		Services:                    services,
-		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:              skipLeaveOnInt,
-		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:               stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites: boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:             c.TaggedAddresses,
-		TranslateWANAddrs:           boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                uint64Val(c.Limits.TxnMaxReqLen),
-		UIConfig:                    b.uiConfigVal(c.UIConfig),
-		UnixSocketGroup:             stringVal(c.UnixSocket.Group),
-		UnixSocketMode:              stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:              stringVal(c.UnixSocket.User),
-		VerifyIncoming:              boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:         boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:           boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:              verifyOutgoing,
-		VerifyServerHostname:        verifyServerName,
-		Watches:                     c.Watches,
+		MaxQueryTime:                      b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                            types.NodeID(stringVal(c.NodeID)),
+		NodeMeta:                          c.NodeMeta,
+		NodeName:                          b.nodeName(c.NodeName),
+		ReadReplica:                       boolVal(c.ReadReplica),
+		PeeringEnabled:                    boolVal(c.Peering.Enabled),
+		PeeringTestAllowPeerRegistrations: boolValWithDefault(c.Peering.TestAllowPeerRegistrations, false),
+		PidFile:                           stringVal(c.PidFile),
+		PrimaryDatacenter:                 primaryDatacenter,
+		PrimaryGateways:                   b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval:           b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:                  rpcAdvertiseAddr,
+		RPCBindAddr:                       rpcBindAddr,
+		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
+		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                       intVal(c.RPCProtocol),
+		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
+		RaftProtocol:                      intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:           intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:           intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                      b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                       stringVal(c.SegmentName),
+		Segments:                          segments,
+		SegmentLimit:                      intVal(c.SegmentLimit),
+		SerfAdvertiseAddrLAN:              serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:              serfAdvertiseAddrWAN,
+		SerfAllowedCIDRsLAN:               serfAllowedCIDRSLAN,
+		SerfAllowedCIDRsWAN:               serfAllowedCIDRSWAN,
+		SerfBindAddrLAN:                   serfBindAddrLAN,
+		SerfBindAddrWAN:                   serfBindAddrWAN,
+		SerfPortLAN:                       serfPortLAN,
+		SerfPortWAN:                       serfPortWAN,
+		ServerMode:                        serverMode,
+		ServerName:                        stringVal(c.ServerName),
+		ServerPort:                        serverPort,
+		Services:                          services,
+		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:                    skipLeaveOnInt,
+		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		TaggedAddresses:                   c.TaggedAddresses,
+		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
+		UIConfig:                          b.uiConfigVal(c.UIConfig),
+		UnixSocketGroup:                   stringVal(c.UnixSocket.Group),
+		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:                    stringVal(c.UnixSocket.User),
+		Watches:                           c.Watches,
+		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
+		AutoReloadConfigCoalesceInterval:  1 * time.Second,
+	}
+
+	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
+	if err != nil {
+		return RuntimeConfig{}, err
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
@@ -1475,10 +1469,8 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("rpc.enable_streaming = true has no effect when not running in server mode")
 	}
 
-	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
-		}
+	if rt.AutoEncryptAllowTLS && !rt.TLS.InternalRPC.VerifyIncoming {
+		b.warn("if auto_encrypt.allow_tls is turned on, tls.internal_rpc.verify_incoming should be enabled (either explicitly or via tls.defaults.verify_incoming). It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 	}
 
 	if err := checkLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
@@ -1571,7 +1563,9 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Header:                         v.Header,
 		Method:                         stringVal(v.Method),
 		Body:                           stringVal(v.Body),
+		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
 		Shell:                          stringVal(v.Shell),
@@ -1588,6 +1582,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
 		H2PingUseTLS:                   H2PingUseTLSVal,
+		OSService:                      stringVal(v.OSService),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -1720,6 +1715,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
 			DestinationPartition: stringVal(u.DestinationPartition),
+			DestinationPeer:      stringVal(u.DestinationPeer),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
@@ -1850,6 +1846,7 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 		MetricsProviderOptionsJSON: stringVal(v.MetricsProviderOptionsJSON),
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
+		HCPEnabled:                 os.Getenv("CONSUL_HCP_ENABLED") == "true",
 	}
 }
 
@@ -1963,6 +1960,13 @@ func stringVal(v *string) string {
 	return *v
 }
 
+func timeValWithDefault(v *time.Time, defaultVal time.Time) time.Time {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
 func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
 		return defaultVal
@@ -1990,15 +1994,63 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	return
 }
 
-func (b *builder) tlsCipherSuites(name string, v *string) []uint16 {
+func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
+	// Handles unspecified config and empty string case.
+	//
+	// This check is not inside types.ValidateTLSVersionString because Envoy config
+	// distinguishes between an unset empty string which inherits parent config and
+	// an explicit TLS_AUTO which allows overriding parent config with the proxy
+	// defaults.
+	if v == nil || *v == "" {
+		return types.TLSVersionAuto
+	}
+
+	a := types.TLSVersion(*v)
+
+	err := types.ValidateTLSVersion(a)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS version: %s", name, err))
+		return types.TLSVersionInvalid
+	}
+	return a
+}
+
+// validateTLSVersionCipherSuitesCompat checks that the specified TLS version supports
+// specifying cipher suites
+func validateTLSVersionCipherSuitesCompat(tlsMinVersion types.TLSVersion) error {
+	if tlsMinVersion == types.TLSv1_3 {
+		return fmt.Errorf("TLS 1.3 cipher suites are not configurable")
+	}
+	return nil
+}
+
+// tlsCipherSuites parses cipher suites from a comma-separated string into a
+// recognized slice
+func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSCipherSuite {
 	if v == nil {
 		return nil
 	}
 
-	var a []uint16
-	a, err := tlsutil.ParseCiphers(*v)
+	if err := validateTLSVersionCipherSuitesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
+		return nil
+	}
+
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSCipherSuite{}
+	}
+	ciphers := strings.Split(*v, ",")
+
+	a := make([]types.TLSCipherSuite, len(ciphers))
+	for i, cipher := range ciphers {
+		a[i] = types.TLSCipherSuite(cipher)
+	}
+
+	err := types.ValidateConsulAgentCipherSuites(a)
 	if err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid tls cipher suites: %s", name, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS cipher suites: %s", name, err))
+		return []types.TLSCipherSuite{}
 	}
 	return a
 }
@@ -2317,7 +2369,7 @@ func (b *builder) validateAutoConfig(rt RuntimeConfig) error {
 
 	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
 	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
-	if !rt.VerifyOutgoing {
+	if !rt.TLS.InternalRPC.VerifyOutgoing {
 		return fmt.Errorf("auto_config.enabled cannot be set without configuring TLS for server communications")
 	}
 
@@ -2364,7 +2416,7 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 
 	// Right now we require TLS as everything we are going to transmit via auto-config is sensitive. Signed Certificates, Tokens
 	// and other encryption keys. This must be transmitted over a secure connection so we don't allow doing otherwise.
-	if rt.CertFile == "" {
+	if rt.TLS.InternalRPC.CertFile == "" {
 		return fmt.Errorf("auto_config.authorization.enabled cannot be set without providing a TLS certificate for the server")
 	}
 
@@ -2399,6 +2451,21 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 		}
 	}
 	return nil
+}
+
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
+	if v == nil {
+		return val
+	}
+
+	val.ResourceID = stringVal(v.ResourceID)
+	val.ClientID = stringVal(v.ClientID)
+	val.ClientSecret = stringVal(v.ClientSecret)
+	val.AuthURL = stringVal(v.AuthURL)
+	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
+
+	return val
 }
 
 // decodeBytes returns the encryption key decoded.
@@ -2472,4 +2539,126 @@ func validateAbsoluteURLPath(p string) error {
 	}
 
 	return nil
+}
+
+func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error) {
+	var c tlsutil.Config
+
+	// Consul makes no outgoing connections to the public gRPC port (internal gRPC
+	// traffic goes through the multiplexed internal RPC port) so return an error
+	// rather than let the user think this setting is going to do anything useful.
+	if t.GRPC.VerifyOutgoing != nil {
+		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
+	}
+
+	// Similarly, only the internal RPC configuration honors VerifyServerHostname
+	// so we call it out here too.
+	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
+	}
+
+	// And UseAutoCert right now only applies to external gRPC interface.
+	if t.Defaults.UseAutoCert != nil || t.HTTPS.UseAutoCert != nil || t.InternalRPC.UseAutoCert != nil {
+		return c, errors.New("use_auto_cert is only valid in the tls.grpc stanza")
+	}
+
+	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
+	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
+
+	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
+		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
+		dst.CAFile = stringValWithDefault(src.CAFile, stringVal(t.Defaults.CAFile))
+		dst.CertFile = stringValWithDefault(src.CertFile, stringVal(t.Defaults.CertFile))
+		dst.KeyFile = stringValWithDefault(src.KeyFile, stringVal(t.Defaults.KeyFile))
+		dst.VerifyIncoming = boolValWithDefault(src.VerifyIncoming, boolVal(t.Defaults.VerifyIncoming))
+
+		// We prevent this from being set explicity in the tls.grpc stanza above, but
+		// let's also prevent it from getting the tls.defaults value to avoid confusion
+		// if we decide to support it in the future.
+		if name != "grpc" {
+			dst.VerifyOutgoing = boolValWithDefault(src.VerifyOutgoing, boolVal(t.Defaults.VerifyOutgoing))
+		}
+
+		if src.TLSMinVersion == nil {
+			dst.TLSMinVersion = defaultTLSMinVersion
+		} else {
+			dst.TLSMinVersion = b.tlsVersion(
+				fmt.Sprintf("tls.%s.tls_min_version", name),
+				src.TLSMinVersion,
+			)
+		}
+
+		if src.TLSCipherSuites == nil {
+			// If cipher suite config incompatible with a specified TLS min version
+			// would be inherited, omit it but don't return an error in the builder.
+			if validateTLSVersionCipherSuitesCompat(dst.TLSMinVersion) == nil {
+				dst.CipherSuites = defaultCipherSuites
+			}
+		} else {
+			dst.CipherSuites = b.tlsCipherSuites(
+				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
+				src.TLSCipherSuites,
+				dst.TLSMinVersion,
+			)
+		}
+	}
+
+	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
+	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
+
+	// Setting only verify_server_hostname is documented to imply verify_outgoing.
+	// If it doesn't then we risk sending communication over plain TCP when we
+	// documented it as forcing TLS for RPCs. Enforce this here rather than in
+	// several different places through the code that need to reason about it.
+	//
+	// See: CVE-2018-19653
+	c.InternalRPC.VerifyOutgoing = c.InternalRPC.VerifyOutgoing || c.InternalRPC.VerifyServerHostname
+
+	mapCommon("https", t.HTTPS, &c.HTTPS)
+	mapCommon("grpc", t.GRPC, &c.GRPC)
+	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
+
+	c.ServerMode = rt.ServerMode
+	c.ServerName = rt.ServerName
+	c.NodeName = rt.NodeName
+	c.Domain = rt.DNSDomain
+	c.EnableAgentTLSForChecks = rt.EnableAgentTLSForChecks
+	c.AutoTLS = rt.AutoEncryptTLS || rt.AutoConfig.Enabled
+
+	return c, nil
+}
+
+func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
+	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
+
+	// TODO(FFMMM): Once one twelve style RPC metrics get out of Beta, don't remove them by default.
+	operatorPassedOneTwelveRPCMetric := false
+	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+
+	for _, rule := range telemetry.PrefixFilter {
+		if rule == "" {
+			b.warn("Cannot have empty filter rule in prefix_filter")
+			continue
+		}
+		switch rule[0] {
+		case '+':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
+		case '-':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
+		default:
+			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
+		}
+	}
+
+	if !operatorPassedOneTwelveRPCMetric {
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, oneTwelveRPCMetric)
+	}
+
+	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
 }

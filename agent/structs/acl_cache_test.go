@@ -3,8 +3,9 @@ package structs
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestStructs_ACLCaches(t *testing.T) {
@@ -50,6 +51,14 @@ func TestStructs_ACLCaches(t *testing.T) {
 		entry := cache.GetIdentity("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Identity)
+
+		cache.PutIdentityWithSecretToken("secret", &ACLToken{})
+		entry = cache.GetIdentityWithSecretToken("secret")
+		require.NotNil(t, entry)
+		require.NotNil(t, entry.Identity)
+		cache.RemoveIdentityWithSecretToken("secret")
+		entry = cache.GetIdentityWithSecretToken("secret")
+		require.Nil(t, entry)
 	})
 
 	t.Run("Policies", func(t *testing.T) {

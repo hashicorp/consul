@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 const (
@@ -134,12 +135,19 @@ func (a *AWSProvider) State() (map[string]string, error) {
 }
 
 // GenerateRoot implements Provider
-func (a *AWSProvider) GenerateRoot() error {
+func (a *AWSProvider) GenerateRoot() (RootResult, error) {
 	if !a.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
-	return a.ensureCA()
+	if err := a.ensureCA(); err != nil {
+		return RootResult{}, err
+	}
+
+	if a.rootPEM == "" {
+		return RootResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
+	}
+	return RootResult{PEM: a.rootPEM}, nil
 }
 
 // ensureCA loads the CA resource to check it exists if configured by User or in
@@ -356,15 +364,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = EnsureTrailingNewline(*output.Certificate)
+		a.rootPEM = lib.EnsureTrailingNewline(*output.Certificate)
 	} else {
-		a.intermediatePEM = EnsureTrailingNewline(*output.Certificate)
+		a.intermediatePEM = lib.EnsureTrailingNewline(*output.Certificate)
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = EnsureTrailingNewline(*output.CertificateChain)
+		a.rootPEM = lib.EnsureTrailingNewline(*output.CertificateChain)
 	}
 	return nil
 }
@@ -482,24 +490,11 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, EnsureTrailingNewline(*certOutput.Certificate), nil
+				return true, lib.EnsureTrailingNewline(*certOutput.Certificate), nil
 			}
 
 			return false, "", nil
 		})
-}
-
-// ActiveRoot implements Provider
-func (a *AWSProvider) ActiveRoot() (string, error) {
-	err := a.ensureCA()
-	if err != nil {
-		return "", err
-	}
-
-	if a.rootPEM == "" {
-		return "", fmt.Errorf("Secondary AWS CA provider not fully Initialized")
-	}
-	return a.rootPEM, nil
 }
 
 // GenerateIntermediateCSR implements Provider
@@ -538,8 +533,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	}
 
 	// We successfully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = EnsureTrailingNewline(rootPEM)
-	a.intermediatePEM = EnsureTrailingNewline(intermediatePEM)
+	a.rootPEM = lib.EnsureTrailingNewline(rootPEM)
+	a.intermediatePEM = lib.EnsureTrailingNewline(intermediatePEM)
 
 	return nil
 }

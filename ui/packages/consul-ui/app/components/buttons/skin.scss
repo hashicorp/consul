@@ -100,7 +100,6 @@
 %sort-button::before {
   @extend %with-sort-mask, %as-pseudo;
   position: relative;
-  top: 4px;
   width: 16px;
   height: 16px;
 }

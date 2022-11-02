@@ -33,8 +33,8 @@ Corresponding HTTP API Endpoint: [\[GET\] /v1/status/peers](/api-docs/status#lis
 
 This command displays the current Raft peer configuration.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -42,10 +42,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 | `none`       |
 
 Usage: `consul operator raft list-peers -stale=[true|false]`
-
-- `-stale` - Optional and defaults to "false" which means the leader provides
-  the result. If the cluster is in an outage state without a leader, you may need
-  to set this to "true" to get the configuration from a non-leader server.
 
 The output looks like this:
 
@@ -70,6 +66,13 @@ Raft configuration.
 `Voter` is "true" or "false", indicating if the server has a vote in the Raft
 configuration.
 
+#### Command Options
+
+- `-stale` - Enables non-leader servers to provide cluster state information.
+  If the cluster is in an outage state without a leader,
+  we recommend setting this option to `true.
+  Default is `false`.
+
 ## remove-peer
 
 Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/raft/peer](/api-docs/operator/raft#delete-raft-peer)
@@ -85,8 +88,8 @@ clean up by simply running
 [`consul force-leave`](/commands/force-leave)
 instead of this command.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |

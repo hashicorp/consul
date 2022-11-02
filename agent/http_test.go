@@ -20,7 +20,8 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
@@ -147,7 +148,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -651,7 +652,10 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 
 	t.Parallel()
 	buf := &syncBuffer{b: new(bytes.Buffer)}
-	a := StartTestAgent(t, TestAgent{LogOutput: buf})
+	a := StartTestAgent(t, TestAgent{
+		LogOutput: buf,
+		LogLevel:  hclog.Debug,
+	})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -694,9 +698,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
 			bufout := buf.String()
-			if !strings.Contains(bufout, want) {
-				t.Fatalf("got %s want %s", bufout, want)
-			}
+			require.Contains(t, bufout, want)
 		})
 	}
 }
@@ -980,7 +982,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler(false).ServeHTTP(resp, req)
 
-	require.Equal(t, http.StatusUnauthorized, resp.Code)
+	require.Equal(t, http.StatusNotFound, resp.Code)
 }
 
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
@@ -1486,10 +1488,16 @@ func TestAllowedNets(t *testing.T) {
 			t.Fatalf("bad checkWriteAccess for values %+v, got %v", v, err)
 		}
 
-		_, isForbiddenErr := err.(ForbiddenError)
-		if err != nil && !isForbiddenErr {
-			t.Fatalf("expected ForbiddenError but got: %s", err)
+		if err != nil {
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 403 {
+					t.Fatalf("expected 403 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("expected HTTP Error but got %v", err)
+			}
 		}
+
 	}
 }
 
@@ -1541,7 +1549,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
-		UseTLS: true,
+		UseHTTPS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
@@ -1613,7 +1621,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 
 			// Fire up an agent with TLS enabled.
 			a := StartTestAgent(t, TestAgent{
-				UseTLS: tc.tlsEnabled,
+				UseHTTPS: tc.tlsEnabled,
 				HCL: hclPrefix + `
 					limits {
 						http_max_conns_per_client = 2
@@ -1675,45 +1683,6 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			defer conn4.Close()
 
 			assertConn(conn4, true)
-		})
-	}
-}
-
-func TestGetPathSuffixUnescaped(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name         string
-		pathInput    string
-		pathPrefix   string
-		suffixResult string
-		errString    string
-	}{
-		// No decoding required (resource name must be unaffected by the decode)
-		{"Normal Valid", "/foo/bar/resource-1", "/foo/bar/", "resource-1", ""},
-		// This function is not responsible for enforcing a valid URL, just for decoding escaped values.
-		// If there's an invalid URL segment in the path, it will be returned as is.
-		{"Unencoded Invalid", "/foo/bar/resource 1", "/foo/bar/", "resource 1", ""},
-		// Decode the encoded value properly
-		{"Encoded Valid", "/foo/bar/re%2Fsource%201", "/foo/bar/", "re/source 1", ""},
-		// Fail to decode an invalidly encoded input
-		{"Encoded Invalid", "/foo/bar/re%Fsource%201", "/foo/bar/", "re%Fsource%201", "failure in unescaping path param"},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-
-			suffixResult, err := getPathSuffixUnescaped(tc.pathInput, tc.pathPrefix)
-
-			require.Equal(t, suffixResult, tc.suffixResult)
-
-			if tc.errString == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errString)
-			}
 		})
 	}
 }

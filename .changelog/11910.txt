@@ -1,0 +1,3 @@
+```release-note:feature
+ca: support using an external root CA with the vault CA provider
+```

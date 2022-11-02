@@ -1,8 +1,21 @@
 # Progress
 
 Simple Progress component in lieu of a reliable/styleable cross browser
-`<progress />`.
+`<progress />`. Please consider making use of `aria-label` or `aria-labelled-by`.
 
 ```hbs preview-template
-<Progress />
+<Progress
+  aria-label="Loading"
+/>
+```
+
+The animated icon also automatically supports a `prefers-reduced-motion` class/setting. The example below uses a local class just for illustration purposes in these docs. You do not need to add this class anywhere, please use the above class-less example instead.
+
+```hbs preview-template
+<Progress
+  class={{class-map
+    'prefers-reduced-motion'
+  }}
+  aria-label="Loading"
+/>
 ```

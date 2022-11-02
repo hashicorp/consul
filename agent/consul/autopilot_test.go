@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/consul/autopilotevents"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -521,4 +524,100 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestAutopilot_EventPublishing(t *testing.T) {
+	// This is really an integration level test. The general flow this test will follow is:
+	//
+	// 1. Start a 3 server cluster
+	// 2. Subscribe to the ready server events
+	// 3. Observe the first event which will be pretty immediately ready as it is the
+	//    snapshot event.
+	// 4. Wait for multiple iterations of the autopilot state updater and ensure no
+	//    other events are seen. The state update interval is 50ms for tests unless
+	//    overridden.
+	// 5. Add a fouth server.
+	// 6. Wait for an event to be emitted containing 4 ready servers.
+
+	// 1. create the test cluster
+	cluster := newTestCluster(t, &testClusterConfig{
+		Servers:    3,
+		ServerConf: testServerACLConfig,
+		// We want to wait until each server has registered itself in the Catalog. Otherwise
+		// the first snapshot even we see might have no servers in it while things are being
+		// initialized. Doing this wait ensure that things are in the right state to start
+		// the subscription.
+	})
+
+	// 2. subscribe to ready server events
+	req := stream.SubscribeRequest{
+		Topic:   autopilotevents.EventTopicReadyServers,
+		Subject: stream.SubjectNone,
+		Token:   TestDefaultInitialManagementToken,
+	}
+	sub, err := cluster.Servers[0].publisher.Subscribe(&req)
+	require.NoError(t, err)
+	t.Cleanup(sub.Unsubscribe)
+
+	// 3. Observe that an event was generated which should be the snapshot event.
+	//    As we have just bootstrapped the cluster with 3 servers we expect to
+	//    see those 3 here.
+	validatePayload(t, 3, mustGetEventWithTimeout(t, sub, 50*time.Millisecond))
+
+	// TODO - its kind of annoying that the EventPublisher doesn't have a mode where
+	// it knows each event is a full state of the world. The ramifications are that
+	// we have to expect/ignore the framing events for EndOfSnapshot.
+	event := mustGetEventWithTimeout(t, sub, 10*time.Millisecond)
+	require.True(t, event.IsFramingEvent())
+
+	// 4. Wait for 3 iterations of the ServerHealthInterval to ensure no events
+	//    are being published when the autopilot state is not changing.
+	eventNotEmitted(t, sub, 150*time.Millisecond)
+
+	// 5. Add a fourth server
+	_, srv := testServerWithConfig(t, testServerACLConfig, func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 0
+	})
+	joinLAN(t, srv, cluster.Servers[0])
+
+	// 6. Now wait for the event for the fourth server being added. This may take a little
+	//    while as the joinLAN operation above doesn't wait for the server to actually get
+	//    added to Raft.
+	validatePayload(t, 4, mustGetEventWithTimeout(t, sub, time.Second))
+}
+
+// mustGetEventWithTimeout is a helper function for validating that a Subscription.Next call will return
+// an event within the given time. It also validates that no error is returned.
+func mustGetEventWithTimeout(t *testing.T, subscription *stream.Subscription, timeout time.Duration) stream.Event {
+	t.Helper()
+	event, err := getEventWithTimeout(t, subscription, timeout)
+	require.NoError(t, err)
+	return event
+}
+
+// getEventWithTimeout is a helper function for retrieving a Event from a Subscription within the specified timeout.
+func getEventWithTimeout(t *testing.T, subscription *stream.Subscription, timeout time.Duration) (stream.Event, error) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := subscription.Next(ctx)
+	return event, err
+}
+
+// eventNotEmitted is a helper to validate that no Event is emitted for the given Subscription
+func eventNotEmitted(t *testing.T, subscription *stream.Subscription, timeout time.Duration) {
+	t.Helper()
+	var event stream.Event
+	var err error
+	event, err = getEventWithTimeout(t, subscription, timeout)
+	require.Equal(t, context.DeadlineExceeded, err, fmt.Sprintf("event:%v", event))
+}
+
+func validatePayload(t *testing.T, expectedNumServers int, event stream.Event) {
+	t.Helper()
+	require.Equal(t, autopilotevents.EventTopicReadyServers, event.Topic)
+	readyServers, ok := event.Payload.(autopilotevents.EventPayloadReadyServers)
+	require.True(t, ok)
+	require.Len(t, readyServers, expectedNumServers)
 }

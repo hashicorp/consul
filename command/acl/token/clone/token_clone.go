@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {

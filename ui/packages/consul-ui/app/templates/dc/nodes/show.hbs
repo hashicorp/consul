@@ -10,12 +10,13 @@ as |route|>
     )
   }} as |tomography|>
   <DataLoader
-    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}/${peer}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.name
+        peer=route.params.peer
       )
     }}
   as |loader|>
@@ -94,7 +95,7 @@ as |item tomography|}}
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
               <ol>
-                  <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
+                  <li><a data-test-back href={{href-to 'dc.nodes' params=(hash peer=undefined)}}>All Nodes</a></li>
               </ol>
           </BlockSlot>
           <BlockSlot @name="header">
@@ -102,18 +103,43 @@ as |item tomography|}}
                 <route.Title @title={{item.Node}} />
               </h1>
               <label for="toolbar-toggle"></label>
+              <Consul::Peer::Info @item={{item}} />
           </BlockSlot>
           <BlockSlot @name="nav">
-              <TabNav @items={{
-                compact
-                    (array
-                          (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
-                          (hash label="Service Instances" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
-(if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
-                          (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
-                          (hash label="Metadata" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
-                    )
-              }}/>
+            <TabNav @items={{
+              compact
+                (array
+                  (hash
+                    label=(t 'routes.dc.nodes.show.healthchecks.title')
+                    href=(href-to "dc.nodes.show.healthchecks")
+                    selected=(is-href "dc.nodes.show.healthchecks")
+                  )
+                  (hash
+                    label=(t 'routes.dc.nodes.show.services.title')
+                    href=(href-to "dc.nodes.show.services")
+                    selected=(is-href "dc.nodes.show.services")
+                  )
+(if tomography.distances
+                  (hash
+                    label=(t 'routes.dc.nodes.show.rtt.title')
+                    href=(href-to "dc.nodes.show.rtt")
+                    selected=(is-href "dc.nodes.show.rtt")
+                  )
+'')
+(if (can 'read sessions')
+                  (hash
+                    label=(t 'routes.dc.nodes.show.sessions.title')
+                    href=(href-to "dc.nodes.show.sessions")
+                    selected=(is-href "dc.nodes.show.sessions")
+                  )
+'')
+                  (hash
+                    label=(t 'routes.dc.nodes.show.metadata.title')
+                    href=(href-to "dc.nodes.show.metadata")
+                    selected=(is-href "dc.nodes.show.metadata")
+                  )
+                )
+            }}/>
           </BlockSlot>
           <BlockSlot @name="actions">
             <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>

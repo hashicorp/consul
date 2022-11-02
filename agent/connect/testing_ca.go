@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -23,6 +24,7 @@ import (
 //
 // NOTE: this is duplicated in the api package as testClusterID
 const TestClusterID = "11111111-2222-3333-4444-555555555555"
+const TestTrustDomain = TestClusterID + ".consul"
 
 // testCACounter is just an atomically incremented counter for creating
 // unique names for the CA certs.
@@ -112,15 +114,13 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 		t.Fatalf("error encoding private key: %s", err)
 	}
 	result.RootCert = buf.String()
-	result.ID, err = CalculateCertFingerprint(result.RootCert)
-	if err != nil {
-		t.Fatalf("error generating CA ID fingerprint: %s", err)
-	}
+	result.ID = CalculateCertFingerprint(bs)
 	result.SerialNumber = uint64(sn.Int64())
 	result.NotBefore = template.NotBefore.UTC()
 	result.NotAfter = template.NotAfter.UTC()
 	result.PrivateKeyType = keyType
 	result.PrivateKeyBits = keyBits
+	result.IntermediateCerts = []string{}
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
@@ -183,8 +183,7 @@ func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits 
 	return testCA(t, xc, keyType, keyBits, 0)
 }
 
-func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
-
+func testLeafWithID(t testing.T, spiffeId CertURI, dnsSAN string, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
 	if expiration == 0 {
 		// this is 10 years
 		expiration = 10 * 365 * 24 * time.Hour
@@ -238,6 +237,7 @@ func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, caSigner.Public()),
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
+		DNSNames:       []string{dnsSAN},
 	}
 
 	// Create the certificate, PEM encode it and return that value.
@@ -263,7 +263,7 @@ func TestAgentLeaf(t testing.T, node string, datacenter string, root *structs.CA
 		Agent:      node,
 	}
 
-	return testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
+	return testLeafWithID(t, spiffeId, "", root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
 }
 
 func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
@@ -275,7 +275,7 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 		Service:    service,
 	}
 
-	return testLeafWithID(t, spiffeId, root, keyType, keyBits, 0)
+	return testLeafWithID(t, spiffeId, "", root, keyType, keyBits, 0)
 }
 
 // TestLeaf returns a valid leaf certificate and it's private key for the named
@@ -291,6 +291,37 @@ func TestLeafWithNamespace(t testing.T, service, namespace string, root *structs
 	// both openssl verify (which we use as a sanity check in our tests of this
 	// package) and Go's TLS verification.
 	certPEM, keyPEM, err := testLeaf(t, service, namespace, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	return certPEM, keyPEM
+}
+
+func TestMeshGatewayLeaf(t testing.T, partition string, root *structs.CARoot) (string, string) {
+	// Build the SPIFFE ID
+	spiffeId := &SpiffeIDMeshGateway{
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+		Partition:  acl.PartitionOrDefault(partition),
+		Datacenter: "dc1",
+	}
+
+	certPEM, keyPEM, err := testLeafWithID(t, spiffeId, "", root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	return certPEM, keyPEM
+}
+
+func TestServerLeaf(t testing.T, dc string, root *structs.CARoot) (string, string) {
+	t.Helper()
+
+	spiffeID := &SpiffeIDServer{
+		Datacenter: dc,
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+	}
+	san := PeeringServerSAN(dc, TestTrustDomain)
+
+	certPEM, keyPEM, err := testLeafWithID(t, spiffeID, san, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

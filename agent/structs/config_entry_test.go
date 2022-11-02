@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -194,11 +195,102 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 				for _, a := range tc.expectACLs {
 					require.NotEmpty(t, a.name)
 					t.Run(a.name, func(t *testing.T) {
-						require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer), "unexpected CanRead result")
-						require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer), "unexpected CanWrite result")
+						canRead := tc.entry.CanRead(a.authorizer)
+						if a.canRead {
+							require.Nil(t, canRead)
+						} else {
+							require.Error(t, canRead)
+							require.True(t, acl.IsErrPermissionDenied(canRead))
+						}
+						canWrite := tc.entry.CanWrite(a.authorizer)
+						if a.canWrite {
+							require.Nil(t, canWrite)
+						} else {
+							require.Error(t, canWrite)
+							require.True(t, acl.IsErrPermissionDenied(canWrite))
+						}
 					})
 				}
 			}
+		})
+	}
+}
+
+func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
+
+	for _, tc := range []struct {
+		name      string
+		camel     string
+		snake     string
+		expect    ConfigEntry
+		expectErr string
+	}{
+		{
+			name: "service-defaults-with-MaxInboundConnections",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					port = 8080
+				}
+				max_inbound_connections = 14
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					Port = 8080
+				}
+				MaxInboundConnections = 14
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 8080,
+				},
+				MaxInboundConnections: 14,
+			},
+		},
+	} {
+		tc := tc
+
+		testbody := func(t *testing.T, body string) {
+			var raw map[string]interface{}
+			err := hcl.Decode(&raw, body)
+			require.NoError(t, err)
+
+			got, err := DecodeConfigEntry(raw)
+			if tc.expectErr != "" {
+				require.Nil(t, got)
+				require.Error(t, err)
+				requireContainsLower(t, err.Error(), tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			}
+		}
+
+		t.Run(tc.name+" (snake case)", func(t *testing.T) {
+			testbody(t, tc.snake)
+		})
+		t.Run(tc.name+" (camel case)", func(t *testing.T) {
+			testbody(t, tc.camel)
 		})
 	}
 }
@@ -248,6 +340,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
+				  "balance_inbound_connections" = "exact_balance"
 				}
 				mesh_gateway {
 					mode = "remote"
@@ -266,6 +359,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
+				  "balance_inbound_connections" = "exact_balance"
 				}
 				MeshGateway {
 					Mode = "remote"
@@ -284,6 +378,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"moreconfig": map[string]interface{}{
 						"moar": "config",
 					},
+					"balance_inbound_connections": "exact_balance",
 				},
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
@@ -304,6 +399,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
 						{
@@ -323,6 +419,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					defaults {
 						connect_timeout_ms = 5
 						protocol = "http"
+						balance_outbound_connections = "exact_balance"
 						envoy_listener_json = "foo"
 						envoy_cluster_json = "bar"
 						limits {
@@ -345,6 +442,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
 						{
@@ -371,6 +469,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests = 4
 							MaxConcurrentRequests = 5
 						}
+						BalanceOutboundConnections = "exact_balance"
 					}
 				}
 			`,
@@ -386,6 +485,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
@@ -410,7 +510,47 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests:    intPointer(4),
 							MaxConcurrentRequests: intPointer(5),
 						},
+						BalanceOutboundConnections: "exact_balance",
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults-with-destination",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					port = 8080
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					Port = 8080
+				}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 8080,
 				},
 			},
 		},
@@ -1663,6 +1803,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
+				peering {
+					peer_through_mesh_gateways = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1673,6 +1837,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}
+				Peering {
+					PeerThroughMeshGateways = true
+				}
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1681,6 +1869,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
@@ -1703,6 +1915,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -1734,6 +1949,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								Peer = "flarm"
 							}
 						]
 					},
@@ -1764,6 +1982,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								Peer: "flarm",
 							},
 						},
 					},
@@ -2306,6 +2527,177 @@ func TestServiceConfigEntry(t *testing.T) {
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
+		"validate: nil destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: nil,
+					Port:      443,
+				},
+			},
+			validateErr: "must contain at least one valid address",
+		},
+		"validate: empty destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{},
+					Port:      443,
+				},
+			},
+			validateErr: "must contain at least one valid address",
+		},
+		"validate: destination ipv4 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"1.2.3.4"},
+					Port:      443,
+				},
+			},
+		},
+		"validate: destination ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:0db8:0000:8a2e:0370:7334:1234:5678"},
+					Port:      443,
+				},
+			},
+		},
+		"valid destination shortened ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:db8::8a2e:370:7334"},
+					Port:      443,
+				},
+			},
+		},
+		"validate: invalid destination port": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:db8::8a2e:370:7334"},
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"validate: invalid hostname 1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"*external.com"},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: invalid hostname 2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"..hello."},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: all web traffic allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{"*"},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: multiple hostnames": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 443,
+				},
+			},
+		},
+		"validate: duplicate addresses not allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"api.google.com",
+					},
+					Port: 443,
+				},
+			},
+			validateErr: "Duplicate address",
+		},
+		"validate: invalid inbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:                      ServiceDefaults,
+				Name:                      "external",
+				Protocol:                  "http",
+				BalanceInboundConnections: "invalid",
+			},
+			validateErr: "invalid value for balance_inbound_connections",
+		},
+		"validate: invalid default outbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						BalanceOutboundConnections: "invalid",
+					},
+				},
+			},
+			validateErr: "invalid value for balance_outbound_connections",
+		},
+		"validate: invalid override outbound connection balance": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:                       "upstream",
+							BalanceOutboundConnections: "invalid",
+						},
+					},
+				},
+			},
+			validateErr: "invalid value for balance_outbound_connections",
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -2320,10 +2712,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink",
 			source: UpstreamConfig{
-				EnvoyListenerJSON: "foo",
-				EnvoyClusterJSON:  "bar",
-				ConnectTimeoutMs:  5,
-				Protocol:          "http",
+				BalanceOutboundConnections: "exact_balance",
+				EnvoyListenerJSON:          "foo",
+				EnvoyClusterJSON:           "bar",
+				ConnectTimeoutMs:           5,
+				Protocol:                   "http",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2337,10 +2730,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			},
 			destination: make(map[string]interface{}),
 			want: map[string]interface{}{
-				"envoy_listener_json": "foo",
-				"envoy_cluster_json":  "bar",
-				"connect_timeout_ms":  5,
-				"protocol":            "http",
+				"balance_outbound_connections": "exact_balance",
+				"envoy_listener_json":          "foo",
+				"envoy_cluster_json":           "bar",
+				"connect_timeout_ms":           5,
+				"protocol":                     "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2356,10 +2750,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink override of destination",
 			source: UpstreamConfig{
-				EnvoyListenerJSON: "foo",
-				EnvoyClusterJSON:  "bar",
-				ConnectTimeoutMs:  5,
-				Protocol:          "http",
+				BalanceOutboundConnections: "exact_balance",
+				EnvoyListenerJSON:          "foo",
+				EnvoyClusterJSON:           "bar",
+				ConnectTimeoutMs:           5,
+				Protocol:                   "http",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2372,10 +2767,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
 			destination: map[string]interface{}{
-				"envoy_listener_json": "zip",
-				"envoy_cluster_json":  "zap",
-				"connect_timeout_ms":  10,
-				"protocol":            "grpc",
+				"balance_outbound_connections": "",
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -2388,10 +2784,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"envoy_listener_json": "foo",
-				"envoy_cluster_json":  "bar",
-				"connect_timeout_ms":  5,
-				"protocol":            "http",
+				"balance_outbound_connections": "exact_balance",
+				"envoy_listener_json":          "foo",
+				"envoy_cluster_json":           "bar",
+				"connect_timeout_ms":           5,
+				"protocol":                     "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2408,34 +2805,38 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			name:   "empty source leaves destination intact",
 			source: UpstreamConfig{},
 			destination: map[string]interface{}{
-				"envoy_listener_json": "zip",
-				"envoy_cluster_json":  "zap",
-				"connect_timeout_ms":  10,
-				"protocol":            "grpc",
+				"balance_outbound_connections": "exact_balance",
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
 					MaxConcurrentRequests: intPointer(12),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 13,
-					Interval:    14 * time.Second,
+					MaxFailures:             13,
+					Interval:                14 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(80),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"envoy_listener_json": "zip",
-				"envoy_cluster_json":  "zap",
-				"connect_timeout_ms":  10,
-				"protocol":            "grpc",
+				"balance_outbound_connections": "exact_balance",
+				"envoy_listener_json":          "zip",
+				"envoy_cluster_json":           "zap",
+				"connect_timeout_ms":           10,
+				"protocol":                     "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
 					MaxConcurrentRequests: intPointer(12),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 13,
-					Interval:    14 * time.Second,
+					MaxFailures:             13,
+					Interval:                14 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(80),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2608,6 +3009,28 @@ func TestParseUpstreamConfig(t *testing.T) {
 	}
 }
 
+func TestProxyConfigEntry(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"proxy config name provided is not global": {
+			entry: &ProxyConfigEntry{
+				Name: "foo",
+			},
+			normalizeErr: `invalid name ("foo"), only "global" is supported`,
+		},
+		"proxy config has no name": {
+			entry: &ProxyConfigEntry{
+				Name: "",
+			},
+			expected: &ProxyConfigEntry{
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
@@ -2684,7 +3107,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
 				opts := cmp.Options{
-					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+					cmp.Comparer(func(a, b acl.EnterpriseMeta) bool {
 						return a.IsSame(&b)
 					}),
 				}
@@ -2709,4 +3132,8 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			require.NoError(t, err)
 		})
 	}
+}
+
+func uintPointer(v uint32) *uint32 {
+	return &v
 }

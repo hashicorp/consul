@@ -1,0 +1,163 @@
+AccessorID:       fbd2447f-7479-4329-ad13-b021d74f86ba
+SecretID:         869c6e91-4de9-4dab-b56e-87548435f9c6
+Namespace:        foo
+Description:      test token
+Local:            false
+Auth Method:      bar (Namespace: baz)
+Create Time:      2020-05-22 18:52:31 +0000 UTC
+Expiration Time:  2020-05-22 19:52:31 +0000 UTC
+Policies:
+	Policy Name: hobbiton
+		ID: beb04680-815b-4d7c-9e33-3d707c24672c
+		Description: user policy on token
+		Rules:
+			service_prefix "" {
+			  policy = "read"
+			}
+
+	Policy Name: bywater
+		ID: 18788457-584c-4812-80d3-23d403148a90
+		Description: other user policy on token
+		Rules:
+			operator = "read"
+
+Service Identities:
+	Name: gardener (Datacenters: middleearth-northwest)
+		Description: synthetic policy for service identity "gardener"
+		Rules:
+			service "gardener" {
+				policy = "write"
+			}
+			service "gardener-sidecar-proxy" {
+				policy = "write"
+			}
+			service_prefix "" {
+				policy = "read"
+			}
+			node_prefix "" {
+				policy = "read"
+			}
+
+Node Identities:
+	Name: bagend (Datacenter: middleearth-northwest)
+		Description: synthetic policy for node identity "bagend"
+		Rules:
+			node "bagend" {
+				policy = "write"
+			}
+			service_prefix "" {
+				policy = "read"
+			}
+
+Roles:
+	Role Name: shire
+		ID: 3b0a78fe-b9c3-40de-b8ea-7d4d6674b366
+		Description: shire role
+		Policies:
+			Policy Name: shire-policy
+				ID: 6204f4cd-4709-441c-ac1b-cb029e940263
+				Description: policy for shire role
+				Rules:
+					operator = "write"
+
+		Service Identities:
+			Name: foo (Datacenters: middleearth-southwest)
+				Description: synthetic policy for service identity "foo"
+				Rules:
+					service "foo" {
+						policy = "write"
+					}
+					service "foo-sidecar-proxy" {
+						policy = "write"
+					}
+					service_prefix "" {
+						policy = "read"
+					}
+					node_prefix "" {
+						policy = "read"
+					}
+
+	Role Name: west-farthing
+		ID: 6c9d1e1d-34bc-4d55-80f3-add0890ad791
+		Description: west-farthing role
+		Policies:
+			Policy Name: west-farthing-policy
+				ID: e86f0d1f-71b1-4690-bdfd-ff8c2cd4ae93
+				Description: policy for west-farthing role
+				Rules:
+					service "foo" {
+					  policy = "read"
+					}
+
+		Node Identities:
+			Name: bar (Datacenter: middleearth-southwest)
+				Description: synthetic policy for node identity "bar"
+				Rules:
+					node "bar" {
+						policy = "write"
+					}
+					service_prefix "" {
+						policy = "read"
+					}
+
+=== End of Authorizer Layer 0: Token ===
+=== Start of Authorizer Layer 1: Token Namespace’s Defaults (Inherited) ===
+Description: ACL Roles inherited by all Tokens in Namespace "foo"
+
+Namespace Policy Defaults:
+	Policy Name: default-policy-1
+		ID: 2b582ff1-4a43-457f-8a2b-30a8265e29a5
+		Description: default policy 1
+		Rules:
+			key "foo" { policy = "write" }
+
+Namespace Role Defaults:
+	Role Name: ns-default
+		ID: 56033f2b-e1a6-4905-b71d-e011c862bc65
+		Description: default role
+		Policies:
+			Policy Name: default-policy-2
+				ID: b55dce64-f2cc-4eb5-8e5f-50e90e63c6ea
+				Description: default policy 2
+				Rules:
+					key "bar" { policy = "read" }
+
+		Service Identities:
+			Name: web (Datacenters: middleearth-northeast)
+				Description: synthetic policy for service identity "web"
+				Rules:
+					service "web" {
+						policy = "write"
+					}
+					service "web-sidecar-proxy" {
+						policy = "write"
+					}
+					service_prefix "" {
+						policy = "read"
+					}
+					node_prefix "" {
+						policy = "read"
+					}
+
+		Node Identities:
+			Name: db (Datacenter: middleearth-northwest)
+				Description: synthetic policy for node identity "db"
+				Rules:
+					node "db" {
+						policy = "write"
+					}
+					service_prefix "" {
+						policy = "read"
+					}
+
+=== End of Authorizer Layer 1: Token Namespace’s Defaults (Inherited) ===
+=== Start of Authorizer Layer 2: Agent Configuration Defaults (Inherited) ===
+Description: Defined at request-time by the agent that resolves the ACL token; other agents may have different configuration defaults
+Resolved By Agent: "server-1"
+
+Default Policy: deny
+	Description: Backstop rule used if no preceding layer has a matching rule (refer to default_policy option in agent configuration)
+
+Down Policy: extend-cache
+	Description: Defines what to do if this Token's information cannot be read from the primary_datacenter (refer to down_policy option in agent configuration)
+

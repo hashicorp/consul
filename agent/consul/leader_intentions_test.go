@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -535,17 +535,17 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 		checkIntentions(t, s1, true, map[string]*structs.Intention{})
 	}))
 
-	mapifyConfigs := func(entries interface{}) map[state.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry {
-		m := make(map[state.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry)
+	mapifyConfigs := func(entries interface{}) map[configentry.KindName]*structs.ServiceIntentionsConfigEntry {
+		m := make(map[configentry.KindName]*structs.ServiceIntentionsConfigEntry)
 		switch v := entries.(type) {
 		case []*structs.ServiceIntentionsConfigEntry:
 			for _, entry := range v {
-				kn := state.NewConfigEntryKindName(entry.Kind, entry.Name, &entry.EnterpriseMeta)
+				kn := configentry.NewKindName(entry.Kind, entry.Name, &entry.EnterpriseMeta)
 				m[kn] = entry
 			}
 		case []structs.ConfigEntry:
 			for _, entry := range v {
-				kn := state.NewConfigEntryKindName(entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
+				kn := configentry.NewKindName(entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
 				m[kn] = entry.(*structs.ServiceIntentionsConfigEntry)
 			}
 		default:

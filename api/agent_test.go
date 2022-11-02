@@ -784,7 +784,7 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "f72563cae6924fb5",
+		ContentHash: "3e352f348d44f7eb",
 		Port:        8000,
 		Weights: AgentWeights{
 			Passing: 1,

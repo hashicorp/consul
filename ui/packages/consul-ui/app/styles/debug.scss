@@ -1,16 +1,19 @@
-@import './app';
-@import './base/icons/debug';
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
 @import 'consul-ui/components/badge/debug';
+@import 'consul-ui/components/panel/debug';
+@import 'consul-ui/components/tile/debug';
 @import 'consul-ui/components/csv-list/debug';
 @import 'consul-ui/components/horizontal-kv-list/debug';
 @import 'consul-ui/components/icon-definition/debug';
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
+.theme-dark {
+  @extend %theme-dark;
+}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;
@@ -43,11 +46,11 @@
   border-color: rgb(var(--tone-gray-300));
   height: 80px;
 }
+
 [id^='docfy-demo-preview-icons'] figure::before {
   position: relative;
   top: 20px;
 }
-
 [id^='docfy-demo-preview-color'] figure {
   height: 40px;
 }
@@ -115,7 +118,8 @@ html:not(.with-data-source) .data-source-debug {
   /* hi */
   z-index: 100000;
 }
-html.with-href-to [href^='console://']::before {
+html.with-href-to [href^='console://']::before
+{
   @extend %p3;
   @extend %debug-box;
   content: attr(href);
@@ -151,6 +155,7 @@ html.with-route-announcer .route-title {
       margin-bottom: 100px;
       padding-top: 0 !important;
     }
+    li.provider-components a::before,
     li.consul-components a::before,
     li.components a::before {
       @extend %with-logo-glimmer-color-icon, %as-pseudo;
@@ -160,6 +165,7 @@ html.with-route-announcer .route-title {
     li.components.css-component a::before {
       @extend %with-logo-glimmer-color-icon, %as-pseudo;
     }
+    li.provider-components.ember-component a::before,
     li.consul-components.ember-component a::before,
     li.components.ember-component a::before {
       @extend %with-logo-ember-circle-color-icon, %as-pseudo;
@@ -247,9 +253,6 @@ html.with-route-announcer .route-title {
       }
       figcaption code {
         @extend %inline-code;
-      }
-      pre code {
-        @extend %block-code;
       }
       figure > [type='text'] {
         border: 1px solid rgb(var(--tone-gray-999));

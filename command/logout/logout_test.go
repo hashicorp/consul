@@ -4,15 +4,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLogout_noTabs(t *testing.T) {
@@ -91,7 +92,7 @@ func TestLogoutCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied)")
+		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
 	testSessionID := testauth.StartSession()
@@ -221,7 +222,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied)")
+		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
 	// go to the trouble of creating a login token

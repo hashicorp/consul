@@ -1,0 +1,9 @@
+@keyframes icon-folder-fill {
+  100% {
+
+    -webkit-mask-image: var(--icon-folder-fill-16);
+    mask-image: var(--icon-folder-fill-16);
+    background-color: var(--icon-color, var(--color-folder-fill-500, currentColor));
+
+  }
+}

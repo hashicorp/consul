@@ -23,7 +23,7 @@
 %empty-state[class*='status-'] header::before {
   @extend %as-pseudo;
 }
-%empty-state header::before {
+%empty-state[class*='status-'] header::before {
   @extend %with-alert-circle-outline-mask;
 }
 %empty-state.status-404 header::before {

@@ -2,20 +2,77 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
+
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestCatalogRegister_PeeringRegistration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	t.Run("deny peer registrations by default", func(t *testing.T) {
+		a := NewTestAgent(t, "")
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot register requests with PeerName in them")
+		require.Nil(t, obj)
+	})
+
+	t.Run("cannot hcl set the peer registrations config", func(t *testing.T) {
+		// this will have no effect, as the value is overriden in non user source
+		a := NewTestAgent(t, "peering = { test_allow_peer_registrations = true }")
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot register requests with PeerName in them")
+		require.Nil(t, obj)
+	})
+
+	t.Run("allow peer registrations with test overrides", func(t *testing.T) {
+		// the only way to set the config in the agent is via the overrides
+		a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.NoError(t, err)
+		applied, ok := obj.(bool)
+		require.True(t, ok)
+		require.True(t, applied)
+	})
+
+}
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	if testing.Short() {
@@ -412,42 +469,28 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "127.0.0.2",
 	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 	// Nobody has coordinates set so this will still return them in the
 	// order they are indexed.
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertIndex(t, resp)
 	nodes := obj.(structs.Nodes)
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[2].Node != a.Config.NodeName {
-		t.Fatalf("bad: %v", nodes)
-	}
+	require.Len(t, nodes, 3)
+	require.Equal(t, "bar", nodes[0].Node)
+	require.Equal(t, "foo", nodes[1].Node)
+	require.Equal(t, a.Config.NodeName, nodes[2].Node)
 
 	// Send an update for the node and wait for it to get applied.
 	arg := structs.CoordinateUpdateRequest{
@@ -455,33 +498,21 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Coordinate.Update", &arg, &out))
 	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CatalogNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertIndex(t, resp)
 	nodes = obj.(structs.Nodes)
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[2].Node != a.Config.NodeName {
-		t.Fatalf("bad: %v", nodes)
-	}
+	require.Len(t, nodes, 3)
+	require.Equal(t, "foo", nodes[0].Node)
+	require.Equal(t, "bar", nodes[1].Node)
+	require.Equal(t, a.Config.NodeName, nodes[2].Node)
 }
 
 func TestCatalogServices(t *testing.T) {
@@ -622,6 +653,63 @@ func TestCatalogRegister_checkRegistration(t *testing.T) {
 		}
 		if checks[0].Type != "tcp" {
 			r.Fatalf("expected check type tcp, got %s", checks[0].Type)
+		}
+	})
+}
+
+func TestCatalogRegister_checkRegistration_UDP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register node with a service and check
+	check := structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "foo-check",
+		Name:      "foo check",
+		ServiceID: "api",
+		Definition: structs.HealthCheckDefinition{
+			UDP:      "localhost:8888",
+			Interval: 5 * time.Second,
+		},
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+		},
+		Check: &check,
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/health/checks/api", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		checks := obj.(structs.HealthChecks)
+		if len(checks) != 1 {
+			r.Fatalf("expected 1 check, got: %d", len(checks))
+		}
+		if checks[0].CheckID != check.CheckID {
+			r.Fatalf("expected check id %s, got %s", check.Type, checks[0].Type)
+		}
+		if checks[0].Type != "udp" {
+			r.Fatalf("expected check type udp, got %s", checks[0].Type)
 		}
 	})
 }
@@ -1076,6 +1164,249 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
+func registerService(t *testing.T, a *TestAgent) (registerServiceReq *structs.RegisterRequest) {
+	t.Helper()
+	entMeta := acl.DefaultEnterpriseMeta()
+	registerServiceReq = structs.TestRegisterRequestProxy(t)
+	registerServiceReq.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.Proxy.Upstreams = structs.TestAddDefaultsToUpstreams(t, registerServiceReq.Service.Proxy.Upstreams, *entMeta)
+	registerServiceReq.Check = &structs.HealthCheck{
+		Node: registerServiceReq.Node,
+		Name: "check1",
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", registerServiceReq, &out))
+
+	return
+}
+
+func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs.ProxyConfigEntry) {
+	t.Helper()
+	// Register proxy-defaults
+	proxyGlobalEntry = structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Mode: structs.ProxyModeDirect,
+		Config: map[string]interface{}{
+			"local_connect_timeout_ms": uint64(1000),
+			"handshake_timeout_ms":     uint64(1000),
+		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	proxyDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &proxyGlobalEntry,
+	}
+	var proxyDefaultsConfigEntryResp bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+	return
+}
+
+func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
+	t.Helper()
+	limits := 512
+	serviceDefaultsConfigEntry = structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: serviceName,
+		Mode: structs.ProxyModeTransparent,
+		UpstreamConfig: &structs.UpstreamConfiguration{
+			Defaults: &structs.UpstreamConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeLocal,
+				},
+				Limits: &structs.UpstreamLimits{
+					MaxConnections: &limits,
+				},
+			},
+		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	serviceDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &serviceDefaultsConfigEntry,
+	}
+	var serviceDefaultsConfigEntryResp bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+	return
+}
+
+func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
+	registerServiceReq *structs.RegisterRequest,
+	proxyGlobalEntry structs.ProxyConfigEntry,
+	serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
+
+	t.Helper()
+	require.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
+	// validate service defaults override proxy-defaults/global
+	require.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
+	require.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
+	// validate service defaults are resolved in the merged service config
+	// expected number of upstreams = (number of upstreams defined in the register request proxy config +
+	//	1 centrally configured default from service defaults)
+	require.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+	for _, up := range v.ServiceProxy.Upstreams {
+		if up.DestinationType != "" && up.DestinationType != structs.UpstreamDestTypeService {
+			continue
+		}
+		require.Contains(t, up.Config, "limits")
+		upstreamLimits := up.Config["limits"].(*structs.UpstreamLimits)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections, upstreamLimits.MaxConnections)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode, up.MeshGateway.Mode)
+	}
+}
+
+func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+	// Register service-defaults
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+
+	type testCase struct {
+		testCaseName string
+		serviceName  string
+		connect      bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		url := fmt.Sprintf("/v1/catalog/service/%s?merge-central-config", tc.serviceName)
+		if tc.connect {
+			url = fmt.Sprintf("/v1/catalog/connect/%s?merge-central-config", tc.serviceName)
+		}
+		req, _ := http.NewRequest("GET", url, nil)
+		resp := httptest.NewRecorder()
+		var obj interface{}
+		var err error
+		if tc.connect {
+			obj, err = a.srv.CatalogConnectServiceNodes(resp, req)
+		} else {
+			obj, err = a.srv.CatalogServiceNodes(resp, req)
+		}
+
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		serviceNodes := obj.(structs.ServiceNodes)
+
+		// validate response
+		require.Len(t, serviceNodes, 1)
+		v := serviceNodes[0]
+
+		validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+	}
+	testCases := []testCase{
+		{
+			testCaseName: "List service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Service,
+		},
+		{
+			testCaseName: "List connect capable service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Proxy.DestinationServiceName,
+			connect:      true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestCatalogServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Run the query
+	rpcReq := structs.ServiceSpecificRequest{
+		Datacenter:         "dc1",
+		ServiceName:        registerServiceReq.Service.Service,
+		MergeCentralConfig: true,
+	}
+	var rpcResp structs.IndexedServiceNodes
+	require.NoError(t, a.RPC("Catalog.ServiceNodes", &rpcReq, &rpcResp))
+
+	require.Len(t, rpcResp.ServiceNodes, 1)
+	serviceNode := rpcResp.ServiceNodes[0]
+	require.Equal(t, registerServiceReq.Service.Service, serviceNode.ServiceName)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, serviceNode.ServiceProxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, serviceNode.ServiceProxy.Mode)
+
+	// Async cause a change - register service defaults
+	waitIndex := rpcResp.Index
+	start := time.Now()
+	var serviceDefaultsConfigEntry structs.ServiceConfigEntry
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		// Register service-defaults
+		serviceDefaultsConfigEntry = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	}()
+
+	const waitDuration = 3 * time.Second
+RUN_BLOCKING_QUERY:
+	url := fmt.Sprintf("/v1/catalog/service/%s?merge-central-config&wait=%s&index=%d",
+		registerServiceReq.Service.Service, waitDuration.String(), waitIndex)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	elapsed := time.Since(start)
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad index returned: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	serviceNodes := obj.(structs.ServiceNodes)
+
+	// validate response
+	require.Len(t, serviceNodes, 1)
+	v := serviceNodes[0]
+
+	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+}
+
 // Test that the Connect-compatible endpoints can be queried for a
 // service via /v1/catalog/connect/:service.
 func TestCatalogConnectServiceNodes_good(t *testing.T) {
@@ -1250,6 +1581,111 @@ func TestCatalogNodeServiceList(t *testing.T) {
 	require.NotNil(t, proxySvc, "Missing proxy service registration")
 	// Proxy service should have it's config intact
 	require.Equal(t, args.Service.Proxy, proxySvc.Proxy)
+}
+
+func TestCatalogNodeServiceList_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+	// Register service-defaults
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+
+	url := fmt.Sprintf("/v1/catalog/node-services/%s?merge-central-config", registerServiceReq.Node)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServiceList(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	nodeServices := obj.(*structs.NodeServiceList)
+	// validate response
+	require.Len(t, nodeServices.Services, 1)
+	validateMergeCentralConfigResponse(t, nodeServices.Services[0].ToServiceNode(nodeServices.Node.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+}
+
+func TestCatalogNodeServiceList_MergeCentralConfigBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Run the query
+	rpcReq := structs.NodeSpecificRequest{
+		Datacenter:         "dc1",
+		Node:               registerServiceReq.Node,
+		MergeCentralConfig: true,
+	}
+	var rpcResp structs.IndexedNodeServiceList
+	require.NoError(t, a.RPC("Catalog.NodeServiceList", &rpcReq, &rpcResp))
+	require.Len(t, rpcResp.NodeServices.Services, 1)
+	nodeService := rpcResp.NodeServices.Services[0]
+	require.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, nodeService.Proxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, nodeService.Proxy.Mode)
+
+	// Async cause a change - register service defaults
+	waitIndex := rpcResp.Index
+	start := time.Now()
+	var serviceDefaultsConfigEntry structs.ServiceConfigEntry
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		// Register service-defaults
+		serviceDefaultsConfigEntry = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	}()
+
+	const waitDuration = 3 * time.Second
+RUN_BLOCKING_QUERY:
+
+	url := fmt.Sprintf("/v1/catalog/node-services/%s?merge-central-config&wait=%s&index=%d",
+		registerServiceReq.Node, waitDuration.String(), waitIndex)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServiceList(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	elapsed := time.Since(start)
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad index returned: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	nodeServices := obj.(*structs.NodeServiceList)
+	// validate response
+	require.Len(t, nodeServices.Services, 1)
+	validateMergeCentralConfigResponse(t, nodeServices.Services[0].ToServiceNode(nodeServices.Node.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
 }
 
 func TestCatalogNodeServices_Filter(t *testing.T) {

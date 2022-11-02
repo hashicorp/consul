@@ -12,8 +12,8 @@ const hbs = (path, attrs = {}) =>
     .replace('{{yield}}', '')
     .replace(hbsRe, (match, prop) => attrs[prop.substr(1)]);
 
-const BrandLoader = attrs => hbs('brand-loader/index.hbs', attrs);
-const Enterprise = attrs => hbs('brand-loader/enterprise.hbs', attrs);
+const BrandLoader = (attrs) => hbs('brand-loader/index.hbs', attrs);
+const Enterprise = (attrs) => hbs('brand-loader/enterprise.hbs', attrs);
 
 module.exports = ({ appName, environment, rootURL, config, env }) => `
   <noscript>
@@ -44,6 +44,7 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
   </script>
   <script src="${rootURL}assets/consul-ui/services.js"></script>
   <script src="${rootURL}assets/consul-ui/routes.js"></script>
+  <script src="${rootURL}assets/consul-lock-sessions/routes.js"></script>
 ${
   environment === 'development' || environment === 'staging'
     ? `
@@ -58,6 +59,10 @@ ${
 {{if .ACLsEnabled}}
   <script src="${rootURL}assets/consul-acls/routes.js"></script>
 {{end}}
+{{if .PeeringEnabled}}
+  <script src="${rootURL}assets/consul-peerings/services.js"></script>
+  <script src="${rootURL}assets/consul-peerings/routes.js"></script>
+{{end}}
 {{if .PartitionsEnabled}}
   <script src="${rootURL}assets/consul-partitions/services.js"></script>
   <script src="${rootURL}assets/consul-partitions/routes.js"></script>
@@ -65,26 +70,47 @@ ${
 {{if .NamespacesEnabled}}
   <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
+{{if .HCPEnabled}}
+  <script src="${rootURL}assets/consul-hcp/services.js"></script>
+  <script src="${rootURL}assets/consul-hcp/routes.js"></script>
+{{end}}
 `
     : `
 <script>
 (
   function(get, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-      if(get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
+      if(value.default || get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
         env('CONSUL_NSPACES_ENABLED') === '1' ? `true` : `false`
       })) {
-        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/services.js">\\x3C/script>\`);
-        document.write(\`\\x3Cscript src="${rootURL}assets/\${value}/routes.js">\\x3C/script>\`);
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value.name}/services.js">\\x3C/script>\`);
+        document.write(\`\\x3Cscript src="${rootURL}assets/\${value.name}/routes.js">\\x3C/script>\`);
       }
     });
   }
 )(
   key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
   {
-    'CONSUL_ACLS_ENABLE': 'consul-acls',
-    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
-    'CONSUL_NSPACES_ENABLE': 'consul-nspaces'
+    'CONSUL_ACLS_ENABLE': {
+      name: 'consul-acls',
+      default: ${config.operatorConfig.ACLsEnabled}
+    },
+    'CONSUL_PEERINGS_ENABLE': {
+      name: 'consul-peerings',
+      default: ${config.operatorConfig.PeeringEnabled}
+    },
+    'CONSUL_PARTITIONS_ENABLE': {
+      name: 'consul-partitions',
+      default: ${config.operatorConfig.PartitionsEnabled}
+    },
+    'CONSUL_NSPACES_ENABLE': {
+      name: 'consul-nspaces',
+      default: ${config.operatorConfig.NamespacesEnabled}
+    },
+    'CONSUL_HCP_ENABLE': {
+      name: 'consul-hcp',
+      default: ${config.operatorConfig.HCPEnabled}
+    }
   }
 );
 </script>

@@ -1,0 +1,9 @@
+@keyframes icon-rewind {
+  100% {
+
+    -webkit-mask-image: var(--icon-rewind-16);
+    mask-image: var(--icon-rewind-16);
+    background-color: var(--icon-color, var(--color-rewind-500, currentColor));
+
+  }
+}

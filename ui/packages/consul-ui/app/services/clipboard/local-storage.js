@@ -20,7 +20,7 @@ export default class LocalStorageService extends Service {
   key = 'clipboard';
 
   execute(trigger, options) {
-    return new ClipboardCallback(trigger, options, val => {
+    return new ClipboardCallback(trigger, options, (val) => {
       this.doc.defaultView.localStorage.setItem(this.key, val);
     });
   }

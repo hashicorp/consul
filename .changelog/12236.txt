@@ -1,0 +1,3 @@
+```release-note:bug
+xds: allow only one outstanding delta request at a time
+```

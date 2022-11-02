@@ -1,0 +1,8 @@
+#docfy-demo-preview-panel {
+  .panel {
+    @extend %panel;
+  }
+  .panel hr {
+    @extend %panel-separator;
+  }
+}

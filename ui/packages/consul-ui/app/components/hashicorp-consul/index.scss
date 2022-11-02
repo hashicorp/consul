@@ -1,11 +1,46 @@
 %hashicorp-consul {
-  [role='banner'] nav .dcs {
+  nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
+
+    .dcs-message {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgb(var(--tone-gray-400));
+      max-width: fit-content;
+    }
   }
-  [role='banner'] nav .dcs .popover-menu[aria-label]::before {
-    display: none;
+  nav .dcs li.is-primary span,
+  nav .dcs li.is-local span {
+    @extend %menu-panel-badge;
   }
+  nav .dcs .dc-name {
+    color: rgb(var(--tone-gray-600));
+    padding: 3.25px 0px;
+    font-weight: var(--typo-weight-semibold)
+  }
+  nav .dcs .dc-name span {
+    @extend %pill-200;
+    margin-left: 1rem;
+    background-color: rgb(var(--tone-gray-300));
+    color: rgb(var(--tone-gray-999));
+  }
+  nav li.partitions,
+  nav li.nspaces {
+    @extend %main-nav-vertical-popover-menu;
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    min-width: 250px;
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    max-height: 560px;
+    --paged-row-height: 43px;
+  }
+  nav li.partitions [aria-expanded] ~ *,
+  nav li.nspaces [aria-expanded] ~ * {
+    max-height: 360px;
+    --paged-row-height: 43px;
+  }
+
   [role='banner'] a svg {
     fill: rgb(var(--tone-brand-600));
   }

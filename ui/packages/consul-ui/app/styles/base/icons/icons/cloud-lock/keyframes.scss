@@ -1,0 +1,9 @@
+@keyframes icon-cloud-lock {
+  100% {
+
+    -webkit-mask-image: var(--icon-cloud-lock-16);
+    mask-image: var(--icon-cloud-lock-16);
+    background-color: var(--icon-color, var(--color-cloud-lock-500, currentColor));
+
+  }
+}

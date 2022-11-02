@@ -9,17 +9,17 @@ import (
 
 // Recommended name for registration.
 const (
-	ConfigEntriesName = "config-entries"
-	ConfigEntryName   = "config-entry"
+	ConfigEntryListName = "config-entries"
+	ConfigEntryName     = "config-entry"
 )
 
-// ConfigEntries supports fetching discovering configuration entries
-type ConfigEntries struct {
+// ConfigEntryList supports fetching discovering configuration entries
+type ConfigEntryList struct {
 	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
-func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ConfigEntryList) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ConfigEntryQuery.

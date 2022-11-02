@@ -3,6 +3,10 @@ ${range(1).map(item => {
     const legacy = ID.indexOf('%3A') === -1;
     const source = location.search.source.split('/');
     const destination = location.search.destination.split('/');
+    const sourceIsPeered = !!source[0].match(/^peer:/)?.length
+
+    const sourcePeerString = `"SourcePeer": "${source[0].split(':')[1]}",`
+    const sourcePartitionString = `"SourcePartition": "${source[0]}",`
 return `
   {
     "ID": "${legacy ? ID : ''}"
@@ -12,7 +16,7 @@ ${ http.method !== "PUT" ? `
     "DestinationName": "${destination[2]}",
     "SourceNS": "${source[1]}",
     "DestinationNS": "${destination[1]}",
-    "SourcePartition": "${source[0]}",
+    ${sourceIsPeered ? sourcePeerString : sourcePartitionString}
     "DestinationPartition": "${destination[0]}",
     "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
 ${legacy ? `
@@ -83,7 +87,7 @@ ${fake.helpers.randomize([
     "Precedence": ${fake.random.number({min: 1, max: 100})},
 ${ (!legacy || source[1] === "external-source") && fake.random.number({min: 1, max: 10}) > 2 ? `
     "Meta": {
-      "external-source": "${fake.helpers.randomize(['kubernetes', 'consul-api-gateway'])}"
+      "external-source": "${fake.helpers.randomize(['kubernetes', ''])}"
     },
 ` : `` }
     "CreatedAt": "2018-05-21T16:41:27.977155457Z",

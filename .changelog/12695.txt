@@ -1,0 +1,3 @@
+```release-note:feature
+grpc: New gRPC service and endpoint to return the list of supported consul dataplane features
+```

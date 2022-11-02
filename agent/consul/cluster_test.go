@@ -1,10 +1,10 @@
 package consul
 
 import (
-	"net/rpc"
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )

@@ -1,0 +1,9 @@
+@keyframes icon-visibility-show {
+  100% {
+
+    -webkit-mask-image: var(--icon-eye-16);
+    mask-image: var(--icon-eye-16);
+    background-color: var(--icon-color, var(--color-visibility-show-500, currentColor));
+
+  }
+}

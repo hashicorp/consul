@@ -2,9 +2,11 @@ package checks
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -34,7 +36,7 @@ type CheckAlias struct {
 	stopLock sync.Mutex
 	stopWg   sync.WaitGroup
 
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // AliasNotifier is a CheckNotifier specifically for the Alias check.
@@ -45,7 +47,7 @@ type AliasNotifier interface {
 
 	AddAliasCheck(structs.CheckID, structs.ServiceID, chan<- struct{}) error
 	RemoveAliasCheck(structs.CheckID, structs.ServiceID)
-	Checks(*structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck
+	Checks(*acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck
 }
 
 // Start is used to start the check, runs until Stop() func (c *CheckAlias) Start() {
@@ -246,7 +248,7 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfService
 	msg := "No checks found."
 	serviceFound := false
 	for _, chk := range checks {
-		if c.Node != "" && c.Node != chk.Node {
+		if c.Node != "" && !strings.EqualFold(c.Node, chk.Node) {
 			continue
 		}
 		serviceMatch := c.ServiceID.Matches(chk.CompoundServiceID())

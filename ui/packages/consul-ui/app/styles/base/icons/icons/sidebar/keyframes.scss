@@ -1,0 +1,9 @@
+@keyframes icon-sidebar {
+  100% {
+
+    -webkit-mask-image: var(--icon-sidebar-16);
+    mask-image: var(--icon-sidebar-16);
+    background-color: var(--icon-color, var(--color-sidebar-500, currentColor));
+
+  }
+}

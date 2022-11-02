@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -32,7 +33,7 @@ type KVS struct {
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")
@@ -44,11 +45,11 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.
 		var authzContext acl.AuthorizerContext
 		dirEnt.FillAuthzContext(&authzContext)
 
-		if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
-			return false, acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().KeyWritePrefixAllowed(dirEnt.Key, &authzContext); err != nil {
+			return false, err
 		}
 
-	case api.KVGet, api.KVGetTree:
+	case api.KVGet, api.KVGetTree, api.KVGetOrEmpty:
 		// Filtering for GETs is done on the output side.
 
 	case api.KVCheckSession, api.KVCheckIndex:
@@ -58,16 +59,16 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.
 		var authzContext acl.AuthorizerContext
 		dirEnt.FillAuthzContext(&authzContext)
 
-		if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
-			return false, acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().KeyReadAllowed(dirEnt.Key, &authzContext); err != nil {
+			return false, err
 		}
 
 	default:
 		var authzContext acl.AuthorizerContext
 		dirEnt.FillAuthzContext(&authzContext)
 
-		if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
-			return false, acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().KeyWriteAllowed(dirEnt.Key, &authzContext); err != nil {
+			return false, err
 		}
 	}
 
@@ -155,23 +156,18 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if authz.KeyRead(args.Key, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+			if err := authz.ToAllowAuthorizer().KeyReadAllowed(args.Key, &authzContext); err != nil {
+				return err
 			}
 
 			if ent == nil {
-				// Must provide non-zero index to prevent blocking
-				// Index 1 is impossible anyways (due to Raft internals)
-				if index == 0 {
-					reply.Index = 1
-				} else {
-					reply.Index = index
-				}
+				reply.Index = index
 				reply.Entries = nil
-			} else {
-				reply.Index = ent.ModifyIndex
-				reply.Entries = structs.DirEntries{ent}
+				return errNotFound
 			}
+
+			reply.Index = ent.ModifyIndex
+			reply.Entries = structs.DirEntries{ent}
 			return nil
 		})
 }
@@ -192,8 +188,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if k.srv.config.ACLEnableKeyListPolicy {
+		if err := authz.ToAllowAuthorizer().KeyListAllowed(args.Key, &authzContext); err != nil {
+			return err
+		}
 	}
 
 	return k.srv.blockingQuery(
@@ -245,8 +243,10 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if k.srv.config.ACLEnableKeyListPolicy {
+		if err := authz.ToAllowAuthorizer().KeyListAllowed(args.Prefix, &authzContext); err != nil {
+			return err
+		}
 	}
 
 	return k.srv.blockingQuery(

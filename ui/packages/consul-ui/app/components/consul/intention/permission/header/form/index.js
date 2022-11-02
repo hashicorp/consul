@@ -12,10 +12,10 @@ export default Component.extend({
   change: service('change'),
   repo: service(`repository/${name}`),
 
-  onsubmit: function() {},
-  onreset: function() {},
+  onsubmit: function () {},
+  onreset: function () {},
 
-  changeset: computed('item', function() {
+  changeset: computed('item', function () {
     return this.change.changesetFor(
       name,
       this.item ||
@@ -27,7 +27,7 @@ export default Component.extend({
 
   headerTypes: alias(`schema.${name}.HeaderType.allowedValues`),
 
-  headerLabels: computed(function() {
+  headerLabels: computed(function () {
     return {
       Exact: 'Exactly Matching',
       Prefix: 'Prefixed by',
@@ -37,7 +37,7 @@ export default Component.extend({
     };
   }),
 
-  headerType: computed('changeset.HeaderType', 'headerTypes.firstObject', function() {
+  headerType: computed('changeset.HeaderType', 'headerTypes.firstObject', function () {
     return this.changeset.HeaderType || this.headerTypes.firstObject;
   }),
 
@@ -45,7 +45,7 @@ export default Component.extend({
   shouldShowValueField: not('headerTypeEqualsPresent'),
 
   actions: {
-    change: function(name, changeset, e) {
+    change: function (name, changeset, e) {
       const value = typeof get(e, 'target.value') !== 'undefined' ? e.target.value : e;
       switch (name) {
         default:
@@ -53,8 +53,8 @@ export default Component.extend({
       }
       changeset.validate();
     },
-    submit: function(changeset) {
-      this.headerTypes.forEach(prop => {
+    submit: function (changeset) {
+      this.headerTypes.forEach((prop) => {
         changeset.set(prop, undefined);
       });
       // Present is a boolean, whereas all other header types have a value
@@ -78,7 +78,7 @@ export default Component.extend({
         })
       );
     },
-    reset: function(changeset, e) {
+    reset: function (changeset, e) {
       changeset.rollback();
     },
   },

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -31,11 +32,13 @@ func golden(t *testing.T, name, got string) string {
 }
 
 func TestFormat(t *testing.T) {
+	buildDate, _ := time.Parse(time.RFC3339, "2022-06-01T13:18:45Z")
 	info := VersionInfo{
 		HumanVersion: "1.99.3-beta1",
 		Version:      "1.99.3",
 		Prerelease:   "beta1",
 		Revision:     "5e5dbedd47a5f875b60e241c5555a9caab595246",
+		BuildDate:    buildDate,
 		RPC: RPCVersionInfo{
 			Default: 2,
 			Min:     1,

@@ -1,0 +1,9 @@
+@keyframes icon-sign-out {
+  100% {
+
+    -webkit-mask-image: var(--icon-sign-out-16);
+    mask-image: var(--icon-sign-out-16);
+    background-color: var(--icon-color, var(--color-sign-out-500, currentColor));
+
+  }
+}

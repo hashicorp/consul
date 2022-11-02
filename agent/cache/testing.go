@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mitchellh/go-testing-interface"
+	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ import (
 // TestCacheGetCh returns a channel that returns the result of the Get call.
 // This is useful for testing timing and concurrency with Get calls. Any
 // error will be logged, so the result value should always be asserted.
-func TestCacheGetCh(t testing.T, c *Cache, typ string, r Request) <-chan interface{} {
+func TestCacheGetCh(t testinf.T, c *Cache, typ string, r Request) <-chan interface{} {
 	resultCh := make(chan interface{})
 	go func() {
 		result, _, err := c.Get(context.Background(), typ, r)
@@ -32,7 +32,7 @@ func TestCacheGetCh(t testing.T, c *Cache, typ string, r Request) <-chan interfa
 // TestCacheGetChResult tests that the result from TestCacheGetCh matches
 // within a reasonable period of time (it expects it to be "immediate" but
 // waits some milliseconds).
-func TestCacheGetChResult(t testing.T, ch <-chan interface{}, expected interface{}) {
+func TestCacheGetChResult(t testinf.T, ch <-chan interface{}, expected interface{}) {
 	t.Helper()
 
 	select {
@@ -51,7 +51,7 @@ func TestCacheGetChResult(t testing.T, ch <-chan interface{}, expected interface
 // "immediate" but waits some milliseconds). Expected may be given multiple
 // times and if so these are all waited for and asserted to match but IN ANY
 // ORDER to ensure we aren't timing dependent.
-func TestCacheNotifyChResult(t testing.T, ch <-chan UpdateEvent, expected ...UpdateEvent) {
+func TestCacheNotifyChResult(t testinf.T, ch <-chan UpdateEvent, expected ...UpdateEvent) {
 	t.Helper()
 
 	expectLen := len(expected)
@@ -85,14 +85,14 @@ OUT:
 
 // TestRequest returns a Request that returns the given cache key and index.
 // The Reset method can be called to reset it for custom usage.
-func TestRequest(t testing.T, info RequestInfo) *MockRequest {
+func TestRequest(t testinf.T, info RequestInfo) *MockRequest {
 	req := &MockRequest{}
 	req.On("CacheInfo").Return(info)
 	return req
 }
 
 // TestType returns a MockType that sets default RegisterOptions.
-func TestType(t testing.T) *MockType {
+func TestType(t testinf.T) *MockType {
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
 		SupportsBlocking: true,
@@ -101,7 +101,7 @@ func TestType(t testing.T) *MockType {
 }
 
 // TestTypeNonBlocking returns a MockType that returns false to SupportsBlocking.
-func TestTypeNonBlocking(t testing.T) *MockType {
+func TestTypeNonBlocking(t testinf.T) *MockType {
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
 		SupportsBlocking: false,

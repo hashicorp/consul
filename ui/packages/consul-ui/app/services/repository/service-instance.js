@@ -13,7 +13,7 @@ export default class ServiceInstanceService extends RepositoryService {
     return super.shouldReconcile(...arguments) && item.Service.Service === params.id;
   }
 
-  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id')
+  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id/:peer')
   async findByService(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -30,7 +30,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id/:peer')
   async findBySlug(params, configuration = {}) {
     return super.findBySlug(...arguments);
   }

@@ -1,0 +1,9 @@
+@keyframes icon-cpu {
+  100% {
+
+    -webkit-mask-image: var(--icon-cpu-16);
+    mask-image: var(--icon-cpu-16);
+    background-color: var(--icon-color, var(--color-cpu-500, currentColor));
+
+  }
+}

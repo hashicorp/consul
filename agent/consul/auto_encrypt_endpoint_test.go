@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -38,11 +39,11 @@ func TestAutoEncryptSign(t *testing.T) {
 
 	tests := []test{
 		{Name: "Works with defaults", Config: tlsutil.Config{}, ConnError: false},
-		{Name: "Works with good root", Config: tlsutil.Config{CAFile: root}, ConnError: false},
-		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{CAFile: badRoot}, ConnError: true},
-		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root}, ConnError: false, RPCError: true},
+		{Name: "Works with good root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root}}, ConnError: false},
+		{Name: "VerifyOutgoing fails because of bad root", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: badRoot}}, ConnError: true},
+		{Name: "VerifyServerHostname fails", Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{CAFile: root, VerifyServerHostname: true}}, ConnError: false, RPCError: true},
 		{Name: "VerifyServerHostname succeeds", Cert: "../../test/key/ourdomain_server.cer", Key: "../../test/key/ourdomain_server.key",
-			Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root}, ConnError: false, RPCError: false},
+			Config: tlsutil.Config{InternalRPC: tlsutil.ProtocolConfig{VerifyServerHostname: true, CAFile: root}}, ConnError: false, RPCError: false},
 	}
 
 	for i, test := range tests {
@@ -59,10 +60,10 @@ func TestAutoEncryptSign(t *testing.T) {
 				c.AutoEncryptAllowTLS = true
 				c.PrimaryDatacenter = "dc1"
 				c.Bootstrap = true
-				c.TLSConfig.CAFile = root
-				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.CertFile = cert
-				c.TLSConfig.KeyFile = key
+				c.TLSConfig.InternalRPC.CAFile = root
+				c.TLSConfig.InternalRPC.VerifyOutgoing = true
+				c.TLSConfig.InternalRPC.CertFile = cert
+				c.TLSConfig.InternalRPC.KeyFile = key
 			})
 			defer os.RemoveAll(dir)
 			defer s.Shutdown()
@@ -137,4 +138,59 @@ func TestAutoEncryptSign(t *testing.T) {
 			require.Len(t, reply.ConnectCARoots.Roots, 1, info)
 		})
 	}
+}
+
+func TestAutoEncryptSign_MismatchedDC(t *testing.T) {
+	t.Parallel()
+
+	cert := "../../test/key/ourdomain.cer"
+	key := "../../test/key/ourdomain.key"
+	root := "../../test/ca/root.cer"
+	dir, s := testServerWithConfig(t, func(c *Config) {
+		c.AutoEncryptAllowTLS = true
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = true
+		c.TLSConfig.InternalRPC.CAFile = root
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.CertFile = cert
+		c.TLSConfig.InternalRPC.KeyFile = key
+	})
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	// Generate a CSR and request signing
+	id := &connect.SpiffeIDAgent{
+		Host:       strings.TrimSuffix("domain", "."),
+		Datacenter: "different",
+		Agent:      "uuid",
+	}
+
+	// Create a new private key
+	pk, _, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	// Create a CSR.
+	dnsNames := []string{"localhost"}
+	ipAddresses := []net.IP{net.ParseIP("127.0.0.1")}
+	csr, err := connect.CreateCSR(id, pk, dnsNames, ipAddresses)
+	require.NoError(t, err)
+	require.NotEmpty(t, csr)
+	args := &structs.CASignRequest{
+		Datacenter: "different",
+		CSR:        csr,
+	}
+
+	cfg := tlsutil.Config{
+		AutoTLS: true,
+		Domain:  "consul",
+	}
+	codec, err := insecureRPCClient(s, cfg)
+	require.NoError(t, err)
+
+	var reply structs.SignedResponse
+	err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply)
+	codec.Close()
+	require.EqualError(t, err, "mismatched datacenter (client_dc='different' server_dc='dc1'); check client has same datacenter set as servers")
+	return
 }

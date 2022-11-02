@@ -1,0 +1,26 @@
+# This workflow sends a reminder comment to PRs that have labels starting with
+# `backport/` to check that the backport has run successfully.
+
+name: Backport Assistant Reminder
+
+on:
+  pull_request:
+    types: [ labeled ]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  backport-label-check:
+    if: "startsWith(github.event.label.name, 'backport/')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comment on PR
+        run: |
+          github_message="After merging, confirm that you see linked PRs AND check them for CI errors."
+          curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+            -X POST \
+            -d "{ \"body\": \"${github_message}\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"

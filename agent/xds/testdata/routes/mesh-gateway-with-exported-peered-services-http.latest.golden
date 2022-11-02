@@ -1,0 +1,76 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "bar",
+      "virtualHosts": [
+        {
+          "name": "bar",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "foo",
+      "virtualHosts": [
+        {
+          "name": "foo",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "exported~foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "gir",
+      "virtualHosts": [
+        {
+          "name": "gir",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "exported~gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce": "00000001"
+}

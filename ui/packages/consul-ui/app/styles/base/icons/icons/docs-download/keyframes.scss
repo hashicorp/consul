@@ -1,0 +1,9 @@
+@keyframes icon-docs-download {
+  100% {
+
+    -webkit-mask-image: var(--icon-docs-download-16);
+    mask-image: var(--icon-docs-download-16);
+    background-color: var(--icon-color, var(--color-docs-download-500, currentColor));
+
+  }
+}

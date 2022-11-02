@@ -14,18 +14,18 @@ export default class WithCopyableModifier extends Modifier {
   connect([value], _hash) {
     value = typeAssertion('string', value, this.element.innerText);
     const hash = {
-      success: e => {
-        runInDebug(_ => console.info(`with-copyable: Copied \`${value}\``));
+      success: (e) => {
+        runInDebug((_) => console.info(`with-copyable: Copied \`${value}\``));
         return typeAssertion('function', _hash.success, () => {})(e);
       },
-      error: e => {
-        runInDebug(_ => console.info(`with-copyable: Error copying \`${value}\``));
+      error: (e) => {
+        runInDebug((_) => console.info(`with-copyable: Error copying \`${value}\``));
         return typeAssertion('function', _hash.error, () => {})(e);
       },
     };
     this.source = this.clipboard
       .execute(this.element, {
-        text: _ => value,
+        text: (_) => value,
         ...hash.options,
       })
       .on('success', hash.success)

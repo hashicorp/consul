@@ -1,0 +1,3 @@
+```release-note:bug
+Fix a bug when configuring an `add_headers` directive named `Host` the header is not set for `v1/internal/ui/metrics-proxy/` endpoint.
+```

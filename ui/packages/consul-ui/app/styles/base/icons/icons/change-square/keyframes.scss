@@ -1,0 +1,9 @@
+@keyframes icon-change-square {
+  100% {
+
+    -webkit-mask-image: var(--icon-change-square-16);
+    mask-image: var(--icon-change-square-16);
+    background-color: var(--icon-color, var(--color-change-square-500, currentColor));
+
+  }
+}

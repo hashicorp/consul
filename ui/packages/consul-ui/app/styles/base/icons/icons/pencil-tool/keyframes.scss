@@ -1,0 +1,9 @@
+@keyframes icon-pencil-tool {
+  100% {
+
+    -webkit-mask-image: var(--icon-pencil-tool-16);
+    mask-image: var(--icon-pencil-tool-16);
+    background-color: var(--icon-color, var(--color-pencil-tool-500, currentColor));
+
+  }
+}

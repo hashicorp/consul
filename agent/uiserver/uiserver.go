@@ -2,9 +2,11 @@ package uiserver
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path"
@@ -22,8 +24,11 @@ const (
 	compiledProviderJSPath = "assets/compiled-metrics-providers.js"
 )
 
+//go:embed dist
+var dist embed.FS
+
 // Handler is the http.Handler that serves the Consul UI. It may serve from the
-// compiled-in AssetFS or from and external dir. It provides a few important
+// embedded fs.FS or from an external directory. It provides a few important
 // transformations on the index.html file and includes a proxy for metrics
 // backends.
 type Handler struct {
@@ -87,15 +92,20 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 func (h *Handler) handleIndex() (http.Handler, error) {
 	cfg := h.getRuntimeConfig()
 
-	var fs http.FileSystem
+	var fsys fs.FS
 	if cfg.UIConfig.Dir == "" {
-		fs = assetFS()
+		// strip the dist/ prefix
+		sub, err := fs.Sub(dist, "dist")
+		if err != nil {
+			return nil, err
+		}
+		fsys = sub
 	} else {
-		fs = http.Dir(cfg.UIConfig.Dir)
+		fsys = os.DirFS(cfg.UIConfig.Dir)
 	}
 
 	// Render a new index.html with the new config values ready to serve.
-	buf, info, err := h.renderIndex(cfg, fs)
+	buf, err := h.renderIndexFile(cfg, fsys)
 	if _, ok := err.(*os.PathError); ok && cfg.UIConfig.Dir != "" {
 		// A Path error indicates that there is no index.html. This could happen if
 		// the user configured their own UI dir and is serving something that is not
@@ -105,24 +115,23 @@ func (h *Handler) handleIndex() (http.Handler, error) {
 		// breaking change although quite an edge case. Instead, continue but just
 		// return a 404 response for the index.html and log a warning.
 		h.logger.Warn("ui_config.dir does not contain an index.html. Index templating and redirects to index.html are disabled.")
-		return http.FileServer(fs), nil
+		return http.FileServer(http.FS(fsys)), nil
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new fs that serves the rendered index file or falls back to the
+	// Create a new fsys that serves the rendered index file or falls back to the
 	// underlying FS.
-	fs = &bufIndexFS{
-		fs:            fs,
-		indexRendered: buf,
-		indexInfo:     info,
+	fsys = &bufIndexFS{
+		fs:       fsys,
+		bufIndex: buf,
 	}
 
 	// Wrap the buffering FS our redirect FS. This needs to happen later so that
 	// redirected requests for /index.html get served the rendered version not the
 	// original.
-	return http.FileServer(&redirectFS{fs: fs}), nil
+	return http.FileServer(http.FS(&redirectFS{fs: fsys})), nil
 }
 
 // getRuntimeConfig is a helper to atomically access the runtime config.
@@ -186,33 +195,34 @@ func concatFile(buf *bytes.Buffer, file string) error {
 	return nil
 }
 
-func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.FileInfo, error) {
+func (h *Handler) renderIndexFile(cfg *config.RuntimeConfig, fsys fs.FS) (fs.File, error) {
 	// Open the original index.html
-	f, err := fs.Open("/index.html")
+	f, err := fsys.Open("index.html")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer f.Close()
 
-	content, err := ioutil.ReadAll(f)
+	content, err := io.ReadAll(f)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading index.html: %w", err)
+		return nil, fmt.Errorf("failed reading index.html: %w", err)
 	}
+
 	info, err := f.Stat()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading metadata for index.html: %w", err)
+		return nil, fmt.Errorf("failed reading metadata for index.html: %w", err)
 	}
 
 	// Create template data from the current config.
 	tplData, err := uiTemplateDataFromConfig(cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed loading UI config for template: %w", err)
+		return nil, fmt.Errorf("failed loading UI config for template: %w", err)
 	}
 
 	// Allow caller to apply additional data transformations if needed.
 	if h.transform != nil {
 		if err := h.transform(tplData); err != nil {
-			return nil, nil, fmt.Errorf("failed running transform: %w", err)
+			return nil, fmt.Errorf("failed running transform: %w", err)
 		}
 	}
 
@@ -226,15 +236,16 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 		},
 	}).Parse(string(content))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed parsing index.html template: %w", err)
+		return nil, fmt.Errorf("failed parsing index.html template: %w", err)
 	}
 
 	var buf bytes.Buffer
 
 	err = tpl.Execute(&buf, tplData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to render index.html: %w", err)
+		return nil, fmt.Errorf("failed to render index.html: %w", err)
 	}
 
-	return buf.Bytes(), info, nil
+	file := newBufferedFile(&buf, info)
+	return file, nil
 }

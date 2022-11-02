@@ -1,0 +1,9 @@
+@keyframes icon-minus-plus-circle {
+  100% {
+
+    -webkit-mask-image: var(--icon-minus-plus-circle-16);
+    mask-image: var(--icon-minus-plus-circle-16);
+    background-color: var(--icon-color, var(--color-minus-plus-circle-500, currentColor));
+
+  }
+}

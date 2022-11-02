@@ -1,0 +1,9 @@
+@keyframes icon-folder-star {
+  100% {
+
+    -webkit-mask-image: var(--icon-folder-star-16);
+    mask-image: var(--icon-folder-star-16);
+    background-color: var(--icon-color, var(--color-folder-star-500, currentColor));
+
+  }
+}

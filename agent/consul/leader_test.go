@@ -2,21 +2,27 @@ package consul
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -49,7 +55,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -59,7 +65,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -78,7 +84,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Server should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s1.config.NodeName, nil)
+		_, node, err := state.GetNode(s1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -88,7 +94,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Service should be registered
-	_, services, err := state.NodeServices(nil, s1.config.NodeName, nil)
+	_, services, err := state.NodeServices(nil, s1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -127,7 +133,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -137,7 +143,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -152,9 +158,12 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err = state.NodeChecks(nil, c1.config.NodeName, nil)
+		_, checks, err = state.NodeChecks(nil, c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
 		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got status %q want %q", got, want)
@@ -188,13 +197,9 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node == nil {
-			r.Fatal("client not registered")
-		}
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+		require.NoError(r, err)
+		require.NotNil(r, node, "client not registered")
 	})
 
 	// Node should leave
@@ -203,15 +208,12 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node != nil {
-			r.Fatal("client still registered")
-		}
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+		require.NoError(r, err)
+		require.Nil(r, node, "client still registered")
 	})
 }
+
 func TestLeader_ReapMember(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -238,13 +240,9 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if node == nil {
-			r.Fatal("client not registered")
-		}
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+		require.NoError(r, err)
+		require.NotNil(r, node, "client not registered")
 	})
 
 	// Simulate a node reaping
@@ -263,10 +261,8 @@ func TestLeader_ReapMember(t *testing.T) {
 	// anti-entropy will put it back.
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
+		require.NoError(t, err)
 		if node == nil {
 			reaped = true
 			break
@@ -277,12 +273,96 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 }
 
-func TestLeader_CheckServersMeta(t *testing.T) {
+func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
+
+	run := func(t *testing.T, status serf.MemberStatus, nameFn func(string) string) {
+		t.Parallel()
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.PrimaryDatacenter = "dc1"
+			c.ACLsEnabled = true
+			c.ACLInitialManagementToken = "root"
+			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		nodeName := s1.config.NodeName
+		if nameFn != nil {
+			nodeName = nameFn(nodeName)
+		}
+
+		state := s1.fsm.State()
+
+		// Should be registered
+		retry.Run(t, func(r *retry.R) {
+			_, node, err := state.GetNode(nodeName, nil, "")
+			require.NoError(r, err)
+			require.NotNil(r, node, "server not registered")
+		})
+
+		// Simulate THIS node reaping or leaving
+		mems := s1.LANMembersInAgentPartition()
+		var s1mem serf.Member
+		for _, m := range mems {
+			if strings.EqualFold(m.Name, nodeName) {
+				s1mem = m
+				s1mem.Status = status
+				s1mem.Name = nodeName
+				break
+			}
+		}
+		s1.reconcileCh <- s1mem
+
+		// Should NOT be deregistered; we have to poll quickly here because
+		// anti-entropy will put it back if it did get deleted.
+		reaped := false
+		for start := time.Now(); time.Since(start) < 5*time.Second; {
+			_, node, err := state.GetNode(nodeName, nil, "")
+			require.NoError(t, err)
+			if node == nil {
+				reaped = true
+				break
+			}
+		}
+		if reaped {
+			t.Fatalf("server should still be registered")
+		}
+	}
+
+	t.Run("original name", func(t *testing.T) {
+		t.Parallel()
+		t.Run("left", func(t *testing.T) {
+			run(t, serf.StatusLeft, nil)
+		})
+		t.Run("reap", func(t *testing.T) {
+			run(t, StatusReap, nil)
+		})
+	})
+
+	t.Run("uppercased name", func(t *testing.T) {
+		t.Parallel()
+		t.Run("left", func(t *testing.T) {
+			run(t, serf.StatusLeft, strings.ToUpper)
+		})
+		t.Run("reap", func(t *testing.T) {
+			run(t, StatusReap, strings.ToUpper)
+		})
+	})
+}
+
+func TestLeader_CheckServersMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	ports := freeport.GetN(t, 2) // s3 grpc, s3 grpc_tls
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -309,6 +389,8 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
+		c.GRPCPort = ports[0]
+		c.GRPCTLSPort = ports[1]
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -328,7 +410,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	}
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		_, service, err := state.NodeService(nil, s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -364,7 +446,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		_, service, err := state.NodeService(nil, s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -381,6 +463,14 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
 			r.Fatalf("Expected version to be updated to %s, was %s", versionToExpect, newVersion)
+		}
+		grpcPort := service.Meta["grpc_port"]
+		if grpcPort != strconv.Itoa(ports[0]) {
+			r.Fatalf("Expected grpc port to be %d, was %s", ports[0], grpcPort)
+		}
+		grpcTLSPort := service.Meta["grpc_tls_port"]
+		if grpcTLSPort != strconv.Itoa(ports[1]) {
+			r.Fatalf("Expected grpc tls port to be %d, was %s", ports[1], grpcTLSPort)
 		}
 	})
 }
@@ -432,7 +522,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName, nil)
+		_, node, err := state.GetNode(s3.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -453,7 +543,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	}
 	// s3 should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName, nil)
+		_, node, err := state.GetNode(s3.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -508,7 +598,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	_, node, err := state.GetNode("no-longer-around", nil)
+	_, node, err := state.GetNode("no-longer-around", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -541,7 +631,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	_, node, err := state.GetNode(c1.config.NodeName, nil)
+	_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -551,7 +641,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -583,7 +673,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -619,7 +709,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	if err := s1.reconcile(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	_, node, err := state.GetNode(c1.config.NodeName, nil)
+	_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -633,9 +723,12 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+		if len(checks) != 1 {
+			r.Fatalf("client missing check")
 		}
 		if got, want := checks[0].Status, api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
@@ -643,7 +736,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Make sure the metadata didn't get clobbered.
-	_, node, err = state.GetNode(c1.config.NodeName, nil)
+	_, node, err = state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -758,7 +851,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(leader.config.NodeName, nil)
+		_, node, err := state.GetNode(leader.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -1204,6 +1297,13 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
+
+			serverToken, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+			require.NoError(t, err)
+			require.NotEmpty(t, serverToken)
+
+			_, err = uuid.ParseUUID(serverToken)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1358,7 +1458,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 					},
 				},
 			},
-			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior"`,
+			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior`,
 		},
 		{
 			name: "service-intentions without migration",
@@ -1398,7 +1498,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			serverCB: func(c *Config) {
 				c.ConnectEnabled = false
 			},
-			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions"`,
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions`,
 		},
 	}
 
@@ -1417,9 +1517,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 				scan := bufio.NewScanner(pr)
 				for scan.Scan() {
 					line := scan.Text()
+					lineJson := map[string]interface{}{}
+					json.Unmarshal([]byte(line), &lineJson)
 
 					if strings.Contains(line, "failed to establish leadership") {
-						applyErrorLine = line
+						applyErrorLine = lineJson["error"].(string)
 						ch <- ""
 						return
 					}
@@ -1444,15 +1546,16 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			}
 
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-				Name:   config.NodeName,
-				Level:  hclog.Debug,
-				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				Name:       config.NodeName,
+				Level:      testutil.TestLogLevel,
+				Output:     io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				JSONFormat: true,
 			})
 
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps)
+			srv, err := NewServer(config, deps, grpc.NewServer())
 			require.NoError(t, err)
 			defer srv.Shutdown()
 
@@ -2181,7 +2284,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	vip, err := state.VirtualIPForService(structs.NewServiceName("api", nil))
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("api", nil)}
+	vip, err := state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "", vip)
 
@@ -2210,7 +2314,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 
 	// Make sure the service referenced in the terminating gateway config doesn't have
 	// a virtual IP yet.
-	vip, err = state.VirtualIPForService(structs.NewServiceName("bar", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("bar", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "", vip)
 
@@ -2239,8 +2344,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-
-	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("api", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.1", vip)
 
@@ -2259,7 +2364,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, node, err := state.NodeService("bar", "tgate1", nil)
+	_, node, err := state.NodeService(nil, "bar", "tgate1", nil, "")
 	require.NoError(t, err)
 	sn := structs.ServiceName{Name: "api"}
 	key := structs.ServiceGatewayVirtualIPTag(sn)
@@ -2268,7 +2373,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 
 	// Make sure the baz service (only referenced in the config entry so far)
 	// has a virtual IP.
-	vip, err = state.VirtualIPForService(structs.NewServiceName("baz", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("baz", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.2", vip)
 }

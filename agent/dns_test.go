@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"net"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
@@ -458,7 +460,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		},
 	})
 	defer server2.Shutdown()
-	//Mock the agent startup with the necessary configs
+	// Mock the agent startup with the necessary configs
 	agent := NewTestAgent(t,
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`"]
 		`)
@@ -496,7 +498,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
 	})
 	defer server3.Shutdown()
-	//Mock the agent startup with the necessary configs
+	// Mock the agent startup with the necessary configs
 	agent := NewTestAgent(t,
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
 		`)
@@ -507,7 +509,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	// Agent request
 	client := new(dns.Client)
 	in, _, _ := client.Exchange(m, agent.DNSAddr())
-	//Verify if we hit SERVFAIL from Consul
+	// Verify if we hit SERVFAIL from Consul
 	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 }
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
@@ -1756,14 +1758,43 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
+}
 
-	// Look up the virtual IP of the proxy.
-	questions = []string{
-		"db.virtual.consul.",
+func TestDNS_VirtualIPLookup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
 	}
-	for _, question := range questions {
+
+	t.Parallel()
+
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	server, ok := a.delegate.(*consul.Server)
+	require.True(t, ok)
+
+	// The proxy service will not receive a virtual IP if the server is not assigning virtual IPs yet.
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := server.FSM().State().SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+	})
+
+	type testCase struct {
+		name     string
+		reg      *structs.RegisterRequest
+		question string
+		expect   string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", tc.reg, &out))
+
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeA)
+		m.SetQuestion(tc.question, dns.TypeA)
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
@@ -1772,7 +1803,54 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 		aRec, ok := in.Answer[0].(*dns.A)
 		require.True(t, ok)
-		require.Equal(t, "240.0.0.1", aRec.A.String())
+		require.Equal(t, tc.expect, aRec.A.String())
+	}
+
+	tt := []testCase{
+		{
+			name: "local query",
+			reg: &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.55",
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					Service: "web-proxy",
+					Port:    12345,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "db",
+					},
+				},
+			},
+			question: "db.virtual.consul.",
+			expect:   "240.0.0.1",
+		},
+		{
+			name: "query for imported service",
+			reg: &structs.RegisterRequest{
+				PeerName:   "frontend",
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.55",
+				Service: &structs.NodeService{
+					PeerName: "frontend",
+					Kind:     structs.ServiceKindConnectProxy,
+					Service:  "web-proxy",
+					Port:     12345,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "db",
+					},
+				},
+			},
+			question: "db.virtual.frontend.consul.",
+			expect:   "240.0.0.2",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
 
@@ -5999,7 +6077,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 				Name: "my-query",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Failover: structs.QueryDatacenterOptions{
+					Failover: structs.QueryFailoverOptions{
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -7484,6 +7562,55 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 			t.Errorf("%d: bad %#v vs. %#v", i, srv, a)
 		}
 	}
+}
+
+func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	resp := &dns.Msg{}
+
+	for i := 0; i < 600; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 150+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 150+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	reqEDNS, respEDNS := &dns.Msg{}, &dns.Msg{}
+	reqEDNS.SetEdns0(math.MaxUint16, true)
+	respEDNS.Answer = append(respEDNS.Answer, resp.Answer...)
+	respEDNS.Extra = append(respEDNS.Extra, resp.Extra...)
+	require.Greater(t, respEDNS.Len(), math.MaxUint16)
+	t.Logf("length is: %v", respEDNS.Len())
+
+	if trimmed := trimUDPResponse(reqEDNS, respEDNS, cfg.DNSUDPAnswerLimit); !trimmed {
+		t.Errorf("expected edns to be trimmed: %#v", resp)
+	}
+	require.Greater(t, math.MaxUint16, respEDNS.Len())
+
+	t.Logf("length is: %v", respEDNS.Len())
+
+	if len(respEDNS.Answer) == 0 || len(respEDNS.Answer) != len(respEDNS.Extra) {
+		t.Errorf("bad edns answer length: %#v", resp)
+	}
+
 }
 
 func TestDNS_syncExtra(t *testing.T) {

@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: Added support for specifying admin partition in node lookups.
+```

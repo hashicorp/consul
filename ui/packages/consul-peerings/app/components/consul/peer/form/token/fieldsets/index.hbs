@@ -1,0 +1,37 @@
+{{#if @regenerate}}
+        <p>
+          Token regenerated! Here’s what’s next:
+        </p>
+{{else}}
+        <p>
+          Token generated! Here’s what’s next:
+        </p>
+{{/if}}
+        <ol>
+          <li>
+            <strong>Copy the token</strong><br />
+            This token cannot be viewed again after creation.
+            <br />
+            <CopyableCode
+              @value={{@token}}
+              @name="Token"
+            />
+          </li>
+          <li>
+            <strong>Switch to the peer</strong><br />
+            Someone on your team should log into the Datacenter (OSS) or Admin Partition (Enterprise) that you want this one to connect with.
+          </li>
+          <li>
+            <strong>Initiate the peering</strong><br />
+            From there, initiate a new peering, name it, and paste this token in.
+          </li>
+        </ol>
+{{#if (not @regenerate)}}
+        <Action
+          @type="reset"
+          {{on "click" @onclick}}
+        >
+          Generate another token
+        </Action>
+{{/if}}
+

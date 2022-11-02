@@ -1,0 +1,61 @@
+---
+class: ember
+---
+# StateMachine
+
+```hbs
+<StateMachine
+  @chart={{xstateStateChartObject}}
+  as |fsm|>
+</StateMachine>
+```
+
+`<StateMachine />` is a renderless component that eases rendering of different states
+from within templates using XState State Machine and Statechart objects.
+
+**Please note**: This component is currently a gradual replacement for
+StateChart, which has a less ergonmic interface. Guard and Action component are
+currently omitted due to a preference to use entries to define those instead of
+components (which is WIP)
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `chart` | `object` |  | An xstate statechart/state machine object |
+| `initial` | `String` | The initial value of the state chart itself | The initial state of the machine/chart (defaults to whatever is defined on the object itself) |
+
+The component currently yields 1 contextual components:
+
+- `<fsm.State />`: Used for rendering matching certain states ([also see State Component](../state/README.mdx))
+
+and 2 further objects:
+
+- `fsm.dispatch`: An action to dispatch an xstate event
+- `fsm.state`: The state object itself for usage in the `state-matches` helper
+
+### Example
+
+```hbs
+<StateMachine
+  @chart={{xstateStateChartObject}}
+  as |fsm|>
+    <fsm.State @matches="idle">
+      Currently Idle
+    </fsm.State>
+    <fsm.State @matches="loading">
+      Currently Loading
+    </fsm.State>
+    <fsm.State @matches={{array 'loading' 'idle'}}>
+      Idle and loading
+      <button disabled={{state-matches fsm.state "loading"}} onclick={{action fsm.dispatch "START"}}>Load</button>
+    </fsm.State>
+</StateMachine>
+```
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

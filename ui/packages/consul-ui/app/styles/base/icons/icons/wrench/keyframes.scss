@@ -1,0 +1,9 @@
+@keyframes icon-wrench {
+  100% {
+
+    -webkit-mask-image: var(--icon-wrench-16);
+    mask-image: var(--icon-wrench-16);
+    background-color: var(--icon-color, var(--color-wrench-500, currentColor));
+
+  }
+}

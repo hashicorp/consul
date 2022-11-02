@@ -1,0 +1,9 @@
+@keyframes icon-info-circle-fill {
+  100% {
+
+    -webkit-mask-image: var(--icon-info-16);
+    mask-image: var(--icon-info-16);
+    background-color: var(--icon-color, var(--color-info-circle-fill-500, currentColor));
+
+  }
+}

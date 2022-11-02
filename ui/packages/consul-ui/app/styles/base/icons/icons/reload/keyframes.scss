@@ -1,0 +1,9 @@
+@keyframes icon-reload {
+  100% {
+
+    -webkit-mask-image: var(--icon-reload-16);
+    mask-image: var(--icon-reload-16);
+    background-color: var(--icon-color, var(--color-reload-500, currentColor));
+
+  }
+}

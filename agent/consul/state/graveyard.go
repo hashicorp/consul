@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 // Tombstone is the internal type used to track tombstones.
@@ -13,7 +13,7 @@ type Tombstone struct {
 	Key   string
 	Index uint64
 
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (t Tombstone) IDValue() string {
@@ -33,7 +33,7 @@ func NewGraveyard(gc *TombstoneGC) *Graveyard {
 }
 
 // InsertTxn adds a new tombstone.
-func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *structs.EnterpriseMeta) error {
+func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *acl.EnterpriseMeta) error {
 	stone := &Tombstone{
 		Key:   key,
 		Index: idx,

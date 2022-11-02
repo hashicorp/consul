@@ -1,0 +1,3 @@
+```release-note:bug
+config-entry: fix a panic when creating an ingress gateway config-entry and a proxy service instance, where both provided the same upstream and downstream mapping.
+```

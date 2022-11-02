@@ -1,0 +1,3 @@
+```release-note:bug
+cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive.
+```

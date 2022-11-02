@@ -30,7 +30,7 @@ through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
-The table below shows the [required ACLs](/api#authentication) in order to
+The table below shows the [required ACLs](/api-docs/api-structure#authentication) in order to
 execute this command.
 
 | ACL Required    | Scope             |
@@ -40,7 +40,7 @@ execute this command.
 | `key:write`     | `"_rexec"` prefix |
 | `event:write`   | `"_rexec"` prefix |
 
-In addition to the above, the policy associated with the [agent token](/docs/security/acl/acl-system#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
+In addition to the above, the policy associated with the [agent token](/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
 
 ## Usage
 
@@ -49,12 +49,6 @@ Usage: `consul exec [options] [-|command...]`
 The only required option is a command to execute. This is either given
 as trailing arguments, or by specifying `-`; STDIN will be read to
 completion as a script to evaluate.
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
 
 #### Command Options
 
@@ -81,3 +75,9 @@ completion as a script to evaluate.
   to 200 msec.
 
 - `-verbose` - Enables verbose output.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

@@ -1,0 +1,9 @@
+@keyframes icon-battery {
+  100% {
+
+    -webkit-mask-image: var(--icon-battery-16);
+    mask-image: var(--icon-battery-16);
+    background-color: var(--icon-color, var(--color-battery-500, currentColor));
+
+  }
+}

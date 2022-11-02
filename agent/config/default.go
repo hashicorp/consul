@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/raft"
 
@@ -55,7 +56,12 @@ func DefaultSource() Source {
 
 		server = false
 		syslog_facility = "LOCAL0"
-		tls_min_version = "tls12"
+
+		tls = {
+			defaults = {
+				tls_min_version = "TLSv1_2"
+			}
+		}
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/consul/config.go.
@@ -92,6 +98,7 @@ func DefaultSource() Source {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
 			rpc_handshake_timeout = "5s"
+			rpc_client_timeout = "60s"
 			rpc_rate = -1
 			rpc_max_burst = 1000
 			rpc_max_conns_per_client = 100
@@ -123,11 +130,15 @@ func DefaultSource() Source {
 			metrics_prefix = "consul"
 			filter_default = true
 			prefix_filter = []
+			retry_failed_connection = true
 		}
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 
+		xds {
+			update_max_per_second = 250
+		}
 	`,
 	}
 }
@@ -191,11 +202,16 @@ func NonUserSource() Source {
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64
-		
-		connect = { 
+
+		connect = {
 			# 0s causes the value to be ignored and operate without capping
 			# the max time before leaf certs can be generated after a roots change.
 			test_ca_leaf_root_change_spread = "0s"
+		}
+
+		peering = {
+			# We use peer registration for various testing
+			test_allow_peer_registrations = false
 		}
 	`,
 	}
@@ -204,13 +220,15 @@ func NonUserSource() Source {
 // versionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
-func versionSource(rev, ver, verPre string) Source {
+func versionSource(rev, ver, verPre, meta string, buildDate time.Time) Source {
 	return LiteralSource{
 		Name: "version",
 		Config: Config{
 			Revision:          &rev,
 			Version:           &ver,
 			VersionPrerelease: &verPre,
+			VersionMetadata:   &meta,
+			BuildDate:         &buildDate,
 		},
 	}
 }
@@ -218,7 +236,8 @@ func versionSource(rev, ver, verPre string) Source {
 // defaultVersionSource returns the version config source for the embedded
 // version numbers.
 func defaultVersionSource() Source {
-	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease)
+	buildDate, _ := time.Parse(time.RFC3339, version.BuildDate) // This has been checked elsewhere
+	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease, version.VersionMetadata, buildDate)
 }
 
 // DefaultConsulSource returns the default configuration for the consul agent.

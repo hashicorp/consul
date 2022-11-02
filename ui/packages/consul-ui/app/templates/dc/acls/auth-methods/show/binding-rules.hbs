@@ -1,5 +1,5 @@
 <Route
-  @routeName={{routeName}}
+  @name={{routeName}}
 as |route|>
 
   <DataLoader @src={{
@@ -41,12 +41,14 @@ as |items|}}
   {{else}}
     <EmptyState>
       <BlockSlot @name="header">
-        <h2>No binding rules</h2>
+        <h2>
+          {{t 'routes.dc.acls.auth-methods.show.binding-rules.index.empty.header'}}
+        </h2>
       </BlockSlot>
       <BlockSlot @name="body">
-        <p>
-          Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
-        </p>
+        {{t 'routes.dc.acls.auth-methods.show.binding-rules.index.empty.body'
+          htmlSafe=true
+        }}
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">

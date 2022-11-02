@@ -43,6 +43,9 @@ type policyAuthorizer struct {
 	// meshRule contains the mesh policies.
 	meshRule *policyAuthorizerRule
 
+	// peeringRule contains the peering policies.
+	peeringRule *policyAuthorizerRule
+
 	// embedded enterprise policy authorizer
 	enterprisePolicyAuthorizer
 }
@@ -320,6 +323,15 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 			return err
 		}
 		p.meshRule = &policyAuthorizerRule{access: access}
+	}
+
+	// Load the peering policy
+	if policy.Peering != "" {
+		access, err := AccessLevelFromString(policy.Peering)
+		if err != nil {
+			return err
+		}
+		p.peeringRule = &policyAuthorizerRule{access: access}
 	}
 
 	return nil
@@ -692,6 +704,25 @@ func (p *policyAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision
 	return p.OperatorWrite(ctx)
 }
 
+// PeeringRead determines if the read-only peering functions are allowed.
+func (p *policyAuthorizer) PeeringRead(ctx *AuthorizerContext) EnforcementDecision {
+	if p.peeringRule != nil {
+		return enforce(p.peeringRule.access, AccessRead)
+	}
+	// default to OperatorRead access
+	return p.OperatorRead(ctx)
+}
+
+// PeeringWrite determines if the state-changing peering functions are
+// allowed.
+func (p *policyAuthorizer) PeeringWrite(ctx *AuthorizerContext) EnforcementDecision {
+	if p.peeringRule != nil {
+		return enforce(p.peeringRule.access, AccessWrite)
+	}
+	// default to OperatorWrite access
+	return p.OperatorWrite(ctx)
+}
+
 // OperatorRead determines if the read-only operator functions are allowed.
 func (p *policyAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if p.operatorRule != nil {
@@ -767,7 +798,7 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) Enfor
 	return Default
 }
 
-func (p *policyAuthorizer) serviceWriteAny(_ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceWriteAny(_ *AuthorizerContext) EnforcementDecision {
 	return p.anyAllowed(p.serviceRules, AccessWrite)
 }
 
@@ -786,4 +817,8 @@ func (p *policyAuthorizer) SessionWrite(node string, _ *AuthorizerContext) Enfor
 		return enforce(rule.access, AccessWrite)
 	}
 	return Default
+}
+
+func (p *policyAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: p}
 }

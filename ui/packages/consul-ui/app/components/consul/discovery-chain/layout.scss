@@ -118,11 +118,8 @@
   flex-wrap: wrap;
   list-style-type: none;
 }
-%resolver-card ol li:not(:last-child)::after {
-  display: inline-block;
-  content: ',';
-  margin-right: 0.2em;
-  margin-left: -0.3em;
+%resolver-card ol {
+  @extend %csv-list;
 }
 /**/
 %with-chain-outlet {

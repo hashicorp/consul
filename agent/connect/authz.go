@@ -1,6 +1,7 @@
 package connect
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -18,7 +19,7 @@ func AuthorizeIntentionTarget(
 
 	switch matchType {
 	case structs.IntentionMatchDestination:
-		if structs.PartitionOrDefault(ixn.DestinationPartition) != structs.PartitionOrDefault(targetAP) {
+		if acl.PartitionOrDefault(ixn.DestinationPartition) != acl.PartitionOrDefault(targetAP) {
 			return false, false
 		}
 
@@ -33,7 +34,7 @@ func AuthorizeIntentionTarget(
 		}
 
 	case structs.IntentionMatchSource:
-		if structs.PartitionOrDefault(ixn.SourcePartition) != structs.PartitionOrDefault(targetAP) {
+		if acl.PartitionOrDefault(ixn.SourcePartition) != acl.PartitionOrDefault(targetAP) {
 			return false, false
 		}
 

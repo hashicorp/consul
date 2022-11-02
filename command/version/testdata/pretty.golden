@@ -1,3 +1,4 @@
 Consul v1.99.3-beta1
 Revision 5e5dbedd47a5f875b60e241c5555a9caab595246
+Build Date 2022-06-01T13:18:45Z
 Protocol 2 spoken by default, understands 1 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)

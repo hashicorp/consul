@@ -5,11 +5,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
+
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the
@@ -42,7 +43,7 @@ func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string
 // RPC to each server, so we let it finish and then clean up the in-flight
 // tracking.
 func (f *StatsFetcher) fetch(server *autopilot.Server, replyCh chan *autopilot.ServerStats) {
-	var args struct{}
+	var args EmptyReadRequest
 	var reply structs.RaftStats
 
 	// defer some cleanup to notify everything else that the fetching is no longer occurring

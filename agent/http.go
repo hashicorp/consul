@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -51,33 +53,6 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
-// BadRequestError should be returned by a handler when parameters or the payload are not valid
-type BadRequestError struct {
-	Reason string
-}
-
-func (e BadRequestError) Error() string {
-	return fmt.Sprintf("Bad request: %s", e.Reason)
-}
-
-// NotFoundError should be returned by a handler when a resource specified does not exist
-type NotFoundError struct {
-	Reason string
-}
-
-func (e NotFoundError) Error() string {
-	return e.Reason
-}
-
-// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
-type UnauthorizedError struct {
-	Reason string
-}
-
-func (e UnauthorizedError) Error() string {
-	return e.Reason
-}
-
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -90,11 +65,15 @@ func (e CodeWithPayloadError) Error() string {
 	return e.Reason
 }
 
-type ForbiddenError struct {
+// HTTPError is returned by the handler when a specific http error
+// code is needed alongside a plain text response.
+type HTTPError struct {
+	StatusCode int
+	Reason     string
 }
 
-func (e ForbiddenError) Error() string {
-	return "Access is restricted"
+func (h HTTPError) Error() string {
+	return h.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -104,6 +83,10 @@ type HTTPHandlers struct {
 	configReloaders []ConfigReloader
 	h               http.Handler
 	metricsProxyCfg atomic.Value
+
+	// proxyTransport is used by UIMetricsProxy to keep
+	// a managed pool of connections.
+	proxyTransport http.RoundTripper
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -190,22 +173,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	// handleFuncMetrics takes the given pattern and handler and wraps to produce
 	// metrics based on the pattern and request.
 	handleFuncMetrics := func(pattern string, handler http.HandlerFunc) {
-		// Get the parts of the pattern. We omit any initial empty for the
-		// leading slash, and put an underscore as a "thing" placeholder if we
-		// see a trailing slash, which means the part after is parsed. This lets
-		// us distinguish from things like /v1/query and /v1/query/<query id>.
-		var parts []string
-		for i, part := range strings.Split(pattern, "/") {
-			if part == "" {
-				if i == 0 {
-					continue
-				}
-				part = "_"
-			}
-			parts = append(parts, part)
-		}
-
-		// Tranform the pattern to a valid label by replacing the '/' by '_'.
+		// Transform the pattern to a valid label by replacing the '/' by '_'.
 		// Omit the leading slash.
 		// Distinguish thing like /v1/query from /v1/query/<query_id> by having
 		// an extra underscore.
@@ -218,13 +186,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
-
-			// DEPRECATED Emit pre-1.9 metric as `consul.http...` to maintain backwards compatibility. Enabled by
-			// default. Users may set `telemetry { disable_compat_1.9 = true }`
-			if !s.agent.config.Telemetry.DisableCompatOneNine {
-				key := append([]string{"http", req.Method}, parts...)
-				metrics.MeasureSince(key, start)
-			}
 		}
 
 		var gzipHandler http.Handler
@@ -248,13 +209,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
@@ -264,6 +218,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
 			// TODO(partitions): should this be possible in a partition?
+			// TODO(acl-error-enhancements): We should return error details somehow here.
 			if authz.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
@@ -285,12 +240,14 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// Register wrapped pprof handlers
-	handlePProf("/debug/pprof/", pprof.Index)
-	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-	handlePProf("/debug/pprof/profile", pprof.Profile)
-	handlePProf("/debug/pprof/symbol", pprof.Symbol)
-	handlePProf("/debug/pprof/trace", pprof.Trace)
+	// If enableDebug or ACL enabled, register wrapped pprof handlers
+	if enableDebug || !s.checkACLDisabled() {
+		handlePProf("/debug/pprof/", pprof.Index)
+		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+		handlePProf("/debug/pprof/profile", pprof.Profile)
+		handlePProf("/debug/pprof/symbol", pprof.Symbol)
+		handlePProf("/debug/pprof/trace", pprof.Trace)
+	}
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -358,8 +315,8 @@ func (s *HTTPHandlers) nodeName() string {
 // this regular expression is applied, so the regular expression substitution
 // results in:
 //
-// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
-//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//	/v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//	                               ^---- $1 ----^^- $2 -^^-- $3 --^
 //
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
@@ -414,27 +371,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
 				return true
 			}
-			_, ok := err.(ForbiddenError)
-			return ok
+			if e, ok := status.FromError(err); ok && e.Code() == codes.PermissionDenied {
+				return true
+			}
+			return false
 		}
 
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
-			return ok
-		}
-
-		isBadRequest := func(err error) bool {
-			_, ok := err.(BadRequestError)
-			return ok
-		}
-
-		isNotFound := func(err error) bool {
-			_, ok := err.(NotFoundError)
-			return ok
-		}
-
-		isUnauthorized := func(err error) bool {
-			_, ok := err.(UnauthorizedError)
 			return ok
 		}
 
@@ -445,6 +389,11 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
+		}
+
+		isHTTPError := func(err error) bool {
+			_, ok := err.(HTTPError)
+			return ok
 		}
 
 		handleErr := func(err error) {
@@ -476,15 +425,18 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
-			case isBadRequest(err):
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, err.Error())
-			case isNotFound(err):
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprint(resp, err.Error())
-			case isUnauthorized(err):
-				resp.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprint(resp, err.Error())
+			case isHTTPError(err):
+				err := err.(HTTPError)
+				code := http.StatusInternalServerError
+				if err.StatusCode != 0 {
+					code = err.StatusCode
+				}
+				reason := "An unexpected error occurred"
+				if err.Error() != "" {
+					reason = err.Error()
+				}
+				resp.WriteHeader(code)
+				fmt.Fprint(resp, reason)
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
 				fmt.Fprint(resp, err.Error())
@@ -525,6 +477,17 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
 		} else {
 			err = s.checkWriteAccess(req)
+
+			// Give the user a hint that they might be doing something wrong if they issue a GET request
+			// with a non-empty body (e.g., parameters placed in body rather than query string).
+			if req.Method == http.MethodGet {
+				if req.ContentLength > 0 {
+					httpLogger.Warn("GET request has a non-empty body that will be ignored; "+
+						"check whether parameters meant for the query string were accidentally placed in the body",
+						"url", logURL,
+						"from", req.RemoteAddr)
+				}
+			}
 
 			if err == nil {
 				// Invoke the handler
@@ -752,13 +715,18 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) error {
+	lastContact, err := m.GetLastContact()
+	if err != nil {
+		return err
+	}
+	setLastContact(resp, lastContact)
 	setIndex(resp, m.GetIndex())
-	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
 	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
+	return nil
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {
@@ -809,7 +777,7 @@ func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.Han
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -834,7 +802,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptio
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
 // support maxage directive.
-func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	raw := strings.ToLower(req.Header.Get("Cache-Control"))
 
 	if raw == "" {
@@ -890,9 +858,9 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 	return false
 }
 
-// parseConsistency is used to parse the ?stale and ?consistent query params.
+// parseConsistency is used to parse the ?stale, ?consistent, and ?leader query params.
 // Returns true on error
-func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -904,6 +872,9 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 		defaults = false
 	}
 	if _, ok := query["leader"]; ok {
+		// The leader query param forces use of the "default" consistency mode.
+		// This allows the "default" consistency mode to be used even the consistency mode is
+		// default to "stale" through use of the discovery_max_stale agent config option.
 		defaults = false
 	}
 	if _, ok := query["cached"]; ok && s.agent.config.HTTPUseCache {
@@ -1072,6 +1043,12 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 	}
 }
 
+func (s *HTTPHandlers) parsePeerName(req *http.Request, args *structs.ServiceSpecificRequest) {
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
+}
+
 // parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
 // filtering results to nodes with the given metadata key/value
 func (s *HTTPHandlers) parseMetaFilter(req *http.Request) map[string]string {
@@ -1096,7 +1073,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parse is a convenience method for endpoints that need to use both parseWait
 // and parseDC.
-func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1136,7 +1113,7 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{}
+	return HTTPError{StatusCode: http.StatusForbidden, Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
@@ -1145,14 +1122,30 @@ func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	}
 }
 
-func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
-	// The suffix may be URL-encoded, so attempt to decode
-	suffixRaw := strings.TrimPrefix(path, prefixToTrim)
-	suffixUnescaped, err := url.PathUnescape(suffixRaw)
+func setMetaProtobuf(resp http.ResponseWriter, queryMeta *pbcommon.QueryMeta) {
+	qm := new(structs.QueryMeta)
+	pbcommon.QueryMetaToStructs(queryMeta, qm)
+	setMeta(resp, qm)
+}
 
-	if err != nil {
-		return suffixRaw, fmt.Errorf("failure in unescaping path param %q: %v", suffixRaw, err)
-	}
+type QueryOptionsCompat interface {
+	GetAllowStale() bool
+	SetAllowStale(bool)
 
-	return suffixUnescaped, nil
+	GetRequireConsistent() bool
+	SetRequireConsistent(bool)
+
+	GetUseCache() bool
+	SetUseCache(bool)
+
+	SetFilter(string)
+	SetToken(string)
+
+	SetMustRevalidate(bool)
+	SetMaxAge(time.Duration)
+	SetMaxStaleDuration(time.Duration)
+	SetStaleIfError(time.Duration)
+
+	SetMaxQueryTime(time.Duration)
+	SetMinQueryIndex(uint64)
 }

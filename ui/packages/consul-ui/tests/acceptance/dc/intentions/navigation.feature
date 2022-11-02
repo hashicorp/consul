@@ -7,6 +7,7 @@ Feature: dc / intentions / navigation
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0
       Action: allow
       Meta: ~
+      SourcePeer: ""
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
       Action: deny
       Meta: ~

@@ -1,0 +1,9 @@
+@keyframes icon-box-check-fill {
+  100% {
+
+    -webkit-mask-image: var(--icon-check-square-fill-16);
+    mask-image: var(--icon-check-square-fill-16);
+    background-color: var(--icon-color, var(--color-box-check-fill-500, currentColor));
+
+  }
+}

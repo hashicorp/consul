@@ -1,0 +1,6 @@
+```release-note: improvement
+connect: Add Envoy 1.23.0 to support matrix
+```
+```release-note: breaking-change
+connect: Removes support for Envoy 1.19
+```

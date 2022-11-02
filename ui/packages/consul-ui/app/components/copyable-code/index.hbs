@@ -1,0 +1,45 @@
+<div
+  class={{class-map
+    'copyable-code'
+    (array 'obfuscated' @obfuscated)
+  }}
+  ...attributes
+>
+{{#if @obfuscated}}
+  <Disclosure
+  as |disclosure|>
+    <disclosure.Action
+      {{on 'click' disclosure.toggle}}
+      aria-label={{if details.expanded 'Hide' 'Show'}}
+    >
+
+    </disclosure.Action>
+    <disclosure.Details as |details|>
+      <pre><code
+        id={{details.id}}
+      >{{@value}}</code></pre>
+    </disclosure.Details>
+    <disclosure.Details
+      @auto={{false}}
+    as |details|>
+      {{#if (not details.expanded)}}
+        <hr />
+      {{/if}}
+    </disclosure.Details>
+  </Disclosure>
+
+  <CopyButton
+    @value={{@value}}
+    @name={{@name}}
+  />
+
+{{else}}
+  <pre><code
+  >{{@value}}</code></pre>
+  <CopyButton
+    @value={{@value}}
+    @name={{@name}}
+  />
+{{/if}}
+
+</div>

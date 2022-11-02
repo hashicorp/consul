@@ -1,0 +1,3 @@
+```release-note:bug
+local: fixes a data race in anti-entropy sync that could cause the wrong tags to be applied to a service when EnableTagOverride is used
+```
