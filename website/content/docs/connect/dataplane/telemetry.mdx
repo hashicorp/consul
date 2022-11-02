@@ -24,7 +24,7 @@ configuration](/docs/connect/proxies/envoy#bootstrap-configuration) for details.
 When Prometheus metrics are used, Consul Dataplane configures Envoy to serve merged metrics through
 a single endpoint. Metrics from the following sources are collected and merged:
 
-- Consul Dataplane itself
+- Consul Dataplane
 - The Envoy process managed by Consul Dataplane
 - (optionally) Your service instance running alongside Consul Dataplane
 
@@ -34,7 +34,7 @@ Consul Dataplane supports the following metrics:
 
 | Metric Name                                  | Description                                                                                                                                                                                                             | Unit             | Type    |
 | :------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------                               | :--------------- | :------ |
-| `consul_dataplane.connect_duration`          | Measures the time `consul-dataplane` spends getting connected to a Consul server. This is the entire time taken to discover Consul server addresses and to complete other setup, prior to Envoy opening the xDS stream. | ms               | timer   |
+| `consul_dataplane.connect_duration`          | Measures the time `consul-dataplane` spends connecting to a Consul server, including the time to discover Consul server addresses and to complete other setup prior to Envoy opening the xDS stream. | ms               | timer   |
 | `consul_dataplane.connected`                 | Indicates whether `consul-dataplane` is currently connected to a Consul server.                                                                                                                                         | 1 or 0           | gauge   |
 | `consul_dataplane.connection_errors`         | Measures the number of errors encountered on gRPC streams. This is labeled with the gRPC error status code.                                                                                                             | number of errors | gauge   |
 | `consul_dataplane.discover_servers_duration` | Measures the time `consul-dataplane` spends discovering Consul server IP addresses.                                                                                                                                     | ms               | timer   |
