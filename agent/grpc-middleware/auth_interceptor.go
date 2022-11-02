@@ -66,7 +66,7 @@ func (a *AuthInterceptor) InterceptStream(
 // present a mutual TLS certificate, and is allowed to bypass the `tls.grpc.verify_incoming`
 // check as a special case. See the `tlsutil.Configurator` for this bypass.
 func restrictPeeringEndpoints(authInfo credentials.AuthInfo, peeringSNI string, endpoint string) error {
-	//No peering connection has been configured
+	// No peering connection has been configured
 	if peeringSNI == "" {
 		return nil
 	}
