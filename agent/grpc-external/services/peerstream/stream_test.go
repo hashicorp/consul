@@ -125,7 +125,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 
 	// Receive a subscription from a peer. This message arrives while the
 	// server is a leader and should work.
-	testutil.RunStep(t, "send subscription request to leader and consume its four requests", func(t *testing.T) {
+	testutil.RunStep(t, "send subscription request to leader and consume its three requests", func(t *testing.T) {
 		sub := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Open_{
 				Open: &pbpeerstream.ReplicationMessage_Open{
@@ -148,10 +148,6 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		msg3, err := client.Recv()
 		require.NoError(t, err)
 		require.NotEmpty(t, msg3)
-
-		msg4, err := client.Recv()
-		require.NoError(t, err)
-		require.NotEmpty(t, msg4)
 	})
 
 	// The ACK will be a new request but at this point the server is not the
@@ -551,6 +547,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
+	waitUntil := it.FutureNow(6)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -575,6 +572,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastSendSuccess time.Time
 
 	client.DrainStream(t)
+
+	// Wait for async workflows to complete.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, waitUntil, it.FutureNow(1))
+	})
 
 	// Manually grab the last success time from sending the trust bundle or exported services list.
 	status, ok := srv.StreamStatus(testPeerID)
@@ -605,7 +607,6 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastAck:          lastSendAck,
 			ExportedServices: []string{},
 		}
-
 		retry.Run(t, func(r *retry.R) {
 			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
@@ -895,9 +896,6 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				// Roots tested in TestStreamResources_Server_CARootUpdates
 			},
@@ -1105,9 +1103,6 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 	testutil.RunStep(t, "initial CA Roots replication", func(t *testing.T) {
 		expectReplEvents(t, client,
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				require.Equal(t, "roots", msg.GetResponse().ResourceID)
