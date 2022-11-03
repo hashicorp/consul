@@ -572,6 +572,10 @@
           {
             "title": "CLI Reference",
             "path": "connect/dataplane/consul-dataplane"
+          },
+          {
+            "title": "Telemetry",
+            "path": "connect/dataplane/telemetry"
           }
         ]
       }
