@@ -565,6 +565,11 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		for issuer, key := range mapping {
 			if key != "" {
 				intermediateId = issuer
+
+				// Could be safe and check:
+				// importedIssuers := importResp.Data["imported_issuers"].([]string)
+				// and make sure this newly imported issuer is in the set of new unique
+				// issuers.
 				break
 			}
 		}
