@@ -198,6 +198,10 @@ message Peering {
 
   // Remote contains metadata about the remote peer.
   RemoteInfo Remote = 17;
+
+  // ManualServerAddresses indicates whether the PeerServerAddresses were manually specified by
+  // a user and should not be automatically updated.
+  bool ManualServerAddresses = 18;
 }
 
 // RemoteInfo contains metadata about the remote peer.

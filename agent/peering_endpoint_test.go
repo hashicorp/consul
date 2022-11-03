@@ -123,6 +123,7 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
 		require.NotNil(t, token.CA)
+		require.Equal(t, true, token.ManualServerAddresses)
 		require.Equal(t, []string{externalAddress}, token.ServerAddresses)
 		require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
 
