@@ -9,10 +9,13 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-const latestEnvoyVersion = "1.23.1"
-const envoyEnvKey = "ENVOY_VERSION"
+const (
+	envoyEnvKey   = "ENVOY_VERSION"
+	envoyLogLevel = "info"
+	envoyVersion  = "1.23.1"
 
-const hashicorpDockerProxy = "docker.mirror.hashicorp.services"
+	hashicorpDockerProxy = "docker.mirror.hashicorp.services"
+)
 
 //go:embed assets/Dockerfile-consul-envoy
 var consulEnvoyDockerfile string
@@ -53,5 +56,5 @@ func getEnvoyVersion() string {
 	if version, ok := os.LookupEnv(envoyEnvKey); ok && version != "" {
 		return version
 	}
-	return latestEnvoyVersion
+	return envoyVersion
 }

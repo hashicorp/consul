@@ -482,7 +482,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm.state.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
-			Name: "baz",
+			Name: "qux",
 		},
 		SecretsRequest: &pbpeering.SecretsWriteRequest{
 			PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
@@ -821,12 +821,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// Verify peering is restored
 	idx, prngRestored, err := fsm2.state.PeeringRead(nil, state.Query{
-		Value: "baz",
+		Value: "qux",
 	})
 	require.NoError(t, err)
-	require.Equal(t, uint64(31), idx)
+	require.Equal(t, uint64(32), idx) // This is the index of the PTB write, which updates the peering
 	require.NotNil(t, prngRestored)
-	require.Equal(t, "baz", prngRestored.Name)
+	require.Equal(t, "qux", prngRestored.Name)
 
 	// Verify peering secrets are restored
 	secretsRestored, err := fsm2.state.PeeringSecretsRead(nil, "1fabcd52-1d46-49b0-b1d8-71559aee47f5")
