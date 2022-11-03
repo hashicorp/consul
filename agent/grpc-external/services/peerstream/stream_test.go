@@ -569,7 +569,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	var lastSendAck time.Time
-	var lastSendSuccess time.Time
+	var lastSendSuccess *time.Time
 
 	client.DrainStream(t)
 
@@ -604,7 +604,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          lastSendAck,
+			LastAck:          &lastSendAck,
 			ExportedServices: []string{},
 		}
 		retry.Run(t, func(r *retry.R) {
@@ -641,8 +641,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          lastSendAck,
-			LastNack:         lastNack,
+			LastAck:          &lastSendAck,
+			LastNack:         &lastNack,
 			LastNackMessage:  lastNackMsg,
 			ExportedServices: []string{},
 		}
@@ -693,10 +693,10 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
 			ExportedServices:        []string{},
 		}
 
@@ -749,11 +749,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
 			ExportedServices:        []string{},
 		}
@@ -779,13 +779,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -807,14 +807,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			DisconnectTime:          disconnectTime,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			DisconnectTime:          &disconnectTime,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -1236,7 +1236,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := it.FutureNow(1)
+		disconnectTime := ptr(it.FutureNow(1))
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
