@@ -243,7 +243,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 			// Allow multiple ports to be sure we get the right one
 			maxPort: 2500,
 			// Pre register the main service and sidecar we want
-			preRegister: []*structs.ServiceDefinition{&structs.ServiceDefinition{
+			preRegister: []*structs.ServiceDefinition{{
 				Kind:           structs.ServiceKindConnectProxy,
 				ID:             "web1",
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
@@ -255,7 +255,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1110,
 				},
-			}, &structs.ServiceDefinition{
+			}, {
 				Kind:           structs.ServiceKindConnectProxy,
 				ID:             "web1-sidecar-proxy",
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
@@ -276,7 +276,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 		{
 			name: "all auto ports already taken",
 			// register another service with sidecar consuming our 1 and only allocated auto port.
-			preRegister: []*structs.ServiceDefinition{&structs.ServiceDefinition{
+			preRegister: []*structs.ServiceDefinition{{
 				Kind:           structs.ServiceKindConnectProxy,
 				ID:             "api1",
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
@@ -288,7 +288,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1110,
 				},
-			}, &structs.ServiceDefinition{
+			}, {
 				Kind: structs.ServiceKindConnectProxy,
 				Name: "api-proxy-sidecar",
 				Port: 2222, // Consume the one available auto-port
