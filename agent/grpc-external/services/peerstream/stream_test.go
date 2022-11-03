@@ -1305,7 +1305,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 10 * time.Millisecond
+	incomingHeartbeatTimeout := 50 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -1354,7 +1354,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 				return
 			}
 			select {
-			case <-time.After(incomingHeartbeatTimeout / 2):
+			case <-time.After(incomingHeartbeatTimeout / 10): // Going any slower here triggers flakes when running
 			case <-ctx.Done():
 				close(errCh)
 				return
