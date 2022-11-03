@@ -1,8 +1,0 @@
-.idea
-*.iml
-tls/*
-!tls/.gitkeep
-.terraform*
-*.tfstate*
-*.auto.tfvars
-*.auto.pkrvars.hcl
