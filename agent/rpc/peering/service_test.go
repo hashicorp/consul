@@ -826,21 +826,26 @@ func TestPeeringService_Delete(t *testing.T) {
 			// TODO(peering): see note on newTestServer, refactor to not use this
 			s := newTestServer(t, nil)
 
-			// A pointer is kept for the following peering so that we can modify the object without another PeeringWrite.
-			p := &pbpeering.Peering{
-				ID:                  testUUID(t),
-				Name:                "foo",
-				PeerCAPems:          nil,
-				PeerServerName:      "test",
-				PeerServerAddresses: []string{"addr1"},
-			}
-			err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
+			id := testUUID(t)
+
+			// Write an initial peering
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+			}}))
+
+			_, p, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
 			require.NoError(t, err)
 			require.Nil(t, p.DeletedAt)
 			require.True(t, p.IsActive())
 
-			// Overwrite the peering state to simulate deleting from a non-initial state.
-			p.State = overrideState
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+
+				// Update the peering state to simulate deleting from a non-initial state.
+				State: overrideState,
+			}}))
 
 			client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
