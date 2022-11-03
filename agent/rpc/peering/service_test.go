@@ -205,6 +205,7 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 	token := &structs.PeeringToken{}
 	require.NoError(t, json.Unmarshal(tokenJSON, token))
 	require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
+	require.True(t, token.ManualServerAddresses)
 	require.Len(t, token.ServerAddresses, 1)
 	require.Equal(t, externalAddress, token.ServerAddresses[0])
 

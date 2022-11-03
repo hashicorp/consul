@@ -1592,41 +1592,63 @@ func Test_ExportedServicesCount(t *testing.T) {
 }
 
 func Test_processResponse_Validation(t *testing.T) {
-	peerName := "billing"
-	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
+	peerName1 := "billing"
+	peerID1 := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
+	peerName2 := "mysql"
+	peerID2 := "66d3a924-102e-49e0-8383-42c4db8b9782"
 
 	type testCase struct {
-		name    string
-		in      *pbpeerstream.ReplicationMessage_Response
-		expect  *pbpeerstream.ReplicationMessage
-		wantErr bool
+		name       string
+		peerName   string
+		mst        *MutableStatus
+		in         *pbpeerstream.ReplicationMessage_Response
+		expect     *pbpeerstream.ReplicationMessage
+		extraTests func(t *testing.T, s *state.Store)
+		wantErr    bool
 	}
 
 	srv, store := newTestServer(t, nil)
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
-			ID:   peerID,
-			Name: peerName,
+			ID:                    peerID1,
+			Name:                  peerName1,
+			ManualServerAddresses: true,
+			PeerServerAddresses:   []string{"one", "two"},
+		},
+	}))
+	require.NoError(t, store.PeeringWrite(36, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:                    peerID2,
+			Name:                  peerName2,
+			ManualServerAddresses: false,
+			PeerServerAddresses:   []string{"one", "two"},
 		},
 	}))
 
 	// connect the stream
-	mst, err := srv.Tracker.Connected(peerID)
+	mst1, err := srv.Tracker.Connected(peerID1)
+	require.NoError(t, err)
+	mst2, err := srv.Tracker.Connected(peerID2)
 	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse(peerName, "", mst, tc.in)
+		reply, err := srv.processResponse(tc.peerName, "", tc.mst, tc.in)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
 		}
 		require.Equal(t, tc.expect, reply)
+		if tc.extraTests != nil {
+			tc.extraTests(t, store)
+		}
 	}
 
 	tt := []testCase{
 		{
-			name: "valid upsert",
+			name:     "valid upsert",
+			peerName: peerName1,
+			mst:      mst1,
 			in: &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedService,
 				ResourceID:  "api",
@@ -1645,7 +1667,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid resource url",
+			name:     "invalid resource url",
+			peerName: peerName1,
+			mst:      mst1,
 			in: &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: "nomad.Job",
 				Nonce:       "1",
@@ -1666,7 +1690,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "missing a nonce",
+			name:     "missing a nonce",
+			peerName: peerName1,
+			mst:      mst1,
 			in: &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedService,
 				ResourceID:  "web",
@@ -1688,7 +1714,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "unknown operation",
+			name:     "unknown operation",
+			peerName: peerName1,
+			mst:      mst1,
 			in: &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedService,
 				Nonce:       "1",
@@ -1709,7 +1737,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "out of range operation",
+			name:     "out of range operation",
+			peerName: peerName1,
+			mst:      mst1,
 			in: &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedService,
 				Nonce:       "1",
@@ -1728,6 +1758,62 @@ func Test_processResponse_Validation(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name:     "manual server addresses are not overwritten",
+			peerName: peerName1,
+			mst:      mst1,
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+				Nonce:       "1",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource: makeAnyPB(t, &pbpeering.PeeringServerAddresses{
+					Addresses: []string{"three"},
+				}),
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLPeeringServerAddresses,
+						ResponseNonce: "1",
+					},
+				},
+			},
+			extraTests: func(t *testing.T, s *state.Store) {
+				_, peer, err := s.PeeringReadByID(nil, peerID1)
+				require.NoError(t, err)
+				require.True(t, peer.ManualServerAddresses)
+				require.Equal(t, []string{"one", "two"}, peer.PeerServerAddresses)
+			},
+			wantErr: false,
+		},
+		{
+			name:     "non-manual server addresses are overwritten",
+			peerName: peerName2,
+			mst:      mst2,
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+				Nonce:       "1",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource: makeAnyPB(t, &pbpeering.PeeringServerAddresses{
+					Addresses: []string{"three"},
+				}),
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLPeeringServerAddresses,
+						ResponseNonce: "1",
+					},
+				},
+			},
+			extraTests: func(t *testing.T, s *state.Store) {
+				_, peer, err := s.PeeringReadByID(nil, peerID2)
+				require.NoError(t, err)
+				require.False(t, peer.ManualServerAddresses)
+				require.Equal(t, []string{"three"}, peer.PeerServerAddresses)
+			},
+			wantErr: false,
 		},
 	}
 	for _, tc := range tt {
