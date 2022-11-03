@@ -120,21 +120,25 @@ If TLS is enabled on Consul, you will also need to add the following environment
 
 ## Bootstrap Configuration
 
-Envoy requires an initial bootstrap configuration file. The easiest way to
-create this is using the [`consul connect envoy`
-command](/commands/connect/envoy). The command can either output the
-bootstrap configuration directly to stdout, or generate the configuration and issue an `exec` command
-to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
+Envoy requires an initial bootstrap configuration file. You can either create the file manually using the Consul command line or configure Consul Dataplane to generate the file.
 
-Because some Envoy configuration options, such as metrics and tracing sinks, can only be
-specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
-the ability to control some parts of the bootstrap config via proxy configuration options.
+### Generate the bootstrap file on the Consul CLI
 
-Add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
-of a [proxy service
-definition](/docs/connect/registration/service-registration) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
+Connect to a local Consul client agent and run the [`consul connect envoy` command](/commands/connect/envoy) to create the Envoy bootstrap configuration. The command either outputs the bootstrap configuration directly to stdout or generates the configuration and issues an `exec` command to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
+
+### Generate the bootstrap file from Consul Dataplane
+
+Consul Dataplane automatically configures and manages an Envoy process. Consul Dataplane generates the Envoy bootstrap configuration file prior to starting Envoy. To configure how Consul Dataplane starts Envoy, refer to the [Consul Dataplane CLI reference](/docs/connect/dataplane/consul-dataplane).
+
+### Control bootstrap configuration from proxy configuration
+
+Consul service mesh can control some parts of the bootstrap configuration by specifying Envoy proxy configuration options.
+
+Add the following configuration items to the [global `proxy-defaults` configuration
+entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config`
+field of a [proxy service definition](/docs/connect/registration/service-registration). When
+connected to a Consul client agent, you can place the configuration in the `proxy.config` field of
+the [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
@@ -331,7 +335,7 @@ defaults that are inherited by all services.
   across Envoy worker threads. Consul service mesh Envoy integration supports the
   following `balance_inbound_connections` values:
 
-  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections. 
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections.
   - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
@@ -398,7 +402,7 @@ definition](/docs/connect/registration/service-registration) or
   across Envoy worker threads. Consul service mesh Envoy integration supports the
   following `balance_outbound_connections` values:
 
-  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections. 
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections.
   - `exact_balance` - Outbound connections from the upstream use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
