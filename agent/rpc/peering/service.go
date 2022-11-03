@@ -705,14 +705,17 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		latest := func(tt ...time.Time) time.Time {
+		latest := func(tt ...*time.Time) *time.Time {
 			latest := time.Time{}
 			for _, t := range tt {
+				if t == nil {
+					continue
+				}
 				if t.After(latest) {
-					latest = t
+					latest = *t
 				}
 			}
-			return latest
+			return &latest
 		}
 
 		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
@@ -721,9 +724,9 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		cp.StreamStatus = &pbpeering.StreamStatus{
 			ImportedServices: streamState.ImportedServices,
 			ExportedServices: streamState.ExportedServices,
-			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
-			LastReceive:      structs.TimeToProto(lastRecv),
-			LastSend:         structs.TimeToProto(lastSend),
+			LastHeartbeat:    pbpeering.TimePtrToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      pbpeering.TimePtrToProto(lastRecv),
+			LastSend:         pbpeering.TimePtrToProto(lastSend),
 		}
 
 		return cp
