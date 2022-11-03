@@ -551,11 +551,32 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	}
 
 	// Set the intermediate backend to use the new certificate.
-	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+	importResp, err := v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
 		"certificate": intermediate.Data["certificate"],
 	})
 	if err != nil {
 		return "", err
+	}
+
+	if importResp != nil {
+		// Assume we're on Vault 1.11+. We'll assume we only have one issuer
+		// with a key.
+		mapping := importResp.Data["mapping"].(map[string]string)
+		var intermediateId string
+		for issuer, key := range mapping {
+			if key != "" {
+				intermediateId = issuer
+				break
+			}
+		}
+
+		// Now post it to the default issuer.
+		_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", map[string]interface{}{
+			"default": intermediateId,
+		})
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return v.ActiveIntermediate()
