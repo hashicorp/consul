@@ -1586,10 +1586,12 @@ func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
 		{1, 2 * time.Second},
 		{2, 4 * time.Second},
 		{3, 8 * time.Second},
+		{4, 16 * time.Second},
+		{5, 32 * time.Second},
 		// Until max.
-		{8, 256 * time.Second},
-		{9, 256 * time.Second},
-		{10, 256 * time.Second},
+		{6, 64 * time.Second},
+		{10, 64 * time.Second},
+		{20, 64 * time.Second},
 	}
 
 	for _, c := range cases {

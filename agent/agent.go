@@ -43,6 +43,7 @@ import (
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
+	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
@@ -563,6 +564,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.externalGRPCServer = external.NewServer(
 		a.logger.Named("grpc.external"),
 		metrics.Default(),
+		a.tlsConfigurator,
 	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
@@ -855,7 +857,7 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener
-	start := func(port_name string, addrs []net.Addr, tlsConf *tls.Config) error {
+	start := func(port_name string, addrs []net.Addr, protocol middleware.Protocol) error {
 		if len(addrs) < 1 {
 			return nil
 		}
@@ -865,10 +867,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			return err
 		}
 		for i := range ln {
-			// Wrap with TLS, if provided.
-			if tlsConf != nil {
-				ln[i] = tls.NewListener(ln[i], tlsConf)
-			}
+			ln[i] = middleware.LabelledListener{Listener: ln[i], Protocol: protocol}
 			listeners = append(listeners, ln[i])
 		}
 
@@ -892,19 +891,19 @@ func (a *Agent) listenAndServeGRPC() error {
 	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
 	if a.config.GRPCPort > 0 {
 		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
-		var tlsConf *tls.Config = nil
+		protocol := middleware.ProtocolPlaintext
 		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
 			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
-			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
+			protocol = middleware.ProtocolTLS
 		}
-		if err := start("grpc", a.config.GRPCAddrs, tlsConf); err != nil {
+		if err := start("grpc", a.config.GRPCAddrs, protocol); err != nil {
 			closeListeners(listeners)
 			return err
 		}
 	}
 	// Only allow grpc_tls to spawn with a TLS listener.
 	if a.config.GRPCTLSPort > 0 {
-		if err := start("grpc_tls", a.config.GRPCTLSAddrs, a.tlsConfigurator.IncomingGRPCConfig()); err != nil {
+		if err := start("grpc_tls", a.config.GRPCTLSAddrs, middleware.ProtocolTLS); err != nil {
 			closeListeners(listeners)
 			return err
 		}

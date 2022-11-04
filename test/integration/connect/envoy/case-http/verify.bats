@@ -30,13 +30,13 @@ load helpers
 @test "s1 upstream should be able to connect to s2 with http/1.1" {
   run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "s1 proxy should have been configured with http connection managers" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
-  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"
@@ -48,7 +48,7 @@ load helpers
 
 @test "s2 proxy should have been configured with an http connection manager" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19001)
-  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"
@@ -58,8 +58,8 @@ load helpers
 
 @test "s1 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19000)
-  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
+  UPS=$(echo "$HTTP_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')
 
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
@@ -71,7 +71,7 @@ load helpers
 
 @test "s2 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19001)
-  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
 
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
