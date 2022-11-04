@@ -568,11 +568,6 @@ func (s *Server) handleUpsertServerAddrs(
 		return fmt.Errorf("peering does not exist or has been marked for deletion")
 	}
 
-	// Prevent updates to addresses whenever the values are manually set.
-	if existing.ManualServerAddresses {
-		return nil
-	}
-
 	// Clone to avoid mutating the existing data
 	p := proto.Clone(existing).(*pbpeering.Peering)
 	p.PeerServerAddresses = addrs.GetAddresses()

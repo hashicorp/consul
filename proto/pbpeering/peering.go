@@ -75,10 +75,10 @@ func (req *TrustBundleListByServiceRequest) RequestDatacenter() string {
 
 // ShouldDial returns true when the peering was stored via the peering initiation endpoint,
 // AND the peering is not marked as terminated by our peer.
-// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
+// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses or ManualServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0
+	return len(p.PeerServerAddresses) > 0 || len(p.ManualServerAddresses) > 0
 }
 
 func (x PeeringState) GoString() string {
