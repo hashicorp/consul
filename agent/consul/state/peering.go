@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -1144,12 +1145,56 @@ func peeringTrustBundleReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, 
 	return ptb.ModifyIndex, ptb, nil
 }
 
-// PeeringTrustBundleWrite writes ptb to the state store. If there is an existing trust bundle with the given peer name,
-// it will be overwritten.
+// PeeringTrustBundleWrite writes ptb to the state store.
+// It also updates the corresponding peering object with the new certs.
+// If there is an existing trust bundle with the given peer name, it will be overwritten.
+// If there is no corresponding peering, then an error is returned.
 func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustBundle) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
+	if ptb.PeerName == "" {
+		return errors.New("missing peer name")
+	}
+
+	// Check for the existence of the peering object
+	_, existingPeering, err := peeringReadTxn(tx, nil, Query{
+		Value:          ptb.PeerName,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
+	})
+	if err != nil {
+		return err
+	}
+	if existingPeering == nil {
+		return fmt.Errorf("cannot write peering trust bundle for unknown peering %s", ptb.PeerName)
+	}
+	// Prevent modifications to Peering marked for deletion.
+	// This blocks generating new peering tokens or re-establishing the peering until the peering is done deleting.
+	if existingPeering.State == pbpeering.PeeringState_DELETING {
+		return fmt.Errorf("cannot write to peering that is marked for deletion")
+	}
+	c := proto.Clone(existingPeering)
+	clone, ok := c.(*pbpeering.Peering)
+	if !ok {
+		return fmt.Errorf("invalid type %T, expected *pbpeering.Peering", clone)
+	}
+
+	// Update the certs on the peering
+	rootPEMs := make([]string, 0, len(ptb.RootPEMs))
+	for _, c := range ptb.RootPEMs {
+		rootPEMs = append(rootPEMs, lib.EnsureTrailingNewline(c))
+	}
+	clone.PeerCAPems = rootPEMs
+	clone.ModifyIndex = idx
+
+	if err := tx.Insert(tablePeering, clone); err != nil {
+		return fmt.Errorf("failed inserting peering: %w", err)
+	}
+	if err := updatePeeringTableIndexes(tx, idx, clone.PartitionOrDefault()); err != nil {
+		return err
+	}
+
+	// Check for the existing trust bundle and update
 	q := Query{
 		Value:          ptb.PeerName,
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
@@ -1159,13 +1204,13 @@ func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustB
 		return fmt.Errorf("failed peering trust bundle lookup: %w", err)
 	}
 
-	existing, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
+	existingPTB, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
 	if existingRaw != nil && !ok {
 		return fmt.Errorf("invalid type %T", existingRaw)
 	}
 
-	if existing != nil {
-		ptb.CreateIndex = existing.CreateIndex
+	if existingPTB != nil {
+		ptb.CreateIndex = existingPTB.CreateIndex
 
 	} else {
 		ptb.CreateIndex = idx
