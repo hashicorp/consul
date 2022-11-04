@@ -458,7 +458,7 @@ To recreate or reset the peering connection, you need to generate a new peering 
     metadata:
       name: cluster-02
       annotations:
-        consul.hashicorp.com/peering-version: 1 ## The peering version you want to set.
+        consul.hashicorp.com/peering-version: "1" ## The peering version you want to set, must be in quotes
     spec:
       peer:
         secret:
