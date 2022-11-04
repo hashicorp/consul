@@ -139,6 +139,9 @@ func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID stri
 	if !peering.IsActive() {
 		return nil, fmt.Errorf("there is no active peering for %q", peerID)
 	}
+	if len(peering.ManualServerAddresses) > 0 {
+		return bufferFromAddresses(peering.ManualServerAddresses)
+	}
 	return bufferFromAddresses(peering.PeerServerAddresses)
 }
 

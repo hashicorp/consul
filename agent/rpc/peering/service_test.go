@@ -193,9 +193,9 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	externalAddress := "32.1.2.3:8502"
+	externalAddresses := []string{"32.1.2.3:8502"}
 	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: []string{externalAddress}}
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -205,9 +205,8 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 	token := &structs.PeeringToken{}
 	require.NoError(t, json.Unmarshal(tokenJSON, token))
 	require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
-	require.True(t, token.ManualServerAddresses)
-	require.Len(t, token.ServerAddresses, 1)
-	require.Equal(t, externalAddress, token.ServerAddresses[0])
+	require.Equal(t, externalAddresses, token.ManualServerAddresses)
+	require.Equal(t, []string{s.PublicGRPCAddr}, token.ServerAddresses)
 
 	// The roots utilized should be the ConnectCA roots and not the ones manually configured.
 	_, roots, err := s.Server.FSM().State().CARoots(nil)

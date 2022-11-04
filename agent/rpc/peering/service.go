@@ -310,25 +310,16 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	// ServerExternalAddresses must be formatted as addr:port.
-	var manualServerAddrs bool
-	var serverAddrs []string
-	if len(req.ServerExternalAddresses) > 0 {
-		manualServerAddrs = true
-		serverAddrs = req.ServerExternalAddresses
-	} else {
-		manualServerAddrs = false
-		serverAddrs, err = s.Backend.GetLocalServerAddresses()
-		if err != nil {
-			return nil, err
-		}
+	serverAddrs, err := s.Backend.GetLocalServerAddresses()
+	if err != nil {
+		return nil, err
 	}
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
 		PeerID:                peering.ID,
 		CA:                    caPEMs,
-		ManualServerAddresses: manualServerAddrs,
+		ManualServerAddresses: req.ServerExternalAddresses,
 		ServerAddresses:       serverAddrs,
 		ServerName:            serverName,
 		EstablishmentSecret:   secretID,

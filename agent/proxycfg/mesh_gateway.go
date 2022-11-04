@@ -625,7 +625,13 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				continue
 			}
 
-			hostnames, ips := peerHostnamesAndIPs(meshLogger, peering.Name, peering.PeerServerAddresses)
+			// Use the manual server addresses, if defined. Otherwise, use the peer addresses.
+			serverAddresses := peering.ManualServerAddresses
+			if len(serverAddresses) == 0 {
+				serverAddresses = peering.PeerServerAddresses
+			}
+
+			hostnames, ips := peerHostnamesAndIPs(meshLogger, peering.Name, serverAddresses)
 			if len(hostnames) > 0 {
 				peerServers[peering.PeerServerName] = PeerServersValue{
 					Addresses: hostnames,
