@@ -370,6 +370,8 @@ The examples described in this section demonstrate how to export a service named
 
 1. Run the following command in `frontend` and then check the output to confirm that you peered your clusters successfully.
 
+    <CodeBlockConfig filename="frontend.yaml" highlight="31">
+
     ```shell-session
     $ kubectl --context $CLUSTER1_CONTEXT exec -it $(kubectl --context $CLUSTER1_CONTEXT get pod -l app=frontend -o name) -- curl localhost:9090
     
@@ -407,6 +409,8 @@ The examples described in this section demonstrate how to export a service named
       "code": 200
     }
     ```
+    
+     </CodeBlockConfig>
 
 ## End a peering connection
 
