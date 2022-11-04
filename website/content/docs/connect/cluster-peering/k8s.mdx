@@ -432,7 +432,7 @@ To end a peering connection, delete both the `PeeringAcceptor` and `PeeringDiale
       $ kubectl exec -it consul-server-0 --context $CLUSTER1_CONTEXT -- /bin/sh
       ```
   
-    1. If you've enabled ACL xport an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned. 
+    1. If you've enabled ACLs, export an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned. 
   
       ```shell-session
       $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN> 
