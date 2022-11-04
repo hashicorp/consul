@@ -1154,6 +1154,12 @@ workflows:
       - show-coverage:
           requires:
             - go-test
+          filters:
+            branches:
+              ignore:
+                - main # we don't want tests run in main to overwrite coverage reports from the latest merge
+                - /^release\/.*$/ # we don't want to compare coverage on release branches
+
       - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
