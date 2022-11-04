@@ -155,7 +155,6 @@ commands:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: ls /tmp/coverage
       - persist_to_workspace:
           root: /tmp
           paths:
@@ -1048,6 +1047,7 @@ jobs:
             -u $GH_USER:$GH_TOKEN)
             if [ $(echo $file_url_response | jq length) -eq 0 ]; then
               echo "No coverage report file found"
+              exit 1
             else
               file_download_url=$(echo $file_url_response | jq -r '.download_url')
             fi
@@ -1065,6 +1065,7 @@ jobs:
             -u $GH_USER:$GH_TOKEN)
             if [ $(echo $pr_response | jq length) -eq 0 ]; then
               echo "No PR found to update"
+              exit 1
             else
               pr_comment_url=$(echo $pr_response | jq -r ".[]._links.comments.href")
             fi
