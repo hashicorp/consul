@@ -2746,7 +2746,7 @@ func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
 	expectedTrustBundle := &pbpeering.PeeringTrustBundle{
 		TrustDomain: "example.com",
 		PeerName:    "example",
-		RootPEMs:    []string{"example certificate bundle"},
+		RootPEMs:    []string{"example certificate bundle\n"},
 	}
 	expectedSecret := &pbpeering.PeeringSecrets{
 		PeerID: expectedPeering.ID,
@@ -2794,7 +2794,10 @@ func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
 			for entry := iter.Next(); entry != nil; entry = iter.Next() {
 				peeringDump = append(peeringDump, entry.(*pbpeering.Peering))
 			}
-			require.Equal(t, []*pbpeering.Peering{expectedPeering}, peeringDump)
+			expectedPeering.ModifyIndex = expectedTrustBundle.ModifyIndex
+			expectedPeering.PeerCAPems = expectedTrustBundle.RootPEMs
+			require.Len(t, peeringDump, 1)
+			prototest.AssertDeepEqual(t, expectedPeering, peeringDump[0])
 		}
 		// Verify trust bundles
 		{

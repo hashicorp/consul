@@ -1173,19 +1173,24 @@ func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustB
 	if existingPeering.State == pbpeering.PeeringState_DELETING {
 		return fmt.Errorf("cannot write to peering that is marked for deletion")
 	}
+	c := proto.Clone(existingPeering)
+	clone, ok := c.(*pbpeering.Peering)
+	if !ok {
+		return fmt.Errorf("invalid type %T, expected *pbpeering.Peering", clone)
+	}
 
 	// Update the certs on the peering
 	rootPEMs := make([]string, 0, len(ptb.RootPEMs))
 	for _, c := range ptb.RootPEMs {
 		rootPEMs = append(rootPEMs, lib.EnsureTrailingNewline(c))
 	}
-	existingPeering.PeerCAPems = rootPEMs
-	existingPeering.ModifyIndex = idx
+	clone.PeerCAPems = rootPEMs
+	clone.ModifyIndex = idx
 
-	if err := tx.Insert(tablePeering, existingPeering); err != nil {
+	if err := tx.Insert(tablePeering, clone); err != nil {
 		return fmt.Errorf("failed inserting peering: %w", err)
 	}
-	if err := updatePeeringTableIndexes(tx, idx, existingPeering.PartitionOrDefault()); err != nil {
+	if err := updatePeeringTableIndexes(tx, idx, clone.PartitionOrDefault()); err != nil {
 		return err
 	}
 
