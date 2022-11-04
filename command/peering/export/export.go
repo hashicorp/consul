@@ -141,13 +141,16 @@ func (c *cmd) Run(args []string) int {
 			}
 
 		}
+
+		consumers := []api.ServiceConsumer{}
+		for _, peer := range peerNames {
+			consumers = append(consumers, api.ServiceConsumer{
+				Peer: peer,
+			})
+		}
 		cfg.Services = append(cfg.Services, api.ExportedService{
-			Name: c.serviceName,
-			Consumers: []api.ServiceConsumer{
-				{
-					Peer: c.peerNames,
-				},
-			},
+			Name:      c.serviceName,
+			Consumers: consumers,
 		},
 		)
 
