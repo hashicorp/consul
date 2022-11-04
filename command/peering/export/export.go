@@ -58,7 +58,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	peerNames:= strings.Split(c.peerNames, "," )
+	peerNames := strings.Split(c.peerNames, ",")
 
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *cmd) Run(args []string) int {
 	if entry == nil {
 
 		consumers := []api.ServiceConsumer{}
-		for _, peer := range peerNames{
+		for _, peer := range peerNames {
 			consumers = append(consumers, api.ServiceConsumer{
 				Peer: peer,
 			})
@@ -84,7 +84,7 @@ func (c *cmd) Run(args []string) int {
 			Name: "default",
 			Services: []api.ExportedService{
 				{
-					Name: c.serviceName,
+					Name:      c.serviceName,
 					Consumers: consumers,
 				},
 			},
@@ -95,11 +95,10 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-	} 
-	else {
+	} else {
 		c.UI.Info(fmt.Sprintf("We found an existing config entry %s/%s: %+v", "exported-services", "default", entry))
 
-		cfg, ok := entry.(*api.ExportedServicesConfigEntry) 
+		cfg, ok := entry.(*api.ExportedServicesConfigEntry)
 		if !ok {
 			c.UI.Error(fmt.Sprintf("Existing config entry has incorrect type: %t", entry))
 			return 1
@@ -107,28 +106,35 @@ func (c *cmd) Run(args []string) int {
 
 		for i, service := range cfg.Services {
 
-			if (service.Name == c.serviceName){
-			
-				for _, consumer := range service.Consumers{
-					if (consumer.Peer == c.peerNames){
-						c.UI.Info(fmt.Sprintf("We found an existing service entry with the provided peer"))
-						return 0
-					}
-				
-				}
-				c.UI.Info(fmt.Sprintf("We found an existing service entry %+v", cfg))
+			if service.Name == c.serviceName {
 
-				cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: c.peerNames})
+				for _, peerName := range peerNames {
+					peerExists := false
+
+					for _, consumer := range service.Consumers {
+						if consumer.Peer == peerName {
+							c.UI.Info(fmt.Sprintf("We found an existing service entry with the provided peer"))
+							peerExists = true
+						}
+
+					}
+					c.UI.Info(fmt.Sprintf("We found an existing service entry %+v", cfg))
+
+					if !peerExists {
+						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
+					}
+
+				}
 
 				ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
-				if err != nil{
-						c.UI.Error(fmt.Sprintf("error writing modifed value to config entry: %s", err))
-						return 1
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("error writing modifed value to config entry: %s", err))
+					return 1
 				}
 
 				if !ok {
 					c.UI.Error(fmt.Sprintf("config entry was changed during update. Please try again"))
-						return 1
+					return 1
 				}
 				c.UI.Info(fmt.Sprintf("We modified the service entry %+v", cfg))
 				return 0
@@ -136,31 +142,30 @@ func (c *cmd) Run(args []string) int {
 
 		}
 		cfg.Services = append(cfg.Services, api.ExportedService{
-				Name: c.serviceName,
-				Consumers: []api.ServiceConsumer{
-					{
-						Peer: c.peerNames,
-					},
+			Name: c.serviceName,
+			Consumers: []api.ServiceConsumer{
+				{
+					Peer: c.peerNames,
 				},
 			},
+		},
 		)
 
 		ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
-				if err != nil{
-						c.UI.Error(fmt.Sprintf("error writing modifed service and peer to config entry: %s", err))
-						return 1
-				}
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("error writing modifed service and peer to config entry: %s", err))
+			return 1
+		}
 
-				if !ok {
-					c.UI.Error(fmt.Sprintf("modifed service and peer config entry was changed during update. Please try again"))
-						return 1
-				}
-				c.UI.Info(fmt.Sprintf("We modified the modifed service and peer entry %+v", cfg))
-				return 0
-		
+		if !ok {
+			c.UI.Error(fmt.Sprintf("modifed service and peer config entry was changed during update. Please try again"))
+			return 1
+		}
+		c.UI.Info(fmt.Sprintf("We modified the modifed service and peer entry %+v", cfg))
+		return 0
+
 	}
-	
-	
+
 	return 0
 }
 
