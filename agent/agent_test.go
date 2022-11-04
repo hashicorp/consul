@@ -326,7 +326,9 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				Cache: cache.New(cache.Options{}),
 			}
-			bd, err = initEnterpriseBaseDeps(bd, nil)
+
+			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+			bd, err = initEnterpriseBaseDeps(bd, &cfg)
 			require.NoError(t, err)
 
 			a, err := New(bd)
@@ -5418,7 +5420,8 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		Cache: cache.New(cache.Options{}),
 	}
 
-	bd, err = initEnterpriseBaseDeps(bd, nil)
+	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+	bd, err = initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
@@ -6003,7 +6006,7 @@ func TestAgent_startListeners(t *testing.T) {
 		Cache: cache.New(cache.Options{}),
 	}
 
-	bd, err := initEnterpriseBaseDeps(bd, nil)
+	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
 
 	agent, err := New(bd)
@@ -6134,7 +6137,8 @@ func TestAgent_startListeners_scada(t *testing.T) {
 		Cache:         cache.New(cache.Options{}),
 	}
 
-	bd, err := initEnterpriseBaseDeps(bd, nil)
+	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+	bd, err := initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
