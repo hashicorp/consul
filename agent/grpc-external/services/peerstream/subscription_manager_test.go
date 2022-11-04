@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/types"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -710,6 +711,35 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 		)
 	})
 
+	testutil.RunStep(t, "added server with WAN address", func(t *testing.T) {
+		payload = append(payload, autopilotevents.ReadyServerInfo{
+			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
+			Address:     "198.18.0.3",
+			Version:     "1.13.1",
+			ExtGRPCPort: 9502,
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "198.18.0.103",
+			},
+		})
+		backend.Publish([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   3,
+				Payload: payload,
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502", "198.18.0.103:9502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
 	testutil.RunStep(t, "flipped to peering through mesh gateways", func(t *testing.T) {
 		require.NoError(t, backend.store.EnsureConfigEntry(1, &structs.MeshConfigEntry{
 			Peering: &structs.PeeringMeshConfig{
@@ -843,11 +873,13 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	return backend
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {
 	b.lastIdx++
 	return b.lastIdx, setupTestPeering(t, b.store, name, b.lastIdx)
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) uint64 {
 	require.NoError(t, entry.Normalize())
 	require.NoError(t, entry.Validate())
@@ -863,24 +895,28 @@ func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name str
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureNode(b.lastIdx, node))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureService(b.lastIdx, node, svc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureCheck(b.lastIdx, hc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.DeleteService(b.lastIdx, nodeName, serviceID, nil, ""))

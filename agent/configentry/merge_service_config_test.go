@@ -447,6 +447,98 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "peering upstreams ignore protocol overrides",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationPeer: "some-peer",
+								DestinationName: "zap",
+								Config: map[string]interface{}{
+									"protocol": "tcp",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationPeer: "some-peer",
+							DestinationName: "zap",
+							Config: map[string]interface{}{
+								"protocol": "tcp",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "peering upstreams ignore protocol overrides with unset value",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationPeer: "some-peer",
+								DestinationName: "zap",
+								Config:          map[string]interface{}{},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationPeer: "some-peer",
+							DestinationName: "zap",
+							Config:          map[string]interface{}{},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

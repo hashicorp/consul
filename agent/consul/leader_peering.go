@@ -65,6 +65,8 @@ var (
 	maxFastConnRetries = uint(5)
 	// maxFastRetryBackoff is the maximum amount of time we'll wait between retries following the fast path.
 	maxFastRetryBackoff = 8192 * time.Millisecond
+	// maxRetryBackoffPeering is the maximum number of seconds we'll wait between retries when attempting to re-establish a peering connection.
+	maxRetryBackoffPeering = 64
 )
 
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
@@ -90,14 +92,14 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
-			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
+			if err := s.emitPeeringMetricsOnce(defaultMetrics()); err != nil {
 				s.logger.Error("error emitting peering stream metrics", "error", err)
 			}
 		}
 	}
 }
 
-func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+func (s *Server) emitPeeringMetricsOnce(metricsImpl *metrics.Metrics) error {
 	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
 	if err != nil {
 		return err
@@ -122,19 +124,14 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 		}
 
 		// peering health metric
-		if status.NeverConnected {
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(math.NaN()), labels)
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(math.NaN()), labels)
-		} else {
-			healthy := s.peerStreamServer.Tracker.IsHealthy(status)
-			healthyInt := 0
-			if healthy {
-				healthyInt = 1
-			}
-
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthyInt), labels)
-			metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthyInt), labels)
+		healthy := 0
+		switch {
+		case status.NeverConnected:
+		case s.peerStreamServer.Tracker.IsHealthy(status):
+			healthy = 1
 		}
+		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKeyDeprecated, float32(healthy), labels)
+		metricsImpl.SetGaugeWithLabels(leaderHealthyPeeringKey, float32(healthy), labels)
 	}
 
 	return nil
@@ -718,10 +715,10 @@ func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 	}
 
 	// Else we go with the default backoff from retryLoopBackoff.
-	if (1 << failedAttempts) < maxRetryBackoff {
+	if (1 << failedAttempts) < maxRetryBackoffPeering {
 		return (1 << failedAttempts) * time.Second
 	}
-	return time.Duration(maxRetryBackoff) * time.Second
+	return time.Duration(maxRetryBackoffPeering) * time.Second
 }
 
 // isErrCode returns true if err is a gRPC error with given error code.

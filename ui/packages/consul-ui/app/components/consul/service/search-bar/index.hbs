@@ -126,33 +126,11 @@
         @multiple={{true}}
         as |components|
       >
-        <BlockSlot @name='selected'>
-          <span>
-            {{t 'common.search.source'}}
-          </span>
-        </BlockSlot>
-        <BlockSlot @name='options'>
-          {{#let components.Option as |Option|}}
-            {{#if (gt @sources.length 0)}}
-              <Option
-                class='consul'
-                @value='consul'
-                @selected={{includes 'consul' @filter.source.value}}
-              >
-                {{t 'common.brand.consul'}}
-              </Option>
-              {{#each this.sortedSources as |source|}}
-                <Option
-                  class={{source}}
-                  @value={{source}}
-                  @selected={{includes source @filter.source.value}}
-                >
-                  {{t (concat 'common.brand.' source)}}
-                </Option>
-              {{/each}}
-            {{/if}}
-          {{/let}}
-        </BlockSlot>
+        <Consul::SourcesSelect 
+          @components={{components}}
+          @filter={{@filter}}
+          @sources={{this.sortedSources}}
+        />
       </search.Select>
     {{/if}}
   </:filter>

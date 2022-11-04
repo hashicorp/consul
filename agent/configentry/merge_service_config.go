@@ -173,9 +173,19 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			us.MeshGateway.Mode = remoteCfg.MeshGateway.Mode
 		}
 
+		preMergeProtocol, found := us.Config["protocol"]
 		// Merge in everything else that is read from the map
 		if err := mergo.Merge(&us.Config, remoteCfg.Config); err != nil {
 			return nil, err
+		}
+
+		// Reset the protocol to its pre-merged version for peering upstreams.
+		if us.DestinationPeer != "" {
+			if found {
+				us.Config["protocol"] = preMergeProtocol
+			} else {
+				delete(us.Config, "protocol")
+			}
 		}
 
 		// Delete the mesh gateway key from opaque config since this is the value that was resolved from

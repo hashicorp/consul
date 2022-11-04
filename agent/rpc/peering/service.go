@@ -310,15 +310,9 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	// ServerExternalAddresses must be formatted as addr:port.
-	var serverAddrs []string
-	if len(req.ServerExternalAddresses) > 0 {
-		serverAddrs = req.ServerExternalAddresses
-	} else {
-		serverAddrs, err = s.Backend.GetLocalServerAddresses()
-		if err != nil {
-			return nil, err
-		}
+	serverAddrs, err := s.Backend.GetLocalServerAddresses()
+	if err != nil {
+		return nil, err
 	}
 
 	tok := structs.PeeringToken{
@@ -562,7 +556,7 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		// If we got a permission denied error that means out establishment secret is invalid, so we do not retry.
 		grpcErr, ok := grpcstatus.FromError(err)
 		if ok && grpcErr.Code() == codes.PermissionDenied {
-			return nil, fmt.Errorf("a new peering token must be generated: %w", grpcErr.Err())
+			return nil, grpcstatus.Errorf(codes.PermissionDenied, "a new peering token must be generated: %s", grpcErr.Message())
 		}
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret through address %q: %w", addr, err))
@@ -711,14 +705,17 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		latest := func(tt ...time.Time) time.Time {
+		latest := func(tt ...*time.Time) *time.Time {
 			latest := time.Time{}
 			for _, t := range tt {
+				if t == nil {
+					continue
+				}
 				if t.After(latest) {
-					latest = t
+					latest = *t
 				}
 			}
-			return latest
+			return &latest
 		}
 
 		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
@@ -727,9 +724,9 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		cp.StreamStatus = &pbpeering.StreamStatus{
 			ImportedServices: streamState.ImportedServices,
 			ExportedServices: streamState.ExportedServices,
-			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
-			LastReceive:      structs.TimeToProto(lastRecv),
-			LastSend:         structs.TimeToProto(lastSend),
+			LastHeartbeat:    pbpeering.TimePtrToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      pbpeering.TimePtrToProto(lastRecv),
+			LastSend:         pbpeering.TimePtrToProto(lastSend),
 		}
 
 		return cp

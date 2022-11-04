@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .consul-surface-nav {
+    background: var(--token-color-palette-neutral-700);
+  }
+}

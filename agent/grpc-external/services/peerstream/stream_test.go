@@ -125,7 +125,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 
 	// Receive a subscription from a peer. This message arrives while the
 	// server is a leader and should work.
-	testutil.RunStep(t, "send subscription request to leader and consume its four requests", func(t *testing.T) {
+	testutil.RunStep(t, "send subscription request to leader and consume its three requests", func(t *testing.T) {
 		sub := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Open_{
 				Open: &pbpeerstream.ReplicationMessage_Open{
@@ -148,10 +148,6 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		msg3, err := client.Recv()
 		require.NoError(t, err)
 		require.NotEmpty(t, msg3)
-
-		msg4, err := client.Recv()
-		require.NoError(t, err)
-		require.NotEmpty(t, msg4)
 	})
 
 	// The ACK will be a new request but at this point the server is not the
@@ -551,6 +547,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
+	waitUntil := it.FutureNow(6)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -572,9 +569,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	var lastSendAck time.Time
-	var lastSendSuccess time.Time
+	var lastSendSuccess *time.Time
 
 	client.DrainStream(t)
+
+	// Wait for async workflows to complete.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, waitUntil, it.FutureNow(1))
+	})
 
 	// Manually grab the last success time from sending the trust bundle or exported services list.
 	status, ok := srv.StreamStatus(testPeerID)
@@ -602,10 +604,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          lastSendAck,
+			LastAck:          &lastSendAck,
 			ExportedServices: []string{},
 		}
-
 		retry.Run(t, func(r *retry.R) {
 			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
@@ -640,8 +641,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:        true,
 			LastSendSuccess:  lastSendSuccess,
-			LastAck:          lastSendAck,
-			LastNack:         lastNack,
+			LastAck:          &lastSendAck,
+			LastNack:         &lastNack,
 			LastNackMessage:  lastNackMsg,
 			ExportedServices: []string{},
 		}
@@ -692,10 +693,10 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
 			ExportedServices:        []string{},
 		}
 
@@ -748,11 +749,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
 			ExportedServices:        []string{},
 		}
@@ -778,13 +779,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               true,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -806,14 +807,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
 			LastSendSuccess:         lastSendSuccess,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			DisconnectTime:          disconnectTime,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			DisconnectTime:          &disconnectTime,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -894,9 +895,6 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
 
 		expectReplEvents(t, client,
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				// Roots tested in TestStreamResources_Server_CARootUpdates
@@ -1106,9 +1104,6 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 	testutil.RunStep(t, "initial CA Roots replication", func(t *testing.T) {
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				require.Equal(t, "roots", msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
@@ -1164,7 +1159,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 50 * time.Millisecond
+		c.incomingHeartbeatTimeout = 10 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1209,6 +1204,9 @@ func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "5678", msg.GetRequest().ResponseNonce)
 	})
+	// Add in a sleep to prevent the test from flaking.
+	// The mock client expects certain calls to be made.
+	time.Sleep(50 * time.Millisecond)
 }
 
 // Test that when the client doesn't send a heartbeat in time, the stream is disconnected.
@@ -1241,7 +1239,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := it.FutureNow(1)
+		disconnectTime := ptr(it.FutureNow(1))
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
@@ -1310,7 +1308,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 10 * time.Millisecond
+	incomingHeartbeatTimeout := 50 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -1359,7 +1357,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 				return
 			}
 			select {
-			case <-time.After(incomingHeartbeatTimeout / 2):
+			case <-time.After(incomingHeartbeatTimeout / 10): // Going any slower here triggers flakes when running
 			case <-ctx.Done():
 				close(errCh)
 				return

@@ -56,30 +56,10 @@
   @extend %with-user-team-mask, %as-pseudo;
   color: rgb(var(--tone-gray-500));
 }
-%popover-select .lambda button::before,
-%popover-select .aws button::before {
-  @extend %with-aws-300;
-}
-%popover-select .kubernetes button::before {
-  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
-}
 %popover-select .jwt button::before {
   @extend %with-logo-jwt-color-icon, %as-pseudo;
 }
 %popover-select .oidc button::before {
   @extend %with-logo-oidc-color-icon, %as-pseudo;
-}
-%popover-select .consul button::before,
-%popover-select .consul-api-gateway button::before {
-  @extend %with-logo-consul-color-icon, %as-pseudo;
-}
-%popover-select .nomad button::before {
-  @extend %with-logo-nomad-color-icon, %as-pseudo;
-}
-%popover-select .vault button::before {
-  @extend %with-vault-300;
-}
-%popover-select .terraform button::before {
-  @extend %with-logo-terraform-color-icon, %as-pseudo;
 }
 /**/

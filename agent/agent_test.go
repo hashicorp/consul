@@ -326,7 +326,9 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				},
 				Cache: cache.New(cache.Options{}),
 			}
-			bd, err = initEnterpriseBaseDeps(bd, nil)
+
+			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+			bd, err = initEnterpriseBaseDeps(bd, &cfg)
 			require.NoError(t, err)
 
 			a, err := New(bd)
@@ -4198,6 +4200,36 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }
 
+func TestAgent_ReloadConfigRPCClientConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	hcl := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := NewTestAgent(t, hcl)
+
+	defaultRPCTimeout := 60 * time.Second
+	require.Equal(t, defaultRPCTimeout, a.baseDeps.ConnPool.RPCClientTimeout())
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		limits {
+			rpc_client_timeout = "2m"
+		}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, 2*time.Minute, a.baseDeps.ConnPool.RPCClientTimeout())
+}
+
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4765,19 +4797,19 @@ services {
 
 	deadlineCh := time.After(10 * time.Second)
 	start := time.Now()
-LOOP:
 	for {
 		select {
 		case evt := <-ch:
 			// We may receive several notifications of an error until we get the
 			// first successful reply.
 			require.Equal(t, "foo", evt.CorrelationID)
-			if evt.Err != nil {
-				break LOOP
+			if evt.Err == nil {
+				require.NoError(t, evt.Err)
+				require.NotNil(t, evt.Result)
+				t.Logf("took %s to get first success", time.Since(start))
+				return
 			}
-			require.NoError(t, evt.Err)
-			require.NotNil(t, evt.Result)
-			t.Logf("took %s to get first success", time.Since(start))
+			t.Logf("saw error: %v", evt.Err)
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
 		}
@@ -5388,7 +5420,8 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		Cache: cache.New(cache.Options{}),
 	}
 
-	bd, err = initEnterpriseBaseDeps(bd, nil)
+	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+	bd, err = initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
@@ -5973,7 +6006,7 @@ func TestAgent_startListeners(t *testing.T) {
 		Cache: cache.New(cache.Options{}),
 	}
 
-	bd, err := initEnterpriseBaseDeps(bd, nil)
+	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
 
 	agent, err := New(bd)
@@ -6104,7 +6137,8 @@ func TestAgent_startListeners_scada(t *testing.T) {
 		Cache:         cache.New(cache.Options{}),
 	}
 
-	bd, err := initEnterpriseBaseDeps(bd, nil)
+	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
+	bd, err := initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)

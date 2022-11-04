@@ -19,13 +19,14 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
+
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
@@ -1030,6 +1031,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                       rpcBindAddr,
 		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),

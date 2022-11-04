@@ -91,6 +91,9 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+		if resp.Entry == nil {
+			return nil
+		}
 		gatewayConf, ok := resp.Entry.(*structs.IngressGatewayConfigEntry)
 		if !ok {
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)

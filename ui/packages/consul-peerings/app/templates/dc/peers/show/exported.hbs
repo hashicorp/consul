@@ -53,10 +53,12 @@
                     @items={{search.data.items}}
                     as |service index|
                   >
-                    <li class="px-3 h-12 border-b border-hds-border-primary">
+                    <li
+                      class="px-3 h-12 hds-border-primary border-t-0 border-l-0 border-r-0"
+                    >
                       <a
                         data-test-service-name
-                        class="hds-typography-display-300 text-hds-foreground-strong hds-font-weight-semibold h-full w-full flex items-center"
+                        class="hds-typography-display-300 hds-foreground-strong hds-font-weight-semibold h-full w-full flex items-center"
                         href={{href-to
                           "dc.services.show.index"
                           service.Name

@@ -18,6 +18,9 @@ export default function (config = {}, win = window, doc = document) {
         .filter((item) => item !== '')
         .filter((item) => item.split('=').shift().startsWith('CONSUL_'));
     };
+
+    // Define the function that reads in "Scenarios", parse and set cookies and set theme if specified.
+    // See https://github.com/hashicorp/consul/blob/main/ui/packages/consul-ui/docs/bookmarklets.mdx
     win['Scenario'] = function (str = '') {
       if (str.length > 0) {
         cookies(str).forEach((item) => {
@@ -55,6 +58,7 @@ export default function (config = {}, win = window, doc = document) {
         );
       }
     };
+
     if (
       typeof win.location !== 'undefined' &&
       typeof win.location.hash === 'string' &&
@@ -63,6 +67,8 @@ export default function (config = {}, win = window, doc = document) {
       win['Scenario'](win.location.hash.substr(1));
     }
   });
+
+  // Defines a function that reads in the cookies and parses the cookie keys.
   const dev = function (str = doc.cookie) {
     return str
       .split(';')
@@ -72,6 +78,7 @@ export default function (config = {}, win = window, doc = document) {
         return [key, rest.join('=')];
       });
   };
+
   const user = function (str) {
     const item = win.localStorage.getItem(str);
     return item === null ? undefined : item;
@@ -205,6 +212,9 @@ export default function (config = {}, win = window, doc = document) {
             case 'CONSUL_ACLS_ENABLE':
               prev['CONSUL_ACLS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
+            case 'CONSUL_AGENTLESS_ENABLE':
+              prev['CONSUL_AGENTLESS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
             case 'CONSUL_NSPACES_ENABLE':
               prev['CONSUL_NSPACES_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
@@ -272,6 +282,7 @@ export default function (config = {}, win = window, doc = document) {
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_PEERINGS_ENABLED':
+      case 'CONSUL_AGENTLESS_ENABLED':
       case 'CONSUL_HCP_ENABLED':
       case 'CONSUL_SSO_ENABLED':
       case 'CONSUL_PARTITIONS_ENABLED':

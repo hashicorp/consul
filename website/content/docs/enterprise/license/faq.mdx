@@ -30,7 +30,7 @@ Refer to the instructions on [upgrading to 1.10.x](/docs/upgrading/instructions/
 
 ## Q: Is there a tutorial available for the license configuration steps?
 
-Please visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs).
+Please visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs).
 
 ## Q: What resources are available?
 
@@ -42,7 +42,7 @@ The list below is a great starting point for learning more about the license cha
 
 - [License configuration values documentation](/docs/enterprise/license/overview#binaries-without-built-in-licenses)
 
-- [Install a HashiCorp Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs)
+- [Install a HashiCorp Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs)
 
 ## Q: Do these changes impact all customers/licenses?
 
@@ -141,7 +141,7 @@ Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
-1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
@@ -162,14 +162,14 @@ Once you have the license then create a Kubernetes secret containing the license
 1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's [customer success manager](https://support.hashicorp.com/hc/en-us) (CSM) for information on how to get your organization's enterprise license.
 1. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
 
 1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's [customer success manager](https://support.hashicorp.com/hc/en-us) (CSM) for information on how to get your organization's enterprise license.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 1. Proceed with the `helm` [upgrade instructions](/docs/k8s/upgrade)
 
 ## Q: Will Consul downgrades/rollbacks work?

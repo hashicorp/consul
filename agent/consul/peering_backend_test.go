@@ -9,6 +9,7 @@ import (
 
 	gogrpc "google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
@@ -99,6 +100,28 @@ func TestPeeringBackend_GetLocalServerAddresses(t *testing.T) {
 		require.Equal(t, []string{expect}, addrs)
 	})
 
+	testutil.RunStep(t, "prefer WAN address for servers", func(t *testing.T) {
+		req := structs.RegisterRequest{
+			Datacenter:     cfg.Datacenter,
+			Node:           cfg.NodeName,
+			ID:             cfg.NodeID,
+			Address:        "127.0.0.1",
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+
+			// Add a tagged WAN address to the server registration
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "3.4.5.6",
+			},
+		}
+		require.NoError(t, srv.fsm.State().EnsureRegistration(200, &req))
+
+		addrs, err := backend.GetLocalServerAddresses()
+		require.NoError(t, err)
+
+		expect := fmt.Sprintf("3.4.5.6:%d", srv.config.GRPCTLSPort)
+		require.Equal(t, []string{expect}, addrs)
+	})
+
 	testutil.RunStep(t, "existence of mesh config entry is not enough to peer through gateways", func(t *testing.T) {
 		mesh := structs.MeshConfigEntry{
 			// Enable unrelated config.
@@ -112,7 +135,7 @@ func TestPeeringBackend_GetLocalServerAddresses(t *testing.T) {
 		require.NoError(t, err)
 
 		// Still expect server address because PeerThroughMeshGateways was not enabled.
-		expect := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCTLSPort)
+		expect := fmt.Sprintf("3.4.5.6:%d", srv.config.GRPCTLSPort)
 		require.Equal(t, []string{expect}, addrs)
 	})
 

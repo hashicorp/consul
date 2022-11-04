@@ -300,6 +300,7 @@ limits {
     http_max_conns_per_client = 100
     https_handshake_timeout = "2391ms"
     rpc_handshake_timeout = "1932ms"
+    rpc_client_timeout = "62s"
     rpc_rate = 12029.43
     rpc_max_burst = 44848
     rpc_max_conns_per_client = 2954

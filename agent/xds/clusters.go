@@ -629,9 +629,15 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 			// usual mesh gateway route for a service.
 			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
 
+			var hostnameEndpoints structs.CheckServiceNodes
+			if serviceGroup.UseCDS {
+				hostnameEndpoints = serviceGroup.Nodes
+			}
+
 			opts := clusterOpts{
-				name:     clusterName,
-				isRemote: true,
+				name:              clusterName,
+				isRemote:          true,
+				hostnameEndpoints: hostnameEndpoints,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 

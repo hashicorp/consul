@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net"
 	"testing"
 	"time"
@@ -274,6 +273,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	insertNode := func(i int) {
 		req := structs.RegisterRequest{
 			Datacenter: "dc1",
+			ID:         types.NodeID(generateUUID()),
 			Node:       fmt.Sprintf("node%d", i+1),
 			Address:    fmt.Sprintf("127.0.0.%d", i+1),
 			NodeMeta: map[string]string{
@@ -1413,7 +1413,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	met, err := metrics.New(cfg, sink)
 	require.NoError(t, err)
 
-	errM := s2.emitPeeringMetricsOnce(s2.logger, met)
+	errM := s2.emitPeeringMetricsOnce(met)
 	require.NoError(t, errM)
 
 	retry.Run(t, func(r *retry.R) {
@@ -1444,7 +1444,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		healthyMetric3, ok := intv.Gauges[keyHealthyMetric3]
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric3))
 
-		require.True(r, math.IsNaN(float64(healthyMetric3.Value)))
+		require.Equal(r, float32(0), healthyMetric3.Value)
 	})
 }
 
@@ -1586,10 +1586,12 @@ func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
 		{1, 2 * time.Second},
 		{2, 4 * time.Second},
 		{3, 8 * time.Second},
+		{4, 16 * time.Second},
+		{5, 32 * time.Second},
 		// Until max.
-		{8, 256 * time.Second},
-		{9, 256 * time.Second},
-		{10, 256 * time.Second},
+		{6, 64 * time.Second},
+		{10, 64 * time.Second},
+		{20, 64 * time.Second},
 	}
 
 	for _, c := range cases {

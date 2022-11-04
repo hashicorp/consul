@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -16,9 +15,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/mock"
@@ -26,10 +24,13 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/agent/hcp"
+
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -257,7 +258,9 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
 
+		protocol := grpcmiddleware.ProtocolPlaintext
 		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			protocol = grpcmiddleware.ProtocolTLS
 			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
 			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
 				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
@@ -272,9 +275,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 				}
 			}
 
-			// Wrap the listener with TLS.
-			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
 		}
+		ln = grpcmiddleware.LabelledListener{Listener: ln, Protocol: protocol}
 
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
@@ -328,7 +330,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil)
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator)
 	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
@@ -1815,6 +1817,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -1828,7 +1831,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
+	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+
 	rc := ReloadableConfig{
+		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
@@ -1856,6 +1862,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check RPC client timeout got updated
+	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
 
 	// Check raft config
 	defaults := DefaultConfig()

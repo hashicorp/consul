@@ -50,7 +50,6 @@ func testClientConfig(t *testing.T) (string, *Config) {
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
-	config.RPCHoldTimeout = 10 * time.Second
 	return dir, config
 }
 
@@ -531,11 +530,10 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		MaxStreams:       4,
 		TLSConfigurator:  tls,
 		Datacenter:       c.Datacenter,
-		Timeout:          c.RPCHoldTimeout,
 		DefaultQueryTime: c.DefaultQueryTime,
 		MaxQueryTime:     c.MaxQueryTime,
 	}
-
+	connPool.SetRPCClientTimeout(c.RPCClientTimeout)
 	return Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -882,7 +880,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 	_, c1 := testClientWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.NodeName = uniqueNodeName(t.Name())
-		c.RPCHoldTimeout = 10 * time.Millisecond
+		c.RPCClientTimeout = 10 * time.Millisecond
 		c.DefaultQueryTime = 100 * time.Millisecond
 		c.MaxQueryTime = 200 * time.Millisecond
 	})
@@ -895,34 +893,53 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		}
 	})
 
-	// waiter will sleep for 101ms which is 1ms more than the DefaultQueryTime
-	require.NoError(t, s1.RegisterEndpoint("Wait", &waiter{duration: 101 * time.Millisecond}))
+	require.NoError(t, s1.RegisterEndpoint("Long", &waiter{duration: 100 * time.Millisecond}))
+	require.NoError(t, s1.RegisterEndpoint("Short", &waiter{duration: 5 * time.Millisecond}))
 
-	// Requests with QueryOptions have a default timeout of RPCHoldTimeout (10ms)
-	// so we expect the RPC call to timeout.
-	var out struct{}
-	err := c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{}, &out)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	t.Run("non-blocking query times out after RPCClientTimeout", func(t *testing.T) {
+		// Requests with QueryOptions have a default timeout of RPCClientTimeout (10ms)
+		// so we expect the RPC call to timeout.
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	})
 
-	// Blocking requests have a longer timeout (100ms) so this should pass since we
-	// add the maximum jitter which should be 16ms
-	out = struct{}{}
-	err = c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
-		QueryOptions: structs.QueryOptions{
-			MinQueryIndex: 1,
-		},
-	}, &out)
-	require.NoError(t, err)
+	t.Run("non-blocking query succeeds", func(t *testing.T) {
+		var out struct{}
+		require.NoError(t, c1.RPC("Short.Wait", &structs.NodeSpecificRequest{}, &out))
+	})
 
-	// We pass in a custom MaxQueryTime (20ms) through QueryOptions which should fail
-	out = struct{}{}
-	err = c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
-		QueryOptions: structs.QueryOptions{
-			MinQueryIndex: 1,
-			MaxQueryTime:  20 * time.Millisecond,
-		},
-	}, &out)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	t.Run("check that deadline does not persist across calls", func(t *testing.T) {
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+			},
+		}, &out))
+	})
+
+	t.Run("blocking query succeeds", func(t *testing.T) {
+		var out struct{}
+		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+			},
+		}, &out))
+	})
+
+	t.Run("blocking query with short MaxQueryTime fails", func(t *testing.T) {
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+				MaxQueryTime:  20 * time.Millisecond,
+			},
+		}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	})
 }

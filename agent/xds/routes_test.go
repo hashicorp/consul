@@ -83,6 +83,12 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		// TODO(rb): test match stanza skipped for grpc
 		// Start ingress gateway test cases
 		{
+			name: "ingress-config-entry-nil",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+			},
+		},
+		{
 			name: "ingress-defaults-no-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
