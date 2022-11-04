@@ -3,9 +3,11 @@ package export
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 )
@@ -23,7 +25,7 @@ type cmd struct {
 	help  string
 
 	serviceName string
-	peerName    string
+	peerNames   string
 }
 
 func (c *cmd) init() {
@@ -31,22 +33,9 @@ func (c *cmd) init() {
 
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.serviceName, "serviceName", "", "(Required) Specify the name of the service you want to export.")
-	c.flags.StringVar(&c.peerName, "peerName", "", "(Required) Specify the name of the peer you want to export.")
-
-	// c.flags.Var((*flags.FlagMapValue)(&c.meta), "meta",
-	// 	"Metadata to associate with the peering, formatted as key=value. This flag "+
-	// 		"may be specified multiple times to set multiple metadata fields.")
-
-	// c.flags.Var((*flags.AppendSliceValue)(&c.peer), "peer",
-	// 	"A list of peers where the services will be exported")
-
-	// c.flags.StringVar(
-	// 	&c.format,
-	// 	"format",
-	// 	peering.PeeringFormatPretty,
-	// 	fmt.Sprintf("Output format {%s} (default: %s)", strings.Join(peering.GetSupportedFormats(), "|"), peering.PeeringFormatPretty),
-	// )
+	c.flags.StringVar(&c.serviceName, "service", "", "(Required) Specify the name of the service you want to export.")
+	//c.flags.StringVar(&c.peerName, "peer", "", "(Required) Specify the name of the peer you want to export to.")
+	c.flags.StringVar(&c.peerNames, "peers", "", "(Required) A list of peers to export the service to, formatted as a comma-separated list.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -60,19 +49,16 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.serviceName == "" {
-		c.UI.Error("Missing the required -service name flag")
+		c.UI.Error("Missing the required -service flag")
 		return 1
 	}
 
-	if c.peerName == "" {
-		c.UI.Error("Missing the required -peer name flag")
+	if c.peerNames == "" {
+		c.UI.Error("Missing the required -peers flag")
 		return 1
 	}
 
-	//if !peering.FormatIsValid(c.format) {
-	//c.UI.Error(fmt.Sprintf("Invalid format, valid formats are {%s}", strings.Join(peering.GetSupportedFormats(), "|")))
-	//	return 1
-	//}
+	peerNames:= strings.Split(c.peerNames, "," )
 
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -81,21 +67,25 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	entry, _, err := client.ConfigEntries().Get("exported-services", "default", nil)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), agent.ConfigEntryNotFoundErr) {
 		c.UI.Error(fmt.Sprintf("Error reading config entry %s/%s: %v", "exported-services", "default", err))
 		return 1
 	}
 	if entry == nil {
+
+		consumers := []api.ServiceConsumer{}
+		for _, peer := range peerNames{
+			consumers = append(consumers, api.ServiceConsumer{
+				Peer: peer,
+			})
+		}
+
 		cfg := api.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []api.ExportedService{
 				{
 					Name: c.serviceName,
-					Consumers: []api.ServiceConsumer{
-						{
-							Peer: c.peerName,
-						},
-					},
+					Consumers: consumers,
 				},
 			},
 		}
@@ -105,7 +95,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-	} else {
+	} 
+	else {
 		c.UI.Info(fmt.Sprintf("We found an existing config entry %s/%s: %+v", "exported-services", "default", entry))
 
 		cfg, ok := entry.(*api.ExportedServicesConfigEntry) 
@@ -119,7 +110,7 @@ func (c *cmd) Run(args []string) int {
 			if (service.Name == c.serviceName){
 			
 				for _, consumer := range service.Consumers{
-					if (consumer.Peer == c.peerName){
+					if (consumer.Peer == c.peerNames){
 						c.UI.Info(fmt.Sprintf("We found an existing service entry with the provided peer"))
 						return 0
 					}
@@ -127,7 +118,7 @@ func (c *cmd) Run(args []string) int {
 				}
 				c.UI.Info(fmt.Sprintf("We found an existing service entry %+v", cfg))
 
-				cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: c.peerName})
+				cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: c.peerNames})
 
 				ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
 				if err != nil{
@@ -148,7 +139,7 @@ func (c *cmd) Run(args []string) int {
 				Name: c.serviceName,
 				Consumers: []api.ServiceConsumer{
 					{
-						Peer: c.peerName,
+						Peer: c.peerNames,
 					},
 				},
 			},
@@ -166,7 +157,6 @@ func (c *cmd) Run(args []string) int {
 				}
 				c.UI.Info(fmt.Sprintf("We modified the modifed service and peer entry %+v", cfg))
 				return 0
-		
 		
 	}
 	
