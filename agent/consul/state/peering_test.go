@@ -95,13 +95,42 @@ func insertTestPeeringTrustBundles(t *testing.T, s *Store) {
 	tx := s.db.WriteTxn(0)
 	defer tx.Abort()
 
-	err := tx.Insert(tablePeeringTrustBundles, &pbpeering.PeeringTrustBundle{
+	// Insert peerings since it is assumed they exist before the trust bundle is created
+	err := tx.Insert(tablePeering, &pbpeering.Peering{
+		Name:           "foo",
+		ID:             "89b8209d-0b64-45e2-8692-6c60181edbe7",
+		Partition:      structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+		PeerCAPems:     []string{},
+		PeerServerName: "foo.com",
+		CreateIndex:    1,
+		ModifyIndex:    1,
+	})
+	require.NoError(t, err)
+
+	err = tx.Insert(tablePeering, &pbpeering.Peering{
+		Name:           "baz",
+		ID:             "d8230482-ae98-4b82-903f-e1ada3000ad4",
+		Partition:      structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+		PeerCAPems:     []string{"old baz certificate bundle"},
+		PeerServerName: "baz.com",
+		CreateIndex:    2,
+		ModifyIndex:    2,
+	})
+	require.NoError(t, err)
+
+	err = tx.Insert(tableIndex, &IndexEntry{
+		Key:   tablePeering,
+		Value: 2,
+	})
+	require.NoError(t, err)
+
+	err = tx.Insert(tablePeeringTrustBundles, &pbpeering.PeeringTrustBundle{
 		TrustDomain: "foo.com",
 		PeerName:    "foo",
 		Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 		RootPEMs:    []string{"foo certificate bundle"},
-		CreateIndex: 1,
-		ModifyIndex: 1,
+		CreateIndex: 3,
+		ModifyIndex: 3,
 	})
 	require.NoError(t, err)
 
@@ -110,14 +139,14 @@ func insertTestPeeringTrustBundles(t *testing.T, s *Store) {
 		PeerName:    "bar",
 		Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 		RootPEMs:    []string{"bar certificate bundle"},
-		CreateIndex: 2,
-		ModifyIndex: 2,
+		CreateIndex: 4,
+		ModifyIndex: 4,
 	})
 	require.NoError(t, err)
 
 	err = tx.Insert(tableIndex, &IndexEntry{
 		Key:   tablePeeringTrustBundles,
-		Value: 2,
+		Value: 4,
 	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
@@ -1549,16 +1578,16 @@ func TestStateStore_PeeringTrustBundleList(t *testing.T) {
 			PeerName:    "bar",
 			Partition:   entMeta.PartitionOrEmpty(),
 			RootPEMs:    []string{"bar certificate bundle"},
-			CreateIndex: 2,
-			ModifyIndex: 2,
+			CreateIndex: 4,
+			ModifyIndex: 4,
 		},
 		{
 			TrustDomain: "foo.com",
 			PeerName:    "foo",
 			Partition:   entMeta.PartitionOrEmpty(),
 			RootPEMs:    []string{"foo certificate bundle"},
-			CreateIndex: 1,
-			ModifyIndex: 1,
+			CreateIndex: 3,
+			ModifyIndex: 3,
 		},
 	}
 
@@ -1596,8 +1625,8 @@ func TestStateStore_PeeringTrustBundleRead(t *testing.T) {
 				PeerName:    "foo",
 				Partition:   entMeta.PartitionOrEmpty(),
 				RootPEMs:    []string{"foo certificate bundle"},
-				CreateIndex: 1,
-				ModifyIndex: 1,
+				CreateIndex: 3,
+				ModifyIndex: 3,
 			},
 		},
 		{
@@ -1619,11 +1648,14 @@ func TestStore_PeeringTrustBundleWrite(t *testing.T) {
 	s := NewStateStore(nil)
 	insertTestPeeringTrustBundles(t, s)
 	type testcase struct {
-		name  string
-		input *pbpeering.PeeringTrustBundle
+		name      string
+		input     *pbpeering.PeeringTrustBundle
+		expectErr string
 	}
-	run := func(t *testing.T, tc testcase) {
-		require.NoError(t, s.PeeringTrustBundleWrite(10, tc.input))
+	run := func(t *testing.T, tc testcase) error {
+		if err := s.PeeringTrustBundleWrite(10, tc.input); err != nil {
+			return err
+		}
 
 		q := Query{
 			Value:          tc.input.PeerName,
@@ -1634,6 +1666,16 @@ func TestStore_PeeringTrustBundleWrite(t *testing.T) {
 		require.NotNil(t, ptb)
 		require.Equal(t, tc.input.TrustDomain, ptb.TrustDomain)
 		require.Equal(t, tc.input.PeerName, ptb.PeerName)
+
+		// Validate peering object has certs updated
+		_, peering, err := s.PeeringRead(nil, Query{
+			Value: tc.input.PeerName,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, peering)
+
+		require.Equal(t, tc.input.RootPEMs, peering.PeerCAPems)
+		return nil
 	}
 	tcs := []testcase{
 		{
@@ -1641,6 +1683,7 @@ func TestStore_PeeringTrustBundleWrite(t *testing.T) {
 			input: &pbpeering.PeeringTrustBundle{
 				TrustDomain: "baz.com",
 				PeerName:    "baz",
+				RootPEMs:    []string{"FAKE PEM HERE\n", "FAKE PEM HERE\n"},
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 		},
@@ -1648,14 +1691,37 @@ func TestStore_PeeringTrustBundleWrite(t *testing.T) {
 			name: "update foo",
 			input: &pbpeering.PeeringTrustBundle{
 				TrustDomain: "foo-updated.com",
+				RootPEMs:    []string{"FAKE PEM HERE\n"},
 				PeerName:    "foo",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 		},
+		{
+			name: "create bar without existing peering",
+			input: &pbpeering.PeeringTrustBundle{
+				TrustDomain: "bar.com",
+				PeerName:    "bar",
+				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			expectErr: "cannot write peering trust bundle for unknown peering",
+		},
+		{
+			name: "create without a peer name",
+			input: &pbpeering.PeeringTrustBundle{
+				TrustDomain: "bar.com",
+				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			expectErr: "missing peer name",
+		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
+			err := run(t, tc)
+			if err != nil && tc.expectErr != "" {
+				require.Contains(t, err.Error(), tc.expectErr)
+				return
+			}
+			require.NoError(t, err, "received unexpected test case error")
 		})
 	}
 }
@@ -1668,7 +1734,7 @@ func TestStore_PeeringTrustBundleDelete(t *testing.T) {
 
 	require.NoError(t, s.PeeringTrustBundleDelete(10, q))
 
-	_, ptb, err := s.PeeringRead(nil, q)
+	_, ptb, err := s.PeeringTrustBundleRead(nil, q)
 	require.NoError(t, err)
 	require.Nil(t, ptb)
 }
@@ -2675,12 +2741,12 @@ func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
 
 	expectedPeering := &pbpeering.Peering{
 		ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
-		Name: "baz",
+		Name: "example",
 	}
 	expectedTrustBundle := &pbpeering.PeeringTrustBundle{
 		TrustDomain: "example.com",
 		PeerName:    "example",
-		RootPEMs:    []string{"example certificate bundle"},
+		RootPEMs:    []string{"example certificate bundle\n"},
 	}
 	expectedSecret := &pbpeering.PeeringSecrets{
 		PeerID: expectedPeering.ID,
@@ -2728,7 +2794,10 @@ func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
 			for entry := iter.Next(); entry != nil; entry = iter.Next() {
 				peeringDump = append(peeringDump, entry.(*pbpeering.Peering))
 			}
-			require.Equal(t, []*pbpeering.Peering{expectedPeering}, peeringDump)
+			expectedPeering.ModifyIndex = expectedTrustBundle.ModifyIndex
+			expectedPeering.PeerCAPems = expectedTrustBundle.RootPEMs
+			require.Len(t, peeringDump, 1)
+			prototest.AssertDeepEqual(t, expectedPeering, peeringDump[0])
 		}
 		// Verify trust bundles
 		{
@@ -2771,7 +2840,8 @@ func TestStateStore_Peering_Snapshot_Restore(t *testing.T) {
 		{
 			idx, foundPeerings, err := s.PeeringList(nil, *acl.DefaultEnterpriseMeta())
 			require.NoError(t, err)
-			require.Equal(t, uint64(1001), idx)
+			// This is 1002 because the trust bundle write updates the underlying peering
+			require.Equal(t, uint64(1002), idx)
 			require.Equal(t, []*pbpeering.Peering{expectedPeering}, foundPeerings)
 		}
 		// Verify trust Bundles
