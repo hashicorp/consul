@@ -231,6 +231,8 @@ message IngressGateway {
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
   IngressServiceConfig Defaults = 4;
+  string TracingStrategy = 5;
+  float TracingPercentage = 6; 
 }
 
 // mog annotation:

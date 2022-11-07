@@ -205,6 +205,8 @@ func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigE
 			}
 		}
 	}
+	t.TracingStrategy = s.TracingStrategy
+	t.TracingPercentage = s.TracingPercentage
 	if s.Defaults != nil {
 		var x structs.IngressServiceConfig
 		IngressServiceConfigToStructs(s.Defaults, &x)
@@ -231,6 +233,8 @@ func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressG
 			}
 		}
 	}
+	s.TracingStrategy = t.TracingStrategy
+	s.TracingPercentage = t.TracingPercentage
 	if t.Defaults != nil {
 		var x IngressServiceConfig
 		IngressServiceConfigFromStructs(t.Defaults, &x)
