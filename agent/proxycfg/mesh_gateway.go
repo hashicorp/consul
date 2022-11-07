@@ -567,6 +567,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				Request: &pbpeering.PeeringListRequest{
 					Partition: acl.WildcardPartitionName,
 				},
+				QueryOptions: structs.QueryOptions{Token: s.token},
 			}, peerServersWatchID, s.ch)
 			if err != nil {
 				meshLogger.Error("failed to register watch for peering list", "error", err)

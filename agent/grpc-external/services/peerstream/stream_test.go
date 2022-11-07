@@ -1159,7 +1159,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 50 * time.Millisecond
+		c.incomingHeartbeatTimeout = 10 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1204,6 +1204,9 @@ func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "5678", msg.GetRequest().ResponseNonce)
 	})
+	// Add in a sleep to prevent the test from flaking.
+	// The mock client expects certain calls to be made.
+	time.Sleep(50 * time.Millisecond)
 }
 
 // Test that when the client doesn't send a heartbeat in time, the stream is disconnected.

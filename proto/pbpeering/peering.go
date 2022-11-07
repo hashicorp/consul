@@ -208,6 +208,7 @@ func (s *SecretsWriteRequest) Validate() error {
 // ara available. If no CAPems were provided in the peering token then the
 // WithInsecure dial option is returned.
 func (p *Peering) TLSDialOption() (grpc.DialOption, error) {
+	//nolint:staticcheck
 	tlsOption := grpc.WithInsecure()
 
 	if len(p.PeerCAPems) > 0 {
