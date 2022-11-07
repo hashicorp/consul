@@ -753,7 +753,7 @@ func NewClient(config *Config) (*Client, error) {
 	if config.TokenFile != "" && config.TokenFile != defConfig.TokenFile {
 		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading token file: %s", err)
+			return nil, fmt.Errorf("Error loading token file %s : %s", config.TokenFile, err)
 		}
 
 		if token := strings.TrimSpace(string(data)); token != "" {
@@ -762,9 +762,9 @@ func NewClient(config *Config) (*Client, error) {
 	} else if config.Token != "" && defConfig.Token != config.Token {
 		goto FINISH
 	} else if defConfig.TokenFile != "" {
-		data, err := os.ReadFile(config.TokenFile)
+		data, err := os.ReadFile(defConfig.TokenFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading token file: %s", err)
+			return nil, fmt.Errorf("Error loading token file %s : %s", defConfig.TokenFile, err)
 		}
 
 		if token := strings.TrimSpace(string(data)); token != "" {
