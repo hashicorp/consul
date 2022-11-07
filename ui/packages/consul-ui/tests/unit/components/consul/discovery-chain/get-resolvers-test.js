@@ -24,7 +24,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
       const childId = Object.keys(Chain.Targets)[1];
       const target = Chain.Targets[`${childId}`];
       const firstChild = actual[0].Children[0];
-      assert.equal(firstChild.Subset, true);
+      assert.true(firstChild.Subset);
       assert.equal(firstChild.ID, target.ID);
       assert.equal(firstChild.Name, target.ServiceSubset);
     });
@@ -64,7 +64,7 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
         }).then(function ({ Chain }) {
           const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
           const actualSubset = actual[0].Children[0];
-          assert.equal(actualSubset.Subset, true);
+          assert.true(actualSubset.Subset);
           assert.equal(actualSubset.Failover.Type, failoverType);
         });
       })

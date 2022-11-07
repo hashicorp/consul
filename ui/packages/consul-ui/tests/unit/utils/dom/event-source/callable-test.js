@@ -53,7 +53,7 @@ module('Unit | Utility | dom/event-source/callable', function () {
       dispatchEvent: sinon.stub(),
     };
     defaultRunner(target, configuration, isClosed);
-    assert.ok(then.callCount == 10);
+    assert.equal(then.callCount, 10);
     assert.ok(target.dispatchEvent.calledOnce);
   });
   test('it calls the defaultRunner', function (assert) {
