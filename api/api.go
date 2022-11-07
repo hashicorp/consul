@@ -750,7 +750,7 @@ func NewClient(config *Config) (*Client, error) {
 	// If the TokenFile is set, always use that, even if a Token is configured.
 	// This is because when TokenFile is set it is read into the Token field.
 	// We want any derived clients to have to re-read the token file.
-	if config.TokenFile != "" {
+	if config.TokenFile != "" && config.TokenFile != defConfig.TokenFile {
 		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error loading token file: %s", err)
@@ -759,8 +759,19 @@ func NewClient(config *Config) (*Client, error) {
 		if token := strings.TrimSpace(string(data)); token != "" {
 			config.Token = token
 		}
-	}
-	if config.Token == "" {
+	} else if config.Token != "" && defConfig.Token != config.Token {
+		if config.Token != defConfig.TokenFile {
+		}
+	} else if defConfig.TokenFile != "" {
+		data, err := os.ReadFile(config.TokenFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading token file: %s", err)
+		}
+
+		if token := strings.TrimSpace(string(data)); token != "" {
+			config.Token = token
+		}
+	} else {
 		config.Token = defConfig.Token
 	}
 
