@@ -147,9 +147,9 @@ func StreamStatusToAPI(status *StreamStatus) api.PeeringStreamStatus {
 	return api.PeeringStreamStatus{
 		ImportedServices: status.ImportedServices,
 		ExportedServices: status.ExportedServices,
-		LastHeartbeat:    structs.TimeFromProto(status.LastHeartbeat),
-		LastReceive:      structs.TimeFromProto(status.LastReceive),
-		LastSend:         structs.TimeFromProto(status.LastSend),
+		LastHeartbeat:    TimePtrFromProto(status.LastHeartbeat),
+		LastReceive:      TimePtrFromProto(status.LastReceive),
+		LastSend:         TimePtrFromProto(status.LastSend),
 	}
 }
 
@@ -157,9 +157,9 @@ func StreamStatusFromAPI(status api.PeeringStreamStatus) *StreamStatus {
 	return &StreamStatus{
 		ImportedServices: status.ImportedServices,
 		ExportedServices: status.ExportedServices,
-		LastHeartbeat:    structs.TimeToProto(status.LastHeartbeat),
-		LastReceive:      structs.TimeToProto(status.LastReceive),
-		LastSend:         structs.TimeToProto(status.LastSend),
+		LastHeartbeat:    TimePtrToProto(status.LastHeartbeat),
+		LastReceive:      TimePtrToProto(status.LastReceive),
+		LastSend:         TimePtrToProto(status.LastSend),
 	}
 }
 

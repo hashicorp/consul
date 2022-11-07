@@ -75,7 +75,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change will be resolved in an upcoming 1.13 patch release. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.13.3. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
 
 SECURITY:
 
@@ -121,7 +121,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change will be resolved in an upcoming 1.12 patch release. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.12.6. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
 
 SECURITY:
 
@@ -149,7 +149,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change will be resolved in an upcoming 1.11 patch release. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.11.11. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
 
 SECURITY:
 

@@ -431,6 +431,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-gateway-nil-config-entry",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+			},
+		},
+		{
 			name: "ingress-gateway-with-tls-outgoing-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []proxycfg.UpdateEvent{

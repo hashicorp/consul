@@ -216,10 +216,13 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+			// Lower the maximum backoff period of a cache refresh just for
+			// tests see #14956 for more.
+			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logOutput)
+	bd, err := NewBaseDeps(loader, logOutput, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
