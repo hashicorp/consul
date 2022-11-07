@@ -2,7 +2,6 @@ package peering_test
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -29,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
+	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -826,21 +826,26 @@ func TestPeeringService_Delete(t *testing.T) {
 			// TODO(peering): see note on newTestServer, refactor to not use this
 			s := newTestServer(t, nil)
 
-			// A pointer is kept for the following peering so that we can modify the object without another PeeringWrite.
-			p := &pbpeering.Peering{
-				ID:                  testUUID(t),
-				Name:                "foo",
-				PeerCAPems:          nil,
-				PeerServerName:      "test",
-				PeerServerAddresses: []string{"addr1"},
-			}
-			err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
+			id := testUUID(t)
+
+			// Write an initial peering
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+			}}))
+
+			_, p, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
 			require.NoError(t, err)
 			require.Nil(t, p.DeletedAt)
 			require.True(t, p.IsActive())
 
-			// Overwrite the peering state to simulate deleting from a non-initial state.
-			p.State = overrideState
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+
+				// Update the peering state to simulate deleting from a non-initial state.
+				State: overrideState,
+			}}))
 
 			client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
@@ -1546,7 +1551,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, nil)
+	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator)
 
 	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)
@@ -1563,8 +1568,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 
 	ln, err := net.Listen("tcp", grpcAddr)
 	require.NoError(t, err)
-
-	ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+	ln = agentmiddleware.LabelledListener{Listener: ln, Protocol: agentmiddleware.ProtocolTLS}
 
 	go func() {
 		_ = externalGRPCServer.Serve(ln)

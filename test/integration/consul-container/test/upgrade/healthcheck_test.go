@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/node"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -25,11 +25,11 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	cluster := serversCluster(t, numServers, *utils.TargetVersion, *utils.TargetImage)
 	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.AddNodes(clients))
+	require.NoError(t, cluster.Join(clients))
 
-	client := cluster.Nodes[0].GetClient()
+	client := cluster.Agents[0].GetClient()
 
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 4)
@@ -71,29 +71,32 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	var configs []node.Config
-	configs = append(configs,
-		node.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					server=true`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *utils.TargetVersion,
-			Image:   *utils.TargetImage,
-		})
+	var configs []libagent.Config
+
+	leaderConf, err := libagent.NewConfigBuilder(nil).ToAgentConfig()
+	require.NoError(t, err)
+
+	configs = append(configs, *leaderConf)
+
+	// This needs a specialized config since it is using an older version of the agent.
+	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
+	serverConf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG",
+		"server": true,
+		"bootstrap_expect": 3
+	}`
 
 	for i := 1; i < 3; i++ {
 		configs = append(configs,
-			node.Config{
-				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					bootstrap_expect=3
-					server=true`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
+			libagent.Config{
+				JSON:    serverConf,
+				Cmd:     []string{"agent"},
 				Version: *utils.LatestVersion,
 				Image:   *utils.LatestImage,
 			})
-
 	}
 
 	cluster, err := libcluster.New(configs)
@@ -104,9 +107,9 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.AddNodes(clients))
+	require.NoError(t, cluster.Join(clients))
 
 	client := clients[0].GetClient()
 
@@ -149,26 +152,26 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
-	var configs []node.Config
-	for i := 0; i < 2; i++ {
-		configs = append(configs,
-			node.Config{
-				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					bootstrap_expect=3
-					server=true`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *utils.TargetVersion,
-				Image:   *utils.TargetImage,
-			})
+	var configs []libagent.Config
 
+	for i := 0; i < 2; i++ {
+		serverConf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
+		require.NoError(t, err)
+		configs = append(configs, *serverConf)
 	}
+
+	leaderConf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG",
+		"server": true
+	}`
+
 	configs = append(configs,
-		node.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					server=true`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
+		libagent.Config{
+			JSON:    leaderConf,
+			Cmd:     []string{"agent"},
 			Version: *utils.LatestVersion,
 			Image:   *utils.LatestImage,
 		})
@@ -181,9 +184,9 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
 
-	require.NoError(t, cluster.AddNodes(clients))
+	require.NoError(t, cluster.Join(clients))
 
 	client := clients[0].GetClient()
 
@@ -211,7 +214,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
 
-	timer := time.NewTimer(1 * time.Second)
+	timer := time.NewTimer(3 * time.Second)
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
@@ -224,20 +227,29 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(t *testing.T, numClients int, image string, version string, serfKey string) []node.Node {
-	clients := make([]node.Node, numClients)
+func clientsCreate(t *testing.T, numClients int, image string, version string, cluster *libcluster.Cluster) []libagent.Agent {
+	clients := make([]libagent.Agent, numClients)
+
+	// This needs a specialized config since it is using an older version of the agent.
+	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
+	conf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG"
+	}`
+
 	for i := 0; i < numClients; i++ {
 		var err error
-		clients[i], err = node.NewConsulContainer(context.Background(),
-			node.Config{
-				HCL: fmt.Sprintf(`
-				node_name = %q
-				log_level = "DEBUG"
-				encrypt = %q`, utils.RandName("consul-client"), serfKey),
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
+		clients[i], err = libagent.NewConsulContainer(context.Background(),
+			libagent.Config{
+				JSON:    conf,
+				Cmd:     []string{"agent"},
 				Version: version,
 				Image:   image,
-			})
+			},
+			cluster.NetworkName,
+			cluster.Index)
 		require.NoError(t, err)
 	}
 	return clients
@@ -257,23 +269,21 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 }
 
 func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
-	var configs []node.Config
+	var configs []libagent.Config
+
+	conf, err := libagent.NewConfigBuilder(nil).
+		Bootstrap(3).
+		ToAgentConfig()
+	require.NoError(t, err)
+
 	for i := 0; i < numServers; i++ {
-		configs = append(configs, node.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="DEBUG"
-					bootstrap_expect=3
-					server=true`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: version,
-			Image:   image,
-		})
+		configs = append(configs, *conf)
 	}
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 
 	libcluster.WaitForLeader(t, cluster, nil)
-	libcluster.WaitForMembers(t, cluster.Nodes[0].GetClient(), numServers)
+	libcluster.WaitForMembers(t, cluster.Agents[0].GetClient(), numServers)
 
 	return cluster
 }

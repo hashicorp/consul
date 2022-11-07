@@ -5,7 +5,8 @@ config_entries {
       name = "global"
 
       config {
-        protocol = "http"
+        # This shouldn't affect the imported listener's protocol, which should be http.
+        protocol = "tcp"
       }
     }
   ]
