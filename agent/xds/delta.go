@@ -362,11 +362,17 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
 						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
 						break
 					}
 					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
 						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
 						break
 					}
 				}
