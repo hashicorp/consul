@@ -193,6 +193,9 @@ type verifyWatchRequest func(t testing.TB, request any)
 func genVerifyDCSpecificWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.DCSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -216,6 +219,7 @@ func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
 func genVerifyLeafWatchWithDNSSANs(expectedService string, expectedDatacenter string, expectedDNSSANs []string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.ConnectCALeafRequest)
+		reqReal.Token = aclToken
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -240,6 +244,9 @@ func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.TrustBundleListRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Request.Kind)
 		require.True(t, acl.EqualPartitions(partition, reqReal.Request.Partition), "%q != %q", partition, reqReal.Request.Partition)
@@ -281,6 +288,9 @@ func genVerifyResolvedConfigWatch(expectedService string, expectedDatacenter str
 func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -291,6 +301,9 @@ func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) 
 func genVerifyPreparedQueryWatch(expectedName string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.PreparedQueryExecuteRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -302,6 +315,9 @@ func genVerifyPreparedQueryWatch(expectedName string, expectedDatacenter string)
 func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.DiscoveryChainRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expected, reqReal)
@@ -311,6 +327,9 @@ func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verif
 func genVerifyMeshConfigWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -338,6 +357,9 @@ func genVerifyServiceSpecificRequest(expectedService, expectedFilter, expectedDa
 func genVerifyServiceSpecificPeeredRequest(expectedService, expectedFilter, expectedDatacenter, expectedPeer string, connect bool) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
