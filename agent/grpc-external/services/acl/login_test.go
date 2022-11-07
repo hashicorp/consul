@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -232,6 +232,7 @@ func TestServer_Login_RPCForwarding(t *testing.T) {
 		NewLogin:                  func() Login { return login },
 	})
 
+	//nolint:staticcheck
 	leaderConn, err := grpc.Dial(testutils.RunTestServer(t, dc2).String(), grpc.WithInsecure())
 	require.NoError(t, err)
 
