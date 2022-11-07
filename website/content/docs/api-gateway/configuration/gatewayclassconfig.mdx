@@ -39,8 +39,8 @@ The following outline shows how to format the configurations in the `GatewayClas
   * [`envoy`](#image-envoy): string | optional
 * [`logLevel`](#loglevel): string | optional
 * [`nodeSelector`](#nodeselector): string | optional
-* [`tolerations`](#tolerations): array of objects | optional
 * [`serviceType`](#servicetype): string | optional
+* [`tolerations`](#tolerations): array of objects | optional
 * [`useHostPorts`](#usehostports): boolean | optional
 
 ## Specification
@@ -159,8 +159,20 @@ Pods normally run on multiple nodes. You can specify a set of parameters in the 
 * Type: string
 * Required: optional
 
+### serviceType
+Specifies the ingress methods for the gateway's Kubernetes service.
+* Type: string
+* Required: optional
+
+You can specify the following strings:
+* `ClusterIP`: The gateway is only accessible from inside the cluster.
+* `NodePort`: The gateway is exposed on each Kubernetes node at a static port.
+* `LoadBalancer`: The gateway is exposed to external traffic by a load balancer.
+
+For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
+
 ### tolerations
-When opperating Kubernetes, it is possible to apply a taint to a node running pods. Tolerations allow you to specify which pods are allowed to run on those tained nodes. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for additional information.
+When operating Kubernetes, it is possible to apply a taint to a node running pods. Tolerations allow you to specify which pods are allowed to run on those tainted nodes. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for additional information.
 
 * Type: Array of Objects
 * Required: optional
@@ -182,6 +194,7 @@ The operation being applied to the taints being allowed.
 You can specify the following strings
 * `Equal`
 * `Exists`
+
 #### toleration.value
 If the operator is "Equal", the value being matched
 
@@ -198,18 +211,6 @@ You can specify the following strings:
 * `NoExecute`
 * `NoSchedule`
 * `PreferNoSchedule`
-
-### serviceType
-Specifies the ingress methods for the gateway's Kubernetes service.
-* Type: string
-* Required: optional
-
-You can specify the following strings:
-* `ClusterIP`: The gateway is only accessible from inside the cluster.
-* `NodePort`: The gateway is exposed on each Kubernetes node at a static port.
-* `LoadBalancer`: The gateway is exposed to external traffic by a load balancer.
-
-For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
 
 ### useHostPorts
 If set to `true`, then the Envoy container ports are mapped to host ports.
