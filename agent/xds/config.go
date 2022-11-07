@@ -118,6 +118,13 @@ type GatewayConfig struct {
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
+
+	// TCP keepalive settings for remote gateway upstreams (mesh gateways and terminating gateway upstreams).
+	// See: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive
+	TcpKeepaliveEnable   bool `mapstructure:"envoy_gateway_remote_tcp_enable_keepalive"`
+	TcpKeepaliveTime     int  `mapstructure:"envoy_gateway_remote_tcp_keepalive_time"`
+	TcpKeepaliveInterval int  `mapstructure:"envoy_gateway_remote_tcp_keepalive_interval"`
+	TcpKeepaliveProbes   int  `mapstructure:"envoy_gateway_remote_tcp_keepalive_probes"`
 }
 
 // ParseGatewayConfig returns the GatewayConfig parsed from an opaque map. If an
@@ -163,6 +170,10 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 	}
 	if p.MaxFailures != 0 {
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+	}
+
+	if p.EnforcingConsecutive5xx != nil {
+		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 	}
 	return od
 }

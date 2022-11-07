@@ -113,6 +113,10 @@ type HTTPHandlers struct {
 	configReloaders []ConfigReloader
 	h               http.Handler
 	metricsProxyCfg atomic.Value
+
+	// proxyTransport is used by UIMetricsProxy to keep
+	// a managed pool of connections.
+	proxyTransport http.RoundTripper
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -256,13 +260,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
@@ -294,12 +291,14 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// Register wrapped pprof handlers
-	handlePProf("/debug/pprof/", pprof.Index)
-	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-	handlePProf("/debug/pprof/profile", pprof.Profile)
-	handlePProf("/debug/pprof/symbol", pprof.Symbol)
-	handlePProf("/debug/pprof/trace", pprof.Trace)
+	// If enableDebug or ACL enabled, register wrapped pprof handlers
+	if enableDebug || !s.checkACLDisabled() {
+		handlePProf("/debug/pprof/", pprof.Index)
+		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+		handlePProf("/debug/pprof/profile", pprof.Profile)
+		handlePProf("/debug/pprof/symbol", pprof.Symbol)
+		handlePProf("/debug/pprof/trace", pprof.Trace)
+	}
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,

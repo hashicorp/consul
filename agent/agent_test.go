@@ -1861,7 +1861,7 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func TestAgent_AddCheck_Alias(t *testing.T) {
+func TestAgent_Alias_AddRemove(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1871,29 +1871,39 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	health := &structs.HealthCheck{
-		Node:    "foo",
-		CheckID: "aliashealth",
-		Name:    "Alias health check",
-		Status:  api.HealthCritical,
-	}
-	chk := &structs.CheckType{
-		AliasService: "foo",
-	}
-	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
-	require.NoError(t, err)
+	cid := structs.NewCheckID("aliashealth", nil)
 
-	// Ensure we have a check mapping
-	sChk := requireCheckExists(t, a, "aliashealth")
-	require.Equal(t, api.HealthCritical, sChk.Status)
+	runStep(t, "add check", func(t *testing.T) {
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: cid.ID,
+			Name:    "Alias health check",
+			Status:  api.HealthCritical,
+		}
+		chk := &structs.CheckType{
+			AliasService: "foo",
+		}
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		require.NoError(t, err)
 
-	chkImpl, ok := a.checkAliases[structs.NewCheckID("aliashealth", nil)]
-	require.True(t, ok, "missing aliashealth check")
-	require.Equal(t, "", chkImpl.RPCReq.Token)
+		sChk := requireCheckExists(t, a, cid.ID)
+		require.Equal(t, api.HealthCritical, sChk.Status)
 
-	cs := a.State.CheckState(structs.NewCheckID("aliashealth", nil))
-	require.NotNil(t, cs)
-	require.Equal(t, "", cs.Token)
+		chkImpl, ok := a.checkAliases[cid]
+		require.True(t, ok, "missing aliashealth check")
+		require.Equal(t, "", chkImpl.RPCReq.Token)
+
+		cs := a.State.CheckState(cid)
+		require.NotNil(t, cs)
+		require.Equal(t, "", cs.Token)
+	})
+
+	runStep(t, "remove check", func(t *testing.T) {
+		require.NoError(t, a.RemoveCheck(cid, false))
+
+		requireCheckMissing(t, a, cid.ID)
+		requireCheckMissingMap(t, a.checkAliases, cid.ID)
+	})
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
@@ -4101,6 +4111,36 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }
 
+func TestAgent_ReloadConfigRPCClientConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	hcl := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := NewTestAgent(t, hcl)
+
+	defaultRPCTimeout := 60 * time.Second
+	require.Equal(t, defaultRPCTimeout, a.baseDeps.ConnPool.RPCClientTimeout())
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		limits {
+			rpc_client_timeout = "2m"
+		}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.reloadConfigInternal(c))
+
+	require.Equal(t, 2*time.Minute, a.baseDeps.ConnPool.RPCClientTimeout())
+}
+
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -5896,5 +5936,12 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
 	}
 }
