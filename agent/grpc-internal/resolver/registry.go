@@ -19,8 +19,10 @@ type registry struct {
 func (r *registry) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
+	//nolint:staticcheck
 	res, ok := r.byAuthority[target.Authority]
 	if !ok {
+		//nolint:staticcheck
 		return nil, fmt.Errorf("no resolver registered for %v", target.Authority)
 	}
 	return res.Build(target, cc, opts)
