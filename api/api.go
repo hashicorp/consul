@@ -760,8 +760,7 @@ func NewClient(config *Config) (*Client, error) {
 			config.Token = token
 		}
 	} else if config.Token != "" && defConfig.Token != config.Token {
-		if config.Token != defConfig.TokenFile {
-		}
+		goto FINISH
 	} else if defConfig.TokenFile != "" {
 		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
@@ -774,7 +773,7 @@ func NewClient(config *Config) (*Client, error) {
 	} else {
 		config.Token = defConfig.Token
 	}
-
+FINISH:
 	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
