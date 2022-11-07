@@ -10,6 +10,8 @@ const request = {
 };
 module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
   test('it assigns Subsets correctly', function (assert) {
+    assert.expect(3);
+
     return get(request.url, {
       headers: {
         cookie: {
@@ -30,6 +32,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it assigns Redirects correctly', function (assert) {
+    assert.expect(2);
+
     return get(request.url, {
       headers: {
         cookie: {
@@ -49,6 +53,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it assigns Failovers to Subsets correctly', function (assert) {
+    assert.expect(4);
+
     return Promise.all(
       ['Datacenter', 'Namespace'].map(function (failoverType) {
         return get(request.url, {
@@ -71,6 +77,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     );
   });
   test('it assigns Failovers correctly', function (assert) {
+    assert.expect(6);
+
     return Promise.all(
       ['Datacenter', 'Partition', 'Namespace'].map(function (failoverType, i) {
         return get(request.url, {
@@ -96,6 +104,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     );
   });
   test('it finds subsets with failovers correctly', function (assert) {
+    assert.expect(1);
+
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',
@@ -162,6 +172,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it finds services with failovers correctly', function (assert) {
+    assert.expect(1);
+
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',
@@ -206,6 +218,8 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it finds services with redirects with failovers correctly', function (assert) {
+    assert.expect(1);
+
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',
