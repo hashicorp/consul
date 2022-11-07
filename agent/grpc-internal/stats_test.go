@@ -48,6 +48,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 		}
 	})
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })

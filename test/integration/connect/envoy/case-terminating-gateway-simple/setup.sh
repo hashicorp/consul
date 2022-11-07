@@ -2,8 +2,15 @@
 
 set -euo pipefail
 
-# wait for bootstrap to apply config entries
-wait_for_config_entry terminating-gateway terminating-gateway
+upsert_config_entry primary '
+kind = "terminating-gateway"
+name = "terminating-gateway"
+services = [
+  {
+    name = "s2"
+  }
+]
+'
 
 register_services primary
 
