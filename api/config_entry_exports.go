@@ -47,7 +47,7 @@ type ExportedService struct {
 // At most one of Partition or PeerName must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
-	// Deprecated: PeerName should be used for both remote peers and local partitions.
+	// Deprecated: Peer should be used for both remote peers and local partitions.
 	Partition string `json:",omitempty"`
 
 	// Peer is the name of the peer to export the service to.
