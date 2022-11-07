@@ -38,7 +38,7 @@ type IngressGatewayConfigEntry struct {
 
 	// TracingPercentage is a value between 0 and 100 inclusive to determine the
 	// total percentage of incoming requests to sample.
-	TracingPercentage float64 `alias:"tracing_percentage"`
+	TracingPercentage float32 `alias:"tracing_percentage"`
 
 	// Defaults contains default configuration for all upstream service instances
 	Defaults *IngressServiceConfig `json:",omitempty"`

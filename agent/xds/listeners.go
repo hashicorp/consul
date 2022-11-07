@@ -2115,7 +2115,7 @@ type listenerFilterOpts struct {
 	routePath            string
 	requestTimeoutMs     *int
 	tracingStrategy      string
-	tracingPercentage    float64
+	tracingPercentage    float32
 	ingressGateway       bool
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
 	forwardClientDetails bool
@@ -2208,7 +2208,9 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{},
 	}
 
-	tracePercent := &envoy_type_v3.Percent{Value: opts.tracingPercentage}
+	// we have to convert here between what the Envoy/go-control-plane types expect (float64)
+	// and what our options type (and thus protobuf-generated code expects, which is float32)
+	tracePercent := &envoy_type_v3.Percent{Value: float64(opts.tracingPercentage)}
 	switch strings.ToLower(opts.tracingStrategy) {
 	case "client_sampling":
 		cfg.Tracing.ClientSampling = tracePercent

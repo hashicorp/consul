@@ -641,7 +641,7 @@ type configSnapshotIngressGateway struct {
 	LeafCertWatchCancel context.CancelFunc
 
 	TracingStrategy   string
-	TracingPercentage float64
+	TracingPercentage float32
 
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
