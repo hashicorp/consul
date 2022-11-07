@@ -39,6 +39,7 @@ The following outline shows how to format the configurations in the `GatewayClas
   * [`envoy`](#image-envoy): string | optional
 * [`logLevel`](#loglevel): string | optional
 * [`nodeSelector`](#nodeselector): string | optional
+* [`tolerations`](#tolerations): array of objects | optional
 * [`serviceType`](#servicetype): string | optional
 * [`useHostPorts`](#usehostports): boolean | optional
 
@@ -157,6 +158,46 @@ Pods normally run on multiple nodes. You can specify a set of parameters in the 
 
 * Type: string
 * Required: optional
+
+### tolerations
+When opperating Kubernetes, it is possible to apply a taint to a node running pods. Tolerations allow you to specify which pods are allowed to run on those tained nodes. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for additional information.
+
+* Type: Array of Objects
+* Required: optional
+
+You can create an array of the following object to specify a toleration
+#### toleration.key
+The key value of the taint being described
+
+* Type: string
+* Required: yes
+
+#### toleration.operator
+The operation being applied to the taints being allowed.
+
+* Type: string
+* Required: yes
+* Default: Equal
+
+You can specify the following strings
+* `Equal`
+* `Exists`
+#### toleration.value
+If the operator is "Equal", the value being matched
+
+* Type: string
+* Required: If operator is set to "Equal"
+
+#### toleration.effect
+The effect the taint should cause the pod
+
+* Type: string
+* Required: no
+
+You can specify the following strings:
+* `NoExecute`
+* `NoSchedule`
+* `PreferNoSchedule`
 
 ### serviceType
 Specifies the ingress methods for the gateway's Kubernetes service.
