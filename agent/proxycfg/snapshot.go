@@ -643,12 +643,6 @@ type configSnapshotIngressGateway struct {
 	TracingStrategy   string
 	TracingPercentage float64
 
-	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
-	// in order to cancel any watches when the ingress gateway configuration is
-	// changed. Ingress gateways need this because discovery chain watches are
-	// added and removed through the lifecycle of single proxycfg.state instance.
-	WatchedDiscoveryChains map[UpstreamID]context.CancelFunc
-
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.
