@@ -371,18 +371,18 @@ type Agent struct {
 
 // New process the desired options and creates a new Agent.
 // This process will
-//   * parse the config given the config Flags
-//   * setup logging
-//      * using predefined logger given in an option
-//        OR
-//      * initialize a new logger from the configuration
-//        including setting up gRPC logging
-//   * initialize telemetry
-//   * create a TLS Configurator
-//   * build a shared connection pool
-//   * create the ServiceManager
-//   * setup the NodeID if one isn't provided in the configuration
-//   * create the AutoConfig object for future use in fully
+//   - parse the config given the config Flags
+//   - setup logging
+//   - using predefined logger given in an option
+//     OR
+//   - initialize a new logger from the configuration
+//     including setting up gRPC logging
+//   - initialize telemetry
+//   - create a TLS Configurator
+//   - build a shared connection pool
+//   - create the ServiceManager
+//   - setup the NodeID if one isn't provided in the configuration
+//   - create the AutoConfig object for future use in fully
 //     resolving the configuration
 func New(bd BaseDeps) (*Agent, error) {
 	a := Agent{
@@ -1203,6 +1203,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+	cfg.RPCClientTimeout = runtimeCfg.RPCClientTimeout
 
 	cfg.RPCConfig = runtimeCfg.RPCConfig
 
@@ -3010,7 +3011,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 		check.Stop()
 		delete(a.checkH2PINGs, checkID)
 	}
-
+	if check, ok := a.checkAliases[checkID]; ok {
+		check.Stop()
+		delete(a.checkAliases, checkID)
+	}
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
@@ -3792,6 +3796,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
+		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,
 		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,

@@ -1,15 +1,11 @@
 ---
 layout: docs
-page_title: Connect - Development and Debugging
+page_title: Service Mesh Debugging
 description: >-
-  It is often necessary to connect to a service for development or debugging. If
-  a service only exposes a Connect listener, then we need a way to establish a
-  mutual TLS connection to the service. The `consul connect proxy` command can
-  be used for this task on any machine with access to a Consul agent (local or
-  remote).
+  Use the `consul connect proxy` command to connect to services or masquerade as other services for development and debugging purposes. Example code demonstrates connecting to services that are part of the service mesh as listeners only.
 ---
 
-# Developing and Debugging Connect Services
+# Service Mesh Debugging
 
 It is often necessary to connect to a service for development or debugging.
 If a service only exposes a Connect listener, then we need a way to establish

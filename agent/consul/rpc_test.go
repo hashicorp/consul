@@ -1366,7 +1366,7 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (r isReadRequest) HasTimedOut(_ time.Time, _, _, _ time.Duration) bool {
 	return false
 }
 

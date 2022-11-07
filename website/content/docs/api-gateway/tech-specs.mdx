@@ -42,6 +42,16 @@ The following table describes the TCP port requirements for each component of th
   - Self-Managed
   - HCP Consul
 
+### Limited Support of some Consul Features
+
+The following table lists API Gateway limitations related to specific Consul features
+
+| Consul Feature | Limitation |
+| -------------- | ---------- |
+| [Admin partitions](/docs/enterprise/admin-partitions) | You can only deploy Consul API Gateway into the `default` admin partition. |
+| Datacenter federation | If you are connecting multiple Consul datacenters to create a federated network, you can only deploy Consul API Gateway in the `primary` datacenter. |
+| Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, API Gateway can only route traffic to Services in the local datacenter. However, API Gateway can route to Services in other Kubernetes clusters when they are in the same Consul datacenter. Refer to [Single Consul Datacenter in Multiple Kubernetes Clusters](/docs/k8s/deployment-configurations/single-dc-multi-k8s) for more details. |
+
 ## Deployment Environments
 
 Consul API Gateway can be deployed in the following Kubernetes-based environments:

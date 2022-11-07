@@ -14,15 +14,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/hashstructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/mitchellh/hashstructure"
 )
 
 type MessageType uint8
@@ -307,18 +308,27 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+// BlockingTimeout implements pool.BlockableQuery
+func (q QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
 		} else if q.MaxQueryTime <= 0 {
 			q.MaxQueryTime = defaultQueryTime
 		}
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		// Timeout after maximum jitter has elapsed.
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
-		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout)
+		return q.MaxQueryTime
 	}
-	return time.Since(start) > rpcHoldTimeout
+	return 0
+}
+
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	// In addition to BlockingTimeout, allow for an additional rpcHoldTimeout buffer
+	// in case we need to wait for a leader election.
+	return time.Since(start) > rpcHoldTimeout+q.BlockingTimeout(maxQueryTime, defaultQueryTime)
 }
 
 type WriteRequest struct {
@@ -344,7 +354,7 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 	w.Token = s
 }
 
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) bool {
 	return time.Since(start) > rpcHoldTimeout
 }
 

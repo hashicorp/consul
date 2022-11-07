@@ -1,14 +1,11 @@
 ---
 layout: docs
-page_title: Installing Consul on Kubernetes
+page_title: Install Consul on Kubernetes with Helm
 description: >-
-  Consul can run directly on Kubernetes, both in server or client mode. For
-  pure-Kubernetes workloads, this enables Consul to also exist purely within
-  Kubernetes. For heterogeneous workloads, Consul agents can join a server
-  running inside or outside of Kubernetes.
+  You can use Helm to configure Consul on Kubernetes deployments. Learn how to add the official Helm chart to your repository and the parameters that enable the service mesh, CNI plugins, Consul UI, and Consul HTTP API.
 ---
 
-# Installing Consul on Kubernetes
+# Install Consul on Kubernetes with Helm
 
 Consul can run directly on Kubernetes, both in server or client mode.
 For pure-Kubernetes workloads, this enables Consul to also exist purely
@@ -114,13 +111,9 @@ upgrade, etc. the Consul cluster.
 The Helm chart has no required configuration and will install a Consul
 cluster with default configurations. We strongly recommend [learning about the configuration options](/docs/k8s/helm#configuration-values) prior to going to production.
 
-~> **Security Warning:** By default, the chart will install an insecure configuration
-of Consul. This provides a less complicated out-of-box experience for new users,
-but is not appropriate for a production setup. We strongly recommend using
-a properly-secured Kubernetes cluster or making sure that you understand and enable
-the [recommended security features](/docs/security). Currently,
-some of these features are not supported in the Helm chart and require additional
-manual configuration.
+For a hands-on experience with Consul as a service mesh
+for Kubernetes, follow the [Getting Started with Consul service
+mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=docs) tutorial.
 
 ### Prerequisites
 

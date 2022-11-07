@@ -481,8 +481,9 @@ func TestCAManager_SignCertificate_WithExpiredCert(t *testing.T) {
 
 			// Call RenewIntermediate and then confirm the RPCs and provider calls
 			// happen in the expected order.
-
-			_, err := manager.SignCertificate(&x509.CertificateRequest{}, &connect.SpiffeIDAgent{})
+			_, err := manager.SignCertificate(&x509.CertificateRequest{
+				URIs: []*url.URL{connect.SpiffeIDAgent{}.URI()},
+			}, &connect.SpiffeIDAgent{})
 			if arg.isError {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), arg.errorMsg)

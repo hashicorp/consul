@@ -59,11 +59,10 @@ type VaultProvider struct {
 
 	stopWatcher func()
 
-	isPrimary                    bool
-	clusterID                    string
-	spiffeID                     *connect.SpiffeIDSigning
-	setupIntermediatePKIPathDone bool
-	logger                       hclog.Logger
+	isPrimary bool
+	clusterID string
+	spiffeID  *connect.SpiffeIDSigning
+	logger    hclog.Logger
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
@@ -164,6 +163,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 		v.stopWatcher = cancel
 		go v.renewToken(ctx, lifetimeWatcher)
+	}
+
+	// Update the intermediate (managed) PKI mount and role
+	if err := v.setupIntermediatePKIPath(); err != nil {
+		return err
 	}
 
 	return nil
@@ -354,8 +358,8 @@ func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
 }
 
 func (v *VaultProvider) setupIntermediatePKIPath() error {
-	if v.setupIntermediatePKIPathDone {
-		return nil
+	mountConfig := vaultapi.MountConfigInput{
+		MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
 	}
 	mounts, err := v.client.Sys().ListMounts()
 	if err != nil {
@@ -367,45 +371,37 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
 			Type:        "pki",
 			Description: "intermediate CA backend for Consul Connect",
-			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
-			},
+			Config:      mountConfig,
 		})
 
 		if err != nil {
 			return err
+		}
+	} else {
+		err := v.tuneMount(v.config.IntermediatePKIPath, &mountConfig)
+		if err != nil {
+			v.logger.Warn("Could not update intermediate PKI mount settings", "path", v.config.IntermediatePKIPath, "error", err)
 		}
 	}
 
 	// Create the role for issuing leaf certs if it doesn't exist yet
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
-	role, err := v.client.Logical().Read(rolePath)
+	_, err = v.client.Logical().Write(rolePath, map[string]interface{}{
+		"allow_any_name":   true,
+		"allowed_uri_sans": "spiffe://*",
+		"key_type":         "any",
+		"max_ttl":          v.config.LeafCertTTL.String(),
+		"no_store":         true,
+		"require_cn":       false,
+	})
 	if err != nil {
 		return err
 	}
-	if role == nil {
-		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
-			"allow_any_name":   true,
-			"allowed_uri_sans": "spiffe://*",
-			"key_type":         "any",
-			"max_ttl":          v.config.LeafCertTTL.String(),
-			"no_store":         true,
-			"require_cn":       false,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	v.setupIntermediatePKIPathDone = true
+
 	return nil
 }
 
 func (v *VaultProvider) generateIntermediateCSR() (string, error) {
-	err := v.setupIntermediatePKIPath()
-	if err != nil {
-		return "", err
-	}
-
 	// Generate a new intermediate CSR for the root to sign.
 	uid, err := connect.CompactUID()
 	if err != nil {
@@ -455,10 +451,6 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 
 // ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
-	if err := v.setupIntermediatePKIPath(); err != nil {
-		return "", err
-	}
-
 	cert, err := v.getCA(v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -708,6 +700,18 @@ func (v *VaultProvider) Stop() {
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
+
+func (v *VaultProvider) tuneMount(path string, mountConfig *vaultapi.MountConfigInput) error {
+	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s/tune", path))
+	if err := r.SetJSONBody(mountConfig); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{

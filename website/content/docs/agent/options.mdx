@@ -1,10 +1,8 @@
 ---
 layout: docs
-page_title: Configuration
+page_title: Agents - Configuration File Reference
 description: >-
-  The agent has various configuration options that can be specified via the
-  command-line or via configuration files. All of the configuration options are
-  completely optional. Defaults are specified with their descriptions.
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
 ---
 
 # Configuration
@@ -587,8 +585,6 @@ The agent configuration options below are all specified on the command-line.
   By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics,
   `-`, and `_` are allowed in a custom path.`/v1/` is not allowed as it would overwrite
   the API endpoint.
-
-## Configuration Files ((#configuration_files))
 
 In addition to the command-line options, configuration for the Consul agent can be put into
 files. This may be easier in certain situations, for example when Consul is
@@ -1413,7 +1409,7 @@ There are also a number of common configuration options supported by all provide
       certificate will be requested by a proxy before this limit is reached. This
       is also the effective limit on how long a server outage can last (with no leader)
       before network connections will start being rejected. Defaults to `72h`.
-      
+
       You can specify a range from one hour (minimum) up to one year (maximum) using
       the following units: `h`, `m`, `s`, `ms`, `us` (or `µs`), `ns`, or a combination
       of those units, e.g. `1h5m`.
@@ -1817,6 +1813,7 @@ There are also a number of common configuration options supported by all provide
   - `http_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single client IP address is allowed to open to the agent's HTTP(S) server. This affects the HTTP(S) servers in both client and server agents. Default value is `200`.
   - `https_handshake_timeout` - Configures the limit for how long the HTTPS server in both client and server agents will wait for a client to complete a TLS handshake. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). Default value is `5s`.
   - `rpc_handshake_timeout` - Configures the limit for how long servers will wait after a client TCP connection is established before they complete the connection handshake. When TLS is used, the same timeout applies to the TLS handshake separately from the initial protocol negotiation. All Consul clients should perform this immediately on establishing a new connection. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). When `verify_incoming` is true on servers, this limits how long the connection socket and associated goroutines will be held open before the client successfully authenticates. Default value is `5s`.
+  - `rpc_client_timeout` - Configures the limit for how long a client is allowed to read from an RPC connection. This is used to set an upper bound for calls to eventually terminate so that RPC connections are not held indefinitely. Blocking queries can override this timeout. Default is `60s`.
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
   - `rpc_rate` - Configures the RPC rate limiter on Consul _clients_ by setting the maximum request rate that this agent is allowed to make for RPC requests to Consul servers, in requests per second. Defaults to infinite, which disables rate limiting.
   - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.

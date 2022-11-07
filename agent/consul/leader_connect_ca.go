@@ -562,22 +562,9 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return nil
 	}
 
-	// Get the highest index
-	idx, _, err := state.CARoots(nil)
-	if err != nil {
+	if err := c.persistNewRootAndConfig(provider, rootCA, conf); err != nil {
 		return err
 	}
-
-	// Store the root cert in raft
-	_, err = c.delegate.ApplyCARequest(&structs.CARequest{
-		Op:    structs.CAOpSetRoots,
-		Index: idx,
-		Roots: []*structs.CARoot{rootCA},
-	})
-	if err != nil {
-		return fmt.Errorf("raft apply failed: %w", err)
-	}
-
 	c.setCAProvider(provider, rootCA)
 
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
@@ -1395,6 +1382,15 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: provider is nil")
 	} else if caRoot == nil {
 		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: no root certificate")
+	}
+
+	// Note that only one spiffe id is allowed currently. If more than one is desired
+	// in future implmentations, then each ID should have authorization checks.
+	if len(csr.URIs) != 1 {
+		return nil, fmt.Errorf("CSR SAN contains an invalid number of URIs: %v", len(csr.URIs))
+	}
+	if len(csr.EmailAddresses) > 0 {
+		return nil, fmt.Errorf("CSR SAN does not allow specifying email addresses")
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain

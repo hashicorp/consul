@@ -1307,3 +1307,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 func intPointer(v int) *int {
 	return &v
 }
+
+func uint32Pointer(i uint32) *uint32 {
+	return &i
+}

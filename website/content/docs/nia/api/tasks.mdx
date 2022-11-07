@@ -9,6 +9,75 @@ description: >-
 
 The `/tasks` endpoints interact with the tasks that Consul-Terraform-Sync (CTS) is responsible for running.
 
+If you [run CTS with high availability enabled](/docs/nia/usage/run-ha), you can send requests to the `/tasks` endpoint on CTS leader or follower instances. Requests to a follower instance, however, return a 400 Bad Request and error message. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information.
+
+## Get Tasks
+
+This endpoint returns information about all existing tasks.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/tasks` | `application/json` |
+
+### Response Statuses
+
+| Status | Reason                                               |
+| ------ | ---------------------------------------------------- |
+| 200    | Successfully retrieved and returned a list of tasks |
+
+### Response Fields
+
+| Name         | Type   | Description                                                                               |
+| ------------ | ------------- | ---------------------------------------------------------------------------------- |
+| `request_id` | string        | The ID of the request. Used for auditing and debugging purposes.                    |
+| `tasks`      | list[[Task](/docs/nia/api/tasks#task-object)]  | A list of Tasks  |
+
+### Example: Retrieve all tasks
+
+In this example, CTS contains a single task
+
+Request:
+
+```shell-session
+$ curl --request GET \
+  localhost:8558/v1/tasks
+```
+
+Response:
+
+```json
+{
+  "request_id": "0e0290f9-94df-3a4a-fd17-72467a16083c",
+  "tasks": [
+    {
+      "buffer_period": {
+        "enabled": true,
+        "max": "25s",
+        "min": "5s"
+      },
+      "condition": {
+        "services": {
+          "cts_user_defined_meta": {},
+          "datacenter": "",
+          "filter": "",
+          "names": ["api", "web"],
+          "namespace": "",
+          "use_as_module_input": true
+        }
+      },
+      "description": "Writes the service name, id, and IP address to a file",
+      "enabled": true,
+      "module": "path/to/module",
+      "module_input": {},
+      "name": "task_a",
+      "providers": ["my-provider"],
+      "variables": {},
+      "version": ""
+    }
+  ]
+}
+```
+
 ## Get Task
 
 This endpoint returns information about an existing task.

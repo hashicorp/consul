@@ -1,3 +1,51 @@
+## 1.11.11 (October 19, 2022)
+
+FEATURES:
+
+* agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests [[GH-14965](https://github.com/hashicorp/consul/issues/14965)]
+* config-entry(ingress-gateway): Added support for `max_connections` for upstream clusters [[GH-14749](https://github.com/hashicorp/consul/issues/14749)]
+
+IMPROVEMENTS:
+
+* connect/ca: Log a warning message instead of erroring when attempting to update the intermediate pki mount when using the Vault provider. [[GH-15035](https://github.com/hashicorp/consul/issues/15035)]
+* connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters. [[GH-14800](https://github.com/hashicorp/consul/issues/14800)]
+* connect: Bump Envoy 1.20 to 1.20.7 [[GH-14830](https://github.com/hashicorp/consul/issues/14830)]
+
+BUG FIXES:
+
+* agent: avoid leaking the alias check runner goroutine when the check is de-registered [[GH-14935](https://github.com/hashicorp/consul/issues/14935)]
+* ca: fix a masked bug in leaf cert generation that would not be notified of root cert rotation after the first one [[GH-15005](https://github.com/hashicorp/consul/issues/15005)]
+* cache: prevent goroutine leak in agent cache [[GH-14908](https://github.com/hashicorp/consul/issues/14908)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
+## 1.11.10 (September 22, 2022)
+
+BUG FIXES:
+
+* kvs: Fixed a bug where query options were not being applied to KVS.Get RPC operations. [[GH-13344](https://github.com/hashicorp/consul/issues/13344)]
+
+## 1.11.9 (September 20, 2022)
+
+SECURITY:
+
+* auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
+* connect: Added URI length checks to ConnectCA CSR requests. Prior to this change, it was possible for a malicious actor to designate multiple SAN URI values in a call to the `ConnectCA.Sign` endpoint. The endpoint now only allows for exactly one SAN URI to be specified. [[GH-14579](https://github.com/[Ihashicorp/consul/issues/14579)]
+
+IMPROVEMENTS:
+
+* metrics: add labels of segment, partition, network area, network (lan or wan) to serf and memberlist metrics [[GH-14161](https://github.com/hashicorp/consul/issues/14161)]
+* snapshot agent: **(Enterprise only)** Add support for path-based addressing when using s3 backend.
+
+BUG FIXES:
+
+* ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
+* cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
+* connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* rpc: Adds a deadline to client RPC calls, so that streams will no longer hang
+indefinitely in unstable network conditions. [[GH-8504](https://github.com/hashicorp/consul/issues/8504)] [[GH-11500](https://github.com/hashicorp/consul/issues/11500)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
+
 ## 1.11.8 (August 11, 2022)
 
 BUG FIXES:

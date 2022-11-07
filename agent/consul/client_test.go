@@ -70,7 +70,7 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	}
 
 	// Apply config to copied fields because many tests only set the old
-	//values.
+	// values.
 	config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 	config.ACLResolverSettings.NodeName = config.NodeName
 	config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -519,15 +519,17 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{
-		Server:          false,
-		SrcAddr:         c.RPCSrcAddr,
-		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		MaxTime:         2 * time.Minute,
-		MaxStreams:      4,
-		TLSConfigurator: tls,
-		Datacenter:      c.Datacenter,
+		Server:           false,
+		SrcAddr:          c.RPCSrcAddr,
+		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		MaxTime:          2 * time.Minute,
+		MaxStreams:       4,
+		TLSConfigurator:  tls,
+		Datacenter:       c.Datacenter,
+		DefaultQueryTime: c.DefaultQueryTime,
+		MaxQueryTime:     c.MaxQueryTime,
 	}
-
+	connPool.SetRPCClientTimeout(c.RPCClientTimeout)
 	return Deps{
 		Logger:          logger,
 		TLSConfigurator: tls,
@@ -848,4 +850,88 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 		time.Second,
 		50*time.Millisecond,
 		"The client node was not reaped within the alotted time")
+}
+
+type waiter struct {
+	duration time.Duration
+}
+
+func (w *waiter) Wait(struct{}, *struct{}) error {
+	time.Sleep(w.duration)
+	return nil
+}
+
+func TestClient_RPC_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t)
+
+	_, c1 := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.RPCClientTimeout = 10 * time.Millisecond
+		c.DefaultQueryTime = 100 * time.Millisecond
+		c.MaxQueryTime = 200 * time.Millisecond
+	})
+	joinLAN(t, c1, s1)
+
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
+
+	require.NoError(t, s1.RegisterEndpoint("Long", &waiter{duration: 100 * time.Millisecond}))
+	require.NoError(t, s1.RegisterEndpoint("Short", &waiter{duration: 5 * time.Millisecond}))
+
+	t.Run("non-blocking query times out after RPCClientTimeout", func(t *testing.T) {
+		// Requests with QueryOptions have a default timeout of RPCClientTimeout (10ms)
+		// so we expect the RPC call to timeout.
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	})
+
+	t.Run("non-blocking query succeeds", func(t *testing.T) {
+		var out struct{}
+		require.NoError(t, c1.RPC("Short.Wait", &structs.NodeSpecificRequest{}, &out))
+	})
+
+	t.Run("check that deadline does not persist across calls", func(t *testing.T) {
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+			},
+		}, &out))
+	})
+
+	t.Run("blocking query succeeds", func(t *testing.T) {
+		var out struct{}
+		require.NoError(t, c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+			},
+		}, &out))
+	})
+
+	t.Run("blocking query with short MaxQueryTime fails", func(t *testing.T) {
+		var out struct{}
+		err := c1.RPC("Long.Wait", &structs.NodeSpecificRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 1,
+				MaxQueryTime:  20 * time.Millisecond,
+			},
+		}, &out)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
+	})
 }

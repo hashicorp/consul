@@ -5,11 +5,11 @@ description: >-
   Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon.
 ---
 
-# Configuration Options for Consul-Terraform-Sync
+# Consul-Terraform-Sync Configuration
 
-The Consul-Terraform-Sync (CTS) daemon is configured using configuration files and supports [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) (HCL) and JSON file formats.
+This topic contains configuration reference information for Consul-Terraform-Sync (CTS). Pass configuration settings in an HCL or JSON configuration file to configure the CTS daemon. Refer to the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) to learn the HCL syntax.
 
-## Global Config Options
+## Global configurations
 
 Top level options are reserved for configuring CTS.
 
@@ -43,6 +43,7 @@ tls {
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `log_level` - (string: "INFO") The log level to use for CTS logging. This defaults to "INFO". The available log levels are "TRACE", "DEBUG", "INFO", "WARN", and "ERR".
 - `port` - (int: 8558) The port for CTS to use to serve API requests.
+- `id` (string: Generated ID with the format `cts-<hostname>`) The ID of the CTS instance. CTS uses the ID as the service ID for CTS if service registration is enabled. CTS also uses the ID to identify the instance in a high availability cluster.
 - `syslog` - Specifies the syslog server for logging.
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   - `facility` - (string: "local0") Name of the syslog facility to log to.
@@ -55,9 +56,42 @@ tls {
   - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
-- `license_path` <EnterpriseAlert inline /> - (string) Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
+- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license) instead.**  Configures the path to the file that contains the license. You must specify a license in order to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. For more information, refer to [Setting the License](/docs/nia/enterprise/license#setting-the-license).
 
-## Consul
+## License <EnterpriseAlert inline />
+
+The `license` block configures how CTS loads its license with options to:
+- Configure CTS to automatically retrieve a license from Consul.
+- Provide a path to a license file.
+
+When a license block is not configured, CTS uses automatic license retrieval.
+
+```hcl
+license {
+  path = "path/to/license.lic"
+  auto_retrieval {
+    enabled = true
+  }
+}
+```
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/docs/nia/enterprise/license#setting-the-license). | none |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval](/docs/nia/configuration#auto-retrieval) for details | Review [Auto-Retrieval](/docs/nia/configuration#auto-retrieval) for defaults. |
+
+
+### Auto-retrieval
+
+You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
+
+~> Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` |  Optional | string | If set to true, enables license auto-retrieval | true |
+
+## Consul connection
 
 The `consul` block is used to configure CTS connection with a Consul agent to perform queries to the Consul Catalog and Consul KV pertaining to task execution.
 
@@ -75,35 +109,135 @@ consul {
 }
 ```
 
-- `address` - (string: "localhost:8500") Address is the address of the Consul agent. It may be an IP or FQDN.
-- `auth` - Auth is the HTTP basic authentication for communicating with Consul.
-  - `enabled` - (bool)
-  - `username` - (string)
-  - `password` - (string)
-- `tls` - Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for CTS when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/docs/agent/options#verify_incoming).
-  - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
-  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global certificate authority (CA) chain to make sure the certificates returned by Consul are valid.
-    - If Consul is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
-  - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the connection to Consul over TLS. Can also be provided through the `CONSUL_CACERT` environment variable.
-  - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the connection to Consul over TLS. Can also be provided through the `CONSUL_CAPATH` environment variable.
-  - `cert` - (string) The path to a PEM-encoded client certificate file provided to Consul over TLS in order for Consul to verify the authenticity of the connection from CTS. Required if Consul has `verify_incoming` set to true. Can also be provided through the `CONSUL_CLIENT_CERT` environment variable.
-  - `key` - (string) The path to the PEM-encoded private key file used with the client certificate configured by `cert`. Required if Consul has `verify_incoming` set to true. Can also be provided through the `CONSUL_CLIENT_KEY` environment variable.
-  - `server_name` - (string) The server name to use as the Server Name Indication (SNI) for Consul when connecting via TLS. Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable.
-- `token` - (string) The ACL token to use for client communication with the local Consul agent. The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables. More information on the required privileges required by CTS are available in the [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS#configure-acl-privileges-for-consul-terraform-sync) tutorial
-- `transport` - Transport configures the low-level network connection details.
-  - `dial_keep_alive` - (string: "30s") The amount of time for keep-alives.
-  - `dial_timeout` - (string: "30s") The amount of time to wait to establish a connection.
-  - `disable_keep_alives` - (bool) Determines if keep-alives should be used. Disabling this significantly decreases performance.
-  - `idle_conn_timeout` - (string: "5s") The timeout for idle connections.
-  - `max_idle_conns` - (int: 0) The maximum number of total idle connections across all hosts. The limit is disabled by default.
-  - `max_idle_conns_per_host` - (int: 100) The maximum number of idle connections per remote host. The majority of connections are established with one host, the Consul agent.
-    - To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks.
-    - This value should be lower than the configured [`http_max_conns_per_client`](/docs/agent/options#http_max_conns_per_client) for the Consul agent. If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, CTS may error due to connection limits (status code 429). You may increase the agent limit with caution. _Note: requests to the Consul agent made by Terraform subprocesses or any other process on the same host as CTS will contribute to the Consul agent connection limit._
-  - `tls_handshake_timeout` - (string: "10s") amount of time to wait to complete the TLS handshake.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `address` | Optional | string | The address of the Consul agent. It may be an IP or FQDN. | `localhost:8500` |
+| `token` | Optional | string | The ACL token to use for client communication with the local Consul agent. See [ACL Requirements](/docs/nia/configuration#acl-requirements) for required privileges. <br/><br/> The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables. | none |
+| `auth` | Optional | [auth](/docs/nia/configuration#auth) | HTTP basic authentication for communicating with Consul ||
+| `tls` | Optional | [tls](/docs/nia/configuration#tls-1)  | Secure client connection with Consul ||
+| `transport` | Optional | [transport](/docs/nia/configuration#transport) | Low-level network connection details ||
+| `service_registration` | Optional| [service_registration](/docs/nia/configuration#service-registration) | Options for how CTS will register itself as a service with a health check to Consul. ||
+
+### ACL requirements
+The following table describes the ACL policies required by CTS. For more information, refer to the [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS#configure-acl-privileges-for-consul-terraform-sync) tutorial.
+
+| Policy | Resources |
+| ------ | --------- |
+| `service:read` | Any services monitored by tasks |
+| `node:read` | Any nodes hosting services monitored by tasks |
+| `keys:read` | Any Consul KV pairs monitored by tasks |
+| `namespace:read` | <EnterpriseAlert inline />  Any namespaces for resources monitored by tasks |
+| `service:write` | The CTS service when [service registration](/docs/nia/configuration#service-registration) is enabled |
+| `keys:write` | `consul-terraform-sync/` Only required when using Consul as the [Terraform backend](/docs/nia/configuration#backend). |
+
+
+### Auth
+Configures HTTP basic authentication for communicating with Consul.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` | Optional | boolean | Enables using HTTP basic authentication | `false` |
+| `username` | Optional | string | Username for authentication| none |
+| `password` | Optional | string | Password for authentication| none |
+
+### TLS
+
+Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/docs/agent/config/config-files#verify_incoming).
+
+If Consul is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` | Optional | boolean | Enable TLS. Providing a value for any of the TLS options enables this parameter implicitly. | `false` |
+| `verify` | Optional | boolean | Enables TLS peer verification, which checks the global certificate authority (CA) chain to make sure the certificates returned by Consul are valid. | `true` |
+| `ca_cert` | Optional | string | The path to a PEM-encoded certificate authority file used to verify the authenticity of the connection to Consul over TLS.<br/><br/>Can also be provided through the `CONSUL_CACERT` environment variable. | none |
+| `ca_path` | Optional | string | The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the connection to Consul over TLS.<br/><br/>Can also be provided through the `CONSUL_CAPATH` environment variable. | none |
+| `cert` | Optional | string | The path to a PEM-encoded client certificate file provided to Consul over TLS in order for Consul to verify the authenticity of the connection from CTS. Required if Consul has `verify_incoming` set to true.<br/><br/>Can also be provided through the `CONSUL_CLIENT_CERT` environment variable. | none |
+| `key` | Optional | string | The path to the PEM-encoded private key file used with the client certificate configured by `cert`. Required if Consul has `verify_incoming` set to true.<br/><br/>Can also be provided through the `CONSUL_CLIENT_KEY` environment variable. | none |
+| `server_name` | Optional | string | The server name to use as the Server Name Indication (SNI) for Consul when connecting via TLS.<br/><br/>Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable. | none |
+
+### Transport
+Configures the low-level network connection details to Consul.
+
+To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/docs/agent/config/config-files#http_max_conns_per_client) for the Consul agent.
+
+If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, CTS may error due to connection limits (status code 429). You may increase the agent limit with caution. _Note: requests to the Consul agent made by Terraform subprocesses or any other process on the same host as CTS will contribute to the Consul agent connection limit._
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `dial_keep_alive` | Optional | string | The amount of time for keep-alives. | `30s` |
+| `dial_timeout` | Optional | string | The amount of time to wait to establish a connection. | `30s`
+| `disable_keep_alives` | Optional | boolean | Determines if keep-alives should be used. Disabling this significantly decreases performance. | `false`|
+| `idle_conn_timeout` | Optional | string | The timeout for idle connections. | `5s` |
+| `max_idle_conns` | Optional | integer | The maximum number of total idle connections across all hosts. The limit is disabled by default. | `0` |
+| `max_idle_conns_per_host` | Optional | integer | The maximum number of idle connections per remote host. The majority of connections are established with one host, the Consul agent. | `100`|
+| `tls_handshake_timeout` | Optional | string | The amount of time to wait to complete the TLS handshake. | `10s`|
+
+
+### Service registration
+CTS automatically registers itself with Consul as a service with a health check, using the [`id`](/docs/nia/configuration#id) configuration as the service ID. CTS deregisters itself with Consul when CTS stops gracefully. If CTS is unable to register with Consul, then it will log the error and continue without exiting.
+
+Service registration requires that the [Consul token](/docs/nia/configuration#consul) has an ACL policy of `service:write` for the CTS service.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul. When service registration is enabled for a [CTS instance configured for high availability](/docs/nia/usage/run-ha), the instance also registers itself with a new tag using the `cts-cluster:<cluster-name>` format. | `true` |
+| `service_name` | Optional | string | The service name for CTS. We recommended specifying the same name used for [`high_availability.cluster.name`](#high-availability-cluster) value if [CTS is configured for high availability](/docs/nia/usage/run-ha). | `consul-terraform-sync` |
+| `address` | Optional | string | The IP address or hostname for CTS. | IP address of the Consul agent node |
+| `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
+| `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/docs/nia/configuration#port) and whether [TLS is enabled](/docs/nia/configuration#enabled-2) on the CTS API. |
+
+The default health check is an [HTTP check](/docs/discovery/checks#http-interval) that calls the [Health API](/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
+
+| Parameter | Value |
+| --------- | ----- |
+| Name | `CTS Health Status`|
+| ID | `<id>-health` |
+| Namespace | `service_registration.namespace` |
+| Notes | `Check created by Consul-Terraform-Sync`|
+| DeregisterCriticalServiceAfter | `30m` |
+| ServiceID | [`id`](/docs/nia/configuration#id) |
+| Status | `critical` |
+| HTTP | `<default_check.address>/v1/health` |
+| Method | `GET` |
+| Interval | `10s` |
+| Timeout | `2s` |
+| TLSSkipVerify | `false` |
+
+## High availability
+
+Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terrform-Sync with High Availability](/docs/nia/usage/run-ha) for additional information. The `high_availability` block contains the following configuration items.
+
+### High availability cluster
+
+The `cluster` parameter contains configurations for the cluster you want to operate with high availability enabled. You can configure the following options:
+
+| Parameter | Description| Required | Type  |
+| --------- | ---------- | -------- | ------|
+| `name` | Specifies the name of the cluster operating with high availability enabled. | Required | String |
+| `storage` | Configures how CTS stores state information. Refer to [State storage and persistence](/docs/nia/architecture#state-storage-and-persistence) for additional information. You can define storage for the `"consul"` resource. Refer to [High availability cluster storage](#high-availability-cluster-storage) for additional information. | Optional | Object |
+
+#### High availability cluster storage
+
+The `high_availability.cluster.storage` object contains the following configurations. 
+
+| Parameter | Description| Required | Type  |
+| --------- | ---------- | -------- | ------|
+| `parent_path` | Defines a parent path in the Consul KV for CTS to store state information. Default is `consul-terraform-sync/`. CTS automatically appends the cluster name to the parent path, so the effective default directory for state information is `consul-terraform-sync/<cluster-name>`. | Optional | String |
+| `namespace` | Specifies the namespace to use when storing state in the Consul KV. Default is inferred from the CTS ACL token. The fallback default is `default`. | Optional | String |
+| `session_ttl` | Specifies the session time-to-live for leader elections. You must specify a value greater than the `session_ttl_min` configured for Consul. A longer `session_ttl` results in a longer leader election after a failover. Default is `15s`. | Optional | String |
+
+### High availability instance
+
+The `instance` parameter is an object that contains configurations unique to the CTS instance. You specify the following configurations:
+- `address`: (Optional) String value that specifies the IP address of the CTS instance to advertise to other instances. This parameter does not have a default value.
+
 
 ## Service
 
-~> Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Module Input](/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. See [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
+~> **Note:** Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/docs/nia/configuration#services-condition) and [Services Module Input](/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. Refer to [0.5.0 release notes](/docs/nia/release-notes/0-5-0#deprecate-service-block) for examples.
 
 A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `module_input "services` blocks.
 
@@ -129,7 +263,7 @@ service {
 
 ## Task
 
-A `task` block configures which task to execute in automation. When the task should execute can be determined by the `service` block (deprecated) and `condition` block. The `task` block may be specified multiple times to configure multiple tasks.
+A `task` block configures which task to execute in automation. Use  the `condition` block to specify when the task executes. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/docs/nia/api/tasks#tasks) or the [CLI's `task` command](/docs/nia/cli/task#task).
 
 ```hcl
 task {
@@ -159,7 +293,7 @@ task {
 - `source` - (string: required) **Deprecated in CTS 0.5.0 and will be removed in a future major release. See the `module` field instead.**
 - `module` - (string: required) Module is the location the driver uses to discover the Terraform module used for automation. The module's source can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
 
-  - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting CTS.
+  - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](/terraform/tutorials/cloud/cloud-login?utm_source=docs) to authenticate the local Terraform CLI prior to starting CTS.
   - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
 
     ```hcl
@@ -507,6 +641,7 @@ driver "terraform" {
   - Supported backend options: [azurerm](https://www.terraform.io/docs/backends/types/azurerm.html), [consul](https://www.terraform.io/docs/backends/types/consul.html), [cos](https://www.terraform.io/docs/backends/types/cos.html), [gcs](https://www.terraform.io/docs/backends/types/gcs.html), [kubernetes](https://www.terraform.io/docs/backends/types/kubernetes.html), [local](https://www.terraform.io/docs/backends/types/local.html), [manta](https://www.terraform.io/docs/backends/types/manta.html), [pg](https://www.terraform.io/docs/backends/types/pg.html) (Terraform v0.14+), [s3](https://www.terraform.io/docs/backends/types/s3.html). Visit the Terraform documentation links for details on backend configuration options.
   - If omitted, CTS will generate default values and use configurations from the [`consul` block](#consul) to configure [Consul as the backend](https://www.terraform.io/docs/backends/types/consul.html), which stores Terraform statefiles in the Consul KV. The [ACL token provided for Consul authentication](#token) is used to read and write to the KV store and requires [Consul KV privileges](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS#configure-acl-privileges-for-consul-terraform-sync). The Consul KV path is the base path to store state files for tasks. The full path of each state file will have the task identifier appended to the end of the path, e.g. `consul-terraform-sync/terraform-env:task-name`.
   - The remote enhanced backend is not supported with the Terraform driver to run operations in Terraform Cloud. Use the [Terraform Cloud driver](#terraform-cloud-driver) to integrate CTS with Terraform Cloud for remote workspaces and remote operations.
+  - The `local` backend type is not supported with CTS instances configured for high availability. If high availability is configured and the Terraform backend type is `local`, CTS logs an error and exits.
 - `log` - (bool) Enable all Terraform output (stderr and stdout) to be included in the CTS log. This is useful for debugging and development purposes. It may be difficult to work with log aggregators that expect uniform log format.
 - `path` - (string) The file path to install Terraform or discover an existing Terraform binary. If omitted, Terraform will be installed in the same directory as the CTS daemon. To resolve an incompatible Terraform version or to change versions will require removing the existing binary or change to a different path.
 - `persist_log` - (bool) Enable trace logging for each Terraform client to disk per task. This is equivalent to setting `TF_LOG_PATH=<work_dir>/terraform.log`. Trace log level results in verbose logging and may be useful for debugging and development purposes. We do not recommend enabling this for production. There is no log rotation and may quickly result in large files.
