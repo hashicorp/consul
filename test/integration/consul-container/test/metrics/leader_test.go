@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
