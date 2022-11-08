@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/armon/go-metrics"
+
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -128,12 +130,10 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		target,
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
 		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
-		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
-		grpc.WithBalancerName("pick_first"),
 		// Keep alive parameters are based on the same default ones we used for
 		// Yamux. These are somewhat arbitrary but we did observe in scale testing
 		// that the gRPC defaults (servers send keepalives only every 2 hours,

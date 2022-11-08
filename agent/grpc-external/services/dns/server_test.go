@@ -35,6 +35,7 @@ func testClient(t *testing.T, server *Server) pbdns.DNSServiceClient {
 
 	addr := testutils.RunTestServer(t, server)
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(context.Background(), addr.String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() {

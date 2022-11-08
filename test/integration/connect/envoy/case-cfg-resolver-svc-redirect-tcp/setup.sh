@@ -2,9 +2,21 @@
 
 set -eEuo pipefail
 
-# wait for bootstrap to apply config entries
-wait_for_config_entry proxy-defaults global
-wait_for_config_entry service-resolver s2
+upsert_config_entry primary '
+kind = "proxy-defaults"
+name = "global"
+config {
+  protocol = "tcp"
+}
+'
+
+upsert_config_entry primary '
+kind = "service-resolver"
+name = "s2"
+redirect {
+  service = "s3"
+}
+'
 
 register_services primary
 

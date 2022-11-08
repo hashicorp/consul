@@ -650,10 +650,6 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		primaryTargetID := node.Resolver.Target
 		failover := node.Resolver.Failover
 
-		type targetLoadAssignmentOption struct {
-			targetID    string
-			clusterName string
-		}
 		var targetsClustersData []targetClusterData
 
 		var numFailoverTargets int

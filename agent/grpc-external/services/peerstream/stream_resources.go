@@ -277,7 +277,7 @@ type HandleStreamRequest struct {
 	Stream BidirectionalStream
 }
 
-func (r HandleStreamRequest) WasDialed() bool {
+func (r HandleStreamRequest) IsAcceptor() bool {
 	return r.RemoteID == ""
 }
 
@@ -316,7 +316,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
 		With("peer_id", streamReq.LocalID).
-		With("dialed", streamReq.WasDialed())
+		With("dailer", !streamReq.IsAcceptor())
 	logger.Trace("handling stream for peer")
 
 	// handleStreamCtx is local to this function.
@@ -380,13 +380,18 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		return err
 	}
 
-	// Subscribe to all relevant resource types.
-	for _, resourceURL := range []string{
+	resources := []string{
 		pbpeerstream.TypeURLExportedService,
 		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
-		pbpeerstream.TypeURLPeeringServerAddresses,
-	} {
+	}
+	// Acceptors should not subscribe to server address updates, because they should always have an empty list.
+	if !streamReq.IsAcceptor() {
+		resources = append(resources, pbpeerstream.TypeURLPeeringServerAddresses)
+	}
+
+	// Subscribe to all relevant resource types.
+	for _, resourceURL := range resources {
 		sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
 			ResourceURL: resourceURL,
 			PeerID:      streamReq.RemoteID,
@@ -558,7 +563,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					// This must be a new subscription request to add a new
 					// resource type, vet it like a new request.
 
-					if !streamReq.WasDialed() {
+					if !streamReq.IsAcceptor() {
 						if req.PeerID != "" && req.PeerID != streamReq.RemoteID {
 							// Not necessary after the first request from the dialer,
 							// but if provided must match.

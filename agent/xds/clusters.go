@@ -1455,6 +1455,8 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			},
 		})
 	}
+
+	//nolint:staticcheck
 	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
 
 	return nil

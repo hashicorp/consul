@@ -482,6 +482,10 @@ func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceNam
 			continue // not possible
 		}
 
+		if _, ok := c.MeshGateway.ServiceGroups[svc]; !ok {
+			continue // unregistered services
+		}
+
 		chain, ok := c.MeshGateway.DiscoveryChain[svc]
 		if !ok {
 			continue // ignore; not ready
