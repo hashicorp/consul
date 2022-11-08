@@ -435,7 +435,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
-	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
+	grpcTlsPort := -1
+	if boolVal(c.ServerMode) {
+		grpcTlsPort = 8503
+	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -962,7 +965,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
 		Cloud:                                  b.cloudConfigVal(c.Cloud),
-		ConnectEnabled:                         connectEnabled,
+		ConnectEnabled:                         boolValWithDefault(&connectEnabled, true),
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
@@ -1021,7 +1024,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		NodeMeta:                          c.NodeMeta,
 		NodeName:                          b.nodeName(c.NodeName),
 		ReadReplica:                       boolVal(c.ReadReplica),
-		PeeringEnabled:                    boolVal(c.Peering.Enabled),
+		PeeringEnabled:                    boolValWithDefault(c.Peering.Enabled, true),
 		PeeringTestAllowPeerRegistrations: boolValWithDefault(c.Peering.TestAllowPeerRegistrations, false),
 		PidFile:                           stringVal(c.PidFile),
 		PrimaryDatacenter:                 primaryDatacenter,
