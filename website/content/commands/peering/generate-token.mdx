@@ -34,6 +34,10 @@ If the previously-generated token is not actively being used for a peer connecti
 
 - `-meta=<string>=<string>` - Specifies key/value pairs to associate with the peering connection token in `-meta="key"="value"` format. You can use the flag multiple times to set multiple metadata fields.
 
+- `-server-external-addresses=<string>[,string,...]` - Specifies a comma-separated list of addresses
+to put into the generated token. Addresses are of the form of `{host or IP}:port`.
+You can specify one or more load balancers or external IPs that route external traffic to this cluster's Consul servers.
+
 - `-format={pretty|json}` - Command output format. The default value is `pretty`.
 
 #### Enterprise Options
@@ -50,5 +54,14 @@ The following example generates a peering token for a cluster called "cluster-02
 
 ```shell-session hideClipboard
 $ consul peering generate-token -name cluster-02
+eyJDQSI6bnVs...5Yi0wNzk5NTA1YTRmYjYifQ==
+```
+
+### Using a Load Balancer for Consul Servers
+
+The following example generates a token for a cluster where servers are proxied by a load balancer:
+
+```shell-session hideClipboard
+$ consul peering generate-token -server-external-addresses my-load-balancer-1234567890abcdef.elb.us-east-2.amazonaws.com -name cluster-02
 eyJDQSI6bnVs...5Yi0wNzk5NTA1YTRmYjYifQ==
 ```
