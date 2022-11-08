@@ -11,7 +11,7 @@ import (
 
 const (
 	envoyEnvKey   = "ENVOY_VERSION"
-	envoyLogLevel = "info"
+	envoyLogLevel = "debug"
 	envoyVersion  = "1.23.1"
 
 	hashicorpDockerProxy = "docker.mirror.hashicorp.services"
