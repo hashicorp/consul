@@ -20,6 +20,8 @@ Cluster peering is a process that allows Consul clusters to communicate with eac
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
 
+This process establishes cluster peering between two [admin partitions](/docs/enterprise/admin-partitions). Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a `default` partition.
+
 For detailed instructions on establishing cluster peering connections, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
