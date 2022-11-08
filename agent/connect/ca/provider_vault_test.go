@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -340,7 +340,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
 		resp, err := client.RawRequest(req)
 		require.NoError(t, err)
-		bytes, err := ioutil.ReadAll(resp.Body)
+		bytes, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 		require.Equal(t, cert, string(bytes)+"\n")
 

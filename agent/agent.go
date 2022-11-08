@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -2141,7 +2140,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	out := make(map[structs.ServiceID]*structs.ServiceConfigResponse)
 
 	configDir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	files, err := ioutil.ReadDir(configDir)
+	files, err := os.ReadDir(configDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -2163,7 +2162,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 
 		// Read the contents into a buffer
 		file := filepath.Join(configDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
@@ -3374,7 +3373,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	tempFile := file + ".tmp"
 
 	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
-	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
+	if err := os.WriteFile(tempFile, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
 	}
 	if err := os.Rename(tempFile, file); err != nil {
@@ -3389,12 +3388,12 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
 	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
 			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
-			buf, err = ioutil.ReadFile(oldFile)
+			buf, err = os.ReadFile(oldFile)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
@@ -3596,7 +3595,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Load any persisted services
 	svcDir := filepath.Join(a.config.DataDir, servicesDir)
-	files, err := ioutil.ReadDir(svcDir)
+	files, err := os.ReadDir(svcDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3617,7 +3616,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 		// Read the contents into a buffer
 		file := filepath.Join(svcDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
@@ -3760,7 +3759,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 	// Load any persisted checks
 	checkDir := filepath.Join(a.config.DataDir, checksDir)
-	files, err := ioutil.ReadDir(checkDir)
+	files, err := os.ReadDir(checkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3775,7 +3774,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 		// Read the contents into a buffer
 		file := filepath.Join(checkDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}

@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -480,7 +480,7 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.peering.11111111-2222-3333-4444-555555555555.consul, not wrong.name`)
 	})
 	t.Run("bad-ca-roots", func(t *testing.T) {
-		wrongRoot, err := ioutil.ReadFile("../../test/client_certs/rootca.crt")
+		wrongRoot, err := os.ReadFile("../../test/client_certs/rootca.crt")
 		require.NoError(t, err)
 
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
