@@ -52,8 +52,11 @@ const (
 	retryJitter = 20
 )
 
-var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
-var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
+var (
+	ErrBackendNotMounted     = fmt.Errorf("backend not mounted")
+	ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
+	ErrPermissionDenied      = fmt.Errorf("permission denied")
+)
 
 type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
@@ -388,7 +391,14 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	} else {
 		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
 		if err != nil {
-			v.logger.Warn("Could not update intermediate PKI mount settings", "path", v.config.IntermediatePKIPath, "error", err)
+			message := "Could not update intermediate PKI mount settings"
+
+			if err == ErrPermissionDenied {
+				message += " because your Vault token does not have permission. Refer to: https://developer.hashicorp.com/consul/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider for more information"
+			}
+
+			message += ". This will not prevent the Connect CA from working, but it might be incorrectly configured (e.g. your LeafCertTTL may be ignored)."
+			v.logger.Warn(message, "path", v.config.IntermediatePKIPath, "error", err)
 		}
 	}
 
@@ -733,6 +743,10 @@ func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig 
 	resp, err := v.client.RawRequest(r)
 	if resp != nil {
 		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusForbidden {
+			return ErrPermissionDenied
+		}
 	}
 	return err
 }
