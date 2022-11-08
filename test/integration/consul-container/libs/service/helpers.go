@@ -41,10 +41,12 @@ func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Servi
 						Name:     "Connect Sidecar Listening",
 						TCP:      fmt.Sprintf("%s:%d", serverConnectProxyIP, 20000),
 						Interval: "10s",
+						Status:   api.HealthPassing,
 					},
 					&api.AgentServiceCheck{
 						Name:         "Connect Sidecar Aliasing Static Server",
 						AliasService: "static-server",
+						Status:       api.HealthPassing,
 					},
 				},
 				Proxy: &api.AgentServiceConnectProxyConfig{
@@ -55,9 +57,10 @@ func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Servi
 			},
 		},
 		Check: &api.AgentServiceCheck{
-			Name:     "Connect Sidecar Listening",
+			Name:     "Static Server Listening",
 			TCP:      fmt.Sprintf("%s:%d", serverServiceIP, 8080),
 			Interval: "10s",
+			Status:   api.HealthPassing,
 		},
 	}
 
@@ -69,7 +72,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Servi
 	return serverService, serverConnectProxy, nil
 }
 
-func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool) (Service, error) {
+func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool) (*ConnectContainer, error) {
 	// Create a service and proxy instance
 	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
 	if err != nil {
@@ -97,6 +100,7 @@ func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, l
 						Name:     "Connect Sidecar Listening",
 						TCP:      fmt.Sprintf("%s:%d", clientConnectProxyIP, 20000),
 						Interval: "10s",
+						Status:   api.HealthPassing,
 					},
 				},
 				Proxy: &api.AgentServiceConnectProxyConfig{
