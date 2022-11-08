@@ -1,0 +1,8 @@
+init_config:
+
+instances:
+    - url: http://localhost:8500
+      self_leader_check: true
+      network_latency_checks: true
+      catalog_checks: true
+      
