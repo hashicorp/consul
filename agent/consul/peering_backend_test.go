@@ -261,6 +261,25 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 		},
 		{
+			name: "manual server addrs are returned when defined",
+			setup: func(store *state.Store) {
+				require.NoError(t, store.PeeringWrite(2, &pbpeering.PeeringWriteRequest{
+					Peering: &pbpeering.Peering{
+						Name:                  "dialer",
+						ID:                    dialerPeerID,
+						ManualServerAddresses: []string{"5.6.7.8:8502"},
+						PeerServerAddresses:   []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+					},
+				}))
+				// Mesh config entry does not exist
+			},
+			peerID: dialerPeerID,
+			expect: expectation{
+				haveGateways: false,
+				addrs:        []string{"5.6.7.8:8502"},
+			},
+		},
+		{
 			name: "only server addrs are returned when mesh config does not exist",
 			setup: func(store *state.Store) {
 				require.NoError(t, store.PeeringWrite(2, &pbpeering.PeeringWriteRequest{
