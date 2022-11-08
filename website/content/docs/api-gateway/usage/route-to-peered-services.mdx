@@ -48,7 +48,6 @@ apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
 kind: MeshService
 metadata:
   name: example-mesh-service
-  ##...
 spec:
   name: echo
   peer: cluster-02
@@ -64,7 +63,6 @@ apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
   name: example-route
-  ##...
 spec:
   ...
   rules:
