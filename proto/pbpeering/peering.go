@@ -81,6 +81,15 @@ func (p *Peering) ShouldDial() bool {
 	return len(p.PeerServerAddresses) > 0 || len(p.ManualServerAddresses) > 0
 }
 
+// GetAddressesToDial returns the listing of addresses that should be dialed for the peering.
+// It will ensure that manual addresses take precedence, if any are defined.
+func (p *Peering) GetAddressesToDial() []string {
+	if len(p.ManualServerAddresses) > 0 {
+		return p.ManualServerAddresses
+	}
+	return p.PeerServerAddresses
+}
+
 func (x PeeringState) GoString() string {
 	return x.String()
 }
