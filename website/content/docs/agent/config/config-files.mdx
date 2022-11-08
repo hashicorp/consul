@@ -610,7 +610,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
     backwards-compatibility, but TLS support is deprecated and will be removed in a future
     release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
-  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. gRPC_TLS is enable by default.
+  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. gRPC_TLS is enabled by default on port 8503 for Consul servers.
     **We recommend using `8503` for `grpc_tls`** as your conventional gRPC port number, as it allows some
     tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
     can be configured at the same time, but they may not utilize the same port number. If both `grpc` and
