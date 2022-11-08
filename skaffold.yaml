@@ -50,7 +50,7 @@ deploy:
     - name: consul-dev
       chartPath: ./consul-k8s/charts/consul
       setValueTemplates:
-        global.image: '{{.IMAGE_REPO}}:{{.IMAGE_TAG}}'
+        global.image: '{{.IMAGE_REPO}}:{{.IMAGE_TAG}}@{{.IMAGE_DIGEST}}'
         # global.image: '{{.IMAGE_NAME}}:{{.IMAGE_TAG}}' # This would be the name without using the registry
         # global.imageK8S: '{{.IMAGE_NAME2}}:{{.IMAGE_TAG2}}@{{.IMAGE_DIGEST2}}'
 
