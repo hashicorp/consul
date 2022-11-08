@@ -90,7 +90,7 @@ require (
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.5.1
-	gotest.tools/v3 v3.0.3
+	gotest.tools/v3 v3.4.0
 	k8s.io/api v0.18.2
 	k8s.io/apimachinery v0.18.2
 	k8s.io/client-go v0.18.2
