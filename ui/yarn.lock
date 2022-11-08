@@ -8682,7 +8682,7 @@ ember-cli@~3.27.0:
     workerpool "^6.0.3"
     yam "^1.0.0"
 
-ember-collection@^1.0.0-alpha.9:
+ember-collection@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/ember-collection/-/ember-collection-1.0.0.tgz#2ec570a49b70098ab68fbaaca940f9302b39af98"
   integrity sha512-Yb7ZoPBc9rdDv1m72PDQeqbKzKVejAetkqRWUEXRa6tV75ud46ozGhX/1kyVJz2tNYL5XlgnqP8hg5UA9YNR0w==
