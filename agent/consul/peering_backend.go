@@ -139,7 +139,7 @@ func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID stri
 	if !peering.IsActive() {
 		return nil, fmt.Errorf("there is no active peering for %q", peerID)
 	}
-	return bufferFromAddresses(peering.PeerServerAddresses)
+	return bufferFromAddresses(peering.GetAddressesToDial())
 }
 
 // maybeFetchGatewayAddresses will return a ring buffer with the latest gateway addresses if the

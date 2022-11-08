@@ -1,1 +1,0 @@
-peering: remove ServerExternalAddresses parameter from token generation endpoint.
