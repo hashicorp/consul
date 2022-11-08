@@ -21,6 +21,8 @@ This topic provides and overview of admin partitions, which are entities that de
 
 Admin partitions exist a level above namespaces in the identity hierarchy. They contain one or more namespaces and allow multiple independent tenants to share a Consul server cluster. As a result, admin partitions enable you to define administrative and communication boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment.
 
+As of Consul v1.11, every _datacenter_ contains a single administrative partition named `default` when created. With Consul Enterprise, operators have the option of creating multiple partitions within a single datacenter.
+
 -> **Preexisting resource nodes and namespaces**: Admin partitions were introduced in Consul 1.11. Resource nodes were not namespaced prior to 1.11. After upgrading to Consul 1.11 or later, all resource nodes will be namespaced.
 
 There are tutorials available to help you get started with admin partitions.
@@ -60,6 +62,12 @@ The partition in which [`proxy-defaults`](/docs/connect/config-entries/proxy-def
 ### Cross-partition Networking
 
 You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
+
+### Cluster Peering
+
+You can use [cluster peering](/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [create and manage cluster peering connections](/docs/connect/cluster-peering/create-manage-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
+
+To use mesh gateways with admin partitions and cluster peering, refer to [Mesh Gateways between Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers).
 
 ## Requirements
 
