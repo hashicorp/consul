@@ -1,4 +1,4 @@
-```release-note:improvement
+```release-note:breaking-change
 config: update 1.14 config defaults: Enable `peering` and `connect` by default.
 ```
 

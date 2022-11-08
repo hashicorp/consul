@@ -139,6 +139,14 @@ func DefaultSource() Source {
 		xds {
 			update_max_per_second = 250
 		}
+
+		connect = {
+			enabled = true
+		}
+
+		peering = {
+			enabled = true
+		}
 	`,
 	}
 }
@@ -176,6 +184,11 @@ func DevSource() Source {
 		connect = {
 			enabled = true
 		}
+
+		peering = {
+			enabled = true
+		}
+
 		performance = {
 			raft_multiplier = 1
 		}
