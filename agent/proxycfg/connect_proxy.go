@@ -197,8 +197,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 
 		case "":
 			if u.DestinationPeer != "" {
-				mgw := s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway)
-				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), mgw.Mode, dc)
+				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), u.MeshGateway.Mode, dc)
 				if err != nil {
 					return snap, fmt.Errorf("failed to setup watches for peered upstream %q: %w", uid.String(), err)
 				}
@@ -212,7 +211,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				EvaluateInDatacenter:   dc,
 				EvaluateInNamespace:    ns,
 				EvaluateInPartition:    partition,
-				OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
+				OverrideMeshGateway:    u.MeshGateway,
 				OverrideProtocol:       cfg.Protocol,
 				OverrideConnectTimeout: cfg.ConnectTimeout(),
 			}, "discovery-chain:"+uid.String(), s.ch)
@@ -439,7 +438,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 
 			meshGateway := s.proxyCfg.MeshGateway
 			if u != nil {
-				meshGateway = meshGateway.OverlayWith(u.MeshGateway)
+				meshGateway = u.MeshGateway
 			}
 			watchOpts := discoveryChainWatchOpts{
 				id:          NewUpstreamIDFromServiceName(svc),

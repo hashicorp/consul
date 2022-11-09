@@ -981,7 +981,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		if _, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpointsUseHostnames[uid]; ok {
 			// If we're using local mesh gw, the fact that upstreams use hostnames don't matter.
 			// If we're not using local mesh gw, then resort to CDS.
-			if cfgSnap.Proxy.MeshGateway.OverlayWith(upstreamConfig.MeshGateway).Mode != structs.MeshGatewayModeLocal {
+			if upstreamConfig.MeshGateway.Mode != structs.MeshGatewayModeLocal {
 				useEDS = false
 			}
 		}

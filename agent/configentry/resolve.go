@@ -200,33 +200,31 @@ func ComputeResolvedServiceConfig(
 		//  3. Value from centralized upstream defaults (ServiceDefaults.UpstreamConfig.Defaults)
 		//  4. Value from local proxy registration (NodeService.Proxy.MeshGateway)
 		//  5. Value from centralized upstream override (ServiceDefaults.UpstreamConfig.Overrides)
-		//  6. Value from local upstream definition (NodeProxy.Proxy.Upstreams[].MeshGateway)
+		//  6. Value from local upstream definition (NodeService.Proxy.Upstreams[].MeshGateway)
 		//
 		// The MeshGateway value from upstream definitions in the proxy registration override
 		// the one from UpstreamConfig.Defaults and UpstreamConfig.Overrides because they are
 		// specific to the proxy instance.
 		//
-		// - Steps 1 and 2 are handled by storing MeshGateway.Mode at the top-level of the reply:
-		//   (ServiceConfigResponse.MeshGateway). The non-upstream-specific mesh gateway mode
-		//   from proxy/service defaults gets merged into NodeService.Proxy.MeshGateway at the
-		//   dialing ServiceManager's MergeServiceConfig. We fall back to this value when
-		//   there is no mode configured for upstreams.
-		//
-		// - Steps 3 and 5 involve storing upstream-specific mesh gateway mode from service-defaults.
-		//   They get returned on a per-upstream basis for Overrides.
-		//
-		// - Step 6 is handled by the dialing ServiceManager, after receiving the resolved config.
-		//
-		// The final merge happens at the proxycfg package. When watching the discovery chain for an upstream
-		// we call NodeService.Proxy.MeshGateway.OverlayWith(upstream.MeshGateway). This overlay uses the
-		// value from steps 1-2 as the default, but can overwrite it with the more specific value from steps 3-6.
+		// Step 6 is handled by the dialer's ServiceManager in MergeServiceConfig.
+
+		// Start with the merged value from proxyConf and serviceConf. (steps 1-2)
+		if !thisReply.MeshGateway.IsZero() {
+			resolvedCfg["mesh_gateway"] = thisReply.MeshGateway
+		}
+
+		// Merge in the upstream defaults (step 3).
 		if upstreamDefaults != nil {
 			upstreamDefaults.MergeInto(resolvedCfg)
 		}
+
+		// Merge in the top-level mode from the proxy instance (step 4).
 		if !args.MeshGateway.IsZero() {
 			// This means each upstream inherits the value from the `NodeService.Proxy.MeshGateway` field.
 			resolvedCfg["mesh_gateway"] = args.MeshGateway
 		}
+
+		// Merge in Overrides for the upstream (step 5).
 		if upstreamOverrides[upstream] != nil {
 			upstreamOverrides[upstream].MergeInto(resolvedCfg)
 		}

@@ -119,6 +119,14 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: remoteMeshGW,
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: uid,
+						Config: map[string]interface{}{
+							"mesh_gateway": remoteMeshGW,
+						},
+					},
+				},
 			},
 		},
 		{
@@ -144,6 +152,14 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: noneMeshGW, // service-defaults has a higher precedence.
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: uid,
+						Config: map[string]interface{}{
+							"mesh_gateway": noneMeshGW,
+						},
+					},
+				},
 			},
 		},
 		{
