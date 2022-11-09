@@ -438,7 +438,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	grpcTlsPort := -1
 	if c.Ports.GRPCTLS == nil && boolVal(c.ServerMode) { // default gRPC TLS port for servers is 8503
 		grpcTlsPort = 8503
-	} else if b.portVal("ports.grpc_tls", c.Ports.GRPCTLS) != -1 {
+	} else {
 		grpcTlsPort = b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
 	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
