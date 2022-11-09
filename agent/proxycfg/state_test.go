@@ -556,7 +556,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue != structs.MeshGatewayModeDefault {
-			ns.Proxy.MeshGateway.Mode = meshGatewayProxyConfigValue
+			for i := range ns.Proxy.Upstreams {
+				if u := &ns.Proxy.Upstreams[i]; u.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+					u.MeshGateway.Mode = meshGatewayProxyConfigValue
+				}
+			}
 		}
 
 		ixnMatch := TestIntentions()

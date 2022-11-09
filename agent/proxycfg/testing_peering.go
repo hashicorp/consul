@@ -264,6 +264,7 @@ func TestConfigSnapshotPeeringLocalMeshGateway(t testing.T) *ConfigSnapshot {
 			DestinationName: "refunds",
 			DestinationPeer: "cloud",
 			LocalBindPort:   9090,
+			MeshGateway:     structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
 		}
 		refundsUID = NewUpstreamID(&refundsUpstream)
 	)
@@ -271,7 +272,6 @@ func TestConfigSnapshotPeeringLocalMeshGateway(t testing.T) *ConfigSnapshot {
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
-		ns.Proxy.MeshGateway = structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal}
 		ns.Proxy.Upstreams = structs.Upstreams{
 			paymentsUpstream,
 			refundsUpstream,
