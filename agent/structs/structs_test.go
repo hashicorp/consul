@@ -1759,6 +1759,33 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 			authz:    acl.AllowAll(),
 			expected: acl.Allow,
 		},
+		{
+			name: "can read imported csn if can read all",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name", PeerName: "cluster-2"},
+				Service: &NodeService{Service: "service-name", PeerName: "cluster-2"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowReadAllServices: true},
+			expected: acl.Allow,
+		},
+		{
+			name: "can read imported csn if can write any",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name", PeerName: "cluster-2"},
+				Service: &NodeService{Service: "service-name", PeerName: "cluster-2"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowServiceWrite: true},
+			expected: acl.Allow,
+		},
+		{
+			name: "can't read imported csn with authz for local services and nodes",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name", PeerName: "cluster-2"},
+				Service: &NodeService{Service: "service-name", PeerName: "cluster-2"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowService: true, allowNode: true},
+			expected: acl.Deny,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1769,8 +1796,10 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 
 type aclAuthorizerCheckServiceNode struct {
 	acl.Authorizer
-	allowNode    bool
-	allowService bool
+	allowNode            bool
+	allowService         bool
+	allowServiceWrite    bool
+	allowReadAllServices bool
 }
 
 func (a aclAuthorizerCheckServiceNode) ServiceRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
@@ -1782,6 +1811,20 @@ func (a aclAuthorizerCheckServiceNode) ServiceRead(string, *acl.AuthorizerContex
 
 func (a aclAuthorizerCheckServiceNode) NodeRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
 	if a.allowNode {
+		return acl.Allow
+	}
+	return acl.Deny
+}
+
+func (a aclAuthorizerCheckServiceNode) ServiceReadAll(*acl.AuthorizerContext) acl.EnforcementDecision {
+	if a.allowReadAllServices {
+		return acl.Allow
+	}
+	return acl.Deny
+}
+
+func (a aclAuthorizerCheckServiceNode) ServiceWriteAny(*acl.AuthorizerContext) acl.EnforcementDecision {
+	if a.allowServiceWrite {
 		return acl.Allow
 	}
 	return acl.Deny
