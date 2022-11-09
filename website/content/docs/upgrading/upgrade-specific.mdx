@@ -17,6 +17,12 @@ upgrade flow.
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility
+Prior to Consul 1.14, cluster peering or Consul connect were disabled by default.
+A breaking change was made in Consul 1.14 that:
+- [Cluster Peering is enabled by default.](/docs/connect/cluster-peering) To disable, set
+[`peering.enabled`](/docs/agent/config/config-files#peering_enabled) to `false`.
+- [Consul Connect is enabled by default.](/docs/connect) To disable, set
+[`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
 
 ##### Changes to gRPC TLS configuration
 
@@ -30,7 +36,8 @@ Prior to Consul 1.14, it was possible to encrypt communication between Consul an
 Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
 for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
 files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14,
-`ports.grpc_tls` is the recommended configuration to encrypt gRPC traffic.
+[`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the recommended configuration to encrypt gRPC traffic.
+The default value for gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
 For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
 
