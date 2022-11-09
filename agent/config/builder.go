@@ -966,7 +966,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
 		Cloud:                                  b.cloudConfigVal(c.Cloud),
-		ConnectEnabled:                         boolVal(&connectEnabled),
+		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
