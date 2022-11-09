@@ -27,27 +27,27 @@ Tools I recommend when in doubt:
 1. Run the following command.
     1. `skaffold dev -default-repo <your repo>`
     1. *NOTE: drop the `default-repo` when the above bug is fixed
-1. Hold on to your butts!
+1. ☕️
 1. Change a file affecting either Consul core or the K8S control plane and watch the helm chart redeploy
+1. Visit the Consul UI at [http://localhost:8080](http://localhost:8080)
+1. When you're done, CTRL+C to exit skaffold and `skaffold delete` to remove the helm release from your cluster.
 
 
 ## Open Questions
 1. If you redeploy Consul, when/how/can the sidecar proxies for services in the cluster also be redeployed.
 
 ## What's Left for MVP
-1. Port Forward the Consul UI
-1. Need to figure out the tagging strategy so that code changes trigger updates
-1. Need to repeat the process for 
-1. Need to figure out how to modify the base values with a test scenario
-1. See how folks manage sidecar re-deployment
+1. Need to repeat the process for the controller
+1. Find a compelling demo
 
 ## What would be nice to have
+1. See how the skaffold community manages sidecar re-deployment
 1. Build the UI dynamically
 1. There are definitely paths missing from the dependency trees
-1. Optimize build by copying consul binary
+1. Optimize build by copying consul binary directly into container?
 
 ## Future
-1. Re-enable local development without a registry when the bug is fixed in skaffold
+1. Re-enable local development without a registry when the [bug is fixed in skaffold](https://github.com/GoogleContainerTools/skaffold/issues/7992)
 1. Make consul build faster
 1. Make applications re-deploy sidecars
 

@@ -14,11 +14,12 @@ build:
     custom:
       buildCommand: |
         CONSUL_DEV_IMAGE=$IMAGE make dev-docker
+# .   docker
+#       dockerfile:  # This doesn't work because our dockerfile is not a self-contained build
+#       path: ./build-support/docker/Consul-Dev.dockerfile
+#       buildArgs:
+#         CONSUL_IMAGE_VERSION: latest
       dependencies:
-#          dockerfile:  # This doesn't work because our dockerfile is not a self-contained build
-#            path: ./build-support/docker/Consul-Dev.dockerfile
-#            buildArgs:
-#              CONSUL_IMAGE_VERSION: latest
         paths:
         - ./agent/**/*.go
         - ./acl/**/*.go
@@ -27,36 +28,40 @@ build:
         - ./lib/**/*.go
         ignore:
         - ./**/*_test.go
-#    - image: hashicorp/consul-k8s-control-plane
-#      context: ./consul-k8s/control-plane
-#      docker:
-#        dockerfile: ./consul-k8s/control-plane/Dockerfile
-#        target: dev
+  - image: consul-k8s-control-plane
+    context: ./consul-k8s/control-plane
+    custom:
+      buildCommand: |
+        REMOTE_DEV_IMAGE=$IMAGE make -C .. control-plane-dev-docker-multi-arch
+    # docker:
+    #   dockerfile: ./consul-k8s/control-plane/Dockerfile
+    #   target: dev
+    #   buildArgs: 
+    #    --build-arg 'TARGETARCH=$(GOARCH)' \
+  # TODO: Add UI build here and make it a dependency of Consul
+  # TODO: Add CRD build here and validate that somehow the helm chart re-deploys
+        
   local:
     useBuildkit: true
     concurrency: 0
-    push: true
-# manifests:
-#   helm:
-#     releases:
-#     - name: consul-dev
-#       chartPath: ./consul-k8s/charts/consul
-#       setValueTemplates:
-#         global.image: '{{.IMAGE_NAME}}:{{.IMAGE_TAG}}'
-#         # global.imageK8S: '{{.IMAGE_NAME2}}:{{.IMAGE_TAG2}}@{{.IMAGE_DIGEST2}}'
+    push: true      # This would be the "false"" without using the registry
+
 deploy:
   helm:
     releases:
     - name: consul-dev
       chartPath: ./consul-k8s/charts/consul
+      valuesFiles:
+        - "skaffold-default-values.yaml"
       setValueTemplates:
         global.image: '{{.IMAGE_REPO}}:{{.IMAGE_TAG}}@{{.IMAGE_DIGEST}}'
-        # global.image: '{{.IMAGE_NAME}}:{{.IMAGE_TAG}}' # This would be the name without using the registry
+        global.imageK8S: '{{.IMAGE_REPO2}}:{{.IMAGE_TAG2}}@{{.IMAGE_DIGEST2}}'
+        # This would be the name without using the registry
+        # global.image: '{{.IMAGE_NAME}}:{{.IMAGE_TAG}}@{{.IMAGE_DIGEST}}'
         # global.imageK8S: '{{.IMAGE_NAME2}}:{{.IMAGE_TAG2}}@{{.IMAGE_DIGEST2}}'
 
-# TODO port forward the UI
-#portForward:
-#  - resourceType: service
-#    resourceName: consul-ui # TODO: fix
-#    port: 8000              # TODO: fix
-#    localPort: 8080         # TODO: fix
+portForward:
+ - resourceType: service
+   resourceName: consul-ui 
+   port: 80
+   localPort: 8080

@@ -1,0 +1,29 @@
+global:
+  # These will be injected by skaffold
+  # image: consul
+  # imageK8S: consul-k8s-control-plane
+  name: consul
+  datacenter: dc1
+  enablePodSecurityPolicies: false
+client:
+  replicas: 1
+server:
+  replicas: 1
+ui:
+  enabled: true
+  port:
+    http: 80
+    https: 443
+  service:
+    type: 'ClusterIP'
+connectInject:
+  enabled: true
+  # envoyExtraArgs: "--log-level trace"
+  # transparentProxy:
+  #   defaultEnabled: true
+controller:
+  enabled: true
+# syncCatalog:
+#   enabled: true
+terminatingGateways:
+  enabled: true
