@@ -88,6 +88,17 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
+	// if the cluster is peered, mesh gateway type cannot be of type 'none' or empty
+	// the default mode for peering is 'remote'
+	if c.srv.peeringBackend.srv != nil {
+		if proxyConf, ok := args.Entry.(*structs.ProxyConfigEntry); ok {
+			if proxyConf.MeshGateway.Mode == structs.MeshGatewayModeNone ||
+				proxyConf.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+				c.logger.Warn(fmt.Sprintf("invalid mesh gateway mode %q, defaulting to 'remote'", proxyConf.MeshGateway.Mode))
+			}
+		}
+	}
+
 	// Log any applicable warnings about the contents of the config entry.
 	if warnEntry, ok := args.Entry.(structs.WarningConfigEntry); ok {
 		warnings := warnEntry.Warnings()
