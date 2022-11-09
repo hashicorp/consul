@@ -1159,7 +1159,8 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 500 * time.Millisecond
+		// Give handler enough time to send an ougoing message before heartbeat timeout
+		c.incomingHeartbeatTimeout = 5 * (time.Second / time.Duration(defaultOutgoingStreamSendLimit))
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1216,7 +1217,8 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	}
 
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 500 * time.Millisecond
+		// Give handler enough time to send an ougoing message before heartbeat timeout
+		c.incomingHeartbeatTimeout = 5 * (time.Second / time.Duration(defaultOutgoingStreamSendLimit))
 	})
 	srv.Tracker.setClock(it.Now)
 
@@ -1255,7 +1257,8 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	outgoingHeartbeatInterval := 100 * time.Millisecond
+	// Give handler enough time to send an ougoing message before heartbeat timeout
+	outgoingHeartbeatInterval := 5 * (time.Second / time.Duration(defaultOutgoingStreamSendLimit))
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.outgoingHeartbeatInterval = outgoingHeartbeatInterval
@@ -1308,7 +1311,9 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 500 * time.Millisecond
+
+	// Give handler enough time to send an ougoing message before heartbeat timeout
+	incomingHeartbeatTimeout := 5 * (time.Second / time.Duration(defaultOutgoingStreamSendLimit))
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -2031,7 +2036,8 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 				if !ok {
 					break wait_batch
 				}
-				time.Sleep(500 * time.Millisecond)
+				// wait for batched update applied to Raft
+				time.Sleep(defaultReplicationRaftApplyInterval)
 			}
 		}
 

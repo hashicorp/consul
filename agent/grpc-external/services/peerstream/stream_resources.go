@@ -478,7 +478,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	// The nonce is used to correlate response/(ack|nack) pairs.
 	var nonce uint64
 
-	streamSendTicker := time.NewTicker(time.Second / time.Duration(s.outgoingStreamSendLimit)) // limit to 100 ops per second
+	streamSendTicker := time.NewTicker(time.Second / time.Duration(s.outgoingStreamSendLimit)) // limit to 10 ops per second
 	defer streamSendTicker.Stop()
 	// The main loop that processes sends and receives.
 	for {

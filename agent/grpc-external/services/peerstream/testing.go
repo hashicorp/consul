@@ -27,7 +27,8 @@ func (c *MockClient) Send(r *pbpeerstream.ReplicationMessage) error {
 }
 
 func (c *MockClient) Recv() (*pbpeerstream.ReplicationMessage, error) {
-	return c.RecvWithTimeout(500 * time.Millisecond)
+	// Give handler enough time to send an ougoing message before heartbeat timeout
+	return c.RecvWithTimeout(5 * (time.Second / time.Duration(defaultOutgoingStreamSendLimit)))
 }
 
 func (c *MockClient) RecvWithTimeout(dur time.Duration) (*pbpeerstream.ReplicationMessage, error) {

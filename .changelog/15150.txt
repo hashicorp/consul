@@ -1,5 +1,4 @@
 ```release-note:improvement
-peering: rate limiting the replication of exported services on both server and receiver
-         side: exported updates are batched and applied to raft
+peering: rate limiting the replication of exported services on both server and receiver side
 ```
 
