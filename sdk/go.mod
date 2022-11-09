@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/sdk
 
-go 1.12
+go 1.18
 
 require (
 	github.com/fatih/color v1.9.0 // indirect
