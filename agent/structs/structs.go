@@ -1998,6 +1998,15 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 	authzContext := new(acl.AuthorizerContext)
 	csn.Service.EnterpriseMeta.FillAuthzContext(authzContext)
 
+	if csn.Node.PeerName != "" || csn.Service.PeerName != "" {
+		if authz.ServiceReadAll(authzContext) == acl.Allow ||
+			authz.ServiceWriteAny(authzContext) == acl.Allow {
+
+			return acl.Allow
+		}
+		return acl.Deny
+	}
+
 	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
 		return acl.Deny
 	}
