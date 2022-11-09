@@ -23,7 +23,6 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	args *structs.ServiceSpecificRequest,
 	ns *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
@@ -47,8 +46,6 @@ func MergeNodeServiceWithCentralConfig(
 
 	configReq := &structs.ServiceConfigRequest{
 		Name:           serviceName,
-		Datacenter:     args.Datacenter,
-		QueryOptions:   args.QueryOptions,
 		MeshGateway:    ns.Proxy.MeshGateway,
 		Mode:           ns.Proxy.Mode,
 		UpstreamIDs:    upstreams,
@@ -150,7 +147,7 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 	// localUpstreams stores the upstreams seen from the local registration so that we can merge in the synthetic entries.
 	// In transparent proxy mode ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
-	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with those values.
+	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstreams with those values.
 	localUpstreams := make(map[structs.ServiceID]struct{})
 
 	// Merge upstream defaults into the local registration
