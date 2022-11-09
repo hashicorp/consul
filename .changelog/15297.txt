@@ -1,3 +1,0 @@
-```release-note:improvement
-all: Remove the use of the deprecated ioutil package throughout the codebase in favour of io and os packages which are still maintained and also introduce a lint rule which forbids the use of ioutil in commits.
-```
