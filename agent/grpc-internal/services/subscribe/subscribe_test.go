@@ -40,6 +40,7 @@ func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -109,6 +110,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -441,6 +443,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	connRemoteDC, err := gogrpc.DialContext(ctx, addrRemoteDC.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connRemoteDC.Close))
@@ -488,6 +491,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		require.NoError(t, backendRemoteDC.store.EnsureRegistration(ids.Next("reg3"), req))
 	})
 
+	//nolint:staticcheck
 	connLocal, err := gogrpc.DialContext(ctx, addrLocal.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connLocal.Close))
@@ -749,6 +753,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -901,6 +906,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))

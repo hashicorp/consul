@@ -1596,17 +1596,20 @@ func Test_processResponse_Validation(t *testing.T) {
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 
 	type testCase struct {
-		name    string
-		in      *pbpeerstream.ReplicationMessage_Response
-		expect  *pbpeerstream.ReplicationMessage
-		wantErr bool
+		name       string
+		in         *pbpeerstream.ReplicationMessage_Response
+		expect     *pbpeerstream.ReplicationMessage
+		extraTests func(t *testing.T, s *state.Store)
+		wantErr    bool
 	}
 
 	srv, store := newTestServer(t, nil)
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
-			ID:   peerID,
-			Name: peerName,
+			Name:                  peerName,
+			ID:                    peerID,
+			ManualServerAddresses: []string{"manual"},
+			PeerServerAddresses:   []string{"one", "two"},
 		},
 	}))
 
@@ -1622,6 +1625,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			require.NoError(t, err)
 		}
 		require.Equal(t, tc.expect, reply)
+		if tc.extraTests != nil {
+			tc.extraTests(t, store)
+		}
 	}
 
 	tt := []testCase{
@@ -1728,6 +1734,32 @@ func Test_processResponse_Validation(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "manual server addresses are not overwritten",
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+				Nonce:       "1",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource: makeAnyPB(t, &pbpeering.PeeringServerAddresses{
+					Addresses: []string{"three"},
+				}),
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLPeeringServerAddresses,
+						ResponseNonce: "1",
+					},
+				},
+			},
+			extraTests: func(t *testing.T, s *state.Store) {
+				_, peer, err := s.PeeringReadByID(nil, peerID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"manual"}, peer.ManualServerAddresses)
+				require.Equal(t, []string{"three"}, peer.PeerServerAddresses)
+			},
+			wantErr: false,
 		},
 	}
 	for _, tc := range tt {

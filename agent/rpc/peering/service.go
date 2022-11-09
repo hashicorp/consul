@@ -317,11 +317,12 @@ func (s *Server) GenerateToken(
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
-		PeerID:              peering.ID,
-		CA:                  caPEMs,
-		ServerAddresses:     serverAddrs,
-		ServerName:          serverName,
-		EstablishmentSecret: secretID,
+		PeerID:                peering.ID,
+		CA:                    caPEMs,
+		ManualServerAddresses: req.ServerExternalAddresses,
+		ServerAddresses:       serverAddrs,
+		ServerName:            serverName,
+		EstablishmentSecret:   secretID,
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
@@ -423,13 +424,14 @@ func (s *Server) Establish(
 	}
 
 	peering := &pbpeering.Peering{
-		ID:                  id,
-		Name:                req.PeerName,
-		PeerCAPems:          tok.CA,
-		PeerServerAddresses: serverAddrs,
-		PeerServerName:      tok.ServerName,
-		PeerID:              tok.PeerID,
-		Meta:                req.Meta,
+		ID:                    id,
+		Name:                  req.PeerName,
+		PeerCAPems:            tok.CA,
+		ManualServerAddresses: tok.ManualServerAddresses,
+		PeerServerAddresses:   serverAddrs,
+		PeerServerName:        tok.ServerName,
+		PeerID:                tok.PeerID,
+		Meta:                  req.Meta,
 
 		// State is intentionally not set until after the secret exchange succeeds.
 		// This is to prevent a scenario where an active peering is re-established,
@@ -860,11 +862,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:                  existing.ID,
-			Name:                req.Name,
-			State:               pbpeering.PeeringState_DELETING,
-			PeerServerAddresses: existing.PeerServerAddresses,
-			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
+			ID:                    existing.ID,
+			Name:                  req.Name,
+			State:                 pbpeering.PeeringState_DELETING,
+			ManualServerAddresses: existing.ManualServerAddresses,
+			PeerServerAddresses:   existing.PeerServerAddresses,
+			DeletedAt:             structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

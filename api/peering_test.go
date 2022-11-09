@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -222,6 +224,39 @@ func TestAPI_Peering_List(t *testing.T) {
 		require.True(t, peerExistsInPeerListings(peering1, peeringsList), "expected to find peering in list response")
 		require.True(t, peerExistsInPeerListings(peering2, peeringsList), "expected to find peering in list response")
 	})
+}
+
+func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
+	t.Parallel()
+
+	c, s := makeClient(t) // this is "dc1"
+	defer s.Stop()
+	s.WaitForSerfCheck(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	externalAddress := "32.1.2.3:8502"
+
+	// Generate a token happy path
+	p1 := PeeringGenerateTokenRequest{
+		PeerName:                "peer1",
+		Meta:                    map[string]string{"foo": "bar"},
+		ServerExternalAddresses: []string{externalAddress},
+	}
+	resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotNil(t, resp)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	// Put the token in an arbitrary map, because the struct isn't available in the api package.
+	token := make(map[string]interface{})
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+	require.Equal(t, []interface{}{s.GRPCTLSAddr}, token["ServerAddresses"])
+	require.Equal(t, []interface{}{externalAddress}, token["ManualServerAddresses"])
 }
 
 // TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:

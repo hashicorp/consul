@@ -9,6 +9,8 @@ import (
 
 	gogrpc "google.golang.org/grpc"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPeeringBackend_ForwardToLeader(t *testing.T) {
@@ -58,6 +59,7 @@ func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 	// Dial server2 directly
 	conn, err := gogrpc.DialContext(ctx, server2.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(server2.config.RPCAddr.String())),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
@@ -256,6 +258,25 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			peerID: acceptorPeerID,
 			expect: expectation{
 				err: "no known addresses",
+			},
+		},
+		{
+			name: "manual server addrs are returned when defined",
+			setup: func(store *state.Store) {
+				require.NoError(t, store.PeeringWrite(2, &pbpeering.PeeringWriteRequest{
+					Peering: &pbpeering.Peering{
+						Name:                  "dialer",
+						ID:                    dialerPeerID,
+						ManualServerAddresses: []string{"5.6.7.8:8502"},
+						PeerServerAddresses:   []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+					},
+				}))
+				// Mesh config entry does not exist
+			},
+			peerID: dialerPeerID,
+			expect: expectation{
+				haveGateways: false,
+				addrs:        []string{"5.6.7.8:8502"},
 			},
 		},
 		{
@@ -459,6 +480,7 @@ func TestPeerStreamService_ForwardToLeader(t *testing.T) {
 		// We will dial server2 which should forward to server1
 		conn, err := gogrpc.DialContext(ctx, server2.config.RPCAddr.String(),
 			gogrpc.WithContextDialer(newServerDialer(server2.config.RPCAddr.String())),
+			//nolint:staticcheck
 			gogrpc.WithInsecure(),
 			gogrpc.WithBlock())
 		require.NoError(t, err)
