@@ -193,19 +193,33 @@ func ComputeResolvedServiceConfig(
 			resolvedCfg["protocol"] = protocol
 		}
 
-		// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
-		// because it is specific to the proxy instance.
-		//
-		// The goal is to flatten the mesh gateway mode in this order (larger number wins):
+		// When dialing an upstream, the goal is to flatten the mesh gateway mode in this order
+		// (larger number wins):
 		//  1. Value from the proxy-defaults
-		//  2. Value from centralized upstream defaults (ServiceDefaults.UpstreamConfig.Defaults)
-		//  3. Value from local proxy registration (NodeService.Proxy.MeshGateway)
-		//  4. Value from centralized upstream override (ServiceDefaults.UpstreamConfig.Overrides)
-		//  5. Value from local upstream definition (NodeProxy.Proxy.Upstreams[].MeshGateway)
-		//     This last step (5) is done in the client's service manager.
-		if proxyConf != nil && !proxyConf.MeshGateway.IsZero() {
-			resolvedCfg["mesh_gateway"] = proxyConf.MeshGateway
-		}
+		//  2. Value from top-level of service-defaults (ServiceDefaults.MeshGateway)
+		//  3. Value from centralized upstream defaults (ServiceDefaults.UpstreamConfig.Defaults)
+		//  4. Value from local proxy registration (NodeService.Proxy.MeshGateway)
+		//  5. Value from centralized upstream override (ServiceDefaults.UpstreamConfig.Overrides)
+		//  6. Value from local upstream definition (NodeProxy.Proxy.Upstreams[].MeshGateway)
+		//
+		// The MeshGateway value from upstream definitions in the proxy registration override
+		// the one from UpstreamConfig.Defaults and UpstreamConfig.Overrides because they are
+		// specific to the proxy instance.
+		//
+		// - Steps 1 and 2 are handled by storing MeshGateway.Mode at the top-level of the reply:
+		//   (ServiceConfigResponse.MeshGateway). The non-upstream-specific mesh gateway mode
+		//   from proxy/service defaults gets merged into NodeService.Proxy.MeshGateway at the
+		//   dialing ServiceManager's MergeServiceConfig. We fall back to this value when
+		//   there is no mode configured for upstreams.
+		//
+		// - Steps 3 and 5 involve storing upstream-specific mesh gateway mode from service-defaults.
+		//   They get returned on a per-upstream basis for Overrides.
+		//
+		// - Step 6 is handled by the dialing ServiceManager, after receiving the resolved config.
+		//
+		// The final merge happens at the proxycfg package. When watching the discovery chain for an upstream
+		// we call NodeService.Proxy.MeshGateway.OverlayWith(upstream.MeshGateway). This overlay uses the
+		// value from steps 1-2 as the default, but can overwrite it with the more specific value from steps 3-6.
 		if upstreamDefaults != nil {
 			upstreamDefaults.MergeInto(resolvedCfg)
 		}
