@@ -3,8 +3,12 @@
 
 package acl
 
-// AuthorizerContext stub
-type AuthorizerContext struct{}
+// AuthorizerContext contains extra information that can be
+// used in the determination of an ACL enforcement decision.
+type AuthorizerContext struct {
+	// Peer is the name of the peer that the resource was imported from.
+	Peer string
+}
 
 // enterpriseAuthorizer stub interface
 type enterpriseAuthorizer interface{}
