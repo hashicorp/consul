@@ -547,9 +547,10 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *pr
 	}
 
 	upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
-	if upstream != nil && upstream.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+	if upstream != nil && cfgSnap.Proxy.MeshGateway.OverlayWith(upstream.MeshGateway).Mode == structs.MeshGatewayModeLocal {
 		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
 		if !ok {
 			// local GW is not ready; return early
