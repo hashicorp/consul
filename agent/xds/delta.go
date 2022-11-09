@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -158,8 +157,14 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// representation of envoy state to force an update.
 	//
 	// see: https://github.com/envoyproxy/envoy/issues/13009
-	handlers[xdscommon.ListenerType].childType = handlers[xdscommon.RouteType]
-	handlers[xdscommon.ClusterType].childType = handlers[xdscommon.EndpointType]
+	handlers[xdscommon.ListenerType].deltaChild = &xDSDeltaChild{
+		childType:     handlers[xdscommon.RouteType],
+		childrenNames: make(map[string][]string),
+	}
+	handlers[xdscommon.ClusterType].deltaChild = &xDSDeltaChild{
+		childType:     handlers[xdscommon.EndpointType],
+		childrenNames: make(map[string][]string),
+	}
 
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
@@ -346,22 +351,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				continue
 			}
 
-			var pendingTypes []string
-			for typeUrl, handler := range handlers {
-				if !handler.registered {
-					continue
-				}
-				if len(handler.pendingUpdates) > 0 {
-					pendingTypes = append(pendingTypes, typeUrl)
-				}
-			}
-			if len(pendingTypes) > 0 {
-				sort.Strings(pendingTypes)
-				generator.Logger.Trace("Skipping delta computation because there are responses in flight",
-					"pendingTypeUrls", pendingTypes)
-				continue
-			}
-
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
 			streamStartOnce.Do(func() {
@@ -369,7 +358,25 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			})
 
 			for _, op := range xDSUpdateOrder {
-				err, sent := handlers[op.TypeUrl].SendIfNew(
+				if op.TypeUrl == xdscommon.ListenerType || op.TypeUrl == xdscommon.RouteType {
+					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
+						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
+						break
+					}
+					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
+						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
+						break
+					}
+				}
+				err, _ := handlers[op.TypeUrl].SendIfNew(
 					cfgSnap.Kind,
 					currentVersions[op.TypeUrl],
 					resourceMap,
@@ -382,9 +389,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						"failed to send %sreply for type %q: %v",
 						op.errorLogNameReplyPrefix(),
 						op.TypeUrl, err)
-				}
-				if sent {
-					break // wait until we get an ACK to do more
 				}
 			}
 		}
@@ -435,16 +439,26 @@ func (op *xDSUpdateOperation) errorLogNameReplyPrefix() string {
 	}
 }
 
+type xDSDeltaChild struct {
+	// childType is a type that in Envoy is actually stored within this type.
+	// Upserts of THIS type should potentially trigger dependent named
+	// resources within the child to be re-configured.
+	childType *xDSDeltaType
+
+	// childrenNames is map of parent resource names to a list of associated child resource
+	// names.
+	childrenNames map[string][]string
+}
+
 type xDSDeltaType struct {
 	generator    *ResourceGenerator
 	stream       ADSDeltaStream
 	typeURL      string
 	allowEmptyFn func(kind structs.ServiceKind) bool
 
-	// childType is a type that in Envoy is actually stored within this type.
-	// Upserts of THIS type should potentially trigger dependent named
-	// resources within the child to be re-configured.
-	childType *xDSDeltaType
+	// deltaChild contains data for an xDS child type if there is one.
+	// For example, endpoints are a child type of clusters.
+	deltaChild *xDSDeltaChild
 
 	// registered indicates if this type has been requested at least once by
 	// the proxy
@@ -484,9 +498,8 @@ func (t *xDSDeltaType) subscribed(name string) bool {
 }
 
 type PendingUpdate struct {
-	Remove         bool
-	Version        string
-	ChildResources []string // optional
+	Remove  bool
+	Version string
 }
 
 func newDeltaType(
@@ -610,6 +623,15 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 				t.resourceVersions[name] = ""
 			}
 
+			// Certain xDS types are children of other types, meaning that if Envoy subscribes to a parent.
+			// We MUST assume that if Envoy ever had data for the children of this parent, then the child's
+			// data is gone.
+			if t.deltaChild != nil && t.deltaChild.childType.registered {
+				for _, childName := range t.deltaChild.childrenNames[name] {
+					t.ensureChildResend(name, childName)
+				}
+			}
+
 			if alreadySubscribed {
 				logger.Trace("re-subscribing resource for stream", "resource", name)
 			} else {
@@ -646,27 +668,6 @@ func (t *xDSDeltaType) ack(nonce string) {
 		}
 
 		t.resourceVersions[name] = obj.Version
-		if t.childType != nil {
-			// This branch only matters on UPDATE, since we already have
-			// mechanisms to clean up orphaned resources.
-			for _, childName := range obj.ChildResources {
-				if _, exist := t.childType.resourceVersions[childName]; !exist {
-					continue
-				}
-				if !t.subscribed(childName) {
-					continue
-				}
-				t.generator.Logger.Trace(
-					"triggering implicit update of resource",
-					"typeUrl", t.typeURL,
-					"resource", name,
-					"childTypeUrl", t.childType.typeURL,
-					"childResource", childName,
-				)
-				// Basically manifest this as a re-subscribe/re-sync
-				t.childType.resourceVersions[childName] = ""
-			}
-		}
 	}
 	t.sentToEnvoyOnce = true
 	delete(t.pendingUpdates, nonce)
@@ -686,6 +687,12 @@ func (t *xDSDeltaType) SendIfNew(
 	if t == nil || !t.registered {
 		return nil, false
 	}
+
+	// Wait for Envoy to catch up with this delta type before sending something new.
+	if len(t.pendingUpdates) > 0 {
+		return nil, false
+	}
+
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
 	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn(kind)
@@ -721,14 +728,23 @@ func (t *xDSDeltaType) SendIfNew(
 	}
 	logger.Trace("sent response", "nonce", resp.Nonce)
 
-	if t.childType != nil {
-		// Capture the relevant child resource names on this pending update so
-		// we can properly clean up the linked children when this change is
-		// ACKed.
-		for name, obj := range updates {
+	// Certain xDS types are children of other types, meaning that if an update is pushed for a parent,
+	// we MUST send new data for all its children. Envoy will NOT re-subscribe to the child data upon
+	// receiving updates for the parent, so we need to handle this ourselves.
+	//
+	// Note that we do not check whether the deltaChild.childType is registered here, since we send
+	// parent types before child types, meaning that it's expected on first send of a parent that
+	// there are no subscriptions for the child type.
+	if t.deltaChild != nil {
+		for name := range updates {
 			if children, ok := resourceMap.ChildIndex[t.typeURL][name]; ok {
-				obj.ChildResources = children
-				updates[name] = obj
+				// Capture the relevant child resource names on this pending update so
+				// we can know the linked children if Envoy ever re-subscribes to the parent resource.
+				t.deltaChild.childrenNames[name] = children
+
+				for _, childName := range children {
+					t.ensureChildResend(name, childName)
+				}
 			}
 		}
 	}
@@ -846,6 +862,28 @@ func (t *xDSDeltaType) createDeltaResponse(
 	}
 
 	return resp, realUpdates, nil
+}
+
+func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
+	if _, exist := t.deltaChild.childType.resourceVersions[childName]; !exist {
+		return
+	}
+	if !t.subscribed(childName) {
+		return
+	}
+
+	t.generator.Logger.Trace(
+		"triggering implicit update of resource",
+		"typeUrl", t.typeURL,
+		"resource", parentName,
+		"childTypeUrl", t.deltaChild.childType.typeURL,
+		"childResource", childName,
+	)
+
+	// resourceVersions tracks the last known version for this childName that Envoy
+	// has ACKed. By setting this to empty it effectively tells us that Envoy does
+	// not have any data for that child, and we need to re-send.
+	t.deltaChild.childType.resourceVersions[childName] = ""
 }
 
 func computeResourceVersions(resourceMap *xdscommon.IndexedResources) (map[string]map[string]string, error) {
