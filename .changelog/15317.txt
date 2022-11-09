@@ -1,0 +1,3 @@
+```release-note:improvements
+acl: update ACLs, allow read on imported services and nodes with readAll permissions
+```
