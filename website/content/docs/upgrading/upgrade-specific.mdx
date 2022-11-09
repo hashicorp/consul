@@ -24,7 +24,7 @@ A breaking change was made in Consul 1.14 that:
 - [Consul Connect is enabled by default.](/docs/connect) To disable, set
 [`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
 
-##### Changes to gRPC TLS configuration
+#### Changes to gRPC TLS configuration
 
 **Make configuration changes** if using sidecar proxies or gateways that include any of the following configuration file values:
 1. [`ports.https`](/docs/agent/config/config-files#https_port) - Encrypts gRPC in Consul 1.12 and prior
@@ -42,6 +42,14 @@ The default value for gRPC TLS port is 8503 for Consul servers. To disable the g
 For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
 
 If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility with future releases.
+
+#### Changes to peering
+
+[Cluster peering](/docs/connect/cluster-peering) was released in Consul 1.13 as an experimental feature.
+In Consul 1.14, cluster peering has been improved and is now considered stable. All experimental peering
+connections created by 1.13 should be
+[deleted](/docs/connect/cluster-peering/create-manage-peering#delete-peering-connections)
+prior to upgrading, as they will no longer be compatible with 1.14.
 
 ## Consul 1.13.x
 
