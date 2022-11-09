@@ -30,6 +30,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 
 	localMeshGW := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal}
 	remoteMeshGW := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote}
+	noneMeshGW := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeNone}
 
 	tests := []struct {
 		name string
@@ -118,18 +119,10 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: remoteMeshGW,
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-					{
-						Upstream: uid,
-						Config: map[string]interface{}{
-							"mesh_gateway": remoteMeshGW,
-						},
-					},
-				},
 			},
 		},
 		{
-			name: "proxy upstream mesh-gateway inherits service-defaults defaults",
+			name: "proxy upstream mesh-gateway inherits service-defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
 					Name:        "sid",
@@ -144,9 +137,35 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 					},
 					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
 						sid: {
+							MeshGateway: noneMeshGW, // applied 2nd
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MeshGateway: noneMeshGW, // service-defaults has a higher precedence.
+			},
+		},
+		{
+			name: "proxy upstream mesh-gateway inherits upstream defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name:        "sid",
+					UpstreamIDs: uids,
+				},
+				upstreamIDs: uids,
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MeshGateway: localMeshGW,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							MeshGateway: noneMeshGW,
 							UpstreamConfig: &structs.UpstreamConfiguration{
 								Defaults: &structs.UpstreamConfig{
-									MeshGateway: remoteMeshGW, // applied 2nd
+									MeshGateway: remoteMeshGW,
 								},
 							},
 						},
@@ -154,17 +173,19 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 			want: &structs.ServiceConfigResponse{
-				MeshGateway: localMeshGW, // This is not affected by the UpstreamConfigs.
+				MeshGateway: noneMeshGW, // Merged from proxy-defaults + service-defaults
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
+							// Wildcard stores the values from UpstreamConfig.Defaults directly
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
 					{
 						Upstream: uid,
 						Config: map[string]interface{}{
+							// Upstream-specific config comes from UpstreamConfig.Defaults
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
@@ -177,20 +198,17 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				scReq: &structs.ServiceConfigRequest{
 					Name:        "sid",
 					UpstreamIDs: uids,
-					MeshGateway: remoteMeshGW, // applied 3rd
+
+					// MeshGateway from NodeService is received in the request
+					MeshGateway: remoteMeshGW,
 				},
 				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
-					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
-						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
-							MeshGateway: localMeshGW, // applied 1st
-						},
-					},
 					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
 						sid: {
 							UpstreamConfig: &structs.UpstreamConfiguration{
 								Defaults: &structs.UpstreamConfig{
-									MeshGateway: localMeshGW, // applied 2nd
+									MeshGateway: noneMeshGW,
 								},
 							},
 						},
@@ -198,11 +216,12 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 			want: &structs.ServiceConfigResponse{
-				MeshGateway: localMeshGW, // This is not affected by the UpstreamConfigs.
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
+							// NodeService.Proxy.MeshGateway has a higher precedence than centralized
+							// UpstreamConfig.Defaults, since it's specific to a service instance.
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
@@ -221,25 +240,20 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				scReq: &structs.ServiceConfigRequest{
 					Name:        "sid",
 					UpstreamIDs: uids,
-					MeshGateway: localMeshGW, // applied 3rd
+					MeshGateway: localMeshGW, // applied 2nd
 				},
 				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
-					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
-						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
-							MeshGateway: localMeshGW, // applied 1st
-						},
-					},
 					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
 						sid: {
 							UpstreamConfig: &structs.UpstreamConfiguration{
 								Defaults: &structs.UpstreamConfig{
-									MeshGateway: localMeshGW, // applied 2nd
+									MeshGateway: localMeshGW, // applied 1st
 								},
 								Overrides: []*structs.UpstreamConfig{
 									{
 										Name:        uid.ID,
-										MeshGateway: remoteMeshGW, // applied 4th
+										MeshGateway: remoteMeshGW, // applied 3rd
 									},
 								},
 							},
@@ -248,17 +262,18 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 			want: &structs.ServiceConfigResponse{
-				MeshGateway: localMeshGW, // This is not affected by the UpstreamConfigs.
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
-							"mesh_gateway": localMeshGW, // wildcard not affected, since it wasn't in the overrides.
+							// Wildcard stores the values from UpstreamConfig.Defaults directly
+							"mesh_gateway": localMeshGW,
 						},
 					},
 					{
 						Upstream: uid,
 						Config: map[string]interface{}{
+							// UpstreamConfig.Overrides has a higher precedence than UpstreamConfig.Defaults
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
