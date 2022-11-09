@@ -163,6 +163,43 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "proxy wildcard upstream mesh-gateway inherits proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+					Mode: structs.ProxyModeTransparent,
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MeshGateway: localMeshGW,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							UpstreamConfig: &structs.UpstreamConfiguration{
+								Defaults: &structs.UpstreamConfig{
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MeshGateway: localMeshGW,
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": localMeshGW, // From proxy-defaults
+							"protocol":     "http",
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "proxy upstream mesh-gateway inherits upstream defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{

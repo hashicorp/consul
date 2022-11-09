@@ -157,10 +157,15 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.UpstreamConfig.Defaults != nil {
 			upstreamDefaults = serviceConf.UpstreamConfig.Defaults
 
+			if upstreamDefaults.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+				upstreamDefaults.MeshGateway.Mode = thisReply.MeshGateway.Mode
+			}
+
 			// Store the upstream defaults under a wildcard key so that they can be applied to
 			// upstreams that are inferred from intentions and do not have explicit upstream configuration.
 			cfgMap := make(map[string]interface{})
 			upstreamDefaults.MergeInto(cfgMap)
+
 			if !args.MeshGateway.IsZero() {
 				cfgMap["mesh_gateway"] = args.MeshGateway
 			}
