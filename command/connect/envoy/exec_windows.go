@@ -10,44 +10,9 @@ import (
 	"os/exec"
 
 	"path/filepath"
-	"strings"
 
 	"time"
 )
-
-// testSelfExecOverride is a way for the tests to no fork-bomb themselves by
-// self-executing the whole test suite for each case recursively. It's gross but
-// the least gross option I could think of.
-var testSelfExecOverride string
-
-func isHotRestartOption(s string) bool {
-	restartOpts := []string{
-		"--restart-epoch",
-		"--hot-restart-version",
-		"--drain-time-s",
-		"--parent-shutdown-time-s",
-	}
-	for _, opt := range restartOpts {
-		if s == opt {
-			return true
-		}
-		if strings.HasPrefix(s, opt+"=") {
-			return true
-		}
-	}
-	return false
-}
-
-func hasHotRestartOption(argSets ...[]string) bool {
-	for _, args := range argSets {
-		for _, opt := range args {
-			if isHotRestartOption(opt) {
-				return true
-			}
-		}
-	}
-	return false
-}
 
 func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	tempFile := filepath.Join(os.TempDir(),
