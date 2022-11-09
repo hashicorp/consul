@@ -1615,7 +1615,10 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		c.Connect = nil // disable connect to prevent CA being bootstrapped
+		// Explicitly disable Connect to prevent CA being bootstrapped
+		c.Connect = map[string]interface{}{
+			"enabled": false,
+		}
 	})
 	defer s.Stop()
 

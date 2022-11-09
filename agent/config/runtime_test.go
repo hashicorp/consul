@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -56,6 +57,8 @@ func (tc testCase) source(format string) []string {
 	}
 	return tc.json
 }
+
+var defaultGrpcTlsAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:8503"))
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
@@ -184,6 +187,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap = true: do not enable unless necessary"},
 	})
@@ -202,6 +207,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap_expect > 0: expecting 3 servers"},
 	})
@@ -348,6 +355,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCPort = 8502
 			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -669,6 +678,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -853,6 +864,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -1893,6 +1906,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 	})
@@ -1911,6 +1926,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -1932,6 +1949,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -3106,6 +3125,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3138,6 +3159,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3167,6 +3190,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3193,6 +3218,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3239,6 +3266,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3658,6 +3687,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 
@@ -5082,6 +5113,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	// UI Config tests

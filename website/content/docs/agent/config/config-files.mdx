@@ -556,7 +556,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   The following sub-keys are available:
 
-  - `enabled` ((#peering_enabled)) (Defaults to `false`) Controls whether cluster peering is enabled.
+  - `enabled` ((#peering_enabled)) (Defaults to `true`) Controls whether cluster peering is enabled.
     When disabled, the UI won't show peering, all peering APIs will return
     an error, any peerings stored in Consul already will be ignored (but they will not be deleted),
     and all peering connections from other clusters will be rejected. This was added in Consul 1.13.0.
@@ -610,8 +610,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     in `-dev` mode. The `grpc` port currently supports either plaintext or TLS traffic for
     backwards-compatibility, but TLS support is deprecated and will be removed in a future
     release. Refer to `grpc_tls` for more information on configuring a TLS-enabled port.
-  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502` for `grpc_tls`** as your conventional gRPC port number, as it allows some
+  - `grpc_tls` ((#grpc_tls_port)) - The gRPC API with TLS connections, -1 to disable. gRPC_TLS is enabled by default on port 8503 for Consul servers.
+    **We recommend using `8503` for `grpc_tls`** as your conventional gRPC port number, as it allows some
     tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
     can be configured at the same time, but they may not utilize the same port number. If both `grpc` and
     `grpc_tls` are defined, then `grpc` will always be plaintext. This field was added in Consul 1.14.
@@ -1061,7 +1061,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   The following sub-keys are available:
 
-  - `enabled` ((#connect_enabled)) (Defaults to `false`) Controls whether Connect features are
+  - `enabled` ((#connect_enabled)) (Defaults to `true`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
     in order for Connect to function properly.
     Will be set to `true` automatically if `auto_config.enabled` or `auto_encrypt.allow_tls` is `true`.
@@ -2212,10 +2212,10 @@ default will automatically work with some tooling.
 
 - `xds`: This object allows you to configure the behavior of Consul's
 [xDS protocol](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol)
-server. 
+server.
 
   - `update_max_per_second`: Specifies the number of proxy configuration updates across all connected xDS streams that are allowed per second. This configuration prevents updates to global resources, such as wildcard intentions, from consuming system resources at the expense of other processes, such as Raft and Gossip, which could cause general cluster instability.
 
-    The default value is `250`. It is based on a load test of 5,000 streams connected to a single server with two CPU cores. 
+    The default value is `250`. It is based on a load test of 5,000 streams connected to a single server with two CPU cores.
 
-    If necessary, you can lower or increase the limit without a rolling restart by using the `consul reload` command or by sending the server a `SIGHUP`. 
+    If necessary, you can lower or increase the limit without a rolling restart by using the `consul reload` command or by sending the server a `SIGHUP`.
