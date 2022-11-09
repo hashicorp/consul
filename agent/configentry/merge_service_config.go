@@ -23,7 +23,6 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	args *structs.ServiceSpecificRequest,
 	ns *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
@@ -47,8 +46,6 @@ func MergeNodeServiceWithCentralConfig(
 
 	configReq := &structs.ServiceConfigRequest{
 		Name:           serviceName,
-		Datacenter:     args.Datacenter,
-		QueryOptions:   args.QueryOptions,
 		MeshGateway:    ns.Proxy.MeshGateway,
 		Mode:           ns.Proxy.Mode,
 		UpstreamIDs:    upstreams,
