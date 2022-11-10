@@ -24,11 +24,9 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
-const defaultOSPlatform = "linux"
-
 func TestEnvoyCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	if strings.ContainsRune(New(nil, defaultOSPlatform).Help(), '\t') {
+	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
@@ -66,8 +64,8 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
-			c := New(ui, defaultOSPlatform)
-			c.init(defaultOSPlatform)
+			c := New(ui)
+			c.init()
 
 			code := c.Run(tc.args)
 			if code == 0 {
@@ -122,7 +120,6 @@ type generateConfigTestCase struct {
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
 	WantArgs          BootstrapTplArgs
 	WantErr           string
-	OSPlatform        string
 }
 
 // This tests the args we use to generate the template directly because they
@@ -162,28 +159,6 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusBackendPort: "",
 				PrometheusScrapePath:  "/metrics",
 			},
-		},
-		{
-			Name:  "defaults-windows",
-			Flags: []string{"-proxy-id", "test-proxy"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8502", // Note this is the gRPC port
-				},
-				AdminAccessLogPath:    "nul",
-				AdminBindAddress:      "127.0.0.1",
-				AdminBindPort:         "19000",
-				LocalAgentClusterName: xds.LocalAgentClusterName,
-				PrometheusBackendPort: "",
-				PrometheusScrapePath:  "/metrics",
-			},
-			OSPlatform: "windows",
 		},
 		{
 			Name:  "defaults-nodemeta",
@@ -1126,14 +1101,8 @@ func TestGenerateConfig(t *testing.T) {
 			client, err := api.NewClient(&api.Config{Address: srv.URL, TLSConfig: api.TLSConfig{InsecureSkipVerify: true}})
 			require.NoError(t, err)
 
-			// Default OS Platform "linux". Custom value should be set in the test case
-			osPlatform := "linux"
-			if tc.OSPlatform == "windows" {
-				osPlatform = tc.OSPlatform
-			}
-
 			ui := cli.NewMockUi()
-			c := New(ui, osPlatform)
+			c := New(ui)
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
 
@@ -1142,7 +1111,7 @@ func TestGenerateConfig(t *testing.T) {
 			args := append([]string{"-bootstrap"}, myFlags...)
 
 			require.NoError(t, c.flags.Parse(args))
-			code := c.run(c.flags.Args(), osPlatform)
+			code := c.run(c.flags.Args())
 			if tc.WantErr == "" {
 				require.Equal(t, 0, code, ui.ErrorWriter.String())
 			} else {
@@ -1153,8 +1122,7 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Verify we handled the env and flags right first to get correct template
 			// args.
-			got, err := c.templateArgs(osPlatform)
-
+			got, err := c.templateArgs()
 			require.NoError(t, err) // Error cases should have returned above
 			require.Equal(t, &tc.WantArgs, got)
 
@@ -1247,7 +1215,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
-			c := New(ui, defaultOSPlatform)
+			c := New(ui)
 
 			code := c.Run(tc.args)
 			if code != 0 {
