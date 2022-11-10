@@ -84,7 +84,6 @@ main_test.go:34: command failed: exec: "cmd": executable file not found in $PATH
 - To use the **debug_dump_volumes** function, you need to use it via Powershell and execute the following command: `bash run-tests.windows.sh debug_dump_volumes` Make sure to be positioned with your terminal in the correct directory.
 - For **case-consul-exec** this case can only be run when using the consul-dev Docker image on this repository, since it relies on features implemented only here. These features are: Windows valid default value for "-admin-access-log-path" and `consul connect envoy` command starts Envoy. This features have also been submitted in [PR#15114](https://github.com/hashicorp/consul/pull/15114).  
 
-
 ## Volume Issues
 
 Another difference that arose when migrating the tests from Linux to Windows, is that file system operations can't be executed while Windows containers are running. Currently, when running the tests a **named volume** is created and all of the required files are copied into that volume. Because of the constraint mentioned before, the workaround we implemented was creating a function (**stop_and_copy_files**) that stops the *kubernetes/pause* container and executes a script to copy the required files and finally starts the container again.

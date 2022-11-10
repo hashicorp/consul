@@ -1,10 +1,19 @@
-# Integration Tests on Windows
+# Envoy Integration Tests on Windows
 
 ## Index
 
+- [About](#about)
 - [Pre-built core images](#pre-built-core-images)
 - [Test images](#integration-test-images)
 - [Run Tests](#run-tests)
+
+## About
+
+This file is the entrypoint to understand how to execute Envoy integration tests on Windows as well as to understand the differences between Linux tests and Windows tests. Below you can find a list of relevant documentation that has been written while working on supporting the Envoy integration tests on Windows.
+
+- [Windows Testing Architecture](test/integration/connect/envoy/docs/windows-testing-architecture.md): On this file you will find why the testing architecture on Windows differs from Linux's.
+- [Build Images](build-support-windows/BUILD-IMAGES.md): Here you will find how to build the images required for executing the tests.
+- [Windows Troubleshooting](test/integration/connect/envoy/WindowsTroubleshooting.md): This file lists, among other things everything we needed to change/adapt for the existing tests to run in Windows containers.
 
 ## Pre-built core images
 
