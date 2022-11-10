@@ -41,6 +41,10 @@ The following outline shows how to format the configurations in the `GatewayClas
 * [`nodeSelector`](#nodeselector): string | optional
 * [`serviceType`](#servicetype): string | optional
 * [`tolerations`](#tolerations): array of objects | optional
+  * [`key`](#tolerations): string | required
+  * [`operator`](#tolerations): string | required
+  * [`value`](#tolerations): string | optional
+  * [`effect`](#tolerations): string | optional
 * [`useHostPorts`](#usehostports): boolean | optional
 
 ## Specification
@@ -172,45 +176,40 @@ You can specify the following strings:
 For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
 
 ### tolerations
-When operating Kubernetes, it is possible to apply a taint to a node running pods. Tolerations allow you to specify which pods are allowed to run on those tainted nodes. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for additional information.
+When operating Kubernetes, you can apply a _taint_ to a node. Kubernetes taints are properties that allow a node to repel pods. You can apply `tolerations` to your `GatewayClassConfig`, which allows pods to tolerate a taint and run on the nodes that would normally repel pods. 
 
 * Type: Array of Objects
 * Required: optional
 
-You can create an array of the following object to specify a toleration
-#### toleration.key
-The key value of the taint being described
+When a pod matches the taint configuration `key`, it processes the `operation` configuration to determine how to apply the `effect`. The `value` is a secondary property that allows you to refine the match. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for additional information.
 
-* Type: string
-* Required: yes
+The `tolerations` block has the following array of objects:
 
-#### toleration.operator
-The operation being applied to the taints being allowed.
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `key` | Specifies the `key` property for matching the node's taint configuration. Kubernetes taints are identified by their `key` properties. | String | Required |
+| `operator` | Specifies an operation to apply for matching the taint to the toleration. You can specify the following strings: <li>`Equal`: Performs the action specified in the `effect` configuration if the `value` of the `key` in the taint configuration matches the `value` of the pod's `key` configuration.</li><li>`Exists`:  Performs the action specified in the `effect` configuration if the `key` specified in the `tolerations` configuration exists in the taint configuration.</li> Default is `Equal`.| String | Required | 
+| `value` | Specifies a matching value in the taint node configuration when the `operator` is set to `Equal`. If a match is found, Consul API Gateway performs the action specified in the `effect` configuration. | String | Required if operator is set to `Equal`. |
+| `effect` | Specifies the action that should occur when pod attempts to run on a tainted node. You can specify the following strings: <li>`NoExecute`: The node does not run the pod.</li><li>`NoSchedule`: The node may run the pod, but does not schedule it.</li><li>`PreferNoSchedule`: The node may run and schedule the pod, but the prod has a lower precedence than other pods being scheduled.</li> Default is `NoSchedule`. | String | Optional | 
 
-* Type: string
-* Required: yes
-* Default: Equal
+In the following example, TBD 
 
-You can specify the following strings
-* `Equal`
-* `Exists`
+<CodeBlockConfig filename="gateway.yaml">
 
-#### toleration.value
-If the operator is "Equal", the value being matched
+  ```yaml
+  apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
+  kind: GatewayClassConfig
+  metadata:
+    name: example-gateway-class-config
+  spec:
+    tolerations:
+      key: key1
+      operator: Equal
+      value: value1
+      effect: NoSchedule
 
-* Type: string
-* Required: If operator is set to "Equal"
-
-#### toleration.effect
-The effect the taint should cause the pod
-
-* Type: string
-* Required: no
-
-You can specify the following strings:
-* `NoExecute`
-* `NoSchedule`
-* `PreferNoSchedule`
+```
+</CodeBlockConfig>
 
 ### useHostPorts
 If set to `true`, then the Envoy container ports are mapped to host ports.
