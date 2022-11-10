@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,11 +25,11 @@ func golden(t *testing.T, actual, filename string) string {
 		if dir := filepath.Dir(path); dir != "." {
 			require.NoError(t, os.MkdirAll(dir, 0755))
 		}
-		err := ioutil.WriteFile(path, []byte(actual), 0644)
+		err := os.WriteFile(path, []byte(actual), 0644)
 		require.NoError(t, err)
 	}
 
-	expected, err := ioutil.ReadFile(path)
+	expected, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(expected)
 }
