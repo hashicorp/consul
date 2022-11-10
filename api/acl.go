@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"time"
 
@@ -1047,7 +1046,7 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
+	ruleBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
 	}
@@ -1074,7 +1073,7 @@ func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
+	ruleBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
 	}

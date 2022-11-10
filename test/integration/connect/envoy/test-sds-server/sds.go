@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -100,12 +99,12 @@ func loadCertsFromPath(cache *cache.LinearCache, log hclog.Logger, dir string) e
 		}
 
 		certName := strings.TrimSuffix(entry.Name(), ".crt")
-		cert, err := ioutil.ReadFile(filepath.Join(dir, entry.Name()))
+		cert, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return err
 		}
 		keyFile := certName + ".key"
-		key, err := ioutil.ReadFile(filepath.Join(dir, keyFile))
+		key, err := os.ReadFile(filepath.Join(dir, keyFile))
 		if err != nil {
 			return err
 		}

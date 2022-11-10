@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -7120,7 +7119,7 @@ func writeFile(path string, data []byte) {
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		panic(err)
 	}
-	if err := ioutil.WriteFile(path, data, 0640); err != nil {
+	if err := os.WriteFile(path, data, 0640); err != nil {
 		panic(err)
 	}
 }

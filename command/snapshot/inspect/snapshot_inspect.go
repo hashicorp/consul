@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -123,7 +122,7 @@ func (c *cmd) Run(args []string) int {
 		readFile = f
 
 		// Assume the meta is colocated and error if not.
-		metaRaw, err := ioutil.ReadFile(path.Join(path.Dir(file), "meta.json"))
+		metaRaw, err := os.ReadFile(path.Join(path.Dir(file), "meta.json"))
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading meta.json from internal snapshot dir: %s", err))
 			return 1

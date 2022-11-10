@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"time"
 
@@ -138,7 +137,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 		// Give the caller back an empty reader since there's nothing to
 		// stream back.
-		return ioutil.NopCloser(bytes.NewReader([]byte(""))), nil
+		return io.NopCloser(bytes.NewReader([]byte(""))), nil
 
 	default:
 		return nil, fmt.Errorf("unrecognized snapshot op %q", args.Op)

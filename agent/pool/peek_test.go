@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -55,7 +55,7 @@ func TestPeekForTLS_not_TLS(t *testing.T) {
 			require.NoError(t, err)
 			require.False(t, isTLS)
 
-			all, err := ioutil.ReadAll(wrapped)
+			all, err := io.ReadAll(wrapped)
 			require.NoError(t, err)
 			require.Equal(t, tc.connData, all)
 		})
@@ -160,7 +160,7 @@ func testPeekForTLS_withTLS(t *testing.T, connData []byte) {
 			return
 		}
 
-		all, err := ioutil.ReadAll(tlsConn)
+		all, err := io.ReadAll(tlsConn)
 		if err != nil {
 			serverErrCh <- err
 			return
