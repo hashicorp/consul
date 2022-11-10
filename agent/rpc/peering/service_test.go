@@ -514,7 +514,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		require.Error(t, err)
 		testutil.RequireErrorContains(t, err, "connection refused")
 
-		require.Greater(t, time.Since(start), 5*time.Second)
+		require.Greater(t, time.Since(start), 3*time.Second)
 	})
 
 	testutil.RunStep(t, "peering can be established from token", func(t *testing.T) {
@@ -528,7 +528,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		// Capture peering token for re-use later
 		peeringToken = tokenResp.PeeringToken
 
-		// The context timeout is short, it checks that we do not wait the 350ms that we do when peering through mesh gateways
+		// The context timeout is short, it checks that we do not wait the 1s that we do when peering through mesh gateways
 		ctx, cancel = context.WithTimeout(context.Background(), 300*time.Millisecond)
 		t.Cleanup(cancel)
 
@@ -585,7 +585,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 			},
 		}))
 
-		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), 6*time.Second)
 		t.Cleanup(cancel)
 
 		// Call to establish should succeed when we fall back to remote server address.
@@ -630,7 +630,8 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 			},
 		}))
 
-		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		// Context is 1s sleep + 3s retry loop. Any longer and we're trying the remote gateway
+		ctx, cancel = context.WithTimeout(context.Background(), 4*time.Second)
 		t.Cleanup(cancel)
 
 		start := time.Now()
@@ -642,8 +643,8 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Dialing through a gateway is preceded by a mandatory 350ms sleep.
-		require.Greater(t, time.Since(start), 350*time.Millisecond)
+		// Dialing through a gateway is preceded by a mandatory 1s sleep.
+		require.Greater(t, time.Since(start), 1*time.Second)
 
 		// target.called is true when the tcproxy's conn handler was invoked.
 		// This lets us know that the "Establish" success flowed through the proxy masquerading as a gateway.
