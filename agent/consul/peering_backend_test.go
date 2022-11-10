@@ -198,7 +198,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 
 	type expectation struct {
 		addrs        []string
-		haveGateways bool
+		gatewayAddrs []string
 		err          string
 	}
 
@@ -214,13 +214,24 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			tc.setup(srv.fsm.State())
 		}
 
-		ring, haveGateways, err := backend.GetDialAddresses(testutil.Logger(t), nil, tc.peerID)
+		ring, gatewayRing, err := backend.GetDialAddresses(testutil.Logger(t), nil, tc.peerID)
 		if tc.expect.err != "" {
 			testutil.RequireErrorContains(t, err, tc.expect.err)
 			return
 		}
-		require.Equal(t, tc.expect.haveGateways, haveGateways)
+		require.Equal(t, len(tc.expect.gatewayAddrs) > 0, gatewayRing != nil)
 		require.NotNil(t, ring)
+
+		if len(tc.expect.gatewayAddrs) > 0 {
+			var addrs []string
+			gatewayRing.Do(func(value any) {
+				addr, ok := value.(string)
+
+				require.True(t, ok)
+				addrs = append(addrs, addr)
+			})
+			require.Equal(t, tc.expect.gatewayAddrs, addrs)
+		}
 
 		var addrs []string
 		ring.Do(func(value any) {
@@ -275,8 +286,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-				addrs:        []string{"5.6.7.8:8502"},
+				addrs: []string{"5.6.7.8:8502"},
 			},
 		},
 		{
@@ -294,8 +304,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-				addrs:        []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
 		},
 		{
@@ -309,8 +318,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-				addrs:        []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
 		},
 		{
@@ -326,8 +334,6 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-
 				// Fall back to remote server addresses
 				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
@@ -372,10 +378,9 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: true,
-
 				// Gateways come first, and we use their LAN addresses since this is for outbound communication.
-				addrs: []string{"6.7.8.9:8443", "5.6.7.8:8443", "1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs:        []string{"5.6.7.8:8443", "6.7.8.9:8443", "1.2.3.4:8502", "2.3.4.5:8503"},
+				gatewayAddrs: []string{"5.6.7.8:8443", "6.7.8.9:8443"},
 			},
 		},
 		{

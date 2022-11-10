@@ -1956,7 +1956,8 @@ func Test_Leader_PeeringSync_PeerThroughMeshGateways_ServerFallBack(t *testing.T
 	}))
 
 	// Create a peering at dialer by establishing a peering with acceptor's token
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	// 7 second = 1 second wait + 3 second gw retry + 3 second token addr retry
+	ctx, cancel = context.WithTimeout(context.Background(), 7*time.Second)
 	t.Cleanup(cancel)
 
 	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
