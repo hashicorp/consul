@@ -1043,7 +1043,8 @@ jobs:
       - run:
           name: get diff of test coverage from changes
           command: |
-            file_url_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/consul/contents/.github/cover.out?ref=$TEST_COVERAGE_GOLDEN_BRANCH" \
+            repository="consul"
+            file_url_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/$repository/contents/.github/cover.out?ref=$TEST_COVERAGE_GOLDEN_BRANCH" \
             -u $GH_USER:$GH_TOKEN)
             if [ $(echo $file_url_response | jq length) -eq 0 ]; then
               echo "No coverage report file found"
@@ -1061,7 +1062,8 @@ jobs:
       - run:
           name: post results to GitHub PR
           command: |
-            pr_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/consul/pulls?head=hashicorp:$CIRCLE_BRANCH&state=open" \
+            repository="consul"
+            pr_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/$repository/pulls?head=hashicorp:$CIRCLE_BRANCH&state=open" \
             -u $GH_USER:$GH_TOKEN)
             if [ $(echo $pr_response | jq length) -eq 0 ]; then
               echo "No PR found to update"
@@ -1073,7 +1075,7 @@ jobs:
             new_cov_percent=$(tail -1 /tmp/output/coverage_by_function.txt | awk -F' ' '{print $NF}')
             go tool cover -func=main_cov.txt -o main_cov_by_func.txt
             main_go_test_cov_percent=$(tail -1 main_cov_by_func.txt | awk -F' ' '{print $NF}')
-            artifacts=$(curl -X GET "https://circleci.com/api/v2/project/github/hashicorp/consul/$CIRCLE_BUILD_NUM/artifacts" \
+            artifacts=$(curl -X GET "https://circleci.com/api/v2/project/github/hashicorp/$repository/$CIRCLE_BUILD_NUM/artifacts" \
             -H "Accept: application/json" \
             -u "$CIRCLE_API_TOKEN:") 
             
