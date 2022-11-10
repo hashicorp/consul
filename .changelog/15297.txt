@@ -1,0 +1,4 @@
+```release-note:improvement
+api: updated the go module directive to 1.18.
+sdk: updated the go module directive to 1.18.
+```
