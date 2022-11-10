@@ -56,7 +56,6 @@ steps:
       url=https://github.com/gotestyourself/gotestsum/releases/download
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_${ARCH}.tar.gz" | \
       sudo tar -xz --overwrite -C /usr/local/bin gotestsum
-
   get-aws-cli: &get-aws-cli
     run:
       name: download and install AWS CLI
@@ -67,7 +66,6 @@ steps:
         gpg --verify awscliv2.sig awscliv2.zip
         unzip awscliv2.zip
         sudo ./aws/install
-
   # This step MUST be at the end of any set of steps due to the 'when' condition
   notify-slack-failure: &notify-slack-failure
     name: notify-slack-failure
@@ -94,7 +92,6 @@ steps:
       else
         echo "Not posting slack failure notifications for non-main branch"
       fi
-
 commands:
   assume-role:
     description: "Assume role to an ARN"
@@ -121,7 +118,6 @@ commands:
             echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
             echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
           fi
-
   run-go-test-full:
     parameters:
       go_test_flags:
@@ -134,15 +130,13 @@ commands:
       - run:
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile /tmp/coverage
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
             echo $PACKAGE_NAMES
             # some tests expect this umask, and arm images have a different default
             umask 0022
-
             << parameters.go_test_flags >>
-
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
@@ -154,14 +148,17 @@ commands:
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               ${GO_TEST_FLAGS-} \
-              -cover -coverprofile=coverage.txt
-
+              -cover -coverprofile=/tmp/coverage/test-coverage-$CIRCLE_NODE_INDEX || true
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - coverage
       - run: &rerun-fails-report
           name: "Re-run fails report"
           command: |
@@ -280,7 +277,6 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
-
   go-test-arm64:
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -355,7 +351,6 @@ jobs:
               -tags="$GOTAGS" -p 2 \
               -race -gcflags=all=-d=checkptr=0 \
               $pkgs
-
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
@@ -396,7 +391,6 @@ jobs:
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               -short
-
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
@@ -433,7 +427,6 @@ jobs:
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
               ./...
-
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
@@ -458,7 +451,6 @@ jobs:
               target="./pkg/bin/${GOOS}_${GOARCH}/"
               GOOS="$os" CGO_ENABLED=0 go build -o "${target}" -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}"
             done
-
       # save dev build to CircleCI
       - store_artifacts:
           path: ./pkg/bin
@@ -530,7 +522,6 @@ jobs:
             make dev
             mkdir -p /home/circleci/go/bin
             cp ./bin/consul /home/circleci/go/bin/consul
-
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
           root: /home/circleci/go/bin
@@ -722,11 +713,9 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-
               # -B resets the CI branch to main which may diverge history
               # but we will force push anyways.
               git checkout -B ci/main-assetfs-build main
-
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/dist/
               git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
@@ -989,7 +978,6 @@ jobs:
             fi
             echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
             git checkout ${LOCAL_COMMIT_SHA}
-
             short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
             echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
             echo "export TF_VAR_vpc_name=$short_ref" >> $BASH_ENV
@@ -1036,6 +1024,83 @@ jobs:
     steps:
       - run: "echo ok"
 
+  show-coverage:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: collate coverage output into single file and convert to readable format
+          command: |
+            mkdir -p /tmp/output
+            echo "mode: set" > cov.txt
+            for f in /tmp/coverage/*; do tail -n +2 $f >> cov.txt; done
+            go tool cover -func=cov.txt -o /tmp/output/coverage_by_function.txt
+            cp cov.txt /tmp/output/cov.txt
+      - run: sudo apt-get install jq
+      - run:
+          name: get diff of test coverage from changes
+          command: |
+            repository="consul"
+            file_url_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/$repository/contents/.github/cover.out?ref=$TEST_COVERAGE_GOLDEN_BRANCH" \
+            -u $GH_USER:$GH_TOKEN)
+            if [ $(echo $file_url_response | jq length) -eq 0 ]; then
+              echo "No coverage report file found"
+              exit 1
+            else
+              file_download_url=$(echo $file_url_response | jq -r '.download_url')
+            fi
+            echo "Downloading $file_download_url"
+            curl "$file_download_url" > main_cov.txt
+            echo "mode: set" > diff_cov.txt
+            comm -13 <(sort main_cov.txt) <(sort cov.txt) >> diff_cov.txt
+            go tool cover -html=diff_cov.txt -o /tmp/output/diff_coverage_heatmap.html
+      - store_artifacts:
+          path: /tmp/output
+      - run:
+          name: post results to GitHub PR
+          command: |
+            repository="consul"
+            pr_response=$(curl --location --request GET "https://api.github.com/repos/hashicorp/$repository/pulls?head=hashicorp:$CIRCLE_BRANCH&state=open" \
+            -u $GH_USER:$GH_TOKEN)
+            if [ $(echo $pr_response | jq length) -eq 0 ]; then
+              echo "No PR found to update"
+              exit 1
+            else
+              pr_comment_url=$(echo $pr_response | jq -r ".[]._links.comments.href")
+            fi
+            
+            new_cov_percent=$(tail -1 /tmp/output/coverage_by_function.txt | awk -F' ' '{print $NF}')
+            go tool cover -func=main_cov.txt -o main_cov_by_func.txt
+            main_go_test_cov_percent=$(tail -1 main_cov_by_func.txt | awk -F' ' '{print $NF}')
+            artifacts=$(curl -X GET "https://circleci.com/api/v2/project/github/hashicorp/$repository/$CIRCLE_BUILD_NUM/artifacts" \
+            -H "Accept: application/json" \
+            -u "$CIRCLE_API_TOKEN:") 
+            
+            heatmap_url=$(echo $artifacts | jq -r '.items|.[]|select(.path | endswith("heatmap.html"))|.url')
+            
+            message="All unit tests passed! Your changes bring test coverage over affected code to $new_cov_percent. Total coverage in main is $main_go_test_cov_percent. [See coverage delta for your changes]($heatmap_url)"
+            
+            curl --location --request POST "$pr_comment_url" \
+            -u hc-github-team-consul-core:$HC_GITHUB_TEAM_CONSUL_CORE_GITHUB_TOKEN \
+            --header 'Content-Type: application/json' \
+            --data-raw '{
+             "body": "'"$message"'"
+            }'
+      - add_ssh_keys:
+          fingerprints:
+            - "b1:4d:ed:a5:4f:e1:39:28:37:ab:bd:4d:06:e5:24:ca"
+      - run:
+          name: push latest coverage results to github
+          command: |
+            cp cov.txt .github/go_test_coverage.txt
+            git config user.email "github-team-consul-core@hashicorp.com"
+            git config user.name "hc-github-team-consul-core"
+            git add .github/go_test_coverage.txt
+            git commit -m "[skip ci] update test coverage"
+            git push --set-upstream origin $CIRCLE_BRANCH
 workflows:
   version: 2
   # verify-ci is a no-op workflow that must run on every PR. It is used in a
@@ -1089,6 +1154,15 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - show-coverage:
+          requires:
+            - go-test
+          filters:
+            branches:
+              ignore:
+                - main # we don't want tests run in main to overwrite coverage reports from the latest merge
+                - /^release\/.*$/ # we don't want to compare coverage on release branches
+
       - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
