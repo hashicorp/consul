@@ -3,7 +3,6 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
@@ -289,19 +288,7 @@ func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []s
 		}
 	}
 
-	addedHosts := make(map[string]struct{})
-	for _, host := range snap.IngressGateway.Hosts {
-		if _, ok := addedHosts[host]; ok {
-			continue
-		}
-
-		// Drop everything after the ':' from the host when constructing the DNS SANs.
-		hostSegments := strings.Split(host, ":")
-		if len(hostSegments) >= 1 {
-			dnsNames = append(dnsNames, hostSegments[0])
-			addedHosts[hostSegments[0]] = struct{}{}
-		}
-	}
+	dnsNames = append(dnsNames, snap.IngressGateway.Hosts...)
 
 	return dnsNames
 }
