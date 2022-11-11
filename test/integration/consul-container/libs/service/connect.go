@@ -64,7 +64,7 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (Service, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 

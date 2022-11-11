@@ -258,6 +258,9 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				//                 Do those endpoints get cleaned up some other way?
 				delete(snap.MeshGateway.WatchedServices, sid)
 				cancelFn()
+
+				// always remove the sid from the ServiceGroups when un-watch the service
+				delete(snap.MeshGateway.ServiceGroups, sid)
 			}
 		}
 		snap.MeshGateway.WatchedServicesSet = true
@@ -622,7 +625,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				continue
 			}
 
-			hostnames, ips := peerHostnamesAndIPs(meshLogger, peering.Name, peering.PeerServerAddresses)
+			hostnames, ips := peerHostnamesAndIPs(meshLogger, peering.Name, peering.GetAddressesToDial())
 			if len(hostnames) > 0 {
 				peerServers[peering.PeerServerName] = PeerServersValue{
 					Addresses: hostnames,

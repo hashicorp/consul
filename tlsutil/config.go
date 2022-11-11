@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -516,7 +515,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	pems := []string{}
 
 	readFn := func(path string) error {
-		pem, err := ioutil.ReadFile(path)
+		pem, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}

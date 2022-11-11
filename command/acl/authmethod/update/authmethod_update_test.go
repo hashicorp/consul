@@ -3,7 +3,7 @@ package authmethodupdate
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -455,7 +455,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 	})
 
 	ca2File := filepath.Join(testDir, "ca2.crt")
-	require.NoError(t, ioutil.WriteFile(ca2File, []byte(ca2.RootCert), 0600))
+	require.NoError(t, os.WriteFile(ca2File, []byte(ca2.RootCert), 0600))
 
 	t.Run("update all fields with cert file", func(t *testing.T) {
 		name := createAuthMethod(t)
@@ -750,7 +750,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 	})
 
 	ca2File := filepath.Join(testDir, "ca2.crt")
-	require.NoError(t, ioutil.WriteFile(ca2File, []byte(ca2.RootCert), 0600))
+	require.NoError(t, os.WriteFile(ca2File, []byte(ca2.RootCert), 0600))
 
 	t.Run("update all fields with cert file", func(t *testing.T) {
 		name := createAuthMethod(t)
@@ -849,7 +849,7 @@ func TestAuthMethodUpdateCommand_config(t *testing.T) {
 		methodName := createAuthMethod(t)
 		configFile := filepath.Join(testDir, "config.json")
 		jsonConfig := `{"SessionID":"update"}`
-		require.NoError(t, ioutil.WriteFile(configFile, []byte(jsonConfig), 0644))
+		require.NoError(t, os.WriteFile(configFile, []byte(jsonConfig), 0644))
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),

@@ -3,7 +3,6 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"path"
@@ -145,7 +144,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	// Check if this is a script, we may need to spill to disk
 	var script string
 	if len(spec.Script) != 0 {
-		tmpFile, err := ioutil.TempFile("", "rexec")
+		tmpFile, err := os.CreateTemp("", "rexec")
 		if err != nil {
 			a.logger.Debug("failed to make tmp file", "error", err)
 			exitCode = 255

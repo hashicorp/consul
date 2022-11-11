@@ -142,6 +142,9 @@ func (f *Filter) Filter(subject any) {
 		if f.filterGatewayServices(&v.Gateways) {
 			v.QueryMeta.ResultsFilteredByACLs = true
 		}
+		if f.filterCheckServiceNodes(&v.ImportedNodes) {
+			v.QueryMeta.ResultsFilteredByACLs = true
+		}
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subject, subject))
@@ -319,13 +322,11 @@ func (f *Filter) filterNodeServiceList(services *structs.NodeServiceList) bool {
 // true if any elements were removed.
 func (f *Filter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool {
 	csn := *nodes
-	var authzContext acl.AuthorizerContext
 	var removed bool
 
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		node.Service.FillAuthzContext(&authzContext)
-		if f.allowNode(node.Node.Node, &authzContext) && f.allowService(node.Service.Service, &authzContext) {
+		if node.CanRead(f.authorizer) == acl.Allow {
 			continue
 		}
 		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))

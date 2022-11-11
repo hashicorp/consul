@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -277,7 +276,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
@@ -436,6 +435,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
+	// default gRPC TLS port for servers is 8503
+	if c.Ports.GRPCTLS == nil && boolVal(c.ServerMode) {
+		grpcTlsPort = 8503
+	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)

@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"testing"
 
@@ -70,6 +71,8 @@ func TestLoad_IntegrationWithFlags_OSS(t *testing.T) {
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
 				rt.RPCConfig.EnableStreaming = true
+				rt.GRPCTLSPort = 8503
+				rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 			},
 		},
 	}

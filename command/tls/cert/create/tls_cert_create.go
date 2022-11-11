@@ -4,8 +4,8 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
@@ -150,12 +150,12 @@ func (c *cmd) Run(args []string) int {
 
 	caFile := strings.Replace(c.ca, "#DOMAIN#", c.domain, 1)
 	keyFile := strings.Replace(c.key, "#DOMAIN#", c.domain, 1)
-	cert, err := ioutil.ReadFile(caFile)
+	cert, err := os.ReadFile(caFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA: %s", err))
 		return 1
 	}
-	key, err := ioutil.ReadFile(keyFile)
+	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA key: %s", err))
 		return 1

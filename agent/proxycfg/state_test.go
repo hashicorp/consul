@@ -556,7 +556,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue != structs.MeshGatewayModeDefault {
-			ns.Proxy.MeshGateway.Mode = meshGatewayProxyConfigValue
+			for i := range ns.Proxy.Upstreams {
+				if u := &ns.Proxy.Upstreams[i]; u.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+					u.MeshGateway.Mode = meshGatewayProxyConfigValue
+				}
+			}
 		}
 
 		ixnMatch := TestIntentions()
@@ -3116,7 +3120,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					Mode:                   structs.ProxyModeTransparent,
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeLocal,
+					},
+					Mode: structs.ProxyModeTransparent,
 					Upstreams: structs.Upstreams{
 						{
 							DestinationName: "api-a",
@@ -3228,11 +3235,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 				},
 				{
-					// Peered upstream will have set up 3 more watches
 					requiredWatches: map[string]verifyWatchRequest{
 						upstreamPeerWatchIDPrefix + extApiUID.String(): genVerifyServiceSpecificPeeredRequest("api-a", "", "dc1", "peer-a", true),
 						upstreamPeerWatchIDPrefix + extDBUID.String():  genVerifyServiceSpecificPeeredRequest("db", "", "dc1", "peer-a", true),
 						peerTrustBundleIDPrefix + "peer-a":             genVerifyTrustBundleReadWatch("peer-a"),
+						"mesh-gateway:dc1":                             genVerifyGatewayWatch("dc1"),
 					},
 					events: []UpdateEvent{
 						{
@@ -3271,14 +3278,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, ok)
 						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
 
-						// Sanity check that local upstream maps are not populated
+						// Ensure that maps for non-peering endpoints are not populated.
 						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+
+						// Local gateway is  watched but there are no endpoints
+						require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+						_, ok = snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.False(t, ok)
 					},
 				},
 				{
-					// Add another instance of "api-a" service
 					events: []UpdateEvent{
 						{
 							CorrelationID: upstreamPeerWatchIDPrefix + extDBUID.String(),
@@ -3296,6 +3307,20 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 											PeerName: "peer-a",
 											Connect:  structs.ServiceConnect{},
 										},
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: "mesh-gateway:dc1",
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.1.2.3",
+										},
+										Service: structs.TestNodeServiceMeshGateway(t),
 									},
 								},
 							},
@@ -3319,12 +3344,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.NotNil(t, ep)
 						require.Len(t, ep, 1)
 
+						require.Equal(t, 1, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+
+						gwEp, _ := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.NotNil(t, gwEp)
+						require.Len(t, gwEp, 1)
+
 						// Expect a trust bundle
 						ptb, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
 						require.True(t, ok)
 						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
 
-						// Sanity check that local upstream maps are not populated
+						// Ensure that maps for non-peering endpoints are not populated.
 						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
@@ -3377,6 +3408,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							DestinationName: "api-a",
 							DestinationPeer: "peer-a",
 							LocalBindPort:   10001,
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
 						},
 					},
 				},
@@ -3401,6 +3435,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						peeringTrustBundlesWatchID:                     genVerifyTrustBundleListWatch("web"),
 						peerTrustBundleIDPrefix + "peer-a":             genVerifyTrustBundleReadWatch("peer-a"),
 						upstreamPeerWatchIDPrefix + extApiUID.String(): genVerifyServiceSpecificPeeredRequest("api-a", "", "dc1", "peer-a", true),
+						"mesh-gateway:dc1":                             genVerifyGatewayWatch("dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "should not be valid")
@@ -3422,6 +3457,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extApiUID))
 						_, ok = snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
 						require.False(t, ok) // but no data
+
+						// Local gateway is  watched but there are no endpoints
+						require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+						_, ok = snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.False(t, ok)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
@@ -3494,6 +3534,20 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						},
+						{
+							CorrelationID: "mesh-gateway:dc1",
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.1.2.3",
+										},
+										Service: structs.TestNodeServiceMeshGateway(t),
+									},
+								},
+							},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
@@ -3517,8 +3571,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						ep, _ := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
 						require.NotNil(t, ep)
 
-						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+						require.Equal(t, 1, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+
+						gwEp, _ := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.NotNil(t, gwEp)
+						require.Len(t, gwEp, 1)
 					},
 				},
 			},
