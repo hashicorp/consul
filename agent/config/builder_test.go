@@ -396,6 +396,13 @@ func TestBuilder_WarnGRPCTLS(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "grpc_tls is undefined with default manual cert",
+			hcl: `
+			tls { defaults { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
 			name: "grpc_tls is undefined with manual cert",
 			hcl: `
 			tls { grpc { cert_file = "defined" }}
