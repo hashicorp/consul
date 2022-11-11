@@ -1,4 +1,3 @@
 ```release-note:feature
 connect: Make tracing parameter configurable for Ingress Gateway
 ```
-
