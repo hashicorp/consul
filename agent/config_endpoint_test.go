@@ -439,7 +439,6 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 				{
 					Port:     8080,
 					Protocol: "tcp",
-
 					Services: []structs.IngressService{
 						{
 							Name:           "web",
