@@ -1085,7 +1085,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
 	switch {
-	case authzContext != nil && authzContext.Peer == structs.DefaultPeerKeyword && result.ACLIdentity != nil:
+	case (authzContext == nil || authzContext.Peer == structs.DefaultPeerKeyword) && result.ACLIdentity != nil:
 		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
 
 	case result.ACLIdentity != nil:
