@@ -354,9 +354,9 @@ function verify {
     XDS_TARGET=${XDS_TARGET} \
     /c/bats/bin/bats \
     --pretty /c/workdir/${CLUSTER}/bats" ; then
-    echogreen "✓ PASS"
+    echo "✓ PASS"
   else
-    echored "⨯ FAIL"
+    echo "⨯ FAIL"
     res=1
   fi
 
@@ -463,7 +463,7 @@ function run_tests {
 
   init_vars
 
-  echo "Initialize the workdir"
+  # Initialize the workdir
   init_workdir primary
 
   if is_set $REQUIRE_SECONDARY
@@ -483,17 +483,17 @@ function run_tests {
   
   # Allow vars.sh to set a reason to skip this test case based on the ENV
   if [ "$SKIP_CASE" != "" ] ; then
-    echoyellow "SKIPPING CASE: $SKIP_CASE"
+    echo "SKIPPING CASE: $SKIP_CASE"
     return 0
   fi
 
-  echo "Wipe volumes"
+  # Wipe state
   wipe_volumes
 
-  echo "Copying base files to shared volume"
+  # Copying base files to shared volume
   stop_and_copy_files
 
-  echo "Starting Consul primary cluster"
+  # Starting Consul primary cluster
   start_consul primary
 
   if is_set $REQUIRE_SECONDARY; then

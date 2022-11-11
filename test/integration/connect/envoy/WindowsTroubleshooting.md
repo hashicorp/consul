@@ -42,7 +42,8 @@ Where **TEST CASE** is the individual test case we want to execute (e.g. case-ba
 > [!TIP]
 > When executing the integration tests using **Powershell** you may need to set the ENVOY_VERSION value manually in line 20 of the [run-tests.windows.sh](run-tests.windows.sh) file.
 
-## Troubleshooting
+> [!WARNING]
+> When executing the integration tests for Windows environments, the **End of Line Sequence** of every related file and/or script will be changed from **LF** to **CRLF**.
 
 ### About Envoy Integration Tests on Windows
 

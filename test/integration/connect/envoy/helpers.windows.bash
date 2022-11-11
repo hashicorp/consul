@@ -6,8 +6,7 @@ MOD_ARG=""
 function split_hostport {
   local HOSTPORT="$@"
 
-  if [[ $HOSTPORT == *":"* ]]
-  then
+  if [[ $HOSTPORT == *":"* ]]; then
     MOD_ARG=$( <<< $HOSTPORT  sed 's/:/ /' )
   fi
 }
@@ -29,7 +28,7 @@ function retry {
   shift
 
   local errtrace=0
-  if grep -q "errtrace" <<< "$SHELLOPTS"
+  if grep -q "errtrace" <<<"$SHELLOPTS"
   then
     errtrace=1
     set +E
@@ -61,8 +60,7 @@ function retry {
     fi
   done
 
-  if test $errtrace -eq 1
-  then
+  if test $errtrace -eq 1; then
     set -E
   fi
   return 1
@@ -81,34 +79,6 @@ function retry_long {
   retry 30 1 "$@"
 }
 
-function echored {
-  tput setaf 1
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echogreen {
-  tput setaf 2
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoyellow {
-  tput setaf 3
-  tput bold
-  echo $@
-  tput sgr0
-}
-
-function echoblue {
-  tput setaf 4
-  tput bold
-  echo $@
-  tput sgr0
-}
-
 function is_set {
    # Arguments:
    #   $1 - string value to check its truthiness
@@ -117,7 +87,7 @@ function is_set {
    #   0 - is truthy (backwards I know but allows syntax like `if is_set <var>` to work)
    #   1 - is not truthy
 
-   local val=$(tr '[:upper:]' '[:lower:]' <<< "$1")
+   local val=$(tr '[:upper:]' '[:lower:]' <<<"$1")
    case $val in
       1 | t | true | y | yes)
          return 0
@@ -137,7 +107,7 @@ function get_cert {
     SNI_FLAG="-servername $SERVER_NAME"
   fi
   CERT=$(openssl s_client -connect $HOSTPORT $SNI_FLAG -showcerts </dev/null)
-  openssl x509 -noout -text <<< "$CERT"
+  openssl x509 -noout -text <<<"$CERT"
 }
 
 function assert_proxy_presents_cert_uri {
@@ -200,7 +170,7 @@ function assert_envoy_version {
   # Envoy 1.8.0 returns a plain text line like
   # envoy 5d25f466c3410c0dfa735d7d4358beb76b2da507/1.8.0/Clean/DEBUG live 3 3 0
   # Later versions return JSON.
-  if (echo $output | grep '^envoy') ; then
+  if (echo $output | grep '^envoy'); then
     VERSION=$(echo $output | cut -d ' ' -f 2)
   else
     VERSION=$(echo $output | jq -r '.version')
@@ -213,11 +183,11 @@ function assert_envoy_version {
 
   # 1.20.2, 1.19.3 and 1.18.6 are special snowflakes in that the version for
   # the release is reported with a '-dev' suffix (eg 1.20.2-dev).
-  if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
+  if [ "$ENVOY_VERSION" = "1.20.2" ]; then
     ENVOY_VERSION="1.20.2-dev"
-  elif [ "$ENVOY_VERSION" = "1.19.3" ] ; then
+  elif [ "$ENVOY_VERSION" = "1.19.3" ]; then
     ENVOY_VERSION="1.19.3-dev"
-  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+  elif [ "$ENVOY_VERSION" = "1.18.6" ]; then
     ENVOY_VERSION="1.18.6-dev"
   fi
 
@@ -425,22 +395,19 @@ function assert_envoy_metric {
 
   METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
 
-  if [ -z "${METRICS}" ]
-  then
+  if [ -z "${METRICS}" ]; then
     echo "Metric not found" 1>&2
     return 1
   fi
 
-  GOT_COUNT=$(awk -F: '{print $2}' <<< "$METRICS" | head -n 1 | tr -d ' ')
+  GOT_COUNT=$(awk -F: '{print $2}' <<<"$METRICS" | head -n 1 | tr -d ' ')
 
-  if [ -z "$GOT_COUNT" ]
-  then
+  if [ -z "$GOT_COUNT" ]; then
     echo "Couldn't parse metric count" 1>&2
     return 1
   fi
 
-  if [ $EXPECT_COUNT -ne $GOT_COUNT ]
-  then
+  if [ $EXPECT_COUNT -ne $GOT_COUNT ]; then
     echo "$METRIC - expected count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
     return 1
   fi
@@ -454,22 +421,19 @@ function assert_envoy_metric_at_least {
 
   METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
 
-  if [ -z "${METRICS}" ]
-  then
+  if [ -z "${METRICS}" ]; then
     echo "Metric not found" 1>&2
     return 1
   fi
 
-  GOT_COUNT=$(awk -F: '{print $2}' <<< "$METRICS" | head -n 1 | tr -d ' ')
+  GOT_COUNT=$(awk -F: '{print $2}' <<<"$METRICS" | head -n 1 | tr -d ' ')
 
-  if [ -z "$GOT_COUNT" ]
-  then
+  if [ -z "$GOT_COUNT" ]; then
     echo "Couldn't parse metric count" 1>&2
     return 1
   fi
 
-  if [ $EXPECT_COUNT -gt $GOT_COUNT ]
-  then
+  if [ $EXPECT_COUNT -gt $GOT_COUNT ]; then
     echo "$METRIC - expected >= count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
     return 1
   fi
@@ -483,22 +447,19 @@ function assert_envoy_aggregate_metric_at_least {
 
   METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
 
-  if [ -z "${METRICS}" ]
-  then
+  if [ -z "${METRICS}" ]; then
     echo "Metric not found" 1>&2
     return 1
   fi
 
-  GOT_COUNT=$(awk '{ sum += $2 } END { print sum }' <<< "$METRICS")
+  GOT_COUNT=$(awk '{ sum += $2 } END { print sum }' <<<"$METRICS")
 
-  if [ -z "$GOT_COUNT" ]
-  then
+  if [ -z "$GOT_COUNT" ]; then
     echo "Couldn't parse metric count" 1>&2
     return 1
   fi
 
-  if [ $EXPECT_COUNT -gt $GOT_COUNT ]
-  then
+  if [ $EXPECT_COUNT -gt $GOT_COUNT ]; then
     echo "$METRIC - expected >= count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
     return 1
   fi
@@ -608,8 +569,7 @@ function docker_consul_for_proxy_bootstrap {
 }
 
 function docker_exec {
-  if ! docker.exe exec -i "$@"
-  then
+  if ! docker.exe exec -i "$@"; then
     echo "Failed to execute: docker exec -i $@" 1>&2
     return 1
   fi
@@ -719,12 +679,12 @@ function must_pass_http_request {
     extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
   fi
   case "$METHOD" in
-    GET)
-      ;;
+    GET) ;;
+
     DELETE)
       extra_args="$extra_args -X${METHOD}"
       ;;
-    PUT|POST)
+    PUT | POST)
       extra_args="$extra_args -d'{}' -X${METHOD}"
       ;;
     *)
@@ -752,12 +712,12 @@ function must_fail_http_request {
     HEAD)
       extra_args="$extra_args -I"
       ;;
-    GET)
-      ;;
+    GET) ;;
+
     DELETE)
       extra_args="$extra_args -X${METHOD}"
       ;;
-    PUT|POST)
+    PUT | POST)
       extra_args="$extra_args -d'{}' -X${METHOD}"
       ;;
     *)
@@ -782,8 +742,7 @@ function gen_envoy_bootstrap {
   ADMIN_HOST="0.0.0.0"
 
   PROXY_ID="$SERVICE"
-  if ! is_set "$IS_GW"
-  then
+  if ! is_set "$IS_GW"; then
     PROXY_ID="$SERVICE-sidecar-proxy"
     ADMIN_HOST="127.0.0.1"
   fi
@@ -893,15 +852,16 @@ function set_ttl_check_state {
   get_consul_hostname $DC
 
   case "$CHECK_STATE" in
-    pass)
-      ;;
-    warn)
-      ;;
-    fail)
-      ;;
+    pass) ;;
+
+    warn) ;;
+
+    fail) ;;
+
     *)
       echo "invalid ttl check state '${CHECK_STATE}'" >&2
       return 1
+      ;;
   esac
 
   retry_default docker_consul_exec "$DC" bash -c "curl -sL -XPUT 'http://${CONSUL_HOSTNAME}:8500/v1/agent/check/warn/${CHECK_ID}' >/dev/null"
@@ -1064,7 +1024,8 @@ function assert_lambda_envoy_dynamic_http_filter_exists {
 }
 
 function varsub {
-  local file=$1 ; shift
+  local file=$1
+  shift
   for v in "$@"; do
     sed -i "s/\${$v}/${!v}/g" $file
   done

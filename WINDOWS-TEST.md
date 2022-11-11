@@ -37,4 +37,4 @@ To run a single test case, the name should be specified. For instance, to run th
 go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-badauthz" -win=true
 ```
 
-> :warning: Note that the flag `-win=true` must be specified as shown in the above commands. This flag is very important because the same allows to indicate that the tests will be executed on the Windows environment.
+> :warning: Note that the flag `-win=true` must be specified as shown in the above commands. This flag is very important because the same allows to indicate that the tests will be executed on the Windows environment. When executing the Envoy integration tests the **End of Line Sequence** of every related file and or script will be automatically changed from **LF to CRLF**.  
