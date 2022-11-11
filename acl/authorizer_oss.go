@@ -10,6 +10,13 @@ type AuthorizerContext struct {
 	Peer string
 }
 
+func (c *AuthorizerContext) PeerOrEmpty() string {
+	if c == nil {
+		return ""
+	}
+	return c.Peer
+}
+
 // enterpriseAuthorizer stub interface
 type enterpriseAuthorizer interface{}
 

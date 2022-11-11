@@ -747,7 +747,7 @@ func (p *policyAuthorizer) NodeRead(name string, ctx *AuthorizerContext) Enforce
 	//    has service:write permissions on some name.
 	//  - The requester has permissions to read all nodes in its local cluster,
 	//    therefore it can also read imported nodes.
-	if ctx != nil && ctx.Peer != "" {
+	if ctx.PeerOrEmpty() != "" {
 		if p.ServiceWriteAny(nil) == Allow {
 			return Allow
 		}
@@ -796,7 +796,7 @@ func (p *policyAuthorizer) ServiceRead(name string, ctx *AuthorizerContext) Enfo
 	//    has service:write permissions on some name.
 	//  - The requester has permissions to read all services in its local cluster,
 	//    therefore it can also read imported services.
-	if ctx != nil && ctx.Peer != "" {
+	if ctx.PeerOrEmpty() != "" {
 		if p.ServiceWriteAny(nil) == Allow {
 			return Allow
 		}
