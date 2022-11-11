@@ -1094,7 +1094,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// This check is done to warn users that a config change is mandatory.
 	if rt.TLS.GRPC.CertFile != "" || (rt.TLS.AutoTLS && rt.TLS.GRPC.UseAutoCert) {
 		// If only `ports.grpc` is enabled, and the gRPC TLS port is not explicitly defined by the user,
-		// check the grpc TLS settings for incompatibilibies.
+		// check the grpc TLS settings for incompatibilities.
 		if rt.GRPCPort > 0 && c.Ports.GRPCTLS == nil {
 			return RuntimeConfig{}, fmt.Errorf("the `ports.grpc` listener no longer supports TLS. Use `ports.grpc_tls` instead. This message is appearing because GRPC is configured to use TLS, but `ports.grpc_tls` is not defined")
 		}
