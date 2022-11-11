@@ -2022,23 +2022,14 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 
-	authzContext := new(acl.AuthorizerContext)
-	csn.Service.FillAuthzContext(authzContext)
+	var authzContext acl.AuthorizerContext
+	csn.Service.FillAuthzContext(&authzContext)
 
-	if csn.Node.PeerName != "" || csn.Service.PeerName != "" {
-		if authz.ServiceReadAll(authzContext) == acl.Allow ||
-			authz.ServiceWriteAny(authzContext) == acl.Allow {
-
-			return acl.Allow
-		}
+	if authz.NodeRead(csn.Node.Node, &authzContext) != acl.Allow {
 		return acl.Deny
 	}
 
-	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
-		return acl.Deny
-	}
-
-	if authz.ServiceRead(csn.Service.Service, authzContext) != acl.Allow {
+	if authz.ServiceRead(csn.Service.Service, &authzContext) != acl.Allow {
 		return acl.Deny
 	}
 	return acl.Allow
