@@ -92,7 +92,7 @@ function assert_trace_count {
   run curl -s -f localhost:9992
   [ "$status" -eq 0 ]
 
-  retry_default assert_trace_count localhost:9992 1
+  retry_long assert_trace_count localhost:9992 1
 }
 
 @test "client sampling with 100% should send traces to zipkin/jaeger" {
