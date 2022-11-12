@@ -3,13 +3,13 @@ package bootstrap
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 )
 
@@ -52,19 +52,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var terminalToken []byte
+	var terminalToken string
 	var err error
 
 	if len(args) == 1 {
-		switch args[0] {
-		case "":
-			terminalToken = []byte{}
-		case "-":
-			terminalToken, err = ioutil.ReadAll(os.Stdin)
-		default:
-			file := args[0]
-			terminalToken, err = ioutil.ReadFile(file)
-		}
+		terminalToken, err = helpers.LoadDataSourceNoRaw(args[0], os.Stdin)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading provided token: %v", err))
 			return 1
@@ -72,7 +64,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Remove newline from the token if it was passed by stdin
-	boottoken := strings.TrimSuffix(string(terminalToken), "\n")
+	boottoken := strings.TrimSpace(terminalToken)
 
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -81,11 +73,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var t *api.ACLToken
-	if len(boottoken) > 0 {
-		t, _, err = client.ACL().BootstrapOpts(boottoken)
-	} else {
-		t, _, err = client.ACL().Bootstrap()
-	}
+	t, _, err = client.ACL().BootstrapWithToken(boottoken)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed ACL bootstrapping: %v", err))
 		return 1

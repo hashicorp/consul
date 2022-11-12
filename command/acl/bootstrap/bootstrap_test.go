@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -110,12 +109,12 @@ func TestBootstrapCommand_Initial(t *testing.T) {
 	cmd := New(ui)
 
 	// Create temp file
-	f, err := ioutil.TempFile("", "consul-token.token")
+	f, err := os.CreateTemp("", "consul-token.token")
 	assert.Nil(t, err)
 	defer os.Remove(f.Name())
 
 	// Write the token to the file
-	err = ioutil.WriteFile(f.Name(), []byte("2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"), 0700)
+	err = os.WriteFile(f.Name(), []byte("2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"), 0700)
 	assert.Nil(t, err)
 
 	args := []string{

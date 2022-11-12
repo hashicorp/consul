@@ -223,7 +223,7 @@ func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, rep
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("Provided token cannot be used")
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
 		}
 	}
 

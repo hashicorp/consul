@@ -506,28 +506,16 @@ type BootstrapRequest struct {
 // Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
 // to get the first management token.
 func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
-	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, nil, err
-	}
-	wm := &WriteMeta{RequestTime: rtt}
-	var out ACLToken
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-	return &out, wm, nil
+	return a.BootstrapWithToken("")
 }
 
-// BootstrapOpts is used to get the initial bootstrap token or pass in the one that was provided in the API
-func (a *ACL) BootstrapOpts(btoken string) (*ACLToken, *WriteMeta, error) {
+// BootstrapWithToken is used to get the initial bootstrap token or pass in the one that was provided in the API
+func (a *ACL) BootstrapWithToken(btoken string) (*ACLToken, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
-	r.obj = &BootstrapRequest{
-		BootstrapSecret: btoken,
+	if btoken != "" {
+		r.obj = &BootstrapRequest{
+			BootstrapSecret: btoken,
+		}
 	}
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -38,10 +39,9 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 		Datacenter: s.agent.config.Datacenter,
 	}
 
-	if req.ContentLength != 0 {
-		var bootstrapSecretRequest struct {
-			BootstrapSecret string
-		}
+	// Handle optional request body
+	if req.ContentLength > 0 {
+		var bootstrapSecretRequest api.BootstrapRequest
 		if err := lib.DecodeJSON(req.Body, &bootstrapSecretRequest); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
