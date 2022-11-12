@@ -18,6 +18,9 @@ func TestCreateCSR_FormatDNSSANs(t *testing.T) {
 		"foo.example.com",
 		"foo.example.com:8080",
 		"bar.example.com",
+		"*.example.com",
+		":8080",
+		"",
 	}, nil)
 	require.NoError(t, err)
 
@@ -28,5 +31,6 @@ func TestCreateCSR_FormatDNSSANs(t *testing.T) {
 	require.Equal(t, []string{
 		"foo.example.com",
 		"bar.example.com",
+		"*.example.com",
 	}, req.DNSNames)
 }
