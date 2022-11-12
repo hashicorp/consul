@@ -53,12 +53,12 @@ func CreateCSR(uri CertURI, privateKey crypto.Signer,
 	formattedDNSNames := make([]string, 0)
 	for _, host := range dnsNames {
 		hostSegments := strings.Split(host, ":")
-		formattedHost := hostSegments[0]
-		if _, ok := uniqueNames[formattedHost]; ok {
+		if len(hostSegments) == 0 || hostSegments[0] == "" {
 			continue
 		}
 
-		if len(hostSegments) >= 1 {
+		formattedHost := hostSegments[0]
+		if _, ok := uniqueNames[formattedHost]; !ok {
 			formattedDNSNames = append(formattedDNSNames, formattedHost)
 			uniqueNames[formattedHost] = struct{}{}
 		}
