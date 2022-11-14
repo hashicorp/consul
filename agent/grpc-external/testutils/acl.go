@@ -5,23 +5,43 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestAuthorizerAllowAll(t *testing.T) resolver.Result {
+func ACLAnonymous(t *testing.T) resolver.Result {
 	t.Helper()
 
-	return resolver.Result{Authorizer: acl.AllowAll()}
+	return resolver.Result{
+		Authorizer: acl.DenyAll(),
+		ACLIdentity: &structs.ACLToken{
+			AccessorID: structs.ACLTokenAnonymousID,
+		},
+	}
 }
 
-func TestAuthorizerDenyAll(t *testing.T) resolver.Result {
+func ACLAllowAll(t *testing.T) resolver.Result {
 	t.Helper()
 
-	return resolver.Result{Authorizer: acl.DenyAll()}
+	return resolver.Result{
+		Authorizer:  acl.AllowAll(),
+		ACLIdentity: randomACLIdentity(t),
+	}
 }
 
-func TestAuthorizerServiceWriteAny(t *testing.T) resolver.Result {
+func ACLNoPermissions(t *testing.T) resolver.Result {
+	t.Helper()
+
+	return resolver.Result{
+		Authorizer:  acl.DenyAll(),
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
+func ACLServiceWriteAny(t *testing.T) resolver.Result {
 	t.Helper()
 
 	policy, err := acl.NewPolicyFromSource(`
@@ -34,10 +54,13 @@ func TestAuthorizerServiceWriteAny(t *testing.T) resolver.Result {
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	require.NoError(t, err)
 
-	return resolver.Result{Authorizer: authz}
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
 }
 
-func TestAuthorizerServiceRead(t *testing.T, serviceName string) resolver.Result {
+func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 	t.Helper()
 
 	aclRule := &acl.Policy{
@@ -53,5 +76,15 @@ func TestAuthorizerServiceRead(t *testing.T, serviceName string) resolver.Result
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
 	require.NoError(t, err)
 
-	return resolver.Result{Authorizer: authz}
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
+func randomACLIdentity(t *testing.T) structs.ACLIdentity {
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	return &structs.ACLToken{AccessorID: id}
 }
