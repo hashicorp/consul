@@ -26,22 +26,21 @@ A breaking change was made in Consul 1.14 that:
 
 #### Changes to gRPC TLS configuration
 
-**Make configuration changes** if using sidecar proxies or gateways that include any of the following configuration file values:
-1. [`ports.https`](/docs/agent/config/config-files#https_port) - Encrypts gRPC in Consul 1.12 and prior
-1. [`auto_encrypt`](/docs/agent/config/config-files#auto_encrypt) - Encrypts gRPC in Consul 1.13 and prior
-1. [`auto_config`](/docs/agent/config/config-files#auto_config) - Encrypts gRPC in Consul 1.13 and prior
+**Make configuration changes** if using [`ports.grpc`](/docs/agent/config/config-files#grpc_port) in conjunction with any of the following settings that enables encryption:
+1. [`tls.grpc`](/docs/agent/config/config-files#tls_grpc)
+1. [`tls.defaults`](/docs/agent/config/config-files#tls_defaults)
+1. [`auto_encrypt`](/docs/agent/config/config-files#auto_encrypt)
+1. [`auto_config`](/docs/agent/config/config-files#auto_config)
 
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
 Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
 for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
-files#grpc_port) configuration **will stop supporting encryption in a future release**. As of version 1.14,
-[`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the recommended configuration to encrypt gRPC traffic.
-The default value for gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
+files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+[`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
+The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
-For most environments, the Envoy communication to Consul is loop-back only and does not benefit from encryption.
-
-If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility with future releases.
+If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility.
 
 #### Changes to peering
 
