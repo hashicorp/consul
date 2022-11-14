@@ -7,10 +7,6 @@ description: >-
 
 # Cluster Peering on Kubernetes
 
-~> **Cluster peering is currently in beta:** Functionality associated
-with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in
-beta may have performance issues, scaling issues, and limited support.<br/><br/>Cluster peering is not currently available in the HCP Consul offering.
-
 To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
 
 The following CRDs are used to create and manage a peering connection:
@@ -26,9 +22,9 @@ As of Consul v1.14, you can also [implement service failovers and redirects to c
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
 
-- Consul v1.13.1 or later
+- Consul v1.14.0 or later
 - At least two Kubernetes clusters
-- The installation must be running on Consul on Kubernetes version 0.47.1 or later
+- The installation must be running on Consul on Kubernetes version 1.0.0 or later
 
 ### Prepare for installation
 
@@ -53,7 +49,7 @@ Complete the following procedure after you have provisioned a Kubernetes cluster
     ```yaml
     global:
       name: consul
-      image: "hashicorp/consul:1.13.1"
+      image: "hashicorp/consul:1.14.0"
       peering:
         enabled: true
     connectInject:
@@ -88,7 +84,7 @@ Install Consul on Kubernetes by using the CLI to apply `values.yaml` to each clu
       ```
 
       ```shell-session
-    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "0.47.1" --values values.yaml --kube-context $CLUSTER1_CONTEXT
+    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.0" --values values.yaml --kube-context $CLUSTER1_CONTEXT
       ```
 
   1. In `cluster-02`, run the following commands:
@@ -98,7 +94,7 @@ Install Consul on Kubernetes by using the CLI to apply `values.yaml` to each clu
       ```
 
      ```shell-session
-    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "0.47.1" --values values.yaml --kube-context $CLUSTER2_CONTEXT
+    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.0" --values values.yaml --kube-context $CLUSTER2_CONTEXT
      ```
 
 ## Create a peering connection for Consul on Kubernetes
