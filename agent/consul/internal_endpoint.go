@@ -619,8 +619,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	var authzCtx acl.AuthorizerContext
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
