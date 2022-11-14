@@ -288,9 +288,9 @@ not be open to the world.
 
 ### Accessing the Consul HTTP API
 
-By default, the Helm installation of Consul on Kubernetes uses [Consul Dataplanes](/docs/connect/dataplane) instead of client agents.
+While technically any listening agent can respond to the HTTP API, communicating with the local Consul node has important caching behavior and allows you to use the simpler [`/agent` endpoints for services and checks](/api-docs/agent).
 
-If you use client agents in your deployment, you can access agents, using the [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/). The Consul HTTP API should be accessed by communicating with a client agent running on the same node. While technically any listening agent can respond to the HTTP API, communicating with the local agent has important caching behavior, and allows you to use the simpler [`/agent` endpoints for services and checks](/api-docs/agent).
+To find information about a node, you can use the [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
 
 An example pod specification is shown below. In addition to pods, anything
 with a pod template can also access the downward API and can therefore also

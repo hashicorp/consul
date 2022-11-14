@@ -117,7 +117,7 @@ The following table describes traffic behaviors when using the `destination` fie
 | L7                                   | Hostname                  | No                           | <nobr>Allowed</nobr>     | A `Host` or `:authority` header is required.                                                  |
 | L7                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
 
-You can provide a `caFile` to secure traffic between unencrypted clients that connect to external services through the terminating gateway.
+You can provide a `caFile` to secure traffic that connect to external services through the terminating gateway.
 Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
 
 -> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
@@ -196,7 +196,7 @@ $ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catal
 true
 ```
 
-If ACLs and TLS are enabled :
+If ACLs and TLS are enabled:
 
 ```shell-session
 $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
