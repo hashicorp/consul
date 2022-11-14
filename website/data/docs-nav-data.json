@@ -467,16 +467,24 @@
             "title": "Mesh Gateways",
             "routes": [
               {
+                "title": "Overview",
+                "path": "connect/gateways/mesh-gateway"
+              },
+              {
                 "title": "WAN Federation",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
               },
               {
-                "title": "Enabling Service-to-service Traffic Across Datacenters",
-                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+                "title": "Enabling Service-to-service Traffic Across WAN Federated Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Cluster Peering",
+                "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Peered Clusters",
