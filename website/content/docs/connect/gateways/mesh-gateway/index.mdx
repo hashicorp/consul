@@ -1,40 +1,31 @@
 ---
 layout: docs
-page_title: Mesh Gateways between Datacenters
+page_title: Mesh Gateways
 description: >-
-  Mesh gateways are specialized proxies that route data between services that cannot communicate directly. Learn how to enable service-to-service traffic across datacenters and review example configuration entries.
+  Mesh gateways are specialized proxies that route data between services that cannot communicate directly. Learn how mesh gateways are used in different Consul configurations.
 ---
 
-# Mesh Gateways between Datacenters
-
--> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
+# Mesh Gateways
 
 Mesh gateways enable service mesh traffic to be routed between different Consul datacenters.
-Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services
-in all datacenters isn't feasible.
-
-Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
-
-The following diagram describes the architecture for using mesh gateways for cross-datacenter communication:<a name="mesh-architecture-diagram"/>
-
-![Mesh Gateway Architecture](/img/mesh-gateways.png)
-
--> **Mesh Gateway Tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn important concepts associated with using mesh gateways for connecting services across datacenters.
+Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services in all datacenters isn't feasible.
 
 ## Prerequisites
 
-Ensure that your Consul environment meets the following requirements.
+Mesh gateways can be used with any of the following Consul configrations for managing separate datacenters or partitions.
+
+1. WAN Federation
+  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+  * [Mesh gateways can be used to route all WAN traffic, including from Consul servers](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+2. Cluster Peering
+  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers)
+  * [Mesh gateways can be used to route control-plane traffic from Consul servers](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
+3. Admin Partitions
+  * [Mesh gateways can be used to route service-to-service traffic between admin partitions in the same Consul datacenter](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
 
 ### Consul
 
-* Consul version 1.6.0 or newer.
-* A local Consul agent is required to manage its configuration.
-* Consul [Connect](/docs/agent/config/config-files#connect) must be enabled in both datacenters.
-* Each [datacenter](/docs/agent/config/config-files#datacenter) must have a unique name.
-* Each datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
-* The [primary datacenter](/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
-* [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+Review the [specific guide](#prerequisites) for your use case to determined the required version of Consul.
 
 ### Network
 
@@ -64,18 +55,17 @@ Configure the following settings to register the mesh gateway as a service in Co
 ### Modes
 
 Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.
-Depending on your network, the proxy's connection to the gateway can operate in one of the following modes (refer to the [mesh-architecture-diagram](#mesh-architecture-diagram)):
+Depending on your network, the proxy's connection to the gateway can operate in one of the following modes:
 
-* `none` - (Default) No gateway is used and a service mesh connect proxy makes its outbound connections directly
-  to the destination services.
+* `none` - No gateway is used and a service mesh connect proxy makes its outbound connections directly
+  to the destination services. This is the default for WAN federation. This setting is invalid for peered clusters
+  and will be treated as remote instead. 
 
 * `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the
   same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter.
-  Refer to the flow labeled `local` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
 
 * `remote` - The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter.
-  The gateway forwards the data to the final destination service.
-  Refer to the flow labeled `remote` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
+  The gateway forwards the data to the final destination service. This is the default for peered clusters.
 
 ### Connect Proxy Configuration
 
