@@ -365,6 +365,90 @@ func TestBuilder_tlsVersion(t *testing.T) {
 	require.Contains(t, b.err.Error(), invalidTLSVersion)
 }
 
+func TestBuilder_WarnGRPCTLS(t *testing.T) {
+	tests := []struct {
+		name      string
+		hcl       string
+		expectErr bool
+	}{
+		{
+			name:      "success",
+			hcl:       ``,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is disabled but explicitly defined",
+			hcl: `
+			ports { grpc_tls = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			// This behavior is a little strange, but it allows users
+			// to setup TLS and disable the port if they wish.
+			expectErr: false,
+		},
+		{
+			name: "grpc is disabled",
+			hcl: `
+			ports { grpc = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is undefined with default manual cert",
+			hcl: `
+			tls { defaults { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with manual cert",
+			hcl: `
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto encrypt",
+			hcl: `
+			auto_encrypt { tls = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto config",
+			hcl: `
+			auto_config { enabled = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+	}
+	for _, tc := range tests {
+		// using dev mode skips the need for a data dir
+		// and enables both grpc ports by default.
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "listener no longer supports TLS")
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
 func TestBuilder_tlsCipherSuites(t *testing.T) {
 	b := builder{}
 
