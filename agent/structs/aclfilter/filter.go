@@ -61,12 +61,7 @@ func (f *Filter) Filter(subject any) {
 		v.QueryMeta.ResultsFilteredByACLs = f.filterIntentions(&v.Intentions)
 
 	case *structs.IndexedNodeDump:
-		if f.filterNodeDump(&v.Dump) {
-			v.QueryMeta.ResultsFilteredByACLs = true
-		}
-		if f.filterNodeDump(&v.ImportedDump) {
-			v.QueryMeta.ResultsFilteredByACLs = true
-		}
+		v.QueryMeta.ResultsFilteredByACLs = f.filterNodeDump(&v.Dump)
 
 	case *structs.IndexedServiceDump:
 		v.QueryMeta.ResultsFilteredByACLs = f.filterServiceDump(&v.Dump)
