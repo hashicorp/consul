@@ -126,7 +126,7 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 
 		aclResolver := &MockACLResolver{}
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-			Return(testutils.TestAuthorizerServiceRead(t, tc.registerReq.Service.ID), nil)
+			Return(testutils.ACLServiceRead(t, tc.registerReq.Service.ID), nil)
 
 		options := structs.QueryOptions{Token: testToken}
 		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -233,7 +233,7 @@ func TestGetEnvoyBootstrapParams_Error(t *testing.T) {
 		aclResolver := &MockACLResolver{}
 
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-			Return(testutils.TestAuthorizerServiceRead(t, proxyServiceID), nil)
+			Return(testutils.ACLServiceRead(t, proxyServiceID), nil)
 
 		options := structs.QueryOptions{Token: testToken}
 		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -329,7 +329,7 @@ func TestGetEnvoyBootstrapParams_PermissionDenied(t *testing.T) {
 	// Mock the ACL resolver to return a deny all authorizer
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerDenyAll(t), nil)
+		Return(testutils.ACLNoPermissions(t), nil)
 
 	options := structs.QueryOptions{Token: testToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
