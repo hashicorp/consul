@@ -8,22 +8,20 @@ description: >-
 
 # Create and Manage Cluster Peering Connections
 
-~> **Cluster peering is currently in beta:** Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.<br  /><br />Cluster peering is not currently available in the HCP Consul offering.
-
 A peering token enables cluster peering between different datacenters. Once you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and create intentions so that peered clusters can call those services.
 
 ## Create a peering connection
 
-Cluster peering is not enabled by default on Consul servers. To peer clusters, you must first configure all Consul servers so that `peering` is `enabled` and the gRPC port(8502) accepts traffic from the peering cluster (e.g., `client_addr="0.0.0.0"`). For additional information, refer to [Configuration Files](/docs/agent/config/config-files).
+Cluster peering is enabled by default on Consul servers as of v1.14. For additional information, including options to disable cluster peering, refer to [Configuration Files](/docs/agent/config/config-files).
 
-After enabling peering for all Consul servers, complete the following steps in order:
+The process to create a peering connection is a sequence with multiple steps:
 
 1. Create a peering token
 1. Establish a connection between clusters
 1. Export services between clusters
 1. Authorize services for peers
 
-You can generate peering tokens and initiate connections on any available agent using either the API or the Consul UI. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
+You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. If you use the API or CLI, we recommend performing these operations through a client agent in the partition you want to connect.
 
 The UI does not currently support exporting services between clusters or authorizing services for peers.
 

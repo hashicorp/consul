@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"io"
 	"net"
 	"net/http"
@@ -382,6 +383,8 @@ type Agent struct {
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
+	rpcClientOperator pboperator.OperatorServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -467,6 +470,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
+	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -886,16 +890,9 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	// The original grpc port may spawn in either plain-text or TLS mode (for backwards compatibility).
-	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
+	// Only allow grpc to spawn with a plain-text listener.
 	if a.config.GRPCPort > 0 {
-		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
-		protocol := middleware.ProtocolPlaintext
-		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
-			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
-			protocol = middleware.ProtocolTLS
-		}
-		if err := start("grpc", a.config.GRPCAddrs, protocol); err != nil {
+		if err := start("grpc", a.config.GRPCAddrs, middleware.ProtocolPlaintext); err != nil {
 			closeListeners(listeners)
 			return err
 		}
