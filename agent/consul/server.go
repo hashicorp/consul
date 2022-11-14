@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -966,7 +965,7 @@ func (s *Server) setupRaft() error {
 		peersFile := filepath.Join(path, "peers.json")
 		peersInfoFile := filepath.Join(path, "peers.info")
 		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
-			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
+			if err := os.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
 				return fmt.Errorf("failed to write peers.info file: %v", err)
 			}
 

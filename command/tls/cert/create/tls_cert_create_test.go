@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/x509"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -252,9 +251,9 @@ func expectFiles(t *testing.T, certPath, keyPath string) (*x509.Certificate, cry
 		t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
 	}
 
-	certData, err := ioutil.ReadFile(certPath)
+	certData, err := os.ReadFile(certPath)
 	require.NoError(t, err)
-	keyData, err := ioutil.ReadFile(keyPath)
+	keyData, err := os.ReadFile(keyPath)
 	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(string(certData))

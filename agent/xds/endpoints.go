@@ -547,6 +547,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *pr
 	}
 
 	upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
 	if upstream != nil && upstream.MeshGateway.Mode == structs.MeshGatewayModeLocal {

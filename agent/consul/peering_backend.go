@@ -106,27 +106,38 @@ func (b *PeeringBackend) GetLocalServerAddresses() ([]string, error) {
 }
 
 // GetDialAddresses returns: the addresses to cycle through when dialing a peer's servers,
-// a boolean indicating whether mesh gateways are present, and an optional error.
+// an optional buffer of just gateway addresses, and an optional error.
 // The resulting ring buffer is front-loaded with the local mesh gateway addresses if they are present.
-func (b *PeeringBackend) GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, bool, error) {
+func (b *PeeringBackend) GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, *ring.Ring, error) {
 	newRing, err := b.fetchPeerServerAddresses(ws, peerID)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to refresh peer server addresses, will continue to use initial addresses: %w", err)
+		return nil, nil, fmt.Errorf("failed to refresh peer server addresses, will continue to use initial addresses: %w", err)
 	}
 
 	gatewayRing, err := b.maybeFetchGatewayAddresses(ws)
 	if err != nil {
 		// If we couldn't fetch the mesh gateway addresses we fall back to dialing the remote server addresses.
-		logger.Warn("failed to refresh local gateway addresses, will attempt to dial peer directly: %w", "error", err)
-		return newRing, false, nil
+		logger.Warn("failed to refresh local gateway addresses, will attempt to dial peer directly", "error", err)
+		return newRing, nil, nil
 	}
 	if gatewayRing != nil {
 		// The ordering is important here. We always want to start with the mesh gateway
 		// addresses and fallback to the remote addresses, so we append the server addresses
-		// in newRing to gatewayRing.
-		newRing = gatewayRing.Link(newRing)
+		// in newRing to gatewayRing. We also need a new ring to prevent mixing up pointers
+		// with the gateway-only buffer
+		compositeRing := ring.New(gatewayRing.Len() + newRing.Len())
+		gatewayRing.Do(func(s any) {
+			compositeRing.Value = s.(string)
+			compositeRing = compositeRing.Next()
+		})
+
+		newRing.Do(func(s any) {
+			compositeRing.Value = s.(string)
+			compositeRing = compositeRing.Next()
+		})
+		newRing = compositeRing
 	}
-	return newRing, gatewayRing != nil, nil
+	return newRing, gatewayRing, nil
 }
 
 // fetchPeerServerAddresses will return a ring buffer with the latest peer server addresses.

@@ -16,7 +16,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -255,7 +254,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		// Use test name for tmpdir if available
 		prefix = strings.Replace(t.Name(), "/", "_", -1)
 	}
-	tmpdir, err := ioutil.TempDir("", prefix)
+	tmpdir, err := os.MkdirTemp("", prefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
@@ -274,7 +273,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
-	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
+	if err := os.WriteFile(configFile, b, 0644); err != nil {
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
