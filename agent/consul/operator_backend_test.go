@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"google.golang.org/grpc/credentials/insecure"
 	"testing"
 	"time"
 
@@ -42,7 +43,7 @@ func TestOperatorBackend_TransferLeader(t *testing.T) {
 	// Dial server2 directly
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
-		gogrpc.WithInsecure(),
+		gogrpc.WithTransportCredentials(insecure.NewCredentials()),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })
@@ -101,7 +102,7 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 	// Dial server2 directly
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
-		gogrpc.WithInsecure(),
+		gogrpc.WithTransportCredentials(insecure.NewCredentials()),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })
