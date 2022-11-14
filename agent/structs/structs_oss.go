@@ -67,7 +67,9 @@ func (n *Node) OverridePartition(_ string) {
 
 func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
-func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (n *NodeInfo) FillAuthzContext(ctx *acl.AuthorizerContext) {
+	ctx.Peer = n.PeerName
+}
 
 // FillAuthzContext stub
 func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
