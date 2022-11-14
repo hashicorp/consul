@@ -1,19 +1,25 @@
 ---
 layout: docs
-page_title: Mesh Gateways between Admin Partitions
+page_title: Mesh Gateways between WAN-Federated Datacenters
 description: >-
-  Mesh gateways are specialized proxies that route data between services that cannot communicate directly with upstreams. Learn how to enable service-to-service traffic across admin partitions and review example configuration entries.
+  Mesh gateways are specialized proxies that route data between services that cannot communicate directly. Learn how to enable service-to-service traffic across wan-federated datacenters and review example configuration entries.
 ---
 
-# Mesh Gateways between Admin Partitions
+# Mesh Gateways between WAN-Federated Datacenters
 
--> **Consul Enterprise 1.11.0+:** Admin partitions are supported in Consul Enterprise versions 1.11.0 and newer.
+-> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
-Mesh gateways enable you to route service mesh traffic between different Consul [admin partitions](/docs/enterprise/admin-partitions).
-Partitions can reside in different clouds or runtime environments where general interconnectivity between all services
-in all partitions isn't feasible.
+Mesh gateways enable service mesh traffic to be routed between different Consul datacenters.
+Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services
+in all datacenters isn't feasible.
 
 Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
+
+The following diagram describes the architecture for using mesh gateways for cross-datacenter communication:<a name="mesh-architecture-diagram"/>
+
+![Mesh Gateway Architecture](/img/mesh-gateways.png)
+
+-> **Mesh Gateway Tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn important concepts associated with using mesh gateways for connecting services across datacenters.
 
 ## Prerequisites
 
@@ -21,11 +27,19 @@ Ensure that your Consul environment meets the following requirements.
 
 ### Consul
 
-* Consul Enterprise version 1.11.0 or newer.
+* Consul version 1.6.0 or newer.
 * A local Consul agent is required to manage its configuration.
-* Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/docs/agent/config/config-files#connect) for details.
-* Each partition must have a unique name. Refer to the [admin partitions documentation](/docs/enterprise/admin-partitions) for details.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+* Consul [Connect](/docs/agent/config/config-files#connect) must be enabled in both datacenters.
+* Each [datacenter](/docs/agent/config/config-files#datacenter) must have a unique name.
+* Each datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
+* The [primary datacenter](/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
+* [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled.
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+
+### Network
+
+* General network connectivity to all services within its local Consul datacenter.
+* General network connectivity to all mesh gateways within remote Consul datacenters.
 
 ### Proxy
 
@@ -43,23 +57,25 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and partition. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.destination_partition` must be configured to enable cross-partition traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
-* Configure the `exported-services` configuration entry to enable Consul to export services contained in an admin partition to one or more additional partitions. Refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services) for details.
-* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy, i.e., Envoy. For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
 ### Modes
 
 Each upstream associated with a service mesh proxy can be configured so that it is routed through a mesh gateway.
-Depending on your network, the proxy's connection to the gateway can operate in one of the following modes:
+Depending on your network, the proxy's connection to the gateway can operate in one of the following modes (refer to the [mesh-architecture-diagram](#mesh-architecture-diagram)):
 
 * `none` - (Default) No gateway is used and a service mesh connect proxy makes its outbound connections directly
   to the destination services.
 
-* `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the same datacenter. The gateway at the outbound connection is responsible for ensuring that the data is forwarded to gateways in the destination partition.
+* `local` - The service mesh connect proxy makes an outbound connection to a gateway running in the
+  same datacenter. That gateway is responsible for ensuring that the data is forwarded to gateways in the destination datacenter.
+  Refer to the flow labeled `local` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
 
-* `remote` - The service mesh connect proxy makes an outbound connection to a gateway running in the destination datacenter.
+* `remote` - The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter.
   The gateway forwards the data to the final destination service.
+  Refer to the flow labeled `remote` in the [mesh-architecture-diagram](#mesh-architecture-diagram).
 
 ### Connect Proxy Configuration
 
@@ -94,7 +110,6 @@ MeshGateway:
 - Mode: local
 Name: global
 ```
-
 </CodeTabs>
 
 ### Enabling Gateways Per Service
@@ -117,12 +132,13 @@ MeshGateway:
 - Mode: local
 Name: web
 ```
+
 </CodeTabs>
 
 ### Enabling Gateways for a Service Instance
 
 The following [Proxy Service Registration](/docs/connect/registration/service-registration)
-definition will enable gateways for `web` service instances in the `finance` partition.
+definition will enable gateways for the service instance in the `remote` mode.
 
 <CodeTabs heading="Example: Enabling gateways for a service instance.">
 
@@ -134,18 +150,39 @@ service {
    proxy {
       destination_service_name = "web"
       mesh_gateway {
-         mode = "local"
+         mode = "remote"
       }
       upstreams = [
          {
-            destination_partition = "finance"
-            destination_namespace = "default"
-            destination_type = "service"
-            destination_name = "billing"
-            local_bind_port = 9090
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
          }
       ]
    }
+}
+
+# Or alternatively inline with the service definition:
+
+service {
+  name = "web"
+  port = 8181
+  connect {
+    sidecar_service {
+      proxy {
+        mesh_gateway {
+         mode = "remote"
+        }
+        upstreams = [
+          {
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
+          }
+        ]
+      }
+    }
+  }
 }
 ```
 
@@ -157,19 +194,18 @@ service:
   proxy:
   - destination_service_name: web
     mesh_gateway:
-    - mode: local
+    - mode: remote
     upstreams:
-    - destination_name: billing
-      destination_namespace: default
-      destination_partition: finance
-      destination_type: service
-      local_bind_port: 9090
+    - datacenter: secondary
+      destination_name: api
+      local_bind_port: 100
 ```
+
 </CodeTabs>
 
 ### Enabling Gateways for a Proxy Upstream
 
-The following service definition will enable gateways in `local` mode for three different partitions. Note that each service exists in the same namespace, but are separated by admin partition.
+The following service definition will enable gateways in the `local` mode for one upstream, the `remote` mode for a second upstream and will disable gateways for a third upstream.
 
 <CodeTabs heading="Example: Enabling gateways for a proxy upstream.">
 
@@ -183,17 +219,13 @@ service {
       upstreams = [
          {
             destination_name = "api"
-            destination_namespace = "dev"
-            destination_partition = "api"
             local_bind_port = 10000
             mesh_gateway {
-               mode = "local"
+               mode = "remote"
             }
          },
          {
             destination_name = "db"
-            destination_namespace = "dev"
-            destination_partition = "db"
             local_bind_port = 10001
             mesh_gateway {
                mode = "local"
@@ -201,18 +233,15 @@ service {
          },
          {
             destination_name = "logging"
-            destination_namespace = "dev"
-            destination_partition = "logging"
             local_bind_port = 10002
             mesh_gateway {
-               mode = "local"
+               mode = "none"
             }
          },
       ]
    }
 }
 ```
-
 ```yaml
 service:
 - kind: connect-proxy
@@ -222,22 +251,16 @@ service:
   - destination_service_name: web
     upstreams:
     - destination_name: api
-      destination_namespace: dev
-      destination_partition: api
       local_bind_port: 10000
       mesh_gateway:
-      - mode: local
+      - mode: remote
     - destination_name: db
-      destination_namespace: dev
-      destination_partition: db
       local_bind_port: 10001
       mesh_gateway:
       - mode: local
     - destination_name: logging
-      destination_namespace: dev
-      destination_partition: logging
       local_bind_port: 10002
       mesh_gateway:
-      - mode: local
-```
-</CodeTabs>
+      - mode: none
+  ```
+  </CodeTabs>
