@@ -2,15 +2,17 @@
 layout: docs
 page_title: Consul on Kubernetes Control Plane Architecture
 description: >-
-  When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents run as a k8s DaemonSet with an exposed API port.
+  When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents can run as a k8s DaemonSet with an exposed API port or be omitted with Consul Dataplanes.
 ---
-
 
 # Architecture
 
-This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms (see [Architecture](/docs/architecture)), but Kubernetes provides additional benefits that make operating a Consul cluster easier. 
+This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms, but Kubernetes provides additional benefits that make operating a Consul cluster easier. Refer to [Consul Architecture](/docs/architecture) for more general information on Consul's architecture.
 
-Refer to the standard [production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) for important information, regardless of the deployment platform.
+> **For more specific guidance:**
+> - For guidance on datacenter design, refer to [Consul and Kubernetes Reference Architecture](/consul/tutorials/kubernetes-production/kubernetes-reference-architecture).
+> - For step-by-step deployment guidance, refer to [Consul and Kubernetes Deployment Guide](/consul/tutorials/kubernetes-production/kubernetes-deployment-guide).
+> - For non-Kubernetes guidance, refer to the standard [production deployment guide](/consul/tutorials/production-deploy/deployment-guide).
 
 ## Server Agents
 
@@ -35,7 +37,11 @@ Volume Claims when a
 [StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
 so this must done manually when removing servers.
 
-## Client Agents
+## Client agents
+
+Client agents are disabled by default in Consul on Kubernetes. Instead, you can use an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
+
+If you prefer to use client agents in your service mesh, the following architectural implications affect your deployments.
 
 The client agents are run as a **DaemonSet**. This places one agent
 (within its own pod) on each Kubernetes node.
