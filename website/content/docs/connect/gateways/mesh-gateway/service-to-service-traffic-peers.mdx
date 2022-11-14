@@ -7,8 +7,6 @@ description: >-
 
 # Mesh Gateways between Peered Clusters
 
-~> **Cluster peering is currently in beta**: Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.
-
 Mesh gateways are required for you to route service mesh traffic between different Consul clusters. Clusters can reside in different clouds or runtime environments where general interconnectivity between all services in all clusters is not feasible.
 
 Unlike mesh gateways for datacenters and partitions, mesh gateways between peers terminate mTLS sessions to decrypt data to HTTP services and then re-encrypt traffic to send to services. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
