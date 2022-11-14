@@ -47,7 +47,10 @@ Alternatively, you can also use the CLI to spin up and register a gateway in Con
 
 ### ACL configuration
 
-- If ACLs are enabled, you must add a token granting `service:write` for the gateway's service name and `service:read` for all services in the Enterprise admin partition or OSS datacenter to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services.
+If ACLs are enabled, you must add a token granting `service:write` for the gateway's service name and `service:read` for all services in the Enterprise admin partition or OSS datacenter to the gateway's service definition. 
+These permissions authorize the token to route communications for other Consul service mesh services.
+
+You must also grant `mesh:write` to mesh gateways routing peering data-plane traffic.
 
 ### Modes
 
