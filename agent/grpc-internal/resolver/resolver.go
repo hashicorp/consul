@@ -98,6 +98,7 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 		return s.leaderResolver, nil
 	}
 
+	//nolint:staticcheck
 	serverType, datacenter, err := parseEndpoint(target.Endpoint)
 	if err != nil {
 		return nil, err

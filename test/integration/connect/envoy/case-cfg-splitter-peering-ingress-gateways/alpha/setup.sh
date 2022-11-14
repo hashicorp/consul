@@ -2,8 +2,36 @@
 
 set -euo pipefail
 
-wait_for_config_entry proxy-defaults global alpha
-wait_for_config_entry exported-services default alpha
+upsert_config_entry alpha '
+kind = "proxy-defaults"
+name = "global"
+config {
+  protocol = "tcp"
+}
+'
+
+upsert_config_entry alpha '
+kind = "exported-services"
+name = "default"
+services = [
+  {
+    name = "s1"
+    consumers = [
+      {
+        peer_name = "alpha-to-primary"
+      }
+    ]
+  },
+  {
+    name = "s2"
+    consumers = [
+      {
+        peer_name = "alpha-to-primary"
+      }
+    ]
+  }
+]
+'
 
 register_services alpha
 
