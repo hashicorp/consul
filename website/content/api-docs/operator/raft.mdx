@@ -148,12 +148,11 @@ $ curl \
 
 ## Transfer Raft Leadership
 
-This endpoint transfers the raft leadership from the current raft leader to a different raft peer.
-The new leader will be randomly selected unless explicitly specified with the `id` parameter.
-
+This endpoint transfers the Raft leadership from the current leader to a different Raft peer.
+The new leader is selected at random unless explicitly specified with the `id` parameter.
 
 | Method   | Path                  | Produces           |
-| -------- | --------------------- | ------------------ |
+| -------- | ------------------------------- | ------------------ |
 | `POST` | `/operator/raft/transfer-leader` | `application/json` |
 
 The table below shows this endpoint's support for
@@ -170,8 +169,8 @@ The corresponding CLI command is [`consul operator raft transfer-leader`](/comma
 
 ### Query Parameters
 
-- `id` `(string: "")` - Specifies the node ID of the raft peer to transfer leadership to.
-If empty, leadership will be transferred to a random server agent.
+- `id` `(string: "")` - Specifies the node ID of the Raft peer to transfer leadership to.
+If empty, leadership transfers to a random server agent.
 
 ### Sample Request
 
