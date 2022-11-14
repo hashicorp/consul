@@ -2,6 +2,8 @@ package agent
 
 import (
 	"fmt"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,6 +30,43 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 		return nil, err
 	}
 
+	return reply, nil
+}
+
+// OperatorRaftTransferLeader is used to transfer raft cluster leadership to another node
+func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	params := req.URL.Query()
+	_, hasID := params["id"]
+	ID := ""
+	if hasID {
+		ID = params.Get("id")
+	}
+	args := pboperator.TransferLeaderRequest{
+		ID: ID,
+	}
+
+	var token string
+	s.parseToken(req, &token)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), structs.QueryOptions{Token: token})
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.agent.rpcClientOperator.TransferLeader(ctx, &args)
+	if err != nil {
+		return nil, err
+	}
+	if result.Success != true {
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: %s", err.Error())}
+	}
+	reply := new(api.TransferLeaderResponse)
+	pboperator.TransferLeaderResponseToAPI(result, reply)
 	return reply, nil
 }
 
