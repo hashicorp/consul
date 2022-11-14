@@ -39,34 +39,6 @@ so this must done manually when removing servers.
 
 ## Client agents
 
-Client agents are disabled by default in Consul on Kubernetes. Instead, you can use an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
+As of v1.14.0, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
 
-If you prefer to use client agents in your service mesh, the following architectural implications affect your deployments.
-
-The client agents are run as a **DaemonSet**. This places one agent
-(within its own pod) on each Kubernetes node.
-The clients expose the Consul HTTP API via a static port (8500)
-bound to the host port. This enables all other pods on the node to connect
-to the node-local agent using the host IP that can be retrieved via the
-Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
-for an example.
-
-We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
-to any pod in the service and we need to be able to route directly to the Consul
-client running on our node.
-
--> **Note:** There is no way to bind to a local-only
-host port. Therefore, any other node can connect to the agent. This should be
-considered for security. For a properly production-secured agent with TLS
-and ACLs, this is safe.
-
-We run Consul clients as a **DaemonSet** instead of running a client in each
-application pod as a sidecar because this would turn
-a pod into a "node" in Consul and also causes an explosion of resource usage
-since every pod needs a Consul agent. Service registration should be handled via the
-catalog syncing feature with Services rather than pods.
-
--> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,
-a client-mode agent runs alongside server-mode agents in Kubernetes. This
-duplication wastes some resources, but otherwise functions perfectly fine.
+If you use an older version of Consul on Kubernetes, consider [upgrading to the latest release](/docs/k8s/upgrade). To access documentation for a previous release of Consul, select your version from the dropdown at the top of this page.
