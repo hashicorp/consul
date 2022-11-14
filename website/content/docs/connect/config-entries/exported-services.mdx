@@ -673,8 +673,12 @@ $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 </Tab>
 </Tabs>
 
-An ACL token with `service:write` permissions is required for the cluster the query is made from. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires a token with `write` permissions to `web` in the `frontend` partition.
+An ACL token with either of the following permissions is required in the cluster where the query is made: 
+* `service:write` permissions for any service in the partition where the query is made.
+* `service:read` and `node:read` for all services and nodes, respectively, in the partition where the query is made.
 
-Exports are available to all services in the consumer cluster. In the previous example, any service with `write` permissions for the `frontend` partition can read exports.
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+* a token with `service:write` permissions to `web` in the `frontend` partition.
+* a token with `service:read` and `node:read` to all names in the `frontend` partition.
 
 For additional information, refer to [Health HTTP Endpoint](/api-docs/health).
