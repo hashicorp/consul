@@ -980,20 +980,22 @@ func TestACL_filterNodeDump(t *testing.T) {
 			},
 			ImportedDump: structs.NodeDump{
 				{
-					Node:     "node2",
+					// The node and service names are intentionally the same to ensure that
+					// local permissions for the same names do not allow reading imports.
+					Node:     "node1",
 					PeerName: "cluster-02",
 					Services: []*structs.NodeService{
 						{
-							ID:       "bar",
-							Service:  "bar",
+							ID:       "foo",
+							Service:  "foo",
 							PeerName: "cluster-02",
 						},
 					},
 					Checks: []*structs.HealthCheck{
 						{
-							Node:        "node2",
+							Node:        "node1",
 							CheckID:     "check1",
-							ServiceName: "bar",
+							ServiceName: "foo",
 							PeerName:    "cluster-02",
 						},
 					},
@@ -1158,7 +1160,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 				},
 				ImportedDump: structs.NodeDump{
 					{
-						Node:     "node2",
+						Node:     "node1",
 						PeerName: "cluster-02",
 						Services: []*structs.NodeService{},
 						Checks:   structs.HealthChecks{},
@@ -1205,20 +1207,20 @@ func TestACL_filterNodeDump(t *testing.T) {
 				},
 				ImportedDump: structs.NodeDump{
 					{
-						Node:     "node2",
+						Node:     "node1",
 						PeerName: "cluster-02",
 						Services: []*structs.NodeService{
 							{
-								ID:       "bar",
-								Service:  "bar",
+								ID:       "foo",
+								Service:  "foo",
 								PeerName: "cluster-02",
 							},
 						},
 						Checks: []*structs.HealthCheck{
 							{
-								Node:        "node2",
+								Node:        "node1",
 								CheckID:     "check1",
-								ServiceName: "bar",
+								ServiceName: "foo",
 								PeerName:    "cluster-02",
 							},
 						},
