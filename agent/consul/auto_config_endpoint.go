@@ -57,6 +57,7 @@ type jwtAuthorizer struct {
 // This includes an extra single-quote character not specified in the grammar for safety in case it is later added.
 // https://github.com/hashicorp/go-bexpr/blob/v0.1.11/grammar/grammar.peg#L188-L191
 var invalidSegmentName = regexp.MustCompile("[`'\"\\s]+")
+var InvalidNodeName = invalidSegmentName
 
 func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
@@ -70,7 +71,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	// This is not the cleanest way to prevent this behavior. Ideally, the bexpr would allow us to
 	// inject a variable on the RHS for comparison as well, but it would be a complex change to implement
 	// that would likely break backwards-compatibility in certain circumstances.
-	if dns.InvalidNameRe.MatchString(req.Node) {
+	if InvalidNodeName.MatchString(req.Node) {
 		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "node", req.Node)
 	}
 	if invalidSegmentName.MatchString(req.Segment) {
