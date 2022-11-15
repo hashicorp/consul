@@ -60,17 +60,14 @@ func TestOperatorBackend_TransferLeader(t *testing.T) {
 		reply, err := operatorClient.TransferLeader(ctx, &req)
 		require.NoError(t, err)
 		require.True(t, reply.Success)
-		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 		retry.Run(t, func(r *retry.R) {
+			time.Sleep(1 * time.Second)
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
+			require.NotEqual(t, afterLeader, beforeLeader)
 		})
-		afterLeader, _ := s1.raft.LeaderWithID()
-		require.NotEmpty(t, afterLeader)
-		if afterLeader == beforeLeader {
-			t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
-		}
+
 	})
 }
 
