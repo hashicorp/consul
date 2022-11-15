@@ -1034,6 +1034,8 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
+                - /^backport\/docs\/.*/
+                - /^backport\/ui\/.*/
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
@@ -1143,6 +1145,7 @@ workflows:
               only:
                 - main
                 - /^ui\/.*/
+                - /^backport\/ui\/.*/
       - workspace-tests:
           requires:
             - frontend-cache
