@@ -1258,6 +1258,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
+	case consul.InvalidNodeName.MatchString(rt.NodeName):
+		// todo(kyhavlov): Add stronger validation here for node names.
+		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
+			"(', \", `) cannot be used with auto-config.", rt.NodeName)
 	case len(rt.NodeName) > dns.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+

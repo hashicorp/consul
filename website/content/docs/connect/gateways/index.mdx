@@ -23,13 +23,15 @@ Mesh gateways enable service mesh traffic to be routed between different Consul 
 in different clouds or runtime environments where general interconnectivity between all services in all datacenters
 isn't feasible.
 
-They operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested. The gateway does not decrypt the data within the mTLS session.
+They operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
 
 Mesh gateways enable the following scenarios:
 
 * **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
-- **Service-to-service communication across datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) for additional information.
+- **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) for additional information.
 - **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
+- **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) for more information.
+- **Service-to-service communication across peered datacenters**. Refer to [Mesh Gateways between Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers) for more information.
 
 -> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn concepts associated with mesh gateways.
 
