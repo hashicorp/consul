@@ -471,7 +471,7 @@
                 "path": "connect/gateways/mesh-gateway"
               },
               {
-                "title": "WAN Federation",
+                "title": "Enabling WAN Federation Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
               },
               {
@@ -483,7 +483,7 @@
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
               },
               {
-                "title": "Cluster Peering",
+                "title": "Enabling Peering Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
               },
               {
