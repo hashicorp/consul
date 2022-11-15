@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -489,7 +489,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -518,7 +518,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	raw, err := ioutil.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

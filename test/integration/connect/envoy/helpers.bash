@@ -754,6 +754,13 @@ function wait_for_config_entry {
   retry_default read_config_entry "$@" >/dev/null
 }
 
+function upsert_config_entry {
+  local DC="$1"
+  local BODY="$2"
+
+  echo "$BODY" | docker_consul "$DC" config write -
+}
+
 function delete_config_entry {
   local KIND=$1
   local NAME=$2

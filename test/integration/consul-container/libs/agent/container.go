@@ -10,7 +10,6 @@ import (
 	"time"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -64,7 +63,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
 
-	tmpDirData, err := ioutils.TempDir("", name)
+	tmpDirData, err := os.MkdirTemp("", name)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +77,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	tmpCertData, err := ioutils.TempDir("", fmt.Sprintf("%s-certs", name))
+	tmpCertData, err := os.MkdirTemp("", fmt.Sprintf("%s-certs", name))
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +373,7 @@ func readLicense() (string, error) {
 }
 
 func createConfigFile(JSON string) (string, error) {
-	tmpDir, err := ioutils.TempDir("", "consul-container-test-config")
+	tmpDir, err := os.MkdirTemp("", "consul-container-test-config")
 	if err != nil {
 		return "", err
 	}

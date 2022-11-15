@@ -198,6 +198,10 @@ message Peering {
 
   // Remote contains metadata about the remote peer.
   RemoteInfo Remote = 17;
+
+  // ManualServerAddresses provides a list of manually specified server addresses from the
+  // user. If this is defined, then the automatic PeerServerAddresses are ignored.
+  repeated string ManualServerAddresses = 18;
 }
 
 // RemoteInfo contains metadata about the remote peer.
@@ -365,6 +369,11 @@ message GenerateTokenRequest {
 
   // Meta is a mapping of some string value to any other string value
   map<string, string> Meta = 5;
+
+  // ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
+  // load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
+  // addresses obtained from the "consul" service.
+  repeated string ServerExternalAddresses = 6;
 }
 
 // mog annotation:
