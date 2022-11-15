@@ -65,7 +65,7 @@ func TestOperatorBackend_TransferLeader(t *testing.T) {
 			time.Sleep(1 * time.Second)
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
-			require.NotEqual(t, afterLeader, beforeLeader)
+			require.NotEqual(r, afterLeader, beforeLeader)
 		})
 
 	})
