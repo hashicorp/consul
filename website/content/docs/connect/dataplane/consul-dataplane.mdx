@@ -15,29 +15,49 @@ Usage: `consul-dataplane [options]`
 
 ### Requirements
 
-Consul Dataplane requires servers running Consul version `v1.14-beta+`. To find a specific version of Consul, refer to [Hashicorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
+Consul Dataplane requires servers running Consul version `v1.14-beta1+`. To find a specific version of Consul, refer to [Hashicorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
 
 ### Startup
 
 The following options are required when starting `consul-dataplane` with the CLI:
 
+<Tabs>
+<Tab heading="Consul OSS">
+
 - `-addresses`
 - `-service-node-name`
 - `-proxy-service-id`
+
+</Tab>
+
+<Tab heading="Consul Enterprise">
+
+- `-addresses`
+- `-service-node-name`
+- `-service-namespace`
+- `-service-partition`
+- `-proxy-service-id`
+
+</Tab>
+</Tabs>
+
 
 ### Command Options
 
 - `-addresses` - Consul server gRPC addresses. Can be a DNS name or an executable command. Refer to [go-netaddrs](https://github.com/hashicorp/go-netaddrs#summary) for details and examples.
 - `-ca-certs` - The path to a file or directory containing CA certificates used to verify the server's certificate.
+- `-consul-dns-bind-addr` - The address bound to the Consul DNS proxy. Default is `"127.0.0.1"`.
+- `-consul-dns-bind-port` - The port that the Consul DNS proxy listens on. Default is `-1`, which disables the DNS proxy.
 - `-credential-type` - The type of credentials used to authenticate with Consul servers, either `"static"` or `"login"`.
 - `-envoy-admin-bind-address` - The address the Envoy admin server is available on. Default is `"127.0.0.1"`.
 - `-envoy-admin-bind-port` - The port the Envoy admin server is available on. Default is `19000`.
 - `-envoy-concurrency` - The number of worker threads that Envoy uses. Default is `2`.
 - `-envoy-ready-bind-address` - The address Envoy's readiness probe is available on.
-- `-grpc-port` - The Consul server gRPC port to which consul-dataplane connects. Default is `8502`.
+- `-envoy-ready-bind-port` - The port Envoy's readiness probe is available on.
+- `-grpc-port` - The Consul server gRPC port to which `consul-dataplane` connects. Default is `8502`.
 - `-log-json` - Enables log messages in JSON format. Default is `false`.
 - `-log-level` - Log level of the messages to print. Available log levels are `"trace"`, `"debug"`, `"info"`, `"warn"`, and `"error"`. Default is `"info"`.
-- `-login-auth-method`  - The auth method used to log in.
+- `-login-auth-method` - The auth method used to log in.
 - `-login-bearer-token` - The bearer token presented to the auth method.
 - `-login-bearer-token-path` - The path to a file containing the bearer token presented to the auth method.
 - `-login-datacenter` - The datacenter containing the auth method.
@@ -46,11 +66,18 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-login-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition containing the auth method.
 - `-proxy-service-id` - The proxy service instance's ID.
 - `-server-watch-disabled` - Prevent `consul-dataplane` from consuming the server update stream. Use this flag when Consul servers are behind a load balancer. Default is `false`.
-- `-service-namespace`  <EnterpriseAlert inline /> - The Consul Enterprise namespace in which the proxy service instance is registered.
+- `-service-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace in which the proxy service instance is registered.
 - `-service-node-id` - The ID of the Consul node to which the proxy service instance is registered.
 - `-service-node-name` - The name of the Consul node to which the proxy service instance is registered.
 - `-service-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition in which the proxy service instance is registered.
 - `-static-token` - The ACL token used to authenticate requests to Consul servers when `-credential-type` is set to `"static"`.
+- `-telemetry-prom-ca-certs-path` - The path to a file or directory containing CA certificates used to verify the Prometheus server's certificate.
+- `-telemetry-prom-cert-file` - The path to the client certificate used to serve Prometheus metrics.
+- `-telemetry-prom-key-file` - The path to the client private key used to serve Prometheus metrics.
+- `-telemetry-prom-merge-port` - The local port used to serve merged Prometheus metrics. Default is `20100`. If your service instance uses the same default port, this flag must be set to a different port in order to avoid a port conflict.
+- `-telemetry-prom-retention-time` - The duration for Prometheus metrics aggregation. Default is `1m0s`. Refer to [`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time) for details on setting this value.
+- `-telemetry-prom-scrape-path` - The URL path where Envoy serves Prometheus metrics. Default is `"/metrics"`.
+- `-telemetry-prom-service-metrics-url` - The URL where your service instance serves Prometheus metrics. If this is set, the metrics at this URL are included in Consul Dataplane's merged Prometheus metrics.
 - `-telemetry-use-central-config` - Controls whether the proxy applies the central telemetry configuration. Default is `true`.
 - `-tls-cert` - The path to a client certificate file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server.
 - `-tls-disabled` - Communicate with Consul servers over a plaintext connection. Useful for testing, but not recommended for production. Default is `false`.
@@ -59,6 +86,8 @@ The following options are required when starting `consul-dataplane` with the CLI
 - `-tls-server-name` - The hostname to expect in the server certificate's subject. This flag is required if `-addresses` is not a DNS name.
 - `-version` - Print the current version of `consul-dataplane`.
 - `-xds-bind-addr` - The address the Envoy xDS server is available on. Default is `"127.0.0.1"`.
+- `-xds-bind-port` - The port on which the Envoy xDS server is available. Default is `0`. When set
+  to `0`, an available port is selected at random.
 
 ## Examples
 
@@ -105,6 +134,21 @@ A static ACL token is passed to Consul Dataplane.
 
 Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/docs/security/acl/auth-methods).
 
+  <Tabs>
+  <Tab heading="Consul OSS">
+
+  ```shell-session
+  $ consul-dataplane -credential-type "login"
+    -login-auth-method <method> \
+    -login-bearer-token <token> \  ## Or -login-bearer-token-path
+    -login-datacenter <datacenter> \
+    -login-meta key1=val1 -login-meta key2=val2 \
+  ```
+
+  </Tab>
+
+  <Tab heading="Consul Enterprise">
+
   ```shell-session
   $ consul-dataplane -credential-type "login"
     -login-auth-method <method> \
@@ -114,6 +158,9 @@ Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/doc
     -login-namespace <namespace> \
     -login-partition <partition>
   ```
+
+  </Tab>
+  </Tabs>
 
 ### Consul Servers Behind a Load Balancer
 

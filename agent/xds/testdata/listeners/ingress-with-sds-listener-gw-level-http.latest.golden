@@ -48,9 +48,6 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "alpnProtocols": [
-                  "http/1.1"
-                ],
                 "tlsParams": {
 
                 },
@@ -73,6 +70,9 @@
                       "resourceApiVersion": "V3"
                     }
                   }
+                ],
+                "alpnProtocols": [
+                  "http/1.1"
                 ]
               },
               "requireClientCertificate": false

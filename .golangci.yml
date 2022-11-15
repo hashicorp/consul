@@ -83,6 +83,7 @@ linters-settings:
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     forbid:
+      - '\bioutil\b(# Use io and os packages instead of ioutil)?'
       - '\brequire\.New\b(# Use package-level functions with explicit TestingT)?'
       - '\bassert\.New\b(# Use package-level functions with explicit TestingT)?'
     # Exclude godoc examples from forbidigo checks.

@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	acl "github.com/hashicorp/consul/acl"
-	resolver "github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
@@ -233,6 +233,7 @@ func TestSign_RPCForwarding(t *testing.T) {
 		ForwardRPC:     noopForwardRPC,
 		ConnectEnabled: true,
 	})
+	//nolint:staticcheck
 	leaderConn, err := grpc.Dial(testutils.RunTestServer(t, leader).String(), grpc.WithInsecure())
 	require.NoError(t, err)
 

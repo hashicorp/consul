@@ -85,11 +85,11 @@ type PeeringStreamStatus struct {
 	// ExportedServices is the list of services exported to this peering.
 	ExportedServices []string
 	// LastHeartbeat represents when the last heartbeat message was received.
-	LastHeartbeat time.Time
+	LastHeartbeat *time.Time
 	// LastReceive represents when any message was last received, regardless of success or error.
-	LastReceive time.Time
+	LastReceive *time.Time
 	// LastSend represents when any message was last sent, regardless of success or error.
-	LastSend time.Time
+	LastSend *time.Time
 }
 
 type PeeringReadResponse struct {
@@ -103,6 +103,10 @@ type PeeringGenerateTokenRequest struct {
 	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
+	// ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
+	// load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
+	// addresses obtained from the "consul" service.
+	ServerExternalAddresses []string `json:",omitempty"`
 }
 
 type PeeringGenerateTokenResponse struct {

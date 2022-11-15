@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -618,15 +617,15 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 	assertDeepEqual(t, expectedCaPoolByDir, cc.RootCAs, cmpCertPool)
 
 	// Load certs in-memory
-	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
+	certPEM, err := os.ReadFile("../test/hostname/Alice.crt")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keyPEM, err := ioutil.ReadFile("../test/hostname/Alice.key")
+	keyPEM, err := os.ReadFile("../test/hostname/Alice.key")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	caPEM, err := ioutil.ReadFile("../test/hostname/CertAuth.crt")
+	caPEM, err := os.ReadFile("../test/hostname/CertAuth.crt")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1191,7 +1190,7 @@ func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
 	for _, entry := range entries {
 		filename := path.Join("../test/ca_path", entry.Name())
 
-		data, err := ioutil.ReadFile(filename)
+		data, err := os.ReadFile(filename)
 		require.NoError(t, err)
 
 		if !pool.AppendCertsFromPEM(data) {

@@ -89,7 +89,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 			fmt.Sprintf("-grpc-addr=%s:%d", nodeIP, 8502),
 			"-admin-bind", "0.0.0.0:19000",
 			"--",
-			"--log-level", "info"},
+			"--log-level", envoyLogLevel},
 		Env: map[string]string{"CONSUL_HTTP_ADDR": fmt.Sprintf("%s:%d", nodeIP, 8500)},
 		ExposedPorts: []string{
 			"8443/tcp",  // Envoy Gateway Listener

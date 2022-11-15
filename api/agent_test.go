@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -104,7 +103,7 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234, "Meta": {"some": "meta"}}}`
-	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = os.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1615,7 +1614,10 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		c.Connect = nil // disable connect to prevent CA being bootstrapped
+		// Explicitly disable Connect to prevent CA being bootstrapped
+		c.Connect = map[string]interface{}{
+			"enabled": false,
+		}
 	})
 	defer s.Stop()
 

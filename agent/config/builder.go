@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -277,7 +276,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
@@ -436,6 +435,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
+	// default gRPC TLS port for servers is 8503
+	if c.Ports.GRPCTLS == nil && boolVal(c.ServerMode) {
+		grpcTlsPort = 8503
+	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -1086,6 +1089,16 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, err
 	}
 
+	// `ports.grpc` previously supported TLS, but this was changed for Consul 1.14.
+	// This check is done to warn users that a config change is mandatory.
+	if rt.TLS.GRPC.CertFile != "" || (rt.TLS.AutoTLS && rt.TLS.GRPC.UseAutoCert) {
+		// If only `ports.grpc` is enabled, and the gRPC TLS port is not explicitly defined by the user,
+		// check the grpc TLS settings for incompatibilities.
+		if rt.GRPCPort > 0 && c.Ports.GRPCTLS == nil {
+			return RuntimeConfig{}, fmt.Errorf("the `ports.grpc` listener no longer supports TLS. Use `ports.grpc_tls` instead. This message is appearing because GRPC is configured to use TLS, but `ports.grpc_tls` is not defined")
+		}
+	}
+
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
 
 	if c.RaftBoltDBConfig != nil {
@@ -1245,6 +1258,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
+	case consul.InvalidNodeName.MatchString(rt.NodeName):
+		// todo(kyhavlov): Add stronger validation here for node names.
+		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
+			"(', \", `) cannot be used with auto-config.", rt.NodeName)
 	case len(rt.NodeName) > dns.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+

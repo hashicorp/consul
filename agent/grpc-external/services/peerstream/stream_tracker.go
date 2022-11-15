@@ -148,22 +148,32 @@ func (t *Tracker) DeleteStatus(id string) {
 func (t *Tracker) IsHealthy(s Status) bool {
 	// If stream is in a disconnected state for longer than the configured
 	// heartbeat timeout, report as unhealthy.
-	if !s.DisconnectTime.IsZero() &&
-		t.timeNow().Sub(s.DisconnectTime) > t.heartbeatTimeout {
+	if s.DisconnectTime != nil &&
+		t.timeNow().Sub(*s.DisconnectTime) > t.heartbeatTimeout {
 		return false
 	}
 
 	// If last Nack is after last Ack, it means the peer is unable to
-	// handle our replication message.
-	if s.LastNack.After(s.LastAck) &&
-		t.timeNow().Sub(s.LastAck) > t.heartbeatTimeout {
+	// handle our replication message
+	if s.LastAck == nil {
+		s.LastAck = &time.Time{}
+	}
+
+	if s.LastNack != nil &&
+		s.LastNack.After(*s.LastAck) &&
+		t.timeNow().Sub(*s.LastAck) > t.heartbeatTimeout {
 		return false
 	}
 
 	// If last recv error is newer than last recv success, we were unable
 	// to handle the peer's replication message.
-	if s.LastRecvError.After(s.LastRecvResourceSuccess) &&
-		t.timeNow().Sub(s.LastRecvError) > t.heartbeatTimeout {
+	if s.LastRecvResourceSuccess == nil {
+		s.LastRecvResourceSuccess = &time.Time{}
+	}
+
+	if s.LastRecvError != nil &&
+		s.LastRecvError.After(*s.LastRecvResourceSuccess) &&
+		t.timeNow().Sub(*s.LastRecvError) > t.heartbeatTimeout {
 		return false
 	}
 
@@ -197,36 +207,36 @@ type Status struct {
 	DisconnectErrorMessage string
 
 	// If the status is not connected, DisconnectTime tracks when the stream was closed. Else it's zero.
-	DisconnectTime time.Time
+	DisconnectTime *time.Time
 
 	// LastAck tracks the time we received the last ACK for a resource replicated TO the peer.
-	LastAck time.Time
+	LastAck *time.Time
 
 	// LastNack tracks the time we received the last NACK for a resource replicated to the peer.
-	LastNack time.Time
+	LastNack *time.Time
 
 	// LastNackMessage tracks the reported error message associated with the last NACK from a peer.
 	LastNackMessage string
 
 	// LastSendError tracks the time of the last error sending into the stream.
-	LastSendError time.Time
+	LastSendError *time.Time
 
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
 	// LastSendSuccess tracks the time we last successfully sent a resource TO the peer.
-	LastSendSuccess time.Time
+	LastSendSuccess *time.Time
 
 	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
-	LastRecvHeartbeat time.Time
+	LastRecvHeartbeat *time.Time
 
 	// LastRecvResourceSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
-	LastRecvResourceSuccess time.Time
+	LastRecvResourceSuccess *time.Time
 
 	// LastRecvError tracks either:
 	// - The time we failed to store a resource replicated FROM the peer.
 	// - The time of the last error when receiving from the stream.
-	LastRecvError time.Time
+	LastRecvError *time.Time
 
 	// LastRecvErrorMessage tracks the last error message when receiving from the stream.
 	LastRecvErrorMessage string
@@ -263,47 +273,47 @@ func (s *MutableStatus) Done() <-chan struct{} {
 
 func (s *MutableStatus) TrackAck() {
 	s.mu.Lock()
-	s.LastAck = s.timeNow().UTC()
+	s.LastAck = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
-	s.LastSendError = s.timeNow().UTC()
+	s.LastSendError = ptr(s.timeNow().UTC())
 	s.LastSendErrorMessage = error
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackSendSuccess() {
 	s.mu.Lock()
-	s.LastSendSuccess = s.timeNow().UTC()
+	s.LastSendSuccess = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 // TrackRecvResourceSuccess tracks receiving a replicated resource.
 func (s *MutableStatus) TrackRecvResourceSuccess() {
 	s.mu.Lock()
-	s.LastRecvResourceSuccess = s.timeNow().UTC()
+	s.LastRecvResourceSuccess = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 // TrackRecvHeartbeat tracks receiving a heartbeat from our peer.
 func (s *MutableStatus) TrackRecvHeartbeat() {
 	s.mu.Lock()
-	s.LastRecvHeartbeat = s.timeNow().UTC()
+	s.LastRecvHeartbeat = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackRecvError(error string) {
 	s.mu.Lock()
-	s.LastRecvError = s.timeNow().UTC()
+	s.LastRecvError = ptr(s.timeNow().UTC())
 	s.LastRecvErrorMessage = error
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackNack(msg string) {
 	s.mu.Lock()
-	s.LastNack = s.timeNow().UTC()
+	s.LastNack = ptr(s.timeNow().UTC())
 	s.LastNackMessage = msg
 	s.mu.Unlock()
 }
@@ -311,7 +321,7 @@ func (s *MutableStatus) TrackNack(msg string) {
 func (s *MutableStatus) TrackConnected() {
 	s.mu.Lock()
 	s.Connected = true
-	s.DisconnectTime = time.Time{}
+	s.DisconnectTime = &time.Time{}
 	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }
@@ -321,7 +331,7 @@ func (s *MutableStatus) TrackConnected() {
 func (s *MutableStatus) TrackDisconnectedGracefully() {
 	s.mu.Lock()
 	s.Connected = false
-	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectTime = ptr(s.timeNow().UTC())
 	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }
@@ -331,7 +341,7 @@ func (s *MutableStatus) TrackDisconnectedGracefully() {
 func (s *MutableStatus) TrackDisconnectedDueToError(error string) {
 	s.mu.Lock()
 	s.Connected = false
-	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectTime = ptr(s.timeNow().UTC())
 	s.DisconnectErrorMessage = error
 	s.mu.Unlock()
 }
@@ -388,4 +398,8 @@ func (s *MutableStatus) GetExportedServicesCount() int {
 	defer s.mu.RUnlock()
 
 	return len(s.ExportedServices)
+}
+
+func ptr[T any](x T) *T {
+	return &x
 }
