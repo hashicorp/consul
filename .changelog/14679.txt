@@ -1,3 +1,3 @@
 ```release-note:improvement
-dns: **(Enterprise Only)** All enterprise locality labels are now optional in DNS lookups. For example, service lookups support the following format: <tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>`. 
+dns: **(Enterprise Only)** All enterprise locality labels are now optional in DNS lookups. For example, service lookups support the following format: `[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>`.
 ```
