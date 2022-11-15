@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"io"
 	"net"
 	"net/http"
@@ -382,6 +383,8 @@ type Agent struct {
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
+	rpcClientOperator pboperator.OperatorServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -467,6 +470,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
+	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
