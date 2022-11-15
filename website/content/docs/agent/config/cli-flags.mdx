@@ -482,6 +482,7 @@ information.
 
 - `-node` ((#\_node)) - The name of this node in the cluster. This must
   be unique within the cluster. By default this is the hostname of the machine.
+  The node name cannot contain whitespace or quotation marks. To query the node from DNS, the name must only contain alphanumeric characters and hyphens (`-`).
 
 - `-node-id` ((#\_node_id)) - Available in Consul 0.7.3 and later, this
   is a unique identifier for this node across all time, even if the name of the node
