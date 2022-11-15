@@ -25,7 +25,7 @@ Mesh gateways can be used with any of the following Consul configrations for man
 
 ### Consul
 
-Review the [specific guide](#prerequisites) for your use case to determined the required version of Consul.
+Review the [specific guide](#prerequisites) for your use case to determine the required version of Consul.
 
 ### Network
 
@@ -209,6 +209,7 @@ service {
       upstreams = [
          {
             destination_name = "api"
+            destination_peer = "cluster-01"
             local_bind_port = 10000
             mesh_gateway {
                mode = "remote"
@@ -216,6 +217,7 @@ service {
          },
          {
             destination_name = "db"
+            datacenter = "secondary"
             local_bind_port = 10001
             mesh_gateway {
                mode = "local"
@@ -223,6 +225,7 @@ service {
          },
          {
             destination_name = "logging"
+            datacenter = "secondary"
             local_bind_port = 10002
             mesh_gateway {
                mode = "none"
