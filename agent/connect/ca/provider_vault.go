@@ -570,7 +570,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		return "", err
 	}
 
-	// Vault
+	// Vault 1.11+ will return a non-nil response from intermediate/set-signed
 	if importResp != nil {
 		err := v.setDefaultIntermediateIssuer(importResp, keyId)
 		if err != nil {
