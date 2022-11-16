@@ -476,6 +476,20 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the parition token.
 
+    - `tolerations` ((#v-global-acls-tolerations)) (`string: ""`) - tolerations configures the taints and tolerations for the server-acl-init
+      and server-acl-init-cleanup jobs. This should be a multi-line string matching the
+      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+
+    - `nodeSelector` ((#v-global-acls-nodeselector)) (`string: null`) - This value defines `nodeSelector` (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
+      labels for the server-acl-init and server-acl-init-cleanup jobs pod assignment, formatted as a multi-line string.
+
+      Example:
+
+      ```yaml
+      nodeSelector: |
+        beta.kubernetes.io/arch: amd64
+      ```
+
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
@@ -2299,6 +2313,10 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
+    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - This value defines the tolerations that will be assigned to a gateway pod.
+      This should be a multi-line string matching the
+      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+
     - `serviceType` ((#v-apigateway-managedgatewayclass-servicetype)) (`string: LoadBalancer`) - This value defines the type of service created for gateways (e.g. LoadBalancer, ClusterIP)
 
     - `useHostPorts` ((#v-apigateway-managedgatewayclass-usehostports)) (`boolean: false`) - This value toggles if the gateway ports should be mapped to host ports
@@ -2310,8 +2328,9 @@ Use these links to navigate to a particular top-level stanza.
         Example:
 
         ```yaml
-        service: |
-        - external-dns.alpha.kubernetes.io/hostname
+        service:
+          annotations: |
+          - external-dns.alpha.kubernetes.io/hostname
         ```
 
     - `deployment` ((#v-apigateway-managedgatewayclass-deployment)) (`map`) - This value defines the number of pods to deploy for each Gateway as well as a min and max number of pods for all Gateways
@@ -2361,6 +2380,9 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
+    - `tolerations` ((#v-apigateway-controller-tolerations)) (`string: null`) - This value defines the tolerations for api-gateway-controller pod, this should be a multi-line string matching the
+      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+
     - `service` ((#v-apigateway-controller-service)) - Configuration for the Service created for the api-gateway-controller
 
       - `annotations` ((#v-apigateway-controller-service-annotations)) (`string: null`) - Annotations to apply to the api-gateway-controller service.
@@ -2382,6 +2404,16 @@ Use these links to navigate to a particular top-level stanza.
   - `tolerations` ((#v-webhookcertmanager-tolerations)) (`string: null`) - Toleration Settings
     This should be a multi-line string matching the Toleration array
     in a PodSpec.
+
+  - `nodeSelector` ((#v-webhookcertmanager-nodeselector)) (`string: null`) - This value defines `nodeSelector` (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
+    labels for the webhook-cert-manager pod assignment, formatted as a multi-line string.
+
+    Example:
+
+    ```yaml
+    nodeSelector: |
+      beta.kubernetes.io/arch: amd64
+    ```
 
 ### prometheus ((#h-prometheus))
 
