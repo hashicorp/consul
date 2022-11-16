@@ -171,7 +171,7 @@
         "title": "Consul K8s",
         "routes": [
           {
-            "title": "1.0.x",
+            "title": "v1.0.x",
             "path": "release-notes/consul-k8s/v1_0_x"
           },
           {
