@@ -145,6 +145,7 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		}
 
 		ctxToken, err := external.ContextWithQueryOptions(ctx, structs.QueryOptions{Token: tokenRead})
+		require.NoError(t, err)
 
 		reply, err := operatorClient.TransferLeader(ctxToken, &req)
 		require.True(t, acl.IsErrPermissionDenied(err))
