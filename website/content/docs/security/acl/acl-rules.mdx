@@ -589,10 +589,10 @@ These actions may required an ACL token to complete. Use the following methods t
   Refer to the [services](/docs/discovery/services) and [checks](/docs/discovery/checks) documentation for examples.
   Tokens may also be passed to the [HTTP API](/api-docs) for operations that require them.
 
-### Reading Exported Services
+### Reading Imported Nodes
 
 Node rules can implicitly affect access to [exported-services](/docs/connect/config-entries/exported-services#reading-services).
-For more details regarding how node and service rules interact to allow access to exported services, review [Reading Exported Services](#reading-exported-services-1).
+For more details regarding how node and service rules interact to allow access to exported services, review [Reading Services](/docs/connect/config-entries/exported-services#reading-services).
 
 ## Operator Rules
 
@@ -819,60 +819,18 @@ In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured wit
 [`enable_local_script_checks`](/docs/agent/config/config-files#enable_local_script_checks)
 set to `true` in order to enable script checks.
 
-### Reading Exported Services
+### Reading Imported Services
 
 Service rules affect read access to services exported by [exported-services](/docs/connect/config-entries/exported-services#reading-services).
 This includes services exported between [cluster peerings](/docs/connect/cluster-peering) or partitions (Enterprise-only).
 Read access to all imported services is granted when either of the following rule sets are attached to a token:
 * `service:write` is granted to any service. 
 * `service:read` and `node:read` is granted to all services and nodes, respectively.
-For Consul Enterprise, either set of rules must be scoped to the entire partition.
-The following policies would allow read access to all exported services (or all services in the `default` partition for Enterprise):
 
-<CodeTabs heading="Example service rule for reading exported services">
+For Consul Enterprise, either set of rules must be scoped to the service's partition and at least one namespace.
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
 
-```hcl
-service "app" {
-  policy = "write"
-}
-
-# OR
-
-service_prefix "" {
-  policy = "read"
-}
-node_prefix "" {
-  policy = "read"
-}
-```
-
-```json
-{
-  "service": {
-    "app": {
-      "policy": "write"
-    }
-  }
-}
-
-// OR 
-
-{
-  "service_prefix": {
-    "": {
-      "policy": "read"
-    }
-  },
-  "node_prefix": {
-    "": {
-      "policy": "read"
-    }
-  }
-}
-
-```
-
-</CodeTabs>
+Review [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services.
 
 ### Intentions
 
