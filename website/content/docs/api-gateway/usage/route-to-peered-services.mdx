@@ -18,10 +18,10 @@ This topic describes how to configure Consul API Gateway to route traffic to ser
 
 ## Configuration
 
-Configure the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/docs/api-gateway/configuration/mesh) for details about the parameters.
+Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/docs/api-gateway/configuration/mesh) for details about the parameters.
 
-* [`name`](/docs/api-gateway/configuration/meshservice#name)
-* [`peer`](/docs/api-gateway/configuration/meshservice#peer)
+- [`name`](/docs/api-gateway/configuration/meshservice#name)
+- [`peer`](/docs/api-gateway/configuration/meshservice#peer)
 
 ## Example
 
@@ -54,7 +54,7 @@ spec:
 ```
 </CodeBlockConfig>
 
-After applying the configuration, an `HTTPRoute` may then reference `example-mesh-service` as its `backendRef`.
+After applying the `meshservice.yaml` configuration, an `HTTPRoute` may then reference `example-mesh-service` as its `backendRef`.
 
 <CodeBlockConfig filename="route.yaml">
 
