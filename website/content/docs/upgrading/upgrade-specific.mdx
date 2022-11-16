@@ -39,7 +39,10 @@ for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/
 [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
-If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility.
+If you already use gRPC encryption, change the following fields to ensure compatibility:
+
++ Change `ports.grpc` to `ports.grpc_tls`. [visit ports documentation for details](/docs/agent/config/config-files#grpc_tls_port)
++ Change `addresses.grpc` to `addresses.grpc_tls`. [visit addresses documentation for details](/docs/agent/config/config-files#grpc_tls)
 
 #### Changes to peering
 
