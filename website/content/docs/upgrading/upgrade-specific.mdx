@@ -35,8 +35,7 @@ A breaking change was made in Consul 1.14 that:
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
 Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
-for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
 [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
