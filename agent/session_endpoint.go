@@ -47,6 +47,10 @@ func (s *HTTPHandlers) SessionCreate(resp http.ResponseWriter, req *http.Request
 
 	fixupEmptySessionChecks(&args.Session)
 
+	if (s.agent.config.Datacenter != args.Datacenter) && (!s.agent.config.ServerMode) {
+		return nil, fmt.Errorf("cross datacenter lock must be created at server agent")
+	}
+
 	// Create the session, get the ID
 	var out string
 	if err := s.agent.RPC("Session.Apply", &args, &out); err != nil {
