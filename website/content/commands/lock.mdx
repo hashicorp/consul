@@ -24,6 +24,8 @@ If the lock holder count is more than one, then a semaphore is used instead.
 A semaphore allows more than a single holder, but this is less efficient than
 a simple lock. This follows the [semaphore algorithm](https://learn.hashicorp.com/consul/developer-configuration/semaphore).
 
+To apply a lock to a remote WAN federated datacenter, run the command with the `-datacenter=<name>` flag on a server agent. You cannot use the command with `-datacenter` on client agents because they are unavailable to the remote datacenter.
+
 All locks using the same prefix must agree on the value of `-n`. If conflicting
 values of `-n` are provided, an error will be returned.
 
