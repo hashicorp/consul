@@ -599,7 +599,7 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 	if keyId == "" {
 		return fmt.Errorf("expected non-empty keyId")
 	}
-	mapping, ok := vaultResp.Data["mapping"].(map[string]string)
+	mapping, ok := vaultResp.Data["mapping"].(map[string]any)
 	if !ok {
 		return fmt.Errorf("unexpected type for 'mapping' value in Vault response")
 	}
@@ -617,10 +617,18 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 		return fmt.Errorf("could not find key_id %q in response from vault", keyId)
 	}
 
-	// Post it as the default issuer.
-	_, err := v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", map[string]interface{}{
-		"default": intermediateId,
-	})
+	// For Vault 1.11+ it is important to GET then POST to avoid clobbering fields
+	// like `default_follows_latest_issuer`.
+	// https://developer.hashicorp.com/vault/api-docs/secret/pki#default_follows_latest_issuer
+	resp, err := v.readNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers")
+	if err != nil {
+		return fmt.Errorf("could not read from /config/issuers: %w", err)
+	}
+	issuersConf := resp.Data
+	// Overwrite the default issuer
+	issuersConf["default"] = intermediateId
+
+	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", issuersConf)
 	if err != nil {
 		return err
 	}
