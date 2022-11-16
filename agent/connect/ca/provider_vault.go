@@ -599,10 +599,12 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 	if keyId == "" {
 		return fmt.Errorf("expected non-empty keyId")
 	}
+
 	mapping, ok := vaultResp.Data["mapping"].(map[string]any)
 	if !ok {
 		return fmt.Errorf("unexpected type for 'mapping' value in Vault response")
 	}
+
 	var intermediateId string
 	// The value in this KV pair is called "key"
 	for issuer, key := range mapping {
@@ -630,7 +632,7 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"config/issuers", issuersConf)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not write default issuer to /config/issuers: %w", err)
 	}
 
 	return nil
