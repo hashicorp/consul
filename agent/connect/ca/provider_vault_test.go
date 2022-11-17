@@ -906,8 +906,7 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	SkipIfVaultNotPresent(t)
 
-	provider, testVault := testVaultProviderWithConfig(t, true, nil)
-	_ = testVault
+	provider, _ := testVaultProviderWithConfig(t, true, nil)
 
 	orig, err := provider.ActiveIntermediate()
 	require.NoError(t, err)
