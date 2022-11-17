@@ -7,13 +7,18 @@ description: >-
 
 # Cluster Peering on Kubernetes
 
-To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
+To establish a cluster peering connection on Kubernetes, you need to enable several pre-requisite values in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
+
+The following Helm values are mandatory for cluster peering:
+- [`global.tls.enabled = true`](/docs/k8s/helm#v-global-tls-enabled)
+- [`meshGateway.enabled = true`](/docs/k8s/helm#v-meshgateway-enabled)
 
 The following CRDs are used to create and manage a peering connection:
 
 - `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
 - `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
 
+Peering connections, including both data-plane and control-plane traffic, will be routed over mesh gateways. 
 As of Consul v1.14, you can also [implement service failovers and redirects to control traffic](/consul/docs/connect/l7-traffic) between peers.
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
@@ -52,14 +57,13 @@ Complete the following procedure after you have provisioned a Kubernetes cluster
       image: "hashicorp/consul:1.14.0"
       peering:
         enabled: true
+      tls:
+        enabled: true
     connectInject:
       enabled: true
     dns:
       enabled: true
       enableRedirection: true
-    server:
-      exposeService:
-        enabled: true
     controller:
       enabled: true
     meshGateway:
@@ -68,10 +72,6 @@ Complete the following procedure after you have provisioned a Kubernetes cluster
     ```
 
     </CodeBlockConfig>
-
-    These Helm values configure the servers in each cluster so that they expose ports over a Kubernetes load balancer service. For additional configuration options, refer to [`server.exposeService`](/docs/k8s/helm#v-server-exposeservice).
-
-    When generating a peering token from one of the clusters, Consul includes a load balancer address in the token so that the peering stream goes through the load balancer in front of the servers. For additional configuration options, refer to [`global.peering.tokenGeneration`](/docs/k8s/helm#v-global-peering-tokengeneration).
   
 ### Install Consul on Kubernetes
 
@@ -94,7 +94,7 @@ Install Consul on Kubernetes by using the CLI to apply `values.yaml` to each clu
       ```
 
      ```shell-session
-    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.0" --values values.yaml --kube-context $CLUSTER2_CONTEXT
+    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.0" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
      ```
 
 ## Create a peering connection for Consul on Kubernetes
@@ -288,11 +288,15 @@ The examples described in this section demonstrate how to export a service named
 
 1. Apply the intentions to the second cluster.
 
+    <CodeBlockConfig>
+
     ```shell-session
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yaml
     ```
 
-1. Add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods before deploying the workload so that the services in `cluster-01` can dial `backend` in `cluster-02`. To dial the upstream service from an application, configure the application so that that requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). In the following example, the annotation that allows the workload to join the mesh and the configuration provided to the workload that enables the workload to dial the upstream service using the correct DNS name is highlighted. 
+    </CodeBlockConfig>
+
+1. Add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods before deploying the workload so that the services in `cluster-01` can dial `backend` in `cluster-02`. To dial the upstream service from an application, configure the application so that that requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/docs/discovery/dns#service-virtual-ip-lookups). In the following example, the annotation that allows the workload to join the mesh and the configuration provided to the workload that enables the workload to dial the upstream service using the correct DNS name is highlighted. [Service Virtual IP Lookups for Consul Enterprise](/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) details how you would similarly format a DNS name including partitions and namespaces.
 
     <CodeBlockConfig filename="frontend.yaml" highlight="36,51">
 
@@ -366,7 +370,7 @@ The examples described in this section demonstrate how to export a service named
 
 1. Run the following command in `frontend` and then check the output to confirm that you peered your clusters successfully.
 
-    <CodeBlockConfig filename="frontend.yaml" highlight="31">
+    <CodeBlockConfig highlight="31">
 
     ```shell-session
     $ kubectl --context $CLUSTER1_CONTEXT exec -it $(kubectl --context $CLUSTER1_CONTEXT get pod -l app=frontend -o name) -- curl localhost:9090
