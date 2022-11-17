@@ -210,7 +210,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   34.135.103.67
   ```
 
-1. Get the Kubernetes authentication method URL for the non-default partition cluster:
+1. Get the Kubernetes authentication method URL for the non-default partition cluster running your workloads:
 
   ```shell-session
   $ kubectl config view --output "jsonpath={.clusters[?(@.name=='${CLIENT_CONTEXT}')].cluster.server}"
@@ -218,13 +218,13 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 
   Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition workload cluster.
 
-1. Copy the server certificate to the non-default partition workload cluster.
+1. Copy the server certificate to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. Copy the server key to the non-default partition workload cluster.
+1. Copy the server key to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
@@ -236,9 +236,9 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-#### Install on the non-default partition workload cluster
+#### Install on the non-default partition clusters running workloads
 
-1. Switch to the workload non-default partition workload clusters:
+1. Switch to the workload non-default partition clusters running your workloads:
 
   ```shell-session
   $ kubectl config use-context ${CLIENT_CONTEXT}
