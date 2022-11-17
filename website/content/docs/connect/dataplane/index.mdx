@@ -13,9 +13,11 @@ Consul Dataplane requires servers running Consul v1.14.0+ and Consul K8s v1.0.0+
 
 ## What is Consul Dataplane?
 
-In standard deployments, Consul uses a control plane that contains both *server agents* and *client agents*. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes already include components called *kubelets* that support health checking and service location functions typically provided by the client agent.
+In standard deployments, Consul uses a control plane that contains both _server agents_ and _client agents_. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes already include components called _kubelets_ that support health checking and service location functions typically provided by the client agent.
 
 Consul Dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every pod. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in Kubernetes deployments is no longer an issue.
+
+![Diagram of Consul Dataplanes in Kubernetes deployment](/img/dataplanes-diagram.png)
 
 ## Benefits
 
@@ -52,6 +54,10 @@ $ helm install consul hashicorp/consul --set global.name=consul --version ${VERS
 $ export VERSION=1.0.0 && \
     curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
 ```
+
+### Upgrading
+
+Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
 
 ## Feature support
 
