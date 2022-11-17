@@ -244,17 +244,10 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config use-context ${CLIENT_CONTEXT}
   ```
 
-<<<<<<< HEAD
-1. Create a configuration for each admin partition.
-   In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique `global.name` value is assigned.
-
-  <CodeTabs heading="partitionA.yaml">
-=======
 1. Create a configuration for each non-default admin partition.
    In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique `global.name` value is assigned.
 
   <CodeTabs heading="partition-workload.yaml">
->>>>>>> 940084e09 (docs: Update admin-partitions.mdx (#15428))
 
   <CodeBlockConfig lineNumbers highlight="2,12,15,20,27,29,33">
 
@@ -266,11 +259,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
-<<<<<<< HEAD
-      name: partitionA
-=======
       name: partition-workload
->>>>>>> 940084e09 (docs: Update admin-partitions.mdx (#15428))
     tls:
       enabled: true
       caCert:
