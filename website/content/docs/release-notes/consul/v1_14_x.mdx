@@ -11,17 +11,19 @@ description: >-
 
 - **Cluster Peering (GA)**: This version promotes Cluster Peering, which is a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/docs/connect/cluster-peering) documentation. Some notable improvements to Cluster Peering include: 
  
-  - **Cluster Peering Failover**: 
+  - **Cluster Peering Failover**: Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. 
   
-  - **Control Plane traffic over Mesh Gateways**: 
-
-- **Enables TLS on the Envoy Prometheus endpoint**: The Envoy prometheus endpoint can be enabled when `envoy_prometheus_bind_addr` is set and then secured over TLS using new CLI flags for the `consul connect envoy` command. These commands are: `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file`. The CA, cert, and key can be provided to Envoy by a Kubernetes mounted volume so that Envoy can watch the files and dynamically reload the certs when the volume is updated.
+  - **Control Plane traffic over Mesh Gateways**: Cluster Peering now supports the ability to allow for Peering establishment to occur using Mesh Gateways.
 
 ## What's Changed
 
-- Removes support for Envoy 1.19.x and adds support for Envoy 1.23. Refer to the [Envoy Compatibility matrix](/docs/connect/proxies/envoy) for more details.
-
-- The [`disable_compat_19`](/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed. In Consul versions 1.10.x through 1.11.x, the config defaulted to `false`. In version 1.12.x it defaulted to `true`. Before upgrading you should remove this flag from your config if the flag is being used.
+- 1.4 adds a new `ports.grpc_tls` configuration option. This introduces a new port to better separate TLS config from the existing `ports.grpc` config. The new `ports.grpc_tls` only supports TLS encrypted communication. The existing `ports.grpc` now only supports plain-text communication. [[GH-15339](https://github.com/hashicorp/consul/issues/15339)]
+- `peering` and `connect` are  default. [[GH-15302](https://github.com/hashicorp/consul/issues/15302)]
+- The gRPC TLS port default value to 8503 [[GH-15302](https://github.com/hashicorp/consul/issues/15302)]
+- Removes support for Envoy 1.20 [[GH-15093](https://github.com/hashicorp/consul/issues/15093)]
+- Rename `PeerName` to `Peer` on prepared queries and exported services. [[GH-14854](https://github.com/hashicorp/consul/issues/14854)]
+- Convert service mesh failover to use Envoy's aggregate clusters. This
+changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io/docs/envoy/latest/configuration/upstream/cluster_manager/cluster_stats#dynamic-http-statistics). [[GH-14178](https://github.com/hashicorp/consul/issues/14178)]
 
 ## Upgrading
 

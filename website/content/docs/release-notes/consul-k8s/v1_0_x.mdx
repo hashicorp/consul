@@ -9,35 +9,27 @@ description: >-
 
 ## Release Highlights
 
-- ** Simplified Service Mesh Deployments with Consul Dataplane **: Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. This change affects several main areas listed below.
-  - Control plane: 
-    * A new component consul-dataplane is now injected as a sidecar-proxy instead of plain Envoy. consul-dataplane manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers.
-    * All services on the service mesh are now registered directly with the central catalog in Consul servers.
-    * All service-mesh consul-k8s components are configured to talk directly to Consul servers.
-    * Mesh, ingress, and terminating gateways are now registered centrally by the endpoints controller, similar to how service-mesh services are registered.
-  - Helm:
-    * `client.enabled` now defaults to false. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation.
-    * `global.imageEnvoy` is no longer used for sidecar proxies, as well as mesh, terminating, and ingress gateways.
-    * `externalServers.grpcPort` default is now 8502 instead of 8503.
-    * `meshGateway.service.enabled` value is removed. Mesh gateways now will always have a Kubernetes service as this is required to register them as a service with Consul.
-    - Consul snapshot-agent 
-    * Consul snap-shot agetn runs as a sidecar to Consul servers, results in the following changes to Helm values:
-       - Move `client.snapshotAgent` values to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
-       - Remove `global.secretsBackend.vault.consulSnapshotAgentRole` value. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets.
+- ** Simplified Service Mesh Deployments with Consul Dataplane **: Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component consul-dataplane is now injected as a sidecar-proxy instead of plain Envoy. consul-dataplane manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers.istered.
   
 - **Consul API Gateway 0.5.0 Support**: Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul Servers. 
 
 ## What's Changed
 
-
+-  `client.enabled` now defaults to false. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation.
+- `global.imageEnvoy` is no longer used for sidecar proxies, as well as mesh, terminating, and ingress gateways.
+- `externalServers.grpcPort` default is now 8502 instead of 8503.
+- `meshGateway.service.enabled` value is removed. Mesh gateways now will always have a Kubernetes service as this is required to register them as a service with Consul.
+- Consul snap-shot agent runs as a sidecar to Consul servers, results in the following changes to Helm values:
+  - Move `client.snapshotAgent` values to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
+  - Remove `global.secretsBackend.vault.consulSnapshotAgentRole` value. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets.
 
 ## Supported Software
 
 - Consul 1.14.x. For support for Consul 1.13.x and 1.12.x please install Consul K8s 0.49.x. 
-- Consul Dataplane v1.0.x. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details to see more details about the versions of Consul Dataplane and the packaged Envoy version that is available. 
-- Kubernetes 1.21.x - 1.25.x,  and `kubectl` 1.21.x - 1.25.x 
+- Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details to see more details about the versions of Consul Dataplane and the packaged Envoy version that is available. 
+- Kubernetes 1.21.x - 1.25.x
+- `kubectl` 1.21.x - 1.25.x 
 - Helm 3.6+
-
 
 ## Upgrading
 
