@@ -213,6 +213,31 @@ Initiate the server upgrade:
    `updatePartition` is `0`. At this point, you may remove the
    `updatePartition` configuration. Your server upgrade is complete.
 
+## Upgrading to Consul Dataplane
+
+In earlier versions, Consul on Kubernetes used client agents in its deployments. As of v1.14.0, Consul uses [Consul Dataplane](/docs/connect/dataplane/) in Kubernetes deployments instead of client agents.
+
+If you upgrade Consul from a version that uses client agents to a version the uses dataplanes, complete the following steps to upgrade your deployment safely and without downtime.
+
+1. Before you upgrade, edit your Helm chart to enable Consul client agents by setting `client.enabled` and `client.updateStrategy`:
+
+  ```yaml filename="values.yaml"
+  client:
+      enabled: true
+      updateStrategy:
+        type: OnDelete
+  ```
+
+1. Add `consul.hashicorp.com/consul-k8s-version: 1.0.0` to the annotations for each pod you upgrade.  
+
+1. Follow our [recommended procedures to upgrade servers](#upgrading-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
+
+1. Run `kubectl rollout restart` to restart your service mesh applications. Restarting service mesh application causes Kubernetes to re-inject them with the webhook for dataplanes.
+
+1. Restart all gateways in your service mesh.
+
+1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`. 
+
 ## Configuring TLS on an Existing Cluster
 
 If you already have a Consul cluster deployed on Kubernetes and
