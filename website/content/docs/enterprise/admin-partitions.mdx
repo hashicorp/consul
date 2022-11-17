@@ -188,12 +188,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enterpriseLicense:
       secretName: license
       secretKey: key
-  server:
-    exposeGossipAndRPCPorts: true
   meshGateway:
-    enabled: true
-    replicas: 1
-  dns:
     enabled: true
   ```
 
@@ -249,22 +244,22 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config use-context ${CLIENT_CONTEXT}
   ```
 
-1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
+1. Create a configuration for each admin partition.
    In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique `global.name` value is assigned.
 
-  <CodeTabs heading="client.yaml">
+  <CodeTabs heading="partitionA.yaml">
 
   <CodeBlockConfig lineNumbers highlight="2,12,15,20,27,29,33">
 
   ```yaml
   global:
-    name: client
+    name: consul
     enabled: false
     enableConsulNamespaces: true
     image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
-      name: clients
+      name: partitionA
     tls:
       enabled: true
       caCert:
@@ -287,9 +282,6 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     tlsServerName: server.dc1.consul
     k8sAuthMethodHost: https://104.154.156.146 # See step 5 from `Install Consul server cluster`
   meshGateway:
-    enabled: true
-    replicas: 1
-  dns:
     enabled: true
   ```
 
