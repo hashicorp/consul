@@ -24,6 +24,8 @@ description: >-
 - **Consul snapshot-agent now runs as a sidecar with Consul servers.** Running the snapshot-agent as a sidecar to Consul servers, results in the following changes to Helm values:
   - Move `client.snapshotAgent` values to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
   - Remove `global.secretsBackend.vault.consulSnapshotAgentRole` value. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets.
+  
+## What's Changed
 
 ## Supported Software
 
