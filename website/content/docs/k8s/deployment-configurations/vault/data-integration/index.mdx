@@ -13,7 +13,7 @@ This topic describes how to configure Vault and Consul in order to share secrets
 
 Before you set up the data integration between Vault and Consul on Kubernetes, read and complete the steps in the [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 
-## General Integration Steps
+## General integration steps
 
 For each secret you want to store in Vault, you must complete two multi-step procedures.
 
@@ -25,7 +25,7 @@ Repeat the following steps for each datacenter in the cluster:
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Update the Consul on Kubernetes Helm chart.
 
-## Secrets to Service Account Mapping
+## Secrets-to-service account mapping
 
 At the most basic level, the goal of this configuration is to authorize a Consul on Kubernetes service account to access a secret in Vault.
 
@@ -33,7 +33,7 @@ The following table associates Vault secrets and the Consul on Kubernetes servic
 (NOTE: `Consul components` refers to all other services and jobs that are not Consul servers or clients.
 It includes things like terminating gateways, ingress gateways, etc.)
 
-### Primary Datacenter
+### Primary datacenter
 
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
@@ -47,7 +47,7 @@ It includes things like terminating gateways, ingress gateways, etc.)
 |[Service Mesh and Consul client TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
 |[Webhook TLS certificates for controller and connect inject](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
 
-### Secondary Datacenters
+### Secondary datacenters
 
 The mapping for secondary data centers is similar with the following differences:
 
@@ -132,6 +132,6 @@ The following TLS certificates and keys can generated and managed by Vault the V
 - [Service Mesh and Consul client TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca)
 - [Vault as the Webhook Certificate Provider for Consul Controller and Connect Inject on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/webhook-certs)
 
-## Secrets to Service Account Mapping
+## Secrets-to-service account mapping
 
 Read through the [detailed data integration guides](#detailed-data-integration-guides) that are pertinent to your environment.

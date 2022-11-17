@@ -7,14 +7,14 @@ description: >-
 
 # Upgrading Consul on Kubernetes Components
 
-## Upgrade Types
+## Upgrade types
 
 We recommend updating Consul on Kubernetes when:
   - You change your Helm configuration
   - A new Helm chart is released
   - You want to upgrade your Consul version.
 
-### Helm Configuration Changes
+### Helm configuration changes
 
 If you make a change to your Helm values file, you need to perform a `helm upgrade`
 for those changes to take effect.
@@ -42,7 +42,7 @@ For example, if you installed Consul with `connectInject.enabled: false` and you
 
 ~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
-### Helm Chart Version Upgrade
+### Upgrade Helm chart version
 
 You may wish to upgrade your Helm chart version to take advantage of new features and
 bug fixes, or because you want to upgrade your Consul version and it requires a
@@ -89,7 +89,7 @@ If you want to upgrade to the latest `0.40.0` version, use the following procedu
   **Before performing the upgrade, be sure you've read the other sections on this page,
   continuing at [Determining What Will Change](#determining-what-will-change).**
 
-### Consul Version Upgrade
+### Upgrade Consul version
 
 If a new version of Consul is released, you need to perform a Helm upgrade
 to update to the new version. Before you upgrade to a new version:
@@ -130,7 +130,7 @@ to update to the new version. Before you upgrade to a new version:
 
 ~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
-## Determining What Will Change
+## Determine scope of changes
 
 Before upgrading, it is important to understand the changes that affect your
 cluster. For example, you need to take more care if your upgrade results
@@ -170,7 +170,7 @@ that can be used.
   If neither the server statefulset is not being redeployed,
   then you can continue with the Helm upgrade without any specific sequence to follow.
 
-## Upgrading Consul Servers
+## Upgrade Consul servers
 
 Initiate the server upgrade:
 
@@ -238,7 +238,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
 
 1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`. 
 
-## Configuring TLS on an Existing Cluster
+## Configuring TLS on an existing cluster
 
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,

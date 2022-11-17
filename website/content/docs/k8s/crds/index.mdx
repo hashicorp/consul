@@ -260,7 +260,7 @@ custom resources in the same Kubernetes namespace as the service they configure.
 
 The details on each configuration are:
 
-1. **Mirroring** - The Kubernetes namespace is "mirrored" into Consul. For example, the
+1. **Mirroring** - The Kubernetes namespace is mirrored into Consul. For example, the
    service `web` in Kubernetes namespace `web-ns` is registered as service `web`
    in the Consul namespace `web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
@@ -281,7 +281,7 @@ The details on each configuration are:
 
    </CodeBlockConfig>
 
-1. **Mirroring with prefix** - The Kubernetes namespace is "mirrored" into Consul
+1. **Mirroring with prefix** - The Kubernetes namespace is mirrored into Consul
    with a prefix added to the Consul namespace. For example, if the prefix is `k8s-` then service `web` in Kubernetes namespace `web-ns` will be registered as service `web`
    in the Consul namespace `k8s-web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
