@@ -9,33 +9,38 @@ description: >-
 
 ## Release Highlights
 
-- **Consul CNI Plugin - OpenShift support**: Support for OpenShift and Multus CNI plugin [[GH-1527](https://github.com/hashicorp/consul-k8s/pull/1527)]
+- ** Simplified Service Mesh Deployments with Consul Dataplane **: Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. This change affects several main areas listed below.
+  - Control plane: 
+    * A new component consul-dataplane is now injected as a sidecar-proxy instead of plain Envoy. consul-dataplane manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers.
+    * All services on the service mesh are now registered directly with the central catalog in Consul servers.
+    * All service-mesh consul-k8s components are configured to talk directly to Consul servers.
+Mesh, ingress, and terminating gateways are now registered centrally by the endpoints controller, similar to how service-mesh services are registered.
+  - Helm:
+    * `client.enabled` now defaults to false. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation.
+    * `global.imageEnvoy` is no longer used for sidecar proxies, as well as mesh, terminating, and ingress gateways.
+    * `externalServers.grpcPort` default is now 8502 instead of 8503.
+    * `meshGateway.service.enabled` value is removed. Mesh gateways now will always have a Kubernetes service as this is required to register them as a service with Consul.
 
-- **Consul API Gateway secondary datacenter support**: Use global ACL auth method to provision ACL tokens for API Gateway in secondary datacenter and Set primary datacenter flag when deploying controller into secondary datacenter with federation enabled [[GH-1481](https://github.com/hashicorp/consul-k8s/pull/1481)]
-
-- **Cluster Peering**: Utilize new `use_auto_cert` value to gRPC TLS config when auto-encrypt is enabled. [[GH-1541](https://github.com/hashicorp/consul-k8s/pull/1541)]
-
-- **Service tag annotation improvements**: Support escaped commas in service tag annotations for pods which use consul.hashicorp.com/connect-service-tags or consul.hashicorp.com/service-tags. [[GH-1532](https://github.com/hashicorp/consul-k8s/pull/1532)]
-  
-- **MaxInboundConnections in service-defaults CRD**: Add support for MaxInboundConnections on the Service Defaults CRD. [[GH-1437](https://github.com/hashicorp/consul-k8s/pull/1437)]
+- **Consul snapshot-agent now runs as a sidecar with Consul servers.** Running the snapshot-agent as a sidecar to Consul servers, results in the following changes to Helm values:
+  - Move `client.snapshotAgent` values to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
+  - Remove `global.secretsBackend.vault.consulSnapshotAgentRole` value. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets.
 
 ## Supported Software
 
-- Consul 1.11.x, Consul 1.12.x and Consul 1.13.1+
-- Kubernetes 1.19.x - 1.24.x 
-- Kubectl 1.19+
-- Helm 3.2+
-- Envoy proxy support is determined by the Consul version deployed. Refer to
-  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+- Consul 1.14.x. For support for Consul 1.13.x and 1.12.x please install Consul K8s 0.49.x. 
+- Kubernetes 1.21.x - 1.25.x 
+- `kubectl` 1.21.x - 1.25.x 
+- Helm 3.6+
+- Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
 ## Upgrading
 
 For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
 ## Known Issues
-The following issues are know to exist in the v0.49.0 release: 
+The following issues are know to exist in the v1.0.0 release: 
 
-- Kubernetes 1.25.x is not supported as the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) is currently not supported by Consul K8s. 
+- Pod Security Standards that are configured for the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) are currently not supported by Consul K8s. Support will be added in a future Consul K8s 1.0.x patch release. 
 
 ## Changelogs
 
@@ -43,4 +48,4 @@ The changelogs for this major release version and any maintenance versions are l
 
 ~> **Note:** The following link takes you to the changelogs on the GitHub website.
 
-- [0.49.0](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.0)
+- [1.0.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.0.0)
