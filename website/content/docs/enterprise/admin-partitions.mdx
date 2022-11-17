@@ -137,7 +137,7 @@ The following procedure will result in an admin partition in each Kubernetes clu
 
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
-1. Verify that your VPC is configured to enable connectivity between the pods running Consul clients and servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity.
+1. Verify that your VPC is configured to enable connectivity between the pods running workloads and Consul servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity.
 1. Set environment variables to use with shell commands.
 
   ```shell-session
@@ -154,7 +154,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl create secret --context ${SERVER_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
 
-1. Create the license secret in the workload client cluster. This step must be repeated for every additional workload client cluster.
+1. Create the license secret in the non-default partition cluster for your workloads. This step must be repeated for every additional non-default partition cluster.
 
   ```shell-session
   $ kubectl create --context ${CLIENT_CONTEXT} ns consul
@@ -180,7 +180,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.13.2-ent
+    image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
     acls:
@@ -188,20 +188,8 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enterpriseLicense:
       secretName: license
       secretKey: key
-  server:
-    exposeGossipAndRPCPorts: true
-  connectInject:
-    enabled: true
-    consulNamespaces:
-      mirroringK8S: true
-  controller:
-    enabled: true
   meshGateway:
     enabled: true
-    replicas: 1
-  dns:
-    enabled: true
-    enableRedirection: true
   ```
 
   </CodeBlockConfig>
@@ -212,66 +200,66 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the Consul server(s) using the values file created in the previous step:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values server.yaml
+  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "1.0.0" --create-namespace --namespace consul --values server.yaml
   ```
 
-1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
+1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and workload pods on the non-default partition cluster. <a name="get-external-ip-address"/>
 
   ```shell-session
   $ kubectl get services --selector="app=consul,component=server" --namespace consul --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
   34.135.103.67
   ```
 
-1. Get the Kubernetes authentication method URL for the workload cluster:
+1. Get the Kubernetes authentication method URL for the non-default partition cluster running your workloads:
 
   ```shell-session
   $ kubectl config view --output "jsonpath={.clusters[?(@.name=='${CLIENT_CONTEXT}')].cluster.server}"
   ```
 
-  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your client nodes.
+  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition cluster running your workloads.
 
-1. Copy the server certificate to the workload cluster.
+1. Copy the server certificate to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. Copy the server key to the workload cluster.
+1. Copy the server key to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
+1. If ACLs were enabled in the server configuration values file, copy the token to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-#### Install the workload client cluster
+#### Install on the non-default partition clusters running workloads
 
-1. Switch to the workload client clusters:
+1. Switch to the workload non-default partition clusters running your workloads:
 
   ```shell-session
   $ kubectl config use-context ${CLIENT_CONTEXT}
   ```
 
-1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
+1. Create a configuration for each non-default admin partition.
    In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique `global.name` value is assigned.
 
-  <CodeTabs heading="client.yaml">
+  <CodeTabs heading="partition-workload.yaml">
 
   <CodeBlockConfig lineNumbers highlight="2,12,15,20,27,29,33">
 
   ```yaml
   global:
-    name: client
+    name: consul
     enabled: false
     enableConsulNamespaces: true
-    image: hashicorp/consul-enterprise:1.13.2-ent
+    image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
-      name: clients
+      name: partition-workload
     tls:
       enabled: true
       caCert:
@@ -293,31 +281,17 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     hosts: [34.135.103.67] # See step 4 from `Install Consul server cluster`
     tlsServerName: server.dc1.consul
     k8sAuthMethodHost: https://104.154.156.146 # See step 5 from `Install Consul server cluster`
-  client:
-    enabled: true
-    exposeGossipPorts: true
-    join: [34.135.103.67] # See step 4 from `Install Consul server cluster`
-  connectInject:
-    enabled: true
-    consulNamespaces:
-      mirroringK8S: true
-  controller:
-    enabled: true
   meshGateway:
     enabled: true
-    replicas: 1
-  dns:
-    enabled: true
-    enableRedirection: true
   ```
 
   </CodeBlockConfig>
   </CodeTabs>
 
-1. Install the workload client clusters:
+1. Install the non-default partition clusters running your workloads:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values client.yaml
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "1.0.0" --create-namespace --namespace consul --values client.yaml
   ```
 
 ### Verifying the Deployment
