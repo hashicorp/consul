@@ -69,8 +69,196 @@
     ]
   },
   {
-    "title": "API",
-    "href": "/api-docs"
+    "title": "Architecture",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "architecture"
+      },
+      {
+        "title": "Improving Consul Resilience",
+        "path": "architecture/improving-consul-resilience"
+      },
+      {
+        "title": "Anti-Entropy",
+        "path": "architecture/anti-entropy"
+      },
+      {
+        "title": "Consensus Protocol",
+        "path": "architecture/consensus"
+      },
+      {
+        "title": "Gossip Protocol",
+        "path": "architecture/gossip"
+      },
+      {
+        "title": "Jepsen Testing",
+        "path": "architecture/jepsen"
+      },
+      {
+        "title": "Network Coordinates",
+        "path": "architecture/coordinates"
+      }
+    ]
+  },
+  {
+    "divider": true
+  },
+  {
+    "title": "Release Notes",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "release-notes"
+      },
+      {
+        "title": "Consul",
+        "routes": [
+          {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
+            "title": "v1.11.x",
+            "path": "release-notes/consul/v1_11_x"
+          },
+          {
+            "title": "v1.10.x",
+            "path": "release-notes/consul/v1_10_x"
+          },
+          {
+            "title": "v1.9.x",
+            "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.49.x",
+            "path": "release-notes/consul-k8s/v0_49_x"
+          },
+          {
+            "title": "v0.48.x",
+            "path": "release-notes/consul-k8s/v0_48_x"
+          },
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul API Gateway",
+        "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-api-gateway/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-api-gateway/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-api-gateway/v0_2_x"
+          },
+          {
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul ECS",
+        "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-ecs/v0_5_x"
+          },
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-ecs/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-ecs/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-ecs/v0_2_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul Terraform Sync",
+        "routes": [
+          {
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
+          },
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-terraform-sync/v0_5_x"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Upgrade",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "upgrading"
+      },
+      {
+        "title": "Compatibility Promise",
+        "path": "upgrading/compatibility"
+      },
+      {
+        "title": "Specific Version Details",
+        "path": "upgrading/upgrade-specific"
+      },
+      {
+        "title": "Upgrade Instructions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "upgrading/instructions"
+          },
+          {
+            "title": "General Process",
+            "path": "upgrading/instructions/general-process"
+          },
+          {
+            "title": "Upgrading to Latest 1.2.x",
+            "path": "upgrading/instructions/upgrade-to-1-2-x"
+          },
+          {
+            "title": "Upgrading to Latest 1.6.x",
+            "path": "upgrading/instructions/upgrade-to-1-6-x"
+          },
+          {
+            "title": "Upgrading to Latest 1.8.x",
+            "path": "upgrading/instructions/upgrade-to-1-8-x"
+          },
+          {
+            "title": "Upgrading to Latest 1.10.x",
+            "path": "upgrading/instructions/upgrade-to-1-10-x"
+          }
+        ]
+      }
+    ]
   },
   {
     "title": "Commands (CLI)",
@@ -1205,8 +1393,25 @@
         "path": "upgrading"
       },
       {
-        "title": "Compatibility Promise",
-        "path": "upgrading/compatibility"
+        "title": "Usage",
+        "routes": [
+          {
+            "title": "Basic Usage",
+            "path": "api-gateway/usage/usage"
+          },
+          {
+            "title": "Reroute HTTP Requests",
+            "path": "api-gateway/usage/reroute-http-requests"
+          },
+          {
+            "title": "Route Traffic to Peered Services",
+            "path": "api-gateway/usage/route-to-peered-services"
+          },
+          {
+            "title": "Error Messages",
+            "path": "api-gateway/usage/errors"
+          }
+        ]
       },
       {
         "title": "Specific Version Details",
