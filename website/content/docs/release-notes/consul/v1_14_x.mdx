@@ -9,13 +9,13 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (GA)**: This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/docs/connect/cluster-peering) documentation.
-
-- **Transparent proxying through terminating gateways**: This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information, refer to the [terminating gateway](/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
+- **Cluster Peering (GA)**: This version promotes Cluster Peering, which is a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/docs/connect/cluster-peering) documentation. Some notable improvements to Cluster Peering include: 
+ 
+  - **Cluster Peering Failover**: 
+  
+  - **Control Plane traffic over Mesh Gateways**: 
 
 - **Enables TLS on the Envoy Prometheus endpoint**: The Envoy prometheus endpoint can be enabled when `envoy_prometheus_bind_addr` is set and then secured over TLS using new CLI flags for the `consul connect envoy` command. These commands are: `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file`. The CA, cert, and key can be provided to Envoy by a Kubernetes mounted volume so that Envoy can watch the files and dynamically reload the certs when the volume is updated.
-
-- **UDP Health Checks**: Adds the ability to register service discovery health checks that periodically send UDP datagrams to the specified IP/hostname and port. Refer to [UDP checks](/docs/discovery/checks#udp-interval).
 
 ## What's Changed
 
