@@ -216,7 +216,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config view --output "jsonpath={.clusters[?(@.name=='${CLIENT_CONTEXT}')].cluster.server}"
   ```
 
-  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition workload cluster.
+  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition cluster running your workloads.
 
 1. Copy the server certificate to the non-default partition cluster running your workloads.
 
