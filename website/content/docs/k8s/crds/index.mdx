@@ -50,24 +50,10 @@ Hang tight while we grab the latest from your chart repositories...
 Update Complete. ⎈Happy Helming!⎈
 ```
 
-Next, you must configure consul-helm in your `values.yaml` file to install the custom resource definitions:
-
-<CodeBlockConfig filename="values.yaml" highlight="4-5,7-8">
-
-```yaml
-global:
-  name: consul
-
-connectInject:
-  enabled: true
-```
-
-</CodeBlockConfig>
-
-Note that configuration entries are used to configure Consul service mesh, so `connectInject` must be enabled.
-
 Refer to [Install with Helm Chart](/docs/k8s/installation/install) for further installation
 instructions.
+
+**Note**: Configuration entries require `connectInject` to be enabled, which is a default behavior in the official Helm Chart. If you disabled this setting, you must re-enable it to use CRDs.
 
 ## Upgrading An Existing Cluster to CRDs
 
