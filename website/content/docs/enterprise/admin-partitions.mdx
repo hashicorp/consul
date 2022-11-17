@@ -180,7 +180,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.13.2-ent
+    image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
     acls:
@@ -190,18 +190,11 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
       secretKey: key
   server:
     exposeGossipAndRPCPorts: true
-  connectInject:
-    enabled: true
-    consulNamespaces:
-      mirroringK8S: true
-  controller:
-    enabled: true
   meshGateway:
     enabled: true
     replicas: 1
   dns:
     enabled: true
-    enableRedirection: true
   ```
 
   </CodeBlockConfig>
@@ -268,7 +261,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     name: client
     enabled: false
     enableConsulNamespaces: true
-    image: hashicorp/consul-enterprise:1.13.2-ent
+    image: hashicorp/consul-enterprise:1.14.0-ent
     adminPartitions:
       enabled: true
       name: clients
@@ -293,22 +286,11 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     hosts: [34.135.103.67] # See step 4 from `Install Consul server cluster`
     tlsServerName: server.dc1.consul
     k8sAuthMethodHost: https://104.154.156.146 # See step 5 from `Install Consul server cluster`
-  client:
-    enabled: true
-    exposeGossipPorts: true
-    join: [34.135.103.67] # See step 4 from `Install Consul server cluster`
-  connectInject:
-    enabled: true
-    consulNamespaces:
-      mirroringK8S: true
-  controller:
-    enabled: true
   meshGateway:
     enabled: true
     replicas: 1
   dns:
     enabled: true
-    enableRedirection: true
   ```
 
   </CodeBlockConfig>
