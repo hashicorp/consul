@@ -37,7 +37,7 @@ Every time you generate a peering token, a single-use establishment secret is em
 In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
 
 ```shell-session
-$ curl --request POST --data '{"PeerName":"cluster-02"}' --url http://localhost:8500/v1/peering/token
+$ curl --request POST --data '{"Peer":"cluster-02"}' --url http://localhost:8500/v1/peering/token
 ```
 
 The CLI outputs the peering token, which is a base64-encoded string containing the token details.
@@ -48,7 +48,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 ```json
 {
-    "PeerName": "cluster-01",
+    "Peer": "cluster-01",
     "PeeringToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
 }
 ```
