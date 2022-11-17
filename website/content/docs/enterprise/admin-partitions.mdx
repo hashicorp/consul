@@ -230,7 +230,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. If ACLs were enabled in the server configuration values file, copy the token to the non-default partition workload cluster.
+1. If ACLs were enabled in the server configuration values file, copy the token to the non-default partition cluster running your workloads.
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
@@ -288,7 +288,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   </CodeBlockConfig>
   </CodeTabs>
 
-1. Install the non-default partition workload clusters:
+1. Install the non-default partition clusters running your workloads:
 
   ```shell-session
   $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values client.yaml
