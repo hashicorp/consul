@@ -61,7 +61,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
    
 </Tab>
@@ -90,7 +90,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
 
 </Tab>
@@ -119,7 +119,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
    
 </Tab>
@@ -137,7 +137,7 @@ Complete the following instructions to install a specific version of the CLI so 
 1. Download the appropriate version of Consul K8s CLI using the following `curl` command. Set the `$VERSION` environment variable to the appropriate version for your deployment.
 
    ```shell-session
-   $ export VERSION=0.39.0 && \
+   $ export VERSION=1.0 && \
        curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
    ```
 
@@ -157,7 +157,7 @@ Complete the following instructions to install a specific version of the CLI so 
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
 
 </Tab>
@@ -187,7 +187,7 @@ Complete the following instructions to install a specific version of the CLI so 
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
 
 </Tab>
@@ -209,15 +209,15 @@ Complete the following instructions to install a specific version of the CLI so 
 1. Install the `consul-k8s` CLI. 
 
     ```shell-session
-    $ export VERSION=-0.39.0 && \
+    $ export VERSION=-1.0 && \
         sudo yum -y install consul-k8s-${VERSION}-1
     ```
     
-1. (Optional) Issue the `consul-k8s version` command to verify the installation.
+2. (Optional) Issue the `consul-k8s version` command to verify the installation.
 
    ```shell-session
    $ consul-k8s version
-   consul-k8s 0.39.0
+   consul-k8s 1.0
    ```
    
 </Tab>
@@ -268,15 +268,7 @@ $ consul-k8s status
 ==> Consul-K8s Status Summary
    NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
 ---------+-----------+----------+--------------+------------+----------+--------------------------
-   consul | consul    | deployed | 0.40.0       | 1.11.2     |        1 | 2022/01/31 16:58:51 PST
-
-==> Config:
-   connectInject:
-      enabled: true
-   controller:
-      enabled: true
-   global:
-      name: consul
+   consul | consul    | deployed | 0.40.0       | 1.14.0     |        1 | 2022/01/31 16:58:51 PST
 
 ✓ Consul servers healthy (3/3)
 ✓ Consul clients healthy (3/3)
