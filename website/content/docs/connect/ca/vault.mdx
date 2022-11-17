@@ -29,7 +29,7 @@ must be met:
   were introduced in Vault 0.10.3. Prior versions of Vault are not
   compatible with Connect.
 
-~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh and all actions (if using auto-encrypt or auto-config, and using mTLS for server-to-server communication). Refer to the [Knowledge Base article]() for more information about the underlying cause and recommended workaround.
+~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh and all actions (if using auto-encrypt or auto-config, and using mTLS for server-to-server communication). If you are already using Vault 1.11+ as a Connect CA, refer to the [Knowledge Base article]() for more information about the underlying cause and recommended workaround.
 
 ## Configuration
 

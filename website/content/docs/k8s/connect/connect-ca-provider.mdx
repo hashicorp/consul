@@ -23,7 +23,7 @@ To configure the Vault service mesh provider, refer to [Vault as the Service Mes
 
 ## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
 
-~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh and all actions (if using auto-encrypt or auto-config, and using mTLS for server-to-server communication). Refer to the [Knowledge Base article]() for more information about the underlying cause and recommended workaround.
+~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh and all actions (if using auto-encrypt or auto-config, and using mTLS for server-to-server communication). If you are already using Vault 1.11+ as a Connect CA, refer to the [Knowledge Base article]() for more information about the underlying cause and recommended workaround.
 
 The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. It describes how to configure Vault as the Connect CA. You can configure other providers during initial bootstrap of the cluster by providing the appropriate [`ca_config`] and [`ca_provider`] values for your provider.
 
