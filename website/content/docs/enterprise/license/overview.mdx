@@ -20,6 +20,9 @@ agent's configuration or environment. Also, prior to 1.10.0, server agents would
 the license between themselves. This no longer occurs and the license must be present on each server agent
 when it is started.
 
+Consul Enterprise 1.14.0, when running on Kubernetes, removed client agents and replaced these with virtual agents.
+Virtual agents are nodes that Consul service mesh services run on. HashiCorp uses virtual agents to determine license entitlements for customers on per-node licensing and pricing agreements.
+
 -> Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 
 ### Applying a License
@@ -40,6 +43,8 @@ Client agents and [snapshot agents](/docs/enterprise/backups)
 may also be licensed in the very same manner.
 However, to avoid the need to configure the license on many client agents and snapshot agents,
 those agents have the capability to retrieve the license automatically under the conditions described below.
+
+Virtual agents do not need the license to run.
 
 Updating the license for an agent depends on the method you used to apply the license.
 - **If you used the `CONSUL_LICENSE`
