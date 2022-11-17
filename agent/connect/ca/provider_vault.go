@@ -599,7 +599,7 @@ func (v *VaultProvider) setDefaultIntermediateIssuer(vaultResp *vaultapi.Secret,
 		return fmt.Errorf("expected non-empty keyId")
 	}
 
-	mapping, ok := vaultResp.Data["mapping"].(map[string]any)
+	mapping, ok := vaultResp.Data["mapping"].(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("unexpected type for 'mapping' value in Vault response")
 	}
