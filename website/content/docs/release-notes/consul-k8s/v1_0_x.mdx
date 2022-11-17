@@ -14,7 +14,7 @@ description: >-
     * A new component consul-dataplane is now injected as a sidecar-proxy instead of plain Envoy. consul-dataplane manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers.
     * All services on the service mesh are now registered directly with the central catalog in Consul servers.
     * All service-mesh consul-k8s components are configured to talk directly to Consul servers.
-Mesh, ingress, and terminating gateways are now registered centrally by the endpoints controller, similar to how service-mesh services are registered.
+    * Mesh, ingress, and terminating gateways are now registered centrally by the endpoints controller, similar to how service-mesh services are registered.
   - Helm:
     * `client.enabled` now defaults to false. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation.
     * `global.imageEnvoy` is no longer used for sidecar proxies, as well as mesh, terminating, and ingress gateways.
