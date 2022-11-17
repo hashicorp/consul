@@ -67,7 +67,7 @@ metadata:
 ```
 
 When metrics and metrics merging are both enabled, metrics are combined from the service and the sidecar proxy, and
-exposed through a local server on the Consul sidecar for scraping. This endpoint is called the merged metrics endpoint and
+exposed through a local server on the Consul Dataplane sidecar for scraping. This endpoint is called the merged metrics endpoint and
 defaults to `127.0.0.1:20100/stats/prometheus`. The listener targets the merged metrics endpoint in the above case.
 It can be configured with the following Helm values (or overridden on a per-Pod basis with
 `consul.hashicorp.com/merged-metrics-port`:
