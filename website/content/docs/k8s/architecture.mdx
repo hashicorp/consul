@@ -37,8 +37,12 @@ Volume Claims when a
 [StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
 so this must done manually when removing servers.
 
-## Client agents
+## Consul Dataplane
 
-As of v1.14.0, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
+By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every pod.
 
-If you use an older version of Consul on Kubernetes, consider [upgrading to the latest release](/docs/k8s/upgrade). To access documentation for a previous release of Consul, select your version from the dropdown at the top of this page.
+![Diagram of Consul Dataplanes in Kubernetes deployment](/img/dataplanes-diagram.png)
+
+Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane/index) for more information.
+
+If your version of Consul uses client agents on Kubernetes, consider [upgrading to the latest release](/docs/k8s/upgrade). To access documentation for a previous release of Consul, select your version from the dropdown at the top of this page.
