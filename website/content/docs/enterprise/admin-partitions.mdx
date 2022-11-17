@@ -200,7 +200,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the Consul server(s) using the values file created in the previous step:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values server.yaml
+  $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "1.0.0" --create-namespace --namespace consul --values server.yaml
   ```
 
 1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and workload pods on the non-default partition cluster. <a name="get-external-ip-address"/>
@@ -291,7 +291,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the non-default partition clusters running your workloads:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.49.0" --create-namespace --namespace consul --values client.yaml
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "1.0.0" --create-namespace --namespace consul --values client.yaml
   ```
 
 ### Verifying the Deployment
