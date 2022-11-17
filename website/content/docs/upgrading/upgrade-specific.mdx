@@ -24,6 +24,11 @@ A breaking change was made in Consul 1.14 that:
 - [Consul Connect is enabled by default.](/docs/connect) To disable, set
 [`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
 
+The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and
+earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until 
+[hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) is
+fixed.
+
 #### Changes to gRPC TLS configuration
 
 **Make configuration changes** if using [`ports.grpc`](/docs/agent/config/config-files#grpc_port) in conjunction with any of the following settings that enables encryption:
@@ -35,12 +40,14 @@ A breaking change was made in Consul 1.14 that:
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
 Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
-for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
 [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
-If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility.
+If you already use gRPC encryption, change the following fields to ensure compatibility:
+
++ Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/docs/agent/config/config-files#grpc_tls_port) for details.
++ Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/docs/agent/config/config-files#grpc_tls) for details.
 
 #### Changes to peering
 
