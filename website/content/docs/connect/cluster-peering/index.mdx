@@ -7,8 +7,6 @@ description: >-
 
 # What is Cluster Peering?
 
-~> **Cluster peering is currently in beta**: Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support. <br/><br/>Cluster peering is not currently available in the HCP Consul offering.
-
 You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
 
 ## Overview
@@ -43,23 +41,11 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
 | Shares key/value stores                            |    &#9989;     |    &#10060;     |
 
-## Beta release features and constraints
+## Important Cluster Peering Constraints
 
-The cluster peering beta release includes the following features and functionality:
+Consider the following technical constraints:
 
-- **Consul v1.14 beta only**: Dynamic traffic control with a service resolver config entry can target failover and redirects to service instances in a peered cluster.
-- Consul datacenters that are already federated stay federated. You do not need to migrate WAN federated clusters to cluster peering.
-- Mesh gateways for _service to service traffic_ between clusters are available. For more information on configuring mesh gateways across peers, refer to [Service-to-service Traffic Across Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers).
-- You can generate peering tokens, establish, list, read, and delete peerings, and manage intentions for peering connections with both the API and the UI.
-- You can configure [transparent proxies](/docs/connect/transparent-proxy) for peered services.
-- You can use the [`peering` rule for ACL enforcement](/docs/security/acl/acl-rules#peering) of peering APIs.
-
-Not all features and functionality are available in the beta release. In particular, consider the following technical constraints:
-
-- Mesh gateways for _server to server traffic_ are not available.
 - Services with node, instance, and check definitions totaling more than 50MB cannot be exported to a peer.
-- The `service-splitter` and `service-router` configuration entry kinds cannot directly target a peer. To split or route traffic to a service instance on a peer, you must supplement your desired dynamic routing definition with a `service-resolver` config entry on the dialing cluster. Refer to [L7 traffic management between peers](/docs/connect/cluster-peering/create-manage-peering#L7-traffic) for more information.
+- Two admin partitions in the same datacenter cannot be peered. Use [`exported-services`](/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
-- Because non-Enterprise Consul instances are restricted to the `default` namespace, Consul Enterprise instances cannot export services from outside of the `default` namespace to non-Enterprise peers.
-- Cross-cluster mesh gateways are supported in `remote` mode only.

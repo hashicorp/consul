@@ -184,6 +184,10 @@
         "title": "Consul API Gateway",
         "routes": [
           {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
+          {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
           },
@@ -467,16 +471,24 @@
             "title": "Mesh Gateways",
             "routes": [
               {
-                "title": "WAN Federation",
+                "title": "Overview",
+                "path": "connect/gateways/mesh-gateway"
+              },
+              {
+                "title": "Enabling WAN Federation Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
               },
               {
-                "title": "Enabling Service-to-service Traffic Across Datacenters",
-                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+                "title": "Enabling Service-to-service Traffic Across WAN Federated Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Enabling Peering Control Plane Traffic",
+                "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Peered Clusters",
@@ -1280,7 +1292,25 @@
       },
       {
         "title": "Usage",
-        "path": "api-gateway/usage"
+        "routes": [
+          {
+            "title": "Basic Usage",
+            "path": "api-gateway/usage/usage"
+          },
+          {
+          "title": "Reroute HTTP Requests",
+          "path": "api-gateway/usage/reroute-http-requests"
+          },
+          {
+            "title": "Route Traffic to Peered Services",
+            "path": "api-gateway/usage/route-to-peered-services"
+          },
+          {
+            "title": "Error Messages",
+            "path": "api-gateway/usage/errors"
+          }              
+              
+        ]
       },
       {
         "title": "Configuration",

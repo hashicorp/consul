@@ -104,13 +104,6 @@ function init_workdir {
     mv workdir/${CLUSTER}/consul/server.hcl workdir/${CLUSTER}/consul-server/server.hcl
   fi
 
-  if test -f "workdir/${CLUSTER}/consul/peering_server.hcl" -a $REQUIRE_PEERS = "1"
-  then
-    mv workdir/${CLUSTER}/consul/peering_server.hcl workdir/${CLUSTER}/consul-server/peering_server.hcl
-  else
-    rm workdir/${CLUSTER}/consul/peering_server.hcl
-  fi
-
   # copy the ca-certs for SDS so we can verify the right ones are served
   mkdir -p workdir/test-sds-server/certs
   cp test-sds-server/certs/ca-root.crt workdir/test-sds-server/certs/ca-root.crt

@@ -27,7 +27,7 @@ for filtering by instance.
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
 hold certificates to decrypt Consul Connect traffic directed at them and may be configured with credentials to connect
-to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
+to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/gateways/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
 By specifying a path to a [CA file](/docs/connect/config-entries/terminating-gateway#cafile) connections
