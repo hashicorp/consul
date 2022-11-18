@@ -198,6 +198,19 @@ Then, add the configuration entry to your cluster.
 $ consul config write peering-intentions.hcl
 ```
 
+### Authorize Service Reads with ACLs
+
+If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access. 
+Read access to all imported services is granted using either of the following rules associated with an ACL token:
+- `service:write` permissions for any service in the sidecar's partition.
+- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
+For Consul Enterprise, access is granted to all imported services in the service's partition.
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+
+Example rule files can be found in [Reading Servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+
+Refer to [ACLs System Overview](/docs/security/acl) for more information on ACLs and their setup.
+
 ## Manage peering connections
 
 After you establish a peering connection, you can get a list of all active peering connections, read a specific peering connection's information, check peering connection health, and delete peering connections.
