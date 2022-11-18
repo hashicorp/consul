@@ -2,10 +2,11 @@ package multilimiter
 
 import (
 	"context"
-	radix "github.com/hashicorp/go-immutable-radix"
-	"golang.org/x/time/rate"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/go-memdb"
+	"golang.org/x/time/rate"
 )
 
 type LimitedEntity interface {
@@ -21,7 +22,8 @@ type RateLimiter interface {
 
 type Limiter struct {
 	limiter    *rate.Limiter
-	lastAccess atomic.Int64
+	lastAccess time.Time
+	key        string
 }
 
 type Config struct {
@@ -32,9 +34,10 @@ type Config struct {
 }
 
 type MultiLimiter struct {
-	limiters *atomic.Pointer[radix.Tree]
-	config   *atomic.Pointer[Config]
-	cancel   context.CancelFunc
+	db *memdb.MemDB
+	// limiters *atomic.Pointer[radix.Tree]
+	config *atomic.Pointer[Config]
+	cancel context.CancelFunc
 }
 
 func (m *MultiLimiter) UpdateConfig(c Config) {
@@ -42,17 +45,35 @@ func (m *MultiLimiter) UpdateConfig(c Config) {
 }
 
 func NewMultiLimiter(c Config) *MultiLimiter {
-	limiters := atomic.Pointer[radix.Tree]{}
 	config := atomic.Pointer[Config]{}
 	config.Store(&c)
-	limiters.Store(radix.New())
+
+	schema := &memdb.DBSchema{
+		Tables: map[string]*memdb.TableSchema{
+			"limiter": &memdb.TableSchema{
+				Name: "limiter",
+				Indexes: map[string]*memdb.IndexSchema{
+					"id": &memdb.IndexSchema{
+						Name:    "id",
+						Unique:  true,
+						Indexer: &memdb.StringFieldIndex{Field: "key"},
+					},
+				},
+			},
+		},
+	}
+	db, err := memdb.NewMemDB(schema)
+	if err != nil {
+		panic(err)
+	}
+
 	if c.CleanupLimit == 0 {
 		c.CleanupLimit = 30 * time.Millisecond
 	}
 	if c.CleanupTick == 0 {
 		c.CleanupLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, config: &config}
+	m := &MultiLimiter{db: db, config: &config}
 	return m
 }
 
@@ -73,21 +94,28 @@ func (m *MultiLimiter) Stop() {
 }
 
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
-	limiters := m.limiters.Load()
-	l, ok := limiters.Get(e.Key())
-	now := time.Now().Unix()
-	if ok {
-		limiter := l.(*Limiter)
-		limiter.lastAccess.Store(now)
-		return limiter.limiter.Allow()
-	}
-	c := m.config.Load()
-	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst)}
-	limiter.lastAccess.Store(now)
-	tree, _, _ := limiters.Insert(e.Key(), limiter)
-	m.limiters.Store(tree)
+	txn := m.db.Txn(true)
+	defer txn.Abort()
+	raw, err := txn.First("limiter", "id", e.Key())
+	now := time.Now()
 
-	return limiter.limiter.Allow()
+	var l *Limiter
+	key := string(e.Key())
+	if err == nil {
+		limiter := raw.(*Limiter)
+		l = &Limiter{key: key, limiter: limiter.limiter}
+	} else {
+		c := m.config.Load()
+		l = &Limiter{key: key, limiter: rate.NewLimiter(c.Rate, c.Burst)}
+	}
+	l.lastAccess = now
+	err = txn.Insert("limiter", l)
+	if err != nil {
+		panic(err)
+	}
+	txn.Commit()
+
+	return l.limiter.Allow()
 }
 
 // Every minute check the map for visitors that haven't been seen for
@@ -100,29 +128,44 @@ func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
 	case <-ctx.Done():
 		return
 	case now := <-waiter:
-		limiters := m.limiters.Load()
-		storedLimiters := limiters
-		iter := limiters.Root().Iterator()
-		k, v, ok := iter.Next()
-		var txn *radix.Txn
-		for ok {
-			limiter := v.(*Limiter)
-			lastAccess := limiter.lastAccess.Load()
-			lastAccessT := time.Unix(lastAccess, 0)
-			diff := now.Sub(lastAccessT)
+		txn := m.db.Txn(false)
+		defer txn.Abort()
+		raw, err := txn.First("limiter", "id", "foo")
 
-			if diff > c.CleanupLimit {
-				if txn == nil {
-					txn = limiters.Txn()
-				}
-				txn.Delete(k)
-			}
-			k, v, ok = iter.Next()
+		var l *Limiter
+		if err == nil {
+			limiter := raw.(*Limiter)
+			l = &Limiter{limiter: limiter.limiter}
+		} else {
+			c := m.config.Load()
+			l = &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst)}
 		}
-		if txn != nil {
-			limiters = txn.Commit()
 
-			m.limiters.CompareAndSwap(storedLimiters, limiters)
-		}
+		l.lastAccess = now
+		// txn.Insert("limiter", l)
+		// limiters := m.limiters.Load()
+		// storedLimiters := limiters
+		// iter := limiters.Root().Iterator()
+		// k, v, ok := iter.Next()
+		// var txn *radix.Txn
+		// for ok {
+		// 	limiter := v.(*Limiter)
+		// 	lastAccess := limiter.lastAccess.Load()
+		// 	lastAccessT := time.Unix(lastAccess, 0)
+		// 	diff := now.Sub(lastAccessT)
+
+		// 	if diff > c.CleanupLimit {
+		// 		if txn == nil {
+		// 			txn = limiters.Txn()
+		// 		}
+		// 		txn.Delete(k)
+		// 	}
+		// 	k, v, ok = iter.Next()
+		// }
+		// if txn != nil {
+		// 	limiters = txn.Commit()
+
+		// 	m.limiters.CompareAndSwap(storedLimiters, limiters)
+		// }
 	}
 }
