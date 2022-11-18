@@ -184,6 +184,10 @@
         "title": "Consul API Gateway",
         "routes": [
           {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
+          {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
           },
@@ -1288,7 +1292,25 @@
       },
       {
         "title": "Usage",
-        "path": "api-gateway/usage"
+        "routes": [
+          {
+            "title": "Basic Usage",
+            "path": "api-gateway/usage/usage"
+          },
+          {
+          "title": "Reroute HTTP Requests",
+          "path": "api-gateway/usage/reroute-http-requests"
+          },
+          {
+            "title": "Route Traffic to Peered Services",
+            "path": "api-gateway/usage/route-to-peered-services"
+          },
+          {
+            "title": "Error Messages",
+            "path": "api-gateway/usage/errors"
+          }              
+              
+        ]
       },
       {
         "title": "Configuration",
