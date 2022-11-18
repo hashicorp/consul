@@ -566,8 +566,8 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:      "existing-ca-file",
 			TLSServer: true,
-			Flags:     []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
-			Env:       []string{"CONSUL_HTTP_SSL=1"},
+			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-file", "../../../test/ca/root.cer"},
+			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -612,8 +612,8 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:      "existing-ca-path",
 			TLSServer: true,
-			Flags:     []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
-			Env:       []string{"CONSUL_HTTP_SSL=1"},
+			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-path", "../../../test/ca_path/"},
+			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -846,9 +846,9 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "CONSUL_HTTP_ADDR-with-https-scheme-enables-tls",
+			Name:  "CONSUL_GRPC_ADDR-with-https-scheme-enables-tls",
 			Flags: []string{"-proxy-id", "test-proxy"},
-			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8888"},
+			Env:   []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
