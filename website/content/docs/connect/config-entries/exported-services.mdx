@@ -662,12 +662,12 @@ The following example queries the `finance` peer for the imported `payments` ser
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
 An ACL token with either of the following permissions is required in the cluster where the query is made: 
-* `service:write` permissions for any service.
-* `service:read` and `node:read` for all services and nodes, respectively.
+- `service:write` permissions for any service.
+- `service:read` and `node:read` for all services and nodes, respectively.
 
 If the call in the previous example is made from a service named `web`, then the request requires either:
-* a token with `service:write` permissions to `web`.
-* a token with `service:read` and `node:read` to all names in the datacenter.
+- A token with `service:write` permissions to `web`.
+- A token with `service:read` and `node:read` to all names in the datacenter.
 
 <CodeTabs heading="Example ACL rules for reading imported services in Consul OSS">
 
@@ -695,7 +695,7 @@ node_prefix "" {
   }
 }
 
-// OR 
+## OR 
 
 {
   "service_prefix": {
@@ -725,12 +725,12 @@ $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 ```
 
 An ACL token with either of the following permissions is required in the cluster where the query is made: 
-* `service:write` permissions for any service in the partition where the query is made.
-* `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
 
 If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
-* a token with `service:write` permissions to `web` in the `frontend` partition.
-* a token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
 
 <CodeTabs heading="Example ACL rules for reading imported services in Consul Enterprise">
 
@@ -762,7 +762,7 @@ partition "frontend" {
   "partition": {
     "frontend": {
 	  "namespace": {
-        // The following could be any namespace
+        ## The following could be any namespace
         "dev": {
 		  "service": {
             "web": {
@@ -775,13 +775,13 @@ partition "frontend" {
   }
 }
 
-// OR 
+## OR 
 
 {
   "partition": {
     "frontend": {
 	  "namespace": {
-        // The following could be any namespace
+        ## The following could be any namespace
         "dev": {
 		  "service_prefix": {
             "": {
