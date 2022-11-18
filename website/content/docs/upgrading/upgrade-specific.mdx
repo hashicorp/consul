@@ -30,7 +30,7 @@ earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not
 fixed.
 
 For 1.14.0, there is a known issue with `consul connect envoy`. If the command is configured
-to utilize TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC.
+to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC.
 Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
 conjunction with TLS-encrypted HTTP APIs.
 
