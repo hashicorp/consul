@@ -51,7 +51,7 @@ If ACLs are enabled, you must add a token granting `service:write` for the gatew
 These permissions authorize the token to route communications for other Consul service mesh services.
 
 You must also grant `mesh:write` to mesh gateways routing peering traffic in the data plane.
-This permission allows a client certificate to be issued for communication with exported services.
+This permission allows a leaf certificate to be issued for mesh gateways to terminate TLS sessions for HTTP requests.
 
 ### Modes
 
