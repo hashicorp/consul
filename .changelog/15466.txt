@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where xDS incorrectly uses the HTTPS configuration for connections.
+```
