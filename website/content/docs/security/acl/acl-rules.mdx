@@ -592,7 +592,7 @@ These actions may required an ACL token to complete. Use the following methods t
 ### Reading Imported Nodes
 
 Node rules can implicitly affect access to [exported-services](/docs/connect/config-entries/exported-services#reading-services).
-For more details regarding how node and service rules interact to allow access to exported services, review [Reading Services](/docs/connect/config-entries/exported-services#reading-services).
+For more information on how node and service rules interact to allow access to exported services, refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services).
 
 ## Operator Rules
 
@@ -821,16 +821,15 @@ set to `true` in order to enable script checks.
 
 ### Reading Imported Services
 
-Service rules affect read access to services exported by [exported-services](/docs/connect/config-entries/exported-services#reading-services).
-This includes services exported between [cluster peerings](/docs/connect/cluster-peering) or partitions (Enterprise-only).
+Service rules affect read access to services exported by [`exported-services` configuration entries](/docs/connect/config-entries/exported-services#reading-services), including services exported between [cluster peerings](/docs/connect/cluster-peering) or [admin partitions](/docs/enterprise/admin-partitions).
 Read access to all imported services is granted when either of the following rule sets are attached to a token:
-* `service:write` is granted to any service. 
-* `service:read` and `node:read` is granted to all services and nodes, respectively.
+- `service:write` is granted to any service. 
+- `service:read` and `node:read` is granted to all services and nodes, respectively.
 
 For Consul Enterprise, either set of rules must be scoped to the service's partition and at least one namespace.
 These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
 
-Review [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services.
+Refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services.
 
 ### Intentions
 
