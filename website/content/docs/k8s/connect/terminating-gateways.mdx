@@ -9,18 +9,18 @@ description: >-
 
 Adding a terminating gateway is a multi-step process:
 
-- Update the Helm chart with terminating gateway config options
+- Update the Helm chart with terminating gateway configuration options
 - Deploy the Helm chart
 - Access the Consul agent
 - Register external services with Consul
 
 ## Requirements
 
-- [Consul](https://www.consul.io/docs/install#install-consul)
+- [Consul](/docs/install#install-consul)
 - [Consul on Kubernetes CLI](/docs/k8s/k8s-cli)
 - Familiarity with [Terminating Gateways](/docs/connect/gateways/terminating-gateway)
 
-## Update the Helm chart with terminating gateway config options
+## Update the Helm chart with terminating gateway configuration options
 
 Minimum required Helm options:
 
@@ -29,10 +29,6 @@ Minimum required Helm options:
 ```yaml
 global:
   name: consul
-connectInject:
-  enabled: true
-controller:
-  enabled: true
 terminatingGateways:
   enabled: true
 ```
@@ -49,9 +45,10 @@ $ consul-k8s install -f values.yaml
 
 ## Accessing the Consul agent
 
-You can access the Consul server directly from your host via `kubectl port-forward`. This is helpful for interacting with your Consul UI locally as well as for validating the connectivity of the application.
+You can access the Consul server directly from your host by running `kubectl port-forward`. This is helpful for interacting with your Consul UI locally as well as for validating the connectivity of the application.
 
 <Tabs>
+
 <Tab heading="Without TLS">
 
 ```shell-session
@@ -62,6 +59,7 @@ $ kubectl port-forward consul-server-0 8500 &
 $ export CONSUL_HTTP_ADDR=http://localhost:8500
 ```
 </Tab>
+
 <Tab heading="With TLS">
 
 If TLS is enabled use port 8501:
@@ -75,6 +73,7 @@ $ export CONSUL_HTTP_ADDR=https://localhost:8501
 $ export CONSUL_HTTP_SSL_VERIFY=false
 ```
 </Tab>
+
 </Tabs>
 
 If ACLs are enabled also set:
@@ -116,7 +115,7 @@ The following table describes traffic behaviors when using the `destination` fie
 | L7                                   | Hostname                  | No                           | <nobr>Allowed</nobr>     | A `Host` or `:authority` header is required.                                                  |
 | L7                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
 
-You can provide a `caFile` to secure traffic between unencrypted clients that connect to external services through the terminating gateway.
+You can provide a `caFile` to secure traffic that connect to external services through the terminating gateway.
 Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
 
 -> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
@@ -149,11 +148,12 @@ $ kubectl apply --filename service-defaults.yaml
 All other terminating gateway operations can use the name of the `ServiceDefaults` component, in this case "example-https", as a Consul service name.
 
 </Tab>
+
 <Tab heading="Using Consul catalog">
 
-Normally, Consul services are registered with the Consul client on the node that
-they're running on. Since this is an external service, there is no Consul node
-to register it onto. Instead, we will make up a node name and register the
+Normally, Consul services are registered on the node that
+they're running on. Since this service is an external service, there is no Consul node
+to register it onto. Instead, we must make up a node name and register the
 service to that node.
 
 Create a sample external service and register it with Consul.
@@ -194,7 +194,7 @@ $ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catal
 true
 ```
 
-If ACLs and TLS are enabled :
+If ACLs and TLS are enabled:
 
 ```shell-session
 $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
@@ -275,7 +275,7 @@ spec:
 
 If TLS is enabled for external services registered through the Consul catalog and you are not using [transparent proxy `destination`](#register-an-external-service-as-a-destination), you must include the [`caFile`](/docs/connect/config-entries/terminating-gateway#cafile) parameter that points to the system trust store of the terminating gateway container.
 By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
-Configure the [`caFile`](https://www.consul.io/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+Configure the [`caFile`](/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
 - Consul Helm chart 0.43 or older
 - An Envoy image with an alpine base image
 

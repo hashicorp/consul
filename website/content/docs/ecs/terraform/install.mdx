@@ -138,7 +138,7 @@ in their [`network_configuration`](https://registry.terraform.io/providers/hashi
 Add the `gateway-task` to your Terraform configuration if you want to deploy a mesh gateway. Mesh gateways enable service to service communication across the WAN, as well as federate service mesh traffic across Consul admin partitions and Consul datacenters over the WAN. Refer to the following documentation to learn more about mesh gateways:
 
 * [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
-* [Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters).
+* [Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters).
 
 You must add and configure a `gateway-task` for each Consul datacenter in your network. You must also enable TLS and gossip encryption on all server and client agents in all data centers per the [Requirements](#requirements). Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
 

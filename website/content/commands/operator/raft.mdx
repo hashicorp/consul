@@ -104,3 +104,26 @@ Usage: `consul operator raft remove-peer -address="IP:port"`
 - `-id` - ID of the server to remove.
 
 The return code will indicate success or failure.
+
+## transfer-leader
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/raft/transfer-leader](/api-docs/operator/raft#transfer-raft-leadership)
+
+This command transfers Raft leadership to another server agent. If an `id` is provided, Consul transfers leadership to the server with that id. 
+
+Use this command to change leadership without restarting the leader node, which maintains quorum and workload capacity.
+
+The table below shows this command's [required ACLs](/api-docs#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator raft transfer-leader -id="server id"`
+
+- `-id` - Specifies the node ID of the raft peer to transfer leadership to.
+If empty, leadership transfers to a random server agent.
+
+The return code indicates success or failure.

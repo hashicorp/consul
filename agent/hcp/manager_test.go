@@ -1,7 +1,7 @@
 package hcp
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -20,7 +20,7 @@ func TestManager_Run(t *testing.T) {
 	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Once()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
-		Logger:   hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard}),
+		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn: statusF,
 	})
 	mgr.testUpdateSent = updateCh
@@ -51,7 +51,7 @@ func TestManager_SendUpdate(t *testing.T) {
 	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
-		Logger:   hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard}),
+		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn: statusF,
 	})
 	mgr.testUpdateSent = updateCh
@@ -81,7 +81,7 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:      client,
-		Logger:      hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard}),
+		Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn:    statusF,
 		MaxInterval: time.Second,
 		MinInterval: 100 * time.Millisecond,

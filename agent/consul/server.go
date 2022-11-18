@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -22,7 +21,6 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
@@ -52,6 +50,7 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/agent/rpc/operator"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -371,6 +370,9 @@ type Server struct {
 	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
+	// operatorBackend is shared between the external and internal gRPC services for peering
+	operatorBackend *OperatorBackend
+
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
 
@@ -386,6 +388,7 @@ type Server struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
+	operatorServer *operator.Server
 }
 type connHandler interface {
 	Run() error
@@ -740,6 +743,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	}).Register(s.externalGRPCServer)
 
 	s.peeringBackend = NewPeeringBackend(s)
+	s.operatorBackend = NewOperatorBackend(s)
 	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
 		Backend:        s.peeringBackend,
 		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
@@ -827,6 +831,19 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
+	o := operator.NewServer(operator.Config{
+		Backend: s.operatorBackend,
+		Logger:  deps.Logger.Named("grpc-api.operator"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to transfer leader cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		Datacenter: config.Datacenter,
+	})
+	s.operatorServer = o
 
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
@@ -835,6 +852,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 				deps.Logger.Named("grpc-api.subscription")))
 		}
 		s.peeringServer.Register(srv)
+		s.operatorServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: these external gRPC services are also exposed on the internal server to
@@ -966,7 +984,7 @@ func (s *Server) setupRaft() error {
 		peersFile := filepath.Join(path, "peers.json")
 		peersInfoFile := filepath.Join(path, "peers.info")
 		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
-			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
+			if err := os.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
 				return fmt.Errorf("failed to write peers.info file: %v", err)
 			}
 
@@ -1194,20 +1212,25 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-func (s *Server) attemptLeadershipTransfer() (success bool) {
-	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
-
-	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
-	if !ok {
-		return false
+func (s *Server) attemptLeadershipTransfer(id raft.ServerID) (err error) {
+	var addr raft.ServerAddress
+	if id != "" {
+		addr, err = s.serverLookup.ServerAddr(id)
+		if err != nil {
+			return err
+		}
+		future := s.raft.LeadershipTransferToServer(id, addr)
+		if err := future.Error(); err != nil {
+			return err
+		}
+	} else {
+		future := s.raft.LeadershipTransfer()
+		if err := future.Error(); err != nil {
+			return err
+		}
 	}
 
-	future := s.raft.LeadershipTransfer()
-	if err := future.Error(); err != nil {
-		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
-		return false
-	}
-	return true
+	return nil
 }
 
 // Leave is used to prepare for a graceful shutdown.
@@ -1229,7 +1252,7 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if s.attemptLeadershipTransfer() {
+		if err := s.attemptLeadershipTransfer(""); err == nil {
 			isLeader = false
 		} else {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)

@@ -69,14 +69,6 @@ func (c *MeshGatewayConfig) IsZero() bool {
 	return *c == zeroVal
 }
 
-func (base *MeshGatewayConfig) OverlayWith(overlay MeshGatewayConfig) MeshGatewayConfig {
-	out := *base
-	if overlay.Mode != MeshGatewayModeDefault {
-		out.Mode = overlay.Mode
-	}
-	return out
-}
-
 func ValidateMeshGatewayMode(mode string) (MeshGatewayMode, error) {
 	switch MeshGatewayMode(mode) {
 	case MeshGatewayModeNone:

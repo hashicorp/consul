@@ -1361,7 +1361,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: wildcard,
 						Config: map[string]interface{}{
 							"mesh_gateway": map[string]interface{}{
-								"Mode": "remote",
+								"Mode": "none",
 							},
 						},
 					},
@@ -1438,7 +1438,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
-								"Mode": "remote",
+								"Mode": "none",
 							},
 							"protocol": "http",
 						},

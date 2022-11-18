@@ -3,7 +3,7 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -87,7 +87,7 @@ func getMetrics(t *testing.T, addr string, port int, path string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("error get metrics: %v", err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "nil", fmt.Errorf("error read metrics: %v", err)
 	}

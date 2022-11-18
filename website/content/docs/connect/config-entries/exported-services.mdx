@@ -62,7 +62,7 @@ spec:
   services:
     - name: <name of service to export>
       consumers:
-        - peerName: <name of the peered cluster that dials the exported service>
+        - peer: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -113,7 +113,7 @@ spec:
     - name: <name of service to export>
       namespace: <namespace in the partition containing the service to export>
       consumers:
-        - peerName: <name of the peered cluster that dials the exported service>
+        - peer: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -266,10 +266,10 @@ spec:
   services:
     - name: payments
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
     - name: refunds
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
 ```
 
 ```json
@@ -341,11 +341,11 @@ spec:
     - name: payments
       namespace: billing
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
     - name: refunds
       namespace: billing
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
 ```
 
 ```json
@@ -494,8 +494,8 @@ spec:
   services:
     - name: *
       consumers:
-        - peerName: monitoring
-        - peerName: platform
+        - peer: monitoring
+        - peer: platform
 ```
 
 ```json
@@ -557,8 +557,8 @@ spec:
     - name: *
       namespace: *
       consumers:
-        - peerName: monitoring
-        - peerName: platform
+        - peer: monitoring
+        - peer: platform
 ```
 
 ```json

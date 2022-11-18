@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -860,7 +859,7 @@ func (c *CheckDocker) Start() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+		c.Logger = hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 	}
 
 	if c.Shell == "" {
