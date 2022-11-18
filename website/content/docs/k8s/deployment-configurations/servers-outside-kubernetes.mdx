@@ -37,8 +37,8 @@ externalServers:
 
 </CodeBlockConfig>
 
--> **Note:** If you are looking to join Consul clients to an existing Consul server cluster,
-please see [this documentation](https://developer.hashicorp.com/consul/docs/v1.13.x/k8s/deployment-configurations/servers-outside-kubernetes).
+ **Note:** To join Consul on Kubernetes to an existing Consul server cluster running outside of Kubernetes,
+refer to [Consul servers outside of Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes).
 
 ## Configuring TLS
 
@@ -49,9 +49,7 @@ As noted in the [Security Model](/docs/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.
 
-If the Consul server has TLS enabled, you would also need to provide the CA certificate that Consul on Kubernetes will
-need to talk to the server. First save this certificate in a Kubernetes secret and then provide it in your Helm values below,
-in addition to the values mentioned above:
+If the Consul server has TLS enabled, you need to provide the CA certificate so that Consul on Kubernetes can communicate with the server. Save the certificate in a Kubernetes secret and then provide it in your Helm values, as demonstrated in the following example:
 
 <CodeBlockConfig filename="values.yaml" highlight="2-8">
 

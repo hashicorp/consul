@@ -10,7 +10,7 @@ description: >-
 This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault in the Consul controller and connect inject webhooks.
 
 ## Overview
-In a Consul Helm chart configuration that does not use Vault, webhook-cert-manager normally fulfills the role of ensuring that a valid certificate is updated to the `mutatingwebhookconfiguration` of either controller or connect inject to ensure that Kubernetes can communicate with each of these services.
+In a Consul Helm chart configuration that does not use Vault, `webhook-cert-manager` ensures that a valid certificate is updated to the `mutatingwebhookconfiguration` of either the controller or connect inject to ensure that Kubernetes can communicate with each of these services.
 
 When Vault is configured as the controller and connect inject Webhook Certificate Provider on Kubernetes:
   - `webhook-cert-manager` is no longer deployed to the cluster.
