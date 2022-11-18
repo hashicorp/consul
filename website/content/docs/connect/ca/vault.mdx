@@ -210,48 +210,79 @@ The following Vault policy allows Consul to use pre-existing PKI paths in Vault.
 Consul is granted read-only access to the PKI mount points and the Root CA, but is
 granted full control of the Intermediate or Leaf CA for Connect clients.
 
-In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
-is `connect_inter`. These values should be updated for your environment.
+This example uses placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
+Please update those placeholders to match the path values in the CA provider configuration.
 
 <CodeBlockConfig filename="vault-managed-pki-policy.hcl">
 
 ```hcl
-# Existing PKI Mounts
-path "/sys/mounts" {
+# -----------------------------------------------------------------------------
+# Vault Managed PKI Mounts
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Needed for Consul to read the PKI mounts already created in Vault
+
+path "/sys/mounts/<insert-RootPKIPath>" {
   capabilities = [ "read" ]
 }
 
-path "/sys/mounts/connect_root" {
+path "/sys/mounts/<insert-IntermediatePKIPath>" {
   capabilities = [ "read" ]
 }
 
-path "/sys/mounts/connect_inter" {
-  capabilities = [ "read" ]
-}
-
-# Needed for Consul 1.11+
-path "/sys/mounts/connect_inter/tune" {
+# Needed in Consul 1.11+ to update intermediate mount configuration
+path "/sys/mounts/<insert-IntermediatePKIPath>/tune" {
   capabilities = [ "update" ]
 }
 
-path "/connect_root/" {
+# -----------------------------------------------------------------------------
+# Needed for Consul to use the externally-managed, mounted PKI secrets engines
+
+path "/<insert-RootPKIPath>/" {
   capabilities = [ "read" ]
 }
 
-path "/connect_root/root/sign-intermediate" {
+path "/<insert-RootPKIPath>/root/sign-intermediate" {
   capabilities = [ "update" ]
 }
 
-path "/connect_inter/*" {
+path "/<insert-RootPKIPath>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
+# Needed only when changing the CA provider from Vault with this RootPKIPath
+# to either:
+# 1. A different CA provider (such as Consul's built-in provider)
+# 2. Changing the RootPKIPath used by the Vault CA provider
+#
+# SECURITY NOTE: Because this is an extremely privileged endpoint,
+# We recommend only temporarily granting this permission if there's a need
+# to modify Consul's CA provider configuration as in (1) or (2).
+# That's why this permission is currently commented out.
+#
+# path "<insert-RootPKIPath>/root/sign-self-issued" {
+#  capabilities = [ "sudo", "update" ]
+#}
+
+# -----------------------------------------------------------------------------
+# Needed for Consul to renew its Vault token (if renewable) whether provided
+# directly in the CA provider config or using an auth method.
+
 path "auth/token/renew-self" {
-	capabilities = [ "update" ]
+  capabilities = [ "update" ]
 }
 
 path "auth/token/lookup-self" {
-	capabilities = [ "read" ]
+  capabilities = [ "read" ]
+}
+
+# -----------------------------------------------------------------------------
+# Deprecated
+
+# Only needed before Consul 1.12
+path "/sys/mounts" {
+  capabilities = [ "read" ]
 }
 ```
 
@@ -263,36 +294,75 @@ The following Vault policy allows Consul to create and manage the PKI paths in V
 Consul is granted the ability to create the PKI mount points and given full
 control of the Root and Intermediate or Leaf CA for Connect clients.
 
-In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
-is `connect_inter`. These values should be updated for your environment.
+This example uses placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
+Please update those placeholders to match the path values in the CA provider configuration.
 
 <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
 ```hcl
+# -----------------------------------------------------------------------------
 # Consul Managed PKI Mounts
-path "/sys/mounts" {
-  capabilities = [ "read" ]
-}
+# -----------------------------------------------------------------------------
 
-path "/sys/mounts/connect_root" {
+# -----------------------------------------------------------------------------
+# Needed for Consul to create and manage the PKI mounts
+
+path "/sys/mounts/<insert-RootPKIPath>" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-path "/sys/mounts/connect_inter" {
+path "/sys/mounts/<insert-IntermediatePKIPath>" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-# Needed for Consul 1.11+
-path "/sys/mounts/connect_inter/tune" {
+# Enables Consul 1.11+ to update intermediate mount configuration
+path "/sys/mounts/<insert-IntermediatePKIPath>/tune" {
   capabilities = [ "update" ]
 }
 
-path "/connect_root/*" {
+# -----------------------------------------------------------------------------
+# Needed for Consul to use the mounted PKI secrets engines it owns
+
+path "/<insert-RootPKIPath>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-path "/connect_inter/*" {
+path "/<insert-IntermediatePKIPath>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+# Needed only when changing the CA provider from Vault with this RootPKIPath
+# to either:
+# 1. A different CA provider (such as Consul's built-in provider)
+# 2. Changing the RootPKIPath used by the Vault CA provider
+#
+# SECURITY NOTE: Because this is an extremely privileged endpoint,
+# We recommend only temporarily granting this permission if there's a need
+# to modify Consul's CA provider configuration as in (1) or (2).
+# That's why this permission is currently commented out.
+#
+# path "<insert-RootPKIPath>/root/sign-self-issued" {
+#  capabilities = [ "sudo", "update" ]
+#}
+
+# -----------------------------------------------------------------------------
+# Needed for Consul to renew its Vault token (if renewable) whether provided
+# directly in the CA provider config or using an auth method.
+
+path "auth/token/renew-self" {
+  capabilities = [ "update" ]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = [ "read" ]
+}
+
+# -----------------------------------------------------------------------------
+# Deprecated
+
+# Only needed before Consul 1.12
+path "/sys/mounts" {
+  capabilities = [ "read" ]
 }
 ```
 
