@@ -10,9 +10,9 @@ description: >-
 This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault in the Consul controller and connect inject webhooks.
 
 ## Overview
-In a Consul Helm chart configuration that does not use Vault, webhook-cert-manager normally fulfills the role of ensuring that a valid certificate is updated to the `mutatingwebhookconfiguration` of either controller or connect inject to ensure that Kubernetes can communicate with each of these services. 
+In a Consul Helm chart configuration that does not use Vault, `webhook-cert-manager` ensures that a valid certificate is updated to the `mutatingwebhookconfiguration` of either the controller or connect inject to ensure that Kubernetes can communicate with each of these services.
 
-When Vault is configured as the controller and connect inject Webhook Certificate Provider on Kubernetes: 
+When Vault is configured as the controller and connect inject Webhook Certificate Provider on Kubernetes:
   - `webhook-cert-manager` is no longer deployed to the cluster.
   - controller and connect inject each get their webhook certificates from its own Vault PKI mount via the injected Vault Agent.
   - controller and connect inject each need to be configured with its own Vault Role that has necessary permissions to receive certificates from its respective PKI mount.
@@ -28,10 +28,10 @@ These following steps will be repeated for each datacenter:
   1. Configure the Vault Kubernetes auth roles in the Consul on Kubernetes helm chart.
 
 ## Prerequisites
-Complete the following prerequisites prior to implementing the integration described in this topic: 
+Complete the following prerequisites prior to implementing the integration described in this topic:
 1. Verify that you have completed the steps described in [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 1. You should be familiar with the [Data Integration Overview](/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
-1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/server-tls) 
+1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/server-tls)
 1. Configure [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/deployment-configurations/vault/data-integration/connect-ca)
 
 ## Bootstrapping the PKI Engines
@@ -204,11 +204,6 @@ global:
       consulCARole: "consul-ca"
       controllerRole: "controller-role"
       connectInjectRole: "connect-inject-role"
-      controller:
-        caCert:
-          secretName: "controller/cert/ca"
-        tlsCert:
-          secretName: "controller/issue/controller-role"
       connectInject:
         caCert:
           secretName: "connect-inject/cert/ca"
@@ -227,8 +222,6 @@ server:
       name: <vaultCASecret>
       load: "false"
 connectInject:
-  enabled: true
-controller:
   enabled: true
 ```
 
