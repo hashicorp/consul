@@ -11,14 +11,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type limitedEntity interface {
+type LimitedEntity interface {
 	Key() []byte
 }
 
 type RateLimiter interface {
 	Start()
 	Stop()
-	Allow(entity limitedEntity) bool
+	Allow(entity LimitedEntity) bool
 	UpdateConfig(c Config)
 }
 
@@ -75,7 +75,7 @@ func (m *MultiLimiter) Stop() {
 	}
 }
 
-func (m *MultiLimiter) Allow(e limitedEntity) bool {
+func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now().Unix()
