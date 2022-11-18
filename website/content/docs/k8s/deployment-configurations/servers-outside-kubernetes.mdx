@@ -11,7 +11,7 @@ If you have a Consul cluster already running, you can configure your
 Consul on Kubernetes installation to join this existing cluster.
 
 The below `values.yaml` file shows how to configure the Helm chart to install
-Consul that will join an existing Consul server cluster.
+Consul so that it joins an existing Consul server cluster.
 
 The `global.enabled` value first disables all chart components by default
 so that each component is opt-in. This allows us to _only_ setup the client
@@ -21,7 +21,7 @@ agents. We then opt-in to the client agents by setting `client.enabled` to
 Next, configure `externalServers` to point it to Consul servers.
 The `externalServers.hosts` value must be provided and should be set to a DNS, an IP,
 or an `exec=` string with a command returning Consul IPs. Please see [this documentation](https://github.com/hashicorp/go-netaddrs)
-on how the `exec=` string works.externalServers
+on how the `exec=` string works.
 Other values in the `externalServers` section are optional. Please refer to
 [Helm Chart configuration](https://developer.hashicorp.com/consul/docs/k8s/helm#h-externalservers) for more details.
 
