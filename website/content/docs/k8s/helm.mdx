@@ -50,7 +50,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `logLevel` ((#v-global-loglevel)) (`string: info`) - The default log level to apply to all components which do not otherwise override this setting.
     It is recommended to generally not set this below "info" unless actively debugging due to logging verbosity.
-    One of "debug", "info", "warn", or "error".
+    One of "trace", "debug", "info", "warn", or "error".
 
   - `logJSON` ((#v-global-logjson)) (`boolean: false`) - Enable all component logs to be output in JSON format.
 
@@ -1506,7 +1506,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `resources` ((#v-synccatalog-resources)) (`map`) - The resource settings for sync catalog pods.
 
-  - `logLevel` ((#v-synccatalog-loglevel)) (`string: ""`) - Override global log verbosity level. One of "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-synccatalog-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `consulWriteInterval` ((#v-synccatalog-consulwriteinterval)) (`string: null`) - Override the default interval to perform syncing operations creating Consul services.
 
@@ -1705,7 +1705,7 @@ Use these links to navigate to a particular top-level stanza.
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: null`) - The Docker image for Consul to use when performing Connect injection.
     Defaults to global.image.
 
-  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Override global log verbosity level. One of "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `serviceAccount` ((#v-connectinject-serviceaccount))
 
@@ -2287,7 +2287,7 @@ Use these links to navigate to a particular top-level stanza.
   - `imageEnvoy` ((#v-apigateway-imageenvoy)) (`string: envoyproxy/envoy:<latest supported version>`) - The name (and tag) of the Envoy Docker image used for the
     apiGateway. For other Consul compoenents, imageEnvoy has been replaced with Consul Dataplane.
 
-  - `logLevel` ((#v-apigateway-loglevel)) (`string: info`) - Override global log verbosity level for api-gateway-controller pods. One of "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-apigateway-loglevel)) (`string: info`) - Override global log verbosity level for api-gateway-controller pods. OOne of "trace", "debug", "info", "warn", or "error".
 
   - `managedGatewayClass` ((#v-apigateway-managedgatewayclass)) - Configuration settings for the optional GatewayClass installed by consul-k8s (enabled by default)
 
