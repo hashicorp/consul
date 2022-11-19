@@ -17,7 +17,7 @@ description: >-
 
 - `client.enabled` now defaults to `false`. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation. For Vault on Kubernetes using Consul deployed on Kubernetes as a storage backend, `client.enabled` should be set to `true` prior to upgrading.
 - `externalServers.grpcPort` default is now 8502 instead of 8503.
-- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](https://developer.hashicorp.com/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
+- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
 - Consul snapshot agent runs as a sidecar to Consul servers. <EnterpriseAlert inline />
   - `client.snapshotAgent` values are moved to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
   - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets. 
