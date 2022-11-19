@@ -33,7 +33,8 @@ changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io
 For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-14-0) and the changelogs.
 
 ## Known Issues
-The following issues are know to exist in the 1.14.0 release:
+
+The following issues are known to exist in the 1.14.0 release:
 
 - Prior to Consul 1.14, cluster peering or Consul connect were disabled by default. A breaking change was made in Consul 1.14 that enabled Cluster Peering and Consul Connect by default. To disable both, set `peering.enabled` and  `connect.enabled` to false. The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until hashicorp/nomad#15266 is fixed.
 
