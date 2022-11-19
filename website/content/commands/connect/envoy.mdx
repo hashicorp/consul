@@ -13,6 +13,10 @@ The connect Envoy command is used to generate a bootstrap configuration for
 [Envoy proxy](https://envoyproxy.io) for use with [Consul
 Connect](/docs/connect/).
 
+Refer to the [examples](#examples) for guidance on common use cases,
+such as [launching a service instance's sidecar proxy
+when ACLs are enabled](#sidecar-proxy-with-acls-enabled).
+
 The default behavior is to generate the necessary bootstrap configuration for
 Envoy based on the environment variables and options provided and by talking to
 the local Consul agent. It `exec`s an external Envoy binary with that
@@ -226,6 +230,29 @@ $ consul connect envoy -sidecar-for web
 This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
+
+### Sidecar Proxy with ACLs Enabled
+
+In secure deployments, Consul's ACL system is enabled with a default `deny` policy.
+Nothing can access Consul API resources unless it presents a Consul ACL token with the
+necessary privileges. A sidecar proxy must have a Consul ACL token to act as itself and
+the service it fronts, and to access all that service's potential upstreams.
+The best way to generate such a token is to
+[use a service identity](/consul/commands/acl/token/create#create-a-token-for-a-service).
+
+Then, provide that token when launching the Envoy sidecar proxy instance with
+the `consul connect envoy` command through either:
+- Environment variables
+  [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token) or
+  [`CONSUL_HTTP_TOKEN_FILE`](/consul/commands#consul_http_token_file)
+- CLI flags
+  [`-token`](/consul/commands/connect/envoy#token) or
+  [`-token-file`](/consul/commands/connect/envoy#token-file)
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN="<secret-id-of-token-with-service-identity-for-web>"
+$ consul connect envoy -sidecar-for web
+```
 
 ### Additional Envoy Arguments
 
