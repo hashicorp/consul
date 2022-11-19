@@ -22,7 +22,7 @@ description: >-
   - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets. 
 -  Support simplified default deployment values to allow for easier quick starts and testing:
     * Set `server.replicas` to `1`. Formerly, this defaulted to `3`. 
-    * connectInject.enabled` now defaults to true. 
+    * `connectInject.enabled`` now defaults to true. 
     * `dns.enabled` and `dns.enableRedirection` will now default to the value of `connectInject.transparentProxy.defaultEnabled`. Previously, `dns.enabled` defaulted to the value of `global.enabled` and `dns.enableRedirection` defaulted to the value to `false`. 
     * Set `connectInject.replicas` to 1 
     * Set `meshGateway.affinity` to null and `meshGateway.replicas` to 1
