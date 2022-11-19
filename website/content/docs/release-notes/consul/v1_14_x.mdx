@@ -25,7 +25,7 @@ description: >-
 - 1.14 adds a new `ports.grpc_tls` configuration option. This introduces a new port to better separate TLS config from the existing `ports.grpc` config. The new `ports.grpc_tls` only supports TLS encrypted communication. The existing `ports.grpc` now only supports plain-text communication. 
 - `peering` and `connect` are  default. 
 - The gRPC TLS port default value to 8503 
-- Removes support for Envoy 1.20.x and adds Envoy 1.24.0 to support matrix 
+- Removes support for Envoy 1.20.x and adds Envoy 1.24.0 to support matrix.
 - Renames `PeerName` to `Peer` on prepared queries and exported services. 
 - Converts service mesh failover to use Envoy's aggregate clusters. This
 changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io/docs/envoy/latest/configuration/upstream/cluster_manager/cluster_stats#dynamic-http-statistics).
