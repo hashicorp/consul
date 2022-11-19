@@ -1984,8 +1984,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
       the list of supported ciphersuites as a comma-separated-list. Applicable
-      to TLS 1.2 and below only. The list of all supported ciphersuites is
-      available through [this search](https://github.com/hashicorp/consul/search?q=goTLSCipherSuites+%3D+map).
+      to TLS 1.2 and below only. The list of all ciphersuites supported by Consul is
+      available in [the TLS configuration source code](https://github.com/hashicorp/consul/search?q=%22var+goTLSCipherSuites%22).
 
       ~> **Note:** The ordering of cipher suites will not be guaranteed from
       Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)
