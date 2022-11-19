@@ -1,5 +1,9 @@
 ## 1.14.0 (November 15, 2022)
 
+KNOWN ISSUES:
+
+* cli: `consul connect envoy` incorrectly enables TLS for gRPC connections when the HTTP API is TLS-enabled.
+
 BREAKING CHANGES:
 
 * config: Add new `ports.grpc_tls` configuration option.

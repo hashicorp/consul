@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul Architecture
 description: >-
-  Consul datacenters consist of clusters of server agents (control plane) and client agents deployed alongside service instances (dataplane). Learn how these components and their different communication methods make Consul possible.
+  Consul datacenters consist of clusters of server agents (control plane) and client agents deployed alongside service instances (data plane). Learn how these components and their different communication methods make Consul possible.
 ---
 
 # Consul Architecture
@@ -47,9 +47,11 @@ Consul servers establish consensus using the Raft algorithm on port `8300`. Refe
 
 ### Client agents
 
-Consul clients report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter. Clients use remote procedure calls (RPC) to interact with servers. By default, clients send RPC requests to the servers on port `8300`. 
+Consul clients report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter. Clients use remote procedure calls (RPC) to interact with servers. By default, clients send RPC requests to the servers on port `8300`.
 
 There are no limits to the number of client agents or services you can use with Consul, but production deployments should distribute services across multiple Consul datacenters. Using a multi-datacenter deployment enhances infrastructure resilience and limits control plane issues. We recommend deploying a maximum of 5,000 client agents per datacenter. Some large organizations have deployed tens of thousands of client agents and hundreds of thousands of service instances across a multi-datacenter deployment. Refer to [Cross-datacenter requests](#cross-datacenter-requests) for additional information.
+
+You can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified Service Mesh with Consul Dataplanes](/docs/connect/dataplane) for more information.
 
 ## LAN gossip pool
 

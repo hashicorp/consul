@@ -12,6 +12,7 @@ package testutil
 // otherwise cause an import cycle.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -150,17 +152,17 @@ type ServerConfigCallback func(c *TestServerConfig)
 
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
-func defaultServerConfig(t TestingTB) *TestServerConfig {
+func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServerConfig {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
 	}
 
-	ports := freeport.GetN(t, 8)
+	ports := freeport.GetN(t, 7)
 
 	logBuffer := NewLogBuffer(t)
 
-	return &TestServerConfig{
+	conf := &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
 		DisableCheckpoint: true,
@@ -180,7 +182,6 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 			SerfWan: ports[4],
 			Server:  ports[5],
 			GRPC:    ports[6],
-			GRPCTLS: ports[7],
 		},
 		ReadyTimeout:   10 * time.Second,
 		StopTimeout:    10 * time.Second,
@@ -196,6 +197,17 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		Stderr:  logBuffer,
 		Peering: &TestPeeringConfig{Enabled: true},
 	}
+
+	// Add version-specific tweaks
+	if consulVersion != nil {
+		// The GRPC TLS port did not exist prior to Consul 1.14
+		// Including it will cause issues in older installations.
+		if consulVersion.GreaterThanOrEqual(version.Must(version.NewVersion("1.14"))) {
+			conf.Ports.GRPCTLS = freeport.GetOne(t)
+		}
+	}
+
+	return conf
 }
 
 // TestService is used to serialize a service definition.
@@ -259,7 +271,12 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
 
-	cfg := defaultServerConfig(t)
+	consulVersion, err := findConsulVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := defaultServerConfig(t, consulVersion)
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -563,4 +580,27 @@ func (s *TestServer) privilegedDelete(url string) (*http.Response, error) {
 		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.InitialManagement)
 	}
 	return s.HTTPClient.Do(req)
+}
+
+func findConsulVersion() (*version.Version, error) {
+	cmd := exec.Command("consul", "version", "-format=json")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		return nil, errors.Wrap(err, "failed to get consul version")
+	}
+	cmd.Wait()
+	type consulVersion struct {
+		Version string
+	}
+	v := consulVersion{}
+	if err := json.Unmarshal(stdout.Bytes(), &v); err != nil {
+		return nil, errors.Wrap(err, "error parsing consul version json")
+	}
+	parsed, err := version.NewVersion(v.Version)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing consul version")
+	}
+	return parsed, nil
 }
