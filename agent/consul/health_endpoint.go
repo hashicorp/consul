@@ -211,7 +211,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesDefault
 	}
 
-	var authzContext acl.AuthorizerContext
+	authzContext := acl.AuthorizerContext{
+		Peer: args.PeerName,
+	}
 	authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
@@ -257,7 +259,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				for _, node := range resolvedNodes {
 					ns := node.Service
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, h.logger)
 						if err != nil {
 							return err
 						}

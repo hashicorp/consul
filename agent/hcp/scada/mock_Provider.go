@@ -133,7 +133,7 @@ type MockProvider_Listen_Call struct {
 }
 
 // Listen is a helper method to define mock.On call
-//  - capability string
+//   - capability string
 func (_e *MockProvider_Expecter) Listen(capability interface{}) *MockProvider_Listen_Call {
 	return &MockProvider_Listen_Call{Call: _e.mock.On("Listen", capability)}
 }
@@ -269,7 +269,7 @@ type MockProvider_UpdateMeta_Call struct {
 }
 
 // UpdateMeta is a helper method to define mock.On call
-//  - _a0 map[string]string
+//   - _a0 map[string]string
 func (_e *MockProvider_Expecter) UpdateMeta(_a0 interface{}) *MockProvider_UpdateMeta_Call {
 	return &MockProvider_UpdateMeta_Call{Call: _e.mock.On("UpdateMeta", _a0)}
 }

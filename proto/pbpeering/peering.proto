@@ -198,6 +198,10 @@ message Peering {
 
   // Remote contains metadata about the remote peer.
   RemoteInfo Remote = 17;
+
+  // ManualServerAddresses provides a list of manually specified server addresses from the
+  // user. If this is defined, then the automatic PeerServerAddresses are ignored.
+  repeated string ManualServerAddresses = 18;
 }
 
 // RemoteInfo contains metadata about the remote peer.

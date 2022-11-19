@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -199,7 +199,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	bd, err := agent.NewBaseDeps(loader, logGate)
+	bd, err := agent.NewBaseDeps(loader, logGate, nil)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
@@ -218,7 +218,7 @@ func (c *cmd) run(args []string) int {
 	if config.Logging.LogJSON {
 		// Hide all non-error output when JSON logging is enabled.
 		ui.Ui = &cli.BasicUI{
-			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: ioutil.Discard},
+			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
 		}
 	}
 

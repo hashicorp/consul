@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -17,6 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -41,10 +42,10 @@ var (
 const (
 	// meshGatewayWait is the initial wait on calls to exchange a secret with a peer when dialing through a gateway.
 	// This wait provides some time for the first gateway address to configure a route to the peer servers.
-	// Why 350ms? That is roughly the p50 latency we observed in a scale test for proxy config propagation:
-	// https://www.hashicorp.com/cgsb
-	meshGatewayWait      = 350 * time.Millisecond
-	establishmentTimeout = 5 * time.Second
+	// This study shows latency distribution https://www.hashicorp.com/cgsb.
+	// With 1s we cover ~p96, then we initiate the 3-second retry loop.
+	meshGatewayWait      = 1 * time.Second
+	establishmentTimeout = 3 * time.Second
 )
 
 // errPeeringInvalidServerAddress is returned when an establish request contains
@@ -140,10 +141,10 @@ type Backend interface {
 	DecodeToken([]byte) (*structs.PeeringToken, error)
 
 	// GetDialAddresses returns: the addresses to cycle through when dialing a peer's servers,
-	// a boolean indicating whether mesh gateways are present, and an optional error.
+	// an optional buffer of just gateway addresses,  and an optional error.
 	// The resulting ring buffer is front-loaded with the local mesh gateway addresses if the local
 	// datacenter is configured to dial through mesh gateways.
-	GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, bool, error)
+	GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, *ring.Ring, error)
 
 	EnterpriseCheckPartitions(partition string) error
 
@@ -310,24 +311,19 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	// ServerExternalAddresses must be formatted as addr:port.
-	var serverAddrs []string
-	if len(req.ServerExternalAddresses) > 0 {
-		serverAddrs = req.ServerExternalAddresses
-	} else {
-		serverAddrs, err = s.Backend.GetLocalServerAddresses()
-		if err != nil {
-			return nil, err
-		}
+	serverAddrs, err := s.Backend.GetLocalServerAddresses()
+	if err != nil {
+		return nil, err
 	}
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
-		PeerID:              peering.ID,
-		CA:                  caPEMs,
-		ServerAddresses:     serverAddrs,
-		ServerName:          serverName,
-		EstablishmentSecret: secretID,
+		PeerID:                peering.ID,
+		CA:                    caPEMs,
+		ManualServerAddresses: req.ServerExternalAddresses,
+		ServerAddresses:       serverAddrs,
+		ServerName:            serverName,
+		EstablishmentSecret:   secretID,
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
@@ -429,13 +425,14 @@ func (s *Server) Establish(
 	}
 
 	peering := &pbpeering.Peering{
-		ID:                  id,
-		Name:                req.PeerName,
-		PeerCAPems:          tok.CA,
-		PeerServerAddresses: serverAddrs,
-		PeerServerName:      tok.ServerName,
-		PeerID:              tok.PeerID,
-		Meta:                req.Meta,
+		ID:                    id,
+		Name:                  req.PeerName,
+		PeerCAPems:            tok.CA,
+		ManualServerAddresses: tok.ManualServerAddresses,
+		PeerServerAddresses:   serverAddrs,
+		PeerServerName:        tok.ServerName,
+		PeerID:                tok.PeerID,
+		Meta:                  req.Meta,
 
 		// State is intentionally not set until after the secret exchange succeeds.
 		// This is to prevent a scenario where an active peering is re-established,
@@ -520,11 +517,28 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		return nil, fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
-	ringBuf, usingGateways, err := s.Backend.GetDialAddresses(s.Logger, nil, peering.ID)
+	allAddrs, gatewayAddrs, err := s.Backend.GetDialAddresses(s.Logger, nil, peering.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get addresses to dial peer: %w", err)
 	}
 
+	if gatewayAddrs != nil {
+		// If we are dialing through local gateways we sleep before issuing the first request.
+		// This gives the local gateways some time to configure a route to the peer servers.
+		time.Sleep(meshGatewayWait)
+
+		// Exclusively try
+		resp, _ := retryExchange(ctx, &req, gatewayAddrs, tlsOption)
+		if resp != nil {
+			return resp, nil
+		}
+	}
+
+	return retryExchange(ctx, &req, allAddrs, tlsOption)
+}
+
+// retryExchange attempts a secret exchange in a retry loop, taking a new address from the ring buffer on each iteration
+func retryExchange(ctx context.Context, req *pbpeerstream.ExchangeSecretRequest, ringBuf *ring.Ring, tlsOption grpc.DialOption) (*pbpeerstream.ExchangeSecretResponse, error) {
 	var (
 		resp       *pbpeerstream.ExchangeSecretResponse
 		dialErrors error
@@ -532,12 +546,6 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 
 	retryWait := 150 * time.Millisecond
 	jitter := retry.NewJitter(25)
-
-	if usingGateways {
-		// If we are dialing through local gateways we sleep before issuing the first request.
-		// This gives the local gateways some time to configure a route to the peer servers.
-		time.Sleep(meshGatewayWait)
-	}
 
 	retryCtx, cancel := context.WithTimeout(ctx, establishmentTimeout)
 	defer cancel()
@@ -557,12 +565,12 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		defer conn.Close()
 
 		client := pbpeerstream.NewPeerStreamServiceClient(conn)
-		resp, err = client.ExchangeSecret(ctx, &req)
+		resp, err = client.ExchangeSecret(ctx, req)
 
 		// If we got a permission denied error that means out establishment secret is invalid, so we do not retry.
 		grpcErr, ok := grpcstatus.FromError(err)
 		if ok && grpcErr.Code() == codes.PermissionDenied {
-			return nil, fmt.Errorf("a new peering token must be generated: %w", grpcErr.Err())
+			return nil, grpcstatus.Errorf(codes.PermissionDenied, "a new peering token must be generated: %s", grpcErr.Message())
 		}
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret through address %q: %w", addr, err))
@@ -711,14 +719,17 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		latest := func(tt ...time.Time) time.Time {
+		latest := func(tt ...*time.Time) *time.Time {
 			latest := time.Time{}
 			for _, t := range tt {
+				if t == nil {
+					continue
+				}
 				if t.After(latest) {
-					latest = t
+					latest = *t
 				}
 			}
-			return latest
+			return &latest
 		}
 
 		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
@@ -727,9 +738,9 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		cp.StreamStatus = &pbpeering.StreamStatus{
 			ImportedServices: streamState.ImportedServices,
 			ExportedServices: streamState.ExportedServices,
-			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
-			LastReceive:      structs.TimeToProto(lastRecv),
-			LastSend:         structs.TimeToProto(lastSend),
+			LastHeartbeat:    pbpeering.TimePtrToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      pbpeering.TimePtrToProto(lastRecv),
+			LastSend:         pbpeering.TimePtrToProto(lastSend),
 		}
 
 		return cp
@@ -863,11 +874,12 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:                  existing.ID,
-			Name:                req.Name,
-			State:               pbpeering.PeeringState_DELETING,
-			PeerServerAddresses: existing.PeerServerAddresses,
-			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
+			ID:                    existing.ID,
+			Name:                  req.Name,
+			State:                 pbpeering.PeeringState_DELETING,
+			ManualServerAddresses: existing.ManualServerAddresses,
+			PeerServerAddresses:   existing.PeerServerAddresses,
+			DeletedAt:             structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

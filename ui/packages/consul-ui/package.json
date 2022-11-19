@@ -70,7 +70,7 @@
     "@hashicorp/design-system-components": "^1.0.4",
     "@hashicorp/design-system-tokens": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
-    "@hashicorp/ember-flight-icons": "^2.0.12",
+    "@hashicorp/ember-flight-icons": "^3.0.0",
     "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
@@ -191,6 +191,7 @@
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
+    "tracked-built-ins": "^3.1.0",
     "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1",
     "webpack": "^5.74.0"

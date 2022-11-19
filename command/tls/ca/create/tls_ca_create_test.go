@@ -4,16 +4,16 @@ import (
 	"crypto"
 	"crypto/x509"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestValidateCommand_noTabs(t *testing.T) {
@@ -129,9 +129,9 @@ func expectFiles(t *testing.T, caPath, keyPath string) (*x509.Certificate, crypt
 		t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
 	}
 
-	caData, err := ioutil.ReadFile(caPath)
+	caData, err := os.ReadFile(caPath)
 	require.NoError(t, err)
-	keyData, err := ioutil.ReadFile(keyPath)
+	keyData, err := os.ReadFile(keyPath)
 	require.NoError(t, err)
 
 	ca, err := connect.ParseCert(string(caData))
@@ -147,7 +147,7 @@ func expectFiles(t *testing.T, caPath, keyPath string) (*x509.Certificate, crypt
 
 // switchToTempDir is meant to be used in a defer statement like:
 //
-//   defer switchToTempDir(t, testDir)()
+//	defer switchToTempDir(t, testDir)()
 //
 // This exploits the fact that the body of a defer is evaluated
 // EXCEPT for the final function call invocation inline with the code

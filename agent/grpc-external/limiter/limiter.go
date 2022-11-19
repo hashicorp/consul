@@ -28,9 +28,9 @@ var ErrCapacityReached = errors.New("active session limit reached")
 //
 // It is the session-holder's responsibility to:
 //
-//	1. Call End on the session when finished.
-//	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
-//	   stream) when it is closed.
+//  1. Call End on the session when finished.
+//  2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
+//     stream) when it is closed.
 //
 // The maximum number of concurrent sessions is controlled with SetMaxSessions.
 // If there are more than the given maximum sessions already in-flight,
@@ -114,9 +114,9 @@ func (l *SessionLimiter) SetDrainRateLimit(limit rate.Limit) {
 //
 // It is the session-holder's responsibility to:
 //
-//	1. Call End on the session when finished.
-//	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
-//	   stream) when it is closed.
+//  1. Call End on the session when finished.
+//  2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
+//     stream) when it is closed.
 func (l *SessionLimiter) BeginSession() (Session, error) {
 	if !l.hasCapacity() {
 		return nil, ErrCapacityReached
@@ -129,8 +129,8 @@ func (l *SessionLimiter) BeginSession() (Session, error) {
 
 // Note: hasCapacity is *best effort*. As we do not hold l.mu it's possible that:
 //
-//	- max has changed by the time we compare it to inFlight.
-//	- inFlight < max now, but increases before we create a new session.
+//   - max has changed by the time we compare it to inFlight.
+//   - inFlight < max now, but increases before we create a new session.
 //
 // This is acceptable for our uses, especially because excess sessions will
 // eventually be drained.
@@ -146,8 +146,8 @@ func (l *SessionLimiter) hasCapacity() bool {
 
 // Note: overCapacity is *best effort*. As we do not hold l.mu it's possible that:
 //
-//	- max has changed by the time we compare it to inFlight.
-//	- inFlight > max now, but decreases before we terminate a session.
+//   - max has changed by the time we compare it to inFlight.
+//   - inFlight > max now, but decreases before we terminate a session.
 func (l *SessionLimiter) overCapacity() bool {
 	max := atomic.LoadUint32(&l.max)
 	if max == Unlimited {

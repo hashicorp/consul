@@ -85,11 +85,11 @@ type PeeringStreamStatus struct {
 	// ExportedServices is the list of services exported to this peering.
 	ExportedServices []string
 	// LastHeartbeat represents when the last heartbeat message was received.
-	LastHeartbeat time.Time
+	LastHeartbeat *time.Time
 	// LastReceive represents when any message was last received, regardless of success or error.
-	LastReceive time.Time
+	LastReceive *time.Time
 	// LastSend represents when any message was last sent, regardless of success or error.
-	LastSend time.Time
+	LastSend *time.Time
 }
 
 type PeeringReadResponse struct {

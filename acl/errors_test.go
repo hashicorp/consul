@@ -16,7 +16,7 @@ func TestPermissionDeniedError(t *testing.T) {
 		return t.expected
 	}
 
-	auth1 := mockAuthorizer{}
+	auth1 := MockAuthorizer{}
 
 	cases := []testCase{
 		{

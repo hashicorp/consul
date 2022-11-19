@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -72,6 +71,14 @@ const (
 	// client in this package but is defined here for consistency with all the
 	// other ENV names we use.
 	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
+
+	// GRPCCAFileEnvName defines an environment variable name which sets the
+	// CA file to use for talking to Consul gRPC over TLS.
+	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
+
+	// GRPCCAPathEnvName defines an environment variable name which sets the
+	// path to a directory of CA certs to use for talking to Consul gRPC over TLS.
+	GRPCCAPathEnvName = "CONSUL_GRPC_CAPATH"
 
 	// HTTPNamespaceEnvVar defines an environment variable name which sets
 	// the HTTP Namespace to be used by default. This can still be overridden.
@@ -744,7 +751,7 @@ func NewClient(config *Config) (*Client, error) {
 	// This is because when TokenFile is set it is read into the Token field.
 	// We want any derived clients to have to re-read the token file.
 	if config.TokenFile != "" {
-		data, err := ioutil.ReadFile(config.TokenFile)
+		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error loading token file: %s", err)
 		}
@@ -1065,7 +1072,7 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 		if err := decodeBody(resp, &out); err != nil {
 			return nil, err
 		}
-	} else if _, err := ioutil.ReadAll(resp.Body); err != nil {
+	} else if _, err := io.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
 	return wm, nil
@@ -1183,7 +1190,7 @@ func requireHttpCodes(resp *http.Response, httpCodes ...int) error {
 // is necessary to ensure that the http.Client's underlying RoundTripper is able
 // to re-use the TCP connection. See godoc on net/http.Client.Do.
 func closeResponseBody(resp *http.Response) error {
-	_, _ = io.Copy(ioutil.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, resp.Body)
 	return resp.Body.Close()
 }
 

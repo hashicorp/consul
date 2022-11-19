@@ -3,7 +3,6 @@ package xds
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,7 +87,7 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	latestExpected := ""
 	if latestSubname != "" && subname != latestSubname {
 		latestGolden := filepath.Join("testdata", fmt.Sprintf("%s.%s.golden", name, latestSubname))
-		raw, err := ioutil.ReadFile(latestGolden)
+		raw, err := os.ReadFile(latestGolden)
 		require.NoError(t, err, "%q %q %q", name, subname, latestSubname)
 		latestExpected = string(raw)
 	}
@@ -110,11 +109,11 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 			return got
 		}
 
-		require.NoError(t, ioutil.WriteFile(golden, []byte(got), 0644))
+		require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
 		return got
 	}
 
-	expected, err := ioutil.ReadFile(golden)
+	expected, err := os.ReadFile(golden)
 	if latestExpected != "" && os.IsNotExist(err) {
 		// In readonly mode if a specific golden file isn't found, we fallback
 		// on the latest one.
@@ -127,7 +126,7 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 func loadTestResource(t *testing.T, name string) string {
 	t.Helper()
 
-	expected, err := ioutil.ReadFile(filepath.Join("testdata", name+".golden"))
+	expected, err := os.ReadFile(filepath.Join("testdata", name+".golden"))
 	require.NoError(t, err)
 	return string(expected)
 }

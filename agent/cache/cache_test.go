@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // Test a basic Get with no indexes (and therefore no blocking queries).
@@ -1751,22 +1750,12 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, true, result)
 
-	waitUntilFetching := func(expectValue bool) {
-		retry.Run(t, func(t *retry.R) {
-			c.entriesLock.Lock()
-			defer c.entriesLock.Unlock()
-			entry, ok := c.entries[key]
-			require.True(t, ok)
-			if expectValue {
-				require.True(t, entry.Fetching)
-			} else {
-				require.False(t, entry.Fetching)
-			}
-		})
-	}
-
 	// ensure that the entry is fetching again
-	waitUntilFetching(true)
+	c.entriesLock.Lock()
+	entry, ok := c.entries[key]
+	require.True(t, ok)
+	require.True(t, entry.GoroutineID > 0)
+	c.entriesLock.Unlock()
 
 	requestChan := make(chan error)
 
@@ -1800,7 +1789,11 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	}
 
 	// ensure that the entry is fetching again
-	waitUntilFetching(true)
+	c.entriesLock.Lock()
+	entry, ok = c.entries[key]
+	require.True(t, ok)
+	require.True(t, entry.GoroutineID > 0)
+	c.entriesLock.Unlock()
 
 	// background a call that will wait for a newer version - will result in an acl not found error
 	go getError(5)
@@ -1821,7 +1814,11 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 
 	// ensure that the ACL not found error killed off the background refresh
 	// but didn't remove it from the cache
-	waitUntilFetching(false)
+	c.entriesLock.Lock()
+	entry, ok = c.entries[key]
+	require.True(t, ok)
+	require.False(t, entry.GoroutineID > 0)
+	c.entriesLock.Unlock()
 }
 
 type fakeType struct {

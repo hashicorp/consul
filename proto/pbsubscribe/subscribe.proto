@@ -58,7 +58,7 @@ enum Topic {
   // ServiceResolver topic contains events for changes to a service resolver.
   ServiceResolver = 4;
 
-  // ServiceResolver topic contains events for changes to an ingress gateway.
+  // IngressGateway topic contains events for changes to an ingress gateway.
   IngressGateway = 5;
 
   // ServiceIntentions topic contains events for changes to service intentions.
@@ -70,6 +70,9 @@ enum Topic {
   //
   // Note: WildcardSubject is the only supported Subject on this topic.
   ServiceList = 7;
+
+  // ServiceDefaults topic contains events for changes to service-defaults.
+  ServiceDefaults = 8;
 }
 
 message NamedSubject {

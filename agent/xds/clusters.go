@@ -629,9 +629,15 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 			// usual mesh gateway route for a service.
 			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
 
+			var hostnameEndpoints structs.CheckServiceNodes
+			if serviceGroup.UseCDS {
+				hostnameEndpoints = serviceGroup.Nodes
+			}
+
 			opts := clusterOpts{
-				name:     clusterName,
-				isRemote: true,
+				name:              clusterName,
+				isRemote:          true,
+				hostnameEndpoints: hostnameEndpoints,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -1449,6 +1455,8 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			},
 		})
 	}
+
+	//nolint:staticcheck
 	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
 
 	return nil

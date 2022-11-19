@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -251,7 +252,11 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
 	require.NoError(t, err)
 
-	require.Contains(t, string(tokenJSON), externalAddress)
+	// Put the token in an arbitrary map, because the struct isn't available in the api package.
+	token := make(map[string]interface{})
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+	require.Equal(t, []interface{}{s.GRPCTLSAddr}, token["ServerAddresses"])
+	require.Equal(t, []interface{}{externalAddress}, token["ManualServerAddresses"])
 }
 
 // TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:

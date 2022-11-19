@@ -27,7 +27,7 @@ type cmd struct {
 	help  string
 
 	name              string
-	externalAddresses []string
+	externalAddresses string
 	meta              map[string]string
 	format            string
 }
@@ -41,7 +41,7 @@ func (c *cmd) init() {
 		"Metadata to associate with the peering, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple metadata fields.")
 
-	c.flags.Var((*flags.AppendSliceValue)(&c.externalAddresses), "server-external-addresses",
+	c.flags.StringVar(&c.externalAddresses, "server-external-addresses", "",
 		"A list of addresses to put into the generated token, formatted as a comma-separate list. "+
 			"Addresses are the form of <host or IP>:port. "+
 			"This could be used to specify load balancer(s) or external IPs to reach the servers from "+
@@ -83,11 +83,15 @@ func (c *cmd) Run(args []string) int {
 
 	peerings := client.Peerings()
 
+	var addresses []string = nil
+	if c.externalAddresses != "" {
+		addresses = strings.Split(c.externalAddresses, ",")
+	}
 	req := api.PeeringGenerateTokenRequest{
 		PeerName:                c.name,
 		Partition:               c.http.Partition(),
 		Meta:                    c.meta,
-		ServerExternalAddresses: c.externalAddresses,
+		ServerExternalAddresses: addresses,
 	}
 
 	res, _, err := peerings.GenerateToken(context.Background(), req, &api.WriteOptions{})

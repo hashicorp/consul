@@ -123,7 +123,8 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
 		require.NotNil(t, token.CA)
-		require.Equal(t, []string{externalAddress}, token.ServerAddresses)
+		require.Equal(t, []string{externalAddress}, token.ManualServerAddresses)
+		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.GRPCTLSPort)}, token.ServerAddresses)
 		require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
 
 		// The PeerID in the token is randomly generated so we don't assert on its value.

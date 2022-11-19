@@ -1517,6 +1517,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
+			//nolint:staticcheck
 			grpc.WithInsecure(),
 			grpc.WithBlock())
 		require.NoError(t, err)
@@ -1531,6 +1532,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+			//nolint:staticcheck
 			grpc.WithInsecure(),
 			grpc.WithBlock())
 		require.NoError(t, err)
@@ -1576,7 +1578,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
 	rules := `
-		service_prefix "foo" { policy = "read" }
+		service_prefix "" { policy = "read" }
 		node_prefix "" { policy = "read" }
 	`
 	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
