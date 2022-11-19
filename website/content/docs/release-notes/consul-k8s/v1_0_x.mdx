@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- ** Simplified Service Mesh Deployments with Consul Dataplane **: Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service-mesh consul-k8s components are configured to talk directly to Consul servers
+- ** Simplified Service Mesh Deployments with Consul Dataplane:** Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service-mesh consul-k8s components are configured to talk directly to Consul servers.
   
 - **Consul API Gateway 0.5.0 Support**: Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul Servers. 
 
