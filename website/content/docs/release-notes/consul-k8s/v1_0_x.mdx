@@ -17,6 +17,7 @@ description: >-
 
 - `client.enabled` now defaults to `false`. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation. For Vault on Kubernetes using Consul deployed on Kubernetes as a storage backend, `client.enabled` should be set to `true` prior to upgrading.
 - `externalServers.grpcPort` default is now 8502 instead of 8503.
+- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
 - Consul snapshot agent runs as a sidecar to Consul servers. <EnterpriseAlert inline />
   - `client.snapshotAgent` values are moved to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
   - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets. 
@@ -34,7 +35,7 @@ description: >-
   
 ## Supported Software
 
- ~> **Note:** Consul 1.13.x and 1.12.x is not supported. Please use Consul K8s 0.49.x if you want to use Consul 1.13.x or 1.12.x. 
+~> **Note:** Consul 1.13.x and 1.12.x is not supported. Please use Consul K8s 0.49.x if you want to use Consul 1.13.x or 1.12.x. 
 - Consul 1.14.x. 
 - Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version. 
 - Kubernetes 1.22.x - 1.25.x
