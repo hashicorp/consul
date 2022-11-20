@@ -3,6 +3,8 @@ package health
 import (
 	"context"
 
+	"google.golang.org/grpc/connectivity"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
@@ -32,6 +34,16 @@ type CacheGetter interface {
 type MaterializedViewStore interface {
 	Get(ctx context.Context, req submatview.Request) (submatview.Result, error)
 	NotifyCallback(ctx context.Context, req submatview.Request, cID string, cb cache.Callback) error
+}
+
+// IsReadyForStreaming will indicate if the underlying gRPC connection is ready.
+func (c *Client) IsReadyForStreaming() bool {
+	conn := c.MaterializerDeps.Conn
+	if conn == nil {
+		return false
+	}
+
+	return conn.GetState() == connectivity.Ready
 }
 
 func (c *Client) ServiceNodes(

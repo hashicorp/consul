@@ -21,6 +21,7 @@ Description:
 Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
+    -codegen                 Just install tools for codegen.
     -h | --help              Print this help text.
 EOF
 }
@@ -43,6 +44,10 @@ function main {
                 lint_install
                 return 0
                 ;;
+            -codegen )
+                codegen_install
+                return 0
+                ;;
             -h | --help )
                 usage
                 return 0
@@ -60,7 +65,9 @@ function proto_tools_install {
     local buf_version
     local mog_version
     local protoc_go_inject_tag_version
+    local mockery_version
 
+    mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
     protoc_gen_go_version="$(grep github.com/golang/protobuf go.mod | awk '{print $2}')"
     protoc_gen_go_grpc_version="$(make --no-print-directory print-PROTOC_GEN_GO_GRPC_VERSION)"
     mog_version="$(make --no-print-directory print-MOG_VERSION)"
@@ -70,6 +77,12 @@ function proto_tools_install {
     # echo "go: ${protoc_gen_go_version}"
     # echo "mog: ${mog_version}"
     # echo "tag: ${protoc_go_inject_tag_version}"
+
+    install_versioned_tool \
+        'mockery' \
+        'github.com/vektra/mockery/v2' \
+        "${mockery_version}" \
+        'github.com/vektra/mockery/v2'
 
     install_versioned_tool \
        'buf' \
@@ -127,19 +140,22 @@ function lint_install {
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
 }
 
-function tools_install {
-    local mockery_version
-
-    mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
+function codegen_install {
+    local deep_copy_version
+    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
 
     install_versioned_tool \
-        'mockery' \
-        'github.com/vektra/mockery/v2' \
-        "${mockery_version}" \
-        'github.com/vektra/mockery/v2'
+        'deep-copy' \
+        'github.com/globusdigital/deep-copy' \
+        "${deep_copy_version}" \
+        'github.com/globusdigital/deep-copy'
+}
+
+function tools_install {
 
     lint_install
     proto_tools_install
+    codegen_install
 
     return 0
 }

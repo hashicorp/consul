@@ -26,15 +26,17 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 	logger.Debug("starting stream")
 	defer logger.Trace("stream closed")
 
-	token := external.TokenFromContext(serverStream.Context())
-
+	options, err := external.QueryOptionsFromContext(serverStream.Context())
+	if err != nil {
+		return err
+	}
 	// Serve the ready servers from an EventPublisher subscription. If the subscription is
 	// closed due to an ACL change, we'll attempt to re-authorize and resume it to
 	// prevent unnecessarily terminating the stream.
 	var idx uint64
 	for {
 		var err error
-		idx, err = s.serveReadyServers(token, idx, req, serverStream, logger)
+		idx, err = s.serveReadyServers(options.Token, idx, req, serverStream, logger)
 		if errors.Is(err, stream.ErrSubForceClosed) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt to re-auth and resume")
 		} else {

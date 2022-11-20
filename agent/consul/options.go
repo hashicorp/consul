@@ -1,13 +1,14 @@
 package consul
 
 import (
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -31,6 +32,10 @@ type Deps struct {
 	GetNetRPCInterceptorFunc func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor
 	// NewRequestRecorderFunc provides a middleware.RequestRecorder for the server to use; it cannot be nil
 	NewRequestRecorderFunc func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder
+
+	// HCP contains the dependencies required when integrating with the HashiCorp Cloud Platform
+	HCP hcp.Deps
+
 	EnterpriseDeps
 }
 

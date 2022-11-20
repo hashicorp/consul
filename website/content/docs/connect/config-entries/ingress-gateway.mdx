@@ -328,6 +328,7 @@ In the following example, two listeners are configured on an ingress gateway nam
 - The first listener is configured to listen on port `8080` and uses a wildcard (`*`) to proxy traffic to all services in the datacenter.
 - The second listener exposes the `api` and `web` services on port `4567` at user-provided hosts.
 - TLS is enabled on every listener.
+- The `max_connections` of the ingress gateway proxy to each upstream cluster is set to 4096.
 
 The Consul Enterprise version implements the following additional configurations:
 
@@ -344,6 +345,10 @@ Name = "us-east-ingress"
 
 TLS {
   Enabled = true
+}
+
+Defaults {
+  MaxConnections = 4096
 }
 
 Listeners = [
@@ -1042,6 +1047,38 @@ You can specify the following parameters to configure ingress gateway configurat
       ],
     },
     {
+      name: 'Defaults',
+      type: 'IngressServiceConfig: <optional>',
+      description: `Default configuration that applies to all upstreams.`,
+      children: [
+        {
+          name: 'MaxConnections',
+          type: 'int: 0',
+          description: `The maximum number of connections a service instance
+              will be allowed to establish against the given upstream. Use this to limit
+              HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
+        },
+        {
+          name: 'MaxPendingRequests',
+          type: 'int: 0',
+          description: `The maximum number of requests that will be queued
+              while waiting for a connection to be established. For this configuration to
+              be respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
+        },
+        {
+          name: 'MaxConcurrentRequests',
+          type: 'int: 0',
+          description: `The maximum number of concurrent requests that
+              will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+              since HTTP/2 has many requests per connection. For this configuration to be
+              respected, a L7 protocol must be defined in the \`protocol\` field.
+              If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
+        },
+      ],
+    },
+    {
       name: 'Listeners',
       type: 'array<IngressListener>: <optional>)',
       description:
@@ -1155,6 +1192,21 @@ You can specify the following parameters to configure ingress gateway configurat
                   ],
                 },
               ],
+            },
+            {
+              name: 'MaxConnections',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
+            {
+              name: 'MaxPendingRequests',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
+            {
+              name: 'MaxConcurrentRequests',
+              type: 'int: 0',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
             },
           ],
         },

@@ -40,6 +40,7 @@ func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -109,6 +110,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -370,10 +372,15 @@ var _ Backend = (*testBackend)(nil)
 func runTestServer(t *testing.T, server *Server) net.Addr {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(hclog.New(nil), addr, func(srv *gogrpc.Server) {
-		grpcServer = srv
-		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
-	})
+	handler := grpc.NewHandler(
+		hclog.New(nil),
+		addr,
+		func(srv *gogrpc.Server) {
+			grpcServer = srv
+			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
+		},
+		nil,
+	)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -436,6 +443,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	connRemoteDC, err := gogrpc.DialContext(ctx, addrRemoteDC.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connRemoteDC.Close))
@@ -483,6 +491,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		require.NoError(t, backendRemoteDC.store.EnsureRegistration(ids.Next("reg3"), req))
 	})
 
+	//nolint:staticcheck
 	connLocal, err := gogrpc.DialContext(ctx, addrLocal.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connLocal.Close))
@@ -744,6 +753,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -896,6 +906,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))

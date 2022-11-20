@@ -32,7 +32,10 @@ func (s *Server) WatchRoots(_ *pbconnectca.WatchRootsRequest, serverStream pbcon
 	logger.Trace("starting stream")
 	defer logger.Trace("stream closed")
 
-	token := external.TokenFromContext(serverStream.Context())
+	options, err := external.QueryOptionsFromContext(serverStream.Context())
+	if err != nil {
+		return err
+	}
 
 	// Serve the roots from an EventPublisher subscription. If the subscription is
 	// closed due to an ACL change, we'll attempt to re-authorize and resume it to
@@ -40,7 +43,7 @@ func (s *Server) WatchRoots(_ *pbconnectca.WatchRootsRequest, serverStream pbcon
 	var idx uint64
 	for {
 		var err error
-		idx, err = s.serveRoots(token, idx, serverStream, logger)
+		idx, err = s.serveRoots(options.Token, idx, serverStream, logger)
 		if errors.Is(err, stream.ErrSubForceClosed) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt to re-auth and resume")
 		} else {

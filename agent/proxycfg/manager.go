@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
@@ -46,6 +47,8 @@ type CancelFunc func()
 type Manager struct {
 	ManagerConfig
 
+	rateLimiter *rate.Limiter
+
 	mu         sync.Mutex
 	proxies    map[ProxyID]*state
 	watchers   map[ProxyID]map[uint64]chan *ConfigSnapshot
@@ -75,6 +78,15 @@ type ManagerConfig struct {
 	// information to proxies that need to make intention decisions on their
 	// own.
 	IntentionDefaultAllow bool
+
+	// UpdateRateLimit controls the rate at which config snapshots are delivered
+	// when updates are received from data sources. This enables us to reduce the
+	// impact of updates to "global" resources (e.g. proxy-defaults and wildcard
+	// intentions) that could otherwise saturate system resources, and cause Raft
+	// or gossip instability.
+	//
+	// Defaults to rate.Inf (no rate limit).
+	UpdateRateLimit rate.Limit
 }
 
 // NewManager constructs a Manager.
@@ -82,12 +94,28 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	if cfg.Source == nil || cfg.Logger == nil {
 		return nil, errors.New("all ManagerConfig fields must be provided")
 	}
+
+	if cfg.UpdateRateLimit == 0 {
+		cfg.UpdateRateLimit = rate.Inf
+	}
+
 	m := &Manager{
 		ManagerConfig: cfg,
 		proxies:       make(map[ProxyID]*state),
 		watchers:      make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
+		rateLimiter:   rate.NewLimiter(cfg.UpdateRateLimit, 1),
 	}
 	return m, nil
+}
+
+// UpdateRateLimit returns the configured update rate limit (see ManagerConfig).
+func (m *Manager) UpdateRateLimit() rate.Limit {
+	return m.rateLimiter.Limit()
+}
+
+// SetUpdateRateLimit configures the update rate limit (see ManagerConfig).
+func (m *Manager) SetUpdateRateLimit(l rate.Limit) {
+	m.rateLimiter.SetLimit(l)
 }
 
 // RegisteredProxies returns a list of the proxies tracked by Manager, filtered
@@ -143,7 +171,7 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 	}
 
 	var err error
-	state, err = newState(id, ns, source, token, stateConfig)
+	state, err = newState(id, ns, source, token, stateConfig, m.rateLimiter)
 	if err != nil {
 		return err
 	}

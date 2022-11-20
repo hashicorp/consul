@@ -228,6 +228,12 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			if route.Destination.PrefixRewrite != "" && !eligibleForPrefixRewrite {
 				return fmt.Errorf("Route[%d] cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix", i)
 			}
+
+			for _, r := range route.Destination.RetryOn {
+				if !isValidRetryCondition(r) {
+					return fmt.Errorf("Route[%d] contains an invalid retry condition: %q", i, r)
+				}
+			}
 		}
 	}
 
@@ -245,6 +251,26 @@ func isValidHTTPMethod(method string) bool {
 		http.MethodConnect,
 		http.MethodOptions,
 		http.MethodTrace:
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidRetryCondition(retryOn string) bool {
+	switch retryOn {
+	case "5xx",
+		"gateway-error",
+		"reset",
+		"connect-failure",
+		"envoy-ratelimited",
+		"retriable-4xx",
+		"refused-stream",
+		"cancelled",
+		"deadline-exceeded",
+		"internal",
+		"resource-exhausted",
+		"unavailable":
 		return true
 	default:
 		return false
@@ -409,6 +435,10 @@ type ServiceRouteDestination struct {
 	// 4 failure bubbling up to layer 7.
 	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
 
+	// RetryOn allows setting envoy specific conditions when a request should
+	// be automatically retried.
+	RetryOn []string `json:",omitempty" alias:"retry_on"`
+
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
@@ -455,7 +485,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 }
 
 func (d *ServiceRouteDestination) HasRetryFeatures() bool {
-	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
+	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0 || len(d.RetryOn) > 0
 }
 
 // ServiceSplitterConfigEntry defines how incoming requests are split across
@@ -1267,7 +1297,6 @@ func (r *ServiceResolverRedirect) isEmpty() bool {
 // - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
 // empty at once. When Targets is defined, the other fields should not be
 // populated.
-//
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).

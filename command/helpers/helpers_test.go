@@ -715,7 +715,7 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"destination": {
 					"addresses": [
-						"10.0.0.0", 
+						"10.0.0.0",
 						"10.0.0.1"
 					],
 					"port": 443
@@ -741,7 +741,7 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"Destination": {
 					"Addresses": [
-						"10.0.0.0", 
+						"10.0.0.0",
 						"10.0.0.1"
 					],
 					"Port": 443
@@ -2911,7 +2911,7 @@ func TestParseConfigEntry(t *testing.T) {
 								Partition = "baz"
 							},
 							{
-								PeerName = "flarm"
+								Peer = "flarm"
 							}
 						]
 					},
@@ -2982,7 +2982,7 @@ func TestParseConfigEntry(t *testing.T) {
 								"Partition": "baz"
 							},
 							{
-								"PeerName": "flarm"
+								"Peer": "flarm"
 							}
 						]
 					},
@@ -3016,7 +3016,7 @@ func TestParseConfigEntry(t *testing.T) {
 								Partition: "baz",
 							},
 							{
-								PeerName: "flarm",
+								Peer: "flarm",
 							},
 						},
 					},

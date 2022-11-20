@@ -5,16 +5,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-
-	metrics "github.com/armon/go-metrics"
-	radix "github.com/armon/go-radix"
+	"github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
@@ -61,6 +61,13 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
+
+	// If a consumer sets a buffer size greater than this amount we will default it down
+	// to this amount to ensure that consul does respond. Previously if consumer had a larger buffer
+	// size than 65535 - 60 bytes (maximim 60 bytes for IP header. UDP header will be offset in the
+	// trimUDP call) consul would fail to respond and the consumer timesout
+	// the request.
+	maxUDPDatagramSize = math.MaxUint16 - 68
 )
 
 type dnsSOAConfig struct {
@@ -139,19 +146,32 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	// Make sure domains are FQDN, make them case insensitive for ServeMux
 	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
 	altDomain := dns.Fqdn(strings.ToLower(a.config.DNSAltDomain))
-
 	srv := &DNSServer{
 		agent:                 a,
 		domain:                domain,
 		altDomain:             altDomain,
 		logger:                a.logger.Named(logging.DNS),
 		defaultEnterpriseMeta: *a.AgentEnterpriseMeta(),
+		mux:                   dns.NewServeMux(),
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
 		return nil, err
 	}
 	srv.config.Store(cfg)
+
+	srv.mux.HandleFunc("arpa.", srv.handlePtr)
+	srv.mux.HandleFunc(srv.domain, srv.handleQuery)
+	// this is not an empty string check because NewDNSServer will have
+	// converted the configured alt domain into an FQDN which will ensure that
+	// the value ends with a ".". Therefore "." is the empty string equivalent
+	// for originally having no alternate domain set. If there is a reason
+	// why consul should be configured to handle the root zone I have yet
+	// to think of it.
+	if srv.altDomain != "." {
+		srv.mux.HandleFunc(srv.altDomain, srv.handleQuery)
+	}
+	srv.toggleRecursorHandlerFromConfig(cfg)
 
 	return srv, nil
 }
@@ -227,22 +247,6 @@ func (cfg *dnsConfig) GetTTLForService(service string) (time.Duration, bool) {
 }
 
 func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
-	cfg := d.config.Load().(*dnsConfig)
-
-	d.mux = dns.NewServeMux()
-	d.mux.HandleFunc("arpa.", d.handlePtr)
-	d.mux.HandleFunc(d.domain, d.handleQuery)
-	// this is not an empty string check because NewDNSServer will have
-	// converted the configured alt domain into an FQDN which will ensure that
-	// the value ends with a ".". Therefore "." is the empty string equivalent
-	// for originally having no alternate domain set. If there is a reason
-	// why consul should be configured to handle the root zone I have yet
-	// to think of it.
-	if d.altDomain != "." {
-		d.mux.HandleFunc(d.altDomain, d.handleQuery)
-	}
-	d.toggleRecursorHandlerFromConfig(cfg)
-
 	d.Server = &dns.Server{
 		Addr:              addr,
 		Net:               network,
@@ -1258,6 +1262,11 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 			maxSize = int(size)
 		}
 	}
+	// Overriding maxSize as the maxSize cannot be larger than the
+	// maxUDPDatagram size. Reliability guarantees disappear > than this amount.
+	if maxSize > maxUDPDatagramSize {
+		maxSize = maxUDPDatagramSize
+	}
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -1286,8 +1295,9 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// will allow our responses to be compliant even if some downstream server
 	// uncompresses them.
 	// Even when size is too big for one single record, try to send it anyway
-	// (useful for 512 bytes messages)
-	for len(resp.Answer) > 1 && resp.Len() > maxSize-7 {
+	// (useful for 512 bytes messages). 8 is removed from maxSize to ensure that we account
+	// for the udp header (8 bytes).
+	for len(resp.Answer) > 1 && resp.Len() > maxSize-8 {
 		// first try to remove the NS section may be it will truncate enough
 		if len(resp.Ns) != 0 {
 			resp.Ns = []dns.RR{}

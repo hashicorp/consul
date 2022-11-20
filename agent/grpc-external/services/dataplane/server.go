@@ -4,9 +4,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
@@ -25,6 +27,7 @@ type Config struct {
 
 type StateStore interface {
 	ServiceNode(string, string, string, *acl.EnterpriseMeta, string) (uint64, *structs.ServiceNode, error)
+	ReadResolvedServiceConfigEntries(memdb.WatchSet, string, *acl.EnterpriseMeta, []structs.ServiceID, structs.ProxyMode) (uint64, *configentry.ResolvedServiceConfigSet, error)
 }
 
 //go:generate mockery --name ACLResolver --inpackage

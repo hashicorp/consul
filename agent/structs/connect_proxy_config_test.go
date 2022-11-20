@@ -2,7 +2,6 @@ package structs
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -615,47 +614,6 @@ func TestConnectProxyConfig_UnmarshalJSON(t *testing.T) {
 				})
 			}
 		})
-	}
-}
-
-func TestMeshGatewayConfig_OverlayWith(t *testing.T) {
-	var (
-		D = MeshGatewayConfig{Mode: MeshGatewayModeDefault}
-		N = MeshGatewayConfig{Mode: MeshGatewayModeNone}
-		R = MeshGatewayConfig{Mode: MeshGatewayModeRemote}
-		L = MeshGatewayConfig{Mode: MeshGatewayModeLocal}
-	)
-
-	type testCase struct {
-		base, overlay, expect MeshGatewayConfig
-	}
-	cases := []testCase{
-		{D, D, D},
-		{D, N, N},
-		{D, R, R},
-		{D, L, L},
-		{N, D, N},
-		{N, N, N},
-		{N, R, R},
-		{N, L, L},
-		{R, D, R},
-		{R, N, N},
-		{R, R, R},
-		{R, L, L},
-		{L, D, L},
-		{L, N, N},
-		{L, R, R},
-		{L, L, L},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-
-		t.Run(fmt.Sprintf("%s overlaid with %s", tc.base.Mode, tc.overlay.Mode),
-			func(t *testing.T) {
-				got := tc.base.OverlayWith(tc.overlay)
-				require.Equal(t, tc.expect, got)
-			})
 	}
 }
 

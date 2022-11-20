@@ -4,16 +4,16 @@ import (
 	"crypto"
 	"crypto/x509"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/testutil"
 
 	caCreate "github.com/hashicorp/consul/command/tls/ca/create"
 )
@@ -251,9 +251,9 @@ func expectFiles(t *testing.T, certPath, keyPath string) (*x509.Certificate, cry
 		t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
 	}
 
-	certData, err := ioutil.ReadFile(certPath)
+	certData, err := os.ReadFile(certPath)
 	require.NoError(t, err)
-	keyData, err := ioutil.ReadFile(keyPath)
+	keyData, err := os.ReadFile(keyPath)
 	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(string(certData))
@@ -285,7 +285,7 @@ func createCA(t *testing.T, domain string) {
 
 // switchToTempDir is meant to be used in a defer statement like:
 //
-//   defer switchToTempDir(t, testDir)()
+//	defer switchToTempDir(t, testDir)()
 //
 // This exploits the fact that the body of a defer is evaluated
 // EXCEPT for the final function call invocation inline with the code

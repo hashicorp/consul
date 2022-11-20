@@ -60,11 +60,6 @@ new and existing services:
 
 1. Next, modify your Helm values:
    1. Remove the `defaultProtocol` config. This won't affect existing services.
-   1. Set:
-      ```yaml
-      controller:
-        enabled: true
-      ```
 1. Now you can upgrade your Helm chart to the latest version with the new Helm values.
 1. From now on, any new service will require a [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
    resource to set its protocol:
@@ -164,13 +159,6 @@ You will need to perform the following steps to upgrade:
 1. Next, remove this annotation from existing deployments. This will have no
    effect on the deployments because the annotation was only used when the
    service was first created.
-1. Modify your Helm values and add:
-
-   ```yaml
-   controller:
-     enabled: true
-   ```
-
 1. Now you can upgrade your Helm chart to the latest version.
 1. From now on, any new service will require a [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
    resource to set its protocol:

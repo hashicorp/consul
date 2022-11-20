@@ -1,0 +1,3 @@
+```release-note:bug
+namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter 
+```

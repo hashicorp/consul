@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1443,8 +1442,8 @@ func TestAgent_Self(t *testing.T) {
 			}
 			ports = {
 				grpc = -1
-			}
-			`,
+				grpc_tls = -1
+			}`,
 			expectXDS: false,
 			grpcTLS:   false,
 		},
@@ -1453,7 +1452,9 @@ func TestAgent_Self(t *testing.T) {
 			node_meta {
 				somekey = "somevalue"
 			}
-			`,
+			ports = {
+				grpc_tls = -1
+			}`,
 			expectXDS: true,
 			grpcTLS:   false,
 		},
@@ -1461,8 +1462,7 @@ func TestAgent_Self(t *testing.T) {
 			hcl: `
 				node_meta {
 					somekey = "somevalue"
-				}
-				`,
+				}`,
 			expectXDS: true,
 			grpcTLS:   true,
 		},
@@ -1762,7 +1762,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	}
 
 	dc1 := "dc1"
-	tmpFileRaw, err := ioutil.TempFile("", "rexec")
+	tmpFileRaw, err := os.CreateTemp("", "rexec")
 	require.NoError(t, err)
 	tmpFile := tmpFileRaw.Name()
 	defer os.Remove(tmpFile)
@@ -1801,7 +1801,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		contentsStr := ""
 		// Wait for watch to be populated
 		for i := 1; i < 7; i++ {
-			contents, err := ioutil.ReadFile(tmpFile)
+			contents, err := os.ReadFile(tmpFile)
 			if err != nil {
 				t.Fatalf("should be able to read file, but had: %#v", err)
 			}

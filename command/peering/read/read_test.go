@@ -109,6 +109,9 @@ func TestReadCommand(t *testing.T) {
 		require.Contains(t, output, "env=production")
 		require.Contains(t, output, "Imported Services")
 		require.Contains(t, output, "Exported Services")
+		require.Contains(t, output, "Last Heartbeat")
+		require.Contains(t, output, "Last Send")
+		require.Contains(t, output, "Last Receive")
 	})
 
 	t.Run("read with json", func(t *testing.T) {

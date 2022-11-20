@@ -85,5 +85,13 @@ export default function (scenario, assert, pauseUntil, find, currentURL, clipboa
     })
     .then(['the title should be "$title"'], function (title) {
       assert.equal(document.title, title, `Expected the document.title to equal "${title}"`);
+    })
+    .then(['the "$selector" input should have the value "$value"'], function (selector, value) {
+      const $el = find(selector);
+      assert.equal(
+        $el.value,
+        value,
+        `Expected the input at ${selector} to have value ${value}, but it had ${$el.value}`
+      );
     });
 }

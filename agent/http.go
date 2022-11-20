@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -207,13 +209,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
@@ -245,12 +240,14 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// Register wrapped pprof handlers
-	handlePProf("/debug/pprof/", pprof.Index)
-	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-	handlePProf("/debug/pprof/profile", pprof.Profile)
-	handlePProf("/debug/pprof/symbol", pprof.Symbol)
-	handlePProf("/debug/pprof/trace", pprof.Trace)
+	// If enableDebug or ACL enabled, register wrapped pprof handlers
+	if enableDebug || !s.checkACLDisabled() {
+		handlePProf("/debug/pprof/", pprof.Index)
+		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+		handlePProf("/debug/pprof/profile", pprof.Profile)
+		handlePProf("/debug/pprof/symbol", pprof.Symbol)
+		handlePProf("/debug/pprof/trace", pprof.Trace)
+	}
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -318,8 +315,8 @@ func (s *HTTPHandlers) nodeName() string {
 // this regular expression is applied, so the regular expression substitution
 // results in:
 //
-// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
-//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//	/v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//	                               ^---- $1 ----^^- $2 -^^-- $3 --^
 //
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
@@ -372,6 +369,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 		isForbidden := func(err error) bool {
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
+				return true
+			}
+			if e, ok := status.FromError(err); ok && e.Code() == codes.PermissionDenied {
 				return true
 			}
 			return false

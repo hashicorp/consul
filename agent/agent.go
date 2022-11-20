@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -24,9 +24,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
@@ -40,6 +42,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
+	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
+	"github.com/hashicorp/consul/agent/hcp/scada"
+	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -265,6 +271,9 @@ type Agent struct {
 	// checkAliases maps the check ID to an associated Alias checks
 	checkAliases map[structs.CheckID]*checks.CheckAlias
 
+	// checkOSServices maps the check ID to an associated OS Service check
+	checkOSServices map[structs.CheckID]*checks.CheckOSService
+
 	// exposedPorts tracks listener ports for checks exposed through a proxy
 	exposedPorts map[string]int
 
@@ -273,6 +282,9 @@ type Agent struct {
 
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
+
+	// osServiceClient is the client for performing OS service checks.
+	osServiceClient *checks.OSServiceClient
 
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
@@ -371,6 +383,8 @@ type Agent struct {
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
+	rpcClientOperator pboperator.OperatorServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -381,6 +395,10 @@ type Agent struct {
 
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
+
+	// scadaProvider is set when HashiCorp Cloud Platform integration is configured and exposes the agent's API over
+	// an encrypted session to HCP
+	scadaProvider scada.Provider
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -413,6 +431,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
+		checkOSServices: make(map[structs.CheckID]*checks.CheckOSService),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
@@ -428,6 +447,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 		routineManager:  routine.NewManager(bd.Logger),
+		scadaProvider:   bd.HCP.Provider,
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -450,6 +470,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
+	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -543,7 +564,11 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"))
+	a.externalGRPCServer = external.NewServer(
+		a.logger.Named("grpc.external"),
+		metrics.Default(),
+		a.tlsConfigurator,
+	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -661,6 +686,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
 			Segment:       a.config.SegmentName,
+			Node:          a.config.NodeName,
 			NodePartition: a.config.PartitionOrEmpty(),
 		},
 		DNSConfig: proxycfg.DNSConfig{
@@ -669,6 +695,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		},
 		TLSConfigurator:       a.tlsConfigurator,
 		IntentionDefaultAllow: intentionDefaultAllow,
+		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
 	})
 	if err != nil {
 		return err
@@ -769,6 +796,17 @@ func (a *Agent) Start(ctx context.Context) error {
 		}()
 	}
 
+	if a.scadaProvider != nil {
+		a.scadaProvider.UpdateMeta(map[string]string{
+			"consul_server_id": string(a.config.NodeID),
+		})
+
+		if err = a.scadaProvider.Start(); err != nil {
+			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
+				"error", err, "resource_id", a.config.Cloud.ResourceID)
+		}
+	}
+
 	return nil
 }
 
@@ -822,7 +860,7 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener
-	start := func(port_name string, addrs []net.Addr, tlsConf *tls.Config) error {
+	start := func(port_name string, addrs []net.Addr, protocol middleware.Protocol) error {
 		if len(addrs) < 1 {
 			return nil
 		}
@@ -832,10 +870,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			return err
 		}
 		for i := range ln {
-			// Wrap with TLS, if provided.
-			if tlsConf != nil {
-				ln[i] = tls.NewListener(ln[i], tlsConf)
-			}
+			ln[i] = middleware.LabelledListener{Listener: ln[i], Protocol: protocol}
 			listeners = append(listeners, ln[i])
 		}
 
@@ -855,23 +890,16 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	// The original grpc port may spawn in either plain-text or TLS mode (for backwards compatibility).
-	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
+	// Only allow grpc to spawn with a plain-text listener.
 	if a.config.GRPCPort > 0 {
-		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
-		var tlsConf *tls.Config = nil
-		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
-			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
-			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
-		}
-		if err := start("grpc", a.config.GRPCAddrs, tlsConf); err != nil {
+		if err := start("grpc", a.config.GRPCAddrs, middleware.ProtocolPlaintext); err != nil {
 			closeListeners(listeners)
 			return err
 		}
 	}
 	// Only allow grpc_tls to spawn with a TLS listener.
 	if a.config.GRPCTLSPort > 0 {
-		if err := start("grpc_tls", a.config.GRPCTLSAddrs, a.tlsConfigurator.IncomingGRPCConfig()); err != nil {
+		if err := start("grpc_tls", a.config.GRPCTLSAddrs, middleware.ProtocolTLS); err != nil {
 			closeListeners(listeners)
 			return err
 		}
@@ -900,6 +928,15 @@ func (a *Agent) listenAndServeDNS() error {
 			}
 		}(addr)
 	}
+	s, _ := NewDNSServer(a)
+
+	grpcDNS.NewServer(grpcDNS.Config{
+		Logger:      a.logger.Named("grpc-api.dns"),
+		DNSServeMux: s.mux,
+		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
@@ -953,6 +990,12 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 				return nil, err
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
+
+		case *capability.Addr:
+			l, err = a.scadaProvider.Listen(x.Capability())
+			if err != nil {
+				return nil, err
+			}
 
 		default:
 			closeAll()
@@ -1011,6 +1054,11 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
+			if libscada.IsCapability(l.Addr()) {
+				// wrap in http2 server handler
+				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
+			}
+
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
@@ -1027,7 +1075,12 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		return nil
 	}
 
-	if err := start("http", a.config.HTTPAddrs); err != nil {
+	httpAddrs := a.config.HTTPAddrs
+	if a.config.IsCloudEnabled() {
+		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
+	}
+
+	if err := start("http", httpAddrs); err != nil {
 		closeListeners(ln)
 		return nil, err
 	}
@@ -1349,6 +1402,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+	cfg.RPCClientTimeout = runtimeCfg.RPCClientTimeout
 
 	cfg.RPCConfig = runtimeCfg.RPCConfig
 
@@ -1581,6 +1635,11 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
+
+	// Shutdown SCADA provider
+	if a.scadaProvider != nil {
+		a.scadaProvider.Stop()
+	}
 
 	var err error
 	if a.delegate != nil {
@@ -2078,7 +2137,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	out := make(map[structs.ServiceID]*structs.ServiceConfigResponse)
 
 	configDir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	files, err := ioutil.ReadDir(configDir)
+	files, err := os.ReadDir(configDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -2100,7 +2159,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 
 		// Read the contents into a buffer
 		file := filepath.Join(configDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
@@ -2972,11 +3031,44 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Client:            a.dockerClient,
 				StatusHandler:     statusHandler,
 			}
-			if prev := a.checkDockers[cid]; prev != nil {
-				prev.Stop()
-			}
 			dockerCheck.Start()
 			a.checkDockers[cid] = dockerCheck
+
+		case chkType.IsOSService():
+			if existing, ok := a.checkOSServices[cid]; ok {
+				existing.Stop()
+				delete(a.checkOSServices, cid)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
+				chkType.Interval = checks.MinInterval
+			}
+
+			if a.osServiceClient == nil {
+				ossp, err := checks.NewOSServiceClient()
+				if err != nil {
+					a.logger.Error("error creating OS Service client", "error", err)
+					return err
+				}
+				a.logger.Debug("created OS Service client")
+				a.osServiceClient = ossp
+			}
+
+			osServiceCheck := &checks.CheckOSService{
+				CheckID:       cid,
+				ServiceID:     sid,
+				OSService:     chkType.OSService,
+				Timeout:       chkType.Timeout,
+				Interval:      chkType.Interval,
+				Logger:        a.logger,
+				Client:        a.osServiceClient,
+				StatusHandler: statusHandler,
+			}
+			osServiceCheck.Start()
+			a.checkOSServices[cid] = osServiceCheck
 
 		case chkType.IsMonitor():
 			if existing, ok := a.checkMonitors[cid]; ok {
@@ -3212,7 +3304,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 		check.Stop()
 		delete(a.checkH2PINGs, checkID)
 	}
-
+	if check, ok := a.checkAliases[checkID]; ok {
+		check.Stop()
+		delete(a.checkAliases, checkID)
+	}
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
@@ -3275,7 +3370,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	tempFile := file + ".tmp"
 
 	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
-	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
+	if err := os.WriteFile(tempFile, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
 	}
 	if err := os.Rename(tempFile, file); err != nil {
@@ -3290,12 +3385,12 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
 	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
 			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
-			buf, err = ioutil.ReadFile(oldFile)
+			buf, err = os.ReadFile(oldFile)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
@@ -3497,7 +3592,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Load any persisted services
 	svcDir := filepath.Join(a.config.DataDir, servicesDir)
-	files, err := ioutil.ReadDir(svcDir)
+	files, err := os.ReadDir(svcDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3518,7 +3613,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 		// Read the contents into a buffer
 		file := filepath.Join(svcDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
@@ -3661,7 +3756,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 	// Load any persisted checks
 	checkDir := filepath.Join(a.config.DataDir, checksDir)
-	files, err := ioutil.ReadDir(checkDir)
+	files, err := os.ReadDir(checkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3676,7 +3771,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 		// Read the contents into a buffer
 		file := filepath.Join(checkDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}
@@ -4043,6 +4138,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
+		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,
 		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
@@ -4074,6 +4170,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 			return err
 		}
 	}
+
+	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
 
 	return nil
 }
@@ -4187,6 +4285,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
+
 	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
@@ -4205,6 +4304,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
 
 	a.cache.RegisterType(cachetype.PeeredUpstreamsName, &cachetype.PeeredUpstreams{RPC: a})
+
+	a.cache.RegisterType(cachetype.PeeringListName, &cachetype.Peerings{Client: a.rpcClientPeering})
 
 	a.registerEntCache()
 }
@@ -4320,6 +4421,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
 		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
 		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
+		PeeringList:                     proxycfgglue.CachePeeringList(a.cache),
 		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
@@ -4344,10 +4446,12 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.FederationStateListMeshGateways = proxycfgglue.ServerFederationStateListMeshGateways(deps)
 		sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
 		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
+		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
 		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
+		sources.PeeringList = proxycfgglue.ServerPeeringList(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
 		sources.ResolvedServiceConfig = proxycfgglue.ServerResolvedServiceConfig(deps, proxycfgglue.CacheResolvedServiceConfig(a.cache))
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))

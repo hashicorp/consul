@@ -356,6 +356,15 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                       Supported values are one of \`tcp\`, \`http\`, \`http2\`, or \`grpc\`.`,
     },
     {
+      name: 'BalanceInboundConnections',
+      type: `string: ""`,
+      description: `Sets the strategy for allocating inbound connections to the service across proxy threads.
+                      The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                      Refer to the
+                      [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                      for details.`
+    },
+    {
       name: 'Mode',
       type: `string: ""`,
       description: `One of \`direct\` or \`transparent\`.
@@ -435,7 +444,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               name: 'MeshGateway',
               type: 'MeshGatewayConfig: <optional>',
               description: `Controls the default
-                [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#connect-proxy-configuration)
+                [mesh gateway configuration](/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
                 for this upstream.`,
               children: [
                 {
@@ -444,6 +453,15 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: 'One of `none`, `local`, or `remote`.',
                 },
               ],
+            },
+            {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
             },
             {
               name: 'Limits',
@@ -577,7 +595,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               name: 'MeshGateway',
               type: 'MeshGatewayConfig: <optional>',
               description: `Controls the default
-                  [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#connect-proxy-configuration)
+                  [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
                   for this upstream.`,
               children: [
                 {
@@ -586,6 +604,15 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                   description: 'One of `none`, `local`, or `remote`.',
                 },
               ],
+            },
+            {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
             },
             {
               name: 'Limits',
@@ -726,7 +753,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
-      [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#connect-proxy-configuration)
+      [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
       for this service. Added in v1.6.0.`,
       children: [
         {

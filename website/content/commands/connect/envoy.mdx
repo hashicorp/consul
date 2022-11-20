@@ -57,6 +57,14 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
 - `-envoy-version` - The version of envoy that is being started. Default is
   `1.23.1`. This is required so that the correct configuration can be generated.
 
+- `-grpc-ca-file` - Path to a CA file to use for TLS when communicating with the
+    Consul agent through xDS. This can also be specified via the CONSUL_GRPC_CACERT
+    environment variable.
+
+- `-grpc-ca-path` - Path to a directory of CA certificates to use for TLS when
+    communicating with the Consul agent through xDS. This can also be specified via
+    the CONSUL_GRPC_CAPATH environment variable.
+
 - `-no-central-config` - By default the proxy's bootstrap configuration can be
   customized centrally. This requires that the command run on the same agent
   as the proxy will and that the agent is reachable when the command is run.
