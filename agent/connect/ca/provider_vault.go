@@ -69,6 +69,8 @@ type VaultProvider struct {
 	clusterID string
 	spiffeID  *connect.SpiffeIDSigning
 	logger    hclog.Logger
+
+	isConsulMountedIntermediate bool
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
@@ -309,9 +311,10 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("failed to mount root CA backend")
 		}
 
+		// We want to initialize afterwards
 		fallthrough
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
@@ -325,7 +328,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
@@ -335,7 +338,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 
 	default:
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
@@ -380,19 +383,47 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 				Config:      mountConfig,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to mount intermediate PKI backend: %w", err)
 			}
+			// Required to determine if we should tune the mount
+			// if the VaultProvider is ever reconfigured.
+			v.isConsulMountedIntermediate = true
+
+		} else if err == ErrBackendNotInitialized {
+			// If this is the first time calling setupIntermediatePKIPath, the backend
+			// will not have been initialized. Since the mount is ready we can suppress
+			// this error.
 		} else {
-			return err
+			return fmt.Errorf("unexpected error while fetching intermediate CA: %w", err)
 		}
 	} else {
-		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
-		if err != nil {
-			v.logger.Warn("Could not update intermediate PKI mount settings", "path", v.config.IntermediatePKIPath, "error", err)
+		// If Consul was responsible for mounting the intermediate PKI path
+		// we should update the mount with any new config.
+		if v.isConsulMountedIntermediate {
+			// This codepath requires the Vault policy:
+			//
+			//   path "/sys/mounts/<intermediate_pki_path>/tune" {
+			//     capabilities = [ "update" ]
+			//   }
+			//
+			err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
+			if err != nil {
+				v.logger.Warn("Intermediate PKI path was mounted by Consul but could not be tuned",
+					"namespace", v.config.IntermediatePKINamespace,
+					"path", v.config.IntermediatePKIPath,
+					"error", err,
+				)
+			}
+
+		} else {
+			v.logger.Info("Found existing Intermediate PKI path mount",
+				"namespace", v.config.IntermediatePKINamespace,
+				"path", v.config.IntermediatePKIPath,
+			)
 		}
 	}
 
-	// Create the role for issuing leaf certs if it doesn't exist yet
+	// Create the role for issuing leaf certs
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, rolePath, map[string]interface{}{
 		"allow_any_name":   true,
@@ -709,7 +740,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	rootPEM, err := v.getCA(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get root CA: %w", err)
 	}
 	rootCert, err := connect.ParseCert(rootPEM)
 	if err != nil {
