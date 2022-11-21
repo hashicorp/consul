@@ -2,9 +2,9 @@ module github.com/hashicorp/consul
 
 go 1.19
 
-//replace github.com/hashicorp/consul/api => ./api
+replace github.com/hashicorp/consul/api => ./api
 
-//replace github.com/hashicorp/consul/sdk => ./sdk
+replace github.com/hashicorp/consul/sdk => ./sdk
 
 replace github.com/hashicorp/consul/proto-public => ./proto-public
 
