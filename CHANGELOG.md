@@ -1,3 +1,10 @@
+## 1.14.1 (November 21, 2022)
+
+BUG FIXES:
+
+* cli: Fix issue where `consul connect envoy` incorrectly uses the HTTPS API configuration for xDS connections. [[GH-15466](https://github.com/hashicorp/consul/issues/15466)]
+* sdk: Fix SDK testutil backwards compatibility by only configuring grpc_tls port for new Consul versions. [[GH-15423](https://github.com/hashicorp/consul/issues/15423)]
+
 ## 1.14.0 (November 15, 2022)
 
 KNOWN ISSUES:
