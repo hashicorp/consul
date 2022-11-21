@@ -91,7 +91,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 }
 
 // Every minute check the map for visitors that haven't been seen for
-// more than 3 minutes and delete the entries.
+// more than the CleanupLimit and delete the entries.
 func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
 	c := m.config.Load()
 	waiter := time.After(c.CleanupTick)
