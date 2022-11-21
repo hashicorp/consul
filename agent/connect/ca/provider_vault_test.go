@@ -991,10 +991,7 @@ path "auth/token/lookup-self" {
 
 	// We want to test the provider.Configure() step
 	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
-	if err != nil {
-		testVault.Stop()
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
