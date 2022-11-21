@@ -54,6 +54,10 @@ If you already use gRPC encryption, change the following fields to ensure compat
 
 + Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/docs/agent/config/config-files#grpc_tls_port) for details.
 + Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/docs/agent/config/config-files#grpc_tls) for details.
++ Update `consul connect envoy` command invocations to specify gRPC CA certificates with one of the new configuration options:
+[`-grpc-ca-file`](/commands/connect/envoy#grpc-ca-file) or
+[`-grpc-ca-path`](/commands/connect/envoy#grpc-ca-path)
+(or their corresponding environment variables).
 
 #### Changes to peering
 
