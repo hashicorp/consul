@@ -311,7 +311,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to mount root CA backend")
+			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
