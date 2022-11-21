@@ -310,11 +310,17 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
 						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
 						break
 					}
 					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
 						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
 						break
 					}
 				}
@@ -390,10 +396,6 @@ type xDSDeltaChild struct {
 	// childrenNames is map of parent resource names to a list of associated child resource
 	// names.
 	childrenNames map[string][]string
-}
-
-func (c *xDSDeltaChild) forceResubscribe(logger *hclog.Logger, parent string, child string) {
-
 }
 
 type xDSDeltaType struct {
@@ -678,7 +680,9 @@ func (t *xDSDeltaType) SendIfNew(
 	// we MUST send new data for all its children. Envoy will NOT re-subscribe to the child data upon
 	// receiving updates for the parent, so we need to handle this ourselves.
 	//
-	// Note that we do not check whether the deltaChild.childType is registered here, since we
+	// Note that we do not check whether the deltaChild.childType is registered here, since we send
+	// parent types before child types, meaning that it's expected on first send of a parent that
+	// there are no subscriptions for the child type.
 	if t.deltaChild != nil {
 		for name := range updates {
 			if children, ok := resourceMap.ChildIndex[t.typeURL][name]; ok {
