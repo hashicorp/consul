@@ -16,17 +16,17 @@ This topic describes how to configure Consul API Gateway to reroute HTTP request
 
 ## Configuration
 
-Configure the following fields in your `Route` configuration to use this feature. Refer to the [Route configuration reference](/docs/api-gateway/configuration/routes) for details about the parameters.
+Specify the following fields in your `Route` configuration. Refer to the [Route configuration reference](/docs/api-gateway/configuration/routes) for details about the parameters.
 
-* [`rules.filters.type`](/docs/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
-* [`rules.filters.urlRewrite`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.
-* [`rules.filters.urlRewrite.path`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite-path): Contains the paths that incoming requests should be rewritten to based on the match conditions.  
+- [`rules.filters.type`](/docs/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
+- [`rules.filters.urlRewrite`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.
+- [`rules.filters.urlRewrite.path`](/docs/api-gateway/configuration/routes#rules-filters-urlrewrite-path): Contains the paths that incoming requests should be rewritten to based on the match conditions.  
 
-Note that if the route is configured to accept paths with and without a trailing slash, you must make two separate routes to handle each case.
+To configure the route to accept paths with or without a trailing slash, you must make two separate routes to handle each case.
 
 ### Example
 
-In the following example, requests to` /incoming-request-prefix/` are forwarded to the `backendRef` as `/prefix-backend-receives/`. A request to `/incoming-request-prefix/request-path`, for instance, is received by the `backendRef` as `/prefix-backend-receives/request-path`.
+In the following example, requests to` /incoming-request-prefix/` are forwarded to the `backendRef` as `/prefix-backend-receives/`. As a result, requests to `/incoming-request-prefix/request-path` are received by `backendRef` as `/prefix-backend-receives/request-path`.
 
 <CodeBlockConfig filename="route.yaml">
 

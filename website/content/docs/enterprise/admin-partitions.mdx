@@ -111,7 +111,7 @@ For other runtimes, refer to the documentation for your infrastructure environme
 One of the primary use cases for admin partitions is for enabling a service mesh across multiple Kubernetes clusters. The following requirements must be met to create admin partitions on Kubernetes:
 
 - If you are deploying Consul servers on Kubernetes, then ensure that the Consul servers are deployed within the same Kubernetes cluster. Consul servers may be deployed external to Kubernetes and configured using the `externalServers` stanza.
-- Consul clients deployed on the same Kubernetes cluster as the Consul Servers must use the `default` partition. If the clients are required to run on a non-default partition, then the clients must be deployed in a separate Kubernetes cluster.
+- Workloads deployed on the same Kubernetes cluster as the Consul Servers must use the `default` partition. If the workloads are required to run on a non-default partition, then the clients must be deployed in a separate Kubernetes cluster.
 - For Kubernetes clusters that join the Consul datacenter as admin partitions, ensure that a unique `global.name` value is assigned for the corresponding Helm `values.yaml` file. 
 - A Consul Enterprise license must be installed on each Kubernetes cluster.
 - The helm chart for consul-k8s v0.39.0 or greater.

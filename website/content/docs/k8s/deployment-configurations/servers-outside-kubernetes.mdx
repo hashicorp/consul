@@ -11,7 +11,7 @@ If you have a Consul cluster already running, you can configure your
 Consul on Kubernetes installation to join this existing cluster.
 
 The below `values.yaml` file shows how to configure the Helm chart to install
-Consul that will join an existing Consul server cluster.
+Consul so that it joins an existing Consul server cluster.
 
 The `global.enabled` value first disables all chart components by default
 so that each component is opt-in. This allows us to _only_ setup the client
@@ -21,7 +21,7 @@ agents. We then opt-in to the client agents by setting `client.enabled` to
 Next, configure `externalServers` to point it to Consul servers.
 The `externalServers.hosts` value must be provided and should be set to a DNS, an IP,
 or an `exec=` string with a command returning Consul IPs. Please see [this documentation](https://github.com/hashicorp/go-netaddrs)
-on how the `exec=` string works.externalServers
+on how the `exec=` string works.
 Other values in the `externalServers` section are optional. Please refer to
 [Helm Chart configuration](https://developer.hashicorp.com/consul/docs/k8s/helm#h-externalservers) for more details.
 
@@ -37,8 +37,8 @@ externalServers:
 
 </CodeBlockConfig>
 
--> **Note:** If you are looking to join Consul clients to an existing Consul server cluster,
-please see [this documentation](https://developer.hashicorp.com/consul/docs/v1.13.x/k8s/deployment-configurations/servers-outside-kubernetes).
+ **Note:** To join Consul on Kubernetes to an existing Consul server cluster running outside of Kubernetes,
+refer to [Consul servers outside of Kubernetes](/docs/k8s/deployment-configurations/servers-outside-kubernetes).
 
 ## Configuring TLS
 
@@ -49,9 +49,7 @@ As noted in the [Security Model](/docs/security#secure-configuration),
 that setting isn't strictly necessary to support Consul's threat model as it is recommended that
 all requests contain a valid ACL token.
 
-If the Consul server has TLS enabled, you would also need to provide the CA certificate that Consul on Kubernetes will
-need to talk to the server. First save this certificate in a Kubernetes secret and then provide it in your Helm values below,
-in addition to the values mentioned above:
+If the Consul server has TLS enabled, you need to provide the CA certificate so that Consul on Kubernetes can communicate with the server. Save the certificate in a Kubernetes secret and then provide it in your Helm values, as demonstrated in the following example:
 
 <CodeBlockConfig filename="values.yaml" highlight="2-8">
 

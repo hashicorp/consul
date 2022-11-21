@@ -19,6 +19,7 @@ description: >-
 
   ~> **Note:** Currently `consul-dataplane` is only supported on clusters running on Consul on Kubernetes 1.0+.
 
+
 ## What's Changed
 
 - 1.14 adds a new `ports.grpc_tls` configuration option. This introduces a new port to better separate TLS config from the existing `ports.grpc` config. The new `ports.grpc_tls` only supports TLS encrypted communication. The existing `ports.grpc` now only supports plain-text communication. 
@@ -40,6 +41,7 @@ The following issues are known to exist in the 1.14.0 release:
 - Prior to Consul 1.14, cluster peering and Consul service mesh were disabled by default. A breaking change was made in Consul 1.14 that enabled cluster peering and Consul service mesh by default. To disable both, set `peering.enabled` and  `connect.enabled` to false. The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until hashicorp/nomad#15266 is fixed.
 
 - For 1.14.0, there is a known issue with the `consul connect envoy` CLI command. If the command is configured to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC. Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in conjunction with TLS-encrypted HTTP APIs.
+
 
 ## Changelogs
 
