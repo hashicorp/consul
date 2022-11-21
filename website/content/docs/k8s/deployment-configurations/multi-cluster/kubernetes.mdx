@@ -68,9 +68,6 @@ connectInject:
   # Consul Connect service mesh must be enabled for federation.
   enabled: true
 
-controller:
-  enabled: true
-
 meshGateway:
   # Mesh gateways are gateways between datacenters. They must be enabled
   # for federation in Kubernetes since the communication between datacenters
@@ -357,8 +354,6 @@ global:
     secretName: consul-federation
     secretKey: gossipEncryptionKey
 connectInject:
-  enabled: true
-controller:
   enabled: true
 meshGateway:
   enabled: true

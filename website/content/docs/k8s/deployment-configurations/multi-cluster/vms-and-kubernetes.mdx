@@ -270,7 +270,7 @@ You'll need:
    ```
 
    With Consul Enterprise, use:
-   
+
    ```hcl
    partition_prefix "" {
      namespace_prefix "" {
@@ -283,16 +283,16 @@ You'll need:
      }
    }
    ```
-   
+
    These permissions are needed to allow cross-datacenter requests. To make a cross-dc request the sidecar proxy in the originating DC needs to know about the
    services running in the remote DC. To do so, it needs an ACL token that allows it to look up the services in the remote DC. The way tokens are created in
    Kubernetes, the sidecar proxies have local ACL tokens–i.e tokens that are only valid in the local DC. When a request goes from one DC to another, if the
    request has a local token, it is stripped from the request because the remote DC won't be able to validate it. When the request lands in the other DC,
    it has no ACL token and so will be subject to the anonymous token policy. This is why the anonymous token policy must be configured to allow read access
    to all services. When the Kubernetes DC is the primary, this is handled automatically, but when the primary DC is on VMs, this must be configured manually.
-   
+
    To configure the anonymous token policy, first create a policy with the above rules, then attach it to the anonymous token. For example using the CLI:
-   
+
    ```sh
    echo 'node_prefix "" {
       policy = "read"
@@ -300,7 +300,7 @@ You'll need:
    service_prefix "" {
       policy = "read"
    }' | consul acl policy create -name anonymous -rules -
-   
+
    consul acl token update -id 00000000-0000-0000-0000-000000000002 -policy-name anonymous
    ```
 
@@ -373,8 +373,6 @@ global:
     secretKey: gossipEncryptionKey
 
 connectInject:
-  enabled: true
-controller:
   enabled: true
 meshGateway:
   enabled: true
