@@ -175,7 +175,7 @@ The corresponding CLI command is [`consul connect ca set-config`](/commands/conn
    you must temporarily provide the Vault
    [auth method](/docs/connect/ca/vault#authmethod) or [token](/docs/connect/ca/vault#token)
    with `sudo + update` permissions on the extremely privileged
-   [`<insert-RootPKIPath>/root/sign-self-issued` Vault endpoint](https://developer.hashicorp.com/vault/api-docs/secret/pki#sign-self-issued)
+   [`<insert-RootPKIPath>/root/sign-self-issued` Vault endpoint](/vault/api-docs/secret/pki#sign-self-issued)
    to enable the root cross-signing operation.
    Refer to the [Vault CA provider policy examples](/consul/docs/connect/ca/vault#vault-acl-policies)
    for more information. We recommend removing these elevated permissions
