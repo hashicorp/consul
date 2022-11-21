@@ -22,13 +22,14 @@ type RateLimiter interface {
 type Limiter struct {
 	limiter    *rate.Limiter
 	lastAccess atomic.Int64
+	config     atomic.Pointer[Config]
 }
 
 type Config struct {
-	Rate         rate.Limit
-	Burst        int
-	CleanupLimit time.Duration
-	CleanupTick  time.Duration
+	Rate                 rate.Limit
+	Burst                int
+	CleanupCheckLimit    time.Duration
+	CleanupCheckInterval time.Duration
 }
 
 type MultiLimiter struct {
@@ -46,11 +47,11 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	config := atomic.Pointer[Config]{}
 	config.Store(&c)
 	limiters.Store(radix.New())
-	if c.CleanupLimit == 0 {
-		c.CleanupLimit = 30 * time.Millisecond
+	if c.CleanupCheckLimit == 0 {
+		c.CleanupCheckLimit = 30 * time.Millisecond
 	}
-	if c.CleanupTick == 0 {
-		c.CleanupLimit = 1 * time.Second
+	if c.CleanupCheckInterval == 0 {
+		c.CleanupCheckLimit = 1 * time.Second
 	}
 	m := &MultiLimiter{limiters: &limiters, config: &config}
 	return m
@@ -76,13 +77,17 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now().Unix()
+	c := m.config.Load()
 	if ok {
 		limiter := l.(*Limiter)
-		limiter.lastAccess.Store(now)
-		return limiter.limiter.Allow()
+		if limiter.config.Load() == c {
+			limiter.lastAccess.Store(now)
+			return limiter.limiter.Allow()
+		}
 	}
-	c := m.config.Load()
-	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst)}
+
+	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst), config: atomic.Pointer[Config]{}}
+	limiter.config.Store(c)
 	limiter.lastAccess.Store(now)
 	tree, _, _ := limiters.Insert(e.Key(), limiter)
 	m.limiters.Store(tree)
@@ -94,7 +99,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 // more than the CleanupLimit and delete the entries.
 func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
 	c := m.config.Load()
-	waiter := time.After(c.CleanupTick)
+	waiter := time.After(c.CleanupCheckInterval)
 
 	select {
 	case <-ctx.Done():
@@ -111,7 +116,7 @@ func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
 			lastAccessT := time.Unix(lastAccess, 0)
 			diff := now.Sub(lastAccessT)
 
-			if diff > c.CleanupLimit {
+			if diff > c.CleanupCheckLimit {
 				if txn == nil {
 					txn = limiters.Txn()
 				}
