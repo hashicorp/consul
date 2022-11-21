@@ -661,20 +661,236 @@ The following example queries the `finance` peer for the imported `payments` ser
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
+An ACL token with either of the following permissions is required in the cluster where the query is made: 
+- `service:write` permissions for any service.
+- `service:read` and `node:read` for all services and nodes, respectively.
+
+If the call in the previous example is made from a service named `web`, then the request requires either:
+- A token with `service:write` permissions to `web`.
+- A token with `service:read` and `node:read` to all names in the datacenter.
+
+<CodeTabs heading="Example ACL rules for reading imported services in Consul OSS">
+
+```hcl
+service "web" {
+    policy = "write"
+}
+
+# OR
+
+service_prefix "" {
+    policy = "read"
+}
+node_prefix "" {
+    policy = "read"
+}
+```
+
+```json
+{
+  "service": {
+    "web": {
+      "policy": "write"
+    }
+  }
+}
+
+## OR 
+
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}
+
+```
+
+</CodeTabs>
+
 </Tab>
 
-<Tab heading="Consul Enterprise">
+<Tab heading="Consul Enterprise (Partitions)">
 
 The following example queries the `finance` partition for the imported `payments` service:
 
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 ```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made: 
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a partition in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service": {
+            "web": {
+			  "policy": "write"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+
+## OR 
+
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+
+The following example queries the `finance` peer for the imported `payments` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/service/payments?peer=finance'
+```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made: 
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a peer in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service": {
+            "web": {
+			  "policy": "write"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+
+## OR 
+
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+```
+
+</CodeTabs>
+
 </Tab>
 </Tabs>
-
-An ACL token with `service:write` permissions is required for the cluster the query is made from. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires a token with `write` permissions to `web` in the `frontend` partition.
-
-Exports are available to all services in the consumer cluster. In the previous example, any service with `write` permissions for the `frontend` partition can read exports.
 
 For additional information, refer to [Health HTTP Endpoint](/api-docs/health).

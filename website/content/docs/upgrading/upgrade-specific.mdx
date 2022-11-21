@@ -29,6 +29,12 @@ earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not
 [hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) is
 fixed.
 
+For 1.14.0, there is a known issue with `consul connect envoy`. If the command is configured
+to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC.
+Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
+conjunction with TLS-encrypted HTTP APIs.
+
+
 #### Changes to gRPC TLS configuration
 
 **Make configuration changes** if using [`ports.grpc`](/docs/agent/config/config-files#grpc_port) in conjunction with any of the following settings that enables encryption:
@@ -46,8 +52,8 @@ The default value for the gRPC TLS port is 8503 for Consul servers. To disable t
 
 If you already use gRPC encryption, change the following fields to ensure compatibility:
 
-+ Change `ports.grpc` to `ports.grpc_tls`. [visit ports documentation for details](/docs/agent/config/config-files#grpc_tls_port)
-+ Change `addresses.grpc` to `addresses.grpc_tls`. [visit addresses documentation for details](/docs/agent/config/config-files#grpc_tls)
++ Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/docs/agent/config/config-files#grpc_tls_port) for details.
++ Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/docs/agent/config/config-files#grpc_tls) for details.
 
 #### Changes to peering
 
