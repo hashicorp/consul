@@ -1,0 +1,3 @@
+```release-note:bug
+peering: fix the limit of replication gRPC message; increased to 50MB as stated in the document
+```
