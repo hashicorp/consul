@@ -925,6 +925,9 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 }
 
 func TestVaultCAProvider_VaultManaged(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
 	const vaultManagedPKIPolicy = `
 path "/pki-root/" {
 	capabilities = [ "read" ]
@@ -982,6 +985,38 @@ path "auth/token/lookup-self" {
 
 	// Generate a policy and token for the VaultProvider to use
 	require.NoError(t, client.Sys().PutPolicy("consul-ca", vaultManagedPKIPolicy))
+	tcr := &vaultapi.TokenCreateRequest{
+		Policies: []string{"consul-ca"},
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	// We want to test the provider.Configure() step
+	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+}
+
+func TestVaultCAProvider_ConsulManaged(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testVault.WaitUntilReady(t)
+
+	client := testVault.Client()
+
+	client.SetToken("root")
+
+	// We do not configure any mounts and instead let Consul
+	// be responsible for mounting root and intermediate PKI
+
+	// Generate a policy and token for the VaultProvider to use
+	require.NoError(t, client.Sys().PutPolicy("consul-ca", pkiTestPolicy))
 	tcr := &vaultapi.TokenCreateRequest{
 		Policies: []string{"consul-ca"},
 	}
