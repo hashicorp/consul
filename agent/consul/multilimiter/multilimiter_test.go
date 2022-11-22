@@ -94,7 +94,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 	// Update m config to c2 and check that c2 applied to m
 	c2 := Config{LimiterConfig: LimiterConfig{Rate: 1}, CleanupCheckLimit: 10 * time.Millisecond, CleanupCheckInterval: 100 * time.Millisecond}
 	m.UpdateConfig(c2)
-	require.Equal(t, *m.config.Load(), c)
+	require.Equal(t, *m.config.Load(), c2)
 
 	// Check that c2 is not yet applied to IP
 	l, ok = m.limiters.Load().Get(ip)
