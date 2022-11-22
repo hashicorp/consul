@@ -15,7 +15,7 @@ Usage: `consul-dataplane [options]`
 
 ### Requirements
 
-Consul Dataplane requires servers running Consul version `v1.14-beta1+`. To find a specific version of Consul, refer to [Hashicorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
+Consul Dataplane requires servers running Consul version `v1.14+`. To find a specific version of Consul, refer to [Hashicorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
 
 ### Startup
 
@@ -44,50 +44,50 @@ The following options are required when starting `consul-dataplane` with the CLI
 
 ### Command Options
 
-- `-addresses` - Consul server gRPC addresses. Can be a DNS name or an executable command. Refer to [go-netaddrs](https://github.com/hashicorp/go-netaddrs#summary) for details and examples.
-- `-ca-certs` - The path to a file or directory containing CA certificates used to verify the server's certificate.
-- `-consul-dns-bind-addr` - The address bound to the Consul DNS proxy. Default is `"127.0.0.1"`.
-- `-consul-dns-bind-port` - The port that the Consul DNS proxy listens on. Default is `-1`, which disables the DNS proxy.
-- `-credential-type` - The type of credentials used to authenticate with Consul servers, either `"static"` or `"login"`.
-- `-envoy-admin-bind-address` - The address the Envoy admin server is available on. Default is `"127.0.0.1"`.
-- `-envoy-admin-bind-port` - The port the Envoy admin server is available on. Default is `19000`.
-- `-envoy-concurrency` - The number of worker threads that Envoy uses. Default is `2`.
-- `-envoy-ready-bind-address` - The address Envoy's readiness probe is available on.
-- `-envoy-ready-bind-port` - The port Envoy's readiness probe is available on.
-- `-grpc-port` - The Consul server gRPC port to which `consul-dataplane` connects. Default is `8502`.
-- `-log-json` - Enables log messages in JSON format. Default is `false`.
-- `-log-level` - Log level of the messages to print. Available log levels are `"trace"`, `"debug"`, `"info"`, `"warn"`, and `"error"`. Default is `"info"`.
-- `-login-auth-method` - The auth method used to log in.
-- `-login-bearer-token` - The bearer token presented to the auth method.
-- `-login-bearer-token-path` - The path to a file containing the bearer token presented to the auth method.
-- `-login-datacenter` - The datacenter containing the auth method.
-- `-login-meta` - A set of key/value pairs to attach to the ACL token. Each pair is formatted as `<key>=<value>`. This flag may be passed multiple times.
-- `-login-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace containing the auth method.
-- `-login-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition containing the auth method.
-- `-proxy-service-id` - The proxy service instance's ID.
-- `-server-watch-disabled` - Prevent `consul-dataplane` from consuming the server update stream. Use this flag when Consul servers are behind a load balancer. Default is `false`.
-- `-service-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace in which the proxy service instance is registered.
-- `-service-node-id` - The ID of the Consul node to which the proxy service instance is registered.
-- `-service-node-name` - The name of the Consul node to which the proxy service instance is registered.
-- `-service-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition in which the proxy service instance is registered.
-- `-static-token` - The ACL token used to authenticate requests to Consul servers when `-credential-type` is set to `"static"`.
-- `-telemetry-prom-ca-certs-path` - The path to a file or directory containing CA certificates used to verify the Prometheus server's certificate.
-- `-telemetry-prom-cert-file` - The path to the client certificate used to serve Prometheus metrics.
-- `-telemetry-prom-key-file` - The path to the client private key used to serve Prometheus metrics.
-- `-telemetry-prom-merge-port` - The local port used to serve merged Prometheus metrics. Default is `20100`. If your service instance uses the same default port, this flag must be set to a different port in order to avoid a port conflict.
-- `-telemetry-prom-retention-time` - The duration for Prometheus metrics aggregation. Default is `1m0s`. Refer to [`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time) for details on setting this value.
-- `-telemetry-prom-scrape-path` - The URL path where Envoy serves Prometheus metrics. Default is `"/metrics"`.
-- `-telemetry-prom-service-metrics-url` - The URL where your service instance serves Prometheus metrics. If this is set, the metrics at this URL are included in Consul Dataplane's merged Prometheus metrics.
-- `-telemetry-use-central-config` - Controls whether the proxy applies the central telemetry configuration. Default is `true`.
-- `-tls-cert` - The path to a client certificate file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server.
-- `-tls-disabled` - Communicate with Consul servers over a plaintext connection. Useful for testing, but not recommended for production. Default is `false`.
-- `-tls-insecure-skip-verify` - Do not verify the server's certificate. Useful for testing, but not recommended for production. Default is `false`.
-- `-tls-key` - The path to a client private key file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server.
-- `-tls-server-name` - The hostname to expect in the server certificate's subject. This flag is required if `-addresses` is not a DNS name.
+- `-addresses` - Consul server gRPC addresses. Can be a DNS name or an executable command. Accepted environment variable is `DP_CONSUL_ADDRESSES`. Refer to [go-netaddrs](https://github.com/hashicorp/go-netaddrs#summary) for details and examples.
+- `-ca-certs` - The path to a file or directory containing CA certificates used to verify the server's certificate. Accepted environment variable is `DP_CA_CERTS`.
+- `-consul-dns-bind-addr` - The address bound to the Consul DNS proxy. Default is `"127.0.0.1"`. Accepted environment variable is `DP_CONSUL_DNS_BIND_ADDR`.
+- `-consul-dns-bind-port` - The port that the Consul DNS proxy listens on. Default is `-1`, which disables the DNS proxy. Accepted environment variable is `DP_CONSUL_DNS_BIND_PORT`.
+- `-credential-type` - The type of credentials used to authenticate with Consul servers, either `"static"` or `"login"`. Accepted environment variable is `DP_CREDENTIAL_TYPE`.
+- `-envoy-admin-bind-address` - The address the Envoy admin server is available on. Default is `"127.0.0.1"`. Accepted environment variable is `DP_ENVOY_ADMIN_BIND_ADDRESS`.
+- `-envoy-admin-bind-port` - The port the Envoy admin server is available on. Default is `19000`. Accepted environment variable is `DP_ENVOY_ADMIN_BIND_PORT`.
+- `-envoy-concurrency` - The number of worker threads that Envoy uses. Default is `2`. Accepted environment variable is `DP_ENVOY_CONCURRENCY`.
+- `-envoy-ready-bind-address` - The address Envoy's readiness probe is available on. Accepted environment variable is `DP_ENVOY_READY_BIND_ADDRESS`.
+- `-envoy-ready-bind-port` - The port Envoy's readiness probe is available on. Accepted environment variable is `DP_ENVOY_READY_BIND_PORT`.
+- `-grpc-port` - The Consul server gRPC port to which `consul-dataplane` connects. Default is `8502`. Accepted environment variable is `DP_CONSUL_GRPC_PORT`.
+- `-log-json` - Enables log messages in JSON format. Default is `false`. Accepted environment variable is `DP_LOG_JSON`.
+- `-log-level` - Log level of the messages to print. Available log levels are `"trace"`, `"debug"`, `"info"`, `"warn"`, and `"error"`. Default is `"info"`. Accepted environment variable is `DP_LOG_LEVEL`.
+- `-login-auth-method` - The auth method used to log in. Accepted environment variable is `DP_CREDENTIAL_LOGIN_AUTH_METHOD`.
+- `-login-bearer-token` - The bearer token presented to the auth method. Accepted environment variable is `DP_CREDENTIAL_LOGIN_BEARER_TOKEN`.
+- `-login-bearer-token-path` - The path to a file containing the bearer token presented to the auth method. Accepted environment variable is `DP_CREDENTIAL_LOGIN_BEARER_TOKEN_PATH`.
+- `-login-datacenter` - The datacenter containing the auth method. Accepted environment variable is `DP_CREDENTIAL_LOGIN_DATACENTER`.
+- `-login-meta` - A set of key/value pairs to attach to the ACL token. Each pair is formatted as `<key>=<value>`. This flag may be passed multiple times. Accepted environment variables are `DP_CREDENTIAL_LOGIN_META{1..9}`.
+- `-login-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace containing the auth method. Accepted environment variable is `DP_CREDENTIAL_LOGIN_NAMESPACE`.
+- `-login-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition containing the auth method. Accepted environment variable is `DP_CREDENTIAL_LOGIN_PARTITION`.
+- `-proxy-service-id` - The proxy service instance's ID. Accepted environment variable is `DP_PROXY_SERVICE_ID`.
+- `-proxy-service-id-path` - The path to a file containing the proxy service instance's ID. Accepted environment variable is `DP_PROXY_SERVICE_ID_PATH`.
+- `-server-watch-disabled` - Prevent `consul-dataplane` from consuming the server update stream. Use this flag when Consul servers are behind a load balancer. Default is `false`. Accepted environment variable is `DP_SERVER_WATCH_DISABLED`.
+- `-service-namespace` <EnterpriseAlert inline /> - The Consul Enterprise namespace in which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_NAMESPACE`.
+- `-service-node-id` - The ID of the Consul node to which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_NODE_ID`.
+- `-service-node-name` - The name of the Consul node to which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_NODE_NAME`.
+- `-service-partition` <EnterpriseAlert inline /> - The Consul Enterprise partition in which the proxy service instance is registered. Accepted environment variable is `DP_SERVICE_PARTITION`.
+- `-static-token` - The ACL token used to authenticate requests to Consul servers when `-credential-type` is set to `"static"`. Accepted environment variable is `DP_CREDENTIAL_STATIC_TOKEN`.
+- `-telemetry-prom-ca-certs-path` - The path to a file or directory containing CA certificates used to verify the Prometheus server's certificate. Accepted environment variable is `DP_TELEMETRY_PROM_CA_CERTS_PATH`.
+- `-telemetry-prom-cert-file` - The path to the client certificate used to serve Prometheus metrics. Accepted environment variable is `DP_TELEMETRY_PROM_CERT_FILE`.
+- `-telemetry-prom-key-file` - The path to the client private key used to serve Prometheus metrics. Accepted environment variable is `DP_TELEMETRY_PROM_KEY_FILE`.
+- `-telemetry-prom-merge-port` - The local port used to serve merged Prometheus metrics. Default is `20100`. If your service instance uses the same default port, this flag must be set to a different port in order to avoid a port conflict. Accepted environment variable is `DP_TELEMETRY_PROM_MERGE_PORT`.
+- `-telemetry-prom-retention-time` - The duration for Prometheus metrics aggregation. Default is `1m0s`. Accepted environment variable is `DP_TELEMETRY_PROM_RETENTION_TIME`. Refer to [`prometheus_retention_time`](/docs/agent/config/config-files#telemetry-prometheus_retention_time) for details on setting this value.
+- `-telemetry-prom-scrape-path` - The URL path where Envoy serves Prometheus metrics. Default is `"/metrics"`. Accepted environment variable is `DP_TELEMETRY_PROM_SCRAPE_PATH`.
+- `-telemetry-prom-service-metrics-url` - The URL where your service instance serves Prometheus metrics. If this is set, the metrics at this URL are included in Consul Dataplane's merged Prometheus metrics. Accepted environment variable is `DP_TELEMETRY_PROM_SERVICE_METRICS_URL`.
+- `-telemetry-use-central-config` - Controls whether the proxy applies the central telemetry configuration. Default is `true`. Accepted environment variable is `DP_TELEMETRY_USE_CENTRAL_CONFIG`.
+- `-tls-cert` - The path to a client certificate file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server. Accepted environment variable is `DP_TLS_CERT`.
+- `-tls-disabled` - Communicate with Consul servers over a plaintext connection. Useful for testing, but not recommended for production. Default is `false`. Accepted environment variable is `DP_TLS_DISABLED`.
+- `-tls-insecure-skip-verify` - Do not verify the server's certificate. Useful for testing, but not recommended for production. Default is `false`. `DP_TLS_INSECURE_SKIP_VERIFY`.
+- `-tls-key` - The path to a client private key file. This flag is required if `tls.grpc.verify_incoming` is enabled on the server. Accepted environment variable is `DP_TLS_KEY`.
+- `-tls-server-name` - The hostname to expect in the server certificate's subject. This flag is required if `-addresses` is not a DNS name. Accepted environment variable is `DP_TLS_SERVER_NAME`.
 - `-version` - Print the current version of `consul-dataplane`.
-- `-xds-bind-addr` - The address the Envoy xDS server is available on. Default is `"127.0.0.1"`.
-- `-xds-bind-port` - The port on which the Envoy xDS server is available. Default is `0`. When set
-  to `0`, an available port is selected at random.
+- `-xds-bind-addr` - The address the Envoy xDS server is available on. Default is `"127.0.0.1"`. Accepted environment variable is `DP_XDS_BIND_ADDR`.
+- `-xds-bind-port` - The port on which the Envoy xDS server is available. Default is `0`. When set to `0`, an available port is selected at random. Accepted environment variable is `DP_XDS_BIND_PORT`.
 
 ## Examples
 

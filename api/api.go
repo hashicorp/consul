@@ -72,6 +72,14 @@ const (
 	// other ENV names we use.
 	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
 
+	// GRPCCAFileEnvName defines an environment variable name which sets the
+	// CA file to use for talking to Consul gRPC over TLS.
+	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
+
+	// GRPCCAPathEnvName defines an environment variable name which sets the
+	// path to a directory of CA certs to use for talking to Consul gRPC over TLS.
+	GRPCCAPathEnvName = "CONSUL_GRPC_CAPATH"
+
 	// HTTPNamespaceEnvVar defines an environment variable name which sets
 	// the HTTP Namespace to be used by default. This can still be overridden.
 	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"

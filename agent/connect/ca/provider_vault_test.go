@@ -902,6 +902,28 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 	require.Equal(t, 333*3600, mountConfig.MaxLeaseTTL)
 }
 
+func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	provider, _ := testVaultProviderWithConfig(t, true, nil)
+
+	orig, err := provider.ActiveIntermediate()
+	require.NoError(t, err)
+
+	// This test was created to ensure that our calls to Vault
+	// returns a new Intermediate certificate and further calls
+	// to ActiveIntermediate return the same new cert.
+	new, err := provider.GenerateIntermediate()
+	require.NoError(t, err)
+
+	newActive, err := provider.ActiveIntermediate()
+	require.NoError(t, err)
+
+	require.Equal(t, new, newActive)
+	require.NotEqual(t, orig, new)
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 

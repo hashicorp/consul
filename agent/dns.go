@@ -908,10 +908,11 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		return d.nodeLookup(cfg, lookup, req, resp)
 
 	case "query":
+		n := len(queryParts)
 		datacenter := d.agent.config.Datacenter
 
 		// ensure we have a query name
-		if len(queryParts) < 1 {
+		if n < 1 {
 			return invalid()
 		}
 
@@ -919,8 +920,23 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		// Allow a "." in the query name, just join all the parts.
-		query := strings.Join(queryParts, ".")
+		query := ""
+
+		// If the first and last DNS query parts begin with _, this is an RFC 2782 style SRV lookup.
+		// This allows for prepared query names to include "." (for backwards compatibility).
+		// Otherwise, this is a standard prepared query lookup.
+		if n >= 2 && strings.HasPrefix(queryParts[0], "_") && strings.HasPrefix(queryParts[n-1], "_") {
+			// The last DNS query part is the protocol field (ignored).
+			// All prior parts are the prepared query name or ID.
+			query = strings.Join(queryParts[:n-1], ".")
+
+			// Strip leading underscore
+			query = query[1:]
+		} else {
+			// Allow a "." in the query name, just join all the parts.
+			query = strings.Join(queryParts, ".")
+		}
+
 		err := d.preparedQueryLookup(cfg, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
 		return ecsNotGlobalError{error: err}
 

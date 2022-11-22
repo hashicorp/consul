@@ -102,6 +102,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `http` - The HTTP API. Defaults to `client_addr`
   - `https` - The HTTPS API. Defaults to `client_addr`
   - `grpc` - The gRPC API. Defaults to `client_addr`
+  - `grpc_tls` - The gRPC API with TLS. Defaults to `client_addr`
 
 - `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/docs/agent/config/cli-flags#_alt_domain)
 
@@ -1502,6 +1503,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/docs/agent/config/cli-flags#_retry_interval).
 
+- `retry_max` - Equivalent to the [`-retry-max`](/docs/agent/config/cli-flags#_retry_max) command-line flag.
+
 - `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/docs/agent/config/cli-flags#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/docs/agent/config/cli-flags#_retry_interval_wan).
@@ -1983,8 +1986,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
       the list of supported ciphersuites as a comma-separated-list. Applicable
-      to TLS 1.2 and below only. The list of all supported ciphersuites is
-      available through [this search](https://github.com/hashicorp/consul/search?q=goTLSCipherSuites+%3D+map).
+      to TLS 1.2 and below only. The list of all ciphersuites supported by Consul is
+      available in [the TLS configuration source code](https://github.com/hashicorp/consul/search?q=%22var+goTLSCipherSuites%22).
 
       ~> **Note:** The ordering of cipher suites will not be guaranteed from
       Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)
