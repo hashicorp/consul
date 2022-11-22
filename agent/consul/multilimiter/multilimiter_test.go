@@ -1,6 +1,7 @@
 package multilimiter
 
 import (
+	"context"
 	"encoding/binary"
 	"github.com/stretchr/testify/require"
 	"math/rand"
@@ -21,21 +22,6 @@ func TestNewMultiLimiter(t *testing.T) {
 	m := NewMultiLimiter(c)
 	require.NotNil(t, m)
 	require.NotNil(t, m.limiters)
-}
-
-func TestNewMultiLimiterStop(t *testing.T) {
-	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}}
-	m := NewMultiLimiter(c)
-	require.NotNil(t, m)
-	require.NotNil(t, m.limiters)
-	require.Nil(t, m.cancel)
-	m.Stop()
-	require.Nil(t, m.cancel)
-	m.Start()
-	require.NotNil(t, m.cancel)
-	m.Stop()
-	m.Stop()
-
 }
 
 func TestRateLimiterUpdate(t *testing.T) {
@@ -61,7 +47,9 @@ func TestRateLimiterUpdate(t *testing.T) {
 func TestRateLimiterCleanup(t *testing.T) {
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
-	m.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	m.Run(ctx)
 	m.Allow(Limited{key: "test"})
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get([]byte("test"))
@@ -72,7 +60,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	l, ok = limiters.Get([]byte("test"))
 	require.False(t, ok)
 	require.Nil(t, l)
-	m.Stop()
+	cancel()
 	m.Allow(Limited{key: "test"})
 	time.Sleep(20 * time.Millisecond)
 	limiters = m.limiters.Load()
