@@ -76,22 +76,10 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	return m
 }
 
-// Start will start a MultiLimiter cleanup routine which will
-// remove old entries of Limiters base on CleanupCheckLimit and CleanupCheckInterval
-func (m *MultiLimiter) Start() {
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	m.cancel = cancelFunc
-	go func() {
-		for {
-			m.cleanupLimitedOnce(ctx)
-		}
-	}()
-}
-
-// Stop will stop a MultiLimiter cleanup routine
-func (m *MultiLimiter) Stop() {
-	if m.cancel != nil {
-		m.cancel()
+// Run the cleanup routine to remove old entries of Limiters based on CleanupCheckLimit and CleanupCheckInterval.
+func (m *MultiLimiter) Run(ctx context.Context) {
+	for {
+		m.cleanupLimitedOnce(ctx)
 	}
 }
 
