@@ -17,14 +17,14 @@ func (l Limited) Key() []byte {
 }
 
 func TestNewMultiLimiter(t *testing.T) {
-	c := Config{Rate: 0.1}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}}
 	m := NewMultiLimiter(c)
 	require.NotNil(t, m)
 	require.NotNil(t, m.limiters)
 }
 
 func TestNewMultiLimiterStop(t *testing.T) {
-	c := Config{Rate: 0.1}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}}
 	m := NewMultiLimiter(c)
 	require.NotNil(t, m)
 	require.NotNil(t, m.limiters)
@@ -39,7 +39,7 @@ func TestNewMultiLimiterStop(t *testing.T) {
 }
 
 func TestRateLimiterUpdate(t *testing.T) {
-	c := Config{Rate: 0.1, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	m.Allow(Limited{key: "test"})
 	limiters := m.limiters.Load()
@@ -59,7 +59,7 @@ func TestRateLimiterUpdate(t *testing.T) {
 }
 
 func TestRateLimiterCleanup(t *testing.T) {
-	c := Config{Rate: 0.1, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	m.Start()
 	m.Allow(Limited{key: "test"})
@@ -82,7 +82,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 }
 
 func TestRateLimiterUpdateConfig(t *testing.T) {
-	c := Config{Rate: 0.1, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	require.Equal(t, *m.config.Load(), c)
 	ip := []byte("127.0.0.1")
@@ -91,20 +91,20 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter := l.(*Limiter)
-	require.Equal(t, *limiter.config.Load(), c)
-	c2 := Config{Rate: 1, CleanupCheckLimit: 10 * time.Millisecond, CleanupCheckInterval: 100 * time.Millisecond}
+	require.True(t, c.Equal(limiter.config.Load()))
+	c2 := Config{LimiterConfig: LimiterConfig{Rate: 1}, CleanupCheckLimit: 10 * time.Millisecond, CleanupCheckInterval: 100 * time.Millisecond}
 	m.UpdateConfig(c2)
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter = l.(*Limiter)
-	require.Equal(t, *limiter.config.Load(), c)
+	require.True(t, c.Equal(limiter.config.Load()))
 	m.Allow(ipLimited{key: ip})
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter = l.(*Limiter)
-	require.Equal(t, *limiter.config.Load(), c2)
+	require.True(t, c2.Equal(limiter.config.Load()))
 	require.Equal(t, *m.config.Load(), c2)
 
 }
@@ -118,7 +118,7 @@ func (i ipLimited) Key() []byte {
 }
 
 func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
-	var Config = Config{Rate: 1.0, Burst: 500}
+	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
 	ip := []byte{244, 233, 0, 1}
 	for j := 0; j < b.N; j++ {
@@ -127,7 +127,7 @@ func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
 }
 
 func BenchmarkTestRateLimiterIncIP(b *testing.B) {
-	var Config = Config{Rate: 1.0, Burst: 500}
+	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
 	buf := make([]byte, 4)
 	for j := 0; j < b.N; j++ {
@@ -137,7 +137,7 @@ func BenchmarkTestRateLimiterIncIP(b *testing.B) {
 }
 
 func BenchmarkTestRateLimiterRandomIP(b *testing.B) {
-	var Config = Config{Rate: 1.0, Burst: 500}
+	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: randIP()})
