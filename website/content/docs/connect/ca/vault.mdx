@@ -7,40 +7,23 @@ description: >-
 
 # Vault as a Service Mesh Certificate Authority
 
-Consul can be used with [Vault](https://www.vaultproject.io/) to
-manage and sign certificates.
-The Vault CA provider uses the
-[Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki)
-to generate and sign certificates.
+You can configure Consul to use [Vault](https://www.vaultproject.io/) as the certificate authority (CA), so that Vault can manage and sign certificates distributed to services in the mesh. 
+The Vault CA provider uses the [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki) to generate and sign certificates. 
+This page describes how configure the Vault CA provider.
 
-This page documents the specifics of the Vault CA provider.
-Please read the [certificate management overview](/docs/connect/ca)
-page first to understand how Consul manages certificates with configurable
-CA providers.
-
--> **Tip:** Complete the [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) to learn how to configure Vault as the Consul Connect service mesh Certification Authority.
+> **Tutorial:** Complete the [Vault as Consul Service Mesh Certification Authority](/consul/tutorials/vault-secure/vault-pki-consul-connect-ca) tutorial for hands-on guidance on how to configure Vault as the Consul service mesh certification authority.
 
 ## Requirements
 
-Prior to using Vault as a CA provider for Consul, the following requirements
-must be met:
+- Read [Service Mesh Certificate Authority Overview](/docs/connect/ca) for important background information about how Consul manages certificates with configurable CA providers. 
 
-- **Vault 0.10.3 or later.** Consul uses URI SANs in the PKI engine which
-  were introduced in Vault 0.10.3. Prior versions of Vault are not
-  compatible with Connect.
+- Vault 0.10.3 to 1.11.0. Note that in Vault 1.11.0 the intermediate CA becomes unable to issue the required leaf nodes if `auto-encrypt` or `auto-config` and TLS for agent communication are enabled. If you are already using Vault 1.11+ as a Connect CA, refer to this [Knowledge Base article](https://support.hashicorp.com/hc/en-us/articles/11308460105491) for details about the underlying cause and a recommended workaround.
 
-~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh, and by Consul client agents if using auto-encrypt or auto-config and using TLS for agent communication. If you are already using Vault 1.11+ as a Connect CA, refer to this [Knowledge Base article](https://support.hashicorp.com/hc/en-us/articles/11308460105491) for more information about the underlying cause and recommended workaround.
+## Enable Vault as the CA
 
-## Configuration
+You can enable Vault as the CA by either configuring the [`ca_provider`], [`ca_config`], and other required options in the agent configuration file or by passing the configuration to the [`/connect/ca/configuration`] API endpoint. Refer to [Configuration](#configuration) for details about configuration options and for example use cases. 
 
-The Vault CA is enabled by setting the CA provider to `"vault"` and
-setting the required configuration values.
-
-The configuration may either be provided in the agent's configuration file using
-the [`ca_provider`] and [`ca_config`] options, or configured using the
-[`/connect/ca/configuration`] API endpoint.
-
-Example configurations are shown below:
+The following example shows the required configurations for a default implementation:
 
 <CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
 
@@ -80,11 +63,10 @@ connect {
 
 </CodeTabs>
 
-The configuration options are listed below.
 
--> **NOTE**: The first key is the value used in API calls, and the second key
-   (after the `/`) is used if you are adding the configuration to the agent's
-   configuration file.
+## Configuration Reference
+
+You can specify the following configuration options. Note that the first key refers to the value for the API and the value after the slash refers to the equivalent parameter in the agent configuration file. 
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
@@ -181,174 +163,171 @@ The configuration options are listed below.
 
 @include 'http_api_connect_ca_common_options.mdx'
 
-## Root and Intermediate PKI Paths
+### Root and Intermediate PKI Paths
 
 The Vault CA provider uses two separately configured
 [PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki)
-for managing Connect certificates.
+for managing Consul service mesh certificates.
 
-The `RootPKIPath` is the PKI engine for the root certificate. Consul will
-use this root certificate to sign the intermediate certificate. Consul will
-never attempt to write or modify any data within the root PKI path.
+The `RootPKIPath` is the PKI engine for the root certificate. Consul uses this root certificate to sign the intermediate certificate. Consul does not attempt to write or modify any data within the root PKI path.
 
 The `IntermediatePKIPath` is the PKI engine used for storing the intermediate
-signed with the root certificate. The intermediate is used to sign all leaf
-certificates and Consul may periodically generate new intermediates for
+signed with the root certificate. The intermediate signs all leaf
+certificates, and Consul may periodically generate new intermediates for
 automatic rotation. Therefore, Consul requires write access to this path.
 
-If either path does not exist, then Consul will attempt to mount and
-initialize it. This requires additional privileges by the Vault token in use.
-If the paths already exist, Consul will use them as configured.
+If neither path exists, then Consul attempts to mount and
+initialize the PKI engine, which requires additional privileges of the Vault token in use.
+If the paths already exist, Consul uses them as configured.
 
-## Vault ACL Policies
+### Configure Vault ACL policies
 
-Vault PKI can be managed by either Consul or by Vault. If you want to manually create and tune the PKI secret engines used to store the root and intermediate certificates, use Vault Managed PKI Paths. If you want to have the PKI automatically managed for you, use Consul Managed PKI Paths.
+You can define an access control list (ACL) policy that assigns Vault PKI management to Consul or Vault. If you want to manually create and tune the PKI secret engines used to store the root and intermediate certificates, define a policy that uses Vault-managed PKI paths. If you want to automate PKI management, define a policy that uses Consul-managed PKI paths.
 
-### Vault Managed PKI Paths
+#### Define a policy for Vault-managed PKI paths
 
-The following Vault policy allows Consul to use pre-existing PKI paths in Vault.
-Consul is granted read-only access to the PKI mount points and the Root CA, but is
-granted full control of the Intermediate or Leaf CA for Connect clients.
+You can define a Vault ACL policy that allows Consul to use pre-existing PKI paths in Vault. The policy grants Consul read-only access to the PKI mount points and the root CA and grants full control of the intermediate or leaf CA for Consul service mesh clients.
 
-This example uses placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
-Please update those placeholders to match the path values in the CA provider configuration.
+In the following examples, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`. Replace them to match the path values in the CA provider configuration.
 
-<CodeBlockConfig filename="vault-managed-pki-policy.hcl">
+1. Add the following rules to you policy file so that Consul can read the PKI mounts already created in Vault:
 
-```hcl
-# -----------------------------------------------------------------------------
-# Vault Managed PKI Mounts
-# -----------------------------------------------------------------------------
+  <CodeBlockConfig filename="vault-managed-pki-policy.hcl">
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to read the PKI mounts already created in Vault
+  ```hcl
+  path "/sys/mounts/<root_pki_path>" {
+    capabilities = [ "read" ]
+  }
 
-path "/sys/mounts/<root_pki_path>" {
-  capabilities = [ "read" ]
-}
+  path "/sys/mounts/<intermediate_pki_path>" {
+    capabilities = [ "read" ]
+  }
 
-path "/sys/mounts/<intermediate_pki_path>" {
-  capabilities = [ "read" ]
-}
+  path "/sys/mounts/<intermediate_pki_path>/tune" {
+    capabilities = [ "update" ]
+  }
+  ```
 
-path "/sys/mounts/<intermediate_pki_path>/tune" {
-  capabilities = [ "update" ]
-}
+  </CodeBlockConfig>
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to use the externally-managed, mounted PKI secrets engines
+1. Add the following rules to you policy file so that Consul can use the  externally-managed PKI secrets engines that is already mounted: 
 
-path "/<root_pki_path>/" {
-  capabilities = [ "read" ]
-}
+  <CodeBlockConfig filename="vault-managed-pki-policy.hcl">
 
-path "/<root_pki_path>/root/sign-intermediate" {
-  capabilities = [ "update" ]
-}
+  ```hcl
+  path "/<root_pki_path>/" {
+    capabilities = [ "read" ]
+  }
+  
+  path "/<root_pki_path>/root/sign-intermediate" {
+    capabilities = [ "update" ]
+  }
 
-path "/<root_pki_path>/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
+  path "/<root_pki_path>/*" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  ```
+  </CodeBlockConfig>
 
-# Needed only when changing the CA provider from Vault with this RootPKIPath
-# to either:
-# 1. A different CA provider (such as Consul's built-in provider)
-# 2. Changing the RootPKIPath used by the Vault CA provider
-#
-# SECURITY NOTE: Because this is an extremely privileged endpoint,
-# We recommend only temporarily granting this permission if there's a need
-# to modify Consul's CA provider configuration as in (1) or (2).
-# That's why this permission is currently commented out.
-#
-# path "<root_pki_path>/root/sign-self-issued" {
-#  capabilities = [ "sudo", "update" ]
-#}
+1. Only add the following rules to your policy file if you are changing the CA provider from Vault to a different CA provider (such as Consul's built-in provider) or changing the RootPKIPath used by the Vault CA provider:
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to renew its Vault token (if renewable) whether provided
-# directly in the CA provider config or using an auth method.
+  <CodeBlockConfig filename="vault-managed-pki-policy.hcl">
 
-path "auth/token/renew-self" {
-  capabilities = [ "update" ]
-}
+  ```hcl
+  path "<root_pki_path>/root/sign-self-issued" {
+    capabilities = [ "sudo", "update" ]
+  }
+  ```
+  </CodeBlockConfig>
+  
+  Note that because this is an extremely privileged endpoint, we recommend only temporarily granting this permission if you need to modify Consul's CA provider configuration.
 
-path "auth/token/lookup-self" {
-  capabilities = [ "read" ]
-}
-```
+1. Add the following rules to you policy file so that Consul renew its Vault token if the token is renewable. The rule enables the token to be renewed whether it is provided directly in the CA provider configuration or presented in an auth method.
 
-</CodeBlockConfig>
+  <CodeBlockConfig filename="vault-managed-pki-policy.hcl">
 
-### Consul Managed PKI Paths
+  ```hcl
+  path "auth/token/renew-self" {
+    capabilities = [ "update" ]
+  }
 
-The following Vault policy allows Consul to create and manage the PKI paths in Vault.
-Consul is granted the ability to create the PKI mount points and given full
-control of the Root and Intermediate or Leaf CA for Connect clients.
+  path "auth/token/lookup-self" {
+    capabilities = [ "read" ]
+  }
+  ```
+  
+  </CodeBlockConfig>
 
-This example uses placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
-Replace them to match the path values specified in your CA provider configuration.
+#### Define a policy for Consul-managed PKI paths
 
-<CodeBlockConfig filename="consul-managed-pki-policy.hcl">
+You can define a Vault ACL policy that allows Consul to create and manage the PKI paths in Vault. The policy grants Consul the ability to create the PKI mount points and grants grants full control of the intermediate or leaf CA for Consul service mesh clients.
 
-```hcl
-# -----------------------------------------------------------------------------
-# Consul Managed PKI Mounts
-# -----------------------------------------------------------------------------
+In the following examples, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`. Replace them to match the path values in the CA provider configuration.
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to create and manage the PKI mounts
+1. Add the following rules to your Consul policy definition file so that Consul can create and manage the PKI mounts:
 
-path "/sys/mounts/<root_pki_path>" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
+  <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
-path "/sys/mounts/<intermediate_pki_path>" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
+  ```hcl
+  path "/sys/mounts/<root_pki_path>" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
 
-path "/sys/mounts/<intermediate_pki_path>/tune" {
-  capabilities = [ "update" ]
-}
+  path "/sys/mounts/<intermediate_pki_path>" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to use the mounted PKI secrets engines it owns
+  path "/sys/mounts/<intermediate_pki_path>/tune" {
+    capabilities = [ "update" ]
+  }
+  ```
+  </CodeBlockConfig>
 
-path "/<root_pki_path>/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
+1. Add the following rules to your Consul policy definition file so that Consul can use the mounted PKI secrets engines it owns:
 
-path "/<intermediate_pki_path>/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
+  <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
-# Needed only when changing the CA provider from Vault with this RootPKIPath
-# to either:
-# 1. A different CA provider (such as Consul's built-in provider)
-# 2. Changing the RootPKIPath used by the Vault CA provider
-#
-# SECURITY NOTE: Because this is an extremely privileged endpoint,
-# We recommend only temporarily granting this permission if there's a need
-# to modify Consul's CA provider configuration as in (1) or (2).
-# That's why this permission is currently commented out.
-#
-# path "<root_pki_path>/root/sign-self-issued" {
-#  capabilities = [ "sudo", "update" ]
-#}
+  ```hcl
+  path "/<root_pki_path>/*" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
 
-# -----------------------------------------------------------------------------
-# Needed for Consul to renew its Vault token (if renewable) whether provided
-# directly in the CA provider config or using an auth method.
+  path "/<intermediate_pki_path>/*" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  ```
 
-path "auth/token/renew-self" {
-  capabilities = [ "update" ]
-}
+  </CodeBlockConfig>
 
-path "auth/token/lookup-self" {
-  capabilities = [ "read" ]
-}
-```
+1. Only add the following rule to your Consul policy definition file when changing the CA provider from Vault to either a different CA provider (such as Consul's built-in provider) or changing the `RootPKIPath` used by the Vault CA provider:
 
-</CodeBlockConfig>
+  <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
+  
+  ```hcl
+  path "<root_pki_path>/root/sign-self-issued" {
+    capabilities = [ "sudo", "update" ]
+  }
+  ```
+
+  </CodeBlockConfig>
+
+  Because this is an extremely privileged endpoint, we recommend temporarily granting this permission if you need to modify Consul's CA provider configuration.
+
+1. Add the following rules to your Consul policy definition file so that Consul can renew its Vault token if renewable. The token is renewed whether it is presetned directly in the CA provider configuration or in an auth method.
+
+  <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
+
+  ```hcl
+  path "auth/token/renew-self" {
+    capabilities = [ "update" ]
+  }
+
+  path "auth/token/lookup-self" {
+    capabilities = [ "read" ]
+  }
+  ```
+  
+  </CodeBlockConfig>
 
 <!-- Reference style links -->
 [`ca_config`]: /docs/agent/config/config-files#connect_ca_config
