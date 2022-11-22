@@ -11,18 +11,26 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var _ RateLimiter = &MultiLimiter{}
+
+// RateLimiter is the interface implemented by MultiLimiter
+type RateLimiter interface {
+	Run(ctx context.Context)
+	Allow(entity LimitedEntity) bool
+	UpdateConfig(c Config)
+}
+
+// MultiLimiter implement RateLimiter interface and represent a set of rate limiters
+// specific to different LimitedEntities and queried by a LimitedEntities.Key()
+type MultiLimiter struct {
+	limiters *atomic.Pointer[radix.Tree]
+	config   *atomic.Pointer[Config]
+}
+
 // LimitedEntity is an interface used by MultiLimiter.Allow to determine
 // which rate limiter to use to allow the request
 type LimitedEntity interface {
 	Key() []byte
-}
-
-// RateLimiter is the interface implemented by MultiLimiter
-type RateLimiter interface {
-	Start()
-	Stop()
-	Allow(entity LimitedEntity) bool
-	UpdateConfig(c Config)
 }
 
 // Limiter define a limiter to be part of the MultiLimiter structure
@@ -49,14 +57,6 @@ func (c *Config) Equal(lc *LimiterConfig) bool {
 	return c.Burst == lc.Burst && c.Rate == lc.Rate
 }
 
-// MultiLimiter implement RateLimiter interface and represent a set of rate limiters
-// specific to different LimitedEntities and queried by a LimitedEntities.Key()
-type MultiLimiter struct {
-	limiters *atomic.Pointer[radix.Tree]
-	config   *atomic.Pointer[Config]
-	cancel   context.CancelFunc
-}
-
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c Config) {
@@ -81,9 +81,11 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 
 // Run the cleanup routine to remove old entries of Limiters based on CleanupCheckLimit and CleanupCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
-	for {
-		m.cleanupLimitedOnce(ctx)
-	}
+	go func() {
+		for {
+			m.cleanupLimitedOnce(ctx)
+		}
+	}()
 }
 
 // Allow should be called by a request processor to check if the current request is Limited
@@ -115,12 +117,12 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 // with lastAccess > CleanupCheckLimit
 func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
 	c := m.config.Load()
-	waiter := time.After(c.CleanupCheckInterval)
-
+	waiter := time.NewTimer(c.CleanupCheckInterval)
+	defer waiter.Stop()
 	select {
 	case <-ctx.Done():
 		return
-	case now := <-waiter:
+	case now := <-waiter.C:
 		limiters := m.limiters.Load()
 		storedLimiters := limiters
 		iter := limiters.Root().Iterator()
