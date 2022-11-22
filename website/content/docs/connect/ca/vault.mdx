@@ -231,7 +231,6 @@ path "/sys/mounts/<intermediate_pki_path>" {
   capabilities = [ "read" ]
 }
 
-# Needed in Consul 1.11+ to update intermediate mount configuration
 path "/sys/mounts/<intermediate_pki_path>/tune" {
   capabilities = [ "update" ]
 }
@@ -276,14 +275,6 @@ path "auth/token/renew-self" {
 path "auth/token/lookup-self" {
   capabilities = [ "read" ]
 }
-
-# -----------------------------------------------------------------------------
-# Deprecated
-
-# Only needed before Consul 1.12
-path "/sys/mounts" {
-  capabilities = [ "read" ]
-}
 ```
 
 </CodeBlockConfig>
@@ -315,7 +306,6 @@ path "/sys/mounts/<intermediate_pki_path>" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-# Enables Consul 1.11+ to update intermediate mount configuration
 path "/sys/mounts/<intermediate_pki_path>/tune" {
   capabilities = [ "update" ]
 }
@@ -354,14 +344,6 @@ path "auth/token/renew-self" {
 }
 
 path "auth/token/lookup-self" {
-  capabilities = [ "read" ]
-}
-
-# -----------------------------------------------------------------------------
-# Deprecated
-
-# Only needed before Consul 1.12
-path "/sys/mounts" {
   capabilities = [ "read" ]
 }
 ```
