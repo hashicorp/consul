@@ -45,6 +45,8 @@ func TestRateLimiterUpdate(t *testing.T) {
 }
 
 func TestRateLimiterCleanup(t *testing.T) {
+
+	// Create a limiter and Allow a key, check the key exists
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,11 +57,15 @@ func TestRateLimiterCleanup(t *testing.T) {
 	l, ok := limiters.Get([]byte("test"))
 	require.True(t, ok)
 	require.NotNil(t, l)
+
+	// Wait > CleanupCheckInterval and check that the key was cleaned up
 	time.Sleep(20 * time.Millisecond)
 	limiters = m.limiters.Load()
 	l, ok = limiters.Get([]byte("test"))
 	require.False(t, ok)
 	require.Nil(t, l)
+
+	// Stop the cleanup routine, check that a key is not cleaned up after > CleanupCheckInterval
 	cancel()
 	m.Allow(Limited{key: "test"})
 	time.Sleep(20 * time.Millisecond)
@@ -70,9 +76,13 @@ func TestRateLimiterCleanup(t *testing.T) {
 }
 
 func TestRateLimiterUpdateConfig(t *testing.T) {
+
+	// Create a MultiLimiter m with a config c and check the config is applied
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	require.Equal(t, *m.config.Load(), c)
+
+	// Allow an IP and check c is applied to that IP
 	ip := []byte("127.0.0.1")
 	m.Allow(ipLimited{key: ip})
 	l, ok := m.limiters.Load().Get(ip)
@@ -80,13 +90,20 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 	require.NotNil(t, l)
 	limiter := l.(*Limiter)
 	require.True(t, c.Equal(limiter.config.Load()))
+
+	// Update m config to c2 and check that c2 applied to m
 	c2 := Config{LimiterConfig: LimiterConfig{Rate: 1}, CleanupCheckLimit: 10 * time.Millisecond, CleanupCheckInterval: 100 * time.Millisecond}
 	m.UpdateConfig(c2)
+	require.Equal(t, *m.config.Load(), c)
+
+	// Check that c2 is not yet applied to IP
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter = l.(*Limiter)
 	require.True(t, c.Equal(limiter.config.Load()))
+
+	//Call Allow for IP and check that c2 is now applied
 	m.Allow(ipLimited{key: ip})
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
