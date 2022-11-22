@@ -402,7 +402,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				return resources
 			}
 		} else {
-			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configured for",
 				"discovery chain", chain.ServiceName, "upstream", uid,
 				"envoy_cluster_json", chain.ServiceName)
 		}
