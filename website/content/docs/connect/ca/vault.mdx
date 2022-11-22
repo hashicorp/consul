@@ -223,31 +223,31 @@ Please update those placeholders to match the path values in the CA provider con
 # -----------------------------------------------------------------------------
 # Needed for Consul to read the PKI mounts already created in Vault
 
-path "/sys/mounts/<insert-RootPKIPath>" {
+path "/sys/mounts/<root_pki_path>" {
   capabilities = [ "read" ]
 }
 
-path "/sys/mounts/<insert-IntermediatePKIPath>" {
+path "/sys/mounts/<intermediate_pki_path>" {
   capabilities = [ "read" ]
 }
 
 # Needed in Consul 1.11+ to update intermediate mount configuration
-path "/sys/mounts/<insert-IntermediatePKIPath>/tune" {
+path "/sys/mounts/<intermediate_pki_path>/tune" {
   capabilities = [ "update" ]
 }
 
 # -----------------------------------------------------------------------------
 # Needed for Consul to use the externally-managed, mounted PKI secrets engines
 
-path "/<insert-RootPKIPath>/" {
+path "/<root_pki_path>/" {
   capabilities = [ "read" ]
 }
 
-path "/<insert-RootPKIPath>/root/sign-intermediate" {
+path "/<root_pki_path>/root/sign-intermediate" {
   capabilities = [ "update" ]
 }
 
-path "/<insert-RootPKIPath>/*" {
+path "/<root_pki_path>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
@@ -261,7 +261,7 @@ path "/<insert-RootPKIPath>/*" {
 # to modify Consul's CA provider configuration as in (1) or (2).
 # That's why this permission is currently commented out.
 #
-# path "<insert-RootPKIPath>/root/sign-self-issued" {
+# path "<root_pki_path>/root/sign-self-issued" {
 #  capabilities = [ "sudo", "update" ]
 #}
 
@@ -295,7 +295,7 @@ Consul is granted the ability to create the PKI mount points and given full
 control of the Root and Intermediate or Leaf CA for Connect clients.
 
 This example uses placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
-Please update those placeholders to match the path values in the CA provider configuration.
+Replace them to match the path values specified in your CA provider configuration.
 
 <CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
@@ -307,27 +307,27 @@ Please update those placeholders to match the path values in the CA provider con
 # -----------------------------------------------------------------------------
 # Needed for Consul to create and manage the PKI mounts
 
-path "/sys/mounts/<insert-RootPKIPath>" {
+path "/sys/mounts/<root_pki_path>" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-path "/sys/mounts/<insert-IntermediatePKIPath>" {
+path "/sys/mounts/<intermediate_pki_path>" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
 # Enables Consul 1.11+ to update intermediate mount configuration
-path "/sys/mounts/<insert-IntermediatePKIPath>/tune" {
+path "/sys/mounts/<intermediate_pki_path>/tune" {
   capabilities = [ "update" ]
 }
 
 # -----------------------------------------------------------------------------
 # Needed for Consul to use the mounted PKI secrets engines it owns
 
-path "/<insert-RootPKIPath>/*" {
+path "/<root_pki_path>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
-path "/<insert-IntermediatePKIPath>/*" {
+path "/<intermediate_pki_path>/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
@@ -341,7 +341,7 @@ path "/<insert-IntermediatePKIPath>/*" {
 # to modify Consul's CA provider configuration as in (1) or (2).
 # That's why this permission is currently commented out.
 #
-# path "<insert-RootPKIPath>/root/sign-self-issued" {
+# path "<root_pki_path>/root/sign-self-issued" {
 #  capabilities = [ "sudo", "update" ]
 #}
 
