@@ -5,10 +5,9 @@ on: pull_request_target
 jobs:
   auto-approve:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     if: github.actor == 'hc-github-team-consul-core'
     steps:
       - uses: hmarr/auto-approve-action@v3
         with:
           review-message: "Auto approved Consul Bot automated PR"
+          github-token: ${{ secrets.MERGE_APPROVE_TOKEN }}
