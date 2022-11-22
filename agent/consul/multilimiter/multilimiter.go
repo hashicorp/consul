@@ -8,10 +8,13 @@ import (
 	"time"
 )
 
+// LimitedEntity is an interface used by MultiLimiter.Allow to determine
+// which rate limiter to use to allow the request
 type LimitedEntity interface {
 	Key() []byte
 }
 
+// RateLimiter is the interface implemented by MultiLimiter
 type RateLimiter interface {
 	Start()
 	Stop()
@@ -19,29 +22,45 @@ type RateLimiter interface {
 	UpdateConfig(c Config)
 }
 
+// Limiter define a limiter to be part of the MultiLimiter structure
 type Limiter struct {
 	limiter    *rate.Limiter
 	lastAccess atomic.Int64
-	config     atomic.Pointer[Config]
+	config     atomic.Pointer[LimiterConfig]
 }
 
+// LimiterConfig is a Limiter configuration
+type LimiterConfig struct {
+	Rate  rate.Limit
+	Burst int
+}
+
+// Config is a MultiLimiter configuration
 type Config struct {
-	Rate                 rate.Limit
-	Burst                int
+	LimiterConfig
 	CleanupCheckLimit    time.Duration
 	CleanupCheckInterval time.Duration
 }
 
+func (c *Config) Equal(lc *LimiterConfig) bool {
+	return c.Burst == lc.Burst && c.Rate == lc.Rate
+}
+
+// MultiLimiter implement RateLimiter interface and represent a set of rate limiters
+// specific to different LimitedEntities and queried by a LimitedEntities.Key()
 type MultiLimiter struct {
 	limiters *atomic.Pointer[radix.Tree]
 	config   *atomic.Pointer[Config]
 	cancel   context.CancelFunc
 }
 
+// UpdateConfig will update the MultiLimiter Config
+// which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c Config) {
 	m.config.CompareAndSwap(m.config.Load(), &c)
 }
 
+// NewMultiLimiter create a new MultiLimiter
 func NewMultiLimiter(c Config) *MultiLimiter {
 	limiters := atomic.Pointer[radix.Tree]{}
 	config := atomic.Pointer[Config]{}
@@ -57,22 +76,27 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	return m
 }
 
+// Start will start a MultiLimiter cleanup routine which will
+// remove old entries of Limiters base on CleanupCheckLimit and CleanupCheckInterval
 func (m *MultiLimiter) Start() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	m.cancel = cancelFunc
 	go func() {
 		for {
-			m.cleanupLimited(ctx)
+			m.cleanupLimitedOnce(ctx)
 		}
 	}()
 }
 
+// Stop will stop a MultiLimiter cleanup routine
 func (m *MultiLimiter) Stop() {
 	if m.cancel != nil {
 		m.cancel()
 	}
 }
 
+// Allow should be called by a request processor to check if the current request is Limited
+// The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
@@ -80,14 +104,14 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	c := m.config.Load()
 	if ok {
 		limiter := l.(*Limiter)
-		if limiter.config.Load() == c {
+		if c.Equal(limiter.config.Load()) {
 			limiter.lastAccess.Store(now)
 			return limiter.limiter.Allow()
 		}
 	}
 
-	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst), config: atomic.Pointer[Config]{}}
-	limiter.config.Store(c)
+	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst), config: atomic.Pointer[LimiterConfig]{}}
+	limiter.config.Store(&c.LimiterConfig)
 	limiter.lastAccess.Store(now)
 	tree, _, _ := limiters.Insert(e.Key(), limiter)
 	m.limiters.Store(tree)
@@ -95,9 +119,10 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	return limiter.limiter.Allow()
 }
 
-// Every minute check the map for visitors that haven't been seen for
-// more than the CleanupLimit and delete the entries.
-func (m *MultiLimiter) cleanupLimited(ctx context.Context) {
+// cleanupLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
+// it will wait for CleanupCheckInterval before traversing the radix tree and removing all entries
+// with lastAccess > CleanupCheckLimit
+func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
 	c := m.config.Load()
 	waiter := time.After(c.CleanupCheckInterval)
 
