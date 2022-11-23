@@ -219,7 +219,7 @@ service {
 }
 ```
 
-### Basic Sidecar Proxy
+### Basic sidecar proxy
 
 The sidecar Envoy process can be started with.
 
@@ -231,23 +231,28 @@ This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
 
-### Sidecar Proxy with ACLs Enabled
+### Sidecar proxy with ACLs enabled
 
 In secure deployments, Consul's ACL system is enabled with a default `deny` policy.
-Nothing can access Consul API resources unless it presents a Consul ACL token with the
-necessary privileges. A sidecar proxy must have a Consul ACL token to act as itself and
-the service it fronts, and to access all that service's potential upstreams.
-The best way to generate such a token is to
-[use a service identity](/consul/commands/acl/token/create#create-a-token-for-a-service).
+To access Consul API resources, an API request must present a Consul ACL token
+with the necessary privileges. A sidecar proxy must be provided with an ACL token
+with privileges to register itself and the service it fronts,
+and to access all potential upstreams of that service.
+We recommend [using a service identity](/consul/commands/acl/token/create#create-a-token-for-a-service)
+to directly create a token with the privileges necessary for a service and its sidecar proxy,
+rather than creating a unique ACL policy for every service.
 
-Then, provide that token when launching the Envoy sidecar proxy instance with
-the `consul connect envoy` command through either:
-- Environment variables
-  [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token) or
-  [`CONSUL_HTTP_TOKEN_FILE`](/consul/commands#consul_http_token_file)
-- CLI flags
-  [`-token`](/consul/commands/connect/envoy#token) or
-  [`-token-file`](/consul/commands/connect/envoy#token-file)
+After creating a token using a service identity, provide the token when
+launching the Envoy sidecar proxy instance with the `consul connect envoy` command.
+You can provide the token through an environment variable or CLI flag.
+
+Environment variables:
+- [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token) or
+- [`CONSUL_HTTP_TOKEN_FILE`](/consul/commands#consul_http_token_file)
+
+CLI flags:
+- [`-token`](/consul/commands/connect/envoy#token) or
+- [`-token-file`](/consul/commands/connect/envoy#token-file)
 
 ```shell-session
 $ export CONSUL_HTTP_TOKEN="<secret-id-of-token-with-service-identity-for-web>"
