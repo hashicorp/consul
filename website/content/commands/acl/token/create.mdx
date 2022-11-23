@@ -76,6 +76,8 @@ Usage: `consul acl token create [options] [args]`
 
 ## Examples
 
+The following examples describe the creation of ACL tokens for common scenarios.
+
 ### Create a token with policy by name
 
 ```shell-session
@@ -91,10 +93,11 @@ Policies:
 
 ### Create a token for a service
 
-This creates a token with the privileges necessary to register the service `my-api`.
-If `my-api` is in the service mesh, this token also has the privileges necessary
-to register its associated sidecar proxy and should be passed to the proxy when
-launched with [`consul connect envoy`](/consul/commands/connect/envoy).
+The following example creates a token with the privileges necessary
+for registering a service named `my-api`.
+If `my-api` is in the service mesh, the token also has the privileges necessary
+to register its associated sidecar proxy and must be provided to the proxy when
+launched with [`consul connect envoy`](/consul/commands/connect/envoy#sidecar-proxy-with-acls-enabled).
 
 ```shell-session
 $ consul acl token create -description 'my-api token' -service-identity 'my-api'
@@ -107,7 +110,7 @@ Service Identities:
    my-api (Datacenters: all)
 ```
 
-### Create a short-lived, highly privileged token
+### Create a short-lived and highly privileged token
 
 ```shell-session
 $ consul acl token create -description "Temp Super User" -policy-name global-management -expires-ttl '15m'
