@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -275,6 +276,9 @@ type Server struct {
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
 
+	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
+	incomingRPCLimiter *rpcRate.Handler
+
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
 	// to request client certificates. At this point a client doesn't have
@@ -461,6 +465,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		StatusFn: s.hcpServerStatus(flat),
 		Logger:   logger.Named("hcp_manager"),
 	})
+
+	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
+	s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
+		// TODO(NET-1379): pass in _real_ configuration.
+		GlobalMode: rpcRate.ModePermissive,
+	}, s)
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
