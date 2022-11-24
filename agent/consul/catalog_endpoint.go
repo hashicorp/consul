@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -557,6 +558,14 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
+	// Supporting querying by PeerName in this API would require modifying the return type or the ACL
+	// filtering logic so that it can be made aware that the data queried is coming from a peer.
+	// Currently the ACL filter will receive plain name strings with no awareness of the peer name,
+	// which means that authz will be done as if these were local service names.
+	if args.PeerName != structs.DefaultPeerKeyword {
+		return errors.New("listing service names imported from a peer is not supported")
+	}
+
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
@@ -705,7 +714,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
-	var authzContext acl.AuthorizerContext
+	authzContext := acl.AuthorizerContext{
+		Peer: args.PeerName,
+	}
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
@@ -753,7 +764,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					mergedsn := sn
 					ns := sn.ToNodeService()
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -957,11 +968,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				for _, ns := range services.Services {
 					mergedns := ns
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						serviceSpecificReq := structs.ServiceSpecificRequest{
-							Datacenter:   args.Datacenter,
-							QueryOptions: args.QueryOptions,
-						}
-						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -1087,7 +1094,9 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
+	authzContext := acl.AuthorizerContext{
+		Peer: args.PeerName,
+	}
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 )
 
 // SigAlgoForKey returns the preferred x509.SignatureAlgorithm for a given key
@@ -47,11 +48,28 @@ func SigAlgoForKeyType(keyType string) x509.SignatureAlgorithm {
 // along with the PEM-encoded private key for this certificate.
 func CreateCSR(uri CertURI, privateKey crypto.Signer,
 	dnsNames []string, ipAddresses []net.IP, extensions ...pkix.Extension) (string, error) {
+
+	// Drop everything after the ':' from the name when constructing the DNS SANs.
+	uniqueNames := make(map[string]struct{})
+	formattedDNSNames := make([]string, 0)
+	for _, host := range dnsNames {
+		hostSegments := strings.Split(host, ":")
+		if len(hostSegments) == 0 || hostSegments[0] == "" {
+			continue
+		}
+
+		formattedHost := hostSegments[0]
+		if _, ok := uniqueNames[formattedHost]; !ok {
+			formattedDNSNames = append(formattedDNSNames, formattedHost)
+			uniqueNames[formattedHost] = struct{}{}
+		}
+	}
+
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: SigAlgoForKey(privateKey),
 		ExtraExtensions:    extensions,
-		DNSNames:           dnsNames,
+		DNSNames:           formattedDNSNames,
 		IPAddresses:        ipAddresses,
 	}
 	HackSANExtensionForCSR(template)

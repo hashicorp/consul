@@ -2743,13 +2743,16 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	}
 
 	// Register an equivalent prepared query.
+	// Specify prepared query name containing "." to test
+	// since that is technically supported (though atypical).
 	var id string
+	preparedQueryName := "query.name.with.dots"
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
-				Name: "test",
+				Name: preparedQueryName,
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -2764,6 +2767,9 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	questions := []string{
 		"db.service.consul.",
 		id + ".query.consul.",
+		preparedQueryName + ".query.consul.",
+		fmt.Sprintf("_%s._tcp.query.consul.", id),
+		fmt.Sprintf("_%s._tcp.query.consul.", preparedQueryName),
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)

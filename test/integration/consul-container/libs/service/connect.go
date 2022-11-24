@@ -64,7 +64,7 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (Service, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -94,7 +94,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
 			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
 			"--",
-			"--log-level", "trace"},
+			"--log-level", envoyLogLevel},
 		ExposedPorts: []string{
 			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
 			"19000/tcp",                            // Envoy Admin Port

@@ -1,7 +1,7 @@
 package token
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -63,7 +63,7 @@ func TestStore_Load(t *testing.T) {
 			"replication" : "lima"
 		}`
 
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
 		// no updates since token persistence is not enabled
@@ -92,7 +92,7 @@ func TestStore_Load(t *testing.T) {
 		}
 
 		tokens := `{"agent_master": "juliett"}`
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "juliett", store.AgentRecoveryToken())
@@ -115,7 +115,7 @@ func TestStore_Load(t *testing.T) {
 			ACLReplicationToken:   "tango",
 		}
 
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "mike", store.AgentToken())
@@ -139,7 +139,7 @@ func TestStore_Load(t *testing.T) {
 			ACLReplicationToken:   "zulu",
 		}
 
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte(tokens), 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "uniform", store.AgentToken())
@@ -158,7 +158,7 @@ func TestStore_Load(t *testing.T) {
 			ACLReplicationToken:   "four",
 		}
 
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
 		err := store.Load(cfg, logger)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to decode tokens file")
@@ -179,7 +179,7 @@ func TestStore_Load(t *testing.T) {
 			ACLReplicationToken:   "foxtrot",
 		}
 
-		require.NoError(t, ioutil.WriteFile(tokenFile, []byte("[1,2,3]"), 0600))
+		require.NoError(t, os.WriteFile(tokenFile, []byte("[1,2,3]"), 0600))
 		err := store.Load(cfg, logger)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to decode tokens file")

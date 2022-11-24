@@ -1,0 +1,3 @@
+```release-note:enhancement
+raft: add an operator api endpoint and a command to initiate raft leadership transfer.
+```

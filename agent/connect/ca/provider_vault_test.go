@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -340,7 +340,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
 		resp, err := client.RawRequest(req)
 		require.NoError(t, err)
-		bytes, err := ioutil.ReadAll(resp.Body)
+		bytes, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 		require.Equal(t, cert, string(bytes)+"\n")
 
@@ -900,6 +900,28 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 	mountConfig, err = testVault.Client().Sys().MountConfig("pki-intermediate")
 	require.NoError(t, err)
 	require.Equal(t, 333*3600, mountConfig.MaxLeaseTTL)
+}
+
+func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	provider, _ := testVaultProviderWithConfig(t, true, nil)
+
+	orig, err := provider.ActiveIntermediate()
+	require.NoError(t, err)
+
+	// This test was created to ensure that our calls to Vault
+	// returns a new Intermediate certificate and further calls
+	// to ActiveIntermediate return the same new cert.
+	new, err := provider.GenerateIntermediate()
+	require.NoError(t, err)
+
+	newActive, err := provider.ActiveIntermediate()
+	require.NoError(t, err)
+
+	require.Equal(t, new, newActive)
+	require.NotEqual(t, orig, new)
 }
 
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {

@@ -20,10 +20,10 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		}
 	}
 
-	if len(tok.ServerAddresses) == 0 {
+	if len(tok.ServerAddresses) == 0 && len(tok.ManualServerAddresses) == 0 {
 		return errPeeringTokenEmptyServerAddresses
 	}
-	for _, addr := range tok.ServerAddresses {
+	validAddr := func(addr string) error {
 		_, portRaw, err := net.SplitHostPort(addr)
 		if err != nil {
 			return &errPeeringInvalidServerAddress{addr}
@@ -35,6 +35,17 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		}
 		if port < 1 || port > 65535 {
 			return &errPeeringInvalidServerAddress{addr}
+		}
+		return nil
+	}
+	for _, addr := range tok.ManualServerAddresses {
+		if err := validAddr(addr); err != nil {
+			return err
+		}
+	}
+	for _, addr := range tok.ServerAddresses {
+		if err := validAddr(addr); err != nil {
+			return err
 		}
 	}
 
