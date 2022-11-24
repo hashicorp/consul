@@ -3,7 +3,6 @@ package multilimiter
 import (
 	"bytes"
 	"context"
-	"sync"
 	"sync/atomic"
 	"time"
 
