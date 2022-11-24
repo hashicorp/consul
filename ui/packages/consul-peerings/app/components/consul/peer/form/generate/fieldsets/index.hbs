@@ -36,5 +36,26 @@
       </fieldset>
 
     {{/let}}
+
+    {{#let
+      (hash
+        help=(t 'common.validations.server-external-addresses.help')
+      )
+    as |ServerExternalAddresses|}}
+      <fieldset>
+        <TextInput
+          @label="Server address(es)"
+          @name="ServerExternalAddresses"
+          @item={{@item}}
+          @chart={{fsm}}
+          @validations={{ServerExternalAddresses}}
+          @oninput={{pick 'target.value' this.onInput}}
+        />
+        {{yield (hash
+          valid=(not (state-matches fsm.state 'error'))
+        )}}
+      </fieldset>
+
+    {{/let}}
   </StateMachine>
 </div>
