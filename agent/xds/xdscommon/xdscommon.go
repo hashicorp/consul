@@ -56,8 +56,8 @@ func EmptyIndexedResources() *IndexedResources {
 type ServiceConfig struct {
 	// Kind identifies the final proxy kind that will make the request to the
 	// destination service.
-	Kind api.ServiceKind
-	Meta map[string]string
+	Kind            api.ServiceKind
+	EnvoyExtensions []api.EnvoyExtension
 }
 
 // PluginConfiguration is passed into Envoy plugins. It should depend on the
@@ -121,8 +121,8 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 			}
 
 			serviceConfigs[upstreamIDToCompoundServiceName(uid)] = ServiceConfig{
-				Meta: dc.ServiceMeta,
-				Kind: api.ServiceKindConnectProxy,
+				Kind:            api.ServiceKindConnectProxy,
+				EnvoyExtensions: convertEnvoyExtensions(dc.EnvoyExtensions),
 			}
 
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
@@ -135,8 +135,8 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
 			serviceConfigs[compoundServiceName] = ServiceConfig{
-				Meta: c.Meta,
-				Kind: api.ServiceKindTerminatingGateway,
+				EnvoyExtensions: convertEnvoyExtensions(c.EnvoyExtensions),
+				Kind:            api.ServiceKindTerminatingGateway,
 			}
 
 			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
@@ -177,4 +177,18 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 		Partition: uid.PartitionOrDefault(),
 		Namespace: uid.NamespaceOrDefault(),
 	}
+}
+
+func convertEnvoyExtensions(structExtensions []structs.EnvoyExtension) []api.EnvoyExtension {
+	var extensions []api.EnvoyExtension
+
+	for _, e := range structExtensions {
+		extensions = append(extensions, api.EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: e.Arguments,
+		})
+	}
+
+	return extensions
 }

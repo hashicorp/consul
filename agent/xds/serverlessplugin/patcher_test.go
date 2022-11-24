@@ -36,10 +36,10 @@ func TestGetPatcherBySNI(t *testing.T) {
 			sni:  "lambda-sni",
 			kind: api.ServiceKindTerminatingGateway,
 			expected: lambdaPatcher{
-				arn:                "arn",
-				region:             "region",
-				payloadPassthrough: false,
-				kind:               api.ServiceKindTerminatingGateway,
+				ARN:                "arn",
+				Region:             "region",
+				PayloadPassthrough: false,
+				Kind:               api.ServiceKindTerminatingGateway,
 			},
 		},
 	}
@@ -74,24 +74,27 @@ func sampleConfig() xdscommon.PluginConfiguration {
 		ServiceConfigs: map[api.CompoundServiceName]xdscommon.ServiceConfig{
 			lambdaService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{
-					lambdaEnabledTag: "true",
-					lambdaArnTag:     "arn",
-					lambdaRegionTag:  "region",
+				EnvoyExtensions: []api.EnvoyExtension{
+					{
+						Name: "builtin/aws/lambda",
+						Arguments: map[string]interface{}{
+							"ARN":    "arn",
+							"Region": "region",
+						},
+					},
 				},
 			},
 			disabledLambdaService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{
-					lambdaEnabledTag: "false",
-					lambdaArnTag:     "arn",
-					lambdaRegionTag:  "region",
-				},
+				// No extension.
 			},
 			invalidLambdaService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{
-					lambdaEnabledTag: "true",
+				EnvoyExtensions: []api.EnvoyExtension{
+					{
+						Name:      "builtin/aws/lambda",
+						Arguments: map[string]interface{}{}, // ARN, etc missing
+					},
 				},
 			},
 		},

@@ -104,6 +104,13 @@ type ExposeConfig struct {
 	Paths []ExposePath `json:",omitempty"`
 }
 
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+type EnvoyExtension struct {
+	Name      string
+	Required  bool
+	Arguments map[string]interface{}
+}
+
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`
@@ -272,6 +279,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
 	ModifyIndex               uint64
@@ -296,6 +304,7 @@ type ProxyConfigEntry struct {
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
 	AccessLogs       *AccessLogsConfig       `json:",omitempty"`
+	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64

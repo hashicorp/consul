@@ -20,6 +20,47 @@ upgrade flow.
 
 The `connect.enable_serverless_plugin` configuration option was removed. Lambda integration is now enabled by default.
 
+#### Lambda Configuration
+
+Instead of configuring Lambda functions in the `Meta` field of `service-defaults` configuration entries, configure them with the `EnvoyExtensions` field.
+
+Before Consul v1.15:
+
+   <CodeBlockConfig filename="lambda-service-defaults.hcl">
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   Meta = {
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
+   }
+   ```
+
+   </CodeBlockConfig>
+
+In Consul v1.15 and higher:
+
+   <CodeBlockConfig filename="lambda-service-defaults.hcl">
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   EnvoyExtensions = [
+     {
+       "Name": "builtin/aws/lambda",
+       "Arguments": {
+         "Region": "us-east-2",
+         "ARN": "<INSERT ARN HERE>",
+         "PayloadPassthrough": true
+       }
+     }
+   ]
+   ```
+
+   </CodeBlockConfig>
+
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility

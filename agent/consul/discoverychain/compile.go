@@ -168,6 +168,12 @@ type compiler struct {
 	// This is an OUTPUT field.
 	serviceMeta map[string]string
 
+	// envoyExtensions contains the Envoy Extensions configured through service defaults or proxy defaults config
+	// entries for this discovery chain.
+	//
+	// This is an OUTPUT field.
+	envoyExtensions []structs.EnvoyExtension
+
 	// startNode is computed inside of assembleChain()
 	//
 	// This is an OUTPUT field.
@@ -338,6 +344,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
 		ServiceMeta:       c.serviceMeta,
+		EnvoyExtensions:   c.envoyExtensions,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
@@ -555,9 +562,17 @@ func (c *compiler) assembleChain() error {
 
 	sid := structs.NewServiceID(c.serviceName, c.GetEnterpriseMeta())
 
-	// Extract the service meta for the service named by this discovery chain.
+	// Extract extensions from proxy defaults.
+	proxyDefaults := c.entries.GetProxyDefaults(c.GetEnterpriseMeta().PartitionOrDefault())
+	if proxyDefaults != nil {
+		c.envoyExtensions = proxyDefaults.EnvoyExtensions
+	}
+
+	// Extract the service meta for the service named by this discovery chain and add extensions from the service
+	// defaults.
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		c.serviceMeta = serviceDefault.GetMeta()
+		c.envoyExtensions = append(c.envoyExtensions, serviceDefault.EnvoyExtensions...)
 	}
 
 	// Check for short circuit path.
