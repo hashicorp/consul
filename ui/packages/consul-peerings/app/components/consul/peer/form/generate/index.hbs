@@ -44,12 +44,13 @@
 
       <fsm.State @matches={{'loading'}}>
         <DataSource
-          @src={{uri '/${partition}/${nspace}/${dc}/peering/token-for/${name}'
+          @src={{uri '/${partition}/${nspace}/${dc}/peering/token-for/${name}/${externalAddresses}'
             (hash
               partition=@item.Partition
               nspace=''
               dc=@item.Datacenter
               name=@item.Name
+              externalAddresses=@item.ServerExternalAddresses
             )
           }}
           @onchange={{queue
