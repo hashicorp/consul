@@ -962,6 +962,6 @@ func TestClient_RPC_Timeout(t *testing.T) {
 			},
 		}, &out)
 		require.Error(t, err)
-		require.ErrorContains(t, err, "rpc error making call: i/o deadline reached")
+		require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
 	})
 }
