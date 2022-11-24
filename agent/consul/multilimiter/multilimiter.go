@@ -4,17 +4,32 @@ import (
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
 var _ RateLimiter = &MultiLimiter{}
 
+const separator = "%"
+
+func makeKey(keys ...string) keyType {
+	var key string
+	for i, k := range keys {
+		if i == 0 {
+			key = k
+		} else {
+			key = key + separator + k
+		}
+	}
+	return keyType(key)
+}
+
 // RateLimiter is the interface implemented by MultiLimiter
 type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool
-	UpdateConfig(c Config)
+	UpdateConfig(c LimiterConfig, prefix []byte)
 }
 
 // MultiLimiter implement RateLimiter interface and represent a set of rate limiters
@@ -24,17 +39,19 @@ type MultiLimiter struct {
 	config   *atomic.Pointer[Config]
 }
 
+type keyType = []byte
+
 // LimitedEntity is an interface used by MultiLimiter.Allow to determine
 // which rate limiter to use to allow the request
 type LimitedEntity interface {
-	Key() []byte
+	Key() keyType
 }
 
 // Limiter define a limiter to be part of the MultiLimiter structure
 type Limiter struct {
 	limiter    *rate.Limiter
 	lastAccess atomic.Int64
-	config     atomic.Pointer[LimiterConfig]
+	config     *atomic.Pointer[LimiterConfig]
 }
 
 // LimiterConfig is a Limiter configuration
@@ -56,8 +73,9 @@ func (c *Config) Equal(lc *LimiterConfig) bool {
 
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
-func (m *MultiLimiter) UpdateConfig(c Config) {
-	m.config.CompareAndSwap(m.config.Load(), &c)
+func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
+	newLimiters, _, _ := m.limiters.Load().Insert(prefix, c)
+	m.limiters.Store(newLimiters)
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -85,27 +103,40 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 	}()
 }
 
+// todo: split without converting to a string
+func splitKey(key []byte) ([]byte, []byte) {
+
+	s := strings.Split(string(key), string(separator))
+	if len(s) >= 2 {
+		return []byte(s[0]), []byte(s[1])
+	}
+	return nil, nil
+}
+
 // Allow should be called by a request processor to check if the current request is Limited
 // The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
+	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now().Unix()
-	c := m.config.Load()
 	if ok {
 		limiter := l.(*Limiter)
-		if c.Equal(limiter.config.Load()) {
-			limiter.lastAccess.Store(now)
-			return limiter.limiter.Allow()
-		}
+		limiter.lastAccess.Store(now)
+		return limiter.limiter.Allow()
 	}
-
-	limiter := &Limiter{limiter: rate.NewLimiter(c.Rate, c.Burst), config: atomic.Pointer[LimiterConfig]{}}
-	limiter.config.Store(&c.LimiterConfig)
+	c, okP := limiters.Get(prefix)
+	var config LimiterConfig
+	if okP {
+		config = c.(LimiterConfig)
+	} else {
+		config = m.config.Load().LimiterConfig
+	}
+	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst), config: &atomic.Pointer[LimiterConfig]{}}
+	limiter.config.Store(&config)
 	limiter.lastAccess.Store(now)
 	tree, _, _ := limiters.Insert(e.Key(), limiter)
 	m.limiters.Store(tree)
-
 	return limiter.limiter.Allow()
 }
 
@@ -125,23 +156,32 @@ func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
 		iter := limiters.Root().Iterator()
 		k, v, ok := iter.Next()
 		var txn *radix.Txn
+		var config LimiterConfig
 		for ok {
-			limiter := v.(*Limiter)
-			lastAccess := limiter.lastAccess.Load()
-			lastAccessT := time.Unix(lastAccess, 0)
-			diff := now.Sub(lastAccessT)
+			switch v.(type) {
+			case *Limiter:
+				limiter := v.(*Limiter)
+				lastAccess := limiter.lastAccess.Load()
+				lastAccessT := time.Unix(lastAccess, 0)
+				diff := now.Sub(lastAccessT)
 
-			if diff > c.CleanupCheckLimit {
-				if txn == nil {
-					txn = limiters.Txn()
+				if diff > c.CleanupCheckLimit {
+					if txn == nil {
+						txn = limiters.Txn()
+					}
+					txn.Delete(k)
 				}
-				txn.Delete(k)
+				if *limiter.config.Load() != config {
+					// update the limiter config
+					limiter.config.Store(&config)
+				}
+			case LimiterConfig:
+				config = v.(LimiterConfig)
 			}
 			k, v, ok = iter.Next()
 		}
 		if txn != nil {
 			limiters = txn.Commit()
-
 			m.limiters.CompareAndSwap(storedLimiters, limiters)
 		}
 	}

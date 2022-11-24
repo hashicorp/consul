@@ -10,11 +10,11 @@ import (
 )
 
 type Limited struct {
-	key string
+	key keyType
 }
 
 func (l Limited) Key() []byte {
-	return []byte(l.key)
+	return l.key
 }
 
 func TestNewMultiLimiter(t *testing.T) {
@@ -27,15 +27,16 @@ func TestNewMultiLimiter(t *testing.T) {
 func TestRateLimiterUpdate(t *testing.T) {
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, CleanupCheckLimit: 1 * time.Millisecond, CleanupCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
-	m.Allow(Limited{key: "test"})
+	key := makeKey("test")
+	m.Allow(Limited{key: key})
 	limiters := m.limiters.Load()
-	l1, ok1 := limiters.Get([]byte("test"))
+	l1, ok1 := limiters.Get(key)
 	require.True(t, ok1)
 	require.NotNil(t, l1)
 	la1 := l1.(*Limiter).lastAccess.Load()
-	m.Allow(Limited{key: "test"})
+	m.Allow(Limited{key: key})
 	limiters = m.limiters.Load()
-	l2, ok2 := limiters.Get([]byte("test"))
+	l2, ok2 := limiters.Get(key)
 	require.True(t, ok2)
 	require.NotNil(t, l2)
 	require.Equal(t, l1, l2)
@@ -52,25 +53,26 @@ func TestRateLimiterCleanup(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	m.Run(ctx)
-	m.Allow(Limited{key: "test"})
+	key := makeKey("test")
+	m.Allow(Limited{key: key})
 	limiters := m.limiters.Load()
-	l, ok := limiters.Get([]byte("test"))
+	l, ok := limiters.Get(key)
 	require.True(t, ok)
 	require.NotNil(t, l)
 
 	// Wait > CleanupCheckInterval and check that the key was cleaned up
 	time.Sleep(20 * time.Millisecond)
 	limiters = m.limiters.Load()
-	l, ok = limiters.Get([]byte("test"))
+	l, ok = limiters.Get(key)
 	require.False(t, ok)
 	require.Nil(t, l)
 
 	// Stop the cleanup routine, check that a key is not cleaned up after > CleanupCheckInterval
 	cancel()
-	m.Allow(Limited{key: "test"})
+	m.Allow(Limited{key: key})
 	time.Sleep(20 * time.Millisecond)
 	limiters = m.limiters.Load()
-	l, ok = limiters.Get([]byte("test"))
+	l, ok = limiters.Get(key)
 	require.True(t, ok)
 	require.NotNil(t, l)
 }
@@ -82,8 +84,8 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 	m := NewMultiLimiter(c)
 	require.Equal(t, *m.config.Load(), c)
 
-	// Allow an IP and check c is applied to that IP
-	ip := []byte("127.0.0.1")
+	// Allow an IP and check defaultConfig is applied to that IP
+	ip := makeKey("127.0.0.1")
 	m.Allow(ipLimited{key: ip})
 	l, ok := m.limiters.Load().Get(ip)
 	require.True(t, ok)
@@ -91,26 +93,44 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 	limiter := l.(*Limiter)
 	require.True(t, c.Equal(limiter.config.Load()))
 
-	// Update m config to c2 and check that c2 applied to m
-	c2 := Config{LimiterConfig: LimiterConfig{Rate: 1}, CleanupCheckLimit: 10 * time.Millisecond, CleanupCheckInterval: 100 * time.Millisecond}
-	m.UpdateConfig(c2)
-	require.Equal(t, *m.config.Load(), c2)
-
-	// Check that c2 is not yet applied to IP
+	// Allow an IP with prefix and check defaultConfig is applied to that IP
+	prefix := "namespace.write"
+	ip = makeKey(prefix, "127.0.0.1")
+	m.Allow(ipLimited{key: ip})
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter = l.(*Limiter)
 	require.True(t, c.Equal(limiter.config.Load()))
 
-	//Call Allow for IP and check that c2 is now applied
+	// Update m config to c2 and check that c2 applied to m
+	c2 := LimiterConfig{Rate: 1}
+	m.UpdateConfig(c2, []byte(prefix))
+	// call cleanupLimitedOnce to make sure the update is applied
+	m.cleanupLimitedOnce(context.Background())
 	m.Allow(ipLimited{key: ip})
 	l, ok = m.limiters.Load().Get(ip)
 	require.True(t, ok)
 	require.NotNil(t, l)
 	limiter = l.(*Limiter)
-	require.True(t, c2.Equal(limiter.config.Load()))
-	require.Equal(t, *m.config.Load(), c2)
+	require.Equal(t, c2, *limiter.config.Load())
+	time.Sleep(20 * time.Millisecond)
+	m.cleanupLimitedOnce(context.Background())
+	limiters := m.limiters.Load()
+	l, ok = limiters.Get(ip)
+	require.False(t, ok)
+	require.Nil(t, l)
+
+	c3 := LimiterConfig{Rate: 2}
+	m.UpdateConfig(c3, []byte(prefix))
+	// call cleanupLimitedOnce to make sure the update is applied
+	m.cleanupLimitedOnce(context.Background())
+	m.Allow(ipLimited{key: ip})
+	l, ok = m.limiters.Load().Get(ip)
+	require.True(t, ok)
+	require.NotNil(t, l)
+	limiter = l.(*Limiter)
+	require.Equal(t, c3, *limiter.config.Load())
 
 }
 
