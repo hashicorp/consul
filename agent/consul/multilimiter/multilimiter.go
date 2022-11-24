@@ -1,6 +1,7 @@
 package multilimiter
 
 import (
+	"bytes"
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
@@ -15,6 +16,10 @@ const separator = "♣"
 
 func makeKey(keys ...string) keyType {
 	return keyType(strings.Join(keys, separator))
+}
+
+func Key(prefix, key string) keyType {
+	return makeKey(prefix, key)
 }
 
 // RateLimiter is the interface implemented by MultiLimiter
@@ -55,19 +60,25 @@ type LimiterConfig struct {
 // Config is a MultiLimiter configuration
 type Config struct {
 	LimiterConfig
-	CleanupCheckLimit    time.Duration
-	CleanupCheckInterval time.Duration
-}
-
-func (c *Config) Equal(lc *LimiterConfig) bool {
-	return c.Burst == lc.Burst && c.Rate == lc.Rate
+	ReconcileCheckLimit    time.Duration
+	ReconcileCheckInterval time.Duration
 }
 
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
-	newLimiters, _, _ := m.limiters.Load().Insert(prefix, c)
-	m.limiters.Store(newLimiters)
+
+	limiters := m.limiters.Load()
+	l, ok := limiters.Get(prefix)
+	if !ok {
+		config := atomic.Pointer[LimiterConfig]{}
+		config.Store(&c)
+		newLimiters, _, _ := limiters.Insert(prefix, &Limiter{config: &config})
+		m.limiters.Store(newLimiters)
+		return
+	}
+	limiter := l.(*Limiter)
+	limiter.config.Store(&c)
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -76,21 +87,21 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	config := atomic.Pointer[Config]{}
 	config.Store(&c)
 	limiters.Store(radix.New())
-	if c.CleanupCheckLimit == 0 {
-		c.CleanupCheckLimit = 30 * time.Millisecond
+	if c.ReconcileCheckLimit == 0 {
+		c.ReconcileCheckLimit = 30 * time.Millisecond
 	}
-	if c.CleanupCheckInterval == 0 {
-		c.CleanupCheckLimit = 1 * time.Second
+	if c.ReconcileCheckInterval == 0 {
+		c.ReconcileCheckLimit = 1 * time.Second
 	}
 	m := &MultiLimiter{limiters: &limiters, config: &config}
 	return m
 }
 
-// Run the cleanup routine to remove old entries of Limiters based on CleanupCheckLimit and CleanupCheckInterval.
+// Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
 	go func() {
 		for {
-			m.cleanupLimitedOnce(ctx)
+			m.reconcileLimitedOnce(ctx)
 		}
 	}()
 }
@@ -98,11 +109,11 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 // todo: split without converting to a string
 func splitKey(key []byte) ([]byte, []byte) {
 
-	s := strings.Split(string(key), string(separator))
-	if len(s) >= 2 {
-		return []byte(s[0]), []byte(s[1])
+	ret := bytes.SplitN(key, []byte(separator), 2)
+	if len(ret) != 2 {
+		return nil, nil
 	}
-	return nil, nil
+	return ret[0], ret[1]
 }
 
 // Allow should be called by a request processor to check if the current request is Limited
@@ -118,26 +129,28 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 		return limiter.limiter.Allow()
 	}
 	c, okP := limiters.Get(prefix)
-	var config LimiterConfig
+	var prefixLimiter *Limiter
+	var config *LimiterConfig
 	if okP {
-		config = c.(LimiterConfig)
+		prefixLimiter = c.(*Limiter)
+		config = prefixLimiter.config.Load()
 	} else {
-		config = m.config.Load().LimiterConfig
+		config = &m.config.Load().LimiterConfig
 	}
-	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst), config: &atomic.Pointer[LimiterConfig]{}}
-	limiter.config.Store(&config)
+
+	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(now)
 	tree, _, _ := limiters.Insert(e.Key(), limiter)
 	m.limiters.Store(tree)
 	return limiter.limiter.Allow()
 }
 
-// cleanupLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
-// it will wait for CleanupCheckInterval before traversing the radix tree and removing all entries
-// with lastAccess > CleanupCheckLimit
-func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
+// reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
+// it will wait for ReconcileCheckInterval before traversing the radix tree and removing all entries
+// with lastAccess > ReconcileCheckLimit
+func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
 	c := m.config.Load()
-	waiter := time.NewTimer(c.CleanupCheckInterval)
+	waiter := time.NewTimer(c.ReconcileCheckInterval)
 	defer waiter.Stop()
 	select {
 	case <-ctx.Done():
@@ -148,33 +161,54 @@ func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
 		iter := limiters.Root().Iterator()
 		k, v, ok := iter.Next()
 		var txn *radix.Txn
-		var config LimiterConfig
+		txn = limiters.Txn()
+		// remove all expired limiters
 		for ok {
 			switch t := v.(type) {
 			case *Limiter:
-				// t is now equal to v.(*Limiter)
-				lastAccess := limiter.lastAccess.Load()
-				lastAccessT := time.Unix(lastAccess, 0)
-				diff := now.Sub(lastAccessT)
+				if t.limiter != nil {
+					lastAccess := t.lastAccess.Load()
+					lastAccessT := time.Unix(lastAccess, 0)
+					diff := now.Sub(lastAccessT)
 
-				if diff > c.CleanupCheckLimit {
-					if txn == nil {
-						txn = limiters.Txn()
+					if diff > c.ReconcileCheckLimit {
+						txn.Delete(k)
 					}
-					txn.Delete(k)
 				}
-				if *limiter.config.Load() != config {
-					// update the limiter config
-					limiter.config.Store(&config)
-				}
-			case LimiterConfig:
-				config = v.(LimiterConfig)
 			}
 			k, v, ok = iter.Next()
 		}
-		if txn != nil {
-			limiters = txn.Commit()
-			m.limiters.CompareAndSwap(storedLimiters, limiters)
+		iter = txn.Root().Iterator()
+		k, v, ok = iter.Next()
+
+		// make sure all limiters have the latest config of their prefix
+		for ok {
+			switch pl := v.(type) {
+			case *Limiter:
+				if pl.config != nil {
+					plConfig := pl.config.Load()
+					txn.Root().WalkPrefix(k, func(k1 []byte, v interface{}) bool {
+						switch l := v.(type) {
+						case *Limiter:
+							if l.limiter != nil {
+								if !plConfig.isApplied(l.limiter) {
+									limiter := Limiter{limiter: rate.NewLimiter(plConfig.Rate, plConfig.Burst)}
+									limiter.lastAccess.Store(l.lastAccess.Load())
+									txn.Insert(k1, &limiter)
+								}
+							}
+						}
+						return false
+					})
+				}
+			}
+			k, v, ok = iter.Next()
 		}
+		limiters = txn.Commit()
+		m.limiters.CompareAndSwap(storedLimiters, limiters)
 	}
+}
+
+func (lc *LimiterConfig) isApplied(l *rate.Limiter) bool {
+	return l.Limit() == lc.Rate && l.Burst() == lc.Burst
 }
