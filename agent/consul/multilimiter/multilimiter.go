@@ -11,18 +11,10 @@ import (
 
 var _ RateLimiter = &MultiLimiter{}
 
-const separator = "%"
+const separator = "♣"
 
 func makeKey(keys ...string) keyType {
-	var key string
-	for i, k := range keys {
-		if i == 0 {
-			key = k
-		} else {
-			key = key + separator + k
-		}
-	}
-	return keyType(key)
+	return keyType(strings.Join(keys, separator))
 }
 
 // RateLimiter is the interface implemented by MultiLimiter
@@ -158,9 +150,9 @@ func (m *MultiLimiter) cleanupLimitedOnce(ctx context.Context) {
 		var txn *radix.Txn
 		var config LimiterConfig
 		for ok {
-			switch v.(type) {
+			switch t := v.(type) {
 			case *Limiter:
-				limiter := v.(*Limiter)
+				// t is now equal to v.(*Limiter)
 				lastAccess := limiter.lastAccess.Load()
 				lastAccessT := time.Unix(lastAccess, 0)
 				diff := now.Sub(lastAccessT)
