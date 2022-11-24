@@ -164,3 +164,26 @@ type globalLimit []byte
 func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
+
+var (
+	// globalWrite identifies the global rate limit applied to write operations.
+	globalWrite = globalLimit("global.write")
+
+	// globalRead identifies the global rate limit applied to read operations.
+	globalRead = globalLimit("global.read")
+)
+
+type globalLimit string
+
+// Key satisfies the multilimiter.LimitedEntity interface. It returns the key
+// of the leaf node in which the limiter is stored.
+func (gl globalLimit) Key() []byte {
+	return multilimiter.Key(gl.ConfigKey(), []byte("limiter"))
+}
+
+// ConfigKey is the key of the multilimiter tree node in which the config lives.
+//
+// TODO: we have to do this beacause the multilimiter doesn't currently support
+// setting config directly on a leaf node, which we were eventually going to do
+// for per-identity/per-tenant limits. Maybe we should do that sooner?
+func (gl globalLimit) ConfigKey() []byte { return []byte(gl) }
