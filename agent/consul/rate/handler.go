@@ -25,6 +25,21 @@ var (
 	ErrRetryLater = errors.New("rate limit exceeded, try again later")
 )
 
+var (
+	// ErrRetryElsewhere indicates that the operation was not allowed because the
+	// rate limit was exhausted, but may succeed on a different server.
+	//
+	// Results in a RESOURCE_EXHAUSTED or "429 Too Many Requests" response.
+	ErrRetryElsewhere = errors.New("rate limit exceeded, try a different server")
+
+	// ErrRetryLater indicates that the operation was not allowed because the rate
+	// limit was exhausted, and trying a different server won't help (e.g. because
+	// the operation can only be performed on the leader).
+	//
+	// Results in an UNAVAILABLE or "503 Service Unavailable" response.
+	ErrRetryLater = errors.New("rate limit exceeded, try again later")
+)
+
 // Mode determines the action that will be taken when a rate limit has been
 // exhausted (e.g. log and allow, or reject).
 type Mode int
