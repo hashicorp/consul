@@ -77,6 +77,12 @@ type HandlerConfig struct {
 	//
 	// Note: in the future there'll be a separate Mode for IP-based limits.
 	GlobalMode Mode
+
+	// GlobalWriteConfig configures the global rate limiter for write operations.
+	GlobalWriteConfig multilimiter.LimiterConfig
+
+	// GlobalReadConfig configures the global rate limiter for read operations.
+	GlobalReadConfig multilimiter.LimiterConfig
 }
 
 type HandlerDelegate interface {
@@ -89,12 +95,17 @@ type HandlerDelegate interface {
 
 // NewHandler creates a new RPC rate limit handler.
 func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
+	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite.ConfigKey())
+	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead.ConfigKey())
+
 	h := &Handler{
 		cfg:      new(atomic.Pointer[HandlerConfig]),
 		delegate: delegate,
-		limiter:  multilimiter.NewMultiLimiter(cfg.Config),
+		limiter:  limiter,
 	}
 	h.cfg.Store(&cfg)
+
 	return h
 }
 
@@ -109,11 +120,39 @@ func (h *Handler) Run(ctx context.Context) {
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
 	// TODO(NET-1383): actually implement the rate limiting logic.
+	//
+	// Example:
+	//	if !h.limiter.Allow(globalWrite) {
+	//	}
 	return nil
 }
 
 // TODO(NET-1379): call this on `consul reload`.
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	h.cfg.Store(&cfg)
-	h.limiter.UpdateConfig(cfg.Config)
+	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite.ConfigKey())
+	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead.ConfigKey())
 }
+
+var (
+	// globalWrite identifies the global rate limit applied to write operations.
+	globalWrite = globalLimit("global.write")
+
+	// globalRead identifies the global rate limit applied to read operations.
+	globalRead = globalLimit("global.read")
+)
+
+type globalLimit string
+
+// Key satisfies the multilimiter.LimitedEntity interface. It returns the key
+// of the leaf node in which the limiter is stored.
+func (gl globalLimit) Key() []byte {
+	return multilimiter.Key(gl.ConfigKey(), []byte("limiter"))
+}
+
+// ConfigKey is the key of the multilimiter tree node in which the config lives.
+//
+// TODO: we have to do this beacause the multilimiter doesn't currently support
+// setting config directly on a leaf node, which we were eventually going to do
+// for per-identity/per-tenant limits. Maybe we should do that sooner?
+func (gl globalLimit) ConfigKey() []byte { return []byte(gl) }
