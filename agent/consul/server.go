@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -29,6 +28,8 @@ import (
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -876,7 +877,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.externalConnectCAServer.Register(srv)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -1828,6 +1829,11 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		return status, nil
 	}
 }
+
+// IncomingRPCLimiter returns the server's configured rate limit handler for
+// incoming RPCs. This is necessary because the external gRPC server is created
+// by the agent (as it is also used for xDS).
+func (s *Server) IncomingRPCLimiter() *rpcRate.Handler { return s.incomingRPCLimiter }
 
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same

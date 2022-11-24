@@ -563,12 +563,19 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
+	// gRPC calls are only rate-limited on server, not client agents.
+	grpcRateLimiter := middleware.NullRateLimiter()
+	if s, ok := a.delegate.(*consul.Server); ok {
+		grpcRateLimiter = s.IncomingRPCLimiter()
+	}
+
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
 	a.externalGRPCServer = external.NewServer(
 		a.logger.Named("grpc.external"),
 		metrics.Default(),
 		a.tlsConfigurator,
+		grpcRateLimiter,
 	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
