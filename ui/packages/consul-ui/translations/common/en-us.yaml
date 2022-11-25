@@ -84,5 +84,3 @@ validations:
   server-external-addresses:
     help: |
       Enter a fallback server address for this peer to be used in the event of failed automatic updates. This field is required for HCP-managed clusters.
-    test: "^$|^[a-zA-Z0-9]([a-zA-Z0-9-]'{0,62}'[a-zA-Z0-9])?$"
-

@@ -23,7 +23,7 @@
     as |Name|}}
       <fieldset>
         <TextInput
-          @label="Name of peer"
+          @label={{t 'components.consul.peer.generate.name'}}
           @name="Name"
           @item={{@item}}
           @validations={{Name}}
@@ -44,7 +44,7 @@
     as |ServerExternalAddresses|}}
       <fieldset>
         <TextInput
-          @label="Server address(es)"
+          @label={{t 'components.consul.peer.generate.addresses'}}
           @name="ServerExternalAddresses"
           @item={{@item}}
           @chart={{fsm}}
