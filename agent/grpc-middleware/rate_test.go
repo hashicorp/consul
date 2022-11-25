@@ -23,8 +23,9 @@ import (
 func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 	limiter := rate.NewMockRequestLimitsHandler(t)
 
+	logger := hclog.NewNullLogger()
 	server := grpc.NewServer(
-		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter, NewPanicHandler(hclog.NewNullLogger()))),
+		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter, NewPanicHandler(logger), logger)),
 	)
 	server.RegisterService(&healthpb.Health_ServiceDesc, health.NewServer())
 
