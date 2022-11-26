@@ -429,6 +429,11 @@ func (w *TokenWriter) normalizeServiceIdentities(svcIDs structs.ACLServiceIdenti
 		if !acl.IsValidServiceIdentityName(id.ServiceName) {
 			return nil, fmt.Errorf("Service identity %q has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", id.ServiceName)
 		}
+		for _, dc := range id.Datacenters {
+			if err := lib.ValidateBasicName("Service identity's datacenter", dc, true); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return svcIDs.Deduplicate(), nil
 }
@@ -438,8 +443,9 @@ func (w *TokenWriter) normalizeNodeIdentities(nodeIDs structs.ACLNodeIdentities)
 		if id.NodeName == "" {
 			return nil, errors.New("Node identity is missing the node name field on this token")
 		}
-		if id.Datacenter == "" {
-			return nil, errors.New("Node identity is missing the datacenter field on this token")
+
+		if err := lib.ValidateBasicName("Node identity's datacenter", id.Datacenter, false); err != nil {
+			return nil, err
 		}
 		if !acl.IsValidNodeIdentityName(id.NodeName) {
 			return nil, fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")

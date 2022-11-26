@@ -282,6 +282,11 @@ func TestTokenWriter_ServiceIdentities(t *testing.T) {
 			tokenLocal:    true,
 			errorContains: "cannot specify a list of datacenters on a local token",
 		},
+		"invalid dc in service identity": {
+			input:         []*structs.ACLServiceIdentity{{ServiceName: "web", Datacenters: []string{"dc1", "dc2#dc3"}}},
+			tokenLocal:    false,
+			errorContains: "datacenter can only contain lowercase alphanumeric",
+		},
 		"invalid service name": {
 			input:         []*structs.ACLServiceIdentity{{ServiceName: "INVALID!"}},
 			errorContains: "has an invalid name",
@@ -330,7 +335,11 @@ func TestTokenWriter_NodeIdentities(t *testing.T) {
 		},
 		"empty datacenter": {
 			input:         []*structs.ACLNodeIdentity{{NodeName: "web"}},
-			errorContains: "missing the datacenter field",
+			errorContains: "datacenter cannot be empty",
+		},
+		"invalid datacenter": {
+			input:         []*structs.ACLNodeIdentity{{NodeName: "web", Datacenter: "invalid-dc>"}},
+			errorContains: "datacenter can only contain lowercase alphanumeric",
 		},
 		"invalid node name": {
 			input:         []*structs.ACLNodeIdentity{{NodeName: "INVALID!", Datacenter: "dc1"}},

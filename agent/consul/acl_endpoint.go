@@ -848,6 +848,12 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 
+	for _, dc := range policy.Datacenters {
+		if err := lib.ValidateBasicName("valid-datacenter", dc, true); err != nil {
+			return err
+		}
+	}
+
 	var idMatch *structs.ACLPolicy
 	var nameMatch *structs.ACLPolicy
 	var err error
@@ -1310,6 +1316,11 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		if !acl.IsValidServiceIdentityName(svcid.ServiceName) {
 			return fmt.Errorf("Service identity %q has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
 		}
+		for _, dc := range svcid.Datacenters {
+			if err := lib.ValidateBasicName("Service identity's datacenter", dc, true); err != nil {
+				return err
+			}
+		}
 	}
 	role.ServiceIdentities = role.ServiceIdentities.Deduplicate()
 
@@ -1317,8 +1328,8 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		if nodeid.NodeName == "" {
 			return fmt.Errorf("Node identity is missing the node name field on this role")
 		}
-		if nodeid.Datacenter == "" {
-			return fmt.Errorf("Node identity is missing the datacenter field on this role")
+		if err := lib.ValidateBasicName("Node identity's datacenter", nodeid.Datacenter, false); err != nil {
+			return err
 		}
 		if !acl.IsValidNodeIdentityName(nodeid.NodeName) {
 			return fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")

@@ -1156,24 +1156,6 @@ func advertiseAddrFunc(opts LoadOpts, advertiseAddr *net.IPAddr) (string, func()
 	}
 }
 
-// reBasicName validates that a field contains only lower case alphanumerics,
-// underscore and dash and is non-empty.
-var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
-
-func validateBasicName(field, value string, allowEmpty bool) error {
-	if value == "" {
-		if allowEmpty {
-			return nil
-		}
-		return fmt.Errorf("%s cannot be empty", field)
-	}
-	if !reBasicName.MatchString(value) {
-		return fmt.Errorf("%s can only contain lowercase alphanumeric, - or _ characters."+
-			" received: %q", field, value)
-	}
-	return nil
-}
-
 // validate performs semantic validation of the runtime configuration.
 func (b *builder) validate(rt RuntimeConfig) error {
 	// validContentPath defines a regexp for a valid content path name.
@@ -1187,7 +1169,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("raft_protocol version %d is not supported by this version of Consul", rt.RaftProtocol)
 	}
 
-	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
+	if err := lib.ValidateBasicName("datacenter", rt.Datacenter, false); err != nil {
 		return err
 	}
 	if rt.DataDir == "" && !rt.DevMode {
@@ -1202,7 +1184,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %q", rt.UIConfig.ContentPath)
 	}
 
-	if err := validateBasicName("ui_config.metrics_provider", rt.UIConfig.MetricsProvider, true); err != nil {
+	if err := lib.ValidateBasicName("ui_config.metrics_provider", rt.UIConfig.MetricsProvider, true); err != nil {
 		return err
 	}
 	if rt.UIConfig.MetricsProviderOptionsJSON != "" {
@@ -1230,7 +1212,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		}
 	}
 	for k, v := range rt.UIConfig.DashboardURLTemplates {
-		if err := validateBasicName("ui_config.dashboard_url_templates key names", k, false); err != nil {
+		if err := lib.ValidateBasicName("ui_config.dashboard_url_templates key names", k, false); err != nil {
 			return err
 		}
 		u, err := url.Parse(v)
@@ -1314,7 +1296,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if err := validateBasicName("primary_datacenter", rt.PrimaryDatacenter, true); err != nil {
+	if err := lib.ValidateBasicName("primary_datacenter", rt.PrimaryDatacenter, true); err != nil {
 		return err
 	}
 	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check
