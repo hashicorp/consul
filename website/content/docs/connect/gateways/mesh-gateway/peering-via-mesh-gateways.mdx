@@ -7,10 +7,28 @@ description: >-
 
 # Enabling Peering Control Plane Traffic
 
-In addition to [service-to-service traffic routing](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers), mesh gateways can optionally be used to route control-plane traffic between peers.
-This includes the initial secret handshake and the bi-directional stream replicating peering data.
+In addition to [service-to-service traffic routing](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers),
+we recommend routing control plane traffic between cluster peers through mesh gateways
+to simplfy networking requirements.
+
+Control plane traffic between cluster peers includes
+the initial secret handshake and the bi-directional stream replicating peering data.
 This data is not decrypted by the mesh gateway(s).
 Instead, it is transmitted end-to-end using the accepting cluster’s auto-generated TLS certificate on the gRPC TLS port.
+
+<Tabs>
+<Tab heading="With mesh gateways (recommended)">
+
+[![Cluster peering with mesh gateways](/img/consul-connect/mesh-gateway/cluster-peering-connectivity-with-mesh-gateways.png)](/img/consul-connect/mesh-gateway/cluster-peering-connectivity-with-mesh-gateways.png)
+
+</Tab>
+
+<Tab heading="Without mesh gateways">
+
+[![Cluster peering without mesh gateways](/img/consul-connect/mesh-gateway/cluster-peering-connectivity-without-mesh-gateways.png)](/img/consul-connect/mesh-gateway/cluster-peering-connectivity-without-mesh-gateways.png)
+
+</Tab>
+</Tabs>
 
 ## Prerequisites
 
