@@ -1247,7 +1247,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 		err := a.TokenSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "datacenter is not in a valid format")
+		testutil.RequireErrorContains(t, err, "datacenter can only contain lowercase alphanumeric")
 	})
 }
 
