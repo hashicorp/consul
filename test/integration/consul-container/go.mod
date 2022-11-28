@@ -11,9 +11,11 @@ require (
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9
 	github.com/pkg/errors v0.9.1
+	github.com/rogpeppe/go-internal v1.3.0
 	github.com/stretchr/testify v1.8.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	github.com/testcontainers/testcontainers-go v0.13.0
+	golang.org/x/mod v0.4.2
 )
 
 require (
