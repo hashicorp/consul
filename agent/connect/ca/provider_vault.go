@@ -71,6 +71,11 @@ type VaultProvider struct {
 	spiffeID  *connect.SpiffeIDSigning
 	logger    hclog.Logger
 
+	// isConsulMountedIntermediate is used to determine if we should tune the
+	// mount if the VaultProvider is ever reconfigured. This is at most a
+	// "best guess" to determine whether this instance of Consul created the
+	// intermediate mount but will not be able to tell if an existing mount
+	// was created by Consul (in a previous running instance) or was external.
 	isConsulMountedIntermediate bool
 }
 
@@ -398,29 +403,33 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			return fmt.Errorf("unexpected error while fetching intermediate CA: %w", err)
 		}
 	} else {
-		// If Consul was responsible for mounting the intermediate PKI path
-		// we should update the mount with any new config.
-		if v.isConsulMountedIntermediate {
-			// This codepath requires the Vault policy:
-			//
-			//   path "/sys/mounts/<intermediate_pki_path>/tune" {
-			//     capabilities = [ "update" ]
-			//   }
-			//
-			err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
-			if err != nil {
+		v.logger.Info("Found existing Intermediate PKI path mount",
+			"namespace", v.config.IntermediatePKINamespace,
+			"path", v.config.IntermediatePKIPath,
+		)
+
+		// This codepath requires the Vault policy:
+		//
+		//   path "/sys/mounts/<intermediate_pki_path>/tune" {
+		//     capabilities = [ "update" ]
+		//   }
+		//
+		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
+		if err != nil {
+			if v.isConsulMountedIntermediate {
 				v.logger.Warn("Intermediate PKI path was mounted by Consul but could not be tuned",
+					"namespace", v.config.IntermediatePKINamespace,
+					"path", v.config.IntermediatePKIPath,
+					"error", err,
+				)
+			} else {
+				v.logger.Debug("Failed to tune Intermediate PKI mount. 403 Forbidden is expected if Consul does not have tune capabilities for the Intermediate PKI mount (i.e. using Vault-managed policies)",
 					"namespace", v.config.IntermediatePKINamespace,
 					"path", v.config.IntermediatePKIPath,
 					"error", err,
 				)
 			}
 
-		} else {
-			v.logger.Info("Found existing Intermediate PKI path mount",
-				"namespace", v.config.IntermediatePKINamespace,
-				"path", v.config.IntermediatePKIPath,
-			)
 		}
 	}
 
