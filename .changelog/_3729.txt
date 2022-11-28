@@ -1,0 +1,3 @@
+```release-note:bug
+namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+```
