@@ -14,7 +14,7 @@ import (
 )
 
 type Limited struct {
-	key keyType
+	key KeyType
 }
 
 func (l Limited) Key() []byte {
