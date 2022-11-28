@@ -5,7 +5,6 @@ import (
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
-	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -14,11 +13,11 @@ var _ RateLimiter = &MultiLimiter{}
 
 const separator = "♣"
 
-func makeKey(keys ...string) keyType {
-	return keyType(strings.Join(keys, separator))
+func makeKey(keys ...[]byte) keyType {
+	return bytes.Join(keys, []byte(separator))
 }
 
-func Key(prefix, key string) keyType {
+func Key(prefix, key []byte) keyType {
 	return makeKey(prefix, key)
 }
 
@@ -68,17 +67,24 @@ type Config struct {
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
 
+	if prefix == nil {
+		prefix = []byte("")
+	}
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(prefix)
-	if !ok {
-		config := atomic.Pointer[LimiterConfig]{}
-		config.Store(&c)
-		newLimiters, _, _ := limiters.Insert(prefix, &Limiter{config: &config})
-		m.limiters.Store(newLimiters)
-		return
+	if ok {
+		limiter := l.(*Limiter)
+		if limiter.config != nil {
+			limiter.config.Store(&c)
+			return
+		}
 	}
-	limiter := l.(*Limiter)
-	limiter.config.Store(&c)
+
+	config := atomic.Pointer[LimiterConfig]{}
+	config.Store(&c)
+	newLimiters, _, _ := limiters.Insert(prefix, &Limiter{config: &config})
+	m.limiters.Store(newLimiters)
+	return
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -111,7 +117,7 @@ func splitKey(key []byte) ([]byte, []byte) {
 
 	ret := bytes.SplitN(key, []byte(separator), 2)
 	if len(ret) != 2 {
-		return nil, nil
+		return []byte(""), []byte("")
 	}
 	return ret[0], ret[1]
 }
@@ -125,17 +131,19 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	now := time.Now().Unix()
 	if ok {
 		limiter := l.(*Limiter)
-		limiter.lastAccess.Store(now)
-		return limiter.limiter.Allow()
+		if limiter.limiter != nil {
+			limiter.lastAccess.Store(now)
+			return limiter.limiter.Allow()
+		}
 	}
 	c, okP := limiters.Get(prefix)
 	var prefixLimiter *Limiter
-	var config *LimiterConfig
+	var config = &m.config.Load().LimiterConfig
 	if okP {
 		prefixLimiter = c.(*Limiter)
-		config = prefixLimiter.config.Load()
-	} else {
-		config = &m.config.Load().LimiterConfig
+		if prefixLimiter.config != nil {
+			config = prefixLimiter.config.Load()
+		}
 	}
 
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
@@ -185,21 +193,25 @@ func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
 		for ok {
 			switch pl := v.(type) {
 			case *Limiter:
-				if pl.config != nil {
-					plConfig := pl.config.Load()
-					txn.Root().WalkPrefix(k, func(k1 []byte, v interface{}) bool {
-						switch l := v.(type) {
+				// check if it has a limiter, if so that's a lead
+				if pl.limiter != nil {
+					// find the prefix for the leaf and check if the config is up-to-date
+					// it's possible that this end up being the same node
+					prefix, _ := splitKey(k)
+					v, ok := txn.Get(prefix)
+					if ok {
+						switch cl := v.(type) {
 						case *Limiter:
-							if l.limiter != nil {
-								if !plConfig.isApplied(l.limiter) {
-									limiter := Limiter{limiter: rate.NewLimiter(plConfig.Rate, plConfig.Burst)}
-									limiter.lastAccess.Store(l.lastAccess.Load())
-									txn.Insert(k1, &limiter)
+							if cl.config != nil {
+								clConfig := cl.config.Load()
+								if !clConfig.isApplied(pl.limiter) {
+									limiter := Limiter{limiter: rate.NewLimiter(clConfig.Rate, clConfig.Burst)}
+									limiter.lastAccess.Store(pl.lastAccess.Load())
+									txn.Insert(k, &limiter)
 								}
 							}
 						}
-						return false
-					})
+					}
 				}
 			}
 			k, v, ok = iter.Next()
