@@ -46,7 +46,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 
 Consider the following technical constraints:
 
-- Services with node, instance, and check definitions totaling more than 50MB cannot be exported to a peer.
+- Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
 - Two admin partitions in the same datacenter cannot be peered. Use [`exported-services`](/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.
