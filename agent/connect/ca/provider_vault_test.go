@@ -924,6 +924,111 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	require.NotEqual(t, orig, new)
 }
 
+func TestVaultCAProvider_VaultManaged(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	const vaultManagedPKIPolicy = `
+path "/pki-root/" {
+	capabilities = [ "read" ]
+}
+  
+path "/pki-root/root/sign-intermediate" {
+	capabilities = [ "update" ]
+}
+  
+path "/pki-intermediate/*" {
+	capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+  
+path "auth/token/renew-self" {
+	  capabilities = [ "update" ]
+}
+  
+path "auth/token/lookup-self" {
+	  capabilities = [ "read" ]
+}
+`
+
+	testVault, err := runTestVault(t)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testVault.WaitUntilReady(t)
+
+	client := testVault.Client()
+
+	client.SetToken("root")
+
+	// Mount pki root externally
+	require.NoError(t, client.Sys().Mount("pki-root", &vaultapi.MountInput{
+		Type:        "pki",
+		Description: "root CA backend for Consul Connect",
+		Config: vaultapi.MountConfigInput{
+			MaxLeaseTTL: "12m",
+		},
+	}))
+	_, err = client.Logical().Write("pki-root/root/generate/internal", map[string]interface{}{
+		"common_name": "testconsul",
+	})
+	require.NoError(t, err)
+
+	// Mount pki intermediate externally
+	require.NoError(t, client.Sys().Mount("pki-intermediate", &vaultapi.MountInput{
+		Type:        "pki",
+		Description: "intermediate CA backend for Consul Connect",
+		Config: vaultapi.MountConfigInput{
+			MaxLeaseTTL: "6m",
+		},
+	}))
+
+	// Generate a policy and token for the VaultProvider to use
+	require.NoError(t, client.Sys().PutPolicy("consul-ca", vaultManagedPKIPolicy))
+	tcr := &vaultapi.TokenCreateRequest{
+		Policies: []string{"consul-ca"},
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	// We want to test the provider.Configure() step
+	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+}
+
+func TestVaultCAProvider_ConsulManaged(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testVault.WaitUntilReady(t)
+
+	client := testVault.Client()
+
+	client.SetToken("root")
+
+	// We do not configure any mounts and instead let Consul
+	// be responsible for mounting root and intermediate PKI
+
+	// Generate a policy and token for the VaultProvider to use
+	require.NoError(t, client.Sys().PutPolicy("consul-ca", pkiTestPolicy))
+	tcr := &vaultapi.TokenCreateRequest{
+		Policies: []string{"consul-ca"},
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	// We want to test the provider.Configure() step
+	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
