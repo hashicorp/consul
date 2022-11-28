@@ -15,7 +15,7 @@ Consul Dataplane requires servers running Consul v1.14.0+ and Consul K8s v1.0.0+
 
 In standard deployments, Consul uses a control plane that contains both _server agents_ and _client agents_. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes already include components called _kubelets_ that support health checking and service location functions typically provided by the client agent.
 
-Consul Dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every pod. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in Kubernetes deployments is no longer an issue.
+Consul Dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every node. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in Kubernetes deployments is no longer an issue.
 
 ![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
 
