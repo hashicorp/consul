@@ -83,10 +83,10 @@ func TestRateLimiterCleanup(t *testing.T) {
 
 func TestRateLimiterUpdateConfig(t *testing.T) {
 
-	// Create a MultiLimiter m with a config c and check the config is applied
+	// Create a MultiLimiter m with a defaultConfig c and check the defaultConfig is applied
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
-	require.Equal(t, *m.config.Load(), c)
+	require.Equal(t, *m.defaultConfig.Load(), c)
 
 	t.Run("Allow a key and check defaultConfig is applied to that key", func(t *testing.T) {
 		ipNoPrefix := Key([]byte(""), []byte("127.0.0.1"))
@@ -110,7 +110,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		limiter := l.(*Limiter)
 		require.True(t, c.LimiterConfig.isApplied(limiter.limiter))
 	})
-	t.Run("Apply a config to 'namespace.write' check the config is applied to existing keys under that prefix", func(t *testing.T) {
+	t.Run("Apply a defaultConfig to 'namespace.write' check the defaultConfig is applied to existing keys under that prefix", func(t *testing.T) {
 		prefix := []byte("namespace.write")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c3 := LimiterConfig{Rate: 2}
@@ -124,7 +124,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		limiter3 := l3.(*Limiter)
 		require.True(t, c3.isApplied(limiter3.limiter))
 	})
-	t.Run("Allow an IP with prefix and check prefix config is applied to new keys under that prefix", func(t *testing.T) {
+	t.Run("Allow an IP with prefix and check prefix defaultConfig is applied to new keys under that prefix", func(t *testing.T) {
 		c := LimiterConfig{Rate: 3}
 		prefix := []byte("namespace.read")
 		m.UpdateConfig(c, prefix)
@@ -137,7 +137,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.True(t, c.isApplied(limiter.limiter))
 	})
 
-	t.Run("Allow an IP with prefix and check after it's cleaned new Allow would give it the right config", func(t *testing.T) {
+	t.Run("Allow an IP with prefix and check after it's cleaned new Allow would give it the right defaultConfig", func(t *testing.T) {
 		prefix := []byte("namespace.read")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c := LimiterConfig{Rate: 1}
@@ -161,7 +161,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 func FuzzSingleConfig(f *testing.F) {
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
-	require.Equal(f, *m.config.Load(), c)
+	require.Equal(f, *m.defaultConfig.Load(), c)
 	f.Add(makeKey(randIP()))
 	f.Add(makeKey(randIP(), randIP()))
 	f.Add(makeKey(randIP(), randIP(), randIP()))
