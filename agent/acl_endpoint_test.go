@@ -747,6 +747,17 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, expected, token)
 		})
+		t.Run("Self-expanded", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/self?expanded=true&token="+expected.SecretID, nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenSelf(resp, req)
+			require.NoError(t, err)
+			tokenResp, ok := obj.(*structs.ACLTokenExpanded)
+			require.True(t, ok)
+			require.Equal(t, expected, tokenResp.ACLToken)
+			require.Len(t, tokenResp.ExpandedPolicies, 3)
+		})
 		t.Run("Clone", func(t *testing.T) {
 			tokenInput := &structs.ACLToken{
 				Description: "cloned token",

@@ -62,7 +62,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.tokenID == "" && !c.self {
-		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
+		c.UI.Error("Must specify the -id parameter")
 		return 1
 	}
 
@@ -92,14 +92,12 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 	} else {
-		// TODO: consider updating this CLI command and underlying HTTP API endpoint
-		// to support expanded read of a "self" token, which is a much better user workflow.
-		if c.expanded {
-			c.UI.Error("Cannot use both -expanded and -self. Instead, use -expanded and -id=<accessor id>.")
-			return 1
+		if !c.expanded {
+			t, _, err = client.ACL().TokenReadSelf(nil)
+		} else {
+			expanded, _, err = client.ACL().TokenReadSelfExpanded(nil)
 		}
 
-		t, _, err = client.ACL().TokenReadSelf(nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading token: %v", err))
 			return 1

@@ -853,6 +853,34 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	return &out, qm, nil
 }
 
+// TokenReadSelfExpanded retrieves the full token details and 
+// the contents of any policies of the token currently assigned 
+// to the API Client. In this manner its possible to read a token
+// by its Secret ID.
+func (a *ACL) TokenReadSelfExpanded(q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/self")
+	r.setQueryOptions(q)
+	r.params.Set("expanded", "true")
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out ACLTokenExpanded
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
+}
+
 // TokenList lists all tokens. The listing does not contain any SecretIDs as those
 // may only be retrieved by a call to TokenRead.
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {

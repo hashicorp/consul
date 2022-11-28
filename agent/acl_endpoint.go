@@ -326,6 +326,9 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	if _, ok := req.URL.Query()["expanded"]; ok {
+		args.Expanded = true
+	}
 
 	// copy the token parameter to the ID
 	args.TokenID = args.Token
@@ -342,6 +345,13 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 
 	if out.Token == nil {
 		return nil, acl.ErrNotFound
+	}
+	if args.Expanded {
+		expanded := &structs.ACLTokenExpanded{
+			ACLToken:          out.Token,
+			ExpandedTokenInfo: out.ExpandedTokenInfo,
+		}
+		return expanded, nil
 	}
 
 	return out.Token, nil
