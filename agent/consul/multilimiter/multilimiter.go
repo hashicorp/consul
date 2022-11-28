@@ -13,11 +13,11 @@ var _ RateLimiter = &MultiLimiter{}
 
 const separator = "♣"
 
-func makeKey(keys ...[]byte) keyType {
+func makeKey(keys ...[]byte) KeyType {
 	return bytes.Join(keys, []byte(separator))
 }
 
-func Key(prefix, key []byte) keyType {
+func Key(prefix, key []byte) KeyType {
 	return makeKey(prefix, key)
 }
 
@@ -35,12 +35,12 @@ type MultiLimiter struct {
 	config   *atomic.Pointer[Config]
 }
 
-type keyType = []byte
+type KeyType = []byte
 
 // LimitedEntity is an interface used by MultiLimiter.Allow to determine
 // which rate limiter to use to allow the request
 type LimitedEntity interface {
-	Key() keyType
+	Key() KeyType
 }
 
 // Limiter define a limiter to be part of the MultiLimiter structure
