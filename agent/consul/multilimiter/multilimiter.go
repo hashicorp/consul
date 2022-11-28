@@ -32,6 +32,7 @@ type RateLimiter interface {
 // specific to different LimitedEntities and queried by a LimitedEntities.Key()
 type MultiLimiter struct {
 	limiters *atomic.Pointer[radix.Tree]
+	configs  *atomic.Pointer[radix.Tree]
 	config   *atomic.Pointer[Config]
 }
 
@@ -47,7 +48,6 @@ type LimitedEntity interface {
 type Limiter struct {
 	limiter    *rate.Limiter
 	lastAccess atomic.Int64
-	config     *atomic.Pointer[LimiterConfig]
 }
 
 // LimiterConfig is a Limiter configuration
@@ -66,40 +66,31 @@ type Config struct {
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
-
 	if prefix == nil {
 		prefix = []byte("")
 	}
-	limiters := m.limiters.Load()
-	l, ok := limiters.Get(prefix)
-	if ok {
-		limiter := l.(*Limiter)
-		if limiter.config != nil {
-			limiter.config.Store(&c)
-			return
-		}
-	}
-
+	configs := m.configs.Load()
 	config := atomic.Pointer[LimiterConfig]{}
 	config.Store(&c)
-	newLimiters, _, _ := limiters.Insert(prefix, &Limiter{config: &config})
-	m.limiters.Store(newLimiters)
-	return
+	newConfigs, _, _ := configs.Insert(prefix, &c)
+	m.configs.Store(newConfigs)
 }
 
 // NewMultiLimiter create a new MultiLimiter
 func NewMultiLimiter(c Config) *MultiLimiter {
 	limiters := atomic.Pointer[radix.Tree]{}
+	configs := atomic.Pointer[radix.Tree]{}
 	config := atomic.Pointer[Config]{}
 	config.Store(&c)
 	limiters.Store(radix.New())
+	configs.Store(radix.New())
 	if c.ReconcileCheckLimit == 0 {
 		c.ReconcileCheckLimit = 30 * time.Millisecond
 	}
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, config: &config}
+	m := &MultiLimiter{limiters: &limiters, config: &config, configs: &configs}
 	return m
 }
 
@@ -129,6 +120,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now().Unix()
+
 	if ok {
 		limiter := l.(*Limiter)
 		if limiter.limiter != nil {
@@ -136,13 +128,14 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 			return limiter.limiter.Allow()
 		}
 	}
-	c, okP := limiters.Get(prefix)
-	var prefixLimiter *Limiter
+
+	configs := m.configs.Load()
+	c, okP := configs.Get(prefix)
 	var config = &m.config.Load().LimiterConfig
 	if okP {
-		prefixLimiter = c.(*Limiter)
-		if prefixLimiter.config != nil {
-			config = prefixLimiter.config.Load()
+		prefixConfig := c.(*LimiterConfig)
+		if prefixConfig != nil {
+			config = prefixConfig
 		}
 	}
 
@@ -196,16 +189,15 @@ func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
 				// check if it has a limiter, if so that's a lead
 				if pl.limiter != nil {
 					// find the prefix for the leaf and check if the config is up-to-date
-					// it's possible that this end up being the same node
+					// it's possible that the prefix is equal to the key
 					prefix, _ := splitKey(k)
-					v, ok := txn.Get(prefix)
+					v, ok := m.configs.Load().Get(prefix)
 					if ok {
 						switch cl := v.(type) {
-						case *Limiter:
-							if cl.config != nil {
-								clConfig := cl.config.Load()
-								if !clConfig.isApplied(pl.limiter) {
-									limiter := Limiter{limiter: rate.NewLimiter(clConfig.Rate, clConfig.Burst)}
+						case *LimiterConfig:
+							if cl != nil {
+								if !cl.isApplied(pl.limiter) {
+									limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
 									limiter.lastAccess.Store(pl.lastAccess.Load())
 									txn.Insert(k, &limiter)
 								}

@@ -226,10 +226,9 @@ func checkTree(t require.TestingT, tree *radix.Tree) {
 				prefix, _ := splitKey(kp)
 				v, _ := tree.Get(prefix)
 				switch c2 := v.(type) {
-				case *Limiter:
-					if c2.config != nil {
-						config := c2.config.Load()
-						applied := config.isApplied(c.limiter)
+				case *LimiterConfig:
+					if c2 != nil {
+						applied := c2.isApplied(c.limiter)
 						require.True(t, applied, fmt.Sprintf("%v,%v", kp, prefix))
 					}
 
