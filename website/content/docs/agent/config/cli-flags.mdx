@@ -403,8 +403,8 @@ information.
 - `-retry-interval` ((#\_retry_interval)) - Time to wait between join attempts.
   Defaults to 30s.
 
-- `-retry-max` ((#\_retry_max)) - The maximum number of [`-join`](#_join)
-  attempts to be made before exiting with return code 1. By default, this is set
+- `-retry-max` ((#\_retry_max)) - The maximum number of join attempts if using
+  [`-retry-join`](#_retry_join) before exiting with return code 1. By default, this is set
   to 0 which is interpreted as infinite retries.
 
 - `-join-wan` ((#\_join_wan)) - Address of another wan agent to join upon

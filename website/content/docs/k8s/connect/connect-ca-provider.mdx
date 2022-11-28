@@ -23,6 +23,9 @@ To configure the Vault service mesh provider, refer to [Vault as the Service Mes
 
 ## Configuring Vault as a Connect CA (Consul K8s 0.37.0 and earlier)
 
+
+~> **Note:** Do not use Vault v1.11.0+ as Consul's Connect CA provider — the intermediate CA will become unable to issue the leaf nodes required by service mesh, and by Consul client agents if using auto-encrypt or auto-config and using TLS for agent communication. If you are already using Vault 1.11+ as a Connect CA, refer to this [Knowledge Base article](https://support.hashicorp.com/hc/en-us/articles/11308460105491) for more information about the underlying cause and recommended workaround.
+
 The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. It describes how to configure Vault as the Connect CA. You can configure other providers during initial bootstrap of the cluster by providing the appropriate [`ca_config`] and [`ca_provider`] values for your provider.
 
 -> **Auto-renewal:** If using Vault as your Connect CA, we strongly recommend Consul 1.8.5 or later, which includes support for token auto-renewal. If the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable), then Consul automatically renews the token periodically. Otherwise, you must [manually rotate](#manually-rotating-vault-tokens) the Vault token before it expires.

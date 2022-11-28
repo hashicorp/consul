@@ -6,7 +6,7 @@ replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
 	github.com/google/go-cmp v0.5.7
-	github.com/hashicorp/consul/sdk v0.12.0
+	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-rootcerts v1.0.2
@@ -26,6 +26,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
+	github.com/hashicorp/go-version v1.2.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/memberlist v0.5.0 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
