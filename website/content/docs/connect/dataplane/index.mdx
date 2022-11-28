@@ -17,7 +17,18 @@ In standard deployments, Consul uses a control plane that contains both _server 
 
 Consul Dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every pod. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in Kubernetes deployments is no longer an issue.
 
-![Diagram of Consul Dataplanes in Kubernetes deployment](/img/dataplanes-diagram.png)
+![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
+
+### Impact on performance
+
+The most significant differences between traditional deployments and Consul Dataplane deployments result from the removal of node-level client agents with gossip communication. They are replaced by _dataplanes_, which are the sidecars injected alongside each service instance that handle communication between Consul servers and Envoy proxies.
+
+Be aware of the following changes and their impact on your network's performance:
+
+1. Consul servers consume additional resources in order to generate xDS resources for Envoy proxies. In our internal load tests, performing at high scale and churn resulted in additional CPU utilization rates under 10% on the control plane. 
+1. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
+1. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
+1. The frequency of the orchestrator's liveness and readiness probes determine how quickly Consul's control plane can become aware of failures. There is no impact on service mesh applications, however, as Envoy proxies have a passive ability to detect endpoint failure and steer traffic to healthy instances.
 
 ## Benefits
 
