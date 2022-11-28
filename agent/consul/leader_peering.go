@@ -360,7 +360,7 @@ func (s *Server) establishStream(ctx context.Context,
 				// send keepalive pings even if there is no active streams
 				PermitWithoutStream: true,
 			}),
-			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(50 * 1024 * 1024)),
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(8*1024*1024), grpc.MaxCallRecvMsgSize(8*1024*1024)),
 		}
 
 		logger.Trace("dialing peer", "addr", addr)
