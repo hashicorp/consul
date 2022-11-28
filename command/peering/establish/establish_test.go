@@ -72,7 +72,7 @@ func TestEstablishCommand(t *testing.T) {
 
 	t.Run("establish connection", func(t *testing.T) {
 		// Grab the token from the acceptor
-		req := api.PeeringGenerateTokenRequest{PeerName: "foo"}
+		req := api.PeeringGenerateTokenRequest{Peer: "foo"}
 		res, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), req, &api.WriteOptions{})
 		require.NoError(t, err, "Could not generate peering token at acceptor")
 
@@ -95,7 +95,7 @@ func TestEstablishCommand(t *testing.T) {
 
 	t.Run("establish connection with options", func(t *testing.T) {
 		// Grab the token from the acceptor
-		req := api.PeeringGenerateTokenRequest{PeerName: "foo"}
+		req := api.PeeringGenerateTokenRequest{Peer: "foo"}
 		res, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), req, &api.WriteOptions{})
 		require.NoError(t, err, "Could not generate peering token at acceptor")
 

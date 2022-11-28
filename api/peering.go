@@ -97,7 +97,9 @@ type PeeringReadResponse struct {
 }
 
 type PeeringGenerateTokenRequest struct {
-	// PeerName is the name of the remote peer.
+	// Name of the remote peer.
+	Peer string
+	// Deprecated: PeerName is the name of the remote peer.
 	PeerName string
 	// Partition to be peered.
 	Partition string `json:",omitempty"`
@@ -117,6 +119,8 @@ type PeeringGenerateTokenResponse struct {
 
 type PeeringEstablishRequest struct {
 	// Name of the remote peer.
+	Peer string
+	// Deprecated: Name of the remote peer.
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
 	PeeringToken string `json:",omitempty"`
@@ -201,8 +205,8 @@ func (p *Peerings) Delete(ctx context.Context, name string, q *WriteOptions) (*W
 
 // TODO(peering): verify this is the ultimate signature we want
 func (p *Peerings) GenerateToken(ctx context.Context, g PeeringGenerateTokenRequest, wq *WriteOptions) (*PeeringGenerateTokenResponse, *WriteMeta, error) {
-	if g.PeerName == "" {
-		return nil, nil, fmt.Errorf("peer name cannot be empty")
+	if g.Peer == "" && g.PeerName == "" {
+		return nil, nil, fmt.Errorf("peer cannot be empty")
 	}
 
 	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/token"))

@@ -79,13 +79,13 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 	wg.Wait()
 
 	generateReq := api.PeeringGenerateTokenRequest{
-		PeerName: acceptingPeerName,
+		Peer: acceptingPeerName,
 	}
 	generateRes, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	require.NoError(t, err)
 
 	establishReq := api.PeeringEstablishRequest{
-		PeerName:     dialingPeerName,
+		Peer:         dialingPeerName,
 		PeeringToken: generateRes.PeeringToken,
 	}
 	_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})

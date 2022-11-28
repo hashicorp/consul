@@ -298,7 +298,8 @@ message PeeringWriteRequest {
   // object to avoid leaking them.
   SecretsWriteRequest SecretsRequest = 2;
 
-  map<string, string> Meta = 3;
+  // Deprecated: Use Peering.Meta instead.
+  map<string, string> Meta = 3 [deprecated = true];
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
@@ -361,8 +362,10 @@ message PeeringTrustBundleDeleteResponse {}
 // output=peering.gen.go
 // name=API
 message GenerateTokenRequest {
+  // Deprecated: use Peer instead.
+  string PeerName = 1 [deprecated = true];
   // Name of the remote peer.
-  string PeerName = 1;
+  string Peer = 7;
 
   // Partition is the local partition being peered.
   string Partition = 2;
@@ -393,8 +396,10 @@ message GenerateTokenResponse {
 // output=peering.gen.go
 // name=API
 message EstablishRequest {
+  // Deprecated: use Peer instead.
+  string PeerName = 1 [deprecated = true];
   // Name of the remote peer.
-  string PeerName = 1;
+  string Peer = 5;
 
   // The peering token returned from the peer's GenerateToken endpoint.
   string PeeringToken = 2;

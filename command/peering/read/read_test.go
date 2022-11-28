@@ -82,7 +82,7 @@ func TestReadCommand(t *testing.T) {
 	t.Run("read with pretty print", func(t *testing.T) {
 
 		generateReq := api.PeeringGenerateTokenRequest{
-			PeerName: "foo",
+			Peer: "foo",
 			Meta: map[string]string{
 				"env": "production",
 			},

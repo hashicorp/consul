@@ -88,7 +88,7 @@ func (c *cmd) Run(args []string) int {
 		addresses = strings.Split(c.externalAddresses, ",")
 	}
 	req := api.PeeringGenerateTokenRequest{
-		PeerName:                c.name,
+		Peer:                    c.name,
 		Partition:               c.http.Partition(),
 		Meta:                    c.meta,
 		ServerExternalAddresses: addresses,
@@ -96,7 +96,7 @@ func (c *cmd) Run(args []string) int {
 
 	res, _, err := peerings.GenerateToken(context.Background(), req, &api.WriteOptions{})
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error generating peering token for %s: %v", req.PeerName, err))
+		c.UI.Error(fmt.Sprintf("Error generating peering token for %s: %v", req.Peer, err))
 		return 1
 	}
 

@@ -1525,7 +1525,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		peeringClient := pbpeering.NewPeeringServiceClient(conn)
 		req := pbpeering.GenerateTokenRequest{
-			PeerName: dialingPeerName,
+			Peer: dialingPeerName,
 		}
 		resp, err := peeringClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)
@@ -1540,7 +1540,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		peeringClient = pbpeering.NewPeeringServiceClient(conn)
 		establishReq := pbpeering.EstablishRequest{
-			PeerName:     acceptingPeerName,
+			Peer:         acceptingPeerName,
 			PeeringToken: resp.PeeringToken,
 		}
 		establishResp, err := peeringClient.Establish(ctx, &establishReq)

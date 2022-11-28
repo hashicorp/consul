@@ -29,7 +29,7 @@ func TestHTTP_Peering_GenerateToken_OSS_Failure(t *testing.T) {
 
 	t.Run("Doesn't allow partitions in OSS HTTP requests", func(t *testing.T) {
 		reqBody := &pbpeering.GenerateTokenRequest{
-			PeerName: "peering-a",
+			Peer: "peering-a",
 		}
 		reqBodyBytes, err := json.Marshal(reqBody)
 		require.NoError(t, err)

@@ -70,7 +70,7 @@ func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 	testutil.RunStep(t, "forward a write", func(t *testing.T) {
 		// Do the grpc Write call to server2
 		req := pbpeering.GenerateTokenRequest{
-			PeerName: "foo",
+			Peer: "foo",
 		}
 		_, err := peeringClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)

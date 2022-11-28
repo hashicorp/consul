@@ -202,8 +202,8 @@ func (s *Server) GenerateToken(
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
-		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
+	if err := dns.ValidateLabel(req.Peer); err != nil {
+		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.Peer, err)
 	}
 
 	if err := structs.ValidateMetaTags(req.Meta); err != nil {
@@ -251,7 +251,7 @@ func (s *Server) GenerateToken(
 
 	// This loop ensures at most one retry in the case of a race condition.
 	for canRetry := true; canRetry; canRetry = false {
-		peering, err = s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
+		peering, err = s.getExistingPeering(req.Peer, entMeta.PartitionOrDefault())
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +263,7 @@ func (s *Server) GenerateToken(
 			}
 			peering = &pbpeering.Peering{
 				ID:   id,
-				Name: req.PeerName,
+				Name: req.Peer,
 				Meta: req.Meta,
 
 				// PartitionOrEmpty is used to avoid writing "default" in OSS.
@@ -350,8 +350,8 @@ func (s *Server) Establish(
 	}
 
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
-		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
+	if err := dns.ValidateLabel(req.Peer); err != nil {
+		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.Peer, err)
 	}
 	tok, err := s.Backend.DecodeToken([]byte(req.PeeringToken))
 	if err != nil {
@@ -394,7 +394,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	existing, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
+	existing, err := s.getExistingPeering(req.Peer, entMeta.PartitionOrDefault())
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (s *Server) Establish(
 
 	peering := &pbpeering.Peering{
 		ID:                    id,
-		Name:                  req.PeerName,
+		Name:                  req.Peer,
 		PeerCAPems:            tok.CA,
 		ManualServerAddresses: tok.ManualServerAddresses,
 		PeerServerAddresses:   serverAddrs,

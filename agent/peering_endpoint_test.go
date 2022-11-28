@@ -61,14 +61,14 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusBadRequest, resp.Code)
 		body, _ := io.ReadAll(resp.Body)
-		require.Contains(t, string(body), "PeerName is required")
+		require.Contains(t, string(body), "Peer is required")
 	})
 
 	// TODO(peering): add more failure cases
 
 	t.Run("Success", func(t *testing.T) {
 		body := &pbpeering.GenerateTokenRequest{
-			PeerName: "peering-a",
+			Peer: "peering-a",
 		}
 
 		bodyBytes, err := json.Marshal(body)
@@ -100,7 +100,7 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 	t.Run("Success with external address", func(t *testing.T) {
 		externalAddress := "32.1.2.3"
 		body := &pbpeering.GenerateTokenRequest{
-			PeerName:                "peering-a",
+			Peer:                    "peering-a",
 			ServerExternalAddresses: []string{externalAddress},
 		}
 
@@ -145,7 +145,7 @@ func TestHTTP_Peering_GenerateToken_EdgeCases(t *testing.T) {
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	body := &pbpeering.GenerateTokenRequest{
-		PeerName: "peering-a",
+		Peer: "peering-a",
 	}
 
 	bodyBytes, err := json.Marshal(body)
@@ -235,12 +235,12 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusBadRequest, resp.Code)
 		body, _ := io.ReadAll(resp.Body)
-		require.Contains(t, string(body), "PeerName is required")
+		require.Contains(t, string(body), "Peer is required")
 	})
 
 	t.Run("No Token", func(t *testing.T) {
 		req, err := http.NewRequest("POST", "/v1/peering/establish",
-			bytes.NewReader([]byte(`{"PeerName": "peer1-usw1"}`)))
+			bytes.NewReader([]byte(`{"Peer": "peer1-usw1"}`)))
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -254,7 +254,7 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 		bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
-			PeerName: "foo",
+			Peer: "foo",
 		})
 		require.NoError(t, err)
 
@@ -268,7 +268,7 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
 
 		b, err := json.Marshal(&pbpeering.EstablishRequest{
-			PeerName:     "zip",
+			Peer:         "zip",
 			PeeringToken: r.PeeringToken,
 			Meta:         map[string]string{"foo": "bar"},
 		})
@@ -402,7 +402,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
-		PeerName: "foo",
+		Peer: "foo",
 	})
 	require.NoError(t, err)
 

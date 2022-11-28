@@ -764,7 +764,7 @@ func TestUIExportedServices(t *testing.T) {
 		defer cancel()
 
 		req := &pbpeering.GenerateTokenRequest{
-			PeerName: "peer1",
+			Peer: "peer1",
 		}
 		_, err := a.rpcClientPeering.GenerateToken(ctx, req)
 		require.NoError(t, err)

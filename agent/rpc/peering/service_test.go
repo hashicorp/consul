@@ -83,7 +83,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 
 	// TODO(peering): for more failure cases, consider using a table test
 	// check meta tags
-	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: generateTooManyMetaKeys()}
+	reqE := pbpeering.GenerateTokenRequest{Peer: "peerB", Meta: generateTooManyMetaKeys()}
 	_, errE := client.GenerateToken(ctx, &reqE)
 	require.EqualError(t, errE, "rpc error: code = Unknown desc = meta tags failed validation: Node metadata cannot contain more than 64 key/value pairs")
 
@@ -93,8 +93,8 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	)
 	testutil.RunStep(t, "peering token is generated with data", func(t *testing.T) {
 		req := pbpeering.GenerateTokenRequest{
-			PeerName: "peerB",
-			Meta:     map[string]string{"foo": "bar"},
+			Peer: "peerB",
+			Meta: map[string]string{"foo": "bar"},
 		}
 		resp, err := client.GenerateToken(ctx, &req)
 		require.NoError(t, err)
@@ -151,7 +151,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "re-generating a peering token re-generates the secret", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
+		req := pbpeering.GenerateTokenRequest{Peer: "peerB", Meta: map[string]string{"foo": "bar"}}
 		resp, err := client.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 
@@ -195,7 +195,7 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 
 	externalAddresses := []string{"32.1.2.3:8502"}
 	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
+	req := pbpeering.GenerateTokenRequest{Peer: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -247,13 +247,13 @@ func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
 	tcs := []testcase{
 		{
 			name:      "anonymous token lacks permissions",
-			req:       &pbpeering.GenerateTokenRequest{PeerName: "foo"},
+			req:       &pbpeering.GenerateTokenRequest{Peer: "foo"},
 			expectErr: "lacks permission 'peering:write'",
 		},
 		{
 			name: "read token lacks permissions",
 			req: &pbpeering.GenerateTokenRequest{
-				PeerName: "foo",
+				Peer: "foo",
 			},
 			token:     testTokenPeeringReadSecret,
 			expectErr: "lacks permission 'peering:write'",
@@ -261,7 +261,7 @@ func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
 		{
 			name: "write token grants permission",
 			req: &pbpeering.GenerateTokenRequest{
-				PeerName: "foo",
+				Peer: "foo",
 			},
 			token: testTokenPeeringWriteSecret,
 		},
@@ -321,13 +321,13 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 	tcs := []testcase{
 		{
 			name:      "invalid peer name",
-			req:       &pbpeering.EstablishRequest{PeerName: "--AA--"},
+			req:       &pbpeering.EstablishRequest{Peer: "--AA--"},
 			expectErr: "--AA-- is not a valid peer name",
 		},
 		{
 			name: "invalid token (base64)",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "peer1-usw1",
+				Peer:         "peer1-usw1",
 				PeeringToken: "+++/+++",
 			},
 			expectErr: "illegal base64 data",
@@ -335,7 +335,7 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 		{
 			name: "invalid token (JSON)",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "peer1-usw1",
+				Peer:         "peer1-usw1",
 				PeeringToken: "Cg==", // base64 of "-"
 			},
 			expectErr: "unexpected end of JSON input",
@@ -343,7 +343,7 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 		{
 			name: "invalid token (empty)",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "peer1-usw1",
+				Peer:         "peer1-usw1",
 				PeeringToken: "e30K", // base64 of "{}"
 			},
 			expectErr: "peering token server addresses value is empty",
@@ -351,7 +351,7 @@ func TestPeeringService_Establish_Validation(t *testing.T) {
 		{
 			name: "too many meta tags",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "peer1-usw1",
+				Peer:         "peer1-usw1",
 				PeeringToken: validTokenB64,
 				Meta:         generateTooManyMetaKeys(),
 			},
@@ -394,7 +394,7 @@ func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
 	base64Token := base64.StdEncoding.EncodeToString(jsonToken)
 
 	establishReq := &pbpeering.EstablishRequest{
-		PeerName:     "peerTwo",
+		Peer:         "peerTwo",
 		PeeringToken: base64Token,
 	}
 
@@ -424,7 +424,7 @@ func TestPeeringService_Establish(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// Generate a peering token for s2
-	tokenResp, err := client1.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-s2"})
+	tokenResp, err := client1.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{Peer: "my-peer-s2"})
 	require.NoError(t, err)
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -433,7 +433,7 @@ func TestPeeringService_Establish(t *testing.T) {
 	var peerID string
 	testutil.RunStep(t, "peering can be established from token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{PeerName: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
+			_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{Peer: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
 			require.NoError(r, err)
 		})
 
@@ -472,7 +472,7 @@ func TestPeeringService_Establish(t *testing.T) {
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{PeerName: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
+		_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{Peer: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
 		require.Contains(t, err.Error(), "invalid peering establishment secret")
 	})
 }
@@ -508,7 +508,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 
 		start := time.Now()
 		_, err := dialerClient.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: testTokenB64,
 		})
 		require.Error(t, err)
@@ -522,7 +522,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Generate a peering token for dialer
-		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-dialer"})
+		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{Peer: "my-peer-dialer"})
 		require.NoError(t, err)
 
 		// Capture peering token for re-use later
@@ -533,7 +533,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		t.Cleanup(cancel)
 
 		_, err = dialerClient.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: tokenResp.PeeringToken,
 		})
 		require.NoError(t, err)
@@ -546,7 +546,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		t.Cleanup(cancel)
 
 		_, err := dialerClient.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: peeringToken,
 		})
 		grpcErr, ok := grpcstatus.FromError(err)
@@ -562,7 +562,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Generate a new peering token for the dialer.
-		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-dialer"})
+		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{Peer: "my-peer-dialer"})
 		require.NoError(t, err)
 
 		store := dialer.Server.FSM().State()
@@ -590,7 +590,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 
 		// Call to establish should succeed when we fall back to remote server address.
 		_, err = dialerClient.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: tokenResp.PeeringToken,
 		})
 		require.NoError(t, err)
@@ -620,7 +620,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Generate a new peering token for the dialer.
-		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-dialer"})
+		tokenResp, err := acceptorClient.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{Peer: "my-peer-dialer"})
 		require.NoError(t, err)
 
 		store := dialer.Server.FSM().State()
@@ -638,7 +638,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 
 		// Call to establish should succeed through the proxy.
 		_, err = dialerClient.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: tokenResp.PeeringToken,
 		})
 		require.NoError(t, err)
@@ -701,7 +701,7 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 		{
 			name: "anonymous token lacks permissions",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "foo",
+				Peer:         "foo",
 				PeeringToken: validTokenB64,
 			},
 			expectErr: "lacks permission 'peering:write'",
@@ -709,7 +709,7 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 		{
 			name: "read token lacks permissions",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "foo",
+				Peer:         "foo",
 				PeeringToken: validTokenB64,
 			},
 			token:     testTokenPeeringReadSecret,
@@ -718,7 +718,7 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 		{
 			name: "write token grants permission",
 			req: &pbpeering.EstablishRequest{
-				PeerName:     "foo",
+				Peer:         "foo",
 				PeeringToken: validTokenB64,
 			},
 			token: testTokenPeeringWriteSecret,
@@ -1302,7 +1302,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 	t.Cleanup(cancel)
 
 	testutil.RunStep(t, "generate a token", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
+		req := pbpeering.GenerateTokenRequest{Peer: "peerB"}
 		resp, err := client1.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
@@ -1314,7 +1314,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 	})
 	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
 
-	req := pbpeering.GenerateTokenRequest{PeerName: "my-peer-s1"}
+	req := pbpeering.GenerateTokenRequest{Peer: "my-peer-s1"}
 	resp, err := client2.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp)
@@ -1323,7 +1323,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 
 	testutil.RunStep(t, "send an establish request for a different peer name", func(t *testing.T) {
 		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peerC",
+			Peer:         "peerC",
 			PeeringToken: s2Token,
 		})
 		require.NoError(t, err)
@@ -1331,7 +1331,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "attempt to generate token with the same name used as dialer", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerC"}
+		req := pbpeering.GenerateTokenRequest{Peer: "peerC"}
 		resp, err := client1.GenerateToken(ctx, &req)
 
 		require.Error(t, err)
@@ -1342,7 +1342,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 
 	testutil.RunStep(t, "attempt to establish the with the same name used as acceptor", func(t *testing.T) {
 		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peerB",
+			Peer:         "peerB",
 			PeeringToken: s2Token,
 		})
 

@@ -82,11 +82,11 @@ func TestListCommand(t *testing.T) {
 
 	t.Run("two results for pretty print", func(t *testing.T) {
 
-		generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo"}
+		generateReq := api.PeeringGenerateTokenRequest{Peer: "foo"}
 		_, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 		require.NoError(t, err, "Could not generate peering token at acceptor for \"foo\"")
 
-		generateReq = api.PeeringGenerateTokenRequest{PeerName: "bar"}
+		generateReq = api.PeeringGenerateTokenRequest{Peer: "bar"}
 		_, _, err = acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 		require.NoError(t, err, "Could not generate peering token at acceptor for \"bar\"")
 

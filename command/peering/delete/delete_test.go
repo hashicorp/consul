@@ -50,7 +50,7 @@ func TestDeleteCommand(t *testing.T) {
 
 	t.Run("delete connection", func(t *testing.T) {
 
-		req := api.PeeringGenerateTokenRequest{PeerName: "foo"}
+		req := api.PeeringGenerateTokenRequest{Peer: "foo"}
 		_, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), req, &api.WriteOptions{})
 		require.NoError(t, err, "Could not generate peering token at acceptor")
 

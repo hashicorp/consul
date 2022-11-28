@@ -98,7 +98,7 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName:  "my-peer",
+		Peer:      "my-peer",
 		Partition: "DeFaUlT",
 	}
 	_, err = peeringClient.GenerateToken(ctx, &req)

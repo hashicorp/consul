@@ -8,6 +8,7 @@ func EstablishRequestToAPI(s *EstablishRequest, t *api.PeeringEstablishRequest) 
 	if s == nil {
 		return
 	}
+	t.Peer = s.Peer
 	t.PeerName = s.PeerName
 	t.PeeringToken = s.PeeringToken
 	t.Partition = s.Partition
@@ -17,6 +18,7 @@ func EstablishRequestFromAPI(t *api.PeeringEstablishRequest, s *EstablishRequest
 	if s == nil {
 		return
 	}
+	s.Peer = t.Peer
 	s.PeerName = t.PeerName
 	s.PeeringToken = t.PeeringToken
 	s.Partition = t.Partition
@@ -36,6 +38,7 @@ func GenerateTokenRequestToAPI(s *GenerateTokenRequest, t *api.PeeringGenerateTo
 	if s == nil {
 		return
 	}
+	t.Peer = s.Peer
 	t.PeerName = s.PeerName
 	t.Partition = s.Partition
 	t.Meta = s.Meta
@@ -45,6 +48,7 @@ func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *Generate
 	if s == nil {
 		return
 	}
+	s.Peer = t.Peer
 	s.PeerName = t.PeerName
 	s.Partition = t.Partition
 	s.Meta = t.Meta

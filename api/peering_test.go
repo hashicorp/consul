@@ -57,7 +57,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 	testutil.RunStep(t, "generate token", func(t *testing.T) {
 		peerings := c1.Peerings()
 
-		req := PeeringGenerateTokenRequest{PeerName: "peer1"}
+		req := PeeringGenerateTokenRequest{Peer: "peer1"}
 
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
 			_, _, err := peerings.GenerateToken(context.Background(), req, &WriteOptions{Token: "anonymous"})
@@ -79,7 +79,7 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		peerings := c2.Peerings()
 
 		req := PeeringEstablishRequest{
-			PeerName:     "peer2",
+			Peer:         "peer2",
 			PeeringToken: peeringToken,
 		}
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
@@ -196,12 +196,12 @@ func TestAPI_Peering_List(t *testing.T) {
 
 	testutil.RunStep(t, "list with some peers", func(t *testing.T) {
 		// call List when peers are present
-		resp1, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer1"}, nil)
+		resp1, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{Peer: "peer1"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotNil(t, resp1)
 
-		resp2, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2"}, nil)
+		resp2, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{Peer: "peer2"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotNil(t, resp2)
@@ -240,7 +240,7 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 
 	// Generate a token happy path
 	p1 := PeeringGenerateTokenRequest{
-		PeerName:                "peer1",
+		Peer:                    "peer1",
 		Meta:                    map[string]string{"foo": "bar"},
 		ServerExternalAddresses: []string{externalAddress},
 	}
@@ -284,8 +284,8 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	testutil.RunStep(t, "generate token", func(t *testing.T) {
 		// Generate a token happy path
 		p1 := PeeringGenerateTokenRequest{
-			PeerName: "peer1",
-			Meta:     map[string]string{"foo": "bar"},
+			Peer: "peer1",
+			Meta: map[string]string{"foo": "bar"},
 		}
 		resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
 		require.NoError(t, err)
@@ -310,7 +310,7 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 
 	testutil.RunStep(t, "establish peering", func(t *testing.T) {
 		i := PeeringEstablishRequest{
-			PeerName:     "peer1",
+			Peer:         "peer1",
 			PeeringToken: token1,
 			Meta:         map[string]string{"foo": "bar"},
 		}

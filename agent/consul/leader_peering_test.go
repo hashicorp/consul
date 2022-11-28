@@ -72,7 +72,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -111,7 +111,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)
@@ -198,7 +198,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -233,7 +233,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)
@@ -388,7 +388,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -422,7 +422,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)
@@ -524,7 +524,7 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-s2",
+		Peer: "my-peer-s2",
 	}
 	resp, err := peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -572,7 +572,7 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, tokenMutateFn func(to
 	tokenB64 := base64.StdEncoding.EncodeToString(tokenJSON)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-s1",
+		Peer:         "my-peer-s1",
 		PeeringToken: tokenB64,
 	}
 
@@ -692,7 +692,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 
 	acceptingClient := pbpeering.NewPeeringServiceClient(conn)
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialing-server",
+		Peer: "my-peer-dialing-server",
 	}
 	resp, err := acceptingClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -729,7 +729,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	dialingClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-s1",
+		Peer:         "my-peer-s1",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialingClient.Establish(ctx, &establishReq)
@@ -803,7 +803,7 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 
 	acceptingClient := pbpeering.NewPeeringServiceClient(conn)
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialing-server",
+		Peer: "my-peer-dialing-server",
 	}
 	resp, err := acceptingClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -840,7 +840,7 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	dialingClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-s1",
+		Peer:         "my-peer-s1",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialingClient.Establish(ctx, &establishReq)
@@ -1026,7 +1026,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-s2",
+		Peer: "my-peer-s2",
 	}
 	resp, err := peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -1058,7 +1058,7 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 	establishReq := pbpeering.EstablishRequest{
 		// Create a peering at s2 by establishing a peering with s1's token
 		// Bring up s2 and store s1's token so that it attempts to dial.
-		PeerName:     "my-peer-s1",
+		Peer:         "my-peer-s1",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = s2Client.Establish(ctx, &establishReq)
@@ -1335,7 +1335,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-s2",
+		Peer: "my-peer-s2",
 	}
 	resp, err := peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -1779,7 +1779,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -1807,7 +1807,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)
@@ -1828,7 +1828,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 
 		// generate a new token from the acceptor
 		req := pbpeering.GenerateTokenRequest{
-			PeerName: "my-peer-dialer",
+			Peer: "my-peer-dialer",
 		}
 		resp, err := acceptorClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)
@@ -1848,7 +1848,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 		// Try establishing.
 		// This call will only succeed if the bad address was not used in the calls to exchange the peering secret.
 		establishReq := pbpeering.EstablishRequest{
-			PeerName:     "my-peer-acceptor",
+			Peer:         "my-peer-acceptor",
 			PeeringToken: string(badToken),
 		}
 		_, err = dialerClient.Establish(ctx, &establishReq)
@@ -1921,7 +1921,7 @@ func Test_Leader_PeeringSync_PeerThroughMeshGateways_ServerFallBack(t *testing.T
 	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -1971,7 +1971,7 @@ func Test_Leader_PeeringSync_PeerThroughMeshGateways_ServerFallBack(t *testing.T
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)
@@ -2025,7 +2025,7 @@ func Test_Leader_PeeringSync_PeerThroughMeshGateways_Success(t *testing.T) {
 	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-dialer",
+		Peer: "my-peer-dialer",
 	}
 	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -2093,7 +2093,7 @@ func Test_Leader_PeeringSync_PeerThroughMeshGateways_Success(t *testing.T) {
 	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-acceptor",
+		Peer:         "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
 	_, err = dialerClient.Establish(ctx, &establishReq)

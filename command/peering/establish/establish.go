@@ -69,7 +69,7 @@ func (c *cmd) Run(args []string) int {
 	peerings := client.Peerings()
 
 	req := api.PeeringEstablishRequest{
-		PeerName:     c.name,
+		Peer:         c.name,
 		PeeringToken: c.peeringToken,
 		Partition:    c.http.Partition(),
 		Meta:         c.meta,
@@ -77,11 +77,11 @@ func (c *cmd) Run(args []string) int {
 
 	_, _, err = peerings.Establish(context.Background(), req, &api.WriteOptions{})
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error establishing peering for %s: %v", req.PeerName, err))
+		c.UI.Error(fmt.Sprintf("Error establishing peering for %s: %v", req.Peer, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Successfully established peering connection with %s", req.PeerName))
+	c.UI.Info(fmt.Sprintf("Successfully established peering connection with %s", req.Peer))
 	return 0
 }
 

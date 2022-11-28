@@ -1,0 +1,3 @@
+```release-note:improvement
+peering: Rename "PeerName" to "Peer" for peering APIs for consistency.
+```
