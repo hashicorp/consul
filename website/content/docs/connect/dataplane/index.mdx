@@ -28,6 +28,7 @@ Be aware of the following changes and their impact on your network's performance
 1. Consul servers consume additional resources in order to generate xDS resources for Envoy proxies. In our internal load tests, performing at high scale and churn resulted in additional CPU utilization rates under 10% on the control plane. 
 1. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
 1. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
+1. To avoid generating significant load on an individual server, proxy configuration is load balanced proactively.
 1. The frequency of the orchestrator's liveness and readiness probes determine how quickly Consul's control plane can become aware of failures. There is no impact on service mesh applications, however, as Envoy proxies have a passive ability to detect endpoint failure and steer traffic to healthy instances.
 
 ## Benefits
