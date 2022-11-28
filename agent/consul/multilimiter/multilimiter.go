@@ -31,9 +31,9 @@ type RateLimiter interface {
 // MultiLimiter implement RateLimiter interface and represent a set of rate limiters
 // specific to different LimitedEntities and queried by a LimitedEntities.Key()
 type MultiLimiter struct {
-	limiters *atomic.Pointer[radix.Tree]
-	configs  *atomic.Pointer[radix.Tree]
-	config   *atomic.Pointer[Config]
+	limiters        *atomic.Pointer[radix.Tree]
+	limitersConfigs *atomic.Pointer[radix.Tree]
+	defaultConfig   *atomic.Pointer[Config]
 }
 
 type KeyType = []byte
@@ -69,11 +69,11 @@ func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
 	if prefix == nil {
 		prefix = []byte("")
 	}
-	configs := m.configs.Load()
+	configs := m.limitersConfigs.Load()
 	config := atomic.Pointer[LimiterConfig]{}
 	config.Store(&c)
 	newConfigs, _, _ := configs.Insert(prefix, &c)
-	m.configs.Store(newConfigs)
+	m.limitersConfigs.Store(newConfigs)
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -90,7 +90,7 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, config: &config, configs: &configs}
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs}
 	return m
 }
 
@@ -129,9 +129,9 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 		}
 	}
 
-	configs := m.configs.Load()
+	configs := m.limitersConfigs.Load()
 	c, okP := configs.Get(prefix)
-	var config = &m.config.Load().LimiterConfig
+	var config = &m.defaultConfig.Load().LimiterConfig
 	if okP {
 		prefixConfig := c.(*LimiterConfig)
 		if prefixConfig != nil {
@@ -150,7 +150,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 // it will wait for ReconcileCheckInterval before traversing the radix tree and removing all entries
 // with lastAccess > ReconcileCheckLimit
 func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
-	c := m.config.Load()
+	c := m.defaultConfig.Load()
 	waiter := time.NewTimer(c.ReconcileCheckInterval)
 	defer waiter.Stop()
 	select {
@@ -182,16 +182,16 @@ func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
 		iter = txn.Root().Iterator()
 		k, v, ok = iter.Next()
 
-		// make sure all limiters have the latest config of their prefix
+		// make sure all limiters have the latest defaultConfig of their prefix
 		for ok {
 			switch pl := v.(type) {
 			case *Limiter:
 				// check if it has a limiter, if so that's a lead
 				if pl.limiter != nil {
-					// find the prefix for the leaf and check if the config is up-to-date
+					// find the prefix for the leaf and check if the defaultConfig is up-to-date
 					// it's possible that the prefix is equal to the key
 					prefix, _ := splitKey(k)
-					v, ok := m.configs.Load().Get(prefix)
+					v, ok := m.limitersConfigs.Load().Get(prefix)
 					if ok {
 						switch cl := v.(type) {
 						case *LimiterConfig:
