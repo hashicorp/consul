@@ -39,7 +39,7 @@ so this must done manually when removing servers.
 
 ## Consul Dataplane
 
-By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every pod.
+By default, Consul on Kubernetes uses an alternate service mesh configuration that injects sidecars without client agents. _Consul Dataplane_ manages Envoy proxies and leaves responsibility for other functions to the orchestrator, which removes the need to run client agents on every node.
 
 ![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
 
