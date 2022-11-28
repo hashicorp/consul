@@ -70,6 +70,13 @@ type VaultProvider struct {
 	clusterID string
 	spiffeID  *connect.SpiffeIDSigning
 	logger    hclog.Logger
+
+	// isConsulMountedIntermediate is used to determine if we should tune the
+	// mount if the VaultProvider is ever reconfigured. This is at most a
+	// "best guess" to determine whether this instance of Consul created the
+	// intermediate mount but will not be able to tell if an existing mount
+	// was created by Consul (in a previous running instance) or was external.
+	isConsulMountedIntermediate bool
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
@@ -310,9 +317,10 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
+		// We want to initialize afterwards
 		fallthrough
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
@@ -326,7 +334,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
@@ -336,7 +344,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 
 	default:
 		if err != nil {
-			return RootResult{}, err
+			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
@@ -381,19 +389,51 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 				Config:      mountConfig,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to mount intermediate PKI backend: %w", err)
 			}
+			// Required to determine if we should tune the mount
+			// if the VaultProvider is ever reconfigured.
+			v.isConsulMountedIntermediate = true
+
+		} else if err == ErrBackendNotInitialized {
+			// If this is the first time calling setupIntermediatePKIPath, the backend
+			// will not have been initialized. Since the mount is ready we can suppress
+			// this error.
 		} else {
-			return err
+			return fmt.Errorf("unexpected error while fetching intermediate CA: %w", err)
 		}
 	} else {
+		v.logger.Info("Found existing Intermediate PKI path mount",
+			"namespace", v.config.IntermediatePKINamespace,
+			"path", v.config.IntermediatePKIPath,
+		)
+
+		// This codepath requires the Vault policy:
+		//
+		//   path "/sys/mounts/<intermediate_pki_path>/tune" {
+		//     capabilities = [ "update" ]
+		//   }
+		//
 		err := v.tuneMountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &mountConfig)
 		if err != nil {
-			v.logger.Warn("Could not update intermediate PKI mount settings", "path", v.config.IntermediatePKIPath, "error", err)
+			if v.isConsulMountedIntermediate {
+				v.logger.Warn("Intermediate PKI path was mounted by Consul but could not be tuned",
+					"namespace", v.config.IntermediatePKINamespace,
+					"path", v.config.IntermediatePKIPath,
+					"error", err,
+				)
+			} else {
+				v.logger.Debug("Failed to tune Intermediate PKI mount. 403 Forbidden is expected if Consul does not have tune capabilities for the Intermediate PKI mount (i.e. using Vault-managed policies)",
+					"namespace", v.config.IntermediatePKINamespace,
+					"path", v.config.IntermediatePKIPath,
+					"error", err,
+				)
+			}
+
 		}
 	}
 
-	// Create the role for issuing leaf certs if it doesn't exist yet
+	// Create the role for issuing leaf certs
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
 	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, rolePath, map[string]interface{}{
 		"allow_any_name":   true,
@@ -710,7 +750,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	rootPEM, err := v.getCA(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get root CA: %w", err)
 	}
 	rootCert, err := connect.ParseCert(rootPEM)
 	if err != nil {
