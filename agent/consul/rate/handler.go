@@ -34,8 +34,8 @@ const (
 	// still allow it to proceed.
 	ModePermissive Mode = iota
 
-	// ModeEnforce causes the handler to reject the rate-limted operation.
-	ModeEnforce
+	// ModeEnforcing causes the handler to reject the rate-limted operation.
+	ModeEnforcing
 )
 
 // OperationType is the type of operation the client is attempting to perform.
