@@ -47,7 +47,7 @@ Complete the following procedure after you have provisioned a Kubernetes cluster
     $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
     ```
 
-1. To establish cluster peering through Kubernetes, create a `values.yaml` file with the following Helm values. **NOTE:** Mesh Gateway replicas are defaulted to 1 replica, and could be adjusted using the `meshGateway.replicas` value for higher availaibity. 
+1. To establish cluster peering through Kubernetes, create a `values.yaml` file with the following Helm values. **NOTE:** Mesh Gateway replicas are defaulted to 1 replica, and could be adjusted using the `meshGateway.replicas` value for higher availability. 
 
     <CodeBlockConfig filename="values.yaml">
 
@@ -249,7 +249,7 @@ like to configure the mesh gateway mode such that this traffic always leaves thr
     </CodeBlockConfig>
     
     ```shell-session
-    $  kubectl --context $CLUSTER1_CONTEXT apply -f proxy-defaults.yaml 
+    $  kubectl --context $CLUSTER2_CONTEXT apply -f proxy-defaults.yaml 
     ```
 
 ### Export services between clusters
