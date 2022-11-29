@@ -5,6 +5,7 @@ import (
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -34,6 +35,7 @@ type MultiLimiter struct {
 	limiters        *atomic.Pointer[radix.Tree]
 	limitersConfigs *atomic.Pointer[radix.Tree]
 	defaultConfig   *atomic.Pointer[Config]
+	allowLock       sync.Mutex
 }
 
 type KeyType = []byte
@@ -88,7 +90,7 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs}
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, allowLock: sync.Mutex{}}
 	return m
 }
 
@@ -115,18 +117,13 @@ func splitKey(key []byte) ([]byte, []byte) {
 // The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	prefix, _ := splitKey(e.Key())
-	limiters := m.limiters.Load()
-	l, ok := limiters.Get(e.Key())
 	now := time.Now().Unix()
-
-	if ok {
-		limiter := l.(*Limiter)
-		if limiter.limiter != nil {
-			limiter.lastAccess.Store(now)
-			return limiter.limiter.Allow()
-		}
+	limiters := m.limiters.Load()
+	limiter := getLimiter(e.Key(), limiters)
+	if limiter != nil {
+		return limiter.limiter.Allow()
 	}
-
+	// Limiter is not present, a new one need to be created
 	configs := m.limitersConfigs.Load()
 	c, okP := configs.Get(prefix)
 	var config = &m.defaultConfig.Load().LimiterConfig
@@ -136,12 +133,30 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 			config = prefixConfig
 		}
 	}
-
-	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
+	m.allowLock.Lock()
+	defer m.allowLock.Unlock()
+	limiters = m.limiters.Load()
+	limiter = getLimiter(e.Key(), limiters)
+	if limiter != nil {
+		limiter.lastAccess.Store(now)
+		return limiter.limiter.Allow()
+	}
+	limiter = &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(now)
 	tree, _, _ := limiters.Insert(e.Key(), limiter)
 	m.limiters.Store(tree)
 	return limiter.limiter.Allow()
+}
+
+func getLimiter(k KeyType, limiters *radix.Tree) *Limiter {
+	l, ok := limiters.Get(k)
+	if ok {
+		limiter := l.(*Limiter)
+		if limiter.limiter != nil {
+			return limiter
+		}
+	}
+	return nil
 }
 
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
