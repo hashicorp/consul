@@ -595,6 +595,16 @@ func (msg *%[1]s) AllowStaleRead() bool {
 	return msg.%[2]s.AllowStaleRead()
 }
 
+// BlockingTimeout implements pool.BlockableQuery
+func (msg *%[1]s) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	maxTime := structs.DurationFromProto(msg.%[2]s.GetMaxQueryTime())
+	o := structs.QueryOptions{
+		MaxQueryTime:  maxTime,
+		MinQueryIndex: msg.%[2]s.GetMinQueryIndex(),
+	}
+	return o.BlockingTimeout(maxQueryTime, defaultQueryTime)
+}
+
 // HasTimedOut implements structs.RPCInfo
 func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
 	if msg == nil || msg.%[2]s == nil {

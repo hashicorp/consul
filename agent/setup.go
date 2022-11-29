@@ -186,6 +186,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
+		RPCHoldTimeout:   config.RPCHoldTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
