@@ -168,8 +168,8 @@ func FuzzSingleConfig(f *testing.F) {
 	f.Add(makeKey(randIP(), randIP(), randIP(), randIP()))
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		m.Allow(Limited{key: ff})
-		checkLimiter(t, ff, m.limiters.Load())
-		checkTree(t, m.limiters.Load())
+		checkLimiter(t, ff, m.limiters.Load().Txn())
+		checkTree(t, m.limiters.Load().Txn())
 	})
 }
 
@@ -191,7 +191,7 @@ func FuzzSplitKey(f *testing.F) {
 	})
 }
 
-func checkLimiter(t require.TestingT, ff []byte, Tree *radix.Tree) {
+func checkLimiter(t require.TestingT, ff []byte, Tree *radix.Txn) {
 	v, ok := Tree.Get(ff)
 	require.True(t, ok)
 	require.NotNil(t, v)
@@ -201,22 +201,23 @@ func FuzzUpdateConfig(f *testing.F) {
 
 	f.Add(bytes.Join([][]byte{[]byte(""), makeKey(randIP()), makeKey(randIP(), randIP()), makeKey(randIP(), randIP(), randIP()), makeKey(randIP(), randIP(), randIP(), randIP())}, []byte(",")))
 	f.Fuzz(func(t *testing.T, ff []byte) {
-		cm := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100000 * time.Hour, ReconcileCheckInterval: 10 * time.Millisecond}
+		cm := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Millisecond, ReconcileCheckInterval: 1 * time.Millisecond}
 		m := NewMultiLimiter(cm)
+		m.Run(context.Background())
 		keys := bytes.Split(ff, []byte(","))
 		for _, f := range keys {
 			prefix, _ := splitKey(f)
 			c := LimiterConfig{Rate: rate.Limit(rand.Float64()), Burst: rand.Int()}
 			m.UpdateConfig(c, prefix)
-			m.Allow(Limited{key: f})
+			go m.Allow(Limited{key: f})
 		}
 		m.reconcileLimitedOnce(context.Background())
-		checkTree(t, m.limiters.Load())
+		checkTree(t, m.limiters.Load().Txn())
 	})
 
 }
 
-func checkTree(t require.TestingT, tree *radix.Tree) {
+func checkTree(t require.TestingT, tree *radix.Txn) {
 	iterator := tree.Root().Iterator()
 	kp, v, ok := iterator.Next()
 	for ok {
@@ -252,6 +253,7 @@ func (i ipLimited) Key() []byte {
 func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
 	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
+	m.Run(context.Background())
 	ip := []byte{244, 233, 0, 1}
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: ip})
@@ -261,8 +263,10 @@ func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
 func BenchmarkTestRateLimiterIncIP(b *testing.B) {
 	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
-	buf := make([]byte, 4)
+	m.Run(context.Background())
+
 	for j := 0; j < b.N; j++ {
+		buf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(buf, uint32(j))
 		m.Allow(ipLimited{key: buf})
 	}
@@ -271,6 +275,7 @@ func BenchmarkTestRateLimiterIncIP(b *testing.B) {
 func BenchmarkTestRateLimiterRandomIP(b *testing.B) {
 	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
 	m := NewMultiLimiter(Config)
+	m.Run(context.Background())
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: randIP()})
 	}

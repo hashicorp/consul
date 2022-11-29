@@ -70,8 +70,6 @@ func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
 		prefix = []byte("")
 	}
 	configs := m.limitersConfigs.Load()
-	config := atomic.Pointer[LimiterConfig]{}
-	config.Store(&c)
 	newConfigs, _, _ := configs.Insert(prefix, &c)
 	m.limitersConfigs.Store(newConfigs)
 }
