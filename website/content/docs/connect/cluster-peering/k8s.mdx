@@ -76,7 +76,7 @@ Install Consul on Kubernetes by using the CLI to apply `values.yaml` to each clu
       ```
 
       ```shell-session
-    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --kube-context $CLUSTER1_CONTEXT
+    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc1 --kube-context $CLUSTER1_CONTEXT
       ```
 
   1. In `cluster-02`, run the following commands:
