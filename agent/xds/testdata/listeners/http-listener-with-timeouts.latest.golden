@@ -83,7 +83,8 @@
                           },
                           "route": {
                             "cluster": "local_app",
-                            "timeout": "2.345s"
+                            "timeout": "2.345s",
+                            "idleTimeout": "3.456s"
                           }
                         }
                       ]
