@@ -116,7 +116,6 @@ func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
 		return false
 	}
 	if mgmt == "" {
-		s.logger.Debug("server management token has not been initialized")
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(mgmt), []byte(token)) == 1
