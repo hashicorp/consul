@@ -230,6 +230,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Config["local_request_timeout_ms"] = 2345
+					ns.Proxy.Config["local_idle_timeout_ms"] = 3456
 				}, nil)
 			},
 		},

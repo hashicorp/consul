@@ -49,6 +49,11 @@ type ProxyConfig struct {
 	// respected (15s)
 	LocalRequestTimeoutMs *int `mapstructure:"local_request_timeout_ms"`
 
+	// LocalIdleTimeoutMs is the number of milliseconds to timeout HTTP streams
+	// to the local app instance. If not set, no value is set, Envoy defaults are
+	// respected (300s)
+	LocalIdleTimeoutMs *int `mapstructure:"local_idle_timeout_ms"`
+
 	// Protocol describes the service's protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. This enables
 	// protocol aware features like per-request metrics and connection
