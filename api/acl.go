@@ -853,8 +853,8 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	return &out, qm, nil
 }
 
-// TokenReadSelfExpanded retrieves the full token details and 
-// the contents of any policies of the token currently assigned 
+// TokenReadSelfExpanded retrieves the full token details and
+// the contents of any policies of the token currently assigned
 // to the API Client. In this manner its possible to read a token
 // by its Secret ID.
 func (a *ACL) TokenReadSelfExpanded(q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
