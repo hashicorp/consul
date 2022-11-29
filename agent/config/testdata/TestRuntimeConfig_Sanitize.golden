@@ -370,8 +370,6 @@
     ],
     "SessionTTLMin": "0s",
     "SkipLeaveOnInt": false,
-    "StartJoinAddrsLAN": [],
-    "StartJoinAddrsWAN": [],
     "StaticRuntimeConfig": {
         "EncryptVerifyIncoming": false,
         "EncryptVerifyOutgoing": false

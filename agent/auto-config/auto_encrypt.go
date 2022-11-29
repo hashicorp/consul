@@ -88,7 +88,7 @@ func (ac *AutoConfig) joinHosts() ([]string, error) {
 	// addresses. These are for joining serf and therefore we cannot rely on the
 	// ports for these. This loop strips any port that may have been specified and
 	// will let subsequent resolveAddr calls add on the default RPC port.
-	for _, addr := range append(ac.config.StartJoinAddrsLAN, hosts...) {
+	for _, addr := range hosts {
 		host, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			if strings.Contains(err.Error(), "missing port in address") {
