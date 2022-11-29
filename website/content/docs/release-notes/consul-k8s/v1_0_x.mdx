@@ -9,7 +9,9 @@ description: >-
 
 ## Release Highlights
 
-- ** Simplified Service Mesh Deployments with Consul Dataplane:** Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service mesh consul-k8s components are configured to talk directly to Consul servers.
+- **Simplified Service Mesh Deployments with Consul Dataplane:** Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service mesh consul-k8s components are configured to talk directly to Consul servers.
+
+- **Cluster Peering GA with Peering over Mesh Gateways:** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. Cluster Peering on Consul K8s now enables [Cluster Peering with Control Plane traffic routed via Mesh Gateways](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) by default instead of provisioning load balancers using the `servers.exposeServers` stanza. In addtion, failover for service to service traffic over Cluster Peering can be configured through the `failover.targets` field in the [ServiceResolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver#targets) CRD.  
   
 - **Consul API Gateway 0.5.0 Support:** Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul servers. 
 

@@ -253,11 +253,12 @@ $ envoy -c bootstrap.json
 
 Consul automatically generates Envoy's dynamic configuration based on its
 knowledge of the cluster. Users may specify default configuration options for
-each service such as which protocol they speak. Consul will use this information
-to configure appropriate proxy settings for that service's proxies and also for
-the upstream listeners of any downstream service.
+a service through the available fields in the [`service-defaults` configuration
+entry](/docs/connect/config-entries/service-defaults). Consul will use this
+information to configure appropriate proxy settings for that service's proxies
+and also for the upstream listeners used by the service.
 
-One example is how users can define a service's protocol in a [`service-defaults` configuration
+One example is how users can define a service's protocol in the `Protocol` field of [`service-defaults` configuration
 entry](/docs/connect/config-entries/service-defaults). Agents with
 [`enable_central_service_config`](/docs/agent/config/config-files#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
@@ -276,7 +277,7 @@ To learn about other options that can be configured centrally see the
 
 ### Proxy Config Options
 
-These fields may also be overridden explicitly in the [proxy service
+These fields may also be overridden explicitly in `proxy.config` of the [proxy service
 definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
 entry](/docs/connect/config-entries/proxy-defaults) to act as
@@ -328,6 +329,9 @@ defaults that are inherited by all services.
   to the local application instance. Applies to HTTP based protocols only. If not
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
+
+- `max_inbound_connections` - The maximum number of concurrent inbound connections
+  to the local application instance. If not specified, inherits the Envoy default (1024).
 
 - `balance_inbound_connections` - The strategy used for balancing inbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the
