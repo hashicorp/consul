@@ -48,11 +48,12 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			ConsulVersion: tc.oldversion,
 		})
 		require.NoError(t, err)
-		numServers := 3
+		numServers := 1
 		leaderConf, err := libagent.NewConfigBuilder(configCtx).
 			Bootstrap(numServers).
 			ToAgentConfig()
 		require.NoError(t, err)
+		t.Logf("Cluster config:\n%s", leaderConf.JSON)
 		leaderConf.Version = tc.oldversion
 		for i := 0; i < numServers; i++ {
 			configs = append(configs, *leaderConf)

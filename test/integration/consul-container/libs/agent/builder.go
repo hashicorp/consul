@@ -49,6 +49,10 @@ func NewBuildContext(opts BuildOptions) (*BuildContext, error) {
 		consulVersion:          opts.ConsulVersion,
 	}
 
+	if opts.ConsulVersion == "" {
+		ctx.consulVersion = *utils.TargetVersion
+	}
+
 	if opts.InjectGossipEncryption {
 		serfKey, err := newSerfEncryptionKey()
 		if err != nil {
@@ -114,7 +118,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		Server:  utils.IntToPointer(8300),
 	}
 
-	if ctx != nil && semver.Compare("v"+ctx.consulVersion, "v1.14.0") >= 0 {
+	if ctx != nil && (ctx.consulVersion == "local" || semver.Compare("v"+ctx.consulVersion, "v1.14.0") >= 0) {
 		// Enable GRPCTLS for version after v1.14.0
 		b.conf.Ports.GRPCTLS = utils.IntToPointer(8503)
 	}
