@@ -153,7 +153,7 @@ func TestIntentions() structs.Intentions {
 
 // TestUpstreamNodes returns a sample service discovery result useful to
 // mocking service discovery cache results.
-func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
+func TestUpstreamNodes(t testing.T, service string, proxyConfig structs.ConnectProxyConfig) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -163,7 +163,7 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(t, service),
+			Service: structs.TestNodeServiceWithName(t, service, proxyConfig),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -173,7 +173,7 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(t, service),
+			Service: structs.TestNodeServiceWithName(t, service, proxyConfig),
 		},
 	}
 }

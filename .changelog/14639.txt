@@ -1,0 +1,4 @@
+```release-note:feature
+proxycfg: progagate `local_request_timeout_ms` downstream, if its value of the upstream is smaller than
+that of the downstream
+```

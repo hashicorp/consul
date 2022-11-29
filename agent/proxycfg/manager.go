@@ -176,7 +176,7 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 		return err
 	}
 
-	if _, err = state.Watch(); err != nil {
+	if err = state.Watch(); err != nil {
 		return err
 	}
 	m.proxies[id] = state

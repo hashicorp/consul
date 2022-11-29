@@ -42,7 +42,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -61,7 +61,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -80,7 +80,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -99,7 +99,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, structs.ConnectProxyConfig{}, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -131,7 +131,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -139,7 +139,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_port"] = 8888
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -148,7 +148,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
 					ns.Proxy.Config["bind_port"] = 8888
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -159,7 +159,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].LocalBindPort = 0
 					ns.Proxy.Upstreams[0].LocalBindSocketPath = "/tmp/service-mesh/client-1/grpc-employee-server"
 					ns.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -167,7 +167,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 222
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -199,7 +199,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -208,7 +208,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t,
 					func(ns *structs.NodeService) {
 						ns.Proxy.Config["protocol"] = "http"
-					},
+					}, structs.ConnectProxyConfig{},
 					[]proxycfg.UpdateEvent{
 						{
 							CorrelationID: "mesh",
@@ -230,7 +230,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Config["local_request_timeout_ms"] = 2345
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -238,6 +238,20 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+				}, structs.ConnectProxyConfig{}, nil)
+			},
+		},
+		{
+			name: "http-upstream-local-request-timeout-rs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+					ns.Proxy.Config["protocol"] = "http"
+				}, structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"local_request_timeout_ms": float64(9000),
+						"protocol":                 "grpc",
+					},
 				}, nil)
 			},
 		},
@@ -249,7 +263,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -261,7 +275,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -274,7 +288,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Name:                      "custom-public-listen",
 							HTTPConnectionManagerName: httpConnectionManagerNewName,
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -286,7 +300,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: "custom-public-listen",
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -300,7 +314,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							// Attempt to override the TLS context should be ignored
 							TLSContext: `"allowRenegotiation": false`,
 						})
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -322,7 +336,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 								Name: uid.EnvoyID() + ":custom-upstream",
 							})
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -440,7 +454,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						v.DestinationNamespace = structs.WildcardSpecifier
 						v.DestinationName = structs.WildcardSpecifier
 					}
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 		{
@@ -838,7 +852,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
-				}, nil)
+				}, structs.ConnectProxyConfig{}, nil)
 			},
 		},
 	}

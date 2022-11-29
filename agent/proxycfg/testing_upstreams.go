@@ -35,7 +35,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		{
 			CorrelationID: "upstream-target:" + dbChain.ID() + ":" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "db"),
+				Nodes: TestUpstreamNodes(t, "db", structs.ConnectProxyConfig{}),
 			},
 		},
 	}
@@ -194,7 +194,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "db"),
+				Nodes: TestUpstreamNodes(t, "db", structs.ConnectProxyConfig{}),
 			},
 		})
 		events = append(events, UpdateEvent{

@@ -222,7 +222,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 		{
 			CorrelationID: "upstream-target:" + secureChain.ID() + ":" + secureUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "secure"),
+				Nodes: TestUpstreamNodes(t, "secure", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -234,7 +234,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 		{
 			CorrelationID: "upstream-target:" + insecureChain.ID() + ":" + insecureUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "insecure"),
+				Nodes: TestUpstreamNodes(t, "insecure", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -332,7 +332,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel_HTTP(t testing.
 		{
 			CorrelationID: "upstream-target:" + httpChain.ID() + ":" + httpUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "http"),
+				Nodes: TestUpstreamNodes(t, "http", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -411,7 +411,7 @@ func TestConfigSnapshotIngressGatewaySDS_ServiceLevel(t testing.T) *ConfigSnapsh
 		{
 			CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s1"),
+				Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -423,7 +423,7 @@ func TestConfigSnapshotIngressGatewaySDS_ServiceLevel(t testing.T) *ConfigSnapsh
 		{
 			CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s2"),
+				Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -501,7 +501,7 @@ func TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel(t testing.T) *C
 		{
 			CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s1"),
+				Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -513,7 +513,7 @@ func TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel(t testing.T) *C
 		{
 			CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s2"),
+				Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -586,7 +586,7 @@ func TestConfigSnapshotIngressGatewaySDS_MixedNoTLS(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s1"),
+				Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -598,7 +598,7 @@ func TestConfigSnapshotIngressGatewaySDS_MixedNoTLS(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s2"),
+				Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -668,7 +668,7 @@ func TestConfigSnapshotIngressGateway_MixedListeners(t testing.T) *ConfigSnapsho
 		{
 			CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s1"),
+				Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -680,7 +680,7 @@ func TestConfigSnapshotIngressGateway_MixedListeners(t testing.T) *ConfigSnapsho
 		{
 			CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "s2"),
+				Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -799,7 +799,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "foo"),
+				Nodes: TestUpstreamNodes(t, "foo", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -811,7 +811,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + barChain.ID() + ":" + barUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "bar"),
+				Nodes: TestUpstreamNodes(t, "bar", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -823,7 +823,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + bazChain.ID() + ":" + bazUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "baz"),
+				Nodes: TestUpstreamNodes(t, "baz", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -835,7 +835,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + quxChain.ID() + ":" + quxUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "qux"),
+				Nodes: TestUpstreamNodes(t, "qux", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -926,7 +926,7 @@ func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "foo"),
+				Nodes: TestUpstreamNodes(t, "foo", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -938,7 +938,7 @@ func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot
 		{
 			CorrelationID: "upstream-target:" + barChain.ID() + ":" + barUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "bar"),
+				Nodes: TestUpstreamNodes(t, "bar", structs.ConnectProxyConfig{}),
 			},
 		},
 	})
@@ -1005,7 +1005,7 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 		{
 			CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "foo"),
+				Nodes: TestUpstreamNodes(t, "foo", structs.ConnectProxyConfig{}),
 			},
 		},
 		{
@@ -1266,13 +1266,13 @@ func TestConfigSnapshotIngressGatewayWithChain(
 			{
 				CorrelationID: "upstream-target:" + webChain.ID() + ":" + webUID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "web"),
+					Nodes: TestUpstreamNodes(t, "web", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "foo"),
+					Nodes: TestUpstreamNodes(t, "foo", structs.ConnectProxyConfig{}),
 				},
 			},
 		}
@@ -1423,25 +1423,25 @@ func TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults(t te
 			{
 				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
+					Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
+					Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
+					Nodes: TestUpstreamNodes(t, "s3", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s4Chain.ID() + ":" + s4UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s4"),
+					Nodes: TestUpstreamNodes(t, "s4", structs.ConnectProxyConfig{}),
 				},
 			},
 		})
@@ -1514,13 +1514,13 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener(t testing.T) *ConfigSnap
 			{
 				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
+					Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
+					Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 				},
 			},
 		})
@@ -1945,19 +1945,19 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 			{
 				CorrelationID: "upstream-target:" + s1Chain.ID() + ":" + s1UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s1"),
+					Nodes: TestUpstreamNodes(t, "s1", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s2Chain.ID() + ":" + s2UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s2"),
+					Nodes: TestUpstreamNodes(t, "s2", structs.ConnectProxyConfig{}),
 				},
 			},
 			{
 				CorrelationID: "upstream-target:" + s3Chain.ID() + ":" + s3UID.String(),
 				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t, "s3"),
+					Nodes: TestUpstreamNodes(t, "s3", structs.ConnectProxyConfig{}),
 				},
 			},
 		})

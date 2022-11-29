@@ -13,7 +13,7 @@ import (
 )
 
 // TestConfigSnapshot returns a fully populated snapshot
-func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), upstreamProxyConfig structs.ConnectProxyConfig, extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
@@ -63,7 +63,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		{
 			CorrelationID: "upstream-target:" + dbChain.ID() + ":" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "db"),
+				Nodes: TestUpstreamNodes(t, "db", upstreamProxyConfig),
 			},
 		},
 	}
@@ -223,6 +223,7 @@ func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
 				Checks: true,
 			}
 		},
+		structs.ConnectProxyConfig{},
 		[]UpdateEvent{
 			{
 				CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("web", nil),

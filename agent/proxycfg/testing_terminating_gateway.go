@@ -31,7 +31,7 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 
 	tgtwyServices := []*structs.GatewayService{}
 	if populateServices {
-		webNodes := TestUpstreamNodes(t, web.Name)
+		webNodes := TestUpstreamNodes(t, web.Name, structs.ConnectProxyConfig{})
 		webNodes[0].Service.Meta = map[string]string{"version": "1"}
 		webNodes[1].Service.Meta = map[string]string{"version": "2"}
 
