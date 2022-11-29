@@ -22,7 +22,6 @@ func TestDNS_OSS_PeeredServices(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Register a peer service in partition "alpha"
 	makeReq := func() *structs.RegisterRequest {
 		return &structs.RegisterRequest{
 			PeerName:   "peer1",
