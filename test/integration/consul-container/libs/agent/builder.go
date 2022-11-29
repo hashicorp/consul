@@ -154,7 +154,7 @@ func (b *Builder) Datacenter(name string) *Builder {
 }
 
 func (b *Builder) Peering(enable bool) *Builder {
-	b.conf.Peering = &agentconfig.Peering{
+	b.conf.Peering = agentconfig.Peering{
 		Enabled: utils.BoolToPointer(enable),
 	}
 	return b
