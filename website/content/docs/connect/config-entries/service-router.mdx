@@ -697,6 +697,12 @@ spec:
         'The total amount of time permitted for the entire downstream request (and retries) to be processed.',
     },
     {
+      name: 'IdleTimeout',
+      type: 'duration: 0',
+      description:
+        'The total amount of time permitted for the request stream to be idle',
+    },
+    {
       name: 'NumRetries',
       type: 'int: 0',
       description:

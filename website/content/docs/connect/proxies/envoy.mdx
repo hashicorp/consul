@@ -330,6 +330,11 @@ defaults that are inherited by all services.
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
 
+- `local_idle_timeout_ms` - In milliseconds, the idle timeout for HTTP requests
+  to the local application instance. Applies to HTTP based protocols only. If not
+  specified, inherits the Envoy default for route idle timeouts (15s). A value of 0 
+  disables request timeouts.
+
 - `max_inbound_connections` - The maximum number of concurrent inbound connections
   to the local application instance. If not specified, inherits the Envoy default (1024).
 
