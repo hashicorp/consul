@@ -79,6 +79,7 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="body">
                 {{t 'routes.dc.nodes.show.sessions.empty.body'
+                  canUseACLs=(can "use acls")
                   htmlSafe=true
                 }}
               </BlockSlot>

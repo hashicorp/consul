@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Secure Configuration - AWS ECS
+page_title: Manual Secure Configuration - Consul on AWS Elastic Container Service (ECS)
 description: >-
-  Manual Secure Configuration of the Consul Service Mesh on AWS ECS (Elastic Container Service).
+  Securely configure Consul Service Mesh on Amazon Web Services ECS to protect the communication of sensitive data in production workloads. Learn how to manually configure auth methods to create tokens for clients and services and then apply tokens by role or policy.
 ---
 
-# Secure Configuration
+# Manual Secure Configuration of Consul on AWS Elastic Container Service (ECS)
 
 This topic describes how to enable Consul security features for your production workloads.
 
@@ -34,7 +34,7 @@ There are two types of ACL tokens for Consul on ECS:
 * **Client tokens:** used by the `consul-client` containers to join the Consul cluster
 * **Service tokens:** used by sidecar containers for service registration and health syncing
 
-This section describes how to manually configure the AWS IAM auth method for Consul on ECS. Alternatively, you can install the ACL controller to ease the burden of creating these resources. The ACL controller can automatically configure ACL resources for Consul on ECS. For additional details, refer to [ACL Controller](/docs/manual/acl-controller) and [Architecture](/docs/ecs/architecture).
+This section describes how to manually configure the AWS IAM auth method for Consul on ECS. Alternatively, you can install the ACL controller to ease the burden of creating these resources. The ACL controller can automatically configure ACL resources for Consul on ECS. For additional details, refer to [ACL Controller](/docs/ecs/manual/acl-controller) and [Architecture](/docs/ecs/architecture).
 
 ### ECS Task Role Configuration
 

@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"net"
 	"reflect"
@@ -2742,13 +2743,16 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	}
 
 	// Register an equivalent prepared query.
+	// Specify prepared query name containing "." to test
+	// since that is technically supported (though atypical).
 	var id string
+	preparedQueryName := "query.name.with.dots"
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
-				Name: "test",
+				Name: preparedQueryName,
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -2763,6 +2767,9 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	questions := []string{
 		"db.service.consul.",
 		id + ".query.consul.",
+		preparedQueryName + ".query.consul.",
+		fmt.Sprintf("_%s._tcp.query.consul.", id),
+		fmt.Sprintf("_%s._tcp.query.consul.", preparedQueryName),
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
@@ -7561,6 +7568,55 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 			t.Errorf("%d: bad %#v vs. %#v", i, srv, a)
 		}
 	}
+}
+
+func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	resp := &dns.Msg{}
+
+	for i := 0; i < 600; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 150+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 150+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	reqEDNS, respEDNS := &dns.Msg{}, &dns.Msg{}
+	reqEDNS.SetEdns0(math.MaxUint16, true)
+	respEDNS.Answer = append(respEDNS.Answer, resp.Answer...)
+	respEDNS.Extra = append(respEDNS.Extra, resp.Extra...)
+	require.Greater(t, respEDNS.Len(), math.MaxUint16)
+	t.Logf("length is: %v", respEDNS.Len())
+
+	if trimmed := trimUDPResponse(reqEDNS, respEDNS, cfg.DNSUDPAnswerLimit); !trimmed {
+		t.Errorf("expected edns to be trimmed: %#v", resp)
+	}
+	require.Greater(t, math.MaxUint16, respEDNS.Len())
+
+	t.Logf("length is: %v", respEDNS.Len())
+
+	if len(respEDNS.Answer) == 0 || len(respEDNS.Answer) != len(respEDNS.Extra) {
+		t.Errorf("bad edns answer length: %#v", resp)
+	}
+
 }
 
 func TestDNS_syncExtra(t *testing.T) {

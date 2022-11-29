@@ -2,7 +2,7 @@ package flags
 
 import (
 	"flag"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -131,7 +131,7 @@ func (f *HTTPFlags) ReadTokenFile() (string, error) {
 		return "", nil
 	}
 
-	data, err := ioutil.ReadFile(tokenFile)
+	data, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return "", err
 	}

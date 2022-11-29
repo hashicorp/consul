@@ -4,6 +4,31 @@
     "path": "intro"
   },
   {
+    "title": "Why Choose Consul?",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "consul-vs-other"
+      },
+      {
+        "title": "Service Meshes",
+        "path": "consul-vs-other/service-mesh-compare"
+      },
+      {
+        "title": "DNS Tools",
+        "path": "consul-vs-other/dns-tools-compare"
+      },
+      {
+        "title": "Configuration Management Tools",
+        "path": "consul-vs-other/config-management-compare"
+      },
+      {
+        "title": "API Gateways",
+        "path": "consul-vs-other/api-gateway-compare"
+      }
+    ]
+  },
+  {
     "title": "Core Concepts",
     "routes": [
       {
@@ -33,7 +58,7 @@
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://learn.hashicorp.com/tutorials/consul/get-started-install"
+        "href": "https://learn.hashicorp.com/collections/consul/get-started-vms"
       },
       {
         "title": "Manual Bootstrap",
@@ -117,6 +142,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.14.x",
+            "path": "release-notes/consul/v1_14_x"
+          },
+          {
             "title": "v1.13.x",
             "path": "release-notes/consul/v1_13_x"
           },
@@ -142,6 +171,14 @@
         "title": "Consul K8s",
         "routes": [
           {
+            "title": "v1.0.x",
+            "path": "release-notes/consul-k8s/v1_0_x"
+          },
+          {
+            "title": "v0.49.x",
+            "path": "release-notes/consul-k8s/v0_49_x"
+          },
+          {
             "title": "v0.48.x",
             "path": "release-notes/consul-k8s/v0_48_x"
           },
@@ -154,6 +191,10 @@
       {
         "title": "Consul API Gateway",
         "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
           {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
@@ -438,16 +479,24 @@
             "title": "Mesh Gateways",
             "routes": [
               {
-                "title": "WAN Federation",
+                "title": "Overview",
+                "path": "connect/gateways/mesh-gateway"
+              },
+              {
+                "title": "Enabling WAN Federation Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
               },
               {
-                "title": "Enabling Service-to-service Traffic Across Datacenters",
-                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-datacenters"
+                "title": "Enabling Service-to-service Traffic Across WAN Federated Datacenters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Enabling Peering Control Plane Traffic",
+                "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
               },
               {
                 "title": "Enabling Service-to-service Traffic Across Peered Clusters",
@@ -532,6 +581,23 @@
         "title": "Security",
         "path": "connect/security",
         "hidden": true
+      },
+      {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "connect/dataplane/consul-dataplane"
+          },
+          {
+            "title": "Telemetry",
+            "path": "connect/dataplane/telemetry"
+          }
+        ]
       }
     ]
   },
@@ -967,6 +1033,19 @@
         ]
       },
       {
+        "title": "Consul Dataplane",
+        "routes": [
+          {
+            "title": "Overview",
+            "href": "/docs/connect/dataplane"
+          },
+          {
+            "title": "CLI Reference",
+            "href": "/docs/connect/dataplane/consul-dataplane"
+          }
+        ]
+      },
+      {
         "title": "Operations",
         "routes": [
           {
@@ -1083,11 +1162,6 @@
   },
   {
     "title": "AWS Lambda",
-    "badge": {
-      "text": "BETA",
-      "type": "outlined",
-      "color": "neutral"
-    },
     "routes": [
       {
         "title": "Overview",
@@ -1095,11 +1169,33 @@
       },
       {
         "title": "Register Lambda Functions",
-        "path": "lambda/registration"
+        "routes": [
+          {
+            "title": "Requirements",
+            "path": "lambda/registration"
+          },
+          {
+            "title": "Automate Registration",
+            "path": "lambda/registration/automate"
+          },
+          {
+            "title": "Manual Registration",
+            "path": "lambda/registration/manual"
+          }
+        ]
       },
       {
-        "title": "Invoke Lambda Functions",
+        "title": "Invoke Lambda Functions from Services",
         "path": "lambda/invocation"
+      },
+      {
+        "title": "Invoke Services from Lambda Functions",
+        "path": "lambda/invoke-from-lambda",
+        "badge": {
+          "text": "BETA",
+          "type": "outlined",
+          "color": "neutral"
+        }
       }
     ]
   },
@@ -1204,7 +1300,25 @@
       },
       {
         "title": "Usage",
-        "path": "api-gateway/usage"
+        "routes": [
+          {
+            "title": "Basic Usage",
+            "path": "api-gateway/usage/usage"
+          },
+          {
+          "title": "Reroute HTTP Requests",
+          "path": "api-gateway/usage/reroute-http-requests"
+          },
+          {
+            "title": "Route Traffic to Peered Services",
+            "path": "api-gateway/usage/route-to-peered-services"
+          },
+          {
+            "title": "Error Messages",
+            "path": "api-gateway/usage/errors"
+          }              
+              
+        ]
       },
       {
         "title": "Configuration",

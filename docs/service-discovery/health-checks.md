@@ -24,10 +24,11 @@ be reviewed and tested.
    on `config.Config` in [agent/config/config.go].
 5. Config [Service.Checks](https://www.consul.io/docs/discovery/services) - the
    `Checks` and `Check` fields on `ServiceDefinition` in [agent/config/config.go].
-6. CLI [consul services register](https://www.consul.io/commands/services/register) - the
+6. The returned fields of `ServiceDefinition` in [agent/config/builder.go].
+7. CLI [consul services register](https://www.consul.io/commands/services/register) - the
    `Checks` and `Check` fields on `api.AgentServiceRegistration`. The entrypoint is
    `ServicesFromFiles` in [command/services/config.go].
-7. API [/v1/txn](https://www.consul.io/api-docs/txn) - the `Transaction` API allows for registering a check.
+8. API [/v1/txn](https://www.consul.io/api-docs/txn) - the `Transaction` API allows for registering a check.
 
 
 [agent/catalog_endpoint.go]: https://github.com/hashicorp/consul/blob/main/agent/catalog_endpoint.go

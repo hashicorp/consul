@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"os"
@@ -1378,12 +1377,8 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+func (r isReadRequest) HasTimedOut(_ time.Time, _, _, _ time.Duration) (bool, error) {
 	return false, nil
-}
-
-func (r isReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	return time.Duration(-1)
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
@@ -1394,13 +1389,13 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	require.NoError(t, err)
 
 	dir := testutil.TempDir(t, "certs")
-	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	intermediatePEM, intermediatePK, err := tlsutil.GenerateCert(tlsutil.CertOpts{IsCA: true, CA: caPEM, Signer: caSigner, Days: 5})
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
 	require.NoError(t, err)
 
 	newCert := func(t *testing.T, caPEM, pk, node, name string) {
@@ -1419,9 +1414,9 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
 		require.NoError(t, err)
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
 		require.NoError(t, err)
 	}
 

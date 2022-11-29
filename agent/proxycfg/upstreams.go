@@ -191,17 +191,19 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
-		key, uidString, ok := removeColonPrefix(correlationID)
-		if !ok {
-			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
-		}
-		uid := UpstreamIDFromString(uidString)
+		key, uidString, ok := strings.Cut(correlationID, ":")
+		if ok {
+			// correlationID formatted with an upstreamID
+			uid := UpstreamIDFromString(uidString)
 
-		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[uid]; !ok {
-			upstreamsSnapshot.WatchedGatewayEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
+			if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[uid]; !ok {
+				upstreamsSnapshot.WatchedGatewayEndpoints[uid] = make(map[string]structs.CheckServiceNodes)
+			}
+			upstreamsSnapshot.WatchedGatewayEndpoints[uid][key] = resp.Nodes
+		} else {
+			// event was for local gateways only
+			upstreamsSnapshot.WatchedLocalGWEndpoints.Set(key, resp.Nodes)
 		}
-		upstreamsSnapshot.WatchedGatewayEndpoints[uid][key] = resp.Nodes
-
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -317,7 +319,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			}
 		case structs.MeshGatewayModeLocal:
 			gk = GatewayKey{
-				Partition:  s.source.NodePartitionOrDefault(),
+				Partition:  s.proxyID.PartitionOrDefault(),
 				Datacenter: s.source.Datacenter,
 			}
 		}

@@ -19,10 +19,14 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 	defer logger.Trace("Finished processing request")
 
 	// Require the given ACL token to have `service:write` on any service
-	token := external.TokenFromContext(ctx)
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	var authzContext acl.AuthorizerContext
 	entMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, &authzContext)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzContext)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}

@@ -20,6 +20,10 @@ type ExportFetcher interface {
 }
 
 type ExportedServices struct {
+	// Data is a map of [namespace] -> [service] -> [list of partitions the service is exported to]
+	// This includes both the names of typical service instances and their corresponding sidecar proxy
+	// instance names. Meaning that if "web" is exported, "web-sidecar-proxy" instances will also be
+	// shown as exported.
 	Data map[string]map[string][]string
 }
 

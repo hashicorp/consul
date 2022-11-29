@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy.
+```

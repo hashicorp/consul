@@ -49,7 +49,7 @@ func testConnPairSetup(t *testing.T) (net.Conn, net.Conn, func()) {
 // testConnPipelineSetup creates a pipeline consiting of two TCP connection
 // pairs and a Conn that copies bytes between them. Data flow looks like this:
 //
-//   src1 <---> dst1 <== Conn.CopyBytes ==> src2 <---> dst2
+//	src1 <---> dst1 <== Conn.CopyBytes ==> src2 <---> dst2
 //
 // The returned values are the src1 and dst2 which should be able to send and
 // receive to each other via the Conn, the Conn itself (not running), and a

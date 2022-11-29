@@ -127,7 +127,7 @@ type clientOrServer interface {
 
 // joinLAN is a convenience function for
 //
-//   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
+//	member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 	t.Helper()
 	joinLANWithOptions(t, member, leader, true)
@@ -184,7 +184,7 @@ func joinLANWithOptions(t *testing.T, member clientOrServer, leader *Server, doM
 
 // joinWAN is a convenience function for
 //
-//   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
+//	member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
 	t.Helper()
 	joinWANWithOptions(t, member, leader, true)

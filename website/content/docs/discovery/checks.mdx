@@ -410,6 +410,43 @@ check = {
 
 </CodeTabs>
 
+### OSService check
+
+OSService checks periodically direct the Consul agent to monitor the health of a service running on
+the host operating system as either a Windows service (Windows) or a SystemD service (Unix).
+The check is logged as `healthy` if the service is running.
+If it is stopped or not running, the status is `critical`. All other results set
+the status to `warning`, which indicates that the check is not reliable because an issue is preventing the check from determining the health of the service.
+
+The following service definition file snippet is an example
+of an OSService check definition:
+
+<CodeTabs heading="OSService Check">
+
+```hcl
+check = {
+  id = "myco-svctype-svcname-001"
+  name = "svcname-001 Windows Service Health"
+  service_id = "flash_pnl_1"
+  os_service = "myco-svctype-svcname-001"
+  interval = "10s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "myco-svctype-svcname-001",
+    "name": "svcname-001 Windows Service Health",
+    "service_id": "flash_pnl_1",
+    "os_service": "myco-svctype-svcname-001",
+    "interval": "10s"
+  }
+}
+```
+
+</CodeTabs>
+
 ### Time to live (TTL) check ((#ttl))
 
 TTL checks retain their last known state for the specified `ttl` duration.
@@ -690,7 +727,7 @@ For a complete list of all check options, refer to the
 - `name` `(string: <required>)` - Specifies the name of the check.
 
 - `id` `(string: "")` - Specifies a unique ID for this check on this node.
-  
+
   If unspecified, Consul defines the check id by:
   - If the check definition is embedded within a service definition file,
      a unique check id is auto-generated.
@@ -719,10 +756,10 @@ For a complete list of all check options, refer to the
 - `status` `(string: "")` - Specifies the initial status of the health check as
    "critical" (default), "warning", or "passing". For more details, refer to
    the [initial health check status](#initial-health-check-status) section.
-  
+
   -> **Health defaults to critical:** If health status it not initially specified,
      it defaults to "critical" to protect against including a service
-     in discovery results before it is ready. 
+     in discovery results before it is ready.
 
 - `deregister_critical_service_after` `(string: "")` - If specified,
   the associated service and all its checks are deregistered

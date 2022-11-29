@@ -239,14 +239,14 @@ func ExtractNodeIdentities(nodeIdents []string) ([]*api.ACLNodeIdentity, error) 
 
 // TestKubernetesJWT_A is a valid service account jwt extracted from a minikube setup.
 //
-// {
-//   "iss": "kubernetes/serviceaccount",
-//   "kubernetes.io/serviceaccount/namespace": "default",
-//   "kubernetes.io/serviceaccount/secret.name": "admin-token-qlz42",
-//   "kubernetes.io/serviceaccount/service-account.name": "admin",
-//   "kubernetes.io/serviceaccount/service-account.uid": "738bc251-6532-11e9-b67f-48e6c8b8ecb5",
-//   "sub": "system:serviceaccount:default:admin"
-// }
+//	{
+//	  "iss": "kubernetes/serviceaccount",
+//	  "kubernetes.io/serviceaccount/namespace": "default",
+//	  "kubernetes.io/serviceaccount/secret.name": "admin-token-qlz42",
+//	  "kubernetes.io/serviceaccount/service-account.name": "admin",
+//	  "kubernetes.io/serviceaccount/service-account.uid": "738bc251-6532-11e9-b67f-48e6c8b8ecb5",
+//	  "sub": "system:serviceaccount:default:admin"
+//	}
 const TestKubernetesJWT_A = "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImFkbWluLXRva2VuLXFsejQyIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiNzM4YmMyNTEtNjUzMi0xMWU5LWI2N2YtNDhlNmM4YjhlY2I1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6YWRtaW4ifQ.ixMlnWrAG7NVuTTKu8cdcYfM7gweS3jlKaEsIBNGOVEjPE7rtXtgMkAwjQTdYR08_0QBjkgzy5fQC5ZNyglSwONJ-bPaXGvhoH1cTnRi1dz9H_63CfqOCvQP1sbdkMeRxNTGVAyWZT76rXoCUIfHP4LY2I8aab0KN9FTIcgZRF0XPTtT70UwGIrSmRpxW38zjiy2ymWL01cc5VWGhJqVysmWmYk3wNp0h5N57H_MOrz4apQR4pKaamzskzjLxO55gpbmZFC76qWuUdexAR7DT2fpbHLOw90atN_NlLMY-VrXyW3-Ei5EhYaVreMB9PSpKwkrA4jULITohV-sxpa1LA"
 
 // TestKubernetesJWT_B is a valid service account jwt extracted from a minikube setup.

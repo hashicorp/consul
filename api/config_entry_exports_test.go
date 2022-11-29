@@ -51,7 +51,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 					Namespace: defaultNamespace,
 					Consumers: []ServiceConsumer{
 						{
-							PeerName: "alpha",
+							Peer: "alpha",
 						},
 					},
 				},
