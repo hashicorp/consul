@@ -35,7 +35,7 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
-		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(rateLimiter)),
+		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(rateLimiter, agentmiddleware.NewPanicHandler(logger))),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.

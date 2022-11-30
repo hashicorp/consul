@@ -13,6 +13,8 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/consul/rate"
 )
 
@@ -20,7 +22,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 	limiter := NewMockRateLimiter(t)
 
 	server := grpc.NewServer(
-		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter)),
+		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter, NewPanicHandler(hclog.NewNullLogger()))),
 	)
 	server.RegisterService(&healthpb.Health_ServiceDesc, health.NewServer())
 
@@ -80,5 +82,15 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 
 		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
 		require.NoError(t, err)
+	})
+
+	t.Run("Allow panics", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Panic("uh oh").
+			Once()
+
+		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		require.Error(t, err)
+		require.Equal(t, codes.Internal.String(), status.Code(err).String())
 	})
 }

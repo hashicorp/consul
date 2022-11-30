@@ -9,14 +9,24 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/tap"
 
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+
 	"github.com/hashicorp/consul/agent/consul/rate"
 )
 
 // ServerRateLimiterMiddleware implements a ServerInHandle function to perform
 // RPC rate limiting at the cheapest possible point (before the full request has
 // been decoded).
-func ServerRateLimiterMiddleware(limiter RateLimiter) tap.ServerInHandle {
-	return func(ctx context.Context, info *tap.Info) (context.Context, error) {
+func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.RecoveryHandlerFunc) tap.ServerInHandle {
+	return func(ctx context.Context, info *tap.Info) (_ context.Context, retErr error) {
+		// This function is called before unary and stream RPC interceptors, so we
+		// must handle our own panics here.
+		defer func() {
+			if r := recover(); r != nil {
+				retErr = panicHandler(r)
+			}
+		}()
+
 		peer, ok := peer.FromContext(ctx)
 		if !ok {
 			// This should never happen!
