@@ -84,6 +84,7 @@ where OSS Consul would save service-resolvers that require Consul Enterprise. [[
 * telemetry: Added a `consul.xds.server.streamStart` metric to measure time taken to first generate xDS resources for an xDS stream. [[GH-14957](https://github.com/hashicorp/consul/issues/14957)]
 * ui: Improve guidance around topology visualisation [[GH-14527](https://github.com/hashicorp/consul/issues/14527)]
 * xds: Set `max_ejection_percent` on Envoy's outlier detection to 100% for peered services. [[GH-14373](https://github.com/hashicorp/consul/issues/14373)]
+* xds: configure Envoy `alpn_protocols` for connect-proxy and ingress-gateway based on service protocol. [[GH-14356](https://github.com/hashicorp/consul/pull/14356)]
 
 BUG FIXES:
 
