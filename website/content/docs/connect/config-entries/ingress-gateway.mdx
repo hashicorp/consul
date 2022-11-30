@@ -1076,6 +1076,32 @@ You can specify the following parameters to configure ingress gateway configurat
               respected, a L7 protocol must be defined in the \`protocol\` field.
               If not specified, it uses the default value. For example, 1024 for Envoy proxy.`,
         },
+        {
+          name: 'PassiveHealthCheck',
+          type: 'PassiveHealthCheck: <optional>',
+          description:
+            'Passive health checks are used to remove hosts from the upstream cluster which are unreachable or are returning errors.',
+          children: [
+            {
+              name: 'interval',
+              type: 'int: <optional>',
+              description:
+                "The time in nanosecond between checks. Each check will cause hosts which have exceeded `max_failures` to be removed from the load balancer, and any hosts which have passed their ejection time to be returned to the load balancer. If not specified, it uses the default value. For example, 10s for Envoy proxy.",
+            },
+            {
+              name: 'max_failures',
+              type: 'int: <optional>',
+              description:
+                'The number of consecutive failures which cause a host to be removed from the load balancer. If not specified, it uses the default value. For example, 5 for Envoy proxy.',
+            },
+            {
+              name: 'enforcing_consecutive_5xx',
+              type: 'int: <optional>',
+              description:
+                'The chance in percentage that a host will be actually ejected when an outlier status is detected through consecutive 5xx. If not specified, it uses the default value. For example, 100 for Envoy proxy.',
+            },
+          ],
+        },
       ],
     },
     {
@@ -1207,6 +1233,25 @@ You can specify the following parameters to configure ingress gateway configurat
               name: 'MaxConcurrentRequests',
               type: 'int: 0',
               description: 'overrides for the [`Defaults` field](#available-fields)',
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: 'overrides for the [`Defaults` field](#available-fields)',
+              children: [
+                {
+                  name: 'interval',
+                  type: 'int: <optional>',
+                },
+                {
+                  name: 'max_failures',
+                  type: 'int: <optional>',
+                },
+                {
+                  name: 'enforcing_consecutive_5xx',
+                  type: 'int: <optional>',
+                },
+              ],
             },
           ],
         },

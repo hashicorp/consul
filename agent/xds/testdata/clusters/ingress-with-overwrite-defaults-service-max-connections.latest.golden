@@ -24,7 +24,8 @@
         ]
       },
       "outlierDetection": {
-
+          "interval": "8s",
+          "enforcingConsecutive5xx": 50
       },
       "commonLbConfig": {
         "healthyPanicThreshold": {

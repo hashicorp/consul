@@ -43,6 +43,10 @@ type IngressServiceConfig struct {
 	MaxConnections        uint32
 	MaxPendingRequests    uint32
 	MaxConcurrentRequests uint32
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 }
 
 type IngressListener struct {
@@ -102,6 +106,10 @@ type IngressService struct {
 	MaxConnections        uint32 `json:",omitempty" alias:"max_connections"`
 	MaxPendingRequests    uint32 `json:",omitempty" alias:"max_pending_requests"`
 	MaxConcurrentRequests uint32 `json:",omitempty" alias:"max_concurrent_requests"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

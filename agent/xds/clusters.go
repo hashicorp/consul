@@ -849,6 +849,26 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 	if threshold != nil {
 		c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
 	}
+
+	// Configure the default outlier detector for upstream service
+	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck)
+
+	// override the default outlier detection value
+	if svc.PassiveHealthCheck != nil {
+		if svc.PassiveHealthCheck.Interval != 0 {
+			outlierDetection.Interval = durationpb.New(svc.PassiveHealthCheck.Interval)
+		}
+		if svc.PassiveHealthCheck.MaxFailures != 0 {
+			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{Value: svc.PassiveHealthCheck.MaxFailures}
+		}
+
+		// if svc.PassiveHealthCheck.EnforcingConsecutive5xx != nil && *svc.PassiveHealthCheck.EnforcingConsecutive5xx != 0 {
+		if svc.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+			outlierDetection.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *svc.PassiveHealthCheck.EnforcingConsecutive5xx}
+		}
+	}
+
+	c.OutlierDetection = outlierDetection
 }
 
 func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
