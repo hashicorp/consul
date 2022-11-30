@@ -41,7 +41,7 @@ Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https:
    ```shell-session
    $ helm search repo hashicorp/consul
    NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-   hashicorp/consul	0.45.0       	1.14.0      Official HashiCorp Consul Chart
+   hashicorp/consul	1.0.1       	1.14.1      Official HashiCorp Consul Chart
    ```
 
 1. Before you install Consul on Kubernetes with Helm, ensure that the `consul` Kubernetes namespace does not exist. We recommend installing Consul on a dedicated namespace.
@@ -68,7 +68,7 @@ Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https:
   - To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag:
 
     ```shell-session
-    $ export VERSION=0.43.0
+    $ export VERSION=1.0.1
     $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
     ```
 
@@ -113,7 +113,8 @@ The Consul Helm Chart is responsible for installing the Consul CNI plugin.
 To configure the plugin to be installed, add the following configuration to your `values.yaml` file:
 
 <Tabs>
-<Tab heading="Reference configuration"> ", "]}>
+  
+<Tab heading="Reference configuration">
 
 <CodeBlockConfig filename="values.yaml">
 
