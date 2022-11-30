@@ -673,6 +673,18 @@ func createDiscoChainHealth(
 	}
 }
 
+var statusScores = map[string]int{
+	// 0 is reserved for unknown
+	api.HealthMaint:    1,
+	api.HealthCritical: 2,
+	api.HealthWarning:  3,
+	api.HealthPassing:  4,
+}
+
+func isStatusBetter(curr, next string) bool {
+	return statusScores[next] < statusScores[curr]
+}
+
 func flattenChecks(
 	nodeName string,
 	serviceID string,
@@ -684,10 +696,18 @@ func flattenChecks(
 		return nil
 	}
 
+	// Similar logic to (api.HealthChecks).AggregatedStatus()
 	healthStatus := api.HealthPassing
-	for _, chk := range checks {
-		if chk.Status != api.HealthPassing {
-			healthStatus = chk.Status
+	if len(checks) > 0 {
+		for _, chk := range checks {
+			id := chk.CheckID
+			if id == api.NodeMaint || strings.HasPrefix(id, api.ServiceMaintPrefix) {
+				healthStatus = api.HealthMaint
+				break // always wins
+			}
+			if isStatusBetter(healthStatus, chk.Status) {
+				healthStatus = chk.Status
+			}
 		}
 	}
 
