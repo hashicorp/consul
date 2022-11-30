@@ -868,7 +868,12 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 		}
 	}
 
-	c.OutlierDetection = outlierDetection
+	// Specail handling for failover peering service, which has set MaxEjectionPercent
+	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
+		outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
+	} else {
+		c.OutlierDetection = outlierDetection
+	}
 }
 
 func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
