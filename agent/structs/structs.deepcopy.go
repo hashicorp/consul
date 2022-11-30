@@ -325,6 +325,14 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 			if o.Services[i2].ResponseHeaders != nil {
 				cp.Services[i2].ResponseHeaders = o.Services[i2].ResponseHeaders.DeepCopy()
 			}
+			if o.Services[i2].PassiveHealthCheck != nil {
+				cp.Services[i2].PassiveHealthCheck = new(PassiveHealthCheck)
+				*cp.Services[i2].PassiveHealthCheck = *o.Services[i2].PassiveHealthCheck
+				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+			}
 			if o.Services[i2].Meta != nil {
 				cp.Services[i2].Meta = make(map[string]string, len(o.Services[i2].Meta))
 				for k4, v4 := range o.Services[i2].Meta {
