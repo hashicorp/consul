@@ -314,6 +314,20 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			}
 
 			if args.Expanded {
+				// If tokenID type is ACLTokenSecret (i.e. doing a self read),
+				// prevent including expanded token info unless the token
+				// has acl:read privileges. Since a normal self read has no
+				// ACL enforcement we need to make the expanded read stricter.
+				if args.TokenIDType == structs.ACLTokenSecret {
+					var err error
+					var authzContext acl.AuthorizerContext
+					if authz, err = a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
+						return err
+					} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+						return fmt.Errorf("token does not have acl:read privileges for an expanded self read: %w", err)
+					}
+				}
+
 				info, err := a.lookupExpandedTokenInfo(ws, state, token)
 				if err != nil {
 					return err
