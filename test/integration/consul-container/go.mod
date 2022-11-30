@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/hashicorp/consul v1.13.3
-	github.com/hashicorp/consul/api v1.17.0
+	github.com/hashicorp/consul v1.14.1
+	github.com/hashicorp/consul/api v1.18.0
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9
@@ -67,7 +67,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4 // indirect
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706 // indirect
 	github.com/hashicorp/consul-net-rpc v0.0.0-20220307172752-3602954411b4 // indirect
-	github.com/hashicorp/consul/proto-public v0.2.0 // indirect
+	github.com/hashicorp/consul/proto-public v0.2.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-bexpr v0.1.2 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
