@@ -11,28 +11,47 @@ on:
 
 env:
   PKG_NAME: consul
+  VERSION: oss
 
 jobs:
   set-product-version:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.set-product-version.outputs.product-version }}
-      product-date: ${{ steps.set-product-version.outputs.product-date }}
-      pre-version: ${{ steps.set-product-version.outputs.pre-version }}
-      pkg-version: ${{ steps.set-product-version.outputs.pkg-version }}
+      product-date: ${{ steps.get-product-version.outputs.product-date }}
+      pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
+      pkg-version: ${{ steps.get-product-version.outputs.pkg-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
       - uses: actions/checkout@v2
       - name: set product version
         id: set-product-version
         uses: hashicorp/actions-set-product-version@v1
+      - name: get product version
+        id: get-product-version
+        run: |
+          CONSUL_DATE=$(build-support/scripts/build-date.sh)
+          ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
+          echo "::set-output name=product-date::${CONSUL_DATE}"
+          echo "::set-output name=pkg-version::${{ env.VERSION }}"
 
       - name: Set shared -ldflags
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.set-product-version.outputs.product-date }}"
+          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }}"
 
+  validate-outputs:
+    needs: set-product-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Outputs
+        run: |
+          echo "Product Version: ${{ needs.set-product-version.outputs.product-version }}"
+          echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
+          echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
+          echo "Package Version: ${{ needs.set-product-version.outputs.pkg-version }}"
+          echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
   generate-metadata-file:
     needs: set-product-version
     runs-on: ubuntu-latest
@@ -114,7 +133,7 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            go build -o "$BIN_PATH" -trimpath \
+            go build -o "$BIN_PATH" -trimpath -buildvcs=false \
             -ldflags "
               -X github.com/hashicorp/packer/version.Version=$PRODUCT_VERSION 
               -X github.com/hashicorp/packer/version.GitCommit=$PRODUCT_REVISION 
@@ -215,7 +234,7 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            go build -o "$BIN_PATH" -trimpath \
+            go build -o "$BIN_PATH" -trimpath -buildvcs=false \
             -ldflags "
               -X github.com/hashicorp/packer/version.Version=$PRODUCT_VERSION 
               -X github.com/hashicorp/packer/version.GitCommit=$PRODUCT_REVISION 
