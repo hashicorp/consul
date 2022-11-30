@@ -51,6 +51,8 @@ type CompiledDiscoveryChain struct {
 
 	// Targets is a list of all targets used in this chain.
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
+
+	VirtualIP string `json:",omitempty"`
 }
 
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.

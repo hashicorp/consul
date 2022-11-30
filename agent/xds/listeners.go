@@ -216,12 +216,17 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
 		// Match on the virtual IP for the upstream service (identified by the chain's ID).
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
+
+		if chain.VirtualIP != "" {
+			// TODO figure out the correct logic for this
+			uniqueAddrs[chain.VirtualIP] = struct{}{}
+		}
+		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		for _, e := range endpoints {
 			if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
 				key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())

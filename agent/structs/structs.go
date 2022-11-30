@@ -1200,6 +1200,10 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
+	// ServiceKindVirtual is a discovery chain service entry (Resolver,
+	// Router, Redirect) that can be used as an upstream destination.
+	ServiceKindVirtual ServiceKind = "virtual-service"
+
 	// ServiceKindConnectProxy is a proxy for the Connect feature. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.

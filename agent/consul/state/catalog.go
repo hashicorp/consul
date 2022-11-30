@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 
@@ -1081,6 +1082,22 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	return result.String(), nil
 }
 
+func getVirtualIPForService(tx ReadTxn, psn structs.PeeredServiceName) (string, error) {
+	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
+	if err != nil {
+		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
+	}
+	if vip == nil {
+		return "", nil
+	}
+
+	result, err := addIPOffset(startingVirtualIP, vip.(ServiceVirtualIP).IP)
+	if err != nil {
+		return "", err
+	}
+	return result.String(), nil
+}
+
 func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
 	// update per-partition max index
 	if err := indexUpdateMaxTxn(txn, idx, partitionedIndexEntryName(tableServiceVirtualIPs, partition)); err != nil {
@@ -1928,45 +1945,46 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
-	q := Query{
-		Value:          svc.ServiceName,
-		EnterpriseMeta: *entMeta,
-		PeerName:       svc.PeerName,
+	psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
+	remainingService, err := typicalServicesExist(tx, psn)
+	if err != nil {
+		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
 	}
-	if remainingService, err := tx.First(tableServices, indexService, q); err == nil {
-		if remainingService != nil {
-			// We have at least one remaining service, update the index
-			if err := catalogUpdateServiceIndexes(tx, idx, svc.ServiceName, entMeta, svc.PeerName); err != nil {
-				return err
+	if remainingService {
+		// We have at least one remaining service, update the index
+		if err := catalogUpdateServiceIndexes(tx, idx, svc.ServiceName, entMeta, svc.PeerName); err != nil {
+			return err
+		}
+	} else {
+		// There are no more service instances, cleanup the service.<serviceName> index
+		_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta, svc.PeerName)
+		if err == nil && serviceIndex != nil {
+			// we found service.<serviceName> index, garbage collect it
+			if err := tx.Delete(tableIndex, serviceIndex); err != nil {
+				return fmt.Errorf("[FAILED] deleting serviceIndex %s: %s", svc.ServiceName, err)
 			}
-		} else {
-			// There are no more service instances, cleanup the service.<serviceName> index
-			_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta, svc.PeerName)
-			if err == nil && serviceIndex != nil {
-				// we found service.<serviceName> index, garbage collect it
-				if err := tx.Delete(tableIndex, serviceIndex); err != nil {
-					return fmt.Errorf("[FAILED] deleting serviceIndex %s: %s", svc.ServiceName, err)
-				}
-			}
+		}
 
-			if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta, svc.PeerName); err != nil {
-				return err
-			}
-			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
+		if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta, svc.PeerName); err != nil {
+			return err
+		}
+
+		// Only delete virtual IPs if the virtual service of the same name doesn't exist.
+		if virtsExist, err := virtualServiceExists(tx, name); err != nil {
+			return err
+		} else if !virtsExist {
 			if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
-			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
-				return fmt.Errorf("failed to persist service name: %v", err)
-			}
 		}
-	} else {
-		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
+
+		if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
+			return fmt.Errorf("failed to persist service name: %v", err)
+		}
 	}
 
 	if svc.PeerName == "" {
-		sn := structs.ServiceName{Name: svc.ServiceName, EnterpriseMeta: svc.EnterpriseMeta}
-		if err := cleanupGatewayWildcards(tx, idx, sn, false); err != nil {
+		if err := cleanupGatewayWildcards(tx, idx, psn.ServiceName, false); err != nil {
 			return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 		}
 	}
@@ -1990,6 +2008,21 @@ func freeServiceVirtualIP(
 		return nil
 	}
 
+	// Do not free the virtual IP if a virtual service references it.
+	q := KindServiceNameQuery{
+		Name:           psn.ServiceName.Name,
+		Kind:           structs.ServiceKindVirtual,
+		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
+	}
+	existing, err := tx.First(tableKindServiceNames, indexID, q)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		// TODO make sure that traditional services also don't exist before clearing vips
+		hclog.Default().Error("------------ refused vip delete. virt exists.", "svc", psn.ServiceName.Name)
+		return nil
+	}
 	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
 	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
 	if err != nil {
@@ -2904,20 +2937,7 @@ func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, kind structs.
 func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-
-	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
-	if err != nil {
-		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
-	}
-	if vip == nil {
-		return "", nil
-	}
-
-	result, err := addIPOffset(startingVirtualIP, vip.(ServiceVirtualIP).IP)
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
+	return getVirtualIPForService(tx, psn)
 }
 
 // VirtualIPsForAllImportedServices returns a slice of ServiceVirtualIP for all
@@ -3471,6 +3491,7 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 			return err
 		}
 		if len(nodes) == 0 {
+			// TODO figure out if this needs the virtual-service check.
 			psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: sn}
 			if err := freeServiceVirtualIP(tx, idx, psn, &gatewayName); err != nil {
 				return err
@@ -4744,4 +4765,17 @@ func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
 	}
 
 	return contents, nil
+}
+
+func typicalServicesExist(tx ReadTxn, psn structs.PeeredServiceName) (bool, error) {
+	q := Query{
+		Value:          psn.ServiceName.Name,
+		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
+		PeerName:       psn.Peer,
+	}
+	remainingService, err := tx.First(tableServices, indexService, q)
+	if err != nil {
+		return false, err
+	}
+	return remainingService != nil, nil
 }

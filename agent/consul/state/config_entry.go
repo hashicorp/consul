@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -384,6 +385,18 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 				return fmt.Errorf("failed to cleanup service name: \"%s\"; err: %v", serviceName, err)
 			}
 		}
+	case *structs.ServiceResolverConfigEntry:
+		if err = cleanupVirtualService(tx, idx, q); err != nil {
+			return err
+		}
+	case *structs.ServiceRouterConfigEntry:
+		if err = cleanupVirtualService(tx, idx, q); err != nil {
+			return err
+		}
+	case *structs.ServiceSplitterConfigEntry:
+		if err = cleanupVirtualService(tx, idx, q); err != nil {
+			return err
+		}
 	}
 
 	// Also clean up associations in the mesh topology table for ingress gateways
@@ -426,10 +439,10 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		}
 	}
 
+	sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
 	switch conf.GetKind() {
 	case structs.ServiceDefaults:
 		if conf.(*structs.ServiceConfigEntry).Destination != nil {
-			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
 			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
 			if gsKind == structs.GatewayServiceKindUnknown {
 				gsKind = structs.GatewayServiceKindDestination
@@ -447,6 +460,18 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			if err := upsertKindServiceName(tx, idx, structs.ServiceKindDestination, sn); err != nil {
 				return fmt.Errorf("failed to persist service name: %v", err)
 			}
+		}
+	case structs.ServiceResolver:
+		if err := upsertVirtualService(tx, idx, sn); err != nil {
+			return err
+		}
+	case structs.ServiceRouter:
+		if err := upsertVirtualService(tx, idx, sn); err != nil {
+			return err
+		}
+	case structs.ServiceSplitter:
+		if err := upsertVirtualService(tx, idx, sn); err != nil {
+			return err
 		}
 	}
 
@@ -1033,7 +1058,6 @@ func serviceDiscoveryChainTxn(
 	entMeta *acl.EnterpriseMeta,
 	req discoverychain.CompileRequest,
 ) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
-
 	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
 	if err != nil {
 		return 0, nil, nil, err
@@ -1061,6 +1085,13 @@ func serviceDiscoveryChainTxn(
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
 	}
+	chain.VirtualIP, err = getVirtualIPForService(tx, structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName(serviceName, entMeta),
+	})
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed to get virtual IP for discovery chain: %v", err)
+	}
+	hclog.Default().Error("========================================= ", "svc", serviceName, "vip", chain.VirtualIP)
 
 	return index, chain, entries, nil
 }
@@ -1710,4 +1741,90 @@ func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) 
 		}
 	}
 	return out
+}
+
+// virtualServiceConfigsExist indicates whether any resolver / splitter / router
+// config entry exists in the datastore with the given name.
+func virtualServiceConfigsExist(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *acl.EnterpriseMeta,
+) (uint64, bool, error) {
+	var maxIdx uint64
+	var found bool
+	for _, k := range []string{
+		structs.ServiceResolver,
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+	} {
+		idx, entry, err := configEntryWithOverridesTxn(tx, ws, k, serviceName, nil, entMeta)
+		if err != nil {
+			return 0, false, err
+		}
+		maxIdx = lib.MaxUint64(maxIdx, idx)
+		found = found || entry != nil
+	}
+	return maxIdx, found, nil
+}
+
+func cleanupVirtualService(tx WriteTxn, idx uint64, kn configentry.KindName) error {
+	// Lookup if there are routers / resolvers / splitters with the given name.
+	_, exists, err := virtualServiceConfigsExist(tx, nil, kn.Name, &kn.EnterpriseMeta)
+	if err != nil {
+		return err
+	}
+	// If any exist, then we don't need to cleanup the virtual-IP and KindServiceName tables.
+	if exists {
+		return nil
+	}
+	// Perform cleanup
+	psn := structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName(kn.Name, &kn.EnterpriseMeta),
+	}
+	if err := cleanupKindServiceName(tx, idx, psn.ServiceName, structs.ServiceKindVirtual); err != nil {
+		return fmt.Errorf("failed to delete virtual service: %v", err)
+	}
+	// Only free the virtual-IP if a typical service of the same name doesn't exist.
+	typicalExist, err := typicalServicesExist(tx, psn)
+	if err != nil {
+		return err
+	}
+	if !typicalExist {
+		if err = freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
+			return fmt.Errorf("failed to delete virtual IP: %v", err)
+		}
+	}
+	hclog.Default().Error("----------------Virtual service deleted.", "svc", kn.Name)
+	return nil
+}
+
+func upsertVirtualService(tx WriteTxn, idx uint64, name structs.ServiceName) error {
+	psn := structs.PeeredServiceName{ServiceName: name}
+	// TODO Figure out if registering a "typical" vs "virtual" service is correct or not.
+	// This is used during intention-topology lookups so that disco chains are discoverable via
+	// intentions.
+	if err := upsertKindServiceName(tx, idx, structs.ServiceKindVirtual, psn.ServiceName); err != nil {
+		return fmt.Errorf("failed to persist virtual service: %v", err)
+	}
+	// Add a virtual ip for the service if it doesn't already exist.
+	vip, err := assignServiceVirtualIP(tx, idx, psn)
+	if err != nil {
+		return fmt.Errorf("failed to allocate virtual IP: %v", err)
+	}
+	hclog.Default().Error("----------------Virtual service created.", "svc", psn.ServiceName.Name, "vip", vip)
+	return nil
+}
+
+func virtualServiceExists(tx ReadTxn, sn structs.ServiceName) (bool, error) {
+	q := KindServiceNameQuery{
+		Name:           sn.Name,
+		Kind:           structs.ServiceKindVirtual,
+		EnterpriseMeta: sn.EnterpriseMeta,
+	}
+	existing, err := tx.First(tableKindServiceNames, indexID, q)
+	if err != nil {
+		return false, err
+	}
+	return existing != nil, nil
 }

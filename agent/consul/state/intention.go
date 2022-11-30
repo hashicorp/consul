@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -1012,15 +1013,33 @@ func (s *Store) intentionTopologyTxn(
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
 	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	var services []*KindServiceName
+
+	services := make(map[structs.ServiceName]struct{})
+	addSvcs := func(svcs []*KindServiceName) {
+		for _, s := range svcs {
+			services[s.Service] = struct{}{}
+		}
+	}
+	var tempServices []*KindServiceName
 	if intentionTarget == structs.IntentionTargetService {
-		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list service names: %v", err)
+		}
+		addSvcs(tempServices)
+		// TODO consider the implications of the wildcard-meta below.
+		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindVirtual, *wildcardMeta)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list virtual service names: %v", err)
+		}
+		addSvcs(tempServices)
 	} else {
 		// destinations can only ever be upstream, since they are only allowed as intention destination.
-		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
-	}
-	if err != nil {
-		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
+		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list destination service names: %v", err)
+		}
+		addSvcs(tempServices)
 	}
 	if index > maxIdx {
 		maxIdx = index
@@ -1035,7 +1054,7 @@ func (s *Store) intentionTopologyTxn(
 		if index > maxIdx {
 			maxIdx = index
 		}
-		services = append(services, ingress...)
+		addSvcs(ingress)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
@@ -1046,8 +1065,7 @@ func (s *Store) intentionTopologyTxn(
 		decisionMatchType = structs.IntentionMatchSource
 	}
 	result := make([]ServiceWithDecision, 0, len(services))
-	for _, svc := range services {
-		candidate := svc.Service
+	for candidate := range services {
 		if candidate.Name == structs.ConsulServiceName {
 			continue
 		}
@@ -1078,6 +1096,9 @@ func (s *Store) intentionTopologyTxn(
 			Name:     structs.ServiceName{Name: candidate.Name, EnterpriseMeta: candidate.EnterpriseMeta},
 			Decision: decision,
 		})
+	}
+	for _, d := range result {
+		hclog.Default().Error("!!!!!!!!!!!!!!!!!!!!!!!", "target", target.Name, "svc", d.Name, "dec", d.Decision)
 	}
 	return maxIdx, result, err
 }
