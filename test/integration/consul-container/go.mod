@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/hashicorp/consul v1.13.3
-	github.com/hashicorp/consul/api v1.17.0
+	github.com/hashicorp/consul v1.14.1
+	github.com/hashicorp/consul/api v1.18.0
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9
@@ -81,6 +81,7 @@ require (
 	github.com/hashicorp/go-raftchunking v0.6.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
+	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/go-syslog v1.0.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
