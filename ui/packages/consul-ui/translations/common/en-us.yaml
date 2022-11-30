@@ -83,4 +83,4 @@ validations:
     help: Once created, this cannot be changed.
   server-external-addresses:
     help: |
-      Enter a fallback server address for this peer to be used in the event of failed automatic updates. This field is required for HCP-managed clusters.
+      Enter a comma separated list of this peer's fallback server address(es) to be used in the event of failed automatic updates. This field is required for HCP-managed clusters.

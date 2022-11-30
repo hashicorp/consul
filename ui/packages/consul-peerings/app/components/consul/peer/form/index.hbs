@@ -7,12 +7,12 @@
     <TabNav
       @items={{array
         (hash
-          label="Generate token"
+          label=(t "components.consul.peer.form.generate-label")
           selected=(state-matches fsm.state "generate")
           state="GENERATE"
         )
         (hash
-          label="Establish peering"
+          label=(t "components.consul.peer.form.establish-label")
           selected=(state-matches fsm.state "initiate")
           state="INITIATE"
         )
