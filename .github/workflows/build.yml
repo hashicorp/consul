@@ -7,46 +7,53 @@ on:
       # Push events on the main branch
       - main
       - release/**
+      - set-product-version
 
 env:
   PKG_NAME: consul
+  VERSION: oss
 
 jobs:
-  get-product-version:
+  set-product-version:
     runs-on: ubuntu-latest
     outputs:
-      product-version: ${{ steps.get-product-version.outputs.product-version }}
+      product-version: ${{ steps.set-product-version.outputs.product-version }}
       product-date: ${{ steps.get-product-version.outputs.product-date }}
-      pre-version: ${{ steps.get-product-version.outputs.pre-version }}
+      pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       pkg-version: ${{ steps.get-product-version.outputs.pkg-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
       - uses: actions/checkout@v2
+      - name: set product version
+        id: set-product-version
+        uses: hashicorp/actions-set-product-version@v1
       - name: get product version
         id: get-product-version
         run: |
-          CONSUL_VERSION=$(build-support/scripts/version.sh -r)
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
-          IFS="+" read VERSION _other <<< "$CONSUL_VERSION"
-          IFS="-" read _other PREREL_VERSION <<< "$CONSUL_VERSION"
-          ## TODO: this assumes `version.sh` outputs in the expected ordering of
-          ##       [version]+ent{-prerelease}  If we need to transition to
-          ##       [version]{-prerelease}+ent before then, we'll need to add
-          ##       logic to handle presense/absence of the prerelease
-          echo "::set-output name=product-version::${CONSUL_VERSION}"
           echo "::set-output name=product-date::${CONSUL_DATE}"
-          echo "::set-output name=pre-version::${PREREL_VERSION}"
-          echo "::set-output name=pkg-version::${VERSION}"
+          echo "::set-output name=pkg-version::${{ env.VERSION }}"
 
       - name: Set shared -ldflags
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.get-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }}"
+          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X github.com/hashicorp/packer/version.Version=${{ steps.set-product-version.outputs.product-version }}"
 
+  validate-outputs:
+    needs: set-product-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Outputs
+        run: |
+          echo "Product Version: ${{ needs.set-product-version.outputs.product-version }}"
+          echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
+          echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
+          echo "Package Version: ${{ needs.set-product-version.outputs.pkg-version }}"
+          echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
   generate-metadata-file:
-    needs: get-product-version
+    needs: set-product-version
     runs-on: ubuntu-latest
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -57,7 +64,7 @@ jobs:
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
         with:
-          version: ${{ needs.get-product-version.outputs.product-version }}
+          version: ${{ needs.set-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
       - uses: actions/upload-artifact@v2
@@ -66,7 +73,7 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   build:
-    needs: get-product-version
+    needs: set-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -87,7 +94,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
 
@@ -100,8 +107,8 @@ jobs:
 
       - name: Build UI
         run: |
-          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
-          CONSUL_DATE=${{ needs.get-product-version.outputs.product-date }}
+          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
+          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
           CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
           CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
           echo "consul_version is ${CONSUL_VERSION}"
@@ -111,21 +118,27 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Build
+      
+      - name: Go Build
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
-          GOLDFLAGS: "${{needs.get-product-version.outputs.shared-ldflags}}"
-        run: |
-          mkdir dist out
-          go build -ldflags="$GOLDFLAGS" -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
-
+          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
+          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
+          CGO_ENABLED: "0"
+          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+        uses: hashicorp/actions-go-build@v0.1.7
+        with:
+          product_name: ${{ env.REPO_NAME }}
+          product_version: ${{ needs.set-product-version.outputs.product-version }}
+          go_version: ${{ matrix.go }}
+          os: ${{ matrix.goos }}
+          arch: ${{ matrix.goarch }}
+          reproducible: report
+          instructions: |-
+            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          name: ${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
@@ -134,7 +147,7 @@ jobs:
           name: ${{ github.event.repository.name }}
           description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
           arch: ${{ matrix.goarch }}
-          version: ${{ needs.get-product-version.outputs.product-version }}
+          version: ${{ needs.set-product-version.outputs.product-version }}
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/consul"
           license: "MPL-2.0"
@@ -166,7 +179,7 @@ jobs:
           path: out/${{ env.DEB_PACKAGE }}
 
   build-darwin:
-    needs: get-product-version
+    needs: set-product-version
     runs-on: macos-latest
     strategy:
       matrix:
@@ -180,7 +193,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
 
@@ -193,7 +206,7 @@ jobs:
 
       - name: Build UI
         run: |
-          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
           CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
           CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
           echo "consul_version is ${CONSUL_VERSION}"
@@ -203,25 +216,32 @@ jobs:
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
 
-      - name: Build
+      - name: Go Build
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
-        run: |
-          mkdir dist out
-          go build -ldflags="$GOLDFLAGS" -tags netcgo -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
+          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
+          CGO_ENABLED: "0"
+          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+        uses: hashicorp/actions-go-build@v0.1.7
+        with:
+          product_name: ${{ env.REPO_NAME }}
+          product_version: ${{ needs.set-product-version.outputs.product-version }}
+          go_version: ${{ matrix.go }}
+          os: ${{ matrix.goos }}
+          arch: ${{ matrix.goarch }}
+          reproducible: report
+          instructions: |-
+            go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          name: ${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
     needs:
-      - get-product-version
+      - set-product-version
       - build
     runs-on: ubuntu-latest
     strategy:
@@ -229,7 +249,7 @@ jobs:
         arch: ["386", "amd64", "arm", "arm64"]
     env:
       repo: ${{github.event.repository.name}}
-      version: ${{needs.get-product-version.outputs.product-version}}
+      version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
       - uses: actions/checkout@v2
@@ -258,12 +278,12 @@ jobs:
   build-docker-ubi-redhat:
     name: Docker Build UBI Image for RedHat Registry
     needs:
-      - get-product-version
+      - set-product-version
       - build
     runs-on: ubuntu-latest
     env:
       repo: ${{github.event.repository.name}}
-      version: ${{needs.get-product-version.outputs.product-version}}
+      version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
       - uses: actions/checkout@v2
@@ -278,12 +298,12 @@ jobs:
   build-docker-ubi-dockerhub:
     name: Docker Build UBI Image for DockerHub
     needs:
-      - get-product-version
+      - set-product-version
       - build
     runs-on: ubuntu-latest
     env:
       repo: ${{github.event.repository.name}}
-      version: ${{needs.get-product-version.outputs.product-version}}
+      version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
       - uses: actions/checkout@v2
@@ -310,7 +330,7 @@ jobs:
 
   verify-linux:
     needs:
-      - get-product-version
+      - set-product-version
       - build
     runs-on: ubuntu-latest
     strategy:
@@ -318,8 +338,8 @@ jobs:
         arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
-      version: ${{ needs.get-product-version.outputs.product-version }}
-      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+      version: ${{ needs.set-product-version.outputs.product-version }}
+      zip_name: consul_${{ needs.set-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
 
     name: Verify ${{ matrix.arch }} linux binary
     steps:
@@ -342,14 +362,14 @@ jobs:
 
   verify-darwin:
     needs:
-      - get-product-version
+      - set-product-version
       - build-darwin
     runs-on: macos-latest
     strategy:
       fail-fast: true
     env:
-      version: ${{needs.get-product-version.outputs.product-version}}
-      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_darwin_amd64.zip
+      version: ${{needs.set-product-version.outputs.product-version}}
+      zip_name: consul_${{ needs.set-product-version.outputs.product-version }}_darwin_amd64.zip
 
     name: Verify amd64 darwin binary
     steps:
@@ -369,14 +389,14 @@ jobs:
   verify-linux-packages-deb:
     needs:
       - build
-      - get-product-version
+      - set-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: ["i386", "amd64", "armhf", "arm64"]
       # fail-fast: true
     env:
-      version: ${{ needs.get-product-version.outputs.product-version }}
+      version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
@@ -384,7 +404,7 @@ jobs:
 
       - name: Set package version
         run: |
-          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
+          echo "pkg_version=$(echo ${{ needs.set-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
 
       - name: Set package name
         run: |
@@ -406,14 +426,14 @@ jobs:
   verify-linux-packages-rpm:
     needs:
       - build
-      - get-product-version
+      - set-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # TODO(eculver): re-enable when there is a smaller verification container available
         arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
     env:
-      version: ${{ needs.get-product-version.outputs.product-version }}
+      version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} rpm
     steps:
@@ -421,7 +441,7 @@ jobs:
 
       - name: Set package version
         run: |
-          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
+          echo "pkg_version=$(echo ${{ needs.set-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
 
       - name: Set package name
         run: |
