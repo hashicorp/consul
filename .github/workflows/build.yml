@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.set-product-version.outputs.product-version }}
+      base-product-version: ${{ steps.set-product-version.outputs.base-product-version }}
       product-date: ${{ steps.get-product-version.outputs.product-date }}
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       pkg-version: ${{ steps.get-product-version.outputs.pkg-version }}
@@ -39,7 +40,7 @@ jobs:
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X ${T}.Version=${{ steps.set-product-version.outputs.product-version }} -X ${T}.VersionPrelease=${{ steps.set-product-version.outputs.pre-version }}"
+          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} -X ${T}.VersionPrelease=${{ steps.set-product-version.outputs.pre-version }} -X ${T}.VersionMetadata=${{ env.VERSION }}"
 
   validate-outputs:
     needs: set-product-version
@@ -48,6 +49,7 @@ jobs:
       - name: Validate Outputs
         run: |
           echo "Product Version: ${{ needs.set-product-version.outputs.product-version }}"
+          echo "Base Product Version: ${{ needs.set-product-version.outputs.base-product-version }}"
           echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
           echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
           echo "Package Version: ${{ needs.set-product-version.outputs.pkg-version }}"
