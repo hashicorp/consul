@@ -1,3 +1,26 @@
+## 1.14.2 (November 30, 2022)
+
+FEATURES:
+
+* connect: Add local_idle_timeout_ms to allow configuring the Envoy route idle timeout on local_app
+connect: Add IdleTimeout to service-router to allow configuring the Envoy route idle timeout [[GH-14340](https://github.com/hashicorp/consul/issues/14340)]
+* snapshot: **(Enterprise Only)** Add support for the snapshot agent to use an IAM role for authentication/authorization when managing snapshots in S3.
+
+IMPROVEMENTS:
+
+* dns: Add support for cluster peering `.service` and `.node` DNS queries. [[GH-15596](https://github.com/hashicorp/consul/issues/15596)]
+
+BUG FIXES:
+
+* acl: avoid debug log spam in secondary datacenter servers due to management token not being initialized. [[GH-15610](https://github.com/hashicorp/consul/issues/15610)]
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* peering: better represent non-passing states during peer check flattening [[GH-15615](https://github.com/hashicorp/consul/issues/15615)]
+* peering: fix the limit of replication gRPC message; set to 8MB [[GH-15503](https://github.com/hashicorp/consul/issues/15503)]
+
 ## 1.14.1 (November 21, 2022)
 
 BUG FIXES:
