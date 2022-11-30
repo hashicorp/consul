@@ -770,7 +770,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 				})
 			}
 		})
-		break
 	}
 }
 
