@@ -672,8 +672,11 @@ var statusScores = map[string]int{
 	api.HealthPassing:  4,
 }
 
-func isStatusBetter(curr, next string) bool {
-	return statusScores[next] < statusScores[curr]
+func getMostImportantStatus(a, b string) string {
+	if statusScores[a] < statusScores[b] {
+		return a
+	}
+	return b
 }
 
 func flattenChecks(
@@ -696,9 +699,7 @@ func flattenChecks(
 				healthStatus = api.HealthMaint
 				break // always wins
 			}
-			if isStatusBetter(healthStatus, chk.Status) {
-				healthStatus = chk.Status
-			}
+			healthStatus = getMostImportantStatus(healthStatus, chk.Status)
 		}
 	}
 
