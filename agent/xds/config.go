@@ -1,7 +1,6 @@
 package xds
 
 import (
-	"fmt"
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
