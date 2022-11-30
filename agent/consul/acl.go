@@ -632,6 +632,10 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
+	if len(policies) > 0 && len(filtered) == 0 {
+		r.logger.Warn("all ACL policies have been filtered out based on datacenter", "accessor_id", identity.ID(), "datacenter", r.config.Datacenter)
+	}
+
 	return filtered, nil
 }
 
