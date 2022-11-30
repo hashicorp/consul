@@ -40,7 +40,7 @@ jobs:
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} -X ${T}.VersionPrelease=${{ steps.set-product-version.outputs.pre-version }} -X ${T}.VersionMetadata=${{ env.VERSION }}"
+          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} -X ${T}.VersionPrerelease=${{ steps.set-product-version.outputs.pre-version }} -X ${T}.VersionMetadata="
 
   validate-outputs:
     needs: set-product-version
@@ -95,11 +95,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go }}
-
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
@@ -120,7 +115,6 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
-      
       - name: Go Build
         env:
           PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
@@ -137,10 +131,6 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
@@ -193,19 +183,12 @@ jobs:
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@v2
-
-      - name: Setup go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go }}
-
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
           node-version: '14'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
-
       - name: Build UI
         run: |
           CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
@@ -217,7 +200,6 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
-
       - name: Go Build
         env:
           PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
@@ -234,11 +216,6 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.set-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
