@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
