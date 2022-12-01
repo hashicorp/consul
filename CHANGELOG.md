@@ -1,3 +1,17 @@
+## 1.12.7 (November 30, 2022)
+
+BUG FIXES:
+
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
+* connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
+* debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
+* deps: update go-memdb, fixing goroutine leak [[GH-15010](https://github.com/hashicorp/consul/issues/15010)] [[GH-15068](https://github.com/hashicorp/consul/issues/15068)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter
+
 ## 1.12.6 (October 19, 2022)
 
 FEATURES:
