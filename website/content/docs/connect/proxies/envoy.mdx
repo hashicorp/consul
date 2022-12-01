@@ -393,17 +393,21 @@ definition](/docs/connect/registration/service-registration) or
     since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
-- `passive_health_check` - Passive health checks are used to remove hosts from
-  the upstream cluster which are unreachable or are returning errors.
+- `passive_health_check` - Passive health checks remove hosts from the upstream
+  cluster that are unreachable or that return errors.
 
-  - `interval` - The time between checks. Each check will cause hosts which
-    have exceeded `max_failures` to be removed from the load balancer, and
-    any hosts which have passed their ejection time to be returned to the
-    load balancer.
-  - `max_failures` - The number of consecutive failures which cause a host to be
-    removed from the load balancer.
-  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected
-    when an outlier status is detected through consecutive 5xx.
+  - `interval` - The time in nanosecond between checks. Each check will cause
+    hosts which have exceeded `max_failures` to be removed from the load
+    balancer, and any hosts which have passed their ejection time to be
+    returned to the load balancer. If not specified, it uses the default value.
+    For example, 10s for Envoy proxy.
+  - `max_failures` - The number of consecutive failures that cause a host to be
+    removed from the upstream cluster. If not specified, Consul uses the proxy's
+    default value. For example, `5` for Envoy proxy.
+  -  `enforcing_consecutive_5xx` - A percentage representing the chance that a
+    host will be actually ejected when the proxy detects an outlier status
+    through consecutive errors in the 500 code range. If not specified, Consul
+    uses the proxy's default value. For example, `100` for Envoy proxy.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the

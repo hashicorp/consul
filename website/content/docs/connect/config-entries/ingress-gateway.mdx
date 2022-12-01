@@ -1080,7 +1080,7 @@ You can specify the following parameters to configure ingress gateway configurat
           name: 'PassiveHealthCheck',
           type: 'PassiveHealthCheck: <optional>',
           description:
-            'Passive health checks are used to remove hosts from the upstream cluster which are unreachable or are returning errors.',
+            'Passive health checks remove hosts from the upstream cluster that are unreachable or that return errors.',
           children: [
             {
               name: 'interval',
@@ -1092,13 +1092,13 @@ You can specify the following parameters to configure ingress gateway configurat
               name: 'max_failures',
               type: 'int: <optional>',
               description:
-                'The number of consecutive failures which cause a host to be removed from the load balancer. If not specified, it uses the default value. For example, 5 for Envoy proxy.',
+                'The number of consecutive failures that cause a host to be removed from the upstream cluster. If not specified, Consul uses the proxy's default value. For example, `5` for Envoy proxy.',
             },
             {
               name: 'enforcing_consecutive_5xx',
               type: 'int: <optional>',
               description:
-                'The chance in percentage that a host will be actually ejected when an outlier status is detected through consecutive 5xx. If not specified, it uses the default value. For example, 100 for Envoy proxy.',
+                'A percentage representing the chance that a host will be actually ejected when the proxy detects an outlier status through consecutive errors in the 500 code range. If not specified, Consul uses the proxy's default value. For example, `100` for Envoy proxy.',
             },
           ],
         },
