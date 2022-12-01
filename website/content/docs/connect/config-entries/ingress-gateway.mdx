@@ -1092,13 +1092,13 @@ You can specify the following parameters to configure ingress gateway configurat
               name: 'max_failures',
               type: 'int: <optional>',
               description:
-                'The number of consecutive failures that cause a host to be removed from the upstream cluster. If not specified, Consul uses the proxy's default value. For example, `5` for Envoy proxy.',
+                'The number of consecutive failures that cause a host to be removed from the upstream cluster. If not specified, Consul uses the proxy\'s default value. For example, `5` for Envoy proxy.',
             },
             {
               name: 'enforcing_consecutive_5xx',
               type: 'int: <optional>',
               description:
-                'A percentage representing the chance that a host will be actually ejected when the proxy detects an outlier status through consecutive errors in the 500 code range. If not specified, Consul uses the proxy's default value. For example, `100` for Envoy proxy.',
+                'A percentage representing the chance that a host will be actually ejected when the proxy detects an outlier status through consecutive errors in the 500 code range. If not specified, Consul uses the proxy\'s default value. For example, `100` for Envoy proxy.',
             },
           ],
         },
