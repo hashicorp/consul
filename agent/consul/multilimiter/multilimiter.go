@@ -31,6 +31,7 @@ type RateLimiter interface {
 type LimiterWithKey struct {
 	l *Limiter
 	k []byte
+	t time.Time
 }
 
 // MultiLimiter implement RateLimiter interface and represent a set of rate limiters
@@ -135,12 +136,12 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
-	now := time.Now().Unix()
-
+	now := time.Now()
+	unixNow := now.Unix()
 	if ok {
 		limiter := l.(*Limiter)
 		if limiter.limiter != nil {
-			limiter.lastAccess.Store(now)
+			limiter.lastAccess.Store(unixNow)
 			return limiter.limiter.Allow()
 		}
 	}
@@ -155,8 +156,8 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 		}
 	}
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
-	limiter.lastAccess.Store(now)
-	m.LimiterCh <- &LimiterWithKey{l: limiter, k: e.Key()}
+	limiter.lastAccess.Store(unixNow)
+	m.LimiterCh <- &LimiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
 }
 
@@ -173,13 +174,18 @@ func (m *MultiLimiter) runStore(ctx context.Context) {
 			}
 		case lk := <-m.LimiterCh:
 			limiters := m.limiters.Load()
-			_, ok := limiters.Get(lk.k)
+			if txn == nil {
+				txn = limiters.Txn()
+			}
+			v, ok := txn.Get(lk.k)
 			if !ok {
-				if txn == nil {
-					txn = limiters.Txn()
-				}
 				txn.Insert(lk.k, lk.l)
-
+			} else {
+				switch l := v.(type) {
+				case *Limiter:
+					l.lastAccess.Store(lk.t.Unix())
+					l.limiter.AllowN(lk.t, 1)
+				}
 			}
 		case <-ctx.Done():
 			return
