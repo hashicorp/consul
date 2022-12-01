@@ -276,6 +276,8 @@ func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
 	_, err := NewClient(&config)
 	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFile, nonExistentTokenFile)
 	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
 }
 
 func TestAPI_NewClient_TokenCLISecondPriority(t *testing.T) {
@@ -291,6 +293,8 @@ func TestAPI_NewClient_TokenCLISecondPriority(t *testing.T) {
 		t.Fatalf("Error Initializing new client: %v", err)
 	}
 	assert.Equal(t, c.config.Token, tokenString)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
 }
 
 func TestAPI_NewClient_HttpTokenFileEnvVarThirdPriority(t *testing.T) {
@@ -301,6 +305,8 @@ func TestAPI_NewClient_HttpTokenFileEnvVarThirdPriority(t *testing.T) {
 	_, err := NewClient(DefaultConfig())
 	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFileEnvVar, nonExistentTokenFileEnvVar)
 	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
 }
 
 func TestAPI_NewClient_TokenEnvVarFinalPriority(t *testing.T) {
@@ -312,6 +318,7 @@ func TestAPI_NewClient_TokenEnvVarFinalPriority(t *testing.T) {
 		t.Fatalf("Error Initializing new client: %v", err)
 	}
 	assert.Equal(t, c.config.Token, httpTokenEnvVar)
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
 }
 
 func TestAPI_AgentServices(t *testing.T) {
