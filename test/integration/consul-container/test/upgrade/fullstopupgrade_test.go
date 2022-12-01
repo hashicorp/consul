@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -105,6 +106,14 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			require.NoError(t, err)
 			libcluster.WaitForLeader(t, cluster, client)
 			libcluster.WaitForMembers(t, client, numServers)
+
+			// Verify service is restored from the snapshot
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Second, Wait: 500 * time.Microsecond}, t, func(r *retry.R) {
+				service, _, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
+				require.NoError(r, err)
+				require.Len(r, service, 1)
+				require.Equal(r, serviceName, service[0].ServiceName)
+			})
 		} else {
 			require.Error(t, fmt.Errorf("context deadline exceeded"))
 		}
