@@ -95,8 +95,17 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 // Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
 	go func() {
+		waiter := time.NewTimer(0)
 		for {
-			m.reconcileLimitedOnce(ctx)
+			c := m.defaultConfig.Load()
+			waiter.Reset(c.ReconcileCheckInterval)
+			select {
+			case <-ctx.Done():
+				waiter.Stop()
+				return
+			case now := <-waiter.C:
+				m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
+			}
 		}
 	}()
 }
@@ -147,68 +156,60 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
 // it will wait for ReconcileCheckInterval before traversing the radix tree and removing all entries
 // with lastAccess > ReconcileCheckLimit
-func (m *MultiLimiter) reconcileLimitedOnce(ctx context.Context) {
-	c := m.defaultConfig.Load()
-	waiter := time.NewTimer(c.ReconcileCheckInterval)
-	defer waiter.Stop()
-	select {
-	case <-ctx.Done():
-		return
-	case now := <-waiter.C:
-		limiters := m.limiters.Load()
-		storedLimiters := limiters
-		iter := limiters.Root().Iterator()
-		k, v, ok := iter.Next()
-		var txn *radix.Txn
-		txn = limiters.Txn()
-		// remove all expired limiters
-		for ok {
-			switch t := v.(type) {
-			case *Limiter:
-				if t.limiter != nil {
-					lastAccess := t.lastAccess.Load()
-					lastAccessT := time.Unix(lastAccess, 0)
-					diff := now.Sub(lastAccessT)
+func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit time.Duration) {
+	limiters := m.limiters.Load()
+	storedLimiters := limiters
+	iter := limiters.Root().Iterator()
+	k, v, ok := iter.Next()
+	var txn *radix.Txn
+	txn = limiters.Txn()
+	// remove all expired limiters
+	for ok {
+		switch t := v.(type) {
+		case *Limiter:
+			if t.limiter != nil {
+				lastAccess := t.lastAccess.Load()
+				lastAccessT := time.Unix(lastAccess, 0)
+				diff := now.Sub(lastAccessT)
 
-					if diff > c.ReconcileCheckLimit {
-						txn.Delete(k)
-					}
+				if diff > reconcileCheckLimit {
+					txn.Delete(k)
 				}
 			}
-			k, v, ok = iter.Next()
 		}
-		iter = txn.Root().Iterator()
 		k, v, ok = iter.Next()
+	}
+	iter = txn.Root().Iterator()
+	k, v, ok = iter.Next()
 
-		// make sure all limiters have the latest defaultConfig of their prefix
-		for ok {
-			switch pl := v.(type) {
-			case *Limiter:
-				// check if it has a limiter, if so that's a lead
-				if pl.limiter != nil {
-					// find the prefix for the leaf and check if the defaultConfig is up-to-date
-					// it's possible that the prefix is equal to the key
-					prefix, _ := splitKey(k)
-					v, ok := m.limitersConfigs.Load().Get(prefix)
-					if ok {
-						switch cl := v.(type) {
-						case *LimiterConfig:
-							if cl != nil {
-								if !cl.isApplied(pl.limiter) {
-									limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
-									limiter.lastAccess.Store(pl.lastAccess.Load())
-									txn.Insert(k, &limiter)
-								}
+	// make sure all limiters have the latest defaultConfig of their prefix
+	for ok {
+		switch pl := v.(type) {
+		case *Limiter:
+			// check if it has a limiter, if so that's a lead
+			if pl.limiter != nil {
+				// find the prefix for the leaf and check if the defaultConfig is up-to-date
+				// it's possible that the prefix is equal to the key
+				prefix, _ := splitKey(k)
+				v, ok := m.limitersConfigs.Load().Get(prefix)
+				if ok {
+					switch cl := v.(type) {
+					case *LimiterConfig:
+						if cl != nil {
+							if !cl.isApplied(pl.limiter) {
+								limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
+								limiter.lastAccess.Store(pl.lastAccess.Load())
+								txn.Insert(k, &limiter)
 							}
 						}
 					}
 				}
 			}
-			k, v, ok = iter.Next()
 		}
-		limiters = txn.Commit()
-		m.limiters.CompareAndSwap(storedLimiters, limiters)
+		k, v, ok = iter.Next()
 	}
+	limiters = txn.Commit()
+	m.limiters.CompareAndSwap(storedLimiters, limiters)
 }
 
 func (lc *LimiterConfig) isApplied(l *rate.Limiter) bool {
