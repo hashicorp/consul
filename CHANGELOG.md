@@ -1,3 +1,27 @@
+## 1.13.4 (November 30, 2022)
+
+IMPROVEMENTS:
+
+* auto-config: Relax the validation on auto-config JWT authorization to allow non-whitespace, non-quote characters in node names. [[GH-15370](https://github.com/hashicorp/consul/issues/15370)]
+* raft: Allow nonVoter to initiate an election to avoid having an election infinite loop when a Voter is converted to NonVoter [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Cap maximum grpc wait time when heartbeating to heartbeatTimeout/2 [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Fix a race condition where the snapshot file is closed without being opened [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+
+BUG FIXES:
+
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
+* connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
+* debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
+* deps: update go-memdb, fixing goroutine leak [[GH-15010](https://github.com/hashicorp/consul/issues/15010)] [[GH-15068](https://github.com/hashicorp/consul/issues/15068)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter
+* peering: better represent non-passing states during peer check flattening [[GH-15615](https://github.com/hashicorp/consul/issues/15615)]
+* peering: fix the error of wan address isn't taken by the peering token. [[GH-15065](https://github.com/hashicorp/consul/issues/15065)]
+* peering: when wan address is set, peering stream should use the wan address. [[GH-15108](https://github.com/hashicorp/consul/issues/15108)]
+
 ## 1.13.3 (October 19, 2022)
 
 FEATURES:
