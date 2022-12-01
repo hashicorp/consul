@@ -17,10 +17,10 @@ import (
 // A simulated client (a direct HTTP call) talks to it's upstream proxy through the
 //
 // Steps:
-//  * Create a single agent cluster.
-//	* Create the example static-server and sidecar containers, then register them both with Consul
-//  * Create an example static-client sidecar, then register both the service and sidecar with Consul
-//  * Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
+//   - Create a single agent cluster.
+//   - Create the example static-server and sidecar containers, then register them both with Consul
+//   - Create an example static-client sidecar, then register both the service and sidecar with Consul
+//   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
 	cluster := createCluster(t)
 	defer terminate(t, cluster)
