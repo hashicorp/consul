@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -116,7 +117,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		c3 := LimiterConfig{Rate: 2}
 		m.UpdateConfig(c3, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
-		m.reconcileLimitedOnce(context.Background())
+		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
 		m.Allow(ipLimited{key: ip})
 		l3, ok3 := m.limiters.Load().Get(ip)
 		require.True(t, ok3)
@@ -143,7 +144,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		c := LimiterConfig{Rate: 1}
 		m.UpdateConfig(c, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
-		m.reconcileLimitedOnce(context.Background())
+		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
 		m.Allow(ipLimited{key: ip})
 		l, ok := m.limiters.Load().Get(ip)
 		require.True(t, ok)
@@ -151,7 +152,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		limiter := l.(*Limiter)
 		require.True(t, c.isApplied(limiter.limiter))
 		time.Sleep(200 * time.Millisecond)
-		m.reconcileLimitedOnce(context.Background())
+		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
 		l, ok = m.limiters.Load().Get(ip)
 		require.False(t, ok)
 		require.Nil(t, l)
@@ -211,7 +212,7 @@ func FuzzUpdateConfig(f *testing.F) {
 			m.UpdateConfig(c, prefix)
 			go m.Allow(Limited{key: f})
 		}
-		m.reconcileLimitedOnce(context.Background())
+		m.reconcileLimitedOnce(time.Now(), 1*time.Millisecond)
 		checkTree(t, m.limiters.Load().Txn())
 	})
 
@@ -251,29 +252,122 @@ func (i ipLimited) Key() []byte {
 }
 
 func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
-	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
+	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Microsecond, ReconcileCheckInterval: time.Millisecond}
 	m := NewMultiLimiter(Config)
-	m.Run(context.Background())
+	//m.Run(context.Background())
 	ip := []byte{244, 233, 0, 1}
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: ip})
 	}
 }
 
-func BenchmarkTestRateLimiterIncIP(b *testing.B) {
-	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
-	m := NewMultiLimiter(Config)
-	m.Run(context.Background())
+func BenchmarkTestRateLimiterAllowPrefill(b *testing.B) {
 
-	for j := 0; j < b.N; j++ {
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, uint32(j))
-		m.Allow(ipLimited{key: buf})
+	cases := []struct {
+		name    string
+		prefill uint64
+	}{
+		{name: "no prefill", prefill: 0},
+		{name: "prefill with 1K keys", prefill: 1000},
+		{name: "prefill with 10K keys", prefill: 10_000},
+		{name: "prefill with 100K keys", prefill: 100_000},
 	}
+	for _, tc := range cases {
+
+		b.Run(tc.name, func(b *testing.B) {
+			var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Second, ReconcileCheckInterval: time.Second}
+			m := NewMultiLimiter(Config)
+			var i uint64
+			for i = 0xdeaddead; i < 0xdeaddead+tc.prefill; i++ {
+				buf := make([]byte, 8)
+				binary.LittleEndian.PutUint64(buf, i)
+				m.Allow(ipLimited{key: buf})
+			}
+			b.ResetTimer()
+			for j := 0; j < b.N; j++ {
+				buf := make([]byte, 4)
+				binary.LittleEndian.PutUint32(buf, uint32(j))
+				m.Allow(ipLimited{key: buf})
+			}
+		})
+	}
+
+}
+
+func BenchmarkTestRateLimiterAllowConcurrencyPrefill(b *testing.B) {
+
+	cases := []struct {
+		name    string
+		prefill uint64
+	}{
+		{name: "no prefill", prefill: 0},
+		{name: "prefill with 1K keys", prefill: 1000},
+		{name: "prefill with 10K keys", prefill: 10_000},
+		{name: "prefill with 100K keys", prefill: 100_000},
+	}
+	for _, tc := range cases {
+
+		b.Run(tc.name, func(b *testing.B) {
+			var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Second, ReconcileCheckInterval: 100 * time.Second}
+			m := NewMultiLimiter(Config)
+			m.Run(context.Background())
+			var i uint64
+			for i = 0xdeaddead; i < 0xdeaddead+tc.prefill; i++ {
+				buf := make([]byte, 8)
+				binary.LittleEndian.PutUint64(buf, i)
+				m.Allow(ipLimited{key: buf})
+			}
+			wg := sync.WaitGroup{}
+			b.ResetTimer()
+			for j := 0; j < b.N; j++ {
+				wg.Add(1)
+				go func() {
+					buf := make([]byte, 4)
+					binary.LittleEndian.PutUint32(buf, uint32(j))
+					m.Allow(ipLimited{key: buf})
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		})
+	}
+
+}
+
+func BenchmarkTestRateLimiterReconcilePrefill(b *testing.B) {
+
+	cases := []struct {
+		name    string
+		prefill uint64
+	}{
+		{name: "no prefill", prefill: 0},
+		{name: "prefill with 1K keys", prefill: 1000},
+		{name: "prefill with 10K keys", prefill: 10_000},
+		{name: "prefill with 100K keys", prefill: 100_000},
+	}
+	for _, tc := range cases {
+		var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: 0, ReconcileCheckInterval: time.Millisecond}
+		m := NewMultiLimiter(Config)
+
+		b.Run(tc.name, func(b *testing.B) {
+			for j := 0; j < b.N; j++ {
+				b.StopTimer()
+				var i uint64
+				for i = 0xdeaddead; i < 0xdeaddead+tc.prefill; i++ {
+					buf := make([]byte, 8)
+					binary.LittleEndian.PutUint64(buf, i)
+					m.Allow(ipLimited{key: buf})
+				}
+				b.StartTimer()
+				m.reconcileLimitedOnce(time.Now(), 0)
+			}
+		})
+	}
+
 }
 
 func BenchmarkTestRateLimiterRandomIP(b *testing.B) {
-	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}}
+	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Microsecond, ReconcileCheckInterval: time.Millisecond}
 	m := NewMultiLimiter(Config)
 	m.Run(context.Background())
 	for j := 0; j < b.N; j++ {
