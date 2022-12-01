@@ -28,12 +28,18 @@ type RateLimiter interface {
 	UpdateConfig(c LimiterConfig, prefix []byte)
 }
 
+type LimiterWithKey struct {
+	l *Limiter
+	k []byte
+}
+
 // MultiLimiter implement RateLimiter interface and represent a set of rate limiters
 // specific to different LimitedEntities and queried by a LimitedEntities.Key()
 type MultiLimiter struct {
 	limiters        *atomic.Pointer[radix.Tree]
 	limitersConfigs *atomic.Pointer[radix.Tree]
 	defaultConfig   *atomic.Pointer[Config]
+	LimiterCh       chan *LimiterWithKey
 }
 
 type KeyType = []byte
@@ -88,12 +94,15 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs}
+	chLimiter := make(chan *LimiterWithKey, 100)
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, LimiterCh: chLimiter}
+
 	return m
 }
 
 // Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
+	go m.runStore(ctx)
 	go func() {
 		waiter := time.NewTimer(0)
 		for {
@@ -145,12 +154,38 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 			config = prefixConfig
 		}
 	}
-
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(now)
-	tree, _, _ := limiters.Insert(e.Key(), limiter)
-	m.limiters.Store(tree)
+	m.LimiterCh <- &LimiterWithKey{l: limiter, k: e.Key()}
 	return limiter.limiter.Allow()
+}
+
+func (m *MultiLimiter) runStore(ctx context.Context) {
+	var txn *radix.Txn
+	waiter := time.NewTimer(10 * time.Millisecond)
+	defer waiter.Stop()
+	for {
+		select {
+		case <-waiter.C:
+			if txn != nil {
+				tree := txn.Commit()
+				m.limiters.Store(tree)
+			}
+		case lk := <-m.LimiterCh:
+			limiters := m.limiters.Load()
+			_, ok := limiters.Get(lk.k)
+			if !ok {
+				if txn == nil {
+					txn = limiters.Txn()
+				}
+				txn.Insert(lk.k, lk.l)
+
+			}
+		case <-ctx.Done():
+			return
+		}
+
+	}
 }
 
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
