@@ -37,7 +37,7 @@ type BuildOptions struct {
 	InjectCerts            bool   // Provides a CA for all agents and (future) agent certs.
 	InjectAutoEncryption   bool   // Configures auto-encrypt for TLS and sets up certs. Overrides InjectCerts.
 	InjectGossipEncryption bool   // Provides a gossip encryption key for all agents.
-	ConsulVersion          string
+	ConsulVersion          string // The default Consul version for agents in the cluster when none is specified.
 }
 
 func NewBuildContext(opts BuildOptions) (*BuildContext, error) {

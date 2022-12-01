@@ -196,8 +196,7 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 }
 
 func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
-	ret, err := c.container.Exec(ctx, cmd)
-	return ret, err
+	return c.container.Exec(ctx, cmd)
 }
 
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
