@@ -16,7 +16,7 @@ The [Federation Between Kubernetes Clusters](/docs/k8s/deployment-configurations
 
 ## Usage
 
-The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend between two clusters, dc1 and dc2.  dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the secondary Consul cluster.
+The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure results in a WAN Federation with Vault as the secrets backend between two clusters, dc1 and dc2.  dc1 acts as the primary Consul cluster and also contains the Vault server installation.  dc2 is the secondary Consul cluster.
 
 ![Consul on Kubernetes with Vault as the Secrets Backend](/img/k8s/consul-vault-wan-federation-topology.svg 'Consul on Kubernetes with Vault as the Secrets Backend')
 
@@ -36,7 +36,7 @@ The two data centers will federated using mesh gateways.  This communication top
 
 In this setup, you will deploy Vault server in the primary datacenter (dc1) Kubernetes cluster, which is also the primary Consul datacenter. You will configure your Vault Helm installation in the secondary datacenter (dc2) Kubernetes cluster to use it as an external server. This way there will be a single vault server cluster that will be used by both Consul datacenters.
 
-~> **Note**: For demonstration purposes, you will deploy a Vault server in dev mode. For production installations, this is not recommended. Please visit the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide) for guidance on how to install Vault in a production setting.
+~> **Note**: For demonstration purposes, the following example deploys a Vault server in dev mode. Do not use dev mode for production installations. Refer to the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide) for guidance on how to install Vault in a production setting.
 
 1. Change your current Kubernetes context to target the primary datacenter (dc1).
 
@@ -273,7 +273,7 @@ Repeat the following steps for each datacenter in the cluster:
     $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method --output jsonpath='{.secrets[0].name}'` --output jsonpath='{.data.token}' | base64 --decode)"
     ```
 
-1. Configure Auth Method with the JWT token of service account.  You will have to get the externally reachable address of the secondary Consul datacenter (dc2)  in the secondary Kubernetes cluster and set `kubernetes_host` within the Auth Method configuration.
+1. Configure the auth method with the JWT token of service account.  First, get the externally reachable address of the secondary Consul datacenter (dc2) in the secondary Kubernetes cluster. Then set `kubernetes_host` in the auth method configuration.
 
     ```shell-session
     $ export KUBE_API_URL_DC2=$(kubectl config view --output jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
@@ -488,7 +488,7 @@ Repeat the following steps for each datacenter in the cluster:
     ```
 
 ### Pre-installation for Secondary Datacenter (dc2)
-1. Update the Consul on Kubernetes helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.
+1. Update the Consul on Kubernetes Helm chart. For secondary datacenter (dc2), you need to get the address of the mesh gateway from the _primary datacenter (dc1)_ cluster.
 
     Keep your Kubernetes context targeting dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
 

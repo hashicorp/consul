@@ -192,6 +192,10 @@
         "title": "Consul API Gateway",
         "routes": [
           {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
+          {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
           },
