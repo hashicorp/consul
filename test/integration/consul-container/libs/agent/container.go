@@ -283,12 +283,16 @@ func (c *consulContainerNode) Terminate() error {
 	}
 
 	state, err := c.container.State(context.Background())
-	if err != nil && state.Running {
+	if err == nil && state.Running {
+		// StopLogProducer can only be called on running containers
 		err = c.container.StopLogProducer()
-	}
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
+	} else {
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
 	}
 
 	c.container = nil
@@ -301,6 +305,8 @@ func (c *consulContainerNode) DataDir() string {
 }
 
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	defer cancel()
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
