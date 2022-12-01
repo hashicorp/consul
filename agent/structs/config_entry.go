@@ -33,6 +33,7 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	InlineCertificate  string = "inline-certificate"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"

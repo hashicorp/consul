@@ -13,6 +13,7 @@ enum Kind {
   KindIngressGateway = 3;
   KindServiceIntentions = 4;
   KindServiceDefaults = 5;
+  KindInlineCertificate = 6;
 }
 
 message ConfigEntry {
@@ -437,6 +438,15 @@ enum ProxyMode {
   ProxyModeDefault = 0;
   ProxyModeTransparent = 1;
   ProxyModeDirect = 2;
+}
+
+// mog annotation:
+// 
+// target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message InlineCertificateConfig {
 }
 
 // mog annotation:

@@ -350,6 +350,16 @@ func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *Ingress
 	s.MaxPendingRequests = t.MaxPendingRequests
 	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 }
+func InlineCertificateConfigToStructs(s *InlineCertificateConfig, t *structs.InlineCertificateConfigEntry) {
+	if s == nil {
+		return
+	}
+}
+func InlineCertificateConfigFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificateConfig) {
+	if s == nil {
+		return
+	}
+}
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
 		return
