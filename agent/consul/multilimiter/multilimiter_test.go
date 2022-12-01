@@ -321,46 +321,14 @@ func BenchmarkTestRateLimiterAllowConcurrencyPrefill(b *testing.B) {
 			b.ResetTimer()
 			for j := 0; j < b.N; j++ {
 				wg.Add(1)
-				go func() {
+				go func(n int) {
 					buf := make([]byte, 4)
-					binary.LittleEndian.PutUint32(buf, uint32(j))
+					binary.LittleEndian.PutUint32(buf, uint32(n))
 					m.Allow(ipLimited{key: buf})
 					wg.Done()
-				}()
+				}(j)
 			}
 			wg.Wait()
-		})
-	}
-
-}
-
-func BenchmarkTestRateLimiterReconcilePrefill(b *testing.B) {
-
-	cases := []struct {
-		name    string
-		prefill uint64
-	}{
-		{name: "no prefill", prefill: 0},
-		{name: "prefill with 1K keys", prefill: 1000},
-		{name: "prefill with 10K keys", prefill: 10_000},
-		{name: "prefill with 100K keys", prefill: 100_000},
-	}
-	for _, tc := range cases {
-		var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: 0, ReconcileCheckInterval: time.Millisecond}
-		m := NewMultiLimiter(Config)
-
-		b.Run(tc.name, func(b *testing.B) {
-			for j := 0; j < b.N; j++ {
-				b.StopTimer()
-				var i uint64
-				for i = 0xdeaddead; i < 0xdeaddead+tc.prefill; i++ {
-					buf := make([]byte, 8)
-					binary.LittleEndian.PutUint64(buf, i)
-					m.Allow(ipLimited{key: buf})
-				}
-				b.StartTimer()
-				m.reconcileLimitedOnce(time.Now(), 0)
-			}
 		})
 	}
 
