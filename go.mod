@@ -8,8 +8,10 @@ replace (
 	github.com/hashicorp/consul/sdk => ./sdk
 )
 
-// go-msgpack v1.1.5 has breaking changes and must be avoided
-exclude github.com/hashicorp/go-msgpack v1.1.5
+exclude (
+	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
+	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
+)
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
