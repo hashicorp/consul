@@ -81,4 +81,6 @@ validations:
     error: "{name} must be a valid DNS hostname."
   immutable:
     help: Once created, this cannot be changed.
-
+  server-external-addresses:
+    help: |
+      Enter a comma separated list of this peer's fallback server address(es) to be used in the event of failed automatic updates. This field is required for HCP-managed clusters.
