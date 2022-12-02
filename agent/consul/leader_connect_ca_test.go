@@ -248,11 +248,11 @@ func (m *mockCAProvider) State() (map[string]string, error)     { return nil, ni
 func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
 	return ca.RootResult{PEM: m.rootPEM}, nil
 }
-func (m *mockCAProvider) GenerateIntermediateCSR() (string, error) {
+func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
-	return "", nil
+	return "", "", nil
 }
-func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) error {
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }

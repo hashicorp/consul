@@ -1052,7 +1052,7 @@ func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot
 // provider.
 // Should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActiveRoot *structs.CARoot) error {
-	csr, err := provider.GenerateIntermediateCSR()
+	csr, opaque, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
 	}
@@ -1064,7 +1064,7 @@ func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActi
 		return nil
 	}
 
-	if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert); err != nil {
+	if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert, opaque); err != nil {
 		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 	}
 
