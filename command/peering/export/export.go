@@ -24,8 +24,9 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	serviceName string
-	peerNames   string
+	serviceName      string
+	serviceNamespace string
+	peerNames        string
 }
 
 func (c *cmd) init() {
@@ -34,7 +35,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
 	c.flags.StringVar(&c.serviceName, "service", "", "(Required) Specify the name of the service you want to export.")
-	//c.flags.StringVar(&c.peerName, "peer", "", "(Required) Specify the name of the peer you want to export to.")
+	c.flags.StringVar(&c.serviceNamespace, "serviceNamespace", "", "(Optional) Specify the Namespace of the service, you want to export. Enterprise only feature")
 	c.flags.StringVar(&c.peerNames, "peers", "", "(Required) A list of peers to export the service to, formatted as a comma-separated list.")
 
 	c.http = &flags.HTTPFlags{}
@@ -84,6 +85,7 @@ func (c *cmd) Run(args []string) int {
 			Services: []api.ExportedService{
 				{
 					Name:      c.serviceName,
+					Namespace: c.serviceNamespace,
 					Consumers: buildConsumersFromPeerNames(peerNames),
 				},
 			},
@@ -107,7 +109,7 @@ func (c *cmd) Run(args []string) int {
 
 		for i, service := range cfg.Services {
 
-			if service.Name == c.serviceName {
+			if service.Name == c.serviceName && service.Namespace == c.serviceNamespace {
 
 				serviceExists = true
 				for _, peerName := range peerNames {
@@ -130,6 +132,7 @@ func (c *cmd) Run(args []string) int {
 		if !serviceExists {
 			cfg.Services = append(cfg.Services, api.ExportedService{
 				Name:      c.serviceName,
+				Namespace: c.serviceNamespace,
 				Consumers: buildConsumersFromPeerNames(peerNames),
 			})
 		}
