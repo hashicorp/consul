@@ -1053,6 +1053,7 @@ workflows:
           filters:
             branches:
               ignore:
+                - /^mktg-.*/ # Digital Team Terraform-generated branches' prefix
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
