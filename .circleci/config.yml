@@ -938,8 +938,8 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # run integration tests for the connect ca providers
-  test-connect-ca-providers:
+  # run integration tests for the connect ca providers with vault
+  vault-integration-test:
     docker:
       - image: *GOLANG_IMAGE
     parameters:
@@ -1077,12 +1077,6 @@ workflows:
           go-arch: "386"
           <<: *filter-ignore-non-go-branches
       - go-test-arm64: *filter-ignore-non-go-branches
-      - test-connect-ca-providers:
-          name: "go-test-connect-ca with vault"
-          matrix:
-            parameters:
-              vault-version: *supported_vault_versions
-          <<: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
@@ -1162,6 +1156,11 @@ workflows:
           matrix:
             parameters:
               nomad-version: *supported_nomad_versions
+      - vault-integration-test:
+          matrix:
+            parameters:
+              vault-version: *supported_vault_versions
+          <<: *filter-ignore-non-go-branches
       - envoy-integration-test:
           requires:
             - dev-build
