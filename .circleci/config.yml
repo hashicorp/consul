@@ -957,6 +957,7 @@ jobs:
             wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
             sudo unzip -d /usr/local/bin /tmp/vault.zip
             rm -rf /tmp/vault*
+            vault version
       - checkout
       - run: go mod download
       - run:
