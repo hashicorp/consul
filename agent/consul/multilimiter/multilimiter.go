@@ -199,9 +199,8 @@ func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, tx
 		if !ok {
 			txn.Insert(lk.k, lk.l)
 		} else {
-			switch l := v.(type) {
-			case *Limiter:
-				l.lastAccess.Store(lk.t.UnixMilli())
+			if l, ok := v.(*Limiter); ok {
+				l.lastAccess.Store(lk.t.Unix())
 				l.limiter.AllowN(lk.t, 1)
 			}
 		}
@@ -223,8 +222,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 	txn = limiters.Txn()
 	// remove all expired limiters
 	for ok {
-		switch t := v.(type) {
-		case *Limiter:
+		if t, ok := v.(*Limiter); ok {
 			if t.limiter != nil {
 				lastAccess := t.lastAccess.Load()
 				lastAccessT := time.UnixMilli(lastAccess)
@@ -242,8 +240,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 
 	// make sure all limiters have the latest defaultConfig of their prefix
 	for ok {
-		switch pl := v.(type) {
-		case *Limiter:
+		if pl, ok := v.(*Limiter); ok {
 			// check if it has a limiter, if so that's a lead
 			if pl.limiter != nil {
 				// find the prefix for the leaf and check if the defaultConfig is up-to-date
@@ -251,8 +248,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 				prefix, _ := splitKey(k)
 				v, ok := m.limitersConfigs.Load().Get(prefix)
 				if ok {
-					switch cl := v.(type) {
-					case *LimiterConfig:
+					if cl, ok := v.(*LimiterConfig); ok {
 						if cl != nil {
 							if !cl.isApplied(pl.limiter) {
 								limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
