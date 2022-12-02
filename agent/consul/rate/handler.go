@@ -173,7 +173,6 @@ func (h *Handler) Allow(op Operation) error {
 	return nil
 }
 
-// TODO(NET-1379): call this on `consul reload`.
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	h.cfg.Store(&cfg)
 	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
