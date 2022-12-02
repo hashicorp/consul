@@ -1692,8 +1692,6 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	s.incomingRPCLimiter.UpdateConfig(rpcRate.HandlerConfig{
-		// TODO(NET-1379):
-		// - should disabled mode not register this handler?  Or does the handler have logic for disabled?
 		GlobalMode: config.RequestLimitsMode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
 			Rate:  config.RequestLimitsReadRate,
