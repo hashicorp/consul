@@ -1010,8 +1010,10 @@ type RuntimeConfig struct {
 	// flag: -rejoin
 	RejoinAfterLeave bool
 
-	// RequestLimitsMode enforces the action that will occur when RequestLimitsReadRate
-	// or RequestLimitsWriteRate is exceeded.  A value of "enforce" will block
+	// RequestLimitsMode will disable or enable rate limiting.  If not disabled, it
+	// enforces the action that will occur when RequestLimitsReadRate
+	// or RequestLimitsWriteRate is exceeded.  The default value of "disabled" will
+	// prevent any rate limiting from occuring.  A value of "enforce" will block
 	// the request from processings by returning an error.  A value of
 	// "permissive" will not block the request and will allow the request to
 	// continue processing.
