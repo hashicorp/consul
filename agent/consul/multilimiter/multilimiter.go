@@ -137,7 +137,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now()
-	unixNow := now.Unix()
+	unixNow := time.Now().UnixMilli()
 	if ok {
 		limiter := l.(*Limiter)
 		if limiter.limiter != nil {
@@ -162,37 +162,43 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 }
 
 func (m *MultiLimiter) runStore(ctx context.Context) {
-	var txn *radix.Txn
 	commitInterval := 10 * time.Millisecond
+	limiters := m.limiters.Load()
+	txn := limiters.Txn()
 	waiter := time.NewTicker(commitInterval)
 	defer waiter.Stop()
 	for {
-		select {
-		case <-waiter.C:
-			if txn != nil {
-				tree := txn.Commit()
-				m.limiters.Store(tree)
-			}
-		case lk := <-m.LimiterCh:
-			limiters := m.limiters.Load()
-			if txn == nil {
-				txn = limiters.Txn()
-			}
-			v, ok := txn.Get(lk.k)
-			if !ok {
-				txn.Insert(lk.k, lk.l)
-			} else {
-				switch l := v.(type) {
-				case *Limiter:
-					l.lastAccess.Store(lk.t.Unix())
-					l.limiter.AllowN(lk.t, 1)
-				}
-			}
-		case <-ctx.Done():
+		if m.runStoreOnce(ctx, waiter, txn) {
 			return
 		}
 
 	}
+}
+
+func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, txn *radix.Txn) bool {
+	select {
+	case <-waiter.C:
+		if txn != nil {
+			tree := txn.Commit()
+			m.limiters.Store(tree)
+			limiters := m.limiters.Load()
+			txn = limiters.Txn()
+		}
+	case lk := <-m.LimiterCh:
+		v, ok := txn.Get(lk.k)
+		if !ok {
+			txn.Insert(lk.k, lk.l)
+		} else {
+			switch l := v.(type) {
+			case *Limiter:
+				l.lastAccess.Store(lk.t.UnixMilli())
+				l.limiter.AllowN(lk.t, 1)
+			}
+		}
+	case <-ctx.Done():
+		return true
+	}
+	return false
 }
 
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
@@ -211,7 +217,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 		case *Limiter:
 			if t.limiter != nil {
 				lastAccess := t.lastAccess.Load()
-				lastAccessT := time.Unix(lastAccess, 0)
+				lastAccessT := time.UnixMilli(lastAccess)
 				diff := now.Sub(lastAccessT)
 
 				if diff > reconcileCheckLimit {
