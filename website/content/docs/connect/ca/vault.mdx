@@ -199,7 +199,7 @@ that responsibility to Consul.
 Use [Vault-managed PKI paths](#vault-managed-pki-paths) to obtain the following benefits:
 - Enables use of a root CA external to Consul by instantiating the PKI secrets engine at
   [`RootPKIPath`](#rootpkipath) with an intermediate certificate
-- Retain full control over PKI mount creation, and `RootPKIPath` mount configuration
+- Retain full control over PKI mount creation, and over `RootPKIPath` mount configuration
 
 Otherwise, use [Consul-managed PKI paths](#consul-managed-pki-paths) to let Consul fully automate PKI management.
 
@@ -208,11 +208,11 @@ Otherwise, use [Consul-managed PKI paths](#consul-managed-pki-paths) to let Cons
 To use Vault-managed PKI paths, you must first instantiate and configure PKI secrets engines at
 `RootPKIPath` and `IntermediatePKIPath`.
 
-Next, define a Vault ACL policy that allows Consul to use those pre-existing PKI mounts in Vault.
+Next, define the following Vault ACL policy that allows Consul to use those pre-existing PKI mounts in Vault.
 The policy grants Consul limited use of the root PKI engine
 and full control of the intermediate PKI engine to issue service mesh certificates.
 
-In the following examples, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
+In the following Vault policy snippets, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
 Replace them to match the path values in the CA provider configuration.
 
 1. Add the following rules to your Vault policy definition file so that Consul
@@ -276,7 +276,7 @@ Replace them to match the path values in the CA provider configuration.
   
   </CodeBlockConfig>
 
-1. Conditional and temporary: Only include the following rules in your vault policy file
+1. Conditional and temporary: Only include the following rules in your Vault policy file
    while you are changing the CA provider from Vault to a different CA provider (such as Consul's built-in provider)
    or changing the `RootPKIPath` used by the Vault CA provider.
    Those CA provider modifications trigger a root CA change that requires an
@@ -297,10 +297,10 @@ Replace them to match the path values in the CA provider configuration.
 To use Consul-managed PKI paths, ensure no PKI secrets engines are mounted at
 `RootPKIPath` and `IntermediatePKIPath`.
 
-Next, define a Vault ACL policy that allows Consul to create and manage
+Next, define the following Vault ACL policy that allows Consul to create and manage
 both the root and intermediate PKI engines.
 
-In the following examples, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
+In the following Vault policy snippets, the path configurations use placeholder values for `RootPKIPath` and `IntermediatePKIPath`.
 Replace them to match the path values in the CA provider configuration.
 
 1. Add the following rules to your Vault policy definition file so that Consul
@@ -359,7 +359,7 @@ Replace them to match the path values in the CA provider configuration.
   
   </CodeBlockConfig>
 
-1. Conditional and temporary: Only include the following rules in your vault policy file
+1. Conditional and temporary: Only include the following rules in your Vault policy file
    while you are changing the CA provider from Vault to a different CA provider (such as Consul's built-in provider)
    or changing the `RootPKIPath` used by the Vault CA provider.
    Those CA provider modifications trigger a root CA change that requires an
