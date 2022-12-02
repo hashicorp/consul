@@ -1870,20 +1870,8 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
 
-	// Check the incoming RPC rate limiter got updated
-	handlerConfig := s.incomingRPCLimiter.GetConfig()
-	require.Equal(t, rc.RequestLimitsMode, handlerConfig.GlobalMode)
-	require.Equal(t, 99, handlerConfig.Config.Rate)
-
-	readLimit, okR := s.incomingRPCLimiter.GetGlobalReadLimiterConfig()
-	require.True(t, okR)
-	require.Equal(t, rc.RequestLimitsReadRate, readLimit.Rate)
-	require.Equal(t, 10*int(rc.RequestLimitsReadRate), readLimit.Burst) // TODO NET-1379 - figure out what to do with burst.  expose as user config or handle internally?
-
-	writeLimit, okW := s.incomingRPCLimiter.GetGlobalWriteLimiterConfig()
-	require.True(t, okW)
-	require.Equal(t, rc.RequestLimitsWriteRate, writeLimit.Rate)
-	require.Equal(t, 10*int(rc.RequestLimitsWriteRate), writeLimit.Burst) // TODO NET-1379 - figure out what to do with burst.  expose as user config or handle internally?
+	// TODO - NET-1379 Check the incoming RPC rate limiter got updated
+	require.False(t, true)
 
 	// Check RPC client timeout got updated
 	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
