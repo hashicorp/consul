@@ -1078,6 +1078,7 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-arm64: *filter-ignore-non-go-branches
       - test-connect-ca-providers:
+          name: "go-test-connect-ca with vault"
           matrix:
             parameters:
               vault-version: *supported_vault_versions
