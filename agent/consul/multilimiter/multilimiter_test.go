@@ -116,6 +116,83 @@ func TestRateLimiterCleanup(t *testing.T) {
 	require.NotNil(t, l)
 }
 
+func TestRateLimiterStore(t *testing.T) {
+	// Create a MultiLimiter m with a defaultConfig c and check the defaultConfig is applied
+
+	t.Run("Store multiple transactions", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		txn := m.limiters.Load().Txn()
+		ipNoPrefix1 := Key([]byte(""), []byte("127.0.0.1"))
+		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
+		{
+			m.Allow(ipLimited{key: ipNoPrefix1})
+			m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
+			m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
+			l, ok := m.limiters.Load().Get(ipNoPrefix1)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter := l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+		}
+		{
+			m.Allow(ipLimited{key: ipNoPrefix2})
+			m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
+			m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
+			l, ok := m.limiters.Load().Get(ipNoPrefix2)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter := l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+			l, ok = m.limiters.Load().Get(ipNoPrefix1)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter = l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+		}
+	})
+	t.Run("runStore store multiple Limiters", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 10 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		m.Run(context.Background())
+		ipNoPrefix1 := Key([]byte(""), []byte("127.0.0.1"))
+		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
+		limiters := m.limiters.Load()
+		m.Allow(ipLimited{key: ipNoPrefix1})
+		retry.Run(t, func(r *retry.R) {
+			time.Sleep(50 * time.Millisecond)
+			l := m.limiters.Load()
+			require.NotEqual(r, limiters, l)
+			limiters = l
+		})
+		l, ok := m.limiters.Load().Get(ipNoPrefix1)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter := l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+		m.Allow(ipLimited{key: ipNoPrefix2})
+		retry.Run(t, func(r *retry.R) {
+			time.Sleep(50 * time.Millisecond)
+			l := m.limiters.Load()
+			require.NotEqual(r, limiters, l)
+			limiters = l
+		})
+		l, ok = m.limiters.Load().Get(ipNoPrefix1)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter = l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+		l, ok = m.limiters.Load().Get(ipNoPrefix2)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter = l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+	})
+
+}
+
 func TestRateLimiterUpdateConfig(t *testing.T) {
 
 	// Create a MultiLimiter m with a defaultConfig c and check the defaultConfig is applied

@@ -28,7 +28,7 @@ type RateLimiter interface {
 	UpdateConfig(c LimiterConfig, prefix []byte)
 }
 
-type LimiterWithKey struct {
+type limiterWithKey struct {
 	l *Limiter
 	k []byte
 	t time.Time
@@ -40,7 +40,7 @@ type MultiLimiter struct {
 	limiters        *atomic.Pointer[radix.Tree]
 	limitersConfigs *atomic.Pointer[radix.Tree]
 	defaultConfig   *atomic.Pointer[Config]
-	LimiterCh       chan *LimiterWithKey
+	limiterCh       chan *limiterWithKey
 }
 
 type KeyType = []byte
@@ -95,8 +95,8 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	chLimiter := make(chan *LimiterWithKey, 100)
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, LimiterCh: chLimiter}
+	chLimiter := make(chan *limiterWithKey, 100)
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter}
 
 	return m
 }
@@ -157,7 +157,7 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	}
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(unixNow)
-	m.LimiterCh <- &LimiterWithKey{l: limiter, k: e.Key(), t: now}
+	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
 }
 
@@ -168,14 +168,14 @@ func (m *MultiLimiter) runStore(ctx context.Context) {
 	waiter := time.NewTicker(commitInterval)
 	defer waiter.Stop()
 	for {
-		if m.runStoreOnce(ctx, waiter, txn) {
+		if txn = m.runStoreOnce(ctx, waiter, txn); txn == nil {
 			return
 		}
 
 	}
 }
 
-func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, txn *radix.Txn) bool {
+func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, txn *radix.Txn) *radix.Txn {
 	select {
 	case <-waiter.C:
 		if txn != nil {
@@ -184,7 +184,7 @@ func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, tx
 			limiters := m.limiters.Load()
 			txn = limiters.Txn()
 		}
-	case lk := <-m.LimiterCh:
+	case lk := <-m.limiterCh:
 		v, ok := txn.Get(lk.k)
 		if !ok {
 			txn.Insert(lk.k, lk.l)
@@ -196,9 +196,9 @@ func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, tx
 			}
 		}
 	case <-ctx.Done():
-		return true
+		return nil
 	}
-	return false
+	return txn
 }
 
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
