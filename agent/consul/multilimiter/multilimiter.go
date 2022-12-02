@@ -26,6 +26,7 @@ func Key(prefix, key []byte) KeyType {
 type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool
+	GetConfig(prefix []byte) (*LimiterConfig, bool)
 	UpdateConfig(c LimiterConfig, prefix []byte)
 }
 
@@ -152,7 +153,6 @@ func splitKey(key []byte) ([]byte, []byte) {
 // Allow should be called by a request processor to check if the current request is Limited
 // The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
-	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now()
@@ -165,6 +165,17 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 		}
 	}
 
+	prefix, _ := splitKey(e.Key())
+	config, _ := m.GetConfig(prefix)
+
+	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
+	limiter.lastAccess.Store(now)
+	tree, _, _ := limiters.Insert(e.Key(), limiter)
+	m.limiters.Store(tree)
+	return limiter.limiter.Allow()
+}
+
+func (m *MultiLimiter) GetConfig(prefix []byte) (*LimiterConfig, bool) {
 	configs := m.limitersConfigs.Load()
 	c, okP := configs.Get(prefix)
 	var config = &m.defaultConfig.Load().LimiterConfig

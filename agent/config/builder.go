@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1045,6 +1046,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
+		RequestLimitsReadRate:             rate.Limit(float64Val(c.Limits.RequestLimits.ReadRate)),
+		RequestLimitsWriteRate:            rate.Limit(float64Val(c.Limits.RequestLimits.WriteRate)),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -1775,6 +1779,19 @@ func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
+	return out
+}
+
+func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
+	var out consulrate.Mode
+
+	mode, ok := consulrate.RequestLimitsModeFromName(v)
+	if !ok {
+		b.err = multierror.Append(b.err, fmt.Errorf("limits.request_limits.mode: invalid mode: %q", v))
+	} else {
+		out = mode
+	}
+
 	return out
 }
 

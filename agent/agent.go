@@ -1479,6 +1479,10 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
 	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
 
+	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
+	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
+	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
@@ -4045,6 +4049,7 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 					return err
 				}
 			}
+
 			if revertStaticConfig(f.oldCfg, f.newCfg) {
 				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
@@ -4145,16 +4150,19 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
-		RPCClientTimeout:      newCfg.RPCClientTimeout,
-		RPCRateLimit:          newCfg.RPCRateLimit,
-		RPCMaxBurst:           newCfg.RPCMaxBurst,
-		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
-		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
-		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
-		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,
-		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
-		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
-		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
+		RequestLimitsMode:      newCfg.RequestLimitsMode,
+		RequestLimitsReadRate:  newCfg.RequestLimitsReadRate,
+		RequestLimitsWriteRate: newCfg.RequestLimitsWriteRate,
+		RPCClientTimeout:       newCfg.RPCClientTimeout,
+		RPCRateLimit:           newCfg.RPCRateLimit,
+		RPCMaxBurst:            newCfg.RPCMaxBurst,
+		RPCMaxConnsPerClient:   newCfg.RPCMaxConnsPerClient,
+		ConfigEntryBootstrap:   newCfg.ConfigEntryBootstrap,
+		RaftSnapshotThreshold:  newCfg.RaftSnapshotThreshold,
+		RaftSnapshotInterval:   newCfg.RaftSnapshotInterval,
+		HeartbeatTimeout:       newCfg.ConsulRaftHeartbeatTimeout,
+		ElectionTimeout:        newCfg.ConsulRaftElectionTimeout,
+		RaftTrailingLogs:       newCfg.RaftTrailingLogs,
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err

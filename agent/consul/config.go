@@ -12,6 +12,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/checks"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -318,6 +319,23 @@ type Config struct {
 	// CheckOutputMaxSize control the max size of output of checks
 	CheckOutputMaxSize int
 
+	// RequestLimitsMode enforces the action that will occur when RequestLimitsReadRate
+	// or RequestLimitsWriteRate is exceeded.  A value of "enforce" will block
+	// the request from processings by returning an error.  A value of
+	// "permissive" will not block the request and will allow the request to
+	// continue processing.
+	RequestLimitsMode string
+
+	// RequestLimitsReadRate controls how frequently RPC, gRPC, and HTTP
+	// queries are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsReadRate tokens per second.
+	RequestLimitsReadRate rate.Limit
+
+	// RequestLimitsWriteRate controls how frequently RPC, gRPC, and HTTP
+	// writes are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsWriteRate tokens per second.
+	RequestLimitsWriteRate rate.Limit
+
 	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
 	// on an RPC client connection. It also governs how long we will wait for a
 	// TLS handshake when TLS is configured however the timout applies separately
@@ -501,6 +519,10 @@ func DefaultConfig() *Config {
 
 		CheckOutputMaxSize: checks.DefaultBufSize,
 
+		RequestLimitsMode:      "permissive",
+		RequestLimitsReadRate:  -1, // ops / sec
+		RequestLimitsWriteRate: -1, // ops / sec
+
 		RPCRateLimit: rate.Inf,
 		RPCMaxBurst:  1000,
 
@@ -623,16 +645,19 @@ type RPCConfig struct {
 // ReloadableConfig is the configuration that is passed to ReloadConfig when
 // application config is reloaded.
 type ReloadableConfig struct {
-	RPCClientTimeout      time.Duration
-	RPCRateLimit          rate.Limit
-	RPCMaxBurst           int
-	RPCMaxConnsPerClient  int
-	ConfigEntryBootstrap  []structs.ConfigEntry
-	RaftSnapshotThreshold int
-	RaftSnapshotInterval  time.Duration
-	RaftTrailingLogs      int
-	HeartbeatTimeout      time.Duration
-	ElectionTimeout       time.Duration
+	RequestLimitsMode      consulrate.Mode
+	RequestLimitsReadRate  rate.Limit
+	RequestLimitsWriteRate rate.Limit
+	RPCClientTimeout       time.Duration
+	RPCRateLimit           rate.Limit
+	RPCMaxBurst            int
+	RPCMaxConnsPerClient   int
+	ConfigEntryBootstrap   []structs.ConfigEntry
+	RaftSnapshotThreshold  int
+	RaftSnapshotInterval   time.Duration
+	RaftTrailingLogs       int
+	HeartbeatTimeout       time.Duration
+	ElectionTimeout        time.Duration
 }
 
 type RaftBoltDBConfig struct {

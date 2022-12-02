@@ -4615,6 +4615,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.RequestLimitsMode = "permissive"
+			rt.RequestLimitsReadRate = -1
+			rt.RequestLimitsWriteRate = -1
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
 		},
@@ -6163,6 +6166,9 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
+		RequestLimitsMode:       "permissive",
+		RequestLimitsReadRate:   100.0,
+		RequestLimitsWriteRate:  100.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,

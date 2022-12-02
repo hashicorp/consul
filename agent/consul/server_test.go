@@ -1818,6 +1818,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RequestLimitsMode = "permissive"
+		c.RequestLimitsReadRate = 500
+		c.RequestLimitsWriteRate = 500
 		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
@@ -1835,10 +1838,13 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
 
 	rc := ReloadableConfig{
-		RPCClientTimeout:     2 * time.Minute,
-		RPCRateLimit:         1000,
-		RPCMaxBurst:          10000,
-		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
+		RequestLimitsMode:      "enforcing",
+		RequestLimitsReadRate:  1000,
+		RequestLimitsWriteRate: 1100,
+		RPCClientTimeout:       2 * time.Minute,
+		RPCRateLimit:           1000,
+		RPCMaxBurst:            10000,
+		ConfigEntryBootstrap:   []structs.ConfigEntry{entryInit},
 		// Reset the custom one to default be removing it from config file (it will
 		// be a zero value here).
 		RaftTrailingLogs: 0,
@@ -1863,6 +1869,21 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check the incoming RPC rate limiter got updated
+	handlerConfig := s.incomingRPCLimiter.GetConfig()
+	require.Equal(t, rc.RequestLimitsMode, handlerConfig.GlobalMode)
+	require.Equal(t, 99, handlerConfig.Config.Rate)
+
+	readLimit, okR := s.incomingRPCLimiter.GetGlobalReadLimiterConfig()
+	require.True(t, okR)
+	require.Equal(t, rc.RequestLimitsReadRate, readLimit.Rate)
+	require.Equal(t, 10*int(rc.RequestLimitsReadRate), readLimit.Burst) // TODO NET-1379 - figure out what to do with burst.  expose as user config or handle internally?
+
+	writeLimit, okW := s.incomingRPCLimiter.GetGlobalWriteLimiterConfig()
+	require.True(t, okW)
+	require.Equal(t, rc.RequestLimitsWriteRate, writeLimit.Rate)
+	require.Equal(t, 10*int(rc.RequestLimitsWriteRate), writeLimit.Burst) // TODO NET-1379 - figure out what to do with burst.  expose as user config or handle internally?
 
 	// Check RPC client timeout got updated
 	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())

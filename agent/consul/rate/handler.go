@@ -42,16 +42,52 @@ var (
 
 // Mode determines the action that will be taken when a rate limit has been
 // exhausted (e.g. log and allow, or reject).
-type Mode int
+type Mode string
 
 const (
+	// ModeDisabled causes the handler to not register itself.
+	ModeDisabled Mode = "disabled"
+
 	// ModePermissive causes the handler to log the rate-limited operation but
 	// still allow it to proceed.
-	ModePermissive Mode = iota
+	ModePermissive Mode = "permissive"
 
-	// ModeEnforcing causes the handler to reject the rate-limted operation.
-	ModeEnforcing
+	// ModeEnforcing causes the handler to reject the rate-limited operation.
+	ModeEnforcing Mode = "enforcing"
 )
+
+var modeToName = map[Mode]string{
+	ModeDisabled:   "disabled",
+	ModeEnforcing:  "enforcing",
+	ModePermissive: "permissive",
+}
+var modeFromName = map[string]Mode{
+	"disabled":   ModeDisabled,
+	"enforcing":  ModeEnforcing,
+	"permissive": ModePermissive,
+	// If the value is not found in the persisted config file, then use the
+	// disabled default.
+	"": ModeDisabled,
+}
+
+func (m Mode) String() string {
+	return modeToName[m]
+}
+
+// RequestLimitsModeFromName will unmarshal the string form of a configMode.
+func RequestLimitsModeFromName(name string) (Mode, bool) {
+	s, ok := modeFromName[name]
+	return s, ok
+}
+
+// RequestLimitsModeFromNameWithDefault will unmarshal the string form of a configMode.
+func RequestLimitsModeFromNameWithDefault(name string) Mode {
+	s, ok := modeFromName[name]
+	if !ok {
+		return ModeDisabled
+	}
+	return s
+}
 
 // OperationType is the type of operation the client is attempting to perform.
 type OperationType int
@@ -163,6 +199,18 @@ type globalLimit []byte
 // Key satisfies the multilimiter.LimitedEntity interface.
 func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
+}
+
+func (h *Handler) GetGlobalReadLimiterConfig() (*multilimiter.LimiterConfig, bool) {
+	return h.limiter.GetConfig(globalRead.ConfigKey())
+}
+
+func (h *Handler) GetGlobalWriteLimiterConfig() (*multilimiter.LimiterConfig, bool) {
+	return h.limiter.GetConfig(globalWrite.ConfigKey())
+}
+
+func (h *Handler) GetConfig() *HandlerConfig {
+	return h.cfg.Load()
 }
 
 var (
