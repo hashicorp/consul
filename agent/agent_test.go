@@ -45,7 +45,6 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/structs"
@@ -4178,39 +4177,6 @@ func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
 	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
-}
-
-func TestAgent_ReloadConfig_RequestLimits(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
-
-	a := NewTestAgent(t, cfg)
-	defer a.Shutdown()
-
-	c := TestConfig(
-		testutil.Logger(t),
-		config.FileSource{
-			Name:   t.Name(),
-			Format: "hcl",
-			Data: cfg + ` limits { 
-				request_limits { 
-					mode = "enforcing"
-					read_rate = 8888
-					write_rate = 9999
-				}
-			}`,
-		},
-	)
-
-	require.Equal(t, consulrate.Mode("enforcing"), c.RequestLimitsMode)
-	require.NoError(t, a.reloadConfigInternal(c))
-	// JM TODO: assert on something else that shows it was reloaded.
-	require.Equal(t, "enforcing", a.consulConfig().RequestLimitsMode)
-	require.Equal(t, rate.Limit(8888), a.consulConfig().RequestLimitsReadRate)
-	require.Equal(t, rate.Limit(9999), a.consulConfig().RequestLimitsWriteRate)
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
