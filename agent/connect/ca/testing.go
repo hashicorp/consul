@@ -103,15 +103,6 @@ func SkipIfVaultNotPresent(t testing.T) {
 	if err != nil || path == "" {
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
 	}
-
-	{
-		cmd := exec.Command(vaultBinaryName, "version")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			t.Fatalf("blah: %w", err)
-		}
-	}
 }
 
 func NewTestVaultServer(t testing.T) *TestVaultServer {
