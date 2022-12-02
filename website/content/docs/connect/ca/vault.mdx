@@ -357,4 +357,16 @@ capabilities = [ "sudo", "update" ]
 </CodeBlockConfig>
 
 We recommend adding this elevated privilege just before the CA provider
-modification, then removing immediately after.
+modification, then removing immediately after, using the following process:
+1. Create a new Vault token that includes both the `root/sign-self-issued`
+   permission and the standard permissions for Consul or Vault managed
+   PKI paths. If you intend to keep Vault as the provider but change `RootPKIPath`,
+   the Vault token needs standard `RootPKIPath` permissions on both the current
+   and new intended paths.
+1. Modify the CA provider configuration to use the new Vault token.
+1. Modify the CA provider configuration that triggers the extremely privileged
+   root cross-sign operation.
+1. If Vault is still the provider but `RootPKIPath` was changed,
+   modify the CA provider configuration to use a Vault token or auth method
+   with only the standard permissions, no longer including the `root/sign-self-issued`
+   permission.
