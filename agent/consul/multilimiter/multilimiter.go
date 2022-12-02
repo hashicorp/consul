@@ -163,7 +163,8 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 
 func (m *MultiLimiter) runStore(ctx context.Context) {
 	var txn *radix.Txn
-	waiter := time.NewTimer(10 * time.Millisecond)
+	commitInterval := 10 * time.Millisecond
+	waiter := time.NewTicker(commitInterval)
 	defer waiter.Stop()
 	for {
 		select {
