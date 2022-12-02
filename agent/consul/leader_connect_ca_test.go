@@ -1033,9 +1033,14 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	})
 	require.NoError(t, err, "failed to sign intermediate")
 
+	cert := intermediate.Data["certificate"].(string)
+
 	var buf strings.Builder
-	buf.WriteString(lib.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
-	buf.WriteString(lib.EnsureTrailingNewline(rootPEM))
+	buf.WriteString(lib.EnsureTrailingNewline(cert))
+	if !strings.Contains(strings.TrimSpace(cert), strings.TrimSpace(rootPEM)) {
+		// Vault < v1.11 included the root in the output of sign-intermediate.
+		buf.WriteString(lib.EnsureTrailingNewline(rootPEM))
+	}
 
 	_, err = client.Logical().Write(path+"/intermediate/set-signed", map[string]interface{}{
 		"certificate": buf.String(),
