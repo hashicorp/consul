@@ -399,9 +399,9 @@ The table below shows this endpoint's support for
 [agent caching](/api-docs/features/caching), and
 [required ACLs](/api-docs/api-structure#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
-| ---------------- | ----------------- | ------------- | -------------- |
-| `YES`            | `all`             | `simple`      | `service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required   |
+| ---------------- | ----------------- | -------------------- | -------------- |
+| `YES`            | `all`             | `background refresh` | `service:read` |
 
 The corresponding CLI command is [`consul catalog services`](/commands/catalog/services).
 
