@@ -5,6 +5,7 @@ import (
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -41,6 +42,8 @@ type MultiLimiter struct {
 	limitersConfigs *atomic.Pointer[radix.Tree]
 	defaultConfig   *atomic.Pointer[Config]
 	limiterCh       chan *limiterWithKey
+	configsLock     sync.Mutex
+	isRunning       atomic.Bool
 }
 
 type KeyType = []byte
@@ -73,6 +76,8 @@ type Config struct {
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
+	m.configsLock.Lock()
+	defer m.configsLock.Unlock()
 	if prefix == nil {
 		prefix = []byte("")
 	}
@@ -96,15 +101,34 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
 	chLimiter := make(chan *limiterWithKey, 100)
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter}
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter, configsLock: sync.Mutex{}}
 
 	return m
 }
 
 // Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
-	go m.runStore(ctx)
+	isRunning := m.isRunning.Load()
+	if isRunning {
+		return
+	}
+	m.isRunning.Store(true)
 	go func() {
+		defer m.isRunning.Store(false)
+		commitInterval := 10 * time.Millisecond
+		limiters := m.limiters.Load()
+		txn := limiters.Txn()
+		waiter := time.NewTicker(commitInterval)
+		defer waiter.Stop()
+		for {
+			if txn = m.runStoreOnce(ctx, waiter, txn); txn == nil {
+				return
+			}
+
+		}
+	}()
+	go func() {
+		defer m.isRunning.Store(false)
 		waiter := time.NewTimer(0)
 		for {
 			c := m.defaultConfig.Load()
@@ -159,20 +183,6 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiter.lastAccess.Store(unixNow)
 	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
-}
-
-func (m *MultiLimiter) runStore(ctx context.Context) {
-	commitInterval := 10 * time.Millisecond
-	limiters := m.limiters.Load()
-	txn := limiters.Txn()
-	waiter := time.NewTicker(commitInterval)
-	defer waiter.Stop()
-	for {
-		if txn = m.runStoreOnce(ctx, waiter, txn); txn == nil {
-			return
-		}
-
-	}
 }
 
 func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, txn *radix.Txn) *radix.Txn {

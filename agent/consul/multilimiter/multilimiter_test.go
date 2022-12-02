@@ -77,7 +77,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	key := makeKey([]byte("test"))
 	m.Allow(Limited{key: key})
 	retry.Run(t, func(r *retry.R) {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		l := m.limiters.Load()
 		require.NotEqual(r, limiters, l)
 		limiters = l
@@ -89,7 +89,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 
 	// Wait > ReconcileCheckInterval and check that the key was cleaned up
 	retry.Run(t, func(r *retry.R) {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		l := m.limiters.Load()
 		require.NotEqual(r, limiters, l)
 		limiters = l
@@ -106,7 +106,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
 	m.runStoreOnce(context.Background(), time.NewTicker(1*time.Microsecond), txn)
 	retry.Run(t, func(r *retry.R) {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		l := m.limiters.Load()
 		require.NotEqual(r, limiters, l)
 		limiters = l
@@ -162,7 +162,7 @@ func TestRateLimiterStore(t *testing.T) {
 		limiters := m.limiters.Load()
 		m.Allow(ipLimited{key: ipNoPrefix1})
 		retry.Run(t, func(r *retry.R) {
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			l := m.limiters.Load()
 			require.NotEqual(r, limiters, l)
 			limiters = l
@@ -174,7 +174,7 @@ func TestRateLimiterStore(t *testing.T) {
 		require.True(t, c.isApplied(limiter.limiter))
 		m.Allow(ipLimited{key: ipNoPrefix2})
 		retry.Run(t, func(r *retry.R) {
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			l := m.limiters.Load()
 			require.NotEqual(r, limiters, l)
 			limiters = l
