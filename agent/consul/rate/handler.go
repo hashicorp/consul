@@ -45,7 +45,7 @@ var (
 type Mode string
 
 const (
-	// ModeDisabled causes the handler to not register itself.
+	// ModeDisabled causes rate limiting to be bypassed.
 	ModeDisabled Mode = "disabled"
 
 	// ModePermissive causes the handler to log the rate-limited operation but
@@ -66,7 +66,7 @@ var modeFromName = map[string]Mode{
 	"enforcing":  ModeEnforcing,
 	"permissive": ModePermissive,
 	// If the value is not found in the persisted config file, then use the
-	// permissive default.
+	// disabled default.
 	"": ModeDisabled,
 }
 
