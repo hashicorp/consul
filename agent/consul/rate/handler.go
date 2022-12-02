@@ -45,6 +45,9 @@ var (
 type Mode string
 
 const (
+	// ModeDisabled causes the handler to not register itself.
+	ModeDisabled Mode = "disabled"
+
 	// ModePermissive causes the handler to log the rate-limited operation but
 	// still allow it to proceed.
 	ModePermissive Mode = "permissive"
@@ -54,15 +57,17 @@ const (
 )
 
 var modeToName = map[Mode]string{
+	ModeDisabled:   "disabled",
 	ModeEnforcing:  "enforcing",
 	ModePermissive: "permissive",
 }
 var modeFromName = map[string]Mode{
+	"disabled":   ModeDisabled,
 	"enforcing":  ModeEnforcing,
 	"permissive": ModePermissive,
 	// If the value is not found in the persisted config file, then use the
 	// permissive default.
-	"": ModePermissive,
+	"": ModeDisabled,
 }
 
 func (m Mode) String() string {

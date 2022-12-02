@@ -1047,7 +1047,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
 		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
-		RequestLimitsReadRate:             rateLimitValWithInfiniteDefault(float64Val(c.Limits.RequestLimits.ReadRate)),
+		RequestLimitsReadRate:             rate.Limit(float64Val(c.Limits.RequestLimits.ReadRate)),
 		RequestLimitsWriteRate:            rate.Limit(float64Val(c.Limits.RequestLimits.WriteRate)),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
@@ -1780,13 +1780,6 @@ func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
 	return out
-}
-
-func rateLimitValWithInfiniteDefault(limit float64) rate.Limit {
-	if limit < 0 {
-		return rate.Inf
-	}
-	return rate.Limit(limit)
 }
 
 func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
