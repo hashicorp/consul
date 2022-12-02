@@ -172,14 +172,9 @@ The corresponding CLI command is [`consul connect ca set-config`](/commands/conn
 ~> **If currently using Vault CA provider:**
    If you intend to change the CA provider from Vault to another,
    or to change the Vault provider's [`RootPKIPath`](/docs/connect/ca/vault#rootpkipath),
-   you must temporarily provide the Vault
-   [auth method](/docs/connect/ca/vault#authmethod) or [token](/docs/connect/ca/vault#token)
-   with `sudo + update` permissions on the extremely privileged
-   [`<root_pki_path>/root/sign-self-issued` Vault endpoint](/vault/api-docs/secret/pki#sign-self-issued)
-   to enable the root cross-signing operation.
-   Refer to the [Vault CA provider policy examples](/consul/docs/connect/ca/vault#vault-acl-policies)
-   for more information. We recommend removing these elevated permissions
-   immediately after this HTTP API call completes.
+   you must temporarily elevate the privileges of the Vault token
+   or auth method in use as described in the
+   [Vault CA provider documentation](/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
 
 ### JSON Request Body Schema
 
