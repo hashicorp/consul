@@ -750,20 +750,35 @@ func NewClient(config *Config) (*Client, error) {
 	// If the TokenFile is set, always use that, even if a Token is configured.
 	// This is because when TokenFile is set it is read into the Token field.
 	// We want any derived clients to have to re-read the token file.
-	if config.TokenFile != "" {
+	// The precedence of ACL token should be:
+	// 1. -token-file cli option
+	// 2. -token cli option
+	// 3. CONSUL_HTTP_TOKEN_FILE environment variable
+	// 4. CONSUL_HTTP_TOKEN environment variable
+	if config.TokenFile != "" && config.TokenFile != defConfig.TokenFile {
 		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading token file: %s", err)
+			return nil, fmt.Errorf("Error loading token file %s : %s", config.TokenFile, err)
 		}
 
 		if token := strings.TrimSpace(string(data)); token != "" {
 			config.Token = token
 		}
-	}
-	if config.Token == "" {
+	} else if config.Token != "" && defConfig.Token != config.Token {
+		// Fall through
+	} else if defConfig.TokenFile != "" {
+		data, err := os.ReadFile(defConfig.TokenFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading token file %s : %s", defConfig.TokenFile, err)
+		}
+
+		if token := strings.TrimSpace(string(data)); token != "" {
+			config.Token = token
+			config.TokenFile = defConfig.TokenFile
+		}
+	} else {
 		config.Token = defConfig.Token
 	}
-
 	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
