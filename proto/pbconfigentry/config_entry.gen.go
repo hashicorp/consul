@@ -639,7 +639,7 @@ func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealth
 		return
 	}
 	t.Interval = structs.DurationFromProto(s.Interval)
-	t.MaxFailures = s.MaxFailures
+	t.MaxFailures = *s.MaxFailures
 	t.EnforcingConsecutive5xx = pointerToUint32FromUint32(s.EnforcingConsecutive5Xx)
 }
 func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHealthCheck) {
@@ -647,7 +647,7 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 		return
 	}
 	s.Interval = structs.DurationToProto(t.Interval)
-	s.MaxFailures = t.MaxFailures
+	s.MaxFailures = &t.MaxFailures
 	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
 }
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
