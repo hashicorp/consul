@@ -364,6 +364,6 @@ configuration change to minimize the time that a privileged Vault token is in us
 1. Modify the CA provider configuration to use that new Vault token.
 1. Perform the CA provider configuration change that triggers the extremely privileged
    root cross-sign operation. If the configuration change maintains Vault
-   as the provider but changes `RootPKIPath`, the configuration change must
+   as the provider but modifies `RootPKIPath`, the configuration change must
    include a Vault token or auth method with standard permissions for the new
    Consul or Vault managed PKI paths.
