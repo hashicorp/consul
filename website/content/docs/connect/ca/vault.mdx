@@ -338,13 +338,13 @@ Then, attach the following Vault ACL policy to the CA provider's
 #### Additional Vault ACL policies for sensitive operations
 
 Additional Vault permissions are required while you perform the
-following CA configuration changes:
+following CA provider configuration changes:
 - Changing the provider from Vault to a different provider, such as Consul's built-in provider
 - Changing the `RootPKIPath`
 
 Those configuration modifications trigger a root CA change that requires an
 extremely privileged root cross-sign operation. 
-For that operation to succeed, the CA's [Vault token](#token) or
+For that operation to succeed, the CA provider's [Vault token](#token) or
 [auth method](#authmethod) must contain the following rule:
 
 <CodeBlockConfig filename="temporary-sensitive-operation-pki-policy.hcl">
