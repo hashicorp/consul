@@ -100,6 +100,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
