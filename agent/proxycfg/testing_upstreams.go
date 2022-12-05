@@ -69,7 +69,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
@@ -88,7 +88,25 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodesPeerCluster01(t),
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
+			},
+		})
+	case "redirect-to-cluster-peer":
+		events = append(events, UpdateEvent{
+			CorrelationID: "peer-trust-bundle:cluster-01",
+			Result: &pbpeering.TrustBundleReadResponse{
+				Bundle: &pbpeering.PeeringTrustBundle{
+					PeerName:          "peer1",
+					TrustDomain:       "peer1.domain",
+					ExportedPartition: "peer1ap",
+					RootPEMs:          []string{"peer1-root-1"},
+				},
+			},
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -114,13 +132,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC3(t),
 			},
 		})
@@ -141,7 +159,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
@@ -168,7 +186,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-			Result: &structs.IndexedNodesWithGateways{
+			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
@@ -286,6 +304,17 @@ func setupTestVariationDiscoveryChain(
 							{Peer: "cluster-01"},
 						},
 					},
+				},
+			},
+		)
+	case "redirect-to-cluster-peer":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Redirect: &structs.ServiceResolverRedirect{
+					Peer: "cluster-01",
 				},
 			},
 		)
@@ -655,12 +684,31 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/idle-timeout",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:     "idle-timeout",
+							IdleTimeout: 33 * time.Second,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
 							PathPrefix: "/retry-connect",
 						}),
 						Destination: &structs.ServiceRouteDestination{
 							Service:               "retry-connect",
 							NumRetries:            15,
 							RetryOnConnectFailure: true,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/retry-reset",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:    "retry-reset",
+							NumRetries: 15,
+							RetryOn:    []string{"reset"},
 						},
 					},
 					{
@@ -675,11 +723,12 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-both",
+							PathPrefix: "/retry-all",
 						}),
 						Destination: &structs.ServiceRouteDestination{
-							Service:               "retry-both",
+							Service:               "retry-all",
 							RetryOnConnectFailure: true,
+							RetryOn:               []string{"5xx", "gateway-error", "reset", "connect-failure", "envoy-ratelimited", "retriable-4xx", "refused-stream", "cancelled", "deadline-exceeded", "internal", "resource-exhausted", "unavailable"},
 							RetryOnStatusCodes:    []uint32{401, 409, 451},
 						},
 					},

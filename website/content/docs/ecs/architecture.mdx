@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Architecture - AWS ECS
+page_title: Consul on AWS Elastic Container Service (ECS) Architecture
 description: >-
-  Architecture of Consul Service Mesh on AWS ECS (Elastic Container Service).
+  Consul's architecture supports Amazon Web Services ECS deployments. Learn about how the two work together, including the order tasks and containers startup and shutdown, as well as requirements for the AWS IAM auth method, the ACL controller and tokens, and health check syncing.
 ---
 
-# Architecture
+# Consul on AWS Elastic Container Service (ECS) Architecture
 
 The following diagram shows the main components of the Consul architecture when deployed to an ECS cluster:
 
@@ -52,7 +52,7 @@ This diagram shows the timeline of a task starting up and all its containers:
       permissions for the service and its sidecar proxy. This token is written to a shared
       volume for use by the `health-sync` container.
     - It registers the service for the current task and its sidecar proxy with Consul.
-    - It runs `consul connect envoy -bootstrap` to generate Envoy’s bootstrap JSON file and
+    - It runs `consul connect envoy -bootstrap` to generate Envoy's bootstrap JSON file and
       writes it to a shared volume.
 - **T1:** The following containers start:
   - `sidecar-proxy` starts using a custom entrypoint command, `consul-ecs envoy-entrypoint`.

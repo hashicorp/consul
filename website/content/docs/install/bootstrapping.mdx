@@ -1,15 +1,11 @@
 ---
 layout: docs
-page_title: Bootstrapping a Datacenter
+page_title: Bootstrap a Datacenter
 description: >-
-  An agent can run in both client and server mode. Server nodes are responsible
-  for running the consensus protocol and storing the cluster state. Before a
-  Consul cluster can begin to service requests, a server node must be elected
-  leader. Thus, the first nodes that are started are generally the server nodes.
-  Bootstrapping is the process of joining these server nodes into a cluster.
+  Bootstrapping a datacenter is the initial deployment process in Consul that starts server agents and joins them together. Learn how to automatically or manually join servers in a cluster.
 ---
 
-# Bootstrapping a Datacenter
+# Bootstrap a Datacenter
 
 An agent can run in either client or server mode. Server nodes are responsible for running the
 [consensus protocol](/docs/architecture/consensus) and storing the cluster state.

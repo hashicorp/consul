@@ -12,7 +12,7 @@ type Routine func(ctx context.Context) error
 
 // cancelCh is the ctx.Done()
 // When cancel() is called, if the routine is running a blocking call (e.g. some ACL replication RPCs),
-//   stoppedCh won't be closed till the blocking call returns, while cancelCh will be closed immediately.
+// stoppedCh won't be closed till the blocking call returns, while cancelCh will be closed immediately.
 // cancelCh is used to properly detect routine running status between cancel() and close(stoppedCh)
 type routineTracker struct {
 	cancel    context.CancelFunc
@@ -110,9 +110,9 @@ func (m *Manager) execute(ctx context.Context, name string, routine Routine, don
 }
 
 // Caveat: The returned stoppedCh indicates that the routine is completed
-//         It's possible that ctx is canceled, but stoppedCh not yet closed
-//         Use mgr.IsRunning(name) than this stoppedCh to tell whether the
-//         instance is still running (not cancelled or completed).
+// It's possible that ctx is canceled, but stoppedCh not yet closed
+// Use mgr.IsRunning(name) than this stoppedCh to tell whether the
+// instance is still running (not cancelled or completed).
 func (m *Manager) Stop(name string) <-chan struct{} {
 	instance := m.stopInstance(name)
 	if instance == nil {

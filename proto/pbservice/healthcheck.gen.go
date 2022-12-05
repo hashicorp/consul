@@ -29,6 +29,7 @@ func CheckTypeToStructs(s *CheckType, t *structs.CheckType) {
 	t.Shell = s.Shell
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
+	t.OSService = s.OSService
 	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Timeout = structs.DurationFromProto(s.Timeout)
@@ -66,6 +67,7 @@ func CheckTypeFromStructs(t *structs.CheckType, s *CheckType) {
 	s.Shell = t.Shell
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
+	s.OSService = t.OSService
 	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Timeout = structs.DurationToProto(t.Timeout)
@@ -142,6 +144,7 @@ func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthC
 	t.TCP = s.TCP
 	t.UDP = s.UDP
 	t.H2PING = s.H2PING
+	t.OSService = s.OSService
 	t.H2PingUseTLS = s.H2PingUseTLS
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.OutputMaxSize = uint(s.OutputMaxSize)
@@ -170,6 +173,7 @@ func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *Healt
 	s.TCP = t.TCP
 	s.UDP = t.UDP
 	s.H2PING = t.H2PING
+	s.OSService = t.OSService
 	s.H2PingUseTLS = t.H2PingUseTLS
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.OutputMaxSize = uint32(t.OutputMaxSize)

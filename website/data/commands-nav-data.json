@@ -437,6 +437,35 @@
     "path": "partition"
   },
   {
+    "title": "peering",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "peering"
+      },
+      {
+        "title": "delete",
+        "path": "peering/delete"
+      },
+      {
+        "title": "establish",
+        "path": "peering/establish"
+      },
+      {
+        "title": "generate-token",
+        "path": "peering/generate-token"
+      },
+      {
+        "title": "list",
+        "path": "peering/list"
+      },
+      {
+        "title": "read",
+        "path": "peering/read"
+      }
+    ]
+  },
+  {
     "title": "reload",
     "path": "reload"
   },

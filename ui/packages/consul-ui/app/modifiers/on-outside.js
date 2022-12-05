@@ -10,7 +10,7 @@ export default class OnOutsideModifier extends Modifier {
     this.doc = this.dom.document();
   }
   async connect(params, options) {
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       this.doc.addEventListener(params[0], this.listen);
     } catch (e) {
@@ -21,7 +21,7 @@ export default class OnOutsideModifier extends Modifier {
   @action
   listen(e) {
     if (this.dom.isOutside(this.element, e.target)) {
-      const dispatch = typeof this.params[1] === 'function' ? this.params[1] : _ => {};
+      const dispatch = typeof this.params[1] === 'function' ? this.params[1] : (_) => {};
       dispatch.apply(this.element, [e]);
     }
   }

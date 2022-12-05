@@ -37,6 +37,10 @@ import (
 var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"consul", "cache", "entries_count"},
+		Help: "Deprecated - please use cache_entries_count instead.",
+	},
+	{
+		Name: []string{"cache", "entries_count"},
 		Help: "Represents the number of entries in this cache.",
 	},
 }
@@ -45,18 +49,34 @@ var Gauges = []prometheus.GaugeDefinition{
 var Counters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"consul", "cache", "bypass"},
+		Help: "Deprecated - please use cache_bypass instead.",
+	},
+	{
+		Name: []string{"cache", "bypass"},
 		Help: "Counts how many times a request bypassed the cache because no cache-key was provided.",
 	},
 	{
 		Name: []string{"consul", "cache", "fetch_success"},
+		Help: "Deprecated - please use cache_fetch_success instead.",
+	},
+	{
+		Name: []string{"cache", "fetch_success"},
 		Help: "Counts the number of successful fetches by the cache.",
 	},
 	{
 		Name: []string{"consul", "cache", "fetch_error"},
+		Help: "Deprecated - please use cache_fetch_error instead.",
+	},
+	{
+		Name: []string{"cache", "fetch_error"},
 		Help: "Counts the number of failed fetches by the cache.",
 	},
 	{
 		Name: []string{"consul", "cache", "evict_expired"},
+		Help: "Deprecated - please use cache_evict_expired instead.",
+	},
+	{
+		Name: []string{"cache", "evict_expired"},
 		Help: "Counts the number of expired entries that are evicted.",
 	},
 }
@@ -64,8 +84,8 @@ var Counters = []prometheus.CounterDefinition{
 // Constants related to refresh backoff. We probably don't ever need to
 // make these configurable knobs since they primarily exist to lower load.
 const (
-	CacheRefreshBackoffMin = 3               // 3 attempts before backing off
-	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
+	DefaultCacheRefreshBackoffMin = 3               // 3 attempts before backing off
+	DefaultCacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
 
 	// The following constants are default values for the cache entry
 	// rate limiter settings.
@@ -118,6 +138,7 @@ type Cache struct {
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry
 	entriesExpiryHeap *ttlcache.ExpiryHeap
+	lastGoroutineID   uint64
 
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
@@ -175,6 +196,13 @@ type Options struct {
 	EntryFetchMaxBurst int
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate rate.Limit
+
+	// CacheRefreshBackoffMin is the number of attempts to wait before backing off.
+	// Mostly configurable just for testing.
+	CacheRefreshBackoffMin uint
+	// CacheRefreshMaxWait is the maximum backoff wait time.
+	// Mostly configurable just for testing.
+	CacheRefreshMaxWait time.Duration
 }
 
 // Equal return true if both options are equivalent
@@ -189,6 +217,12 @@ func applyDefaultValuesOnOptions(options Options) Options {
 	}
 	if options.EntryFetchMaxBurst == 0 {
 		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
+	}
+	if options.CacheRefreshBackoffMin == 0 {
+		options.CacheRefreshBackoffMin = DefaultCacheRefreshBackoffMin
+	}
+	if options.CacheRefreshMaxWait == 0 {
+		options.CacheRefreshMaxWait = DefaultCacheRefreshMaxWait
 	}
 	if options.Logger == nil {
 		options.Logger = hclog.New(nil)
@@ -374,11 +408,23 @@ func (c *Cache) getEntryLocked(
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		if entry.Fetching {
-			// There is an active blocking query for this data, which has not
-			// returned. We can logically deduce that the contents of the cache
-			// are actually current, and we can simply return this while
-			// leaving the blocking query alone.
+		// It is important to note that this block ONLY applies when we are not
+		// in indefinite refresh mode (where the underlying goroutine will
+		// continue to re-query for data).
+		//
+		// In this mode goroutines have a 1:1 relationship to RPCs that get
+		// executed, and importantly they DO NOT SLEEP after executing.
+		//
+		// This means that a running goroutine for this cache entry extremely
+		// strongly implies that the RPC has not yet completed, which is why
+		// this check works for the revalidation-avoidance optimization here.
+		if entry.GoroutineID != 0 {
+			// There is an active goroutine performing a blocking query for
+			// this data, which has not returned.
+			//
+			// We can logically deduce that the contents of the cache are
+			// actually current, and we can simply return this while leaving
+			// the blocking query alone.
 			return true, true, entry
 		}
 		return true, false, entry
@@ -397,6 +443,7 @@ func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
 func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, ResultMeta, error) {
 	if r.Info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
+		metrics.IncrCounter([]string{"cache", "bypass"}, 1)
 
 		// If no key is specified, then we do not cache this request.
 		// Pass directly through to the backend.
@@ -443,6 +490,7 @@ RETRY_GET:
 		meta := ResultMeta{Index: entry.Index}
 		if first {
 			metrics.IncrCounter([]string{"consul", "cache", r.TypeEntry.Name, "hit"}, 1)
+			metrics.IncrCounter([]string{"cache", r.TypeEntry.Name, "hit"}, 1)
 			meta.Hit = true
 		}
 
@@ -496,6 +544,7 @@ RETRY_GET:
 			missKey = "miss_new"
 		}
 		metrics.IncrCounter([]string{"consul", "cache", r.TypeEntry.Name, missKey}, 1)
+		metrics.IncrCounter([]string{"cache", r.TypeEntry.Name, missKey}, 1)
 	}
 
 	// Set our timeout channel if we must
@@ -505,7 +554,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh := c.fetch(key, r, true, 0, false)
+	waiterCh := c.fetch(key, r)
 
 	// No longer our first time through
 	first = false
@@ -532,46 +581,36 @@ func makeEntryKey(t, dc, peerName, token, key string) string {
 	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
-// fetch triggers a new background fetch for the given Request. If a
-// background fetch is already running for a matching Request, the waiter
-// channel for that request is returned. The effect of this is that there
-// is only ever one blocking query for any matching requests.
-//
-// If allowNew is true then the fetch should create the cache entry
-// if it doesn't exist. If this is false, then fetch will do nothing
-// if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
-	// We acquire a write lock because we may have to set Fetching to true.
+// fetch triggers a new background fetch for the given Request. If a background
+// fetch is already running or a goroutine to manage that still exists for a
+// matching Request, the waiter channel for that request is returned. The
+// effect of this is that there is only ever one blocking query and goroutine
+// for any matching requests.
+func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
+
 	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 
-	// This handles the case where a fetch succeeded after checking for its existence in
-	// getWithIndex. This ensures that we don't miss updates.
-	if ok && entryValid && !ignoreExisting {
+	switch {
+	case ok && entryValid:
+		// This handles the case where a fetch succeeded after checking for its
+		// existence in getWithIndex. This ensures that we don't miss updates.
 		ch := make(chan struct{})
 		close(ch)
 		return ch
-	}
 
-	// If we aren't allowing new values and we don't have an existing value,
-	// return immediately. We return an immediately-closed channel so nothing
-	// blocks.
-	if !ok && !allowNew {
-		ch := make(chan struct{})
-		close(ch)
-		return ch
-	}
-
-	// If we already have an entry and it is actively fetching, then return
-	// the currently active waiter.
-	if ok && entry.Fetching {
+	case ok && entry.GoroutineID != 0:
+		// If we already have an entry and there's a goroutine to keep it
+		// refreshed then don't spawn another one to do the same work.
+		//
+		// Return the currently active waiter.
 		return entry.Waiter
-	}
 
-	// If we don't have an entry, then create it. The entry must be marked
-	// as invalid so that it isn't returned as a valid value for a zero index.
-	if !ok {
+	case !ok:
+		// If we don't have an entry, then create it. The entry must be marked
+		// as invalid so that it isn't returned as a valid value for a zero
+		// index.
 		entry = cacheEntry{
 			Valid:  false,
 			Waiter: make(chan struct{}),
@@ -582,16 +621,100 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		}
 	}
 
-	// Set that we're fetching to true, which makes it so that future
-	// identical calls to fetch will return the same waiter rather than
-	// perform multiple fetches.
-	entry.Fetching = true
+	// Assign each background fetching goroutine a unique ID and fingerprint
+	// the cache entry with the same ID. This way if the cache entry is ever
+	// cleaned up due to expiry and later recreated the old goroutine can
+	// detect that and terminate rather than leak and do double work.
+	c.lastGoroutineID++
+	entry.GoroutineID = c.lastGoroutineID
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
+
+	// The actual Fetch must be performed in a goroutine.
+	go c.launchBackgroundFetcher(entry.GoroutineID, key, r)
+
+	return entry.Waiter
+}
+
+func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOptions) {
+	defer func() {
+		c.entriesLock.Lock()
+		defer c.entriesLock.Unlock()
+		entry, ok := c.entries[key]
+		if ok && entry.GoroutineID == goroutineID {
+			entry.GoroutineID = 0
+			c.entries[key] = entry
+		}
+	}()
+
+	var attempt uint
+	for {
+		shouldStop, shouldBackoff := c.runBackgroundFetcherOnce(goroutineID, key, r)
+		if shouldStop {
+			return
+		}
+
+		if shouldBackoff {
+			attempt++
+		} else {
+			attempt = 0
+		}
+		// If we're over the attempt minimum, start an exponential backoff.
+		wait := backOffWait(c.options, attempt)
+
+		// If we have a timer, wait for it
+		wait += r.TypeEntry.Opts.RefreshTimer
+
+		select {
+		case <-time.After(wait):
+		case <-c.stopCh:
+			return // Check if cache was stopped
+		}
+
+		// Trigger.
+		r.Info.MustRevalidate = false
+		r.Info.MinIndex = 0
+
+		// We acquire a write lock because we may have to set Fetching to true.
+		c.entriesLock.Lock()
+
+		entry, ok := c.entries[key]
+		if !ok || entry.GoroutineID != goroutineID {
+			// If we don't have an existing entry, return immediately.
+			//
+			// Also if we already have an entry and it is actively fetching, then
+			// return immediately.
+			//
+			// If we've somehow lost control of the entry, also return.
+			c.entriesLock.Unlock()
+			return
+		}
+
+		c.entries[key] = entry
+		metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+		metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
+		c.entriesLock.Unlock()
+	}
+}
+
+func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOptions) (shouldStop, shouldBackoff bool) {
+	// Freshly re-read this, rather than relying upon the caller to fetch it
+	// and pass it in.
+	c.entriesLock.RLock()
+	entry, ok := c.entries[key]
+	c.entriesLock.RUnlock()
+
+	if !ok || entry.GoroutineID != goroutineID {
+		// If we don't have an existing entry, return immediately.
+		//
+		// Also if something weird has happened to orphan this goroutine, also
+		// return immediately.
+		return true, false
+	}
 
 	tEntry := r.TypeEntry
-	// The actual Fetch must be performed in a goroutine.
-	go func() {
+	{ // NOTE: this indentation is here to facilitate the PR review diff only
 		// If we have background refresh and currently are in "disconnected" state,
 		// waiting for a response might mean we mark our results as stale for up to
 		// 10 minutes (max blocking timeout) after connection is restored. To reduce
@@ -605,7 +728,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				c.entriesLock.Lock()
 				defer c.entriesLock.Unlock()
 				entry, ok := c.entries[key]
-				if !ok || entry.RefreshLostContact.IsZero() {
+				if !ok || entry.RefreshLostContact.IsZero() || entry.GoroutineID != goroutineID {
 					return
 				}
 				entry.RefreshLostContact = time.Time{}
@@ -629,12 +752,15 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
+
 		if err := entry.FetchRateLimiter.Wait(c.rateLimitContext); err != nil {
 			if connectedTimer != nil {
 				connectedTimer.Stop()
 			}
 			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
-			return
+			// NOTE: this can only happen when the entire cache is being
+			// shutdown and isn't something that can happen normally.
+			return true, false
 		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
@@ -644,7 +770,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// Copy the existing entry to start.
 		newEntry := entry
-		newEntry.Fetching = false
 
 		// Importantly, always reset the Error. Having both Error and a Value that
 		// are non-nil is allowed in the cache entry but it indicates that the Error
@@ -694,11 +819,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
 			// TODO(kit): move tEntry.Name to a label on the first write here and deprecate the second write
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", "fetch_success"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_success"}, 1, labels)
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
-				attempt = 0
+				shouldBackoff = false
 			} else {
 				// Result having a zero index is an implicit error case. There was no
 				// actual error but it implies the RPC found in index (nothing written
@@ -713,7 +840,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				// state it can be considered a bug in the RPC implementation (to ever
 				// return a zero index) however since it can happen this is a safety net
 				// for the future.
-				attempt++
+				shouldBackoff = true
 			}
 
 			// If we have refresh active, this successful response means cache is now
@@ -728,10 +855,12 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			// TODO(kit): Add tEntry.Name to label on fetch_error and deprecate second write
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", "fetch_error"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"cache", tEntry.Name, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
-			attempt++
+			shouldBackoff = true
 
 			// If we are refreshing and just failed, updated the lost contact time as
 			// our cache will be stale until we get successfully reconnected. We only
@@ -748,7 +877,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// Set our entry
 		c.entriesLock.Lock()
 
-		if _, ok := c.entries[key]; !ok {
+		if currEntry, ok := c.entries[key]; !ok || currEntry.GoroutineID != goroutineID {
 			// This entry was evicted during our fetch. DON'T re-insert it or fall
 			// through to the refresh loop below otherwise it will live forever! In
 			// theory there should not be any Get calls waiting on entry.Waiter since
@@ -761,7 +890,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			// Trigger any waiters that are around.
 			close(entry.Waiter)
-			return
+			return true, false
 		}
 
 		// If this is a new entry (not in the heap yet), then setup the
@@ -786,42 +915,22 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// request back up again shortly but in the general case this prevents
 		// spamming the logs with tons of ACL not found errors for days.
 		if tEntry.Opts.Refresh && !preventRefresh {
-			// Check if cache was stopped
-			if atomic.LoadUint32(&c.stopped) == 1 {
-				return
-			}
-
-			// If we're over the attempt minimum, start an exponential backoff.
-			if wait := backOffWait(attempt); wait > 0 {
-				time.Sleep(wait)
-			}
-
-			// If we have a timer, wait for it
-			if tEntry.Opts.RefreshTimer > 0 {
-				time.Sleep(tEntry.Opts.RefreshTimer)
-			}
-
-			// Trigger. The "allowNew" field is false because in the time we were
-			// waiting to refresh we may have expired and got evicted. If that
-			// happened, we don't want to create a new entry.
-			r.Info.MustRevalidate = false
-			r.Info.MinIndex = 0
-			c.fetch(key, r, false, attempt, true)
+			return false, shouldBackoff
 		}
-	}()
+	}
 
-	return entry.Waiter
+	return true, false
 }
 
-func backOffWait(failures uint) time.Duration {
-	if failures > CacheRefreshBackoffMin {
-		shift := failures - CacheRefreshBackoffMin
-		waitTime := CacheRefreshMaxWait
+func backOffWait(opts Options, failures uint) time.Duration {
+	if failures > opts.CacheRefreshBackoffMin {
+		shift := failures - opts.CacheRefreshBackoffMin
+		waitTime := opts.CacheRefreshMaxWait
 		if shift < 31 {
 			waitTime = (1 << shift) * time.Second
 		}
-		if waitTime > CacheRefreshMaxWait {
-			waitTime = CacheRefreshMaxWait
+		if waitTime > opts.CacheRefreshMaxWait {
+			waitTime = opts.CacheRefreshMaxWait
 		}
 		return waitTime + lib.RandomStagger(waitTime)
 	}
@@ -858,7 +967,9 @@ func (c *Cache) runExpiryLoop() {
 
 			// Set some metrics
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
+			metrics.IncrCounter([]string{"cache", "evict_expired"}, 1)
 			metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+			metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 			c.entriesLock.Unlock()
 		}

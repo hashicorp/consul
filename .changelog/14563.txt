@@ -1,0 +1,3 @@
+```release-note:improvement
+peering: Validate peering tokens for server name conflicts
+```

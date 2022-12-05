@@ -7,6 +7,6 @@
  * @param {String} separator - The separator
  * @returns {String[]}
  */
-export default function(key, separator = '/') {
+export default function (key, separator = '/') {
   return (key === separator ? '' : key).split(separator);
 }

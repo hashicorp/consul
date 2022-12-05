@@ -69,9 +69,11 @@ type ServiceRouteDestination struct {
 	Partition             string               `json:",omitempty"`
 	PrefixRewrite         string               `json:",omitempty" alias:"prefix_rewrite"`
 	RequestTimeout        time.Duration        `json:",omitempty" alias:"request_timeout"`
+	IdleTimeout           time.Duration        `json:",omitempty" alias:"idle_timeout"`
 	NumRetries            uint32               `json:",omitempty" alias:"num_retries"`
 	RetryOnConnectFailure bool                 `json:",omitempty" alias:"retry_on_connect_failure"`
 	RetryOnStatusCodes    []uint32             `json:",omitempty" alias:"retry_on_status_codes"`
+	RetryOn               []string             `json:",omitempty" alias:"retry_on"`
 	RequestHeaders        *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders       *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
@@ -80,13 +82,18 @@ func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
 	type Alias ServiceRouteDestination
 	exported := &struct {
 		RequestTimeout string `json:",omitempty"`
+		IdleTimeout    string `json:",omitempty"`
 		*Alias
 	}{
 		RequestTimeout: e.RequestTimeout.String(),
+		IdleTimeout:    e.IdleTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.RequestTimeout == 0 {
 		exported.RequestTimeout = ""
+	}
+	if e.IdleTimeout == 0 {
+		exported.IdleTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -96,6 +103,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	type Alias ServiceRouteDestination
 	aux := &struct {
 		RequestTimeout string
+		IdleTimeout    string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -106,6 +114,11 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	var err error
 	if aux.RequestTimeout != "" {
 		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.IdleTimeout != "" {
+		if e.IdleTimeout, err = time.ParseDuration(aux.IdleTimeout); err != nil {
 			return err
 		}
 	}

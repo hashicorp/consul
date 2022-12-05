@@ -228,6 +228,12 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			if route.Destination.PrefixRewrite != "" && !eligibleForPrefixRewrite {
 				return fmt.Errorf("Route[%d] cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix", i)
 			}
+
+			for _, r := range route.Destination.RetryOn {
+				if !isValidRetryCondition(r) {
+					return fmt.Errorf("Route[%d] contains an invalid retry condition: %q", i, r)
+				}
+			}
 		}
 	}
 
@@ -245,6 +251,26 @@ func isValidHTTPMethod(method string) bool {
 		http.MethodConnect,
 		http.MethodOptions,
 		http.MethodTrace:
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidRetryCondition(retryOn string) bool {
+	switch retryOn {
+	case "5xx",
+		"gateway-error",
+		"reset",
+		"connect-failure",
+		"envoy-ratelimited",
+		"retriable-4xx",
+		"refused-stream",
+		"cancelled",
+		"deadline-exceeded",
+		"internal",
+		"resource-exhausted",
+		"unavailable":
 		return true
 	default:
 		return false
@@ -400,6 +426,10 @@ type ServiceRouteDestination struct {
 	// downstream request (and retries) to be processed.
 	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
 
+	// IdleTimeout is The total amount of time permitted for the request stream
+	// to be idle
+	IdleTimeout time.Duration `json:",omitempty" alias:"idle_timeout"`
+
 	// NumRetries is the number of times to retry the request when a retryable
 	// result occurs. This seems fairly proxy agnostic.
 	NumRetries uint32 `json:",omitempty" alias:"num_retries"`
@@ -408,6 +438,10 @@ type ServiceRouteDestination struct {
 	// retry. This should be expressible in other proxies as it's just a layer
 	// 4 failure bubbling up to layer 7.
 	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
+
+	// RetryOn allows setting envoy specific conditions when a request should
+	// be automatically retried.
+	RetryOn []string `json:",omitempty" alias:"retry_on"`
 
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
@@ -422,13 +456,19 @@ func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
 	type Alias ServiceRouteDestination
 	exported := &struct {
 		RequestTimeout string `json:",omitempty"`
+		IdleTimeout    string `json:",omitempty"`
 		*Alias
 	}{
 		RequestTimeout: e.RequestTimeout.String(),
+		IdleTimeout:    e.IdleTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.RequestTimeout == 0 {
 		exported.RequestTimeout = ""
+	}
+
+	if e.IdleTimeout == 0 {
+		exported.IdleTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -438,6 +478,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	type Alias ServiceRouteDestination
 	aux := &struct {
 		RequestTimeout string
+		IdleTimeout    string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -451,11 +492,16 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 			return err
 		}
 	}
+	if aux.IdleTimeout != "" {
+		if e.IdleTimeout, err = time.ParseDuration(aux.IdleTimeout); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (d *ServiceRouteDestination) HasRetryFeatures() bool {
-	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
+	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0 || len(d.RetryOn) > 0
 }
 
 // ServiceSplitterConfigEntry defines how incoming requests are split across
@@ -1267,7 +1313,6 @@ func (r *ServiceResolverRedirect) isEmpty() bool {
 // - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
 // empty at once. When Targets is defined, the other fields should not be
 // populated.
-//
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).

@@ -19,6 +19,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 	t.Cleanup(cancel)
 
 	store := state.NewStateStore(nil)
+	require.NoError(t, store.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"}))
 
 	for _, peer := range []string{"peer-1", "peer-2", "peer-3"} {
 		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.PeeringWriteRequest{
@@ -36,13 +37,13 @@ func TestServerExportedPeeredServices(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-2"},
+					{Peer: "peer-2"},
 				},
 			},
 		},
@@ -59,7 +60,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 		GetStore:    func() Store { return store },
 		ACLResolver: newStaticResolver(authz),
 	})
-	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{}, "", eventCh))
+	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{Datacenter: "dc1"}, "", eventCh))
 
 	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := getEventResult[*structs.IndexedExportedServiceList](t, eventCh)
@@ -78,20 +79,20 @@ func TestServerExportedPeeredServices(t *testing.T) {
 				{
 					Name: "web",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
+						{Peer: "peer-1"},
 					},
 				},
 				{
 					Name: "db",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-2"},
+						{Peer: "peer-2"},
 					},
 				},
 				{
 					Name: "api",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
-						{PeerName: "peer-3"},
+						{Peer: "peer-1"},
+						{Peer: "peer-3"},
 					},
 				},
 			},

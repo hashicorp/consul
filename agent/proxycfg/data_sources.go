@@ -89,10 +89,10 @@ type DataSources struct {
 
 	// IntentionUpstreamsDestination provides intention-inferred upstream updates on a
 	// notification channel.
-	IntentionUpstreamsDestination IntentionUpstreamsDestination
+	IntentionUpstreamsDestination IntentionUpstreams
 
-	// InternalServiceDump provides updates about a (gateway) service on a
-	// notification channel.
+	// InternalServiceDump provides updates about services of a given kind (e.g.
+	// mesh gateways) on a notification channel.
 	InternalServiceDump InternalServiceDump
 
 	// LeafCertificate provides updates about the service's leaf certificate on a
@@ -102,6 +102,9 @@ type DataSources struct {
 	// PeeredUpstreams provides imported-service upstream updates on a
 	// notification channel.
 	PeeredUpstreams PeeredUpstreams
+
+	// PeeringList provides peering updates on a notification channel.
+	PeeringList PeeringList
 
 	// PreparedQuery provides updates about the results of a prepared query.
 	PreparedQuery PreparedQuery
@@ -197,14 +200,8 @@ type IntentionUpstreams interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// IntentionUpstreamsDestination is the interface used to consume updates about upstreams destination
-// inferred from service intentions.
-type IntentionUpstreamsDestination interface {
-	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
-}
-
-// InternalServiceDump is the interface used to consume updates about a (gateway)
-// service via the internal ServiceDump RPC.
+// InternalServiceDump is the interface used to consume updates about services
+// of a given kind (e.g. mesh gateways).
 type InternalServiceDump interface {
 	Notify(ctx context.Context, req *structs.ServiceDumpRequest, correlationID string, ch chan<- UpdateEvent) error
 }
@@ -219,6 +216,11 @@ type LeafCertificate interface {
 // for all peered targets in a given partition.
 type PeeredUpstreams interface {
 	Notify(ctx context.Context, req *structs.PartitionSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// PeeringList is the interface used to consume updates about peerings in the cluster or partition
+type PeeringList interface {
+	Notify(ctx context.Context, req *cachetype.PeeringListRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // PreparedQuery is the interface used to consume updates about the results of

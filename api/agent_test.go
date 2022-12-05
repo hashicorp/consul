@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -104,7 +104,7 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234, "Meta": {"some": "meta"}}}`
-	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = os.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -264,6 +264,63 @@ func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
 	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
+func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	nonExistentTokenFile := "randomTokenFile.txt"
+	config := Config{
+		Token:     "randomToken",
+		TokenFile: nonExistentTokenFile,
+	}
+
+	_, err := NewClient(&config)
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFile, nonExistentTokenFile)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenCLISecondPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	tokenString := "randomToken"
+	config := Config{
+		Token: tokenString,
+	}
+
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, tokenString)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_HttpTokenFileEnvVarThirdPriority(t *testing.T) {
+	nonExistentTokenFileEnvVar := "httpTokenFile.txt"
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", nonExistentTokenFileEnvVar)
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+
+	_, err := NewClient(DefaultConfig())
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFileEnvVar, nonExistentTokenFileEnvVar)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenEnvVarFinalPriority(t *testing.T) {
+	httpTokenEnvVar := "httpToken"
+	os.Setenv("CONSUL_HTTP_TOKEN", httpTokenEnvVar)
+
+	c, err := NewClient(DefaultConfig())
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, httpTokenEnvVar)
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
 func TestAPI_AgentServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -363,7 +420,7 @@ func TestAPI_AgentServicesWithFilterOpts(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 
-	opts := &QueryOptions{Namespace: splitDefaultNamespace}
+	opts := &QueryOptions{Namespace: defaultNamespace}
 	services, err := agent.ServicesWithFilterOpts("foo in Tags", opts)
 	require.NoError(t, err)
 	require.Len(t, services, 1)
@@ -791,8 +848,8 @@ func TestAPI_AgentService(t *testing.T) {
 			Warning: 1,
 		},
 		Meta:       map[string]string{},
-		Namespace:  splitDefaultNamespace,
-		Partition:  splitDefaultPartition,
+		Namespace:  defaultNamespace,
+		Partition:  defaultPartition,
 		Datacenter: "dc1",
 	}
 	require.Equal(t, expect, got)
@@ -932,7 +989,7 @@ func TestAPI_AgentUpdateTTLOpts(t *testing.T) {
 		}
 	}
 
-	opts := &QueryOptions{Namespace: splitDefaultNamespace}
+	opts := &QueryOptions{Namespace: defaultNamespace}
 
 	if err := agent.UpdateTTLOpts("service:foo", "foo", HealthWarning, opts); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1007,7 +1064,7 @@ func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
 	reg.TTL = "15s"
 	require.NoError(t, agent.CheckRegister(reg))
 
-	opts := &QueryOptions{Namespace: splitDefaultNamespace}
+	opts := &QueryOptions{Namespace: defaultNamespace}
 	checks, err := agent.ChecksWithFilterOpts("Name == foo", opts)
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
@@ -1382,7 +1439,7 @@ func TestAPI_ServiceMaintenanceOpts(t *testing.T) {
 	}
 
 	// Specify namespace in query option
-	opts := &QueryOptions{Namespace: splitDefaultNamespace}
+	opts := &QueryOptions{Namespace: defaultNamespace}
 
 	// Enable maintenance mode
 	if err := agent.EnableServiceMaintenanceOpts("redis", "broken", opts); err != nil {
@@ -1615,7 +1672,10 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		c.Connect = nil // disable connect to prevent CA being bootstrapped
+		// Explicitly disable Connect to prevent CA being bootstrapped
+		c.Connect = map[string]interface{}{
+			"enabled": false,
+		}
 	})
 	defer s.Stop()
 
@@ -1701,7 +1761,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
 
-		opts := &QueryOptions{Namespace: splitDefaultNamespace}
+		opts := &QueryOptions{Namespace: defaultNamespace}
 		state, out, err := agent.AgentHealthServiceByIDOpts(serviceID, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
@@ -1715,7 +1775,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
 
-		opts := &QueryOptions{Namespace: splitDefaultNamespace}
+		opts := &QueryOptions{Namespace: defaultNamespace}
 		state, outs, err := agent.AgentHealthServiceByNameOpts(serviceName, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")

@@ -49,6 +49,8 @@ type cmd struct {
 	bootstrap             bool
 	disableCentralConfig  bool
 	grpcAddr              string
+	grpcCAFile            string
+	grpcCAPath            string
 	envoyVersion          string
 	prometheusBackendPort string
 	prometheusScrapePath  string
@@ -129,6 +131,15 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.grpcAddr, "grpc-addr", os.Getenv(api.GRPCAddrEnvName),
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
+
+	c.flags.StringVar(&c.grpcCAFile, "grpc-ca-file", os.Getenv(api.GRPCCAFileEnvName),
+		"Path to a CA file to use for TLS when communicating with the Consul agent through xDS. This "+
+			"can also be specified via the CONSUL_GRPC_CACERT environment variable.")
+
+	c.flags.StringVar(&c.grpcCAPath, "grpc-ca-path", os.Getenv(api.GRPCCAPathEnvName),
+		"Path to a directory of CA certificates to use for TLS when communicating "+
+			"with the Consul agent through xDS. This can also be specified via the "+
+			"CONSUL_GRPC_CAPATH environment variable.")
 
 	// Deprecated, no longer needed, keeping it around to not break back compat
 	c.flags.StringVar(&c.envoyVersion, "envoy-version", defaultEnvoyVersion,
@@ -470,7 +481,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	xdsAddr, err := c.xdsAddress(httpCfg)
+	xdsAddr, err := c.xdsAddress()
 	if err != nil {
 		return nil, err
 	}
@@ -507,8 +518,15 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
+	// Fallback to the old certificate configuration, if none was defined.
+	if xdsAddr.AgentTLS && c.grpcCAFile == "" {
+		c.grpcCAFile = httpCfg.TLSConfig.CAFile
+	}
+	if xdsAddr.AgentTLS && c.grpcCAPath == "" {
+		c.grpcCAPath = httpCfg.TLSConfig.CAPath
+	}
 	var caPEM string
-	pems, err := tlsutil.LoadCAs(httpCfg.TLSConfig.CAFile, httpCfg.TLSConfig.CAPath)
+	pems, err := tlsutil.LoadCAs(c.grpcCAFile, c.grpcCAPath)
 	if err != nil {
 		return nil, err
 	}
@@ -634,12 +652,12 @@ func (c *cmd) generateConfig() ([]byte, error) {
 }
 
 // TODO: make method a function
-func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
+func (c *cmd) xdsAddress() (GRPC, error) {
 	g := GRPC{}
 
 	addr := c.grpcAddr
 	if addr == "" {
-		port, err := c.lookupXDSPort()
+		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		}
@@ -648,18 +666,11 @@ func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 			// enabled.
 			port = 8502
 		}
-		addr = fmt.Sprintf("localhost:%v", port)
+		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
 
 	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
-
-	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
-	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
-	// (CONSUL_HTTP_ADDR) is https://
-	switch {
-	case strings.HasPrefix(strings.ToLower(addr), "https://"):
-		g.AgentTLS = true
-	case httpCfg.Scheme == "https":
+	if strings.HasPrefix(strings.ToLower(addr), "https://") {
 		g.AgentTLS = true
 	}
 
@@ -697,39 +708,48 @@ func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 	return g, nil
 }
 
-func (c *cmd) lookupXDSPort() (int, error) {
+func (c *cmd) lookupXDSPort() (int, string, error) {
 	self, err := c.client.Agent().Self()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	type response struct {
 		XDS struct {
-			Port int
+			Ports struct {
+				Plaintext int
+				TLS       int
+			}
 		}
 	}
 
 	var resp response
-	if err := mapstructure.Decode(self, &resp); err == nil && resp.XDS.Port != 0 {
-		return resp.XDS.Port, nil
+	if err := mapstructure.Decode(self, &resp); err == nil {
+		if resp.XDS.Ports.TLS > 0 {
+			return resp.XDS.Ports.TLS, "https://", nil
+		}
+		if resp.XDS.Ports.Plaintext > 0 {
+			return resp.XDS.Ports.Plaintext, "http://", nil
+		}
 	}
 
 	// Fallback to old API for the case where a new consul CLI is being used with
 	// an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
-		return 0, fmt.Errorf("unexpected agent response: no debug config")
+		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
 	}
+	// TODO what does this mean? What did the old API look like? How does this affect compatibility?
 	port, ok := cfg["GRPCPort"]
 	if !ok {
-		return 0, fmt.Errorf("agent does not have grpc port enabled")
+		return 0, "", fmt.Errorf("agent does not have grpc port enabled")
 	}
 	portN, ok := port.(float64)
 	if !ok {
-		return 0, fmt.Errorf("invalid grpc port in agent response")
+		return 0, "", fmt.Errorf("invalid grpc port in agent response")
 	}
 
-	return int(portN), nil
+	return int(portN), "", nil
 }
 
 func (c *cmd) Synopsis() string {

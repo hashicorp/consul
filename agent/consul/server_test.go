@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -18,14 +19,18 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/hcp"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -218,36 +223,61 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var dir string
 	var srv *Server
 
+	var config *Config
+	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		var config *Config
 		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		srv, err = newServer(t, config)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
-	if srv.config.GRPCPort > 0 {
+	for _, grpcPort := range []int{srv.config.GRPCPort, srv.config.GRPCTLSPort} {
+		if grpcPort == 0 {
+			continue
+		}
+
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
-		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-
-		ln, err := net.Listen("tcp", externalGRPCAddr)
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
+
+		protocol := grpcmiddleware.ProtocolPlaintext
+		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			protocol = grpcmiddleware.ProtocolTLS
+			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
+			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
+				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
+				cert, _ := srv.config.CAConfig.Config["RootCert"].(string)
+				if key != "" && cert != "" {
+					ca := &structs.CARoot{
+						SigningKey: key,
+						RootCert:   cert,
+					}
+					require.NoError(t, deps.TLSConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, srv.config.Datacenter, ca)))
+					deps.TLSConfigurator.UpdateAutoTLSPeeringServerName(connect.PeeringServerSAN("dc1", connect.TestTrustDomain))
+				}
+			}
+
+		}
+		ln = grpcmiddleware.LabelledListener{Listener: ln, Protocol: protocol}
+
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
 		}()
@@ -278,6 +308,7 @@ func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.C
 	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
 	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	//nolint:staticcheck
 	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	require.NoError(t, err)
 
@@ -300,8 +331,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator)
+	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
 	}
@@ -1787,6 +1818,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -1800,7 +1832,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
+	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+
 	rc := ReloadableConfig{
+		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
@@ -1828,6 +1863,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check RPC client timeout got updated
+	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
 
 	// Check raft config
 	defaults := DefaultConfig()
@@ -2003,4 +2041,28 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
 	// test corollary by transitivity to future-proof against any setup bugs
 	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
+}
+
+func TestServer_hcpManager(t *testing.T) {
+	_, conf1 := testServerConfig(t)
+	conf1.BootstrapExpect = 1
+	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	hcp1 := hcp.NewMockClient(t)
+	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcp.ServerStatus) bool {
+		return status.ID == string(conf1.NodeID)
+	})).Run(func(ctx context.Context, status *hcp.ServerStatus) {
+		require.Equal(t, status.LanAddress, "127.0.0.2")
+	}).Call.Return(nil)
+
+	deps1 := newDefaultDeps(t, conf1)
+	deps1.HCP.Client = hcp1
+	s1, err := newServerWithDeps(t, conf1, deps1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+	require.NotNil(t, s1.hcpManager)
+	waitForLeaderEstablishment(t, s1)
+	hcp1.AssertExpectations(t)
+
 }

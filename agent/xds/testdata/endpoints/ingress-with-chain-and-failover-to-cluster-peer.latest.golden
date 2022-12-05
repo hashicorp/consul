@@ -18,18 +18,6 @@
               },
               "healthStatus": "HEALTHY",
               "loadBalancingWeight": 1
-            },
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "10.40.1.2",
-                    "portValue": 8080
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 1
             }
           ]
         }

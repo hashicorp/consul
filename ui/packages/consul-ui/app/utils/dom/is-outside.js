@@ -1,4 +1,4 @@
-export default function(el, target, doc = document) {
+export default function (el, target, doc = document) {
   if (el) {
     // TODO: Potentially type check el and target
     // look to see what .contains does when it gets an unexpected type

@@ -2,31 +2,27 @@ const read = require('fs').readFileSync;
 const exec = require('child_process').execSync;
 
 // See tests ../node-tests/config/utils.js
-const repositoryYear = function(date = exec('git show -s --format=%ci HEAD')) {
-  return date
-    .toString()
-    .trim()
-    .split('-')
-    .shift();
+const repositoryYear = function (date = exec('git show -s --format=%ci HEAD')) {
+  return date.toString().trim().split('-').shift();
 };
-const repositorySHA = function(sha = exec('git rev-parse --short HEAD')) {
+const repositorySHA = function (sha = exec('git rev-parse --short HEAD')) {
   return sha.toString().trim();
 };
-const binaryVersion = function(repositoryRoot) {
-  return function(versionFileContents = read(`${repositoryRoot}/version/version.go`)) {
+const binaryVersion = function (repositoryRoot) {
+  return function (versionFileContents = read(`${repositoryRoot}/version/version.go`)) {
     // see /scripts/dist.sh:8
     return versionFileContents
       .toString()
       .split('\n')
-      .find(function(item, i, arr) {
+      .find(function (item, i, arr) {
         return item.indexOf('Version =') !== -1;
       })
       .trim()
       .split('"')[1];
   };
 };
-const env = function($) {
-  return function(flag, fallback) {
+const env = function ($) {
+  return function (flag, fallback) {
     // a fallback value MUST be set
     if (typeof fallback === 'undefined') {
       throw new Error(`Please provide a fallback value for $${flag}`);

@@ -1,8 +1,8 @@
 import { get, set } from '@ember/object';
 import ObjectProxy from '@ember/object/proxy';
-export default function(items, item, prop, value) {
+export default function (items, item, prop, value) {
   value = typeof value === 'undefined' ? get(item, prop) : value;
-  const pos = items.findIndex(function(item) {
+  const pos = items.findIndex(function (item) {
     return get(item, prop) === value;
   });
   if (pos !== -1) {

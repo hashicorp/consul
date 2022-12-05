@@ -1,5 +1,5 @@
-export default function(clickable, is) {
-  return function(obj) {
+export default function (clickable, is) {
+  return function (obj) {
     return {
       ...obj,
       ...{

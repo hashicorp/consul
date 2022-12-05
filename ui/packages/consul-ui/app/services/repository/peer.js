@@ -1,13 +1,54 @@
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
+import { inject as service } from '@ember/service';
 
+function normalizePeerPayload(peerPayload, dc, partition) {
+  const {
+    StreamStatus: { LastHeartbeat, LastReceive, LastSend, ImportedServices, ExportedServices },
+  } = peerPayload;
+
+  return {
+    ...peerPayload,
+    LastHeartbeat,
+    LastReceive,
+    LastSend,
+    ImportedServices,
+    ExportedServices,
+    Datacenter: dc,
+    Partition: partition,
+  };
+}
 export default class PeerService extends RepositoryService {
+  @service store;
+
   getModelName() {
     return 'peer';
   }
 
-  @dataSource('/:partition/:ns/:dc/peering/token-for/:name')
-  async fetchToken({ dc, ns, partition, name }, configuration, request) {
+  @dataSource('/:partition/:ns/:ds/exported-services/:name')
+  async fetchExportedServices({ dc, ns, partition, name }, configuration, request) {
+    return (
+      await request`
+      GET /v1/internal/ui/exported-services
+
+      ${{
+        peer: name,
+      }}
+    `
+    )((headers, body, cache) => {
+      const serviceSerializer = this.store.serializerFor('service');
+
+      return this.store.push(
+        serviceSerializer.createJSONApiDocumentFromServicesPayload(headers, body, dc)
+      );
+    });
+  }
+
+  @dataSource('/:partition/:ns/:dc/peering/token-for/:name/:externalAddresses')
+  async fetchToken({ dc, ns, partition, name, externalAddresses }, configuration, request) {
+    const ServerExternalAddresses =
+      externalAddresses?.length > 0 ? externalAddresses.split(',') : [];
+
     return (
       await request`
       POST /v1/peering/token
@@ -15,6 +56,7 @@ export default class PeerService extends RepositoryService {
       ${{
         PeerName: name,
         Partition: partition || undefined,
+        ServerExternalAddresses,
       }}
     `
     )((headers, body, cache) => body);
@@ -37,14 +79,10 @@ export default class PeerService extends RepositoryService {
           interval: 10000,
           uri: uri,
         },
-        body: body.map(item => {
+        body: body.map((item) => {
           return cache(
-            {
-              ...item,
-              Datacenter: dc,
-              Partition: partition,
-            },
-            uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+            normalizePeerPayload(item, dc, partition),
+            (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
           );
         }),
       };
@@ -61,7 +99,7 @@ export default class PeerService extends RepositoryService {
         Namespace: '',
         Partition: partition,
       });
-      item.meta = {cacheControl: 'no-store'};
+      item.meta = { cacheControl: 'no-store' };
       return item;
     }
     return (
@@ -73,6 +111,22 @@ export default class PeerService extends RepositoryService {
       }}
     `
     )((headers, body, cache) => {
+      // we can't easily use fragments as we are working around the serializer
+      // layer
+      const { StreamStatus } = body;
+
+      if (StreamStatus) {
+        if (StreamStatus.LastHeartbeat) {
+          StreamStatus.LastHeartbeat = new Date(StreamStatus.LastHeartbeat);
+        }
+        if (StreamStatus.LastReceive) {
+          StreamStatus.LastReceive = new Date(StreamStatus.LastReceive);
+        }
+        if (StreamStatus.LastSend) {
+          StreamStatus.LastSend = new Date(StreamStatus.LastSend);
+        }
+      }
+
       return {
         meta: {
           version: 2,
@@ -80,12 +134,8 @@ export default class PeerService extends RepositoryService {
           uri: uri,
         },
         body: cache(
-          {
-            ...body,
-            Datacenter: dc,
-            Partition: partition,
-          },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
+          normalizePeerPayload(body, dc, partition),
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
         ),
       };
     });
@@ -117,7 +167,7 @@ export default class PeerService extends RepositoryService {
             ...item,
             State: 'ESTABLISHING',
           },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
         ),
       };
     });
@@ -145,7 +195,7 @@ export default class PeerService extends RepositoryService {
             ...item,
             State: 'DELETING',
           },
-          uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          (uri) => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
         ),
       };
     });

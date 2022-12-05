@@ -1,4 +1,4 @@
-```release-note:bugfix
+```release-note:bug
 ui: Don't offer to save an intention with a source/destinatiojn wildcard
 partition
 ```

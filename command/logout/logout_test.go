@@ -225,9 +225,6 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
-	// go to the trouble of creating a login token
-	// require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte(acl.TestKubernetesJWT_B), 0600))
-
 	// spin up a fake api server
 	testSrv := kubeauth.StartTestAPIServer(t)
 	defer testSrv.Stop()

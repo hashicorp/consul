@@ -9,9 +9,8 @@ module.exports = {
 
   locals(options) {
     // Return custom template variables here.
-    return {
-    };
-  }
+    return {};
+  },
 
   // afterInstall(options) {
   //   // Perform extra work here.

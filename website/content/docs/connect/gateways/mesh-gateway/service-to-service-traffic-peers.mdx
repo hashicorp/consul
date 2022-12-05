@@ -1,27 +1,26 @@
 ---
 layout: docs
-page_title: Service-to-service Traffic Across Peered Clusters
+page_title: Enabling Service-to-service Traffic Across Peered Clusters
 description: >-
-  This topic describes how to configure mesh gateways to route a service's data to upstreams
-  in clusters that have a peering connection.
+  Mesh gateways are specialized proxies that route data between services that cannot communicate directly. Learn how to enable service-to-service traffic across clusters in different datacenters or admin partitions that have an established peering connection.
 ---
 
-# Service-to-service Traffic Across Peered Clusters
+# Enabling Service-to-service Traffic Across Peered Clusters
 
-~> **Cluster peering is currently in beta**: Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.
+Mesh gateways are required for you to route service mesh traffic between peered Consul clusters. Clusters can reside in different clouds or runtime environments where general interconnectivity between all services in all clusters is not feasible.
 
-Mesh gateways are required for you to route service mesh traffic between different Consul clusters. Clusters can reside in different clouds or runtime environments where general interconnectivity between all services in all clusters is not feasible.
+At a minimum, a peered cluster exporting a service must have a mesh gateway registered.
+For Enterprise, this mesh gateway must also be registered in the same partition as the exported service(s).
+To use the `local` mesh gateway mode, there must also be a mesh gateway regsitered in the importing cluster.
 
-Unlike mesh gateways for datacenters and partitions, mesh gateways for cluster peering decrypt data to HTTP services within the mTLS session. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
+Unlike mesh gateways for WAN-federated datacenters and partitions, mesh gateways between peers terminate mTLS sessions to decrypt data to HTTP services and then re-encrypt traffic to send to services. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
 
 ## Prerequisites
 
 To configure mesh gateways for cluster peering, make sure your Consul environment meets the following requirements:
 
-- Consul version 1.13.0 or newer.
+- Consul version 1.14.0 or newer.
 - A local Consul agent is required to manage mesh gateway configuration.
-- [Enable Consul service mesh](/docs/agent/config/config-files#connect-parameters) in all clusters.
-- [Enable `peering`](/docs/agent/config/config-files) on all Consul servers.
 - Use [Envoy proxies](/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
 
 ## Configuration
@@ -48,8 +47,14 @@ Alternatively, you can also use the CLI to spin up and register a gateway in Con
 
 ### ACL configuration
 
-- If ACLs are enabled, you must add a token granting `service:write` for the gateway's service name and `service:read` for all services in the Enterprise admin partition or OSS datacenter to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services.
+If ACLs are enabled, you must add a token granting `service:write` for the gateway's service name and `service:read` for all services in the Enterprise admin partition or OSS datacenter to the gateway's service definition. 
+These permissions authorize the token to route communications for other Consul service mesh services.
+
+You must also grant `mesh:write` to mesh gateways routing peering traffic in the data plane.
+This permission allows a leaf certificate to be issued for mesh gateways to terminate TLS sessions for HTTP requests.
 
 ### Modes
 
-Modes are not configurable for mesh gateways that connect peered clusters. By default, all proxies connecting to peered clusters use mesh gateways in [remote mode](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#remote).
+Modes are configurable as either `remote` or `local` for mesh gateways that connect peered clusters. 
+The `none` setting is invalid for mesh gateways in peered clusters and will be ignored by the gateway.
+By default, all proxies connecting to peered clusters use mesh gateways in [remote mode](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote).

@@ -1,22 +1,18 @@
 ---
 layout: docs
-page_title: Consul Service Mesh on Kubernetes
+page_title: How does Consul Service Mesh Work on Kubernetes?
 description: >-
-  Consul Service Mesh is a feature built into to Consul that enables automatic
-  service-to-service authorization and connection encryption across your Consul
-  services. Consul Service Mesh can be used with Kubernetes to secure pod communication with
-  other services.
+  An injection annotation allows Consul to automatically deploy sidecar proxies on Kubernetes pods, enabling Consul's service mesh for containers running on k8s. Learn how to configure sidecars, enable services with multiple ports, change default injection settings.
 ---
 
-# Consul Service Mesh on Kubernetes
+# How does Consul Service Mesh Work on Kubernetes?
 
 [Consul Service Mesh](/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
 your Consul services. Consul Service Mesh can be used with Kubernetes to secure pod
-communication with other pods and external Kubernetes services. Consul Connect is used interchangeably with the name 
-Consul Service Mesh and is what will be used to refer to for Service Mesh functionality within Consul. 
+communication with other pods and external Kubernetes services. _Consul Connect_ refers to the component in Consul that enables service mesh functionality. We sometimes use Connect to mean Consul service mesh throughout the documentation.
 
-The Connect sidecar running Envoy can be automatically injected into pods in
+Consul can automatically inject the sidecar running Envoy into pods in
 your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
@@ -25,32 +21,11 @@ automatically installed and configured using the
 
 ## Usage
 
-When the
-[Connect injector is installed](/docs/k8s/connect#installation-and-configuration),
-the Connect sidecar can be automatically added to all pods. This sidecar can both
-accept and establish connections using Connect, enabling the pod to communicate
-to clients and dependencies exclusively over authorized and encrypted
-connections.
+-> **Important:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, a Kubernetes
+service is required to run services on the Consul service mesh.
 
--> **Note:** The examples in this section are valid and use
-publicly available images. If you've installed the Connect injector, feel free
-to run the examples in this section to try Connect with Kubernetes.
-Please note the documentation below this section on how to properly install
-and configure the Connect injector.
+Installing Consul on Kubernetes with [`connect-inject` enabled](/docs/k8s/connect#installation-and-configuration) adds a sidecar to all pods. By default, it enables service mesh functionality with Consul Dataplane by injecting an Envoy proxy. You can also configure Consul to inject a client agent sidecar to connect to your service mesh. Refer to [Simplified Service Mesh with Consul Dataplane](/docs/connect/dataplane) for more information.
 
-### Accepting Inbound Connections
-
-An example Deployment is shown below with Connect enabled to accept inbound
-connections. Notice that the Deployment would still be fully functional without
-Connect. Minimal to zero modifications are required to enable Connect in Kubernetes.
-Notice also that even though we're using a Deployment here, the same configuration
-would work on a Pod, a StatefulSet, or a DaemonSet.
-
-This Deployment specification starts a server that responds to any
-HTTP request with the static text "hello world".
-
--> **Note:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, having a Kubernetes
-service is **required** to run services on the Consul Service Mesh.
 
 ```yaml
 apiVersion: v1
@@ -273,6 +248,27 @@ spec:
 `web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
 `9090` and will also select the same pods.
 
+~> Kubernetes 1.24+ only
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web
+  annotations:
+    kubernetes.io/service-account.name: web
+  type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-admin
+  annotations:
+    kubernetes.io/service-account.name: web-admin
+  type: kubernetes.io/service-account-token
+```
+
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
 consul.hashicorp.com/connect-inject: true
@@ -355,6 +351,7 @@ The way this works is that a Consul service instance is being registered per por
 services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
 the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
 
+
 #### Caveats for Multi-port Pods
 * Transparent proxy is not supported for multi-port Pods.
 * Metrics and metrics merging is not supported for multi-port Pods.
@@ -384,9 +381,6 @@ upgrade the installation using `helm upgrade` for existing installs or
 
 ```yaml
 connectInject:
-  enabled: true
-
-controller:
   enabled: true
 ```
 

@@ -9,11 +9,9 @@ export default class HttpService extends Service {
   source(src, configuration) {
     const route = match(src);
     let find;
-    this.client.request(
-      request => {
-        find = route.cb(route.params, getOwner(this), request);
-      }
-    );
+    this.client.request((request) => {
+      find = route.cb(route.params, getOwner(this), request);
+    });
     return this.type.source(find, configuration);
   }
 }
