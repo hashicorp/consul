@@ -4615,7 +4615,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
-			rt.RequestLimitsMode = "permissive"
+			rt.RequestLimitsMode = "disabled"
 			rt.RequestLimitsReadRate = -1
 			rt.RequestLimitsWriteRate = -1
 			rt.SegmentLimit = 64
