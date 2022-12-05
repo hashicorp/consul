@@ -29,6 +29,8 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/rate/multilimiter"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -1854,6 +1856,11 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 		// Leave other raft fields default
 	}
+
+	mockHandler := consulrate.NewMockRequestLimitsHandler(t)
+	mockHandler.On("UpdateConfig", mock.Anything).Return(func(cfg consulrate.HandlerConfig) {})
+
+	s.incomingRPCLimiter = mockHandler
 	require.NoError(t, s.ReloadConfig(rc))
 
 	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -1870,8 +1877,18 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
 
-	// TODO - NET-1379 Check the incoming RPC rate limiter got updated
-	require.False(t, true)
+	// Check the incoming RPC rate limiter got updated
+	mockHandler.AssertCalled(t, "UpdateConfig", consulrate.HandlerConfig{
+		GlobalMode: rc.RequestLimitsMode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimitsReadRate,
+			Burst: int(rc.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimitsWriteRate,
+			Burst: int(rc.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
+		},
+	})
 
 	// Check RPC client timeout got updated
 	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())

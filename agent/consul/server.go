@@ -282,7 +282,7 @@ type Server struct {
 	rpcServer   *rpc.Server
 
 	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
-	incomingRPCLimiter *rpcRate.Handler
+	incomingRPCLimiter rpcRate.RequestLimitsHandler
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -473,18 +473,20 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	})
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
-	s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
-		Config:     multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
-		GlobalMode: rpcRate.Mode(config.RequestLimitsMode),
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimitsReadRate,
-			Burst: int(config.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimitsWriteRate,
-			Burst: int(config.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
-		},
-	}, s)
+	if s.incomingRPCLimiter == nil {
+		s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
+			Config:     multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
+			GlobalMode: rpcRate.Mode(config.RequestLimitsMode),
+			GlobalReadConfig: multilimiter.LimiterConfig{
+				Rate:  config.RequestLimitsReadRate,
+				Burst: int(config.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
+			},
+			GlobalWriteConfig: multilimiter.LimiterConfig{
+				Rate:  config.RequestLimitsWriteRate,
+				Burst: int(config.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
+			},
+		}, s)
+	}
 	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder

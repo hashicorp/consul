@@ -112,6 +112,13 @@ type Operation struct {
 	Type OperationType
 }
 
+//go:generate mockery --name RequestLimitsHandler --inpackage --filename mock_RequestLimitsHandler_test.go
+type RequestLimitsHandler interface {
+	Run(ctx context.Context)
+	Allow(op Operation) error
+	UpdateConfig(cfg HandlerConfig)
+}
+
 // Handler enforces rate limits for incoming RPCs.
 type Handler struct {
 	cfg      *atomic.Pointer[HandlerConfig]
