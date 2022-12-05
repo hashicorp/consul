@@ -26,10 +26,10 @@ The most significant differences between traditional deployments and Consul Data
 As a result, small deployments require fewer resources overall. For deployments that are especially large or expected to experience high levels of churn, consider the following impacts to your network's performance:
 
 1. In our internal tests, which used 5000 proxies and services flapping every 2 seconds, additional CPU utilization remained under 10% on the control plane.
-2. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
-3. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
-4. To avoid generating significant load on an individual server, proxy configuration is load balanced proactively.
-5. The frequency of the orchestrator's liveness and readiness probes determine how quickly Consul's control plane can become aware of failures. There is no impact on service mesh applications, however, as Envoy proxies have a passive ability to detect endpoint failure and steer traffic to healthy instances.
+1. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
+1. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
+1. To avoid generating significant load on an individual server, proxy configuration is load balanced proactively.
+1. The frequency of the orchestrator's liveness and readiness probes determine how quickly Consul's control plane can become aware of failures. There is no impact on service mesh applications, however, as Envoy proxies have a passive ability to detect endpoint failure and steer traffic to healthy instances.
 
 ## Benefits
 
