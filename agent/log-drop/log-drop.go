@@ -2,7 +2,6 @@ package log_drop
 
 import (
 	"context"
-	"github.com/armon/go-metrics"
 )
 
 type Level int
@@ -15,14 +14,12 @@ const (
 	ERROR
 )
 
-const logCHDepth = 100
-
 //go:generate mockery --name Logger --inpackage
 type Logger interface {
 	Info(string, ...interface{})
 }
 
-type log struct {
+type Log struct {
 	s string
 	i []interface{}
 	l Level
@@ -30,19 +27,20 @@ type log struct {
 
 type logDrop struct {
 	logger Logger
-	logCH  chan log
+	logCH  chan Log
 	name   string
+	dropFn func(l Log)
 }
 
 func (r *logDrop) Info(s string, i ...interface{}) {
-	r.pushLog(log{l: INFO, s: s, i: i})
+	r.pushLog(Log{l: INFO, s: s, i: i})
 }
 
-func (r *logDrop) pushLog(l log) {
+func (r *logDrop) pushLog(l Log) {
 	select {
 	case r.logCH <- l:
 	default:
-		metrics.IncrCounter([]string{r.name, "log-dropped"}, 1)
+		r.dropFn(l)
 	}
 }
 
@@ -60,11 +58,12 @@ func (r *logDrop) logConsumer(ctx context.Context) {
 	}
 }
 
-func NewLogDrop(ctx context.Context, name string, logger Logger) Logger {
+func NewLogDrop(ctx context.Context, name string, depth int, logger Logger, dropFn func(l Log)) Logger {
 	r := &logDrop{
 		logger: logger,
-		logCH:  make(chan log, logCHDepth),
+		logCH:  make(chan Log, depth),
 		name:   name,
+		dropFn: dropFn,
 	}
 	go r.logConsumer(ctx)
 	return r
