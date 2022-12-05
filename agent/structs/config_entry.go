@@ -33,6 +33,7 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	APIGateway         string = "api-gateway"
 	InlineCertificate  string = "inline-certificate"
 
 	ProxyConfigGlobal string = "global"
@@ -54,6 +55,7 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	APIGateway,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -632,6 +634,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

@@ -14,6 +14,7 @@ enum Kind {
   KindServiceIntentions = 4;
   KindServiceDefaults = 5;
   KindInlineCertificate = 6;
+  KindAPIGateway = 7;
 }
 
 message ConfigEntry {
@@ -476,6 +477,18 @@ enum MeshGatewayMode {
   MeshGatewayModeLocal = 2;
   MeshGatewayModeRemote = 3;
 }
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
+message APIGatewayConfig {
+}
+
+
+
 
 // mog annotation:
 //

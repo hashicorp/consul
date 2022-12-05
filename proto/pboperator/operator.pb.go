@@ -67,6 +67,7 @@ func (x *TransferLeaderRequest) GetID() string {
 	return ""
 }
 
+//
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/api.TransferLeaderResponse

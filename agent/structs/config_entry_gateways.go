@@ -679,3 +679,56 @@ func (g *GatewayService) Clone() *GatewayService {
 		ServiceKind:  g.ServiceKind,
 	}
 }
+
+// APIGatewayConfigEntry stub
+type APIGatewayConfigEntry struct {
+	Name string
+	Kind string
+	Meta map[string]string `json:",omitempty"`
+}
+
+func (e *APIGatewayConfigEntry) GetKind() string {
+	return APIGateway
+}
+
+func (e *APIGatewayConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+	return e.Name
+}
+
+func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
+func (e *APIGatewayConfigEntry) Normalize() error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) Validate() error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) Warnings() []string {
+	return []string{}
+}

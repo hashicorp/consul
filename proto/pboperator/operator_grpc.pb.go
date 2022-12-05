@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OperatorServiceClient interface {
-	// Transfer raft leadership to another node
+	//Transfer raft leadership to another node
 	TransferLeader(ctx context.Context, in *TransferLeaderRequest, opts ...grpc.CallOption) (*TransferLeaderResponse, error)
 }
 
@@ -47,7 +47,7 @@ func (c *operatorServiceClient) TransferLeader(ctx context.Context, in *Transfer
 // All implementations should embed UnimplementedOperatorServiceServer
 // for forward compatibility
 type OperatorServiceServer interface {
-	// Transfer raft leadership to another node
+	//Transfer raft leadership to another node
 	TransferLeader(context.Context, *TransferLeaderRequest) (*TransferLeaderResponse, error)
 }
 

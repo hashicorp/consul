@@ -4,6 +4,16 @@ package pbconfigentry
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func APIGatewayConfigToStructs(s *APIGatewayConfig, t *structs.APIGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+}
+func APIGatewayConfigFromStructs(t *structs.APIGatewayConfigEntry, s *APIGatewayConfig) {
+	if s == nil {
+		return
+	}
+}
 func CookieConfigToStructs(s *CookieConfig, t *structs.CookieConfig) {
 	if s == nil {
 		return

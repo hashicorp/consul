@@ -213,3 +213,75 @@ func (g *TerminatingGatewayConfigEntry) GetNamespace() string       { return g.N
 func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
+
+// APIGatewayConfigEntry -- TODO stub
+type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This should be set to api.APIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated api gateway
+	// service. This should match the name provided in the service definition.
+	Name string
+
+	// Services is a list of service names represented by the api gateway.
+	Services []LinkedService `json:",omitempty"`
+
+	Meta map[string]string `json:",omitempty"`
+
+	// CreateIndex is the Raft index this entry was created at. This is a
+	// read-only field.
+	CreateIndex uint64
+
+	// ModifyIndex is used for the Check-And-Set operations and can also be fed
+	// back into the WaitIndex of the QueryOptions in order to perform blocking
+	// queries.
+	ModifyIndex uint64
+
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
+}
+
+func (a *APIGatewayConfigEntry) GetKind() string {
+	return APIGateway
+}
+
+func (a *APIGatewayConfigEntry) GetName() string {
+	if a != nil {
+		return ""
+	}
+	return a.Name
+}
+
+func (a *APIGatewayConfigEntry) GetPartition() string {
+	if a != nil {
+		return ""
+	}
+	return a.Partition
+}
+
+func (a *APIGatewayConfigEntry) GetNamespace() string {
+	if a != nil {
+		return ""
+	}
+	return a.GetNamespace()
+}
+
+func (a *APIGatewayConfigEntry) GetMeta() map[string]string {
+	if a != nil {
+		return nil
+	}
+	return a.GetMeta()
+}
+
+func (a *APIGatewayConfigEntry) GetCreateIndex() uint64 {
+	return a.CreateIndex
+}
+
+func (a *APIGatewayConfigEntry) GetModifyIndex() uint64 {
+	return a.ModifyIndex
+}
