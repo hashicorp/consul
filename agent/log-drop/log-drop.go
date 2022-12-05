@@ -5,6 +5,16 @@ import (
 	"github.com/armon/go-metrics"
 )
 
+type Level int
+
+const (
+	TRACE Level = iota
+	DEBUG
+	INFO
+	WARN
+	ERROR
+)
+
 const logCHDepth = 100
 
 //go:generate mockery --name Logger --inpackage
@@ -15,6 +25,7 @@ type Logger interface {
 type log struct {
 	s string
 	i []interface{}
+	l Level
 }
 
 type logDrop struct {
@@ -24,7 +35,10 @@ type logDrop struct {
 }
 
 func (r *logDrop) Info(s string, i ...interface{}) {
-	l := log{s: s, i: i}
+	r.pushLog(log{l: INFO, s: s, i: i})
+}
+
+func (r *logDrop) pushLog(l log) {
 	select {
 	case r.logCH <- l:
 	default:
@@ -36,7 +50,10 @@ func (r *logDrop) logConsumer(ctx context.Context) {
 	for {
 		select {
 		case l := <-r.logCH:
-			r.logger.Info(l.s, l.i)
+			switch l.l {
+			case INFO:
+				r.logger.Info(l.s, l.i)
+			}
 		case <-ctx.Done():
 			return
 		}

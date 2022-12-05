@@ -2,6 +2,7 @@ package log_drop
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -19,13 +20,13 @@ func TestNewLogDrop(t *testing.T) {
 
 func TestLogDroppedWhenChannelFilled(t *testing.T) {
 	mockLogger := NewMockLogger(t)
-	//mockLogger.On("Info", "test", mock.Anything).Return()
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	time.Sleep(1 * time.Second)
+
 	ld := NewLogDrop(ctx, "test", mockLogger)
 	cancelFunc()
+	time.Sleep(1 * time.Second)
 	for i := 0; i < logCHDepth+1; i++ {
 		ld.Info("test", "test", "hello")
 	}
-	mockLogger.AssertNumberOfCalls(t, "Info", 0)
+	mockLogger.AssertNotCalled(t, "Info", mock.Anything)
 }
