@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
@@ -903,7 +904,6 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 }
 
 func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
-
 	SkipIfVaultNotPresent(t)
 
 	provider, _ := testVaultProviderWithConfig(t, true, nil)
@@ -922,6 +922,76 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	require.Equal(t, new, newActive)
 	require.NotEqual(t, orig, new)
+}
+
+func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	// Primary DC will be a consul provider.
+	conf := testConsulCAConfig()
+	delegate := newMockDelegate(t, conf)
+	primaryProvider := TestConsulProvider(t, delegate)
+	require.NoError(t, primaryProvider.Configure(testProviderConfig(conf)))
+	_, err := primaryProvider.GenerateRoot()
+	require.NoError(t, err)
+
+	// Ensure that we don't configure vault to try and mint leafs that
+	// outlive their CA during the test (which hard fails in vault).
+	intermediateCertTTL := getIntermediateCertTTL(t, conf)
+	leafCertTTL := intermediateCertTTL - 4*time.Hour
+
+	provider, _ := testVaultProviderWithConfig(t, false, map[string]any{
+		"LeafCertTTL": []uint8(leafCertTTL.String()),
+	})
+
+	var origIntermediate string
+	testutil.RunStep(t, "initialize secondary provider", func(t *testing.T) {
+		// Get the intermediate CSR from provider.
+		csrPEM, issuerID, err := provider.GenerateIntermediateCSR()
+		require.NoError(t, err)
+		csr, err := connect.ParseCSR(csrPEM)
+		require.NoError(t, err)
+
+		// Sign the CSR with primaryProvider.
+		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
+		require.NoError(t, err)
+		root, err := primaryProvider.GenerateRoot()
+		require.NoError(t, err)
+		rootPEM := root.PEM
+
+		// Give the new intermediate to provider to use.
+		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
+
+		origIntermediate, err = provider.ActiveIntermediate()
+		require.NoError(t, err)
+	})
+
+	testutil.RunStep(t, "renew secondary provider", func(t *testing.T) {
+		// Get the intermediate CSR from provider.
+		csrPEM, issuerID, err := provider.GenerateIntermediateCSR()
+		require.NoError(t, err)
+		csr, err := connect.ParseCSR(csrPEM)
+		require.NoError(t, err)
+
+		// Sign the CSR with primaryProvider.
+		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
+		require.NoError(t, err)
+		root, err := primaryProvider.GenerateRoot()
+		require.NoError(t, err)
+		rootPEM := root.PEM
+
+		// Give the new intermediate to provider to use.
+		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
+
+		// This test was created to ensure that our calls to Vault
+		// returns a new Intermediate certificate and further calls
+		// to ActiveIntermediate return the same new cert.
+		newActiveIntermediate, err := provider.ActiveIntermediate()
+		require.NoError(t, err)
+
+		require.NotEqual(t, origIntermediate, newActiveIntermediate)
+		require.Equal(t, intermediatePEM, newActiveIntermediate)
+	})
 }
 
 func TestVaultCAProvider_VaultManaged(t *testing.T) {
