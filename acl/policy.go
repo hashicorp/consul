@@ -1,15 +1,10 @@
 package acl
 
 import (
-	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/hcl/hcl/ast"
-	hclprinter "github.com/hashicorp/hcl/hcl/printer"
-	"github.com/hashicorp/hcl/hcl/token"
 )
 
 type SyntaxVersion int
@@ -481,57 +476,4 @@ func takesPrecedenceOver(a, b string) bool {
 	}
 
 	return false
-}
-
-func TranslateLegacyRules(policyBytes []byte) ([]byte, error) {
-	parsed, err := hcl.ParseBytes(policyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse rules: %v", err)
-	}
-
-	rewritten := ast.Walk(parsed, func(node ast.Node) (ast.Node, bool) {
-		switch n := node.(type) {
-		case *ast.ObjectItem:
-			if len(n.Keys) < 1 {
-				return node, true
-			}
-
-			txt := n.Keys[0].Token.Text
-			if n.Keys[0].Token.Type == token.STRING {
-				txt, err = strconv.Unquote(txt)
-				if err != nil {
-					return node, true
-				}
-			}
-
-			switch txt {
-			case "policy":
-				n.Keys[0].Token.Text = "policy"
-			case "agent":
-				n.Keys[0].Token.Text = "agent_prefix"
-			case "key":
-				n.Keys[0].Token.Text = "key_prefix"
-			case "node":
-				n.Keys[0].Token.Text = "node_prefix"
-			case "query":
-				n.Keys[0].Token.Text = "query_prefix"
-			case "service":
-				n.Keys[0].Token.Text = "service_prefix"
-			case "session":
-				n.Keys[0].Token.Text = "session_prefix"
-			case "event":
-				n.Keys[0].Token.Text = "event_prefix"
-			}
-		}
-
-		return node, true
-	})
-
-	buffer := new(bytes.Buffer)
-
-	if err := hclprinter.Fprint(buffer, rewritten); err != nil {
-		return nil, fmt.Errorf("Failed to output new rules: %v", err)
-	}
-
-	return buffer.Bytes(), nil
 }

@@ -8,9 +8,7 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
-	aclhelpers "github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
@@ -71,29 +69,6 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
-func (c *cmd) getRules(client *api.Client) (string, error) {
-	if c.fromToken != "" && c.rules != "" {
-		return "", fmt.Errorf("Cannot specify both -rules and -from-token")
-	}
-
-	if c.fromToken != "" {
-		tokenID, err := helpers.LoadDataSource(c.fromToken, c.testStdin)
-		if err != nil {
-			return "", fmt.Errorf("Invalid -from-token value: %v", err)
-		}
-
-		rules, err := aclhelpers.GetRulesFromLegacyToken(client, tokenID, c.tokenIsSecret)
-		if err != nil {
-			return "", err
-		}
-
-		translated, err := acl.TranslateLegacyRules([]byte(rules))
-		return string(translated), err
-	}
-
-	return helpers.LoadDataSource(c.rules, c.testStdin)
-}
-
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -111,7 +86,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	rules, err := c.getRules(client)
+	rules, err := helpers.LoadDataSource(c.rules, c.testStdin)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error loading rules: %v", err))
 		return 1
