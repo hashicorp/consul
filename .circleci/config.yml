@@ -22,6 +22,12 @@ references:
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
+  vault-versions: &supported_vault_versions
+    - &default_vault_version "1.12.2"
+    - "1.11.6"
+    - "1.10.9"
+    - "1.9.10"
+
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
@@ -35,7 +41,6 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.17.12
 
 steps:
@@ -555,7 +560,6 @@ jobs:
       - setup_remote_docker
       - run: make ci.dev-docker
       - run: *notify-slack-failure
-
   nomad-integration-test: &NOMAD_TESTS
     docker:
       - image: docker.mirror.hashicorp.services/cimg/go:1.18
@@ -909,19 +913,26 @@ jobs:
     environment:
       ENVOY_VERSION: "1.22.5"
 
-  # run integration tests for the connect ca providers
-  test-connect-ca-providers:
+  # run integration tests for the connect ca providers with vault
+  vault-integration-test:
     docker:
       - image: *GOLANG_IMAGE
+    parameters:
+      vault-version:
+        type: enum
+        enum: *supported_vault_versions
+        default: *default_vault_version
     environment:
       <<: *ENVIRONMENT
-    steps:
+      VAULT_BINARY_VERSION: << parameters.vault-version >>
+    steps: &VAULT_INTEGRATION_TEST_STEPS
       - run:
           name: Install vault
           command: |
             wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
             sudo unzip -d /usr/local/bin /tmp/vault.zip
             rm -rf /tmp/vault*
+            vault version
       - checkout
       - run: go mod download
       - run:
@@ -1037,7 +1048,6 @@ workflows:
           name: "lint-32bit"
           go-arch: "386"
           <<: *filter-ignore-non-go-branches
-      - test-connect-ca-providers: *filter-ignore-non-go-branches
       - go-test-arm64: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
@@ -1138,6 +1148,11 @@ workflows:
       - envoy-integration-test-1_22_5:
           requires:
             - dev-build
+      - vault-integration-test:
+          matrix:
+            parameters:
+              vault-version: *supported_vault_versions
+          <<: *filter-ignore-non-go-branches
       - compatibility-integration-test:
           requires:
             - dev-build

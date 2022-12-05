@@ -247,11 +247,11 @@ func (m *mockCAProvider) State() (map[string]string, error)     { return nil, ni
 func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
 	return ca.RootResult{PEM: m.rootPEM}, nil
 }
-func (m *mockCAProvider) GenerateIntermediateCSR() (string, error) {
+func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
-	return "", nil
+	return "", "", nil
 }
-func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) error {
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
@@ -1032,9 +1032,14 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	})
 	require.NoError(t, err, "failed to sign intermediate")
 
+	cert := intermediate.Data["certificate"].(string)
+
 	var buf strings.Builder
-	buf.WriteString(ca.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
-	buf.WriteString(ca.EnsureTrailingNewline(rootPEM))
+	buf.WriteString(ca.EnsureTrailingNewline(cert))
+	if !strings.Contains(strings.TrimSpace(cert), strings.TrimSpace(rootPEM)) {
+		// Vault < v1.11 included the root in the output of sign-intermediate.
+		buf.WriteString(ca.EnsureTrailingNewline(rootPEM))
+	}
 
 	_, err = client.Logical().Write(path+"/intermediate/set-signed", map[string]interface{}{
 		"certificate": buf.String(),
