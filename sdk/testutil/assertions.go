@@ -17,3 +17,12 @@ func RequireErrorContains(t testing.TB, err error, expectedErrorMessage string) 
 		t.Fatalf("expected err %v to contain %q", err, expectedErrorMessage)
 	}
 }
+
+// RunStep is a test helper to help you stop a series of subtests from
+// executing after the first one that fails.
+func RunStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
+}

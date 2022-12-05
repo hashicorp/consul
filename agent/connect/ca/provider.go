@@ -179,14 +179,17 @@ type SecondaryProvider interface {
 	//
 	// After the certificate is signed, SecondaryProvider.SetIntermediate will
 	// be called to store the intermediate CA.
-	GenerateIntermediateCSR() (string, error)
+	//
+	// The second return value is an opaque string meant to be passed back to
+	// the subsequent call to SetIntermediate.
+	GenerateIntermediateCSR() (string, string, error)
 
 	// SetIntermediate is called to store a newly signed leaf signing certificate and
 	// the chain of certificates back to the root CA certificate.
 	//
 	// The provider should save the certificates and use them to
 	// Provider.Sign leaf certificates.
-	SetIntermediate(intermediatePEM, rootPEM string) error
+	SetIntermediate(intermediatePEM, rootPEM, opaque string) error
 }
 
 // RootResult is the result returned by PrimaryProvider.GenerateRoot.

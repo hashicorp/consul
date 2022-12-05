@@ -417,7 +417,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 
 	// Get the intermediate CSR from provider2.
-	csrPEM, err := provider2.GenerateIntermediateCSR()
+	csrPEM, opaque, err := provider2.GenerateIntermediateCSR()
 	require.NoError(t, err)
 	csr, err := connect.ParseCSR(csrPEM)
 	require.NoError(t, err)
@@ -430,7 +430,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	rootPEM := root.PEM
 
 	// Give the new intermediate to provider2 to use.
-	require.NoError(t, provider2.SetIntermediate(intermediatePEM, rootPEM))
+	require.NoError(t, provider2.SetIntermediate(intermediatePEM, rootPEM, opaque))
 
 	// Have provider2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
