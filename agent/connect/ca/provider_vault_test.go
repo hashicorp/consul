@@ -947,7 +947,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 	var origIntermediate string
 	testutil.RunStep(t, "initialize secondary provider", func(t *testing.T) {
 		// Get the intermediate CSR from provider.
-		csrPEM, opaque, err := provider.GenerateIntermediateCSR()
+		csrPEM, issuerID, err := provider.GenerateIntermediateCSR()
 		require.NoError(t, err)
 		csr, err := connect.ParseCSR(csrPEM)
 		require.NoError(t, err)
@@ -960,7 +960,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
-		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, opaque))
+		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
 
 		origIntermediate, err = provider.ActiveIntermediate()
 		require.NoError(t, err)
@@ -968,7 +968,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 
 	testutil.RunStep(t, "renew secondary provider", func(t *testing.T) {
 		// Get the intermediate CSR from provider.
-		csrPEM, opaque, err := provider.GenerateIntermediateCSR()
+		csrPEM, issuerID, err := provider.GenerateIntermediateCSR()
 		require.NoError(t, err)
 		csr, err := connect.ParseCSR(csrPEM)
 		require.NoError(t, err)
@@ -981,7 +981,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
-		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, opaque))
+		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
 
 		// This test was created to ensure that our calls to Vault
 		// returns a new Intermediate certificate and further calls
