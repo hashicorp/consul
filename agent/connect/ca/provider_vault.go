@@ -79,6 +79,8 @@ type VaultProvider struct {
 	isConsulMountedIntermediate bool
 }
 
+var _ Provider = (*VaultProvider)(nil)
+
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
 	return &VaultProvider{
 		stopWatcher: func() {},
@@ -365,14 +367,13 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 // GenerateIntermediateCSR creates a private key and generates a CSR
 // for another datacenter's root to sign, overwriting the intermediate backend
 // in the process.
-func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
+func (v *VaultProvider) GenerateIntermediateCSR() (string, string, error) {
 	if v.isPrimary {
-		return "", fmt.Errorf("provider is the root certificate authority, " +
+		return "", "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
 
-	csr, _, err := v.generateIntermediateCSR()
-	return csr, err
+	return v.generateIntermediateCSR()
 }
 
 func (v *VaultProvider) setupIntermediatePKIPath() error {
@@ -486,7 +487,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, string, error) {
 
 // SetIntermediate writes the incoming intermediate and root certificates to the
 // intermediate backend (as a chain).
-func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM, keyId string) error {
 	if v.isPrimary {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
@@ -496,11 +497,19 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return err
 	}
 
-	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+	importResp, err := v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
 		"certificate": intermediatePEM,
 	})
 	if err != nil {
 		return err
+	}
+
+	// Vault 1.11+ will return a non-nil response from intermediate/set-signed
+	if importResp != nil {
+		err := v.setDefaultIntermediateIssuer(importResp, keyId)
+		if err != nil {
+			return fmt.Errorf("failed to update default intermediate issuer: %w", err)
+		}
 	}
 
 	return nil
