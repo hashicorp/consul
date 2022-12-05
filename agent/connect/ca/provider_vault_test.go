@@ -940,7 +940,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 	intermediateCertTTL := getIntermediateCertTTL(t, conf)
 	leafCertTTL := intermediateCertTTL - 4*time.Hour
 
-	provider, _ := testVaultProviderWithConfig(t, false, map[string]any{
+	provider, _ := testVaultProviderWithConfig(t, false, map[string]interface{}{
 		"LeafCertTTL": []uint8(leafCertTTL.String()),
 	})
 
