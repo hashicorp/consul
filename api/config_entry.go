@@ -27,6 +27,8 @@ const (
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
 	APIGateway        string = "api-gateway"
+	TCPRoute          string = "tcp-route"
+	InlineCertificate string = "inline-certificate"
 )
 
 type ConfigEntry interface {
@@ -305,6 +307,10 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ExportedServicesConfigEntry{Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
