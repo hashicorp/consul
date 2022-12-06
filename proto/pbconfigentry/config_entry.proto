@@ -442,13 +442,12 @@ enum ProxyMode {
 }
 
 // mog annotation:
-// 
+//
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
-message InlineCertificateConfig {
-}
+message InlineCertificateConfig {}
 
 // mog annotation:
 //
@@ -456,8 +455,7 @@ message InlineCertificateConfig {
 // output=config_entry.gen.go
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
-message TCPRouteConfig {
-}
+message TCPRouteConfig {}
 
 // mog annotation:
 //
@@ -465,8 +463,7 @@ message TCPRouteConfig {
 // output=config_entry.gen.go
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
-message HTTPRouteConfig {
-}
+message HTTPRouteConfig {}
 
 // mog annotation:
 //
@@ -502,11 +499,7 @@ enum MeshGatewayMode {
 // output=config_entry.gen.go
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
-message APIGatewayConfig {
-}
-
-
-
+message APIGatewayConfig {}
 
 // mog annotation:
 //
