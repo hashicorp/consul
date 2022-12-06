@@ -247,14 +247,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `controller` ((#v-global-secretsbackend-vault-controller))
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes uses on
+        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes CRD creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the controller.
 
           - `secretName` ((#v-global-secretsbackend-vault-controller-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for controller
             webhooks.
 
-        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes uses on
+        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
           Kubernetes CRD creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the controller.
 
@@ -263,14 +263,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
 
-        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes uses on
+        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes pod creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the ConnectInject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
             Connect Inject webhooks.
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes uses on
+        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
           Kubernetes pod creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the ConnectInject.
 
@@ -518,7 +518,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
 
-  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client waits for a response from
+  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from
     the API before cancelling the request.
 
   - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul self-managed cluster.
@@ -662,7 +662,7 @@ Use these links to navigate to a particular top-level stanza.
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    Refer to the [Read/Write Tuning](/consul/docs/install/performance#read-write-tuning)
+    Refer to the [Read/Write Tuning](https://www.consul.io/docs/install/performance#read-write-tuning)
     section of the Server Performance Requirements documentation for considerations
     around choosing a performant storage class.
 
@@ -1563,9 +1563,9 @@ Use these links to navigate to a particular top-level stanza.
   - `disruptionBudget` ((#v-connectinject-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
     for the service mesh sidecar injector.
 
-    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - Enables registering a PodDisruptionBudget for the
-      service mesh sidecar injector. If enabled, it only registers the budget so long as
-      the service mesh is enabled. To disable, set to `false`.
+    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the
+      service mesh sidecar injector. If this is enabled, it will only register the budget so long as
+      the service mesh is enabled.
 
     - `maxUnavailable` ((#v-connectinject-disruptionbudget-maxunavailable)) (`integer: null`) - The maximum number of unavailable pods. By default, this will be
       automatically computed based on the `connectInject.replicas` value to be `(n/2)-1`.
@@ -1578,10 +1578,13 @@ Use these links to navigate to a particular top-level stanza.
 
   - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
 
-    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup uses the consul-cni plugin.
+    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin.
       Requires connectInject.enabled to also be true.
 
     - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
+
+    - `namespace` ((#v-connectinject-cni-namespace)) (`string: null`) - Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources.
+      Ex: "kube-system"
 
     - `cniBinDir` ((#v-connectinject-cni-cnibindir)) (`string: /opt/cni/bin`) - Location on the kubernetes node where the CNI plugin is installed. Shoud be the absolute path and start with a '/'
       Example on GKE:
@@ -2303,9 +2306,9 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
-    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: ""`) - Toleration settings for gateway pods created with the managed gateway class. This
-      should be a multi-line string matching the [Tolerations]
-      (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - This value defines the tolerations that will be assigned to a gateway pod.
+      This should be a multi-line string matching the
+      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
 
     - `serviceType` ((#v-apigateway-managedgatewayclass-servicetype)) (`string: LoadBalancer`) - This value defines the type of service created for gateways (e.g. LoadBalancer, ClusterIP)
 
@@ -2370,8 +2373,8 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
-    - `tolerations` ((#v-apigateway-controller-tolerations)) (`string: null`) - Tolerations settings for the `api-gateway-controller` pod. This should be a multi-line string matching the
-      [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+    - `tolerations` ((#v-apigateway-controller-tolerations)) (`string: null`) - This value defines the tolerations for api-gateway-controller pod, this should be a multi-line string matching the
+      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
 
     - `service` ((#v-apigateway-controller-service)) - Configuration for the Service created for the api-gateway-controller
 

@@ -49,6 +49,8 @@ type ConsulProvider struct {
 	sync.RWMutex
 }
 
+var _ Provider = (*ConsulProvider)(nil)
+
 // NewConsulProvider returns a new ConsulProvider that is ready to be used.
 func NewConsulProvider(delegate ConsulProviderStateDelegate, logger hclog.Logger) *ConsulProvider {
 	return &ConsulProvider{Delegate: delegate, logger: logger}
@@ -205,26 +207,26 @@ func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
 // for another datacenter's root to sign.
-func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
+func (c *ConsulProvider) GenerateIntermediateCSR() (string, string, error) {
 	providerState, err := c.getState()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	if c.isPrimary {
-		return "", fmt.Errorf("provider is the root certificate authority, " +
+		return "", "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
 
 	// Create a new private key and CSR.
 	signer, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	csr, err := connect.CreateCACSR(c.spiffeID, signer)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// Write the new provider state to the store.
@@ -235,15 +237,15 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		ProviderState: &newState,
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return csr, nil
+	return csr, "", nil
 }
 
 // SetIntermediate validates that the given intermediate is for the right private key
 // and writes the given intermediate and root certificates to the state.
-func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) error {
 	providerState, err := c.getState()
 	if err != nil {
 		return err

@@ -87,7 +87,7 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 }
 
 func (s *Server) InPrimaryDatacenter() bool {
-	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
+	return s.config.InPrimaryDatacenter()
 }
 
 func (s *Server) LocalTokensEnabled() bool {
