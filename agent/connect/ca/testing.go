@@ -143,6 +143,12 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 		clientAddr,
 		"-address",
 		clusterAddr,
+		// We pass '-dev-no-store-token' to avoid having multiple vaults oddly
+		// interact and fail like this:
+		//
+		//   Error initializing Dev mode: rename /home/circleci/.vault-token.tmp /home/circleci/.vault-token: no such file or directory
+		//
+		"-dev-no-store-token",
 	}
 
 	cmd := exec.Command(vaultBinaryName, args...)
