@@ -572,8 +572,8 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 		ConsulManaged:    true,
 	})
 
-	newConfig := func(token string, keyType string, keyBits int) map[string]any {
-		return map[string]any{
+	newConfig := func(token string, keyType string, keyBits int) map[string]interface{} {
+		return map[string]interface{}{
 			"Address":             testVault.Addr,
 			"Token":               token,
 			"RootPKIPath":         "pki-root/",
