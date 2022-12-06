@@ -1,5 +1,5 @@
 service {
-  name = "ingress-gateway-client-sampling-100"
+  name = "ingress-gateway-client-100"
   kind = "ingress-gateway"
   proxy {
     config {

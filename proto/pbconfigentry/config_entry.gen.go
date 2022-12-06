@@ -205,12 +205,15 @@ func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigE
 			}
 		}
 	}
-	t.TracingStrategy = s.TracingStrategy
-	t.TracingPercentage = s.TracingPercentage
 	if s.Defaults != nil {
 		var x structs.IngressServiceConfig
 		IngressServiceConfigToStructs(s.Defaults, &x)
 		t.Defaults = &x
+	}
+	if s.Tracing != nil {
+		var x structs.IngressTracingConfig
+		IngressTracingConfigToStructs(s.Tracing, &x)
+		t.Tracing = &x
 	}
 	t.Meta = s.Meta
 }
@@ -233,12 +236,15 @@ func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressG
 			}
 		}
 	}
-	s.TracingStrategy = t.TracingStrategy
-	s.TracingPercentage = t.TracingPercentage
 	if t.Defaults != nil {
 		var x IngressServiceConfig
 		IngressServiceConfigFromStructs(t.Defaults, &x)
 		s.Defaults = &x
+	}
+	if t.Tracing != nil {
+		var x IngressTracingConfig
+		IngressTracingConfigFromStructs(t.Tracing, &x)
+		s.Tracing = &x
 	}
 	s.Meta = t.Meta
 }
@@ -353,6 +359,22 @@ func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *Ingress
 	s.MaxConnections = t.MaxConnections
 	s.MaxPendingRequests = t.MaxPendingRequests
 	s.MaxConcurrentRequests = t.MaxConcurrentRequests
+}
+func IngressTracingConfigToStructs(s *IngressTracingConfig, t *structs.IngressTracingConfig) {
+	if s == nil {
+		return
+	}
+	t.ClientSampling = &s.ClientSampling
+	t.RandomSampling = &s.RandomSampling
+	t.OverallSampling = &s.OverallSampling
+}
+func IngressTracingConfigFromStructs(t *structs.IngressTracingConfig, s *IngressTracingConfig) {
+	if s == nil {
+		return
+	}
+	s.ClientSampling = *t.ClientSampling
+	s.RandomSampling = *t.RandomSampling
+	s.OverallSampling = *t.OverallSampling
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {

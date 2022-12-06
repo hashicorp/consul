@@ -2114,8 +2114,6 @@ type listenerFilterOpts struct {
 	statPrefix           string
 	routePath            string
 	requestTimeoutMs     *int
-	tracingStrategy      string
-	tracingPercentage    float32
 	ingressGateway       bool
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
 	forwardClientDetails bool
@@ -2193,6 +2191,21 @@ func makeTracingFromUserConfig(configJSON string) (*envoy_http_v3.HttpConnection
 	return &t, nil
 }
 
+func makeTracingFromIngressConfig(tracing structs.IngressTracingConfig) *envoy_http_v3.HttpConnectionManager_Tracing {
+	cfg := &envoy_http_v3.HttpConnectionManager_Tracing{}
+
+	if tracing.ClientSampling != nil {
+		cfg.ClientSampling = &envoy_type_v3.Percent{Value: *tracing.ClientSampling}
+	}
+	if tracing.RandomSampling != nil {
+		cfg.RandomSampling = &envoy_type_v3.Percent{Value: *tracing.RandomSampling}
+	}
+	if tracing.OverallSampling != nil {
+		cfg.OverallSampling = &envoy_type_v3.Percent{Value: *tracing.OverallSampling}
+	}
+	return cfg
+}
+
 func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
 	router, err := makeEnvoyHTTPFilter("envoy.filters.http.router", &envoy_http_router_v3.Router{})
 	if err != nil {
@@ -2205,19 +2218,13 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		HttpFilters: []*envoy_http_v3.HttpFilter{
 			router,
 		},
-		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{},
-	}
-
-	// we have to convert here between what the Envoy/go-control-plane types expect (float64)
-	// and what our options type (and thus protobuf-generated code expects, which is float32)
-	tracePercent := &envoy_type_v3.Percent{Value: float64(opts.tracingPercentage)}
-	switch strings.ToLower(opts.tracingStrategy) {
-	case "client_sampling":
-		cfg.Tracing.ClientSampling = tracePercent
-	case "random_sampling":
-		cfg.Tracing.RandomSampling = tracePercent
-	default:
-		cfg.Tracing.RandomSampling = &envoy_type_v3.Percent{Value: 0.0}
+		//Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{},
+		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
+			// Don't trace any requests by default unless the client application
+			// explicitly propagates trace headers that indicate this should be
+			// sampled.
+			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
+		},
 	}
 
 	if opts.tracing != nil {

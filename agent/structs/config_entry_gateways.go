@@ -31,17 +31,11 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
-	// TracingStrategy declares which trace sampling strategy to use on the listener.
-	// The value must be one of the sampling methods supported by Envoy Connection
-	// Manager.
-	TracingStrategy string `alias:"tracing_strategy"`
-
-	// TracingPercentage is a value between 0 and 100 inclusive to determine the
-	// total percentage of incoming requests to sample.
-	TracingPercentage float32 `alias:"tracing_percentage"`
-
 	// Defaults contains default configuration for all upstream service instances
 	Defaults *IngressServiceConfig `json:",omitempty"`
+
+	// Tracing configures the tracing behavior for http listeners.
+	Tracing *IngressTracingConfig `json:",omitempty" alias:"tracing"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -52,6 +46,12 @@ type IngressServiceConfig struct {
 	MaxConnections        uint32
 	MaxPendingRequests    uint32
 	MaxConcurrentRequests uint32
+}
+
+type IngressTracingConfig struct {
+	ClientSampling  *float64 `alias:"client_sampling"`
+	RandomSampling  *float64 `alias:"random_sampling"`
+	OverallSampling *float64 `alias:"overall_sampling"`
 }
 
 type IngressListener struct {
@@ -170,10 +170,6 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 
 	e.Kind = IngressGateway
 	e.EnterpriseMeta.Normalize()
-
-	if e.TracingStrategy == "" {
-		e.TracingStrategy = "random_sampling"
-	}
 
 	for i, listener := range e.Listeners {
 		if listener.Protocol == "" {
@@ -363,14 +359,16 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 	}
 
-	switch e.TracingStrategy {
-	case "random_sampling", "client_sampling":
-	default:
-		return fmt.Errorf("%q is not a valid trace sampling strategy. valid values are %q and %q", e.TracingStrategy, "random_sampling", "client_sampling")
-	}
-
-	if e.TracingPercentage < 0 || e.TracingPercentage > 100 {
-		return fmt.Errorf("trace sampling percentage must be between 0 and 100 inclusive")
+	if e.Tracing != nil {
+		if e.Tracing.ClientSampling != nil && (*e.Tracing.ClientSampling < 0 || *e.Tracing.ClientSampling > 100) {
+			return fmt.Errorf("Tracing.ClientSampling percentage must be between 0.0 and 100.0 inclusive")
+		}
+		if e.Tracing.RandomSampling != nil && (*e.Tracing.RandomSampling < 0 || *e.Tracing.RandomSampling > 100) {
+			return fmt.Errorf("Tracing.RandomSampling percentage must be between 0.0 and 100.0 inclusive")
+		}
+		if e.Tracing.OverallSampling != nil && (*e.Tracing.OverallSampling < 0 || *e.Tracing.OverallSampling > 100) {
+			return fmt.Errorf("Tracing.OverallSampling percentage must be between 0.0 and 100.0 inclusive")
+		}
 	}
 
 	return nil

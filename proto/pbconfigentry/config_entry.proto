@@ -231,8 +231,8 @@ message IngressGateway {
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
   IngressServiceConfig Defaults = 4;
-  string TracingStrategy = 5;
-  float TracingPercentage = 6;
+  IngressTracingConfig Tracing = 5;
+  double TracingPercentage = 6;
 }
 
 // mog annotation:
@@ -244,6 +244,17 @@ message IngressServiceConfig {
   uint32 MaxConnections = 1;
   uint32 MaxPendingRequests = 2;
   uint32 MaxConcurrentRequests = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IngressTracingConfig
+// output=config_entry.gen.go
+// name=Structs
+message IngressTracingConfig {
+  double ClientSampling = 1;
+  double RandomSampling = 2;
+  double OverallSampling = 3;
 }
 
 // mog annotation:

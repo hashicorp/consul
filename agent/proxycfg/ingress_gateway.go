@@ -101,8 +101,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 
 		snap.IngressGateway.GatewayConfigLoaded = true
 		snap.IngressGateway.TLSConfig = gatewayConf.TLS
-		snap.IngressGateway.TracingStrategy = gatewayConf.TracingStrategy
-		snap.IngressGateway.TracingPercentage = gatewayConf.TracingPercentage
+		snap.IngressGateway.Tracing = *gatewayConf.Tracing
 		if gatewayConf.Defaults != nil {
 			snap.IngressGateway.Defaults = *gatewayConf.Defaults
 		}

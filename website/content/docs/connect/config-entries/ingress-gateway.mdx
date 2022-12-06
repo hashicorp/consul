@@ -946,19 +946,43 @@ You can specify the following parameters to configure ingress gateway configurat
       yaml: false,
     },
     {
-      name: "TracingStrategy",
-      type: `string: "random_sampling"`,
+      name: "Tracing",
+      type: 'IngressTracingConfig: <optional>',
       description:
-        'Specifies the request tracing strategy to be used by the underlying http connection manager. Possible values '+
-        'are `random_sampling` or `client_sampling`.'
-    },
-    {
-      name: "TracingPercentage",
-      type: `float: 0`,
-      description:
-        'Target percentage of requests received by the gateway that should be traced. ' + 
-        'When `TracingStrategy` is set to `client_sampling` this percentage applies to requests containing the `x-client-trace-id` header. ' +
-        'With the `random_sampling` tracing strategy this percentage applies to requests that do not contain the `x-client-trace-id` header.'
+        'Specifies the tracing configuration to be used by the underlying http connection manager.',
+      children: [
+        {
+          name: 'client_sampling',
+          type: 'float: 100.0',
+          description: {
+            hcl:
+              "Sets the client_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`client_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+            yaml:
+              "Sets the client_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`client_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+          },
+        },
+        {
+           name: 'random_sampling',
+           type: 'float: 100.0',
+           description: {
+             hcl:
+               "Sets the random_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`random_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+             yaml:
+               "Sets the random_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`random_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+           },
+        },
+        {
+           name: 'overall_sampling',
+           type: 'float: 100.0',
+           description: {
+             hcl:
+               "Sets the overall_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`overall_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+             yaml:
+               "Sets the overall_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`overall_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+           },
+         },
+      ],
+      hcl: false,
     },
     {
       name: 'Meta',

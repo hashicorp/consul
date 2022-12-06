@@ -45,61 +45,85 @@ function assert_trace_count {
 }
 
 @test "proxy admin endpoint is up on :20003" {
-  retry_default curl -f -s localhost:20003/stats -o /dev/null
+  retry_default curl -f -s localhost:20002/stats -o /dev/null
 }
 
 @test "proxy admin endpoint is up on :19000" {
   retry_default curl -f -s localhost:19000/stats -o /dev/null
 }
 
-@test "ingress-gateway-random-sampling-0 should have healthy endpoints for s1" {
+@test "ingress-gateway-all-0 should have healthy endpoints for s1" {
    assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
-@test "ingress-gateway-random-sampling-100 should have healthy endpoints for s1" {
+@test "ingress-gateway-client-0 should have healthy endpoints for s1" {
    assert_upstream_has_endpoints_in_status 127.0.0.1:20001 s1 HEALTHY 1
 }
 
-@test "ingress-gateway-cient-sampling-0 should have healthy endpoints for s1" {
+@test "ingress-gateway-overall-0 should have healthy endpoints for s1" {
    assert_upstream_has_endpoints_in_status 127.0.0.1:20002 s1 HEALTHY 1
 }
 
-@test "ingress-gateway-cient-sampling-100 should have healthy endpoints for s1" {
+@test "ingress-gateway-overall-100 should have healthy endpoints for s1" {
    assert_upstream_has_endpoints_in_status 127.0.0.1:20003 s1 HEALTHY 1
 }
 
-@test "random sampling with 0% should not send traces to zipkin/jaeger" {
+@test "all sampling values set to 0% should not send traces to zipkin/jaeger" {
   assert_trace_count localhost:9990 0
 
   run curl -s -f localhost:9990
   [ "$status" -eq 0 ]
 
   assert_trace_count localhost:9990 0
+
+ # send with trace header, should not create a trace
+  run curl -s -f -H "x-client-trace-id:foo" localhost:9990
+  [ "$status" -eq 0 ]
+
+  assert_trace_count localhost:9990 0
 }
 
-@test "random sampling with 100% should send traces to zipkin/jaeger" {
+@test "client sampling set to 100% should send traces to zipkin/jaeger conditionally" {
   assert_trace_count localhost:9991 0
 
   run curl -s -f localhost:9991
   [ "$status" -eq 0 ]
 
-  retry_long assert_trace_count localhost:9991 1
+  assert_trace_count localhost:9991 0
+
+  # send with trace header, should create a trace
+  run curl -s -f -H "x-client-trace-id:bar" localhost:9991
+  [ "$status" -eq 0 ]
+
+  assert_trace_count localhost:9991 1
 }
 
-@test "client sampling with 0% should send traces to zipkin/jaeger" {
+@test "overall sampling set to 0% should send not traces to zipkin/jaeger" {
   assert_trace_count localhost:9992 0
 
   run curl -s -f localhost:9992
   [ "$status" -eq 0 ]
 
-  retry_long assert_trace_count localhost:9992 1
+  retry_long assert_trace_count localhost:9992 0
+
+  # send with trace header, should create not create a trace
+  run curl -s -f -H "x-client-trace-id:baz" localhost:9992
+  [ "$status" -eq 0 ]
+
+  assert_trace_count localhost:9991 0
 }
 
-@test "client sampling with 100% should send traces to zipkin/jaeger" {
-  assert_trace_count localhost:9993 0
+@test "only overall sampling set to 100% should send not traces to zipkin/jaeger" {
+  assert_trace_count localhost:9992 0
 
   run curl -s -f localhost:9993
   [ "$status" -eq 0 ]
 
-  retry_long assert_trace_count localhost:9993 1
+  retry_long assert_trace_count localhost:9993 0
+
+  # send with trace header, should create not create a trace
+  run curl -s -f -H "x-client-trace-id:baz" localhost:9993
+  [ "$status" -eq 0 ]
+
+  assert_trace_count localhost:9993 0
 }

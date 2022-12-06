@@ -593,6 +593,23 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-with-custom-tracing",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
+					"default", nil, func(entry *structs.IngressGatewayConfigEntry) {
+						clientSampling := float64(10)
+						randomSampling := float64(20)
+						overallSampling := float64(30)
+						entry.Tracing = structs.IngressTracingConfig{
+							ClientSampling:  &clientSampling,
+							RandomSampling:  &randomSampling,
+							OverallSampling: &overallSampling,
+						}
+					}, nil)
+			},
+		},
+
+		{
 			name: "terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)

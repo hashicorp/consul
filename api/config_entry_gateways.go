@@ -18,14 +18,8 @@ type IngressGatewayConfigEntry struct {
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
-	// TracingStrategy declares which trace sampling strategy to use on the listener.
-	// The value must be one of the sampling methods supported by Envoy Connection
-	// Manager.
-	TracingStrategy string `alias:"tracing_strategy"`
-
-	// TracingPercentage is a value between 0 and 100 inclusive to determine the
-	// total percentage of incoming requests to sample.
-	TracingPercentage float32 `alias:"tracing_percentage"`
+	// Tracing defines the tracing behavior for the listener.
+	Tracing string `json:",omitempty" alias:"tracing"`
 
 	// TLS holds the TLS configuration for this gateway.
 	TLS GatewayTLSConfig
@@ -53,6 +47,13 @@ type IngressServiceConfig struct {
 	MaxConnections        *uint32
 	MaxPendingRequests    *uint32
 	MaxConcurrentRequests *uint32
+}
+
+// IngressTracingConfig holds tracing configuration values. They are pointers because 0 is a valid value.
+type IngressTracingConfig struct {
+	ClientSampling  *float64 `alias:"client_sampling"`
+	RandomSampling  *float64 `alias:"random_sampling"`
+	OverallSampling *float64 `alias:"overall_sampling"`
 }
 
 type GatewayTLSConfig struct {

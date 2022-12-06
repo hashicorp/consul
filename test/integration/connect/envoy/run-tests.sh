@@ -803,20 +803,20 @@ function run_container_ingress-gateway-primary {
   common_run_container_gateway ingress-gateway primary
 }
 
-function run_container_ingress-gateway-client-sampling-0 {
-  common_run_container_gateway ingress-gateway-client-sampling-0 primary
+function run_container_ingress-gateway-all-0 {
+  common_run_container_gateway ingress-gateway-all-0 primary
 }
 
-function run_container_ingress-gateway-client-sampling-100 {
-  common_run_container_gateway ingress-gateway-client-sampling-100 primary
+function run_container_ingress-gateway-client-100 {
+  common_run_container_gateway ingress-gateway-client-100 primary
 }
 
-function run_container_ingress-gateway-random-sampling-0 {
-  common_run_container_gateway ingress-gateway-random-sampling-0 primary
+function run_container_ingress-gateway-overall-0 {
+  common_run_container_gateway ingress-gateway-overall-0 primary
 }
 
-function run_container_ingress-gateway-random-sampling-100 {
-  common_run_container_gateway ingress-gateway-random-sampling-100 primary
+function run_container_ingress-gateway-overall-100 {
+  common_run_container_gateway ingress-gateway-overall-100 primary
 }
 
 function run_container_terminating-gateway-primary {
