@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -680,7 +681,8 @@ func (g *GatewayService) Clone() *GatewayService {
 	}
 }
 
-// APIGatewayConfigEntry stub
+// APIGatewayConfigEntry manages the configuration for an API gateway
+// with the given name.
 type APIGatewayConfigEntry struct {
 	Name string
 	Kind string
@@ -730,5 +732,59 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (e *APIGatewayConfigEntry) Warnings() []string {
+	return []string{}
+}
+
+// BoundAPIGatewayConfigEntry manages the configuration for a bound API
+// gateway with the given name.
+type BoundAPIGatewayConfigEntry struct {
+	Name string
+	Kind string
+	Meta map[string]string `json:",omitempty"`
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetKind() string {
+	return APIGateway
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+	return e.Name
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
+func (e *BoundAPIGatewayConfigEntry) Normalize() error {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) Validate() error {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+	return errors.New("only writeable by controller")
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) Warnings() []string {
 	return []string{}
 }
