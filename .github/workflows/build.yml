@@ -96,6 +96,11 @@ jobs:
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
 
       - name: Setup with node and yarn
         uses: actions/setup-node@v3
@@ -185,6 +190,12 @@ jobs:
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+          
       - name: Setup with node and yarn
         uses: actions/setup-node@v3
         with:
