@@ -6313,7 +6313,12 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
+
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
 
 	a := StartTestAgent(t, TestAgent{Overrides: fmt.Sprintf(`
 		connect {
@@ -6326,7 +6331,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 				intermediate_pki_path = "pki-intermediate/"
 			}
 		}
-	`, testVault.Addr, testVault.RootToken)})
+	`, testVault.Addr, vaultToken)})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
