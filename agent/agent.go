@@ -4150,19 +4150,21 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
-		RequestLimitsMode:      newCfg.RequestLimitsMode,
-		RequestLimitsReadRate:  newCfg.RequestLimitsReadRate,
-		RequestLimitsWriteRate: newCfg.RequestLimitsWriteRate,
-		RPCClientTimeout:       newCfg.RPCClientTimeout,
-		RPCRateLimit:           newCfg.RPCRateLimit,
-		RPCMaxBurst:            newCfg.RPCMaxBurst,
-		RPCMaxConnsPerClient:   newCfg.RPCMaxConnsPerClient,
-		ConfigEntryBootstrap:   newCfg.ConfigEntryBootstrap,
-		RaftSnapshotThreshold:  newCfg.RaftSnapshotThreshold,
-		RaftSnapshotInterval:   newCfg.RaftSnapshotInterval,
-		HeartbeatTimeout:       newCfg.ConsulRaftHeartbeatTimeout,
-		ElectionTimeout:        newCfg.ConsulRaftElectionTimeout,
-		RaftTrailingLogs:       newCfg.RaftTrailingLogs,
+		RequestLimits: &consul.RequestLimits{
+			Mode:      newCfg.RequestLimitsMode,
+			ReadRate:  newCfg.RequestLimitsReadRate,
+			WriteRate: newCfg.RequestLimitsWriteRate,
+		},
+		RPCClientTimeout:      newCfg.RPCClientTimeout,
+		RPCRateLimit:          newCfg.RPCRateLimit,
+		RPCMaxBurst:           newCfg.RPCMaxBurst,
+		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
+		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
+		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
+		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,
+		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
+		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
+		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err

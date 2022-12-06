@@ -1694,14 +1694,14 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	s.incomingRPCLimiter.UpdateConfig(rpcRate.HandlerConfig{
-		GlobalMode: config.RequestLimitsMode,
+		GlobalMode: config.RequestLimits.Mode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimitsReadRate,
-			Burst: int(config.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
+			Rate:  config.RequestLimits.ReadRate,
+			Burst: int(config.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
 		},
 		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimitsWriteRate,
-			Burst: int(config.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
+			Rate:  config.RequestLimits.WriteRate,
+			Burst: int(config.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
 		},
 	})
 

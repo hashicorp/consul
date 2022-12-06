@@ -644,22 +644,28 @@ type RPCConfig struct {
 	EnableStreaming bool
 }
 
+// RequestLimits is configuration for serverrate limiting that is a part of
+// ReloadableConfig.
+type RequestLimits struct {
+	Mode      consulrate.Mode
+	ReadRate  rate.Limit
+	WriteRate rate.Limit
+}
+
 // ReloadableConfig is the configuration that is passed to ReloadConfig when
 // application config is reloaded.
 type ReloadableConfig struct {
-	RequestLimitsMode      consulrate.Mode
-	RequestLimitsReadRate  rate.Limit
-	RequestLimitsWriteRate rate.Limit
-	RPCClientTimeout       time.Duration
-	RPCRateLimit           rate.Limit
-	RPCMaxBurst            int
-	RPCMaxConnsPerClient   int
-	ConfigEntryBootstrap   []structs.ConfigEntry
-	RaftSnapshotThreshold  int
-	RaftSnapshotInterval   time.Duration
-	RaftTrailingLogs       int
-	HeartbeatTimeout       time.Duration
-	ElectionTimeout        time.Duration
+	RequestLimits         *RequestLimits
+	RPCClientTimeout      time.Duration
+	RPCRateLimit          rate.Limit
+	RPCMaxBurst           int
+	RPCMaxConnsPerClient  int
+	ConfigEntryBootstrap  []structs.ConfigEntry
+	RaftSnapshotThreshold int
+	RaftSnapshotInterval  time.Duration
+	RaftTrailingLogs      int
+	HeartbeatTimeout      time.Duration
+	ElectionTimeout       time.Duration
 }
 
 type RaftBoltDBConfig struct {

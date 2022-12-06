@@ -24,6 +24,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
@@ -1840,13 +1841,15 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
 
 	rc := ReloadableConfig{
-		RequestLimitsMode:      consulrate.ModeEnforcing,
-		RequestLimitsReadRate:  1000,
-		RequestLimitsWriteRate: 1100,
-		RPCClientTimeout:       2 * time.Minute,
-		RPCRateLimit:           1000,
-		RPCMaxBurst:            10000,
-		ConfigEntryBootstrap:   []structs.ConfigEntry{entryInit},
+		RequestLimits: &consul.RequestLimits{
+			RequestLimitsMode:      consulrate.ModeEnforcing,
+			RequestLimitsReadRate:  1000,
+			RequestLimitsWriteRate: 1100,
+		},
+		RPCClientTimeout:     2 * time.Minute,
+		RPCRateLimit:         1000,
+		RPCMaxBurst:          10000,
+		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
 		// Reset the custom one to default be removing it from config file (it will
 		// be a zero value here).
 		RaftTrailingLogs: 0,
