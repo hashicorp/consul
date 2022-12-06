@@ -297,7 +297,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.delegate.RPCForIngressHTTP("Catalog.ListServices", &args, &out, req.RemoteAddr); err != nil {
+		if err := s.agent.RPCForIngressHTTP("Catalog.ListServices", &args, &out, req.RemoteAddr); err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
 				s.nodeMetricsLabels())
 			return nil, err
