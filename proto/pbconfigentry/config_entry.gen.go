@@ -172,6 +172,16 @@ func HTTPHeaderModifiersFromStructs(t *structs.HTTPHeaderModifiers, s *HTTPHeade
 	s.Set = t.Set
 	s.Remove = t.Remove
 }
+func HTTPRouteConfigToStructs(s *HTTPRouteConfig, t *structs.HTTPRouteConfigEntry) {
+	if s == nil {
+		return
+	}
+}
+func HTTPRouteConfigFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRouteConfig) {
+	if s == nil {
+		return
+	}
+}
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
 		return
@@ -1003,6 +1013,16 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.LegacyUpdateTime = timeFromStructs(t.LegacyUpdateTime)
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
+}
+func TCPRouteConfigToStructs(s *TCPRouteConfig, t *structs.TCPRouteConfigEntry) {
+	if s == nil {
+		return
+	}
+}
+func TCPRouteConfigFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRouteConfig) {
+	if s == nil {
+		return
+	}
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {

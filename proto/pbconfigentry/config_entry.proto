@@ -452,6 +452,24 @@ message InlineCertificateConfig {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.TCPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
+message TCPRouteConfig {
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
+message HTTPRouteConfig {
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.TransparentProxyConfig
 // output=config_entry.gen.go
 // name=Structs
