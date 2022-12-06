@@ -16,13 +16,12 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/lib/semaphore"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/semaphore"
 )
 
 type caState string
@@ -1068,7 +1067,7 @@ func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActi
 	}
 
 	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
-		return err
+		return fmt.Errorf("Failed to set the leaf signing cert to the intermediate: %w", err)
 	}
 
 	c.logger.Info("received new intermediate certificate from primary datacenter")
@@ -1116,15 +1115,13 @@ func pruneExpiredIntermediates(caRoot *structs.CARoot) error {
 
 // runRenewIntermediate periodically attempts to renew the intermediate cert.
 func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
-	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
-
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
 			retryLoopBackoffAbortOnSuccess(ctx, func() error {
-				return c.RenewIntermediate(ctx, isPrimary)
+				return c.RenewIntermediate(ctx)
 			}, func(err error) {
 				c.logger.Error("error renewing intermediate certs",
 					"routine", intermediateCertRenewWatchRoutineName,
@@ -1138,13 +1135,23 @@ func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
 // RenewIntermediate checks the intermediate cert for
 // expiration. If more than half the time a cert is valid has passed,
 // it will try to renew it.
-func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error {
+func (c *CAManager) RenewIntermediate(ctx context.Context) error {
+	return c.renewIntermediate(ctx, false)
+}
+
+func (c *CAManager) renewIntermediateNow(ctx context.Context) error {
+	return c.renewIntermediate(ctx, true)
+}
+
+func (c *CAManager) renewIntermediate(ctx context.Context, forceNow bool) error {
 	// Grab the 'lock' right away so the provider/config can't be changed out while we check
 	// the intermediate.
 	if _, err := c.setState(caStateRenewIntermediate, true); err != nil {
 		return err
 	}
 	defer c.setState(caStateInitialized, false)
+
+	isPrimary := c.serverConf.InPrimaryDatacenter()
 
 	provider, _ := c.getCAProvider()
 	if provider == nil {
@@ -1183,8 +1190,10 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
-		return nil
+	if !forceNow {
+		if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
+			return nil
+		}
 	}
 
 	// Enough time has passed, go ahead with getting a new intermediate.
@@ -1192,18 +1201,26 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	if !isPrimary {
 		renewalFunc = c.secondaryRequestNewSigningCert
 	}
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- renewalFunc(provider, activeRoot)
-	}()
 
-	// Wait for the renewal func to return or for the context to be canceled.
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-errCh:
+	if forceNow {
+		err := renewalFunc(provider, activeRoot)
 		if err != nil {
 			return err
+		}
+	} else {
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- renewalFunc(provider, activeRoot)
+		}()
+
+		// Wait for the renewal func to return or for the context to be canceled.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
 		}
 	}
 
