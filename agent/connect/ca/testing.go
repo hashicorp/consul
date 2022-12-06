@@ -315,8 +315,6 @@ path "%[2]s/*" {
 		if a.WithSudo {
 			rules += fmt.Sprintf(`
 
-# TODO(rb): not present in docs; needed for provider swap FROM vault
-# /v1/%[1]s/root/sign-self-issued
 path "%[1]s/root/sign-self-issued" {
   capabilities = [ "sudo", "update" ]
 }
