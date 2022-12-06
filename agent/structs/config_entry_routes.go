@@ -60,7 +60,7 @@ type TCPRouteConfigEntry struct {
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {
-	return APIGateway
+	return TCPRoute
 }
 
 func (e *TCPRouteConfigEntry) GetName() string {

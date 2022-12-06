@@ -35,10 +35,11 @@ const (
 	ExportedServices   string = "exported-services"
 	APIGateway         string = "api-gateway"
 	InlineCertificate  string = "inline-certificate"
-	TCPRoute           string = "tcp-route"
 	HTTPRoute          string = "http-route"
-	ProxyConfigGlobal  string = "global"
-	MeshConfigMesh     string = "mesh"
+	TCPRoute           string = "tcp-route"
+
+	ProxyConfigGlobal string = "global"
+	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
 
