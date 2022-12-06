@@ -306,6 +306,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ExportedServicesConfigEntry{Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

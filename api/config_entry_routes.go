@@ -1,5 +1,7 @@
 package api
 
+// HTTPRouteConfigEntry manages the configuration for a HTTP route
+// with the given name.
 type HTTPRouteConfigEntry struct {
 	// Kind of the config entry. This should be set to api.HTTPRoute.
 	Kind string
