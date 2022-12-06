@@ -35,6 +35,7 @@ const (
 	ExportedServices   string = "exported-services"
 	APIGateway         string = "api-gateway"
 	InlineCertificate  string = "inline-certificate"
+	HTTPRoute          string = "http-route"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -56,6 +57,7 @@ var AllConfigEntryKinds = []string{
 	MeshConfig,
 	ExportedServices,
 	APIGateway,
+	HTTPRoute,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.

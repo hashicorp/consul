@@ -27,6 +27,7 @@ const (
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
 	APIGateway        string = "api-gateway"
+	HTTPRoute         string = "http-route"
 )
 
 type ConfigEntry interface {
