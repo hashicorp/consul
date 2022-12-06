@@ -23,36 +23,29 @@ func (i *InlineCertificateConfigEntry) GetName() string {
 }
 
 func (i *InlineCertificateConfigEntry) Normalize() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) Validate() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) CanRead(authorizer acl.Authorizer) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) CanWrite(authorizer acl.Authorizer) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) GetMeta() map[string]string {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (i *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
