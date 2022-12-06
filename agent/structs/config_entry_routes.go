@@ -7,6 +7,7 @@ type HTTPRouteConfigEntry struct {
 	Name string
 	Kind string
 	Meta map[string]string `json:",omitempty"`
+	RaftIndex
 }
 
 func (e *HTTPRouteConfigEntry) GetKind() string {
@@ -45,7 +46,10 @@ func (e *HTTPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
-	return nil
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
 }
 
 func (e *HTTPRouteConfigEntry) Warnings() []string {
@@ -57,6 +61,7 @@ type TCPRouteConfigEntry struct {
 	Name string
 	Kind string
 	Meta map[string]string `json:",omitempty"`
+	RaftIndex
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {
@@ -94,7 +99,10 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 }
 
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
-	return nil
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
 }
 
 func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
