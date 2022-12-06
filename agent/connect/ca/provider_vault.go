@@ -885,14 +885,12 @@ func makePathHelper(namespace, path string) string {
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
 	defer v.setNamespace(namespace)()
-	result, err := v.client.Logical().Read(resource)
-	return result, err
+	return v.client.Logical().Read(resource)
 }
 
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
 	defer v.setNamespace(namespace)()
-	result, err := v.client.Logical().Write(resource, data)
-	return result, err
+	return v.client.Logical().Write(resource, data)
 }
 
 func (v *VaultProvider) setNamespace(namespace string) func() {
