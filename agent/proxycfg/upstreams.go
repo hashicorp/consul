@@ -82,6 +82,15 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", uid)
 				return nil
 			}
+
+			// We have to inspect the discovery chains to see if local mesh gateways need to be watched.
+			for _, target := range resp.Chain.Targets {
+				// Register a gateway watch if any targets are pointing to a peer and require a mode of local.
+				if target.Peer != "" && target.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+					s.setupWatchForLocalGWEndpoints(ctx, snap.ConnectProxy)
+					break
+				}
+			}
 		default:
 			return fmt.Errorf("discovery-chain watch fired for unsupported kind: %s", snap.Kind)
 		}
@@ -547,4 +556,31 @@ func parseReducedUpstreamConfig(m map[string]interface{}) (reducedUpstreamConfig
 	var cfg reducedUpstreamConfig
 	err := mapstructure.WeakDecode(m, &cfg)
 	return cfg, err
+}
+
+func (s *handlerUpstreams) setupWatchForLocalGWEndpoints(
+	ctx context.Context,
+	snapConnectProxy configSnapshotConnectProxy,
+) error {
+	gk := GatewayKey{
+		Partition:  s.source.NodePartitionOrDefault(),
+		Datacenter: s.source.Datacenter,
+	}
+	// If the watch is already initialized, do nothing.
+	if snapConnectProxy.WatchedLocalGWEndpoints.IsWatched(gk.String()) {
+		return nil
+	}
+
+	opts := gatewayWatchOpts{
+		internalServiceDump: s.dataSources.InternalServiceDump,
+		notifyCh:            s.ch,
+		source:              *s.source,
+		token:               s.token,
+		key:                 gk,
+	}
+	if err := watchMeshGateway(ctx, opts); err != nil {
+		return fmt.Errorf("error while watching for local mesh gateway: %w", err)
+	}
+	snapConnectProxy.WatchedLocalGWEndpoints.InitWatch(gk.String(), nil)
+	return nil
 }
