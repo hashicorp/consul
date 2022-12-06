@@ -43,10 +43,7 @@ jobs:
           echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
           -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
           -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
-          -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} \
-          -X ${T}.VersionPrerelease=${{ steps.set-product-version.outputs.pre-version }} \
-          -X ${T}.VersionMetadata="
-
+          "
   validate-outputs:
     needs: set-product-version
     runs-on: ubuntu-latest
