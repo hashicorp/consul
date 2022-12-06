@@ -214,7 +214,8 @@ func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.M
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
 
-// APIGatewayConfigEntry -- TODO stub
+// APIGatewayConfigEntry manages the configuration for an API gateway
+// with the given name.
 type APIGatewayConfigEntry struct {
 	// Kind of the config entry. This should be set to api.APIGateway.
 	Kind string
@@ -246,42 +247,10 @@ type APIGatewayConfigEntry struct {
 	Namespace string `json:",omitempty"`
 }
 
-func (a *APIGatewayConfigEntry) GetKind() string {
-	return APIGateway
-}
-
-func (a *APIGatewayConfigEntry) GetName() string {
-	if a != nil {
-		return ""
-	}
-	return a.Name
-}
-
-func (a *APIGatewayConfigEntry) GetPartition() string {
-	if a != nil {
-		return ""
-	}
-	return a.Partition
-}
-
-func (a *APIGatewayConfigEntry) GetNamespace() string {
-	if a != nil {
-		return ""
-	}
-	return a.GetNamespace()
-}
-
-func (a *APIGatewayConfigEntry) GetMeta() map[string]string {
-	if a != nil {
-		return nil
-	}
-	return a.GetMeta()
-}
-
-func (a *APIGatewayConfigEntry) GetCreateIndex() uint64 {
-	return a.CreateIndex
-}
-
-func (a *APIGatewayConfigEntry) GetModifyIndex() uint64 {
-	return a.ModifyIndex
-}
+func (g *APIGatewayConfigEntry) GetKind() string            { return g.Kind }
+func (g *APIGatewayConfigEntry) GetName() string            { return g.Name }
+func (g *APIGatewayConfigEntry) GetPartition() string       { return g.Partition }
+func (g *APIGatewayConfigEntry) GetNamespace() string       { return g.Namespace }
+func (g *APIGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
+func (g *APIGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
+func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
