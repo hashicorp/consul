@@ -16,7 +16,7 @@ BUG FIXES:
 * agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
 * ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
 * cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
-* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
 * namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
 * peering: better represent non-passing states during peer check flattening [[GH-15615](https://github.com/hashicorp/consul/issues/15615)]
 * peering: fix the limit of replication gRPC message; set to 8MB [[GH-15503](https://github.com/hashicorp/consul/issues/15503)]
@@ -34,7 +34,7 @@ BUG FIXES:
 
 * agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
 * ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
-* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
 * connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
 * connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
 * debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
@@ -51,7 +51,7 @@ BUG FIXES:
 
 * agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
 * ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
-* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
 * connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
 * connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
 * debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]

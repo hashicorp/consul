@@ -21,11 +21,11 @@ Consul Dataplane manages Envoy proxies and leaves responsibility for other funct
 
 ### Impact on performance
 
-The most significant differences between traditional deployments and Consul Dataplane deployments result from the removal of node-level client agents with gossip communication. They are replaced by _dataplanes_, which are the sidecars injected alongside each service instance that handle communication between Consul servers and Envoy proxies.
+The most significant differences between traditional deployments and Consul Dataplane deployments result from the removal of node-level client agents with gossip communication. They are replaced by _dataplanes_, which are the sidecars injected alongside each service instance that handle communication between Consul servers and Envoy proxies. While dataplanes use fewer resources than client agents, Consul servers need to consume additional resources in order to generate xDS resources for Envoy proxies.
 
-Be aware of the following changes and their impact on your network's performance:
+As a result, small deployments require fewer resources overall. For deployments that are especially large or expected to experience high levels of churn, consider the following impacts to your network's performance:
 
-1. Consul servers consume additional resources in order to generate xDS resources for Envoy proxies. In our internal load tests, performing at high scale and churn resulted in additional CPU utilization rates under 10% on the control plane. 
+1. In our internal tests, which used 5000 proxies and services flapping every 2 seconds, additional CPU utilization remained under 10% on the control plane.
 1. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
 1. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
 1. To avoid generating significant load on an individual server, proxy configuration is load balanced proactively.

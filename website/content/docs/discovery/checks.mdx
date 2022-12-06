@@ -86,7 +86,7 @@ There are several different kinds of checks:
 - `UDP + Interval` - These checks direct the client to periodically send UDP datagrams
   to the specified IP/hostname and port. The duration specified in the `interval` field sets the amount of time 
   between attempts, such as `30s` to indicate 30 seconds. The check is logged as healthy if any response from the UDP server is received. Any other result sets the status to `critical`.
-  The default interval for, UDP checks is `10s`, but you can configure a custom UDP check timeout value by specifying the
+   For UDP checks, the default value for the `timeout` field is `10s`, but you can configure a custom timeout by specifying the
   `timeout` field in the check definition. If any timeout on read exists, the check is still considered healthy.
 
 - `Time to Live (TTL)` ((#ttl)) - These checks retain their last known state
