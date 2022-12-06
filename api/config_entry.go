@@ -29,6 +29,7 @@ const (
 	APIGateway        string = "api-gateway"
 	TCPRoute          string = "tcp-route"
 	InlineCertificate string = "inline-certificate"
+	HTTPRoute         string = "http-route"
 )
 
 type ConfigEntry interface {
@@ -309,8 +310,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Kind: kind, Name: name}, nil
-	case InlineCertificate:
-		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
+	//case InlineCertificate:
+	//	return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

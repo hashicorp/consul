@@ -36,9 +36,9 @@ const (
 	APIGateway         string = "api-gateway"
 	InlineCertificate  string = "inline-certificate"
 	TCPRoute           string = "tcp-route"
-
-	ProxyConfigGlobal string = "global"
-	MeshConfigMesh    string = "mesh"
+	HTTPRoute          string = "http-route"
+	ProxyConfigGlobal  string = "global"
+	MeshConfigMesh     string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
 
@@ -59,6 +59,7 @@ var AllConfigEntryKinds = []string{
 	APIGateway,
 	TCPRoute,
 	InlineCertificate,
+	HTTPRoute,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -641,6 +642,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
