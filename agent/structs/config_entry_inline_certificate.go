@@ -53,6 +53,8 @@ func (i *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (i *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
-	//TODO implement me
-	panic("implement me")
+	if i == nil {
+		return &RaftIndex{}
+	}
+	return &i.RaftIndex
 }

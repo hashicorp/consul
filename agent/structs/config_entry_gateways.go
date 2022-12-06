@@ -745,6 +745,7 @@ type BoundAPIGatewayConfigEntry struct {
 	Name string
 	Kind string
 	Meta map[string]string `json:",omitempty"`
+	RaftIndex
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetKind() string {
@@ -782,7 +783,10 @@ func (e *BoundAPIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
-	return nil
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
