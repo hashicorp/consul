@@ -936,6 +936,26 @@ function create_peering {
   run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
+
+  sleep 1
+  run curl -s -f "http://consul-${GENERATE_PEER}-client:8500/v1/peering/${GENERATE_PEER}-to-${ESTABLISH_PEER}"
+  state="$(echo "$output" | jq --raw-output .State)"
+  [ "$state" == "ACTIVE" ]
+}
+
+function assert_service_has_imported {
+  local DC=${1:-primary}
+  local SERVICE_NAME=$2
+  local PEER_NAME=$3
+
+  run curl -s -f "http://consul-${DC}-client:8500/v1/peering/${PEER_NAME}"
+  [ "$status" == 0 ]
+
+  echo "$output" | jq --raw-output '.StreamStatus.ImportedServices' | grep -e "${SERVICE_NAME}"
+  if [ $? -ne 0 ]; then
+    echo "Error found serivce: ${SERVICE_NAME}"
+    return 1
+  fi
 }
 
 function get_lambda_envoy_http_filter {
