@@ -1840,7 +1840,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
 
 	rc := ReloadableConfig{
-		RequestLimitsMode:      "enforcing",
+		RequestLimitsMode:      consulrate.ModeEnforcing,
 		RequestLimitsReadRate:  1000,
 		RequestLimitsWriteRate: 1100,
 		RPCClientTimeout:       2 * time.Minute,

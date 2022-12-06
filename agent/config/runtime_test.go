@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -4615,7 +4616,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
-			rt.RequestLimitsMode = "disabled"
+			rt.RequestLimitsMode = consulrate.ModeDisabled
 			rt.RequestLimitsReadRate = -1
 			rt.RequestLimitsWriteRate = -1
 			rt.SegmentLimit = 64
@@ -6166,7 +6167,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
-		RequestLimitsMode:       "permissive",
+		RequestLimitsMode:       consulrate.ModePermissive,
 		RequestLimitsReadRate:   100.0,
 		RequestLimitsWriteRate:  100.0,
 		RejoinAfterLeave:        true,

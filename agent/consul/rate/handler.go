@@ -42,18 +42,18 @@ var (
 
 // Mode determines the action that will be taken when a rate limit has been
 // exhausted (e.g. log and allow, or reject).
-type Mode string
+type Mode int
 
 const (
 	// ModeDisabled causes rate limiting to be bypassed.
-	ModeDisabled Mode = "disabled"
+	ModeDisabled Mode = iota
 
 	// ModePermissive causes the handler to log the rate-limited operation but
 	// still allow it to proceed.
-	ModePermissive Mode = "permissive"
+	ModePermissive
 
 	// ModeEnforcing causes the handler to reject the rate-limited operation.
-	ModeEnforcing Mode = "enforcing"
+	ModeEnforcing
 )
 
 var modeToName = map[Mode]string{
