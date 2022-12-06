@@ -644,6 +644,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TCPRouteConfigEntry{Name: name}, nil
 	case InlineCertificate:
 		return &InlineCertificateConfigEntry{Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

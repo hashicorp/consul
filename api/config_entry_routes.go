@@ -71,6 +71,8 @@ func (a *TCPRouteConfigEntry) GetModifyIndex() uint64 {
 	return a.ModifyIndex
 }
 
+// HTTPRouteConfigEntry manages the configuration for a HTTP route
+// with the given name.
 type HTTPRouteConfigEntry struct {
 	// Kind of the config entry. This should be set to api.HTTPRoute.
 	Kind string
