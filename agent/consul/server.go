@@ -1515,7 +1515,7 @@ func (i *inmemCodec) Close() error {
 }
 
 // Capture shared code for RPC() and RPCForIngressHTTP()
-func (s *Server) internalRPC(method string, args interface{}, reply interface{}, codec *inmemCodec) error {
+func (s *Server) internalRPC(codec *inmemCodec) error {
 	// Enforce the RPC limit.
 	//
 	// "client" metric path because the internal client API is calling to the
@@ -1541,7 +1541,7 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		args:   args,
 		reply:  reply,
 	}
-	return s.internalRPC(method, args, reply, codec)
+	return s.internalRPC(codec)
 }
 
 // RPCForIngressHTTP is used to make a local RPC call that may be subject to rate
@@ -1554,7 +1554,7 @@ func (s *Server) RPCForIngressHTTP(method string, args interface{}, reply interf
 		reply:      reply,
 		remoteAddr: remoteAddr,
 	}
-	return s.internalRPC(method, args, reply, codec)
+	return s.internalRPC(codec)
 }
 
 // SnapshotRPC dispatches the given snapshot request, reading from the streaming
