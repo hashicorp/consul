@@ -24,7 +24,6 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
@@ -1841,10 +1840,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
 
 	rc := ReloadableConfig{
-		RequestLimits: &consul.RequestLimits{
-			RequestLimitsMode:      consulrate.ModeEnforcing,
-			RequestLimitsReadRate:  1000,
-			RequestLimitsWriteRate: 1100,
+		RequestLimits: &RequestLimits{
+			Mode:      consulrate.ModeEnforcing,
+			ReadRate:  1000,
+			WriteRate: 1100,
 		},
 		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
@@ -1882,14 +1881,14 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", consulrate.HandlerConfig{
-		GlobalMode: rc.RequestLimitsMode,
+		GlobalMode: rc.RequestLimits.Mode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimitsReadRate,
-			Burst: int(rc.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
+			Rate:  rc.RequestLimits.ReadRate,
+			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
 		},
 		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimitsWriteRate,
-			Burst: int(rc.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
+			Rate:  rc.RequestLimits.WriteRate,
+			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
 		},
 	})
 
