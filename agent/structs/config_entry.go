@@ -36,6 +36,7 @@ const (
 	APIGateway         string = "api-gateway"
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
+	TCPRoute           string = "tcp-route"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -640,6 +641,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case HTTPRoute:
 		return &HTTPRouteConfigEntry{Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
