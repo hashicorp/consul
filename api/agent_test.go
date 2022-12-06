@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -261,6 +262,63 @@ func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
 	opts := ServiceRegisterOpts{}.WithContext(ctx)
 	err = c.Agent().ServiceRegisterOpts(&AgentServiceRegistration{}, opts)
 	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
+}
+
+func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	nonExistentTokenFile := "randomTokenFile.txt"
+	config := Config{
+		Token:     "randomToken",
+		TokenFile: nonExistentTokenFile,
+	}
+
+	_, err := NewClient(&config)
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFile, nonExistentTokenFile)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenCLISecondPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	tokenString := "randomToken"
+	config := Config{
+		Token: tokenString,
+	}
+
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, tokenString)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_HttpTokenFileEnvVarThirdPriority(t *testing.T) {
+	nonExistentTokenFileEnvVar := "httpTokenFile.txt"
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", nonExistentTokenFileEnvVar)
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+
+	_, err := NewClient(DefaultConfig())
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFileEnvVar, nonExistentTokenFileEnvVar)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenEnvVarFinalPriority(t *testing.T) {
+	httpTokenEnvVar := "httpToken"
+	os.Setenv("CONSUL_HTTP_TOKEN", httpTokenEnvVar)
+
+	c, err := NewClient(DefaultConfig())
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, httpTokenEnvVar)
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
 }
 
 func TestAPI_AgentServices(t *testing.T) {

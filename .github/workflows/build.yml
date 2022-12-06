@@ -40,7 +40,12 @@ jobs:
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} -X ${T}.VersionPrerelease=${{ steps.set-product-version.outputs.pre-version }} -X ${T}.VersionMetadata="
+          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
+          -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
+          -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
+          -X ${T}.Version=${{ steps.set-product-version.outputs.base-product-version }} \
+          -X ${T}.VersionPrerelease=${{ steps.set-product-version.outputs.pre-version }} \
+          -X ${T}.VersionMetadata="
 
   validate-outputs:
     needs: set-product-version

@@ -198,7 +198,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id" json:"node_id,omitempty"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta" json:"node_meta,omitempty"`
 	NodeName                         *string             `mapstructure:"node_name" json:"node_name,omitempty"`
-	Peering                          Peering             `mapstructure:"peering" json:"peering,omitempty"`
+	Peering                          Peering             `mapstructure:"peering" json:"-"`
 	Performance                      Performance         `mapstructure:"performance" json:"-"`
 	PidFile                          *string             `mapstructure:"pid_file" json:"pid_file,omitempty"`
 	Ports                            Ports               `mapstructure:"ports" json:"ports,omitempty"`

@@ -17,6 +17,8 @@ export default class Peer extends Model {
   @attr('string') Name;
   @attr('string') State;
   @attr('string') ID;
+  @attr('string') ServerExternalAddresses;
+  @nullValue([]) @attr() ServerExternalAddresses;
 
   // only the side that establishes will hold this property
   @attr('string') PeerID;
