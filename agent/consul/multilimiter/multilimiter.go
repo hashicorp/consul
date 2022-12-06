@@ -43,7 +43,7 @@ type MultiLimiter struct {
 	defaultConfig   *atomic.Pointer[Config]
 	limiterCh       chan *limiterWithKey
 	configsLock     sync.Mutex
-	isRunning       atomic.Bool
+	once            sync.Once
 }
 
 type KeyType = []byte
@@ -101,47 +101,43 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
 	chLimiter := make(chan *limiterWithKey, 100)
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter, configsLock: sync.Mutex{}}
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter, configsLock: sync.Mutex{}, once: sync.Once{}}
 
 	return m
 }
 
 // Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
-	isRunning := m.isRunning.Load()
-	if isRunning {
-		return
-	}
-	m.isRunning.Store(true)
-	go func() {
-		defer m.isRunning.Store(false)
-		commitInterval := 10 * time.Millisecond
-		limiters := m.limiters.Load()
-		txn := limiters.Txn()
-		waiter := time.NewTicker(commitInterval)
-		defer waiter.Stop()
-		for {
-			if txn = m.runStoreOnce(ctx, waiter, txn); txn == nil {
-				return
+	m.once.Do(func() {
+		go func() {
+			writeTimeout := 10 * time.Millisecond
+			limiters := m.limiters.Load()
+			txn := limiters.Txn()
+			waiter := time.NewTicker(writeTimeout)
+			wt := tickerWrapper{ticker: waiter}
+			defer waiter.Stop()
+			for {
+				if txn = m.runStoreOnce(ctx, wt, txn); txn == nil {
+					return
+				}
 			}
+		}()
+		go func() {
+			waiter := time.NewTimer(0)
+			for {
+				c := m.defaultConfig.Load()
+				waiter.Reset(c.ReconcileCheckInterval)
+				select {
+				case <-ctx.Done():
+					waiter.Stop()
+					return
+				case now := <-waiter.C:
+					m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
+				}
+			}
+		}()
+	})
 
-		}
-	}()
-	go func() {
-		defer m.isRunning.Store(false)
-		waiter := time.NewTimer(0)
-		for {
-			c := m.defaultConfig.Load()
-			waiter.Reset(c.ReconcileCheckInterval)
-			select {
-			case <-ctx.Done():
-				waiter.Stop()
-				return
-			case now := <-waiter.C:
-				m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
-			}
-		}
-	}()
 }
 
 // todo: split without converting to a string
@@ -185,15 +181,25 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	return limiter.limiter.Allow()
 }
 
-func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter *time.Ticker, txn *radix.Txn) *radix.Txn {
+type ticker interface {
+	Ticker() <-chan time.Time
+}
+
+type tickerWrapper struct {
+	ticker *time.Ticker
+}
+
+func (t tickerWrapper) Ticker() <-chan time.Time {
+	return t.ticker.C
+}
+
+func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *radix.Txn) *radix.Txn {
 	select {
-	case <-waiter.C:
-		if txn != nil {
-			tree := txn.Commit()
-			m.limiters.Store(tree)
-			limiters := m.limiters.Load()
-			txn = limiters.Txn()
-		}
+	case <-waiter.Ticker():
+		tree := txn.Commit()
+		m.limiters.Store(tree)
+		txn = tree.Txn()
+
 	case lk := <-m.limiterCh:
 		v, ok := txn.Get(lk.k)
 		if !ok {
