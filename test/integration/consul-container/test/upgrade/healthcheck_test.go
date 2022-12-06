@@ -256,7 +256,15 @@ func clientsCreate(t *testing.T, numClients int, image string, version string, c
 }
 
 func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 {
-	err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9999})
+	err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		Name: serviceName,
+		Port: 9999,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Port: 22005,
+			},
+		},
+	})
 	require.NoError(t, err)
 
 	service, meta, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
@@ -272,7 +280,7 @@ func serversCluster(t *testing.T, numServers int, version string, image string) 
 	var configs []libagent.Config
 
 	conf, err := libagent.NewConfigBuilder(nil).
-		Bootstrap(3).
+		Bootstrap(numServers).
 		ToAgentConfig()
 	require.NoError(t, err)
 

@@ -13,7 +13,7 @@ description: >-
  
   - **Cluster Peering Failover:** Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. More details for configuring failover across peers is provided in the Service Resolver [failover](/docs/connect/config-entries/service-resolver#failover) stanza.
   
-  - **Control Plane traffic over Mesh Gateways:** Cluster Peering now supports the establishing peering through Mesh Gateways. More detail on using Mesh Gateways for Cluster Peering are found in [Enabling Service-to-service traffic across Peered Clusters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers). Mesh Gateways are used by default for [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s). 
+  - **Control Plane traffic over Mesh Gateways:** Cluster Peering now supports the establishing peering through Mesh Gateways. More detail on using Mesh Gateways for Cluster Peering are found in [Enabling Peering Control Plane Traffic](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways). Mesh Gateways are used by default for [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s). 
   
 - **Simplified Service Mesh with Consul Dataplane:** Support for a new `consul-dataplane`, a lightweight process for managing Envoy proxies introduced in Consul v1.14.0. Consul Dataplane removes the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers. Read more in [Simplified Service Mesh with Consul Dataplane](/docs/connect/dataplane). 
 

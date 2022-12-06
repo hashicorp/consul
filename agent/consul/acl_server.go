@@ -87,7 +87,7 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 }
 
 func (s *Server) InPrimaryDatacenter() bool {
-	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
+	return s.config.InPrimaryDatacenter()
 }
 
 func (s *Server) LocalTokensEnabled() bool {
@@ -116,7 +116,6 @@ func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
 		return false
 	}
 	if mgmt == "" {
-		s.logger.Debug("server management token has not been initialized")
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(mgmt), []byte(token)) == 1

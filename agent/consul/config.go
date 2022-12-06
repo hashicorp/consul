@@ -415,6 +415,10 @@ type Config struct {
 	*EnterpriseConfig
 }
 
+func (c *Config) InPrimaryDatacenter() bool {
+	return c.PrimaryDatacenter == "" || c.Datacenter == c.PrimaryDatacenter
+}
+
 // CheckProtocolVersion validates the protocol version.
 func (c *Config) CheckProtocolVersion() error {
 	if c.ProtocolVersion < ProtocolVersionMin {
