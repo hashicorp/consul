@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -145,9 +146,11 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 		clusterAddr,
 	}
 
+	buf := newLogBuffer(t)
+
 	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
+	cmd.Stdout = buf
+	cmd.Stderr = buf
 	require.NoError(t, cmd.Start())
 
 	testVault := &TestVaultServer{
@@ -355,4 +358,42 @@ func createVaultTokenAndPolicy(t testing.T, client *vaultapi.Client, policyName,
 	})
 	require.NoError(t, err)
 	return tok.Auth.ClientToken
+}
+
+// copied from sdk/testutil/testlog.go:NewLogBuffer
+//
+// newLogBuffer returns an io.Writer which buffers all writes. When the test
+// ends, t.Failed is checked. If the test has failed all log output is printed
+// to stdout.
+//
+// Set the env var NOLOGBUFFER=1 to disable buffering, resulting in all log
+// output being written immediately to stdout.
+//
+// Typically log output is written for failed tests.
+func newLogBuffer(t testing.T) io.Writer {
+	if sendTestLogsToStdout {
+		return os.Stdout
+	}
+	buf := &logBuffer{buf: new(bytes.Buffer)}
+	t.Cleanup(func() {
+		if true || t.Failed() {
+			buf.Lock()
+			defer buf.Unlock()
+			buf.buf.WriteTo(os.Stdout)
+		}
+	})
+	return buf
+}
+
+var sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
+
+type logBuffer struct {
+	buf *bytes.Buffer
+	sync.Mutex
+}
+
+func (lb *logBuffer) Write(p []byte) (n int, err error) {
+	lb.Lock()
+	defer lb.Unlock()
+	return lb.buf.Write(p)
 }
