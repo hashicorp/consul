@@ -496,6 +496,11 @@ func validateProposedConfigEntryInGraph(
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:
+	case structs.APIGateway: // TODO Consider checkGatewayClash
+	case structs.BoundAPIGateway:
+	case structs.InlineCertificate:
+	case structs.HTTPRoute:
+	case structs.TCPRoute:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
