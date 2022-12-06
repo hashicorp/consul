@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1472,10 +1473,11 @@ func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
-	method string
-	args   interface{}
-	reply  interface{}
-	err    error
+	method     string
+	args       interface{}
+	reply      interface{}
+	err        error
+	remoteAddr string
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1501,18 +1503,19 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 	return nil
 }
 
+func (i *inmemCodec) SourceAddr() net.Addr {
+	if i.remoteAddr != "" {
+		return net.TCPAddrFromAddrPort(netip.MustParseAddrPort(i.remoteAddr))
+	}
+	return nil
+}
+
 func (i *inmemCodec) Close() error {
 	return nil
 }
 
-// RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
-	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
-	}
-
+// Capture shared code for RPC() and RPCForIngressHTTP()
+func (s *Server) internalRPC(method string, args interface{}, reply interface{}, codec *inmemCodec) error {
 	// Enforce the RPC limit.
 	//
 	// "client" metric path because the internal client API is calling to the
@@ -1529,6 +1532,29 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		return err
 	}
 	return codec.err
+}
+
+// RPC is used to make a local RPC call
+func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+	codec := &inmemCodec{
+		method: method,
+		args:   args,
+		reply:  reply,
+	}
+	return s.internalRPC(method, args, reply, codec)
+}
+
+// RPCForIngressHTTP is used to make a local RPC call that may be subject to rate
+// limiting. Only HTTP handlers should use this form of RPC invocation.
+func (s *Server) RPCForIngressHTTP(method string, args interface{}, reply interface{}, remoteAddr string) error {
+	// convert remoteAddr to net.Addr
+	codec := &inmemCodec{
+		method:     method,
+		args:       args,
+		reply:      reply,
+		remoteAddr: remoteAddr,
+	}
+	return s.internalRPC(method, args, reply, codec)
 }
 
 // SnapshotRPC dispatches the given snapshot request, reading from the streaming

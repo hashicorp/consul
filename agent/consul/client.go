@@ -321,6 +321,12 @@ TRY:
 	return rpcErr
 }
 
+// RPCForIngressHTTP and the passed in remoteAddr are only relevant in the context of a consul server agent.
+// This function exists to satisfy the agent.delegate interface and simply forwards the request to client.RPC()
+func (s *Client) RPCForIngressHTTP(method string, args interface{}, reply interface{}, remoteAddr string) error {
+	return s.RPC(method, args, reply)
+}
+
 // SnapshotRPC sends the snapshot request to one of the servers, reading from
 // the streaming input and writing to the streaming output depending on the
 // operation.
