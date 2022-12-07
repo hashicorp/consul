@@ -148,7 +148,9 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:    30 * time.Second,
 			Timeout: 10 * time.Second,
-		}))
+		}),
+		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(8*1024*1024), grpc.MaxCallRecvMsgSize(8*1024*1024)),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,7 @@ The following table provides an overview of the resources you can use to create 
 | `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes    |
 | `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/api-docs/operator/keyring). <br/>See [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
 | `mesh` &nbsp; &nbsp; &nbsp;        | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rules) for details.                                                                                                                                                                                | No     |
-| `peering` &nbsp; &nbsp; &nbsp;        | Controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering). For more details, refer to [Peering Rules](#peering-rules).                                                                           | No     |
+| `peering` &nbsp; &nbsp; &nbsp;     | Controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering). For more details, refer to [Peering Rules](#peering-rules).                                                                           | No     |
 | `namespace`<br/>`namespace_prefix` | <EnterpriseAlert inline /> Controls access to one or more namespaces. <br/>See [Namespace Rules](#namespace-rules) for details.                                                                                                                                                                                                                      | Yes    |
 | `node`<br/>`node_prefix` &nbsp;    | Controls access to node-level operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Prepared Query API](/api-docs/query), [Network Coordinate API](/api-docs/coordinate), and [Agent API](/api-docs/agent) <br/>See [Node Rules](#node-rules) for details.                                                                                     | Yes    |
 | `operator` &nbsp; &nbsp; &nbsp;    | Controls access to cluster-level operations available in the [Operator API](/api-docs/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details.                                                                                                                                                                  | No     |
@@ -589,6 +589,20 @@ These actions may required an ACL token to complete. Use the following methods t
   Refer to the [services](/docs/discovery/services) and [checks](/docs/discovery/checks) documentation for examples.
   Tokens may also be passed to the [HTTP API](/api-docs) for operations that require them.
 
+### Reading Imported Nodes
+
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/docs/connect/cluster-peering) or [admin partitions](/docs/enterprise/admin-partitions) (Enterprise-only).
+Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
+- `service:write` is granted to any service. 
+- `node:read` is granted to all nodes.
+
+For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+
+You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+
+Refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+
 ## Operator Rules
 
 The `operator` resource controls access to cluster-level operations in the
@@ -813,6 +827,22 @@ In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured wit
 [`enable_script_checks`](/docs/agent/config/config-files#enable_script_checks) or
 [`enable_local_script_checks`](/docs/agent/config/config-files#enable_local_script_checks)
 set to `true` in order to enable script checks.
+
+### Reading Imported Services
+
+Service rules affect read access to services exported by [`exported-services` configuration entries](/docs/connect/config-entries/exported-services#reading-services), including services exported between [cluster peerings](/docs/connect/cluster-peering) or [admin partitions](/docs/enterprise/admin-partitions) (Enterprise-only).
+Read access to all imported services is granted when either of the following rule sets are attached to a token:
+- `service:write` is granted to any service. 
+- `service:read` is granted to all services.
+
+For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+
+You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+
+Refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+
+### Intentions
 
 Service rules are also used to grant read or write access to intentions. The
 following policy provides read-write access to the "app" service, and explicitly

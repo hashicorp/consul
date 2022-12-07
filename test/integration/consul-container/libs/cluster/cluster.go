@@ -3,6 +3,8 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -121,6 +123,60 @@ func (c *Cluster) Remove(n libagent.Agent) error {
 	return nil
 }
 
+// StandardUpgrade upgrades a running consul cluster following the steps from
+//
+//	https://developer.hashicorp.com/consul/docs/upgrading#standard-upgrades
+//
+// - takes a snapshot
+// - terminate and rejoin the new version of consul
+func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
+	execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
+	if execCode != 0 {
+		return fmt.Errorf("error taking snapshot of the cluster, returned code %d", execCode)
+	}
+	if err != nil {
+		return err
+	}
+
+	// verify only the leader can take a snapshot
+	snapshotCount := 0
+	for _, agent := range c.Agents {
+		files, err := ioutil.ReadDir(filepath.Join(agent.DataDir(), "raft", "snapshots"))
+		if err != nil {
+			return err
+		}
+		if len(files) >= 1 {
+			snapshotCount++
+		}
+	}
+
+	if snapshotCount != 1 {
+		return fmt.Errorf("only leader agent can have a snapshot file, got %d", snapshotCount)
+	}
+
+	// Upgrade individual agent to the target version
+	client := c.Agents[0].GetClient()
+	for _, agent := range c.Agents {
+		agent.Terminate()
+		if len(c.Agents) > 3 {
+			WaitForLeader(t, c, client)
+		} else {
+			time.Sleep(1 * time.Second)
+		}
+		config := agent.GetConfig()
+		config.Version = targetVersion
+		err = agent.Upgrade(context.Background(), config, 1)
+		if err != nil {
+			return err
+		}
+
+		// wait until the agent rejoin
+		WaitForLeader(t, c, client)
+		WaitForMembers(t, client, len(c.Agents))
+	}
+	return nil
+}
+
 // Terminate will attempt to terminate all agents in the cluster and its network. If any agent
 // termination fails, Terminate will abort and return an error.
 func (c *Cluster) Terminate() error {
@@ -213,7 +269,7 @@ func (c *Cluster) Clients() ([]libagent.Agent, error) {
 	return clients, nil
 }
 
-const retryTimeout = 20 * time.Second
+const retryTimeout = 90 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
 func LongFailer() *retry.Timer {
@@ -250,6 +306,6 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 			}
 		}
 		require.NoError(r, err)
-		require.Equal(r, activeMembers, expectN)
+		require.Equal(r, expectN, activeMembers)
 	})
 }

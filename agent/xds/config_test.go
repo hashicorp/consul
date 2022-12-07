@@ -158,6 +158,39 @@ func TestParseProxyConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "local idle timeout override, float ",
+			input: map[string]interface{}{
+				"local_idle_timeout_ms": float64(1000.0),
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalIdleTimeoutMs:    intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
+		{
+			name: "local idle timeout override, int ",
+			input: map[string]interface{}{
+				"local_idle_timeout_ms": 1000,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalIdleTimeoutMs:    intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
+		{
+			name: "local idle timeout override, string",
+			input: map[string]interface{}{
+				"local_idle_timeout_ms": "1000",
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalIdleTimeoutMs:    intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
+		{
 			name: "balance inbound connections override, string",
 			input: map[string]interface{}{
 				"balance_inbound_connections": "exact_balance",

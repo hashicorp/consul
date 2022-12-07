@@ -4107,6 +4107,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									  "namespace"               : "leek",
 									  "prefix_rewrite"          : "/alternate",
 									  "request_timeout"         : "99s",
+									  "idle_timeout"            : "99s",
 									  "num_retries"             : 12345,
 									  "retry_on_connect_failure": true,
 									  "retry_on_status_codes"   : [401, 209]
@@ -4195,6 +4196,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								  namespace             = "leek"
 								  prefix_rewrite         = "/alternate"
 								  request_timeout        = "99s"
+								  idle_timeout           = "99s"
 								  num_retries            = 12345
 								  retry_on_connect_failure = true
 								  retry_on_status_codes    = [401, 209]
@@ -4284,6 +4286,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
+								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},

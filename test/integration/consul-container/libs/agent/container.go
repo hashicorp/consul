@@ -109,11 +109,6 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	localIP, err := podContainer.Host(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	mappedPort, err := podContainer.MappedPort(ctx, "8500")
 	if err != nil {
 		return nil, err
@@ -136,7 +131,10 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		Prefix: name,
 	})
 
-	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
+	uri, err := podContainer.Endpoint(ctx, "http")
+	if err != nil {
+		return nil, err
+	}
 	apiConfig := api.DefaultConfig()
 	apiConfig.Address = uri
 	apiClient, err := api.NewClient(apiConfig)
@@ -197,6 +195,10 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
+func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
+	return c.container.Exec(ctx, cmd)
+}
+
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
 	pc, err := readSomeConfigFileFields(config.JSON)
 	if err != nil {
@@ -237,14 +239,18 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
 
-	_ = c.container.StopLogProducer()
-	if err := c.container.Terminate(ctx); err != nil {
-		return err
+	if c.container != nil {
+		_ = c.container.StopLogProducer()
+		if err := c.container.Terminate(c.ctx); err != nil {
+			return err
+		}
 	}
 
 	c.consulReq = consulReq2
 
 	container, err := startContainer(ctx, c.consulReq)
+	c.ctx = ctx
+	c.container = container
 	if err != nil {
 		return err
 	}
@@ -256,8 +262,6 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 		Prefix: name,
 	})
 
-	c.container = container
-
 	return nil
 }
 
@@ -265,13 +269,12 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 // This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
-
 	// Services might register a termination function that should also fire
 	// when the "agent" is cleaned up
 	for _, f := range c.terminateFuncs {
 		err := f()
 		if err != nil {
-
+			continue
 		}
 	}
 
@@ -279,10 +282,17 @@ func (c *consulContainerNode) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	state, err := c.container.State(context.Background())
+	if err == nil && state.Running {
+		// StopLogProducer can only be called on running containers
+		err = c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
+	} else {
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
 	}
 
 	c.container = nil
@@ -290,7 +300,13 @@ func (c *consulContainerNode) Terminate() error {
 	return err
 }
 
+func (c *consulContainerNode) DataDir() string {
+	return c.dataDir
+}
+
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	defer cancel()
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
@@ -313,12 +329,14 @@ type containerOpts struct {
 func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
+	httpPort := "8500"
+
 	pod := testcontainers.ContainerRequest{
 		Image:        pauseImage,
 		AutoRemove:   false,
 		Name:         opts.name + "-pod",
 		SkipReaper:   skipReaper,
-		ExposedPorts: []string{"8500/tcp"},
+		ExposedPorts: []string{httpPort + "/tcp"},
 		Hostname:     opts.hostname,
 		Networks:     opts.addtionalNetworks,
 	}
