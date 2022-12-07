@@ -17,6 +17,7 @@
  */
 
 // NOTICE: This file is a derivative of grpc's grpc/pickfirst.go implementation.
+// It is preserved as-is with the init() removed for easier updating.
 
 package balancer
 
@@ -26,15 +27,12 @@ import (
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/grpclog"
 )
 
-// CustomBalancerName is the name of the modified pick_first balancer.
-const CustomBalancerName = "pick_first_custom"
+// PickFirstBalancerName is the name of the pick_first balancer.
+const PickFirstBalancerName = "pick_first"
 
-var logger = grpclog.Component("balancer")
-
-func newPickFirstBuilder() balancer.Builder {
+func newPickfirstBuilder() balancer.Builder {
 	return &pickfirstBuilder{}
 }
 
@@ -45,7 +43,7 @@ func (*pickfirstBuilder) Build(cc balancer.ClientConn, opt balancer.BuildOptions
 }
 
 func (*pickfirstBuilder) Name() string {
-	return CustomBalancerName
+	return PickFirstBalancerName
 }
 
 type pickfirstBalancer struct {
@@ -77,14 +75,19 @@ func (b *pickfirstBalancer) UpdateClientConnState(state balancer.ClientConnState
 	if len(state.ResolverState.Addresses) == 0 {
 		// The resolver reported an empty address list. Treat it like an error by
 		// calling b.ResolverError.
+		if b.subConn != nil {
+			// Remove the old subConn. All addresses were removed, so it is no longer
+			// valid.
+			b.cc.RemoveSubConn(b.subConn)
+			b.subConn = nil
+		}
 		b.ResolverError(errors.New("produced zero addresses"))
 		return balancer.ErrBadResolverState
 	}
 
-	// Unlike the pick_first balancer, always tear down existing subConn
 	if b.subConn != nil {
-		b.cc.RemoveSubConn(b.subConn)
-		b.subConn = nil
+		b.cc.UpdateAddresses(b.subConn, state.ResolverState.Addresses)
+		return nil
 	}
 
 	subConn, err := b.cc.NewSubConn(state.ResolverState.Addresses, balancer.NewSubConnOptions{})
@@ -176,8 +179,4 @@ type idlePicker struct {
 func (i *idlePicker) Pick(balancer.PickInfo) (balancer.PickResult, error) {
 	i.subConn.Connect()
 	return balancer.PickResult{}, balancer.ErrNoSubConnAvailable
-}
-
-func init() {
-	balancer.Register(newPickFirstBuilder())
 }

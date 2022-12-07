@@ -136,7 +136,7 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
 		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
-		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"custom"}`),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"pick_first_custom"}`),
 		// Keep alive parameters are based on the same default ones we used for
 		// Yamux. These are somewhat arbitrary but we did observe in scale testing
 		// that the gRPC defaults (servers send keepalives only every 2 hours,
