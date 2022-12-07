@@ -18,9 +18,6 @@ type IngressGatewayConfigEntry struct {
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
-	// Tracing defines the tracing behavior for the listener.
-	Tracing string `json:",omitempty" alias:"tracing"`
-
 	// TLS holds the TLS configuration for this gateway.
 	TLS GatewayTLSConfig
 
@@ -32,6 +29,9 @@ type IngressGatewayConfigEntry struct {
 
 	// Defaults is default configuration for all upstream services
 	Defaults *IngressServiceConfig `json:",omitempty"`
+
+	// Tracing defines the tracing behavior for the listener.
+	Tracing *IngressTracingConfig `json:",omitempty" alias:"tracing"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
@@ -51,9 +51,9 @@ type IngressServiceConfig struct {
 
 // IngressTracingConfig holds tracing configuration values. They are pointers because 0 is a valid value.
 type IngressTracingConfig struct {
-	ClientSampling  *float64 `alias:"client_sampling"`
-	RandomSampling  *float64 `alias:"random_sampling"`
-	OverallSampling *float64 `alias:"overall_sampling"`
+	ClientSampling  *float64 `json:",omitempty" alias:"client_sampling"`
+	RandomSampling  *float64 `json:",omitempty" alias:"random_sampling"`
+	OverallSampling *float64 `json:",omitempty" alias:"overall_sampling"`
 }
 
 type GatewayTLSConfig struct {

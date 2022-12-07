@@ -10,7 +10,7 @@ config_entries {
   bootstrap {
     kind               = "ingress-gateway"
     name               = "ingress-gateway-all-0"
-    tracing {
+    tracing = {
       client_sampling = 100.0
       random_sampling = 100.0
       overall_sampling = 100.0
@@ -30,7 +30,7 @@ config_entries {
   bootstrap {
     kind               = "ingress-gateway"
     name               = "ingress-gateway-client-100"
-    tracing {
+    tracing = {
       client_sampling = 100.0
       random_sampling = 0.0
       overall_sampling = 100.0
@@ -50,7 +50,7 @@ config_entries {
   bootstrap {
     kind               = "ingress-gateway"
     name               = "ingress-gateway-overall-0"
-    tracing {
+    tracing = {
       client_sampling = 100.0
       random_sampling = 100.0
       overall_sampling = 0.0
@@ -70,7 +70,7 @@ config_entries {
   bootstrap {
     kind               = "ingress-gateway"
     name               = "ingress-gateway-overall-100"
-    tracing {
+    tracing = {
       client_sampling = 0.0
       random_sampling = 0.0
       overall_sampling = 100.0

@@ -76,14 +76,17 @@ function assert_trace_count {
 
   assert_trace_count localhost:9990 0
 
- # send with trace header, should not create a trace
-  run curl -s -f -H "x-client-trace-id:foo" localhost:9990
+  # send with trace header, should not create a trace
+  run curl -s -f -H "x-client-trace-id:aabbcc" localhost:9990
   [ "$status" -eq 0 ]
 
   assert_trace_count localhost:9990 0
 }
 
 @test "client sampling set to 100% should send traces to zipkin/jaeger conditionally" {
+
+  sleep 9999
+
   assert_trace_count localhost:9991 0
 
   run curl -s -f localhost:9991
@@ -110,7 +113,7 @@ function assert_trace_count {
   run curl -s -f -H "x-client-trace-id:baz" localhost:9992
   [ "$status" -eq 0 ]
 
-  assert_trace_count localhost:9991 0
+  assert_trace_count localhost:9992 0
 }
 
 @test "only overall sampling set to 100% should send not traces to zipkin/jaeger" {
