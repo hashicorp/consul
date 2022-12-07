@@ -14,7 +14,7 @@ The agentless flow relies on [configentry.MergeNodeServiceWithCentralConfig](htt
 This merge does not directly update the proxy registration in the catalog. The merged proxy registration is passed to the consuming `proxycfg` package.
 
 ### Agentful
-The [agent.ServiceManager](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/service_manager.go#LL18) is responsible for ensuring that central configuration is merged down into proxy registrations on **client agents**.  Any time a proxy is registered, the service manager will set up a watch through the agent cache to fetch the central configuration.
+The [agent.ServiceManager](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/service_manager.go#LL18) is responsible for ensuring that central configuration is merged down into proxy registrations on **client agents**.  Any time a proxy is registered or updated, the service manager will set up a watch through the agent cache to fetch the central configuration.
 
 When the central configuration is fetched, the configuration is merged and persisted to the agent state in [serviceConfigWatch.handleUpdate](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/service_manager.go#L256).
 
