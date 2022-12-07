@@ -92,10 +92,10 @@ Consul client agents will attempt to retrieve the license from servers if certai
 
 - ACLs are enabled.
 - An ACL token is provided to the client agent.
-- The client agents configuration contains `start_join/retry_join` addresses.
-- The start/retry join addresses are addresses of the Consul servers.
+- The client agents configuration contains `retry_join` addresses.
+- The retry join addresses are addresses of the Consul servers.
 
-Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `start_join/retry_join` addresses, the start/retry join addresses are addresses of the Consul servers.
+Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `retry_join` addresses, the retry join addresses are addresses of the Consul servers.
 
 ## Q: Where can users get a trial license for Consul Enterprise?
 
