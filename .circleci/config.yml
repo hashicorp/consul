@@ -21,7 +21,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.18.1
+    GO_VERSION: 1.18.9
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.20.7"
     - "1.21.5"
@@ -39,7 +39,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.9
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
@@ -134,8 +134,6 @@ commands:
     steps:
       - attach_workspace:
           at: /home/circleci/go/bin
-      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
-      - run: sudo service rsyslog start
       - run: go mod download
       - run:
           name: go test
@@ -208,6 +206,8 @@ jobs:
       - checkout
       - run: go env
       - run:
+          environment: 
+           GOARCH: ""
           name: Install golangci-lint
           command: make lint-tools
       - run: go mod download
