@@ -276,7 +276,7 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	// set up a watch for them.
 	if mgwMode == structs.MeshGatewayModeLocal {
 		up := &handlerUpstreams{handlerState: s.handlerState}
-		up.setupWatchForLocalGWEndpoints(ctx, snapConnectProxy)
+		up.setupWatchForLocalGWEndpoints(ctx, &snapConnectProxy.ConfigSnapshotUpstreams)
 	} else if mgwMode == structs.MeshGatewayModeNone {
 		s.logger.Warn(fmt.Sprintf("invalid mesh gateway mode 'none', defaulting to 'remote' for %q", uid))
 	}
