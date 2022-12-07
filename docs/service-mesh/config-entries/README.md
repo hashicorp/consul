@@ -22,7 +22,7 @@ The diagram below shows how various resources are scoped:
 
 ![World of Data](./world-of-data.png)
 
-For sidecar proxies the fundamental config entries are [service-defaults] and [proxy-defaults]. These config entries can be thought of as default values for proxy or gateway service registrations. Their data gets merged into proxy service registrations themselves.
+For sidecar proxies the fundamental config entries are [service-defaults](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults) and [proxy-defaults](https://developer.hashicorp.com/consul/docs/connect/config-entries/proxy-defaults). These config entries can be thought of as default values for proxy or gateway service registrations. Their data gets merged into proxy service registrations themselves.
 
 As defaults, their data is of lower precedence compared to data stored in proxy registrations. In Consul, data present in individual proxy registrations **always** has a higher precedence than the equivalent stored in a configuration entry.
 

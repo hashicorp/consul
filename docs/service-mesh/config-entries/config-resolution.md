@@ -9,14 +9,14 @@ Any time the centralized defaults are updated, internal watches will fire and th
 * Agentless: `/v1/health/connect/:service_name?merge-central-config`
 
 ### Agentless
-The agentless flow relies on `configentry.MergeNodeServiceWithCentralConfig` to merge default configuration. This helper is called both when bootstrapping a new dataplane proxy and when an Envoy proxy first dials the `xds` server on a Consul server.
+The agentless flow relies on [configentry.MergeNodeServiceWithCentralConfig](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/configentry/merge_service_config.go) to merge default configuration. This helper is called both when bootstrapping a new dataplane proxy and when an Envoy proxy first dials the `xds` server on a Consul server.
 
 This merge does not directly update the proxy registration in the catalog. The merged proxy registration is passed to the consuming `proxycfg` package.
 
 ### Agentful
-The `agent.ServiceManager` is responsible for ensuring that central configuration is merged down into proxy registrations on **client agents**.  Any time a proxy is registered, the service manager will set up a watch through the agent cache to fetch the central configuration.
+The [agent.ServiceManager](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/service_manager.go#LL18) is responsible for ensuring that central configuration is merged down into proxy registrations on **client agents**.  Any time a proxy is registered, the service manager will set up a watch through the agent cache to fetch the central configuration.
 
-When the central configuration is fetched, the configuration is merged and persisted to the agent state in `serviceConfigWatch.handleUpdate`.
+When the central configuration is fetched, the configuration is merged and persisted to the agent state in [serviceConfigWatch.handleUpdate](https://github.com/hashicorp/consul/blob/0402fd23a349513d3e8d137ddbffcdefcc89838b/agent/service_manager.go#L256).
 
 ## Consuming Central Config
 Once centralized defaults have been merged into service registrations, the data becomes available to consume by the `proxycfg` package. This package assembles the necessary Consul data to generate Envoy configuration for a given proxy.
