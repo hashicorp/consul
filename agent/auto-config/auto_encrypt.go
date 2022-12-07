@@ -84,8 +84,8 @@ func (ac *AutoConfig) joinHosts() ([]string, error) {
 
 	var addrs []string
 
-	// The addresses we use for auto-encrypt are the retry join and start join
-	// addresses. These are for joining serf and therefore we cannot rely on the
+	// The addresses we use for auto-encrypt are the retry join addresses.
+	// These are for joining serf and therefore we cannot rely on the
 	// ports for these. This loop strips any port that may have been specified and
 	// will let subsequent resolveAddr calls add on the default RPC port.
 	for _, addr := range hosts {
