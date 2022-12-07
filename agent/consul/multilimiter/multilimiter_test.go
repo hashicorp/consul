@@ -99,21 +99,6 @@ func TestRateLimiterCleanup(t *testing.T) {
 	l, ok = limiters.Get(key)
 	require.False(t, ok)
 	require.Nil(t, l)
-
-	// Stop the cleanup routine, check that a key is not cleaned up after > ReconcileCheckInterval
-	cancel()
-
-	m.Allow(Limited{key: key})
-
-	storeLimiter(m)
-	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
-		l := m.limiters.Load()
-		require.NotEqual(r, limiters, l)
-		limiters = l
-	})
-	l, ok = limiters.Get(key)
-	require.True(t, ok)
-	require.NotNil(t, l)
 }
 
 func storeLimiter(m *MultiLimiter) {
