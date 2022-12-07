@@ -5,6 +5,7 @@ import (
 	"context"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"golang.org/x/time/rate"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -28,12 +29,21 @@ type RateLimiter interface {
 	UpdateConfig(c LimiterConfig, prefix []byte)
 }
 
+type limiterWithKey struct {
+	l *Limiter
+	k []byte
+	t time.Time
+}
+
 // MultiLimiter implement RateLimiter interface and represent a set of rate limiters
 // specific to different LimitedEntities and queried by a LimitedEntities.Key()
 type MultiLimiter struct {
 	limiters        *atomic.Pointer[radix.Tree]
 	limitersConfigs *atomic.Pointer[radix.Tree]
 	defaultConfig   *atomic.Pointer[Config]
+	limiterCh       chan *limiterWithKey
+	configsLock     sync.Mutex
+	once            sync.Once
 }
 
 type KeyType = []byte
@@ -66,6 +76,8 @@ type Config struct {
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
+	m.configsLock.Lock()
+	defer m.configsLock.Unlock()
 	if prefix == nil {
 		prefix = []byte("")
 	}
@@ -88,26 +100,44 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 	if c.ReconcileCheckInterval == 0 {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs}
+	chLimiter := make(chan *limiterWithKey, 100)
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter}
+
 	return m
 }
 
 // Run the cleanup routine to remove old entries of Limiters based on ReconcileCheckLimit and ReconcileCheckInterval.
 func (m *MultiLimiter) Run(ctx context.Context) {
-	go func() {
-		waiter := time.NewTimer(0)
-		for {
-			c := m.defaultConfig.Load()
-			waiter.Reset(c.ReconcileCheckInterval)
-			select {
-			case <-ctx.Done():
-				waiter.Stop()
-				return
-			case now := <-waiter.C:
-				m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
+	m.once.Do(func() {
+		go func() {
+			writeTimeout := 10 * time.Millisecond
+			limiters := m.limiters.Load()
+			txn := limiters.Txn()
+			waiter := time.NewTicker(writeTimeout)
+			wt := tickerWrapper{ticker: waiter}
+			defer waiter.Stop()
+			for {
+				if txn = m.runStoreOnce(ctx, wt, txn); txn == nil {
+					return
+				}
 			}
-		}
-	}()
+		}()
+		go func() {
+			waiter := time.NewTimer(0)
+			for {
+				c := m.defaultConfig.Load()
+				waiter.Reset(c.ReconcileCheckInterval)
+				select {
+				case <-ctx.Done():
+					waiter.Stop()
+					return
+				case now := <-waiter.C:
+					m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
+				}
+			}
+		}()
+	})
+
 }
 
 // todo: split without converting to a string
@@ -126,12 +156,12 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
-	now := time.Now().Unix()
-
+	now := time.Now()
+	unixNow := time.Now().UnixMilli()
 	if ok {
 		limiter := l.(*Limiter)
 		if limiter.limiter != nil {
-			limiter.lastAccess.Store(now)
+			limiter.lastAccess.Store(unixNow)
 			return limiter.limiter.Allow()
 		}
 	}
@@ -145,12 +175,45 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 			config = prefixConfig
 		}
 	}
-
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
-	limiter.lastAccess.Store(now)
-	tree, _, _ := limiters.Insert(e.Key(), limiter)
-	m.limiters.Store(tree)
+	limiter.lastAccess.Store(unixNow)
+	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
+}
+
+type ticker interface {
+	Ticker() <-chan time.Time
+}
+
+type tickerWrapper struct {
+	ticker *time.Ticker
+}
+
+func (t tickerWrapper) Ticker() <-chan time.Time {
+	return t.ticker.C
+}
+
+func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *radix.Txn) *radix.Txn {
+	select {
+	case <-waiter.Ticker():
+		tree := txn.Commit()
+		m.limiters.Store(tree)
+		txn = tree.Txn()
+
+	case lk := <-m.limiterCh:
+		v, ok := txn.Get(lk.k)
+		if !ok {
+			txn.Insert(lk.k, lk.l)
+		} else {
+			if l, ok := v.(*Limiter); ok {
+				l.lastAccess.Store(lk.t.Unix())
+				l.limiter.AllowN(lk.t, 1)
+			}
+		}
+	case <-ctx.Done():
+		return nil
+	}
+	return txn
 }
 
 // reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
@@ -165,11 +228,10 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 	txn = limiters.Txn()
 	// remove all expired limiters
 	for ok {
-		switch t := v.(type) {
-		case *Limiter:
+		if t, ok := v.(*Limiter); ok {
 			if t.limiter != nil {
 				lastAccess := t.lastAccess.Load()
-				lastAccessT := time.Unix(lastAccess, 0)
+				lastAccessT := time.UnixMilli(lastAccess)
 				diff := now.Sub(lastAccessT)
 
 				if diff > reconcileCheckLimit {
@@ -184,8 +246,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 
 	// make sure all limiters have the latest defaultConfig of their prefix
 	for ok {
-		switch pl := v.(type) {
-		case *Limiter:
+		if pl, ok := v.(*Limiter); ok {
 			// check if it has a limiter, if so that's a lead
 			if pl.limiter != nil {
 				// find the prefix for the leaf and check if the defaultConfig is up-to-date
@@ -193,8 +254,7 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 				prefix, _ := splitKey(k)
 				v, ok := m.limitersConfigs.Load().Get(prefix)
 				if ok {
-					switch cl := v.(type) {
-					case *LimiterConfig:
+					if cl, ok := v.(*LimiterConfig); ok {
 						if cl != nil {
 							if !cl.isApplied(pl.limiter) {
 								limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
