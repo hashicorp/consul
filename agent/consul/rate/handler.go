@@ -61,14 +61,15 @@ var modeToName = map[Mode]string{
 	ModeEnforcing:  "enforcing",
 	ModePermissive: "permissive",
 }
-var modeFromName = map[string]Mode{
-	"disabled":   ModeDisabled,
-	"enforcing":  ModeEnforcing,
-	"permissive": ModePermissive,
-	// If the value is not found in the persisted config file, then use the
-	// disabled default.
-	"": ModeDisabled,
-}
+var modeFromName = func() map[string]Mode {
+	vals := map[string]Mode{
+		"": ModeDisabled,
+	}
+	for k, v := range modeToName {
+		vals[v] = k
+	}
+	return vals
+}()
 
 func (m Mode) String() string {
 	return modeToName[m]
