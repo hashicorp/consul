@@ -206,6 +206,8 @@ jobs:
       - checkout
       - run: go env
       - run:
+          environment: 
+           GOARCH: ""
           name: Install golangci-lint
           command: make lint-tools
       - run: go mod download
