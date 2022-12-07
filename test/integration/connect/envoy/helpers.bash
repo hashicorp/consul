@@ -933,7 +933,11 @@ function create_peering {
   sleep 1
   run curl -s -f "http://consul-${GENERATE_PEER}-client:8500/v1/peering/${GENERATE_PEER}-to-${ESTABLISH_PEER}"
   state="$(echo "$output" | jq --raw-output .State)"
-  [ "$state" == "ACTIVE" ]
+
+  if [ "$state" != "ACTIVE" ]; then
+    echo "fail to peering: $output"
+    return 1
+  fi
 }
 
 function assert_service_has_imported {
