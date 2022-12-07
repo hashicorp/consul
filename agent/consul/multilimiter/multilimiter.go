@@ -101,7 +101,7 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 		c.ReconcileCheckLimit = 1 * time.Second
 	}
 	chLimiter := make(chan *limiterWithKey, 100)
-	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter, configsLock: sync.Mutex{}, once: sync.Once{}}
+	m := &MultiLimiter{limiters: &limiters, defaultConfig: &config, limitersConfigs: &configs, limiterCh: chLimiter}
 
 	return m
 }

@@ -115,17 +115,11 @@ func TestRateLimiterCleanup(t *testing.T) {
 }
 
 func storeLimiter(m *MultiLimiter, txn *radix.Txn) {
-	mockTicker := mockTicker{tickerCh: make(chan time.Time)}
+	mockTicker := mockTicker{tickerCh: make(chan time.Time, 1)}
 	ctx := context.Background()
 	m.runStoreOnce(ctx, &mockTicker, txn)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		mockTicker.tickerCh <- time.Now()
-		wg.Done()
-	}()
+	mockTicker.tickerCh <- time.Now()
 	m.runStoreOnce(ctx, &mockTicker, txn)
-	wg.Wait()
 }
 
 func TestRateLimiterStore(t *testing.T) {
@@ -163,7 +157,7 @@ func TestRateLimiterStore(t *testing.T) {
 		}
 	})
 	t.Run("runStore store multiple Limiters", func(t *testing.T) {
-		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 10 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 10 * time.Second, ReconcileCheckInterval: 10 * time.Millisecond}
 		m := NewMultiLimiter(c)
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		m.Run(context.Background())
