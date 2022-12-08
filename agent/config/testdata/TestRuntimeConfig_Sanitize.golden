@@ -278,7 +278,7 @@
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
-    "RequestLimitsMode": "",
+    "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,
     "RequestLimitsWriteRate": 0,
     "RetryJoinIntervalLAN": "0s",

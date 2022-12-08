@@ -521,7 +521,7 @@ func DefaultConfig() *Config {
 
 		CheckOutputMaxSize: checks.DefaultBufSize,
 
-		RequestLimitsMode:      "permissive",
+		RequestLimitsMode:      "disabled",
 		RequestLimitsReadRate:  rate.Inf, // ops / sec
 		RequestLimitsWriteRate: rate.Inf, // ops / sec
 
