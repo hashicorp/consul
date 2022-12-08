@@ -848,7 +848,6 @@ func (a *Agent) listenAndServeGRPC() error {
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
-		a.config.ConnectServerlessPluginEnabled,
 		cfg,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)

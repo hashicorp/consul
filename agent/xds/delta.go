@@ -251,11 +251,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if s.serverlessPluginEnabled {
-				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-				if err != nil {
-					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
-				}
+			newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
+			if err != nil {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
 			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {

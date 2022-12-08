@@ -494,12 +494,6 @@ type RuntimeConfig struct {
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
 
-	// ConnectServerlessPluginEnabled opts the agent into the serverless plugin.
-	// This plugin allows services to be configured as AWS Lambdas. After the
-	// Lambda service is configured, Connect services can invoke the Lambda
-	// service like any other upstream.
-	ConnectServerlessPluginEnabled bool
-
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
 	// specified.
