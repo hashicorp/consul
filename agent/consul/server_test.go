@@ -860,7 +860,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s1.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	// Wait for it to make it into the gateway locator.
@@ -915,7 +915,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s2.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s2.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 	{
 		arg := structs.RegisterRequest{
@@ -932,7 +932,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s3.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s3.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	// Wait for it to make it into the gateway locator in dc2 and then for
@@ -986,7 +986,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 					Datacenter: dstDC,
 				}
 				var out structs.IndexedNodes
-				require.NoError(t, srv.RPC("Catalog.ListNodes", &arg, &out))
+				require.NoError(t, srv.RPC(context.Background(), "Catalog.ListNodes", &arg, &out))
 				require.Len(t, out.Nodes, 1)
 				node := out.Nodes[0]
 				require.Equal(t, dstDC, node.Datacenter)
@@ -1193,7 +1193,7 @@ func TestServer_RPC(t *testing.T) {
 	defer s1.Shutdown()
 
 	var out struct{}
-	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1246,7 +1246,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		t.Cleanup(func() { s1.Shutdown() })
 
 		var out struct{}
-		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1287,7 +1287,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := s2.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s2.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1396,7 +1396,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	// asserts
 	t.Run("test happy path for metrics interceptor", func(t *testing.T) {
 		var out struct{}
-		if err := s.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1990,7 +1990,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
+		if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
 			r.Fatalf("err: %v", err)
 		}
 	})

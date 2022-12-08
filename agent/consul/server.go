@@ -1535,7 +1535,7 @@ func (s *Server) internalRPC(codec *inmemCodec) error {
 }
 
 // RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	codec := &inmemCodec{
 		method: method,
 		args:   args,

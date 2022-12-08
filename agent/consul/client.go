@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -262,7 +263,7 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
-func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
 	// right at the time of the first request, vs. on the first retry as
 	// is done on the server side inside forward(). This is because the
@@ -322,9 +323,9 @@ TRY:
 }
 
 // RPCForIngressHTTP and the passed in remoteAddr are only relevant in the context of a consul server agent.
-// This function exists to satisfy the agent.delegate interface and simply forwards the request to client.RPC()
+// This function exists to satisfy the agent.delegate interface and simply forwards the request to client.RPC(context.Background(), )
 func (c *Client) RPCForIngressHTTP(method string, args interface{}, reply interface{}, remoteAddr string) error {
-	return c.RPC(method, args, reply)
+	return c.RPC(context.Background(), method, args, reply)
 }
 
 // SnapshotRPC sends the snapshot request to one of the servers, reading from

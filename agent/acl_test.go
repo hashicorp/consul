@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -144,7 +145,7 @@ func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n i
 func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *TestACLAgent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	return fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error {

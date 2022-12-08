@@ -188,7 +188,7 @@ type delegate interface {
 	// default partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 
 	// Preferred way to internally invoke RPCs tied in an incoming HTTP request.
 	// For server agents, this call may be subject to rate limiting based on sourceAddr.
@@ -1559,9 +1559,9 @@ func (a *Agent) translateMethodWhenOverrides(method string) string {
 
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
-func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	method = a.translateMethodWhenOverrides(method)
-	return a.delegate.RPC(method, args, reply)
+	return a.delegate.RPC(context.Background(), method, args, reply)
 }
 
 // RPC specifically for HTTP handlers.
@@ -1955,7 +1955,7 @@ OUTER:
 				var reply struct{}
 				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
 				// todo(kit) handle acl.ErrNotFound cases here in the future
-				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
+				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
 						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
