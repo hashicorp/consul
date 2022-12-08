@@ -1689,7 +1689,9 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
-	s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits))
+	if config.RequestLimits != nil {
+		s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits))
+	}
 
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
