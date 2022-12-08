@@ -6064,7 +6064,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
-		ConnectServerlessPluginEnabled:         true,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",
 			ClientID:     "6WvsDZCP",
