@@ -190,10 +190,6 @@ type delegate interface {
 
 	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 
-	// Preferred way to internally invoke RPCs tied in an incoming HTTP request.
-	// For server agents, this call may be subject to rate limiting based on sourceAddr.
-	RPCForIngressHTTP(method string, args interface{}, reply interface{}, sourceAddr string) error
-
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -1542,32 +1538,19 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 	return srv.RegisterEndpoint(realname, handler)
 }
 
-// Common to RPC() and RPCForIngressHTTP()
-func (a *Agent) translateMethodWhenOverrides(method string) string {
-	a.endpointsLock.RLock()
-	// fast path: only translate if there are overrides
-	result := method
-	if len(a.endpoints) > 0 {
-		p := strings.SplitN(method, ".", 2)
-		if e := a.endpoints[p[0]]; e != "" {
-			result = e + "." + p[1]
-		}
-	}
-	a.endpointsLock.RUnlock()
-	return result
-}
-
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
 func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
-	method = a.translateMethodWhenOverrides(method)
-	return a.delegate.RPC(context.Background(), method, args, reply)
-}
-
-// RPC specifically for HTTP handlers.
-func (a *Agent) RPCForIngressHTTP(method string, args interface{}, reply interface{}, remoteAddr string) error {
-	method = a.translateMethodWhenOverrides(method)
-	return a.delegate.RPCForIngressHTTP(method, args, reply, remoteAddr)
+	a.endpointsLock.RLock()
+	// fast path: only translate if there are overrides
+	if len(a.endpoints) > 0 {
+		p := strings.SplitN(method, ".", 2)
+		if e := a.endpoints[p[0]]; e != "" {
+			method = e + "." + p[1]
+		}
+	}
+	a.endpointsLock.RUnlock()
+	return a.delegate.RPC(ctx, method, args, reply)
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
