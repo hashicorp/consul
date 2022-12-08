@@ -632,6 +632,10 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
+	if len(policies) > 0 && len(filtered) == 0 {
+		r.logger.Warn("ACL token used lacks permissions in this datacenter: its associated ACL policies, service identities, and/or node identities are scoped to other datacenters", "accessor_id", identity.ID(), "datacenter", r.config.Datacenter)
+	}
+
 	return filtered, nil
 }
 

@@ -766,6 +766,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 				require.True(t, snap.ConnectProxy.MeshConfigSet)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
@@ -799,6 +805,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
