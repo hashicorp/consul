@@ -153,6 +153,18 @@ type configSnapshotConnectProxy struct {
 
 	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
 	DestinationGateways  watch.Map[UpstreamID, structs.CheckServiceNodes]
+
+	// TODO Remove this field with a proper solution later.
+	// UpstreamServiceDefaults is currently required because the streaming backend
+	// does not support merging service / proxy defaults via the `MergeCentralConfig`
+	// field. Since agentless (consul dataplane) will always use the streaming backend,
+	// it means we have to fetch this data whenever transparent proxy is used
+	// so that we can see the DialedDirectly config on upstreams.
+	UpstreamServiceDefaults watch.Map[UpstreamID, *structs.ServiceConfigEntry]
+	// TODO Remove this field with a proper solution later.
+	// ProxyDefaults is required due to the same reasons as UpstreamServiceDefaults.
+	ProxyDefaults       *structs.ProxyConfigEntry
+	ProxyDefaultsCancel context.CancelFunc
 }
 
 // isEmpty is a test helper
