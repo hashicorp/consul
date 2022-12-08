@@ -474,18 +474,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
 	if s.incomingRPCLimiter == nil {
-		s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
-			Config:     multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
-			GlobalMode: rpcRate.Mode(config.RequestLimitsMode),
-			GlobalReadConfig: multilimiter.LimiterConfig{
-				Rate:  config.RequestLimitsReadRate,
-				Burst: int(config.RequestLimitsReadRate) * requestLimitsBurstMultiplier,
-			},
-			GlobalWriteConfig: multilimiter.LimiterConfig{
-				Rate:  config.RequestLimitsWriteRate,
-				Burst: int(config.RequestLimitsWriteRate) * requestLimitsBurstMultiplier,
-			},
-		}, s)
+		limitsConfig := &RequestLimits{
+			Config:    multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
+			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
+			ReadRate:  config.RequestLimitsReadRate,
+			WriteRate: config.RequestLimitsWriteRate,
+		}
+
+		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig), s)
 	}
 	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -1693,17 +1689,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
-	s.incomingRPCLimiter.UpdateConfig(rpcRate.HandlerConfig{
-		GlobalMode: config.RequestLimits.Mode,
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimits.ReadRate,
-			Burst: int(config.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  config.RequestLimits.WriteRate,
-			Burst: int(config.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
-		},
-	})
+	s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits))
 
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
