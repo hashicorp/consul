@@ -1047,8 +1047,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
 		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
-		RequestLimitsReadRate:             rate.Limit(float64Val(c.Limits.RequestLimits.ReadRate)),
-		RequestLimitsWriteRate:            rate.Limit(float64Val(c.Limits.RequestLimits.WriteRate)),
+		RequestLimitsReadRate:             limitVal(c.Limits.RequestLimits.ReadRate),
+		RequestLimitsWriteRate:            limitVal(c.Limits.RequestLimits.WriteRate),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -2008,6 +2008,15 @@ func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 
 func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
+}
+
+func limitVal(v *float64) rate.Limit {
+	f := float64Val(v)
+	if f < 0 {
+		return rate.Inf
+	}
+
+	return rate.Limit(f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {

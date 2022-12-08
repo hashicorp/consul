@@ -721,7 +721,7 @@ type RequestLimits struct {
 type Limits struct {
 	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
 	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
-	RequestLimits         RequestLimits `mapstructure:"request_limits" json:"-"`
+	RequestLimits         RequestLimits `mapstructure:"request_limits"`
 	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
 	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
 	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
