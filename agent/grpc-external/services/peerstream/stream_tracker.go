@@ -156,7 +156,7 @@ func (t *Tracker) IsHealthy(s Status) bool {
 	// If last Nack is after last Ack, it means the peer is unable to
 	// handle our replication message
 	if s.LastAck == nil {
-		s.LastAck = &time.Time{}
+		s.LastAck = nil
 	}
 
 	if s.LastNack != nil &&
@@ -168,7 +168,7 @@ func (t *Tracker) IsHealthy(s Status) bool {
 	// If last recv error is newer than last recv success, we were unable
 	// to handle the peer's replication message.
 	if s.LastRecvResourceSuccess == nil {
-		s.LastRecvResourceSuccess = &time.Time{}
+		s.LastRecvResourceSuccess = nil
 	}
 
 	if s.LastRecvError != nil &&
@@ -321,7 +321,7 @@ func (s *MutableStatus) TrackNack(msg string) {
 func (s *MutableStatus) TrackConnected() {
 	s.mu.Lock()
 	s.Connected = true
-	s.DisconnectTime = &time.Time{}
+	s.DisconnectTime = nil
 	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }

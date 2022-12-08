@@ -52,7 +52,7 @@ func NewMockClient(ctx context.Context) *MockClient {
 }
 
 // DrainStream reads messages from the stream until both the exported service list and
-// trust bundle messages have been read. We do this because their ording is indeterministic.
+// trust bundle messages have been read. We do this because their ordering is indeterministic.
 func (c *MockClient) DrainStream(t *testing.T) {
 	seen := make(map[string]struct{})
 	for len(seen) < 2 {

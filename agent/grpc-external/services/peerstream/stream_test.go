@@ -1215,8 +1215,10 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
 
+	const heartbeatTimeout = 50 * time.Millisecond
+
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 50 * time.Millisecond
+		c.incomingHeartbeatTimeout = heartbeatTimeout
 	})
 	srv.Tracker.setClock(it.Now)
 
@@ -1230,22 +1232,32 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	client.DrainStream(t)
 
+	var lastAck time.Time
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
+			require.NotNil(r, status.LastAck)
+			lastAck = *status.LastAck
 		})
 	})
 
+	time.Sleep(heartbeatTimeout)
+
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := ptr(it.FutureNow(1))
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
 			require.Equal(r, "heartbeat timeout", status.DisconnectErrorMessage)
-			require.Equal(r, disconnectTime, status.DisconnectTime)
+
+			require.NotNil(r, status.DisconnectTime)
+
+			require.True(r, status.DisconnectTime.After(lastAck),
+				"disconnect time %v should be after last ack time %v",
+				*status.DisconnectTime, lastAck,
+			)
 		})
 	})
 }
