@@ -76,9 +76,11 @@ Usage: `consul acl token create [options] [args]`
 
 ## Examples
 
-The following examples describe the creation of ACL tokens for common scenarios.
+The following examples describe how to create ACL tokens for common scenarios.
 
 ### Create a token with policy by name
+
+The following example creates a token that includes a policy by its name.
 
 ```shell-session
 $ consul acl token create -description "Read Nodes and Services" -policy-name node-services-read
@@ -110,7 +112,10 @@ Service Identities:
    my-api (Datacenters: all)
 ```
 
-### Create a short-lived and highly privileged token
+### Create a temporary and highly-privileged token
+
+The following example creates a token with a lifetime of 15 minutes that
+includes the built-in [`global-management` policy](/consul/docs/security/acl/acl-policies#global-management).
 
 ```shell-session
 $ consul acl token create -description "Temp Super User" -policy-name global-management -expires-ttl '15m'
@@ -125,6 +130,9 @@ Policies:
 ```
 
 ### Create a local token with policy by ID
+
+The following example creates a token that is only valid in this datacenter
+and includes a policy by its UUID.
 
 ```shell-session
 $ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965 -local

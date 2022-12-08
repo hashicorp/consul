@@ -235,9 +235,7 @@ agent is using all-default configuration.
 
 In secure deployments, Consul's ACL system is enabled with a default `deny` policy.
 To access Consul API resources, an API request must present a Consul ACL token
-with the necessary privileges. A sidecar proxy must be provided with an ACL token
-with privileges to register itself and the service it fronts,
-and to access all potential upstreams of that service.
+with the necessary privileges. If ACLs are enabled, you must provide an ACL token to the sidecar proxy. The token must grant the proxy privileges to register itself and the service it fronts and to access all potential upstreams of that service.
 We recommend [using a service identity](/consul/commands/acl/token/create#create-a-token-for-a-service)
 to directly create a token with the privileges necessary for a service and its sidecar proxy,
 rather than creating a unique ACL policy for every service.
