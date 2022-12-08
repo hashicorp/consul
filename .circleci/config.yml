@@ -41,7 +41,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.17.12
+    GO_VERSION: 1.18.9
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -1053,24 +1053,24 @@ workflows:
       - go-test:
           requires: [ dev-build ]
       - go-test-lib:
-          name: "go-test-api go1.17"
-          path: api
-          go-version: "1.17"
-          requires: [ dev-build ]
-      - go-test-lib:
           name: "go-test-api go1.18"
           path: api
           go-version: "1.18"
           requires: [ dev-build ]
       - go-test-lib:
-          name: "go-test-sdk go1.17"
-          path: sdk
-          go-version: "1.17"
-          <<: *filter-ignore-non-go-branches
+          name: "go-test-api go1.19"
+          path: api
+          go-version: "1.19"
+          requires: [ dev-build ]
       - go-test-lib:
           name: "go-test-sdk go1.18"
           path: sdk
           go-version: "1.18"
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.19"
+          path: sdk
+          go-version: "1.19"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
