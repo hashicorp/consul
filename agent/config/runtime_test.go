@@ -20,6 +20,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
@@ -4617,8 +4618,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
 			rt.RequestLimitsMode = consulrate.ModeDisabled
-			rt.RequestLimitsReadRate = -1
-			rt.RequestLimitsWriteRate = -1
+			rt.RequestLimitsReadRate = rate.Inf
+			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
 		},
