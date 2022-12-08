@@ -3,9 +3,9 @@ package serverlessplugin
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -50,21 +50,16 @@ func TestMakeLambdaPatcher(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := xdscommon.ServiceConfig{
-				Kind: kind,
-				EnvoyExtensions: []api.EnvoyExtension{
-					{
-						Name: "builtin/aws/lambda",
-						Arguments: map[string]interface{}{
-							"ARN":                tc.arn,
-							"Region":             tc.region,
-							"PayloadPassthrough": tc.payloadPassthrough,
-						},
-					},
+			ext := api.EnvoyExtension{
+				Name: structs.BuiltinAWSLambdaExtension,
+				Arguments: map[string]interface{}{
+					"ARN":                tc.arn,
+					"Region":             tc.region,
+					"PayloadPassthrough": tc.payloadPassthrough,
 				},
 			}
 
-			patcher, ok := makeLambdaPatcher(config)
+			patcher, ok := makeLambdaPatcher(ext, kind)
 
 			require.Equal(t, tc.ok, ok)
 

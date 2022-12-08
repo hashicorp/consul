@@ -56,6 +56,10 @@ var AllConfigEntryKinds = []string{
 	ExportedServices,
 }
 
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+)
+
 // ConfigEntry is the interface for centralized configuration stored in Raft.
 // Currently only service-defaults and proxy-defaults are supported.
 type ConfigEntry interface {
@@ -296,7 +300,7 @@ type EnvoyExtension struct {
 
 func builtInExtension(name string) bool {
 	extensions := map[string]struct{}{
-		"builtin/aws/lambda": {},
+		BuiltinAWSLambdaExtension: {},
 	}
 
 	_, ok := extensions[name]
