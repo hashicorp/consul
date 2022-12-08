@@ -13,6 +13,7 @@ enum Kind {
   KindIngressGateway = 3;
   KindServiceIntentions = 4;
   KindServiceDefaults = 5;
+  KindProxyDefaults = 6;
 }
 
 message ConfigEntry {
@@ -28,6 +29,7 @@ message ConfigEntry {
     IngressGateway IngressGateway = 7;
     ServiceIntentions ServiceIntentions = 8;
     ServiceDefaults ServiceDefaults = 9;
+    ProxyDefaults ProxyDefaults = 10;
   }
 }
 
@@ -431,6 +433,24 @@ message ServiceDefaults {
   int32 LocalRequestTimeoutMs = 11;
   string BalanceInboundConnections = 12;
   map<string, string> Meta = 13;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ProxyConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Config
+message ProxyDefaults {
+  // mog: func-to=proxyModeToStructs func-from=proxyModeFromStructs
+  ProxyMode Mode = 1;
+  TransparentProxyConfig TransparentProxy = 2;
+  MeshGatewayConfig MeshGateway = 3;
+  ExposeConfig Expose = 4;
+  map<string, string> Meta = 5;
+  // TODO the `Config` field cannot be mapped to protobuf format and will likely need to be json encoded.
+  // Make sure the `Config` field is removed from the mog exclusions above.
+	// Config map[string]interface{}
 }
 
 enum ProxyMode {

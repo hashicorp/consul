@@ -642,6 +642,44 @@ func PeeringMeshConfigFromStructs(t *structs.PeeringMeshConfig, s *PeeringMeshCo
 	}
 	s.PeerThroughMeshGateways = t.PeerThroughMeshGateways
 }
+func ProxyDefaultsToStructs(s *ProxyDefaults, t *structs.ProxyConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Mode = proxyModeToStructs(s.Mode)
+	if s.TransparentProxy != nil {
+		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
+	}
+	if s.MeshGateway != nil {
+		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
+	}
+	if s.Expose != nil {
+		ExposeConfigToStructs(s.Expose, &t.Expose)
+	}
+	t.Meta = s.Meta
+}
+func ProxyDefaultsFromStructs(t *structs.ProxyConfigEntry, s *ProxyDefaults) {
+	if s == nil {
+		return
+	}
+	s.Mode = proxyModeFromStructs(t.Mode)
+	{
+		var x TransparentProxyConfig
+		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
+		s.TransparentProxy = &x
+	}
+	{
+		var x MeshGatewayConfig
+		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
+		s.MeshGateway = &x
+	}
+	{
+		var x ExposeConfig
+		ExposeConfigFromStructs(&t.Expose, &x)
+		s.Expose = &x
+	}
+	s.Meta = t.Meta
+}
 func RingHashConfigToStructs(s *RingHashConfig, t *structs.RingHashConfig) {
 	if s == nil {
 		return

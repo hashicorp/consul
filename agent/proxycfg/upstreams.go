@@ -159,6 +159,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 				dialedDirectly = dialedDirectly || svcDef.TransparentProxy.DialedDirectly
 			}
 			hclog.Default().Error("----------------",
+				"sid", s.proxyID.ServiceID,
 				"svc", node.Service.Service,
 				"old-dd", node.Service.Proxy.TransparentProxy.DialedDirectly,
 				"new-dd", dialedDirectly,

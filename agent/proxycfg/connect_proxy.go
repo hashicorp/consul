@@ -605,7 +605,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		uid := UpstreamIDFromString(pq)
 		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
 		if !ok {
-			return fmt.Errorf("invalid type for service default: %T", resp.Entry.GetName())
+			return fmt.Errorf("invalid type for service default: %T %q", resp.Entry, u.CorrelationID)
 		}
 
 		snap.ConnectProxy.DestinationsUpstream.Set(uid, serviceConf)
@@ -642,11 +642,11 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 		pq := strings.TrimPrefix(u.CorrelationID, upstreamServiceDefaultID)
 		uid := UpstreamIDFromString(pq)
-		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
-		if !ok {
-			return fmt.Errorf("invalid type for service default: %T", resp.Entry.GetName())
+		serviceDef, ok := resp.Entry.(*structs.ServiceConfigEntry)
+		if !ok && serviceDef != nil {
+			return fmt.Errorf("invalid type for service default: %T %q", resp.Entry, u.CorrelationID)
 		}
-		snap.ConnectProxy.UpstreamServiceDefaults.Set(uid, serviceConf)
+		snap.ConnectProxy.UpstreamServiceDefaults.Set(uid, serviceDef)
 
 	case u.CorrelationID == proxyDefaultsID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
@@ -654,8 +654,8 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		proxyDefaults, ok := resp.Entry.(*structs.ProxyConfigEntry)
-		if !ok {
-			return fmt.Errorf("invalid type for proxy-defaults: %T", resp.Entry.GetName())
+		if !ok && proxyDefaults != nil {
+			return fmt.Errorf("invalid type for proxy-defaults")
 		}
 		snap.ConnectProxy.ProxyDefaults = proxyDefaults
 
