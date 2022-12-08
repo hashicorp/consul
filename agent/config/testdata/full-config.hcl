@@ -307,8 +307,8 @@ limits {
     txn_max_req_len = 567800000
     request_limits {
         mode = "permissive"
-        read_rate = 100.0
-        write_rate = 100.0
+        read_rate = 99.0
+        write_rate = 101.0
     }
 }
 log_level = "k1zo9Spt"
