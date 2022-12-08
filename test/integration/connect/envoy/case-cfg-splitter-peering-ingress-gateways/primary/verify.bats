@@ -73,4 +73,3 @@ load helpers
   retry_long assert_expected_fortio_name s2-alpha split.ingress.consul 10002
 }
 
-# sleep 9999

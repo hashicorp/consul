@@ -957,7 +957,7 @@ function assert_service_has_imported {
 
   echo "$output" | jq --raw-output '.StreamStatus.ImportedServices' | grep -e "${SERVICE_NAME}"
   if [ $? -ne 0 ]; then
-    echo "Error found serivce: ${SERVICE_NAME}"
+    echo "Error finding service: ${SERVICE_NAME}"
     return 1
   fi
 }
