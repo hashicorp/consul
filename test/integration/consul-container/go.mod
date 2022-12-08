@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/go-hclog v0.16.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
+	golang.org/x/net v0.4.0 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
 )
 
