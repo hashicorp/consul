@@ -51,12 +51,6 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
     $ brew install hashicorp/tap/consul-k8s
     ```
 
-1. If you have already provisioned a Kubernetes cluster and have already configured access to the cluster via a `kubeconfig` file, you are ready to install Consul K8s. Issue the `install` subcommand to install Consul on Kubernetes:
-
-    ```shell-session
-    $ consul-k8s install <OPTIONS>
-    ```
-
 1. (Optional) Issue the `consul-k8s version` command to verify the installation:
 
    ```shell-session
@@ -125,6 +119,13 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 </Tab>
 
 </Tabs>
+
+
+If you have already provisioned a Kubernetes cluster and have already configured access to the cluster via a `kubeconfig` file, you are ready to install Consul K8s. Issue the `install` subcommand to install Consul on Kubernetes:
+
+    ```shell-session
+    $ consul-k8s install <OPTIONS>
+    ```
 
 ### Install a previous version
 
