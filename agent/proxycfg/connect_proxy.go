@@ -36,6 +36,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
 	snap.ConnectProxy.DestinationGateways = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
 	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
+	// TODO remove this after agentless + tproxy can query merged service config for upstreams via streaming backend.
+	snap.ConnectProxy.UpstreamServiceDefaults = watch.NewMap[UpstreamID, *structs.ServiceConfigEntry]()
 
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -132,6 +134,10 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if err != nil {
 			return snap, err
 		}
+
+		// Proxy-defaults only need to be watched in tproxy + agentless scenarios due to limitations
+		// with the streaming backend not merging the DialedDirectly field.
+		s.watchProxyDefaults(ctx, &snap)
 	}
 
 	// Watch for updates to service endpoints for all upstreams
@@ -456,6 +462,12 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			if err != nil {
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", uid, err)
 			}
+
+			// We only need to watch service defaults on upstreams whenever in agentless +
+			// tproxy mode so that we know the DialedDirectly status of upstreams.
+			if snap.Proxy.Mode == structs.ProxyModeTransparent {
+				s.watchServiceDefaults(ctx, uid, svc, snap)
+			}
 		}
 		snap.ConnectProxy.IntentionUpstreams = seenUpstreams
 
@@ -524,6 +536,14 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 		}
 
+		// Cancel watching service defaults for upstreams that no longer exist.
+		snap.ConnectProxy.UpstreamServiceDefaults.ForEachKeyE(func(uid UpstreamID) error {
+			if _, ok := seenUpstreams[uid]; !ok {
+				snap.ConnectProxy.UpstreamServiceDefaults.CancelWatch(uid)
+			}
+			return nil
+		})
+
 		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
 		// There have been situations where a discovery watch was cancelled, then fired.
 		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
@@ -541,6 +561,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		if !ok {
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
+
 		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, svc := range resp.Services {
 			uid := NewUpstreamIDFromServiceName(svc)
@@ -595,7 +616,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-
 		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID)
 		uid := UpstreamIDFromString(pq)
 		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
@@ -630,8 +650,69 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
 
+	case strings.HasPrefix(u.CorrelationID, upstreamServiceDefaultID):
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		pq := strings.TrimPrefix(u.CorrelationID, upstreamServiceDefaultID)
+		uid := UpstreamIDFromString(pq)
+		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for service default: %T", resp.Entry.GetName())
+		}
+		snap.ConnectProxy.UpstreamServiceDefaults.Set(uid, serviceConf)
+
+	case u.CorrelationID == proxyDefaultsID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		proxyDefaults, ok := resp.Entry.(*structs.ProxyConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for proxy-defaults: %T", resp.Entry.GetName())
+		}
+		snap.ConnectProxy.ProxyDefaults = proxyDefaults
+
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
 	}
+	return nil
+}
+
+func (s *handlerConnectProxy) watchServiceDefaults(ctx context.Context, uid UpstreamID, svc structs.ServiceName, snap *ConfigSnapshot) error {
+	childCtx, cancel := context.WithCancel(ctx)
+	err := s.dataSources.ConfigEntry.Notify(childCtx, &structs.ConfigEntryQuery{
+		Kind:           structs.ServiceDefaults,
+		Name:           svc.Name,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: svc.EnterpriseMeta,
+	}, upstreamServiceDefaultID+svc.String(), s.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.ConnectProxy.UpstreamServiceDefaults.InitWatch(uid, cancel)
+	return nil
+}
+
+func (s *handlerConnectProxy) watchProxyDefaults(ctx context.Context, snap *ConfigSnapshot) error {
+	childCtx, cancel := context.WithCancel(ctx)
+	err := s.dataSources.ConfigEntry.Notify(childCtx, &structs.ConfigEntryQuery{
+		Kind:           structs.ProxyDefaults,
+		Name:           structs.ProxyConfigGlobal,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+	}, proxyDefaultsID, s.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	if snap.ConnectProxy.ProxyDefaultsCancel != nil {
+		snap.ConnectProxy.ProxyDefaultsCancel()
+	}
+	snap.ConnectProxy.ProxyDefaultsCancel = cancel
 	return nil
 }

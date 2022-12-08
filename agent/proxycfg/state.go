@@ -46,6 +46,8 @@ const (
 	meshConfigEntryID                  = "mesh"
 	DestinationConfigEntryID           = "destination:"
 	DestinationGatewayID               = "dest-gateway:"
+	upstreamServiceDefaultID           = "upstream-service-default:"
+	proxyDefaultsID                    = "proxy-defaults"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second

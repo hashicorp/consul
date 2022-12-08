@@ -12,6 +12,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/go-hclog"
 )
 
 type handlerUpstreams struct {
@@ -148,7 +149,21 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+			// We must manually merge the DialedDirectly field here for tproxy + agentless
+			// because the streaming backend does not support merging service configurations currently.
+			dialedDirectly := node.Service.Proxy.TransparentProxy.DialedDirectly
+			if snap.ConnectProxy.ProxyDefaults != nil {
+				dialedDirectly = dialedDirectly || snap.ConnectProxy.ProxyDefaults.TransparentProxy.DialedDirectly
+			}
+			if svcDef, ok := snap.ConnectProxy.UpstreamServiceDefaults.Get(uid); ok && svcDef != nil {
+				dialedDirectly = dialedDirectly || svcDef.TransparentProxy.DialedDirectly
+			}
+			hclog.Default().Error("----------------",
+				"svc", node.Service.Service,
+				"old-dd", node.Service.Proxy.TransparentProxy.DialedDirectly,
+				"new-dd", dialedDirectly,
+			)
+			if !dialedDirectly {
 				continue
 			}
 
