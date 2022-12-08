@@ -73,6 +73,20 @@ enum Topic {
 
   // ServiceDefaults topic contains events for changes to service-defaults.
   ServiceDefaults = 8;
+
+  // APIGateway topic contains events for changes to api-gateways.
+  APIGateways = 9;
+
+  // TCPRoutes topic contains events for changes to tcp-routes.
+  TCPRoutes = 10;
+
+  // HTTPRoutes topic contains events for changes to http-routes.
+  HTTPRoutes = 11;
+
+  // InlineCertificates topic contains events for changes to inline-certificates.
+  InlineCertificates = 12;
+
+  // TODO Do I add BoundAPIGateway here? I think I do... 
 }
 
 message NamedSubject {
