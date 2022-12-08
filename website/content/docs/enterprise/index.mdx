@@ -64,26 +64,88 @@ You can also try out Consul Enterprise before purchasing by
 
 ## Consul Enterprise Feature Availability
 
-Consul Enterprise is offered in several forms that provide a different mix of enterprise features.
-Choose the form that best suits the needs of your organization.
+The Consul Enterprise features that are available depend on your license and the runtimes you use in your deployment.
 
-Available enterprise features per Consul form and license include:
+### Feature availability by license
+
+Available Enterprise features per Consul form and license include:
 
 | Feature                                                  | [HashiCorp Cloud Platform (HCP) Consul] | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
 | -------------------------------------------------------- | --------------------------------------- | ------------------- | ------------------------------------------------- |
 | Consul servers as a managed service                      | Yes                                     | No (self-managed)   | No (self-managed)                                 |
 | [Admin Partitions](/docs/enterprise/admin-partitions)    | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Namespaces](/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Automated Backups](/docs/enterprise/backups)            | All tiers                               | Yes                 | Yes                                               |
-| [Redundancy Zones](/docs/enterprise/redundancy)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Read Replicas](/docs/enterprise/read-scale)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Automated Upgrades](/docs/enterprise/upgrades)          | All tiers                               | Yes                 | Yes                                               |
+| [Audit Logging](/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
+| [Automated Server Backups](/docs/enterprise/backups)     | All tiers                               | Yes                 | Yes                                               |
+| [Automated Server Upgrades](/docs/enterprise/upgrades)   | All tiers                               | Yes                 | Yes                                               |
 | [Consul-Terraform-Sync Enterprise](/docs/nia/enterprise) | All tiers                               | Yes                 | Yes                                               |
+| [Enhanced Read Scalability](/docs/enterprise/read-scale) | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Namespaces](/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
 | [Network Areas](/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
 | [Network Segments](/docs/enterprise/network-segments)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [OIDC Auth Method](/docs/security/acl/auth-methods/oidc)          | No                                      | Yes                 | Yes                                               |
-| [Audit Logging](/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
+| [OIDC Auth Method](/docs/security/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
+| [Redundancy Zones](/docs/enterprise/redundancy)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
 | [Sentinel for KV](/docs/enterprise/sentinel)             | All tiers                               | Yes                 | With Governance and Policy module                 |
 
 [HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
 [Consul Enterprise]: https://www.hashicorp.com/products/consul/
+
+### Feature availability by runtime
+
+Consul Enterprise feature availability can change depending on your server and client agent runtimes.
+
+<Tabs>
+
+<Tab heading="Server Runtime: VMs">
+
+| Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
+| ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
+| [Admin Partitions](/consul/docs/enterprise/admin-partitions)            |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                  |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Segments](/consul/docs/enterprise/network-segments)            |  &#9989;  |  &#10060;  |  &#10060;  |
+| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
+
+</Tab>
+
+<Tab heading="Server Runtime: Kubernetes">
+
+| Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
+| ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
+| [Admin Partitions](/consul/docs/enterprise/admin-partitions)            |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                  |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#10060; |  &#10060;  |  &#10060;  |
+| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Network Areas](/consul/docs/enterprise/federation)                     |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Network Segments](/consul/docs/enterprise/network-segments)            |  &#10060; |  &#10060;  |  &#10060;  |
+| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  &#10060; |  &#10060;  |  &#10060;  |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |  &#10060;  |
+
+</Tab>
+
+<Tab heading ="Server Runtime: HCP">
+
+| Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
+| ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
+| [Admin Partitions](/consul/docs/enterprise/admin-partitions)            |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                  |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Areas](/consul/docs/enterprise/federation)                     |  &#10060; |  &#10060;  |  &#10060;  |
+| [Network Segments](/consul/docs/enterprise/network-segments)            |  &#10060; |  &#10060;  |  &#10060;  |
+| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [Redundancy Zones](/consul/docs/enterprise/redundancy)                  |  n/a      |  n/a       |  n/a       |
+| [Sentinel ](/consul/docs/enterprise/sentinel)                           |  &#9989;  |  &#9989;   |   &#9989;  |
+
+</Tab>
+</Tabs>
