@@ -140,7 +140,6 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 
 }
 
-// todo: split without converting to a string
 func splitKey(key []byte) ([]byte, []byte) {
 
 	ret := bytes.SplitN(key, []byte(separator), 2)
