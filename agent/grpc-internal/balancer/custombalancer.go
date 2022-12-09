@@ -85,7 +85,3 @@ func (b *customPickfirstBalancer) UpdateClientConnState(state balancer.ClientCon
 	// newly created subConn alone.
 	return b.pickfirstBalancer.UpdateClientConnState(state)
 }
-
-func init() {
-	balancer.Register(newCustomPickfirstBuilder())
-}
