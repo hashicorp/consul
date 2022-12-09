@@ -9,9 +9,7 @@ type InlineCertificateConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
-	// Services is a list of service names represented by the api gateway.
-	Services []LinkedService   `json:",omitempty"`
-	Meta     map[string]string `json:",omitempty"`
+	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
