@@ -131,6 +131,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
+		// Skip adding passthroughs unless it's a connect sidecar in tproxy mode.
 		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
 			return nil
 		}
@@ -148,7 +149,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+			dialedDirectly := node.Service.Proxy.TransparentProxy.DialedDirectly
+			// We must do a manual merge here on the DialedDirectly field, because the service-defaults
+			// and proxy-defaults are not automatically merged into the CheckServiceNodes when in
+			// agentless mode (because the streaming backend doesn't yet support the MergeCentralConfig field).
+			if chain := snap.ConnectProxy.DiscoveryChain[uid]; chain != nil {
+				if target := chain.Targets[targetID]; target != nil {
+					dialedDirectly = dialedDirectly || target.TransparentProxy.DialedDirectly
+				}
+			}
+			// Skip adding a passthrough for the upstream node if not DialedDirectly.
+			if !dialedDirectly {
 				continue
 			}
 
