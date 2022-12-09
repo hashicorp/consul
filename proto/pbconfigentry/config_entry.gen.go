@@ -4,15 +4,17 @@ package pbconfigentry
 
 import "github.com/hashicorp/consul/agent/structs"
 
-func APIGatewayConfigToStructs(s *APIGatewayConfig, t *structs.APIGatewayConfigEntry) {
+func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 	if s == nil {
 		return
 	}
+	t.Meta = s.Meta
 }
-func APIGatewayConfigFromStructs(t *structs.APIGatewayConfigEntry, s *APIGatewayConfig) {
+func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	if s == nil {
 		return
 	}
+	s.Meta = t.Meta
 }
 func CookieConfigToStructs(s *CookieConfig, t *structs.CookieConfig) {
 	if s == nil {
@@ -172,15 +174,17 @@ func HTTPHeaderModifiersFromStructs(t *structs.HTTPHeaderModifiers, s *HTTPHeade
 	s.Set = t.Set
 	s.Remove = t.Remove
 }
-func HTTPRouteConfigToStructs(s *HTTPRouteConfig, t *structs.HTTPRouteConfigEntry) {
+func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	if s == nil {
 		return
 	}
+	t.Meta = s.Meta
 }
-func HTTPRouteConfigFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRouteConfig) {
+func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
 		return
 	}
+	s.Meta = t.Meta
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
@@ -370,15 +374,17 @@ func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *Ingress
 	s.MaxPendingRequests = t.MaxPendingRequests
 	s.MaxConcurrentRequests = t.MaxConcurrentRequests
 }
-func InlineCertificateConfigToStructs(s *InlineCertificateConfig, t *structs.InlineCertificateConfigEntry) {
+func InlineCertificateToStructs(s *InlineCertificate, t *structs.InlineCertificateConfigEntry) {
 	if s == nil {
 		return
 	}
+	t.Meta = s.Meta
 }
-func InlineCertificateConfigFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificateConfig) {
+func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificate) {
 	if s == nil {
 		return
 	}
+	s.Meta = t.Meta
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -1014,15 +1020,17 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
 }
-func TCPRouteConfigToStructs(s *TCPRouteConfig, t *structs.TCPRouteConfigEntry) {
+func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
 	if s == nil {
 		return
 	}
+	t.Meta = s.Meta
 }
-func TCPRouteConfigFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRouteConfig) {
+func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 	if s == nil {
 		return
 	}
+	s.Meta = t.Meta
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {
