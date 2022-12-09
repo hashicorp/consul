@@ -82,7 +82,7 @@ func TestPBToStreamSubscribeRequest(t *testing.T) {
 		},
 		"Config": {
 			req: &pbsubscribe.SubscribeRequest{
-				Topic: EventTopicAPIGateways,
+				Topic: EventTopicAPIGateway,
 				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
 					NamedSubject: &pbsubscribe.NamedSubject{
 						Key:       "key",
@@ -96,7 +96,7 @@ func TestPBToStreamSubscribeRequest(t *testing.T) {
 			},
 			entMeta: acl.EnterpriseMeta{},
 			expectedSubscribeRequest: &stream.SubscribeRequest{
-				Topic: EventTopicAPIGateways,
+				Topic: EventTopicAPIGateway,
 				Subject: EventSubjectConfigEntry{
 					Name:           "key",
 					EnterpriseMeta: &acl.EnterpriseMeta{},

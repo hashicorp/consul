@@ -41,7 +41,9 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 				PeerName:       named.PeerName,
 			}
 		case EventTopicMeshConfig, EventTopicServiceResolver, EventTopicIngressGateway,
-			EventTopicServiceIntentions, EventTopicServiceDefaults, EventTopicAPIGateways:
+			EventTopicServiceIntentions, EventTopicServiceDefaults, EventTopicAPIGateway,
+			EventTopicTCPRoute, EventTopicHTTPRoute, EventTopicInlineCertificate,
+			EventTopicBoundAPIGateway:
 			subject = EventSubjectConfigEntry{
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,

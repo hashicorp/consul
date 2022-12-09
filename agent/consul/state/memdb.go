@@ -186,10 +186,11 @@ var (
 	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
 	EventTopicServiceDefaults      = pbsubscribe.Topic_ServiceDefaults
 	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
-	EventTopicAPIGateways          = pbsubscribe.Topic_APIGateways
-	EventTopicTCPRoutes            = pbsubscribe.Topic_TCPRoutes
-	EventTopicHTTPRoutes           = pbsubscribe.Topic_HTTPRoutes
-	EventTopicInlineCertificates   = pbsubscribe.Topic_InlineCertificates
+	EventTopicAPIGateway           = pbsubscribe.Topic_APIGateway
+	EventTopicTCPRoute             = pbsubscribe.Topic_TCPRoute
+	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
+	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
+	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
