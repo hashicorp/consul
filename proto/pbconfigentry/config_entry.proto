@@ -546,9 +546,9 @@ message UpstreamLimits {
 message PassiveHealthCheck {
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration Interval = 1;
-  optional uint32 MaxFailures = 2;
+  uint32 MaxFailures = 2;
   // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
-  optional uint32 EnforcingConsecutive5xx = 3;
+  uint32 EnforcingConsecutive5xx = 3;
 }
 
 // mog annotation:

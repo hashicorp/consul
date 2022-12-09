@@ -75,6 +75,7 @@ load helpers
 
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
   [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = null ]
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.enforcing_consecutive_5xx')" = null ]
 }
 
 @test "s2 proxy should have been configured with http rbac filters" {

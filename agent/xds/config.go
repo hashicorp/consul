@@ -190,7 +190,8 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 		}
 
-		if p.EnforcingConsecutive5xx != nil {
+		// NOTE: EnforcingConsecutive5xx must be great than 0
+		if p.EnforcingConsecutive5xx != nil && *p.EnforcingConsecutive5xx > 0 {
 			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 		}
 	}
@@ -204,7 +205,8 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: override.MaxFailures}
 		}
 
-		if override.EnforcingConsecutive5xx != nil {
+		// NOTE: EnforcingConsecutive5xx must be great than 0
+		if override.EnforcingConsecutive5xx != nil && *override.EnforcingConsecutive5xx > 0 {
 			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
 		}
 	}

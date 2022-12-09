@@ -199,19 +199,16 @@ func int32FromPointerToInt(i *int) int32 {
 	return 0
 }
 
-func pointerToUint32FromUint32(ui32 *uint32) *uint32 {
-	if ui32 == nil {
-		return nil
-	}
+func pointerToUint32FromUint32(ui32 uint32) *uint32 {
 	i := ui32
-	return i
+	return &i
 }
 
-func uint32FromPointerToUint32(i *uint32) *uint32 {
+func uint32FromPointerToUint32(i *uint32) uint32 {
 	if i != nil {
-		return i
+		return *i
 	}
-	return nil
+	return 0
 }
 
 func proxyModeFromStructs(a structs.ProxyMode) ProxyMode {

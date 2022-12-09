@@ -55,7 +55,7 @@ load helpers
   [ "$MAX_REQS" = "30" ]
 }
 
-@test "s2 proxy should have been configured with consecutive_5xx in ingress gateway" {
+@test "s2 proxy should have been configured with outlier detection in ingress gateway" {
   CLUSTER_THRESHOLD=$(get_envoy_cluster_config 127.0.0.1:20000 s2.default.primary | jq '.outlier_detection')
   echo $CLUSTER_THRESHOLD
 
