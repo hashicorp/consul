@@ -1391,6 +1391,10 @@
             "path": "nia/usage/run-ha"
           },
           {
+            "title": "Automate A10 Thunder ADC",
+            "path": "nia/usage/a10-thunder-adc"
+          },
+          {
             "title": "Error Messages",
             "path": "nia/usage/errors-ref"
           }

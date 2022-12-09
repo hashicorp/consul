@@ -1,0 +1,407 @@
+---
+page_title: Automate A10 Thunder ADC with Consul-Terraform-Sync 
+description: Use Consul-Terraform-Sync (CTS) to automatically configure your A10 Networks Thunder Application Delivery's (ADC) service load balancer (SLB) server and service groups when your Consul service changes.
+---
+
+# Automate A10 Thunder ADC with Consul-Terraform-Sync
+
+This topic describes how to automatically configure your A10 Networks Thunder Application Delivery's (ADC) service load balancer (SLB) server and service groups using Terraform and Consul.
+
+## Overview
+
+You can use Consul-Terraform-Sync (CTS) for network infrastructure automation (NIA). This enables you to automatically update your infrastructure and network devices using Terraform whenever your service networking control plane (Consul) changes.
+
+The following image shows the basic architecture of an NIA setup with A10 Thunder ADC.
+
+![NIA CTS with A10 ADC workflow](/img/nia/a10-diagram-workflow.png)
+
+Complete the following steps to configure your Thunder ADC:
+
+1. Setup a minimal service load balancing (SLB) for your Thunder ADC
+1. Register your Consul services
+1. Configure CTS
+1. Start CTS
+1. Verify NIA workflow
+
+## Requirements
+
+1. A [A10 Thunder Application Delivery Controller (ADC](#a10-adc)
+1. A [Consul datacenter](#consul) for service networking and service mesh
+1. A server with [Consul-Terraform-Sync (CTS)](#consul-terraform-sync) installed. This server must be able to communicate with the NGFW and the Consul datacenter.
+1. Consul services that you want to trigger automatic tasks
+
+In addition, it assumes you are familiar with the standard Consul workflow and CTS. If you are unfamiliar with these topics, reference their respective tutorials to learn more.
+
+- Complete the [Get Started with Consul on VMs](/consul/tutorials/get-started-vms) or [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes) tutorials to learn more about Consul.
+- Complete the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to learn more about CTS.
+
+### A10 ADC
+
+These instructions use a [A10 DC](https://www.a10networks.com/products/thunder-adc/) for the network device. However, you can use this workflow with other network devices that have NIA integrations.
+
+One of the main ADC use-cases is as a reverse proxy for application servers. This increases service resiliency with server load balancing, application acceleration, and security features, and enables agile traffic control including CI/CD operation support. In addition, global server load balancing (GSLB), which comes with A10 ADC by default, can intelligently distribute the traffic across available global sites based on regions and locations, contents, and language localization policy, or the site's load and health condition regardless of cloud or platform types. You can use GSLB as a cloud selector to effectively use hybrid and multi-cloud environments and resources.
+
+Below is an example Terraform configuration that shows a minimum service load balancing (SLB) configuration required for the A10 ADC and NIA integration. This defines a service group named `web80` and a virtual server named `vip-web80`. When your Consul services change, CTS will automatically modify the A10 Thunder ADC's service load balancer server and service groups .
+
+<CodeBlockConfig filename="main.tf">
+
+```hcl
+provider "thunder" {}
+
+resource "thunder_service_group" "web80" {
+  name     = "web80"
+  protocol = "TCP"
+}
+
+resource "thunder_virtual_server" "vip-web" {
+  name = "vip-web80"
+  ip_address = "10.64.4.111"
+  port_list {
+    auto          = 1
+    port_number   = 80
+    protocol      = "http"
+    service_group = thunder_service_group.web80.name
+    snat_on_vip   = 1
+  }
+}
+```
+
+</CodeBlockConfig>
+
+### Consul
+
+Confirm that you have deployed your services and the respective servers have Consul agents running on them.
+
+``` shell-session
+$ consul members
+Node                 Address             Status  Type    Build  Protocol  DC   Segment
+devops1.a10tme-demo  192.168.0.201:8301  alive   server  1.8.4  2         dc1  <all>
+s1.a10tme-demo       192.168.0.10:8301   alive   client  1.8.4  2         dc1  <default>
+s2.a10tme-demo       192.168.0.11:8301   alive   client  1.8.4  2         dc1  <default> 
+s3.a10tme-demo       192.168.0.12:8301   alive   client  1.8.4  2         dc1  <default>
+```
+
+Once Consul is deployed and all agents have joined the datacenter, it is time to prepare CTS.
+
+- CTS requires access to the Consul catalog. 
+- If you're using Consul as a Terraform backend, you will also need privileges to store the Terraform state into Consul's key-value (KV) store.
+- In production environments, we recommend enabling access control lists (ACLs) on Consul. In order for CTS to retrieve information from Consul, it must pass a token in its configuration. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
+
+### Consul-Terraform-Sync
+
+CTS is a tool that uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects changes to the services (e.g. a new service node is added or deleted from the service list), CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the A10 application server resources.
+
+The [`service-group-sync-nia`](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest) Terraform module, a A10 managed Terraform module for CTS, lets operators support dynamic L7 load balancing. Once configured, CTS will register or deregister your A10 Thunder A10's service load balancer servers and service groups based on changes to the respective services in Consul.
+
+The following diagram shows an example network infrastructure automation (NIA) workflow with Terraform, Consul, CTS, and A10 Thunder ADC.
+
+![NIA CTS with A10 ADC Consul services tab](/img/nia/a10-consul-services-web.png)
+
+~> **Compatibility Note:** CTS requires Terraform 0.13 or later to operate. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
+
+## Register your Consul services
+
+Before you can use CTS, you must register your services to Consul.
+
+For each service, create a service configuration file with information about the service (for example, IP, port, etc), and health check information. The service name must match the `service-group` name defined on the Palo Alto NGFW.
+
+Refer to the [service registration usage docs](/consul/docs/discovery/services) to learn how to register Consul services.
+
+Select a tab for an example service configuration in HCL or JSON.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+Create a service configuration file with the following details named `web.hcl`.
+
+<CodeBlockConfig filename="web.hcl">
+
+```hcl
+service {
+  name = "web80"
+  id = "web80-s1"
+  tags = ["web-p80"]
+  port = 80
+  address = "192.168.0.10"
+  check {
+    http = "http://localhost:80/"
+    interval = "15s"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+Once you have created the configuration file, register the service with Consul.
+
+```shell-session
+$ consul services register web.hcl
+```
+
+</Tab>
+<Tab heading="JSON" group="json">
+
+Create a service configuration file with the following details named `web.json`.
+
+<CodeBlockConfig filename="web.json">
+
+```json
+{
+ "service": {
+   "name": "web80",
+   "id": "web80-s1",
+   "tags": ["web-p80"],
+   "port": 80,
+   "address": "192.168.0.10",
+   "check": {
+     "http": "http://localhost:80/",
+     "interval": "15s"
+   }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+Once you have created the configuration file, register the service with Consul.
+
+```shell-session
+$ consul services register web.json
+```
+
+</Tab>
+</Tabs>
+
+## Configure CTS
+
+CTS expects to run a set of tasks whenever a service is registered or removed from Consul. Create a CTS configuration file that defines these tasks. The following is an example CTS configuration file. Update the values for the `consul` and `thunder` providers to match your environment.
+
+<CodeBlockConfig filename="tasks.hcl">
+
+```hcl
+log_level = "info"
+
+driver "terraform" {
+  log = true
+  required_providers {
+    thunder = {
+      source = "a10networks/thunder"
+      version = "0.4.14"
+    }
+  }
+}
+
+consul {
+  address = "192.168.0.201:8500"
+}
+
+terraform_provider "thunder" {
+  alias = "adc-1"
+  address  = "10.64.4.104"
+  username = "{{ env \"THUNDER_USER\" }}"
+  password = "{{ env \"THUNDER_PASSWORD\" }}"
+}
+
+task {
+  name = "slb_auto_config"
+  description = "Automate SLB Config on A10 Thunder"
+  module = "a10networks/service-group-sync-nia/thunder"
+  providers = ["thunder.adc-1"]
+  condition "services" {
+    names = ["web80"]
+  }
+  variable_files = []
+}
+```
+
+</CodeBlockConfig>
+
+The driver defines all Terraform providers required to execute the task. This specific configuration requires the `a10networks/thunder` provider.
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard highlight="5">
+
+```hcl
+driver "terraform" {
+  log = true
+  required_providers {
+    thunder = {
+      source = "a10networks/thunder"
+      version = "0.4.14"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+The `terraform_provider` specifies the parameters to interact with the A10 Thunder ADC.
+
+~> **Security Note:** In a production environment, we recommend separating any sensitive credentials from the CTS configuration files and loading them dynamically using environment variables, Consul KV, or HashiCorp Vault. Refer to the [Terraform Registry](https://registry.terraform.io/providers/a10networks/thunder/latest/docs) for a full set of provider arguments.
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard>
+
+```hcl
+terraform_provider "thunder" {
+  alias = "adc-1"
+  address  = "10.64.4.104"
+  username = "{{ env \"THUNDER_USER\" }}"
+  password = "{{ env \"THUNDER_PASSWORD\" }}"
+}
+```
+
+</CodeBlockConfig>
+
+The `task` block defines a task for CTS to run when specific Consul services change.
+
+`name` defines the task name.
+`providers` defines the providers this task uses. In this case, the previously defined `thunder.adc-1` provider (aliased).
+`module` defines the path to the A10 Terraform NIA module. This module lets Terraform dynamically automatically update Service Group members when there are changes to specific Consul services.
+`condition "services"` defines the Consul services, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task.
+
+<CodeBlockConfig filename="tasks.hcl" hideClipboard>
+
+```hcl
+task {
+  name = "slb_auto_config"
+  description = "Automate SLB Config on A10 Thunder"
+  providers = ["thunder.adc-1"]
+  module = "a10networks/service-group-sync-nia/thunder"
+  condition "services" {
+    names = ["web80"]
+  }
+  variable_files = []
+}
+```
+
+</CodeBlockConfig>
+
+For more details about the configuration, refer to the [CTS configuration docs](/consul/docs/nia/configuration). For more details on the Terraform NIA module for PAN-OS devices, refer to its [Terraform Registry](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest) or [GitHub repository](https://github.com/a10networks/terraform-thunder-service-group-sync-nia).
+
+## Start CTS
+
+Once you have configured CTS, start it using the `consul-terraform-sync` command. On startup, CTS will:
+
+- download and install the Terraform providers and modules according to the configuration file you have provided (`tasks.hcl`),
+- create Terraform files for the defined tasks, and 
+- connect to Consul.
+
+```shell-session
+$ consul-terraform-sync start -config-file=tasks.hcl
+2021/04/10 06:40:12.364475 [INFO] v0.6.0 (7f0d7ba)
+2021/04/10 06:40:12.365844 [INFO] (driver.terraform) installing terraform to path '/root/nia'
+2021/04/10 06:40:16.009060 [INFO] (driver.terraform) successfully installed terraform
+2021/04/10 06:40:16.012513 [INFO] (templates.hcltmpl) evaluating dynamic configuration for "thunder"
+## ...
+2021/04/10 06:40:17.258628 [INFO] running Terraform command: /root/nia/terraform init -no-color -force-copy -input=false -lock-timeout=0s -backend=true -get=true -upgrade=false -lock=true -get-plugins=true -verify-plugins=true
+Initializing modules...
+Downloading a10networks/service-group-sync-nia/thunder 0.1.6 for slb_auto_config...
+- slb_auto_config in .terraform/modules/slb_auto_config
+
+Initializing the backend...
+
+Successfully configured the backend "consul"! Terraform will automatically
+use this backend unless the backend configuration changes.
+## ...
+Terraform has been successfully initialized!
+2021/04/10 06:40:20.158072 [INFO] running Terraform command: /root/nia/terraform workspace new -no-color slb_auto_config
+Workspace "slb_auto_config" already exists
+2021/04/10 06:40:20.512676 [INFO] running Terraform command: /root/nia/terraform workspace select -no-color slb_auto_config
+Switched to workspace "slb_auto_config".
+2021/04/10 06:40:20.853882 [INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+module.slb_auto_config.thunder_service_group.service-group["web80"]: Refreshing state... [id=web80]
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+2021/04/10 06:40:22.636456 [INFO] (ctrl) task completed slb_auto_config
+2021/04/10 06:40:22.637694 [INFO] (ctrl) all tasks completed once
+2021/04/10 06:40:22.637722 [INFO] (cli) running controller in daemon mode
+2021/04/10 06:40:22.638563 [INFO] (api) starting server at '8558'
+```
+
+CTS will continue running as a daemon and will automatically execute the `Create_DAG_on_PANOS1` task when it detects changes to the `web` Consul service.
+
+## Verify NIA automation workflow
+
+Once you have configured and started CTS, verify the workflow by registering new instances of the `web80` service in Consul.
+
+Create a service configuration file with the following details named `web2.hcl`.
+
+<CodeBlockConfig filename="web.hcl">
+
+```hcl
+service {
+  name = "web80"
+  id = "web80-s2"
+  tags = ["web-p80"]
+  port = 80
+  address = "192.168.0.10"
+  check {
+    http = "http://localhost:80/"
+    interval = "15s"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+Once you have created the configuration file, register the service with Consul.
+
+```shell-session
+$ consul services register web2.hcl
+```
+
+Once CTS detects the new Consul service, it will automatically trigger the `slb_auto_config` task, as defined in the configuration file. The task uses Terraform to create a new service load balancer server for each instance of the Consul `web80` service and add it into the service group named `web80` on the Thunder ADC. 
+
+The CTS task adds the new instances to the vThunder ADC (VIP with service port 80).
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[INFO] (ctrl) executing task slb_auto_config
+[INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[INFO] (ctrl) task completed slb_auto_config
+[INFO] (ctrl) executing task slb_auto_config
+[INFO] running Terraform command: /root/nia/terraform apply -no-color -auto-approve -input=false -var-file=terraform.tfvars -var-file=providers.tfvars -lock=true -parallelism=10 -refresh=true
+module.slb_auto_config.thunder_service_group.service-group["web80"]: Creating...
+module.slb_auto_config.thunder_service_group.service-group["web80"]: Creation complete after 0s [id=web80]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+[INFO] (ctrl) task completed slb_auto_config
+```
+
+</CodeBlockConfig>
+
+
+Once the task completes, you can find the instances from the ADC console.
+
+```shell-session
+$ show slb virtual-server bind
+Total Number of Virtual Services configured: 1
+---------------------------------------------------------------------------------
+*Virtual Server :vip-web80 10.64.4.111     All Up
+
+   +port 80  http ====>web80                    State :All Up
+        +192.168.0.10:80                         192.168.0.10        State :Up
+        +192.168.0.11:80                         192.168.0.11        State :Up
+        +192.168.0.12:80                         192.168.0.12        State :Up
+```
+
+CTS will trigger the task every time you add a service with the same name to Consul. With CTS and network infrastructure automation, the A10 Thunder ADC's SLB configurations will automatically reflect these changes in near-real time.
+
+![NIA CTS with A10 ADC Consul service tabs and A10 dashboard](/img/nia/a10-dashboard.png)
+
+## Next steps
+
+CTS helps you automatically update your network infrastructure when your upstream infrastructure changes or fails. In addition, you can extend CTS to support CI/CD operations including [blue-green deployment by leveraging Terraform](https://www.hashicorp.com/blog/terraform-feature-toggles-blue-green-deployments-canary-test) and service tags on Consul.
+
+Consul's integration with A10 Thunder results in portable workflows, with minimal changes, across various cloud providers, hypervisors, and platforms. This increases your flexibility and simplifies workflow migration across different solutions.
+
+### Links and references
+
+Check out the following resources to learn more about network infrastructure automation with CTS and A10 Networks.
+
+- Try A10 Thunder ADC [free for 30 days](https://www.a10networks.com/products/vthunder-trial/) 
+- Learn more about the [Terraform NIA module for A10 Thunder ADC](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest)
+- Webinar: [Automating Network Infrastructure Tasks with A10 and HashiCorp](https://www.brighttalk.com/webcast/16409/476300)
+
