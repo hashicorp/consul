@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -30,68 +31,170 @@ func TestNewMultiLimiter(t *testing.T) {
 }
 
 func TestRateLimiterUpdate(t *testing.T) {
-	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Hour, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	key := makeKey([]byte("test"))
+
+	//Allow a key
 	m.Allow(Limited{key: key})
+	storeLimiter(m)
 	limiters := m.limiters.Load()
 	l1, ok1 := limiters.Get(key)
-	require.True(t, ok1)
-	require.NotNil(t, l1)
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
+		limiters = m.limiters.Load()
+		l1, ok1 = limiters.Get(key)
+		// check key exist
+		require.True(r, ok1)
+		require.NotNil(r, l1)
+	})
+
 	la1 := l1.(*Limiter).lastAccess.Load()
+
+	// Sleep a bit just to make sure time change
+	time.Sleep(time.Millisecond)
+	// allow same key again
 	m.Allow(Limited{key: key})
 	limiters = m.limiters.Load()
 	l2, ok2 := limiters.Get(key)
+
+	// check it exist and it's same key
 	require.True(t, ok2)
 	require.NotNil(t, l2)
 	require.Equal(t, l1, l2)
+
+	// last access should be different
 	la2 := l1.(*Limiter).lastAccess.Load()
-	require.Equal(t, la1, la2)
+	require.NotEqual(t, la1, la2)
 
 }
 
 func TestRateLimiterCleanup(t *testing.T) {
 
 	// Create a limiter and Allow a key, check the key exists
-	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Second, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
+	limiters := m.limiters.Load()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	m.Run(ctx)
 	key := makeKey([]byte("test"))
 	m.Allow(Limited{key: key})
-	limiters := m.limiters.Load()
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
+		l := m.limiters.Load()
+		require.NotEqual(r, limiters, l)
+		limiters = l
+	})
+
 	l, ok := limiters.Get(key)
 	require.True(t, ok)
 	require.NotNil(t, l)
 
+	time.Sleep(c.ReconcileCheckInterval)
 	// Wait > ReconcileCheckInterval and check that the key was cleaned up
-	time.Sleep(20 * time.Millisecond)
-	limiters = m.limiters.Load()
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
+		l := m.limiters.Load()
+		require.NotEqual(r, limiters, l)
+		limiters = l
+	})
 	l, ok = limiters.Get(key)
 	require.False(t, ok)
 	require.Nil(t, l)
+}
 
-	// Stop the cleanup routine, check that a key is not cleaned up after > ReconcileCheckInterval
-	cancel()
-	m.Allow(Limited{key: key})
-	time.Sleep(20 * time.Millisecond)
-	limiters = m.limiters.Load()
-	l, ok = limiters.Get(key)
-	require.True(t, ok)
-	require.NotNil(t, l)
+func storeLimiter(m *MultiLimiter) {
+	txn := m.limiters.Load().Txn()
+	mockTicker := mockTicker{tickerCh: make(chan time.Time, 1)}
+	ctx := context.Background()
+	m.runStoreOnce(ctx, &mockTicker, txn)
+	mockTicker.tickerCh <- time.Now()
+	m.runStoreOnce(ctx, &mockTicker, txn)
+}
+
+func TestRateLimiterStore(t *testing.T) {
+	// Create a MultiLimiter m with a defaultConfig c and check the defaultConfig is applied
+
+	t.Run("Store multiple transactions", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		ipNoPrefix1 := Key([]byte(""), []byte("127.0.0.1"))
+		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
+		{
+			m.Allow(ipLimited{key: ipNoPrefix1})
+			storeLimiter(m)
+			l, ok := m.limiters.Load().Get(ipNoPrefix1)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter := l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+		}
+		{
+			m.Allow(ipLimited{key: ipNoPrefix2})
+			storeLimiter(m)
+			l, ok := m.limiters.Load().Get(ipNoPrefix2)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter := l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+			l, ok = m.limiters.Load().Get(ipNoPrefix1)
+			require.True(t, ok)
+			require.NotNil(t, l)
+			limiter = l.(*Limiter)
+			require.True(t, c.isApplied(limiter.limiter))
+		}
+	})
+	t.Run("runStore store multiple Limiters", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 10 * time.Second, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		ctx, cancel := context.WithCancel(context.Background())
+		m.Run(ctx)
+		defer cancel()
+		ipNoPrefix1 := Key([]byte(""), []byte("127.0.0.1"))
+		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
+		limiters := m.limiters.Load()
+		m.Allow(ipLimited{key: ipNoPrefix1})
+		retry.RunWith(&retry.Timer{Wait: 1 * time.Second, Timeout: 5 * time.Second}, t, func(r *retry.R) {
+			l := m.limiters.Load()
+			require.NotEqual(r, limiters, l)
+			limiters = l
+		})
+		l, ok := m.limiters.Load().Get(ipNoPrefix1)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter := l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+		m.Allow(ipLimited{key: ipNoPrefix2})
+		retry.RunWith(&retry.Timer{Wait: 1 * time.Second, Timeout: 5 * time.Second}, t, func(r *retry.R) {
+			l := m.limiters.Load()
+			require.NotEqual(r, limiters, l)
+			limiters = l
+		})
+		l, ok = m.limiters.Load().Get(ipNoPrefix1)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter = l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+		l, ok = m.limiters.Load().Get(ipNoPrefix2)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter = l.(*Limiter)
+		require.True(t, c.isApplied(limiter.limiter))
+	})
+
 }
 
 func TestRateLimiterUpdateConfig(t *testing.T) {
 
 	// Create a MultiLimiter m with a defaultConfig c and check the defaultConfig is applied
-	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
-	m := NewMultiLimiter(c)
-	require.Equal(t, *m.defaultConfig.Load(), c)
 
 	t.Run("Allow a key and check defaultConfig is applied to that key", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
 		ipNoPrefix := Key([]byte(""), []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ipNoPrefix})
+		storeLimiter(m)
 		l, ok := m.limiters.Load().Get(ipNoPrefix)
 		require.True(t, ok)
 		require.NotNil(t, l)
@@ -99,10 +202,28 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.True(t, c.isApplied(limiter.limiter))
 	})
 
+	t.Run("Update nil prefix and make sure it's written in the root", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		prefix := []byte(nil)
+		c1 := LimiterConfig{Rate: 2}
+		m.UpdateConfig(c1, prefix)
+		v, ok := m.limitersConfigs.Load().Get([]byte(""))
+		require.True(t, ok)
+		require.NotNil(t, v)
+		c2 := v.(*LimiterConfig)
+		require.Equal(t, c1, *c2)
+	})
+
 	t.Run("Allow 2 keys with prefix and check defaultConfig is applied to those keys", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
 		prefix := []byte("namespace.write")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
 		ip2 := Key(prefix, []byte("127.0.0.2"))
 		m.Allow(ipLimited{key: ip2})
 		l, ok := m.limiters.Load().Get(ip)
@@ -112,6 +233,9 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.True(t, c.LimiterConfig.isApplied(limiter.limiter))
 	})
 	t.Run("Apply a defaultConfig to 'namespace.write' check the defaultConfig is applied to existing keys under that prefix", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
 		prefix := []byte("namespace.write")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c3 := LimiterConfig{Rate: 2}
@@ -119,6 +243,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		// call reconcileLimitedOnce to make sure the update is applied
 		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
 		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
 		l3, ok3 := m.limiters.Load().Get(ip)
 		require.True(t, ok3)
 		require.NotNil(t, l3)
@@ -126,33 +251,40 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.True(t, c3.isApplied(limiter3.limiter))
 	})
 	t.Run("Allow an IP with prefix and check prefix defaultConfig is applied to new keys under that prefix", func(t *testing.T) {
-		c := LimiterConfig{Rate: 3}
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		c1 := LimiterConfig{Rate: 3}
 		prefix := []byte("namespace.read")
-		m.UpdateConfig(c, prefix)
+		m.UpdateConfig(c1, prefix)
 		ip := Key(prefix, []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
 		l, ok := m.limiters.Load().Get(ip)
 		require.True(t, ok)
 		require.NotNil(t, l)
 		limiter := l.(*Limiter)
-		require.True(t, c.isApplied(limiter.limiter))
+		require.True(t, c1.isApplied(limiter.limiter))
 	})
 
 	t.Run("Allow an IP with prefix and check after it's cleaned new Allow would give it the right defaultConfig", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
 		prefix := []byte("namespace.read")
 		ip := Key(prefix, []byte("127.0.0.1"))
-		c := LimiterConfig{Rate: 1}
-		m.UpdateConfig(c, prefix)
+		c1 := LimiterConfig{Rate: 1}
+		m.UpdateConfig(c1, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
 		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
 		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
 		l, ok := m.limiters.Load().Get(ip)
 		require.True(t, ok)
 		require.NotNil(t, l)
 		limiter := l.(*Limiter)
-		require.True(t, c.isApplied(limiter.limiter))
-		time.Sleep(200 * time.Millisecond)
-		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
+		require.True(t, c1.isApplied(limiter.limiter))
+		m.reconcileLimitedOnce(time.Now().Add(100*time.Millisecond), 100*time.Millisecond)
 		l, ok = m.limiters.Load().Get(ip)
 		require.False(t, ok)
 		require.Nil(t, l)
@@ -169,6 +301,7 @@ func FuzzSingleConfig(f *testing.F) {
 	f.Add(makeKey(randIP(), randIP(), randIP(), randIP()))
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		m.Allow(Limited{key: ff})
+		storeLimiter(m)
 		checkLimiter(t, ff, m.limiters.Load().Txn())
 		checkTree(t, m.limiters.Load().Txn())
 	})
@@ -204,7 +337,9 @@ func FuzzUpdateConfig(f *testing.F) {
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		cm := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Millisecond, ReconcileCheckInterval: 1 * time.Millisecond}
 		m := NewMultiLimiter(cm)
-		m.Run(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		m.Run(ctx)
+		defer cancel()
 		keys := bytes.Split(ff, []byte(","))
 		for _, f := range keys {
 			prefix, _ := splitKey(f)
@@ -254,7 +389,9 @@ func (i ipLimited) Key() []byte {
 func BenchmarkTestRateLimiterFixedIP(b *testing.B) {
 	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Microsecond, ReconcileCheckInterval: time.Millisecond}
 	m := NewMultiLimiter(Config)
-	//m.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	m.Run(ctx)
+	defer cancel()
 	ip := []byte{244, 233, 0, 1}
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: ip})
@@ -310,7 +447,9 @@ func BenchmarkTestRateLimiterAllowConcurrencyPrefill(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Second, ReconcileCheckInterval: 100 * time.Second}
 			m := NewMultiLimiter(Config)
-			m.Run(context.Background())
+			ctx, cancel := context.WithCancel(context.Background())
+			m.Run(ctx)
+			defer cancel()
 			var i uint64
 			for i = 0xdeaddead; i < 0xdeaddead+tc.prefill; i++ {
 				buf := make([]byte, 8)
@@ -337,7 +476,9 @@ func BenchmarkTestRateLimiterAllowConcurrencyPrefill(b *testing.B) {
 func BenchmarkTestRateLimiterRandomIP(b *testing.B) {
 	var Config = Config{LimiterConfig: LimiterConfig{Rate: 1.0, Burst: 500}, ReconcileCheckLimit: time.Microsecond, ReconcileCheckInterval: time.Millisecond}
 	m := NewMultiLimiter(Config)
-	m.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	m.Run(ctx)
+	defer cancel()
 	for j := 0; j < b.N; j++ {
 		m.Allow(ipLimited{key: randIP()})
 	}
@@ -350,4 +491,12 @@ func randIP() []byte {
 
 	binary.LittleEndian.PutUint32(buf, ip)
 	return buf
+}
+
+type mockTicker struct {
+	tickerCh chan time.Time
+}
+
+func (m *mockTicker) Ticker() <-chan time.Time {
+	return m.tickerCh
 }
