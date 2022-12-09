@@ -1,4 +1,4 @@
-// NOTICE: This file is a derivative of grpc's pick_first implementation [1].
+// NOTICE: This file is a copy of grpc's pick_first implementation [1].
 // It is preserved as-is with the init() removed for easier updating.
 //
 // [1]: https://github.com/grpc/grpc-go/blob/v1.49.x/pickfirst.go

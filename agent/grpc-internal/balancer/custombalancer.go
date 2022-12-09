@@ -11,9 +11,8 @@ func init() {
 	balancer.Register(newCustomPickfirstBuilder())
 }
 
-// CustomBalancerName is the name of the modified pick_first balancer.
-const CustomBalancerName = "pick_first_custom"
-
+// logger is referenced in pickfirst.go.
+// The gRPC library uses the same component name.
 var logger = grpclog.Component("balancer")
 
 func newCustomPickfirstBuilder() balancer.Builder {
@@ -29,9 +28,10 @@ func (*customPickfirstBuilder) Build(cc balancer.ClientConn, opt balancer.BuildO
 }
 
 func (*customPickfirstBuilder) Name() string {
-	return CustomBalancerName
+	return "pick_first_custom"
 }
 
+// customPickfirstBalancer overrides UpdateClientConnState of pickfirstBalancer.
 type customPickfirstBalancer struct {
 	pickfirstBalancer
 
