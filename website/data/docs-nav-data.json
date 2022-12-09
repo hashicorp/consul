@@ -960,6 +960,10 @@
             "path": "k8s/connect"
           },
           {
+            "title": "Admin Partitions",
+            "href": "/docs/enterprise/admin-partitions"
+          },
+          {
             "title": "Transparent Proxy",
             "href": "/docs/connect/transparent-proxy"
           },

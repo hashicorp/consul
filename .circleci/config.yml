@@ -21,7 +21,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.19.2
+    GO_VERSION: 1.19.4
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.21.5"
     - "1.22.5"
@@ -39,7 +39,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.2
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.4
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
@@ -495,7 +495,7 @@ jobs:
       GOOS: linux
     steps:
       - checkout
-      - run: 
+      - run:
           command: |
             sudo rm -fv /etc/apt/sources.list.d/github_git-lfs.list # workaround for https://github.com/actions/runner-images/issues/1983
             sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
@@ -1066,8 +1066,10 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
+                - /^mktg-.*/ # Digital Team Terraform-generated branches' prefix
                 - /^backport\/docs\/.*/
                 - /^backport\/ui\/.*/
+                - /^backport\/mktg-.*/
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - check-generated-deep-copy: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
@@ -1090,7 +1092,7 @@ workflows:
           name: "go-test-api go1.19"
           path: api
           go-version: "1.19"
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.18"
           path: sdk
