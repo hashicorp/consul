@@ -7,11 +7,10 @@ on:
       # Push events on the main branch
       - main
       - release/**
-      - set-product-version
 
 env:
   PKG_NAME: consul
-  VERSION: oss
+  VERSION: METADATA
 
 jobs:
   set-product-version:
@@ -34,7 +33,7 @@ jobs:
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
           echo "::set-output name=product-date::${CONSUL_DATE}"
-          echo "::set-output name=pkg-version::${{ env.VERSION }}"
+          echo "::set-output name=pkg-version::${{ env.METADATA }}"
 
       - name: Set shared -ldflags
         id: shared-ldflags
@@ -241,22 +240,22 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
+          version="${{ env.METADATA }}"
           echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
 
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
-          version: ${{env.version}}
+          version: ${{env.METADATA}}
           target: default
           arch: ${{matrix.arch}}
           tags: |
-            docker.io/hashicorp/${{env.repo}}:${{env.version}}
-            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
+            docker.io/hashicorp/${{env.repo}}:${{env.METADATA}}
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.METADATA}}
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-${{ github.sha }}
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.METADATA }}
 
   build-docker-ubi-redhat:
     name: Docker Build UBI Image for RedHat Registry
@@ -272,11 +271,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: hashicorp/actions-docker-build@v1
         with:
-          version: ${{env.version}}
+          version: ${{env.METADATA}}
           target: ubi
           arch: amd64
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.METADATA}}-ubi
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.METADATA }}
 
   build-docker-ubi-dockerhub:
     name: Docker Build UBI Image for DockerHub
@@ -295,21 +294,21 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
+          version="${{ env.METADATA }}"
           echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
 
       - uses: hashicorp/actions-docker-build@v1
         with:
-          version: ${{env.version}}
+          version: ${{env.METADATA}}
           target: ubi
           arch: amd64
           tags: |
-            docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
-            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}-ubi
+            docker.io/hashicorp/${{env.repo}}:${{env.METADATA}}-ubi
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.METADATA}}-ubi
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi-${{ github.sha }}
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.METADATA }}
 
   verify-linux:
     needs:
@@ -341,7 +340,7 @@ jobs:
           platforms: arm,arm64
 
       - name: Run verification for ${{ matrix.arch }} binary
-        run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
+        run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.METADATA }}
 
   verify-darwin:
     needs:
@@ -367,7 +366,7 @@ jobs:
         run: unzip ${{ env.zip_name }}
 
       - name: Run verification for amd64 darwin binary
-        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
+        run: .github/scripts/verify_bin.sh ./consul v${{ env.METADATA }}
 
   verify-linux-packages-deb:
     needs:
@@ -404,7 +403,7 @@ jobs:
           platforms: all
 
       - name: Verify ${{ matrix.arch }} debian package
-        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.METADATA }}
 
   verify-linux-packages-rpm:
     needs:
@@ -441,4 +440,4 @@ jobs:
           platforms: all
 
       - name: Verify ${{ matrix.arch }} rpm
-        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.METADATA }}
