@@ -62,7 +62,7 @@ Once Consul is deployed and all agents have joined the datacenter, it is time to
 
 ### Consul-Terraform-Sync
 
-CTS is a tool that uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects changes to the services (e.g. a new service node is added or deleted from the service list), CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the NGFW's dynamic address group.
+CTS uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects services are registered or removed from Consul, CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the NGFW's dynamic address group.
 
 The [`dag-nia`](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) Terraform module, a Palo Alto Networks managed Terraform module for CTS, lets operators automate their network infrastructure by dynamically configuring address groups and dynamic address tags. Once configured, CTS will register or deregister address group IP tags based on changes to the respective services in Consul.
 
