@@ -862,7 +862,6 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{Value: svc.PassiveHealthCheck.MaxFailures}
 		}
 
-		// if svc.PassiveHealthCheck.EnforcingConsecutive5xx != nil && *svc.PassiveHealthCheck.EnforcingConsecutive5xx != 0 {
 		if svc.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 			outlierDetection.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *svc.PassiveHealthCheck.EnforcingConsecutive5xx}
 		}

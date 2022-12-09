@@ -18,14 +18,14 @@
       "circuitBreakers": {
         "thresholds": [
           {
-            "maxConnections": 2048,
-            "maxPendingRequests": 512,
-            "maxRequests": 4096
+            "maxConnections": 4096,
+            "maxPendingRequests": 2048
           }
         ]
       },
       "outlierDetection": {
-
+          "interval": "8s",
+          "enforcingConsecutive5xx": 50
       },
       "commonLbConfig": {
         "healthyPanicThreshold": {
