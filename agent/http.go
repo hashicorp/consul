@@ -1,12 +1,14 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/netip"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -103,6 +105,24 @@ var endpoints map[string]unboundEndpoint
 // allowedMethods is a map from endpoint prefix to supported HTTP methods.
 // An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
 var allowedMethods map[string][]string = make(map[string][]string)
+
+// contextKey is a value for use with context.WithValue. It's used as
+// a pointer so it fits in an interface{} without allocation.
+
+// TODO: (spatel) Is there a way to continue using a contextKey without a circular import
+//                when referenced by consul/agent/server.go?
+
+// type contextKey struct {
+// 	name string
+// }
+
+// func (k *contextKey) String() string { return "agent/http context value " + k.name }
+
+// // RemoteAddrContextKey is a context key. It can be used in
+// // HTTP handlers with Context.Value to access the remote
+// // address the connection arrived on.
+// // The associated value will be of type net.Addr.
+// var RemoteAddrContextKey = &contextKey{"remote-addr"}
 
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.
@@ -288,12 +308,27 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
+
 	h = s.enterpriseHandler(h)
+	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
 	return s.h
+}
+
+// Use key "remote-addr" to grab the net.Addr from the request's context.
+func withRemoteAddrHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
+		if err == nil {
+			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
+			ctx := context.WithValue(req.Context(), "remote-addr", remoteAddr)
+			req = req.WithContext(ctx)
+		}
+		next.ServeHTTP(resp, req)
+	})
 }
 
 // nodeName returns the node name of the agent

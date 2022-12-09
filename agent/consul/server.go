@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1477,7 +1476,7 @@ type inmemCodec struct {
 	args       interface{}
 	reply      interface{}
 	err        error
-	remoteAddr string
+	sourceAddr net.Addr
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1504,10 +1503,7 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 }
 
 func (i *inmemCodec) SourceAddr() net.Addr {
-	if i.remoteAddr != "" {
-		return net.TCPAddrFromAddrPort(netip.MustParseAddrPort(i.remoteAddr))
-	}
-	return nil
+	return i.sourceAddr
 }
 
 func (i *inmemCodec) Close() error {
@@ -1516,10 +1512,12 @@ func (i *inmemCodec) Close() error {
 
 // RPC is used to make a local RPC call
 func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	remoteAddr, _ := ctx.Value("remote-addr").(net.Addr)
 	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
+		method:     method,
+		args:       args,
+		reply:      reply,
+		sourceAddr: remoteAddr,
 	}
 
 	// Enforce the RPC limit.
