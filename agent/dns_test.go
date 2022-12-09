@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -5168,9 +5168,10 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
+		if choices[i] {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -5246,8 +5247,14 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 	return true, nil
 }
 
-func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
-	expectedResultsCount int, udpSize uint16) error {
+func checkDNSService(
+	t *testing.T,
+	generateNumNodes int,
+	aRecordLimit int,
+	qType uint16,
+	expectedResultsCount int,
+	udpSize uint16,
+) {
 	a := NewTestAgent(t, `
 		node_name = "test-node"
 		dns_config {
@@ -5255,12 +5262,12 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 			udp_answer_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
 		}
 	`)
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
+		if choices[i] {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -5274,9 +5281,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		}
 
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 	}
 	var id string
 	{
@@ -5291,9 +5296,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 			},
 		}
 
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
+		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
 	}
 
 	// Look up the service directly and via prepared query.
@@ -5303,28 +5306,29 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		id + ".query.consul.",
 	}
 	for _, question := range questions {
-		m := new(dns.Msg)
+		question := question
+		t.Run("question: "+question, func(t *testing.T) {
 
-		m.SetQuestion(question, qType)
-		protocol := "tcp"
-		if udpSize > 0 {
-			protocol = "udp"
-		}
-		if udpSize > 512 {
-			m.SetEdns0(udpSize, true)
-		}
-		c := &dns.Client{Net: protocol, UDPSize: 8192}
-		in, _, err := c.Exchange(m, a.DNSAddr())
-		t.Logf("DNS Response for %+v - %+v", m, in)
-		if err != nil {
-			return fmt.Errorf("err: %v", err)
-		}
-		if len(in.Answer) != expectedResultsCount {
-			return fmt.Errorf("%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
-		}
+			m := new(dns.Msg)
+
+			m.SetQuestion(question, qType)
+			protocol := "tcp"
+			if udpSize > 0 {
+				protocol = "udp"
+			}
+			if udpSize > 512 {
+				m.SetEdns0(udpSize, true)
+			}
+			c := &dns.Client{Net: protocol, UDPSize: 8192}
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+
+			t.Logf("DNS Response for %+v - %+v", m, in)
+
+			require.Equal(t, expectedResultsCount, len(in.Answer),
+				"%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
+		})
 	}
-
-	return nil
 }
 
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
@@ -5334,77 +5338,81 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 
 	t.Parallel()
 	tests := []struct {
-		name                string
-		aRecordLimit        int
-		expectedAResults    int
-		expectedAAAAResults int
-		expectedSRVResults  int
-		numNodesTotal       int
-		udpSize             uint16
-		udpAnswerLimit      int
+		name                   string
+		aRecordLimit           int
+		expectedAResults       int
+		expectedAAAAResults    int
+		expectedANYResults     int
+		expectedSRVResults     int
+		numNodesTotal          int
+		udpSize                uint16
+		_unused_udpAnswerLimit int // NOTE: this field is not used
 	}{
 		// UDP + EDNS
-		{"udp-edns-1", 1, 1, 1, 30, 30, 8192, 3},
-		{"udp-edns-2", 2, 2, 1, 30, 30, 8192, 3},
-		{"udp-edns-3", 3, 3, 1, 30, 30, 8192, 3},
-		{"udp-edns-4", 4, 4, 1, 30, 30, 8192, 3},
-		{"udp-edns-5", 5, 5, 1, 30, 30, 8192, 3},
-		{"udp-edns-6", 6, 6, 1, 30, 30, 8192, 3},
-		{"udp-edns-max", 6, 3, 3, 3, 3, 8192, 3},
+		{"udp-edns-1", 1, 1, 1, 1, 30, 30, 8192, 3},
+		{"udp-edns-2", 2, 2, 2, 2, 30, 30, 8192, 3},
+		{"udp-edns-3", 3, 3, 3, 3, 30, 30, 8192, 3},
+		{"udp-edns-4", 4, 4, 4, 4, 30, 30, 8192, 3},
+		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192, 3},
+		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192, 3},
+		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192, 3},
 		// All UDP without EDNS have a limit of 2 answers due to udpAnswerLimit
 		// Even SRV records are limit to 2 records
-		{"udp-limit-1", 1, 1, 1, 1, 1, 512, 2},
-		{"udp-limit-2", 2, 2, 2, 2, 2, 512, 2},
+		{"udp-limit-1", 1, 1, 0, 1, 1, 1, 512, 2},
+		{"udp-limit-2", 2, 1, 1, 2, 2, 2, 512, 2},
 		// AAAA results limited by size of payload
-		{"udp-limit-3", 3, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-4", 4, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-5", 5, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-6", 6, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-max", 6, 2, 2, 2, 2, 512, 2},
+		{"udp-limit-3", 3, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-4", 4, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-5", 5, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-6", 6, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-max", 6, 1, 1, 2, 2, 2, 512, 2},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
-		{"udp-1", 1, 1, 1, 1, 1, 512, 0},
-		{"udp-2", 2, 2, 2, 2, 2, 512, 0},
-		{"udp-3", 3, 2, 2, 2, 2, 512, 0},
-		{"udp-4", 4, 2, 2, 2, 2, 512, 0},
-		{"udp-5", 5, 2, 2, 2, 2, 512, 0},
-		{"udp-6", 6, 2, 2, 2, 2, 512, 0},
+		{"udp-1", 1, 1, 0, 1, 1, 1, 512, 0},
+		{"udp-2", 2, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-3", 3, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-4", 4, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-5", 5, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-6", 6, 1, 1, 2, 2, 2, 512, 0},
 		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", 6, 2, 2, 2, 2, 512, 0},
+		{"udp-max", 6, 1, 1, 2, 2, 2, 512, 0},
 
-		{"tcp-1", 1, 1, 1, 30, 30, 0, 0},
-		{"tcp-2", 2, 2, 2, 30, 30, 0, 0},
-		{"tcp-3", 3, 3, 3, 30, 30, 0, 0},
-		{"tcp-4", 4, 4, 4, 30, 30, 0, 0},
-		{"tcp-5", 5, 5, 5, 30, 30, 0, 0},
-		{"tcp-6", 6, 6, 5, 30, 30, 0, 0},
-		{"tcp-max", 6, 2, 2, 2, 2, 0, 0},
+		{"tcp-1", 1, 1, 1, 1, 30, 30, 0, 0},
+		{"tcp-2", 2, 2, 2, 2, 30, 30, 0, 0},
+		{"tcp-3", 3, 3, 3, 3, 30, 30, 0, 0},
+		{"tcp-4", 4, 4, 4, 4, 30, 30, 0, 0},
+		{"tcp-5", 5, 5, 5, 5, 30, 30, 0, 0},
+		{"tcp-6", 6, 6, 6, 6, 30, 30, 0, 0},
+		{"tcp-max", 6, 1, 1, 2, 2, 2, 0, 0},
 	}
 	for _, test := range tests {
 		test := test // capture loop var
 
-		queriesLimited := []uint16{
-			dns.TypeA,
-			dns.TypeAAAA,
-			dns.TypeANY,
-		}
-		// All those queries should have at max queriesLimited elements
-		for idx, qType := range queriesLimited {
-			t.Run(fmt.Sprintf("ARecordLimit %d qType: %d", idx, qType), func(t *testing.T) {
-				t.Parallel()
-				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize)
-				if err != nil {
-					t.Fatalf("Expected lookup %s to pass: %v", test.name, err)
-				}
-			})
-		}
-		// No limits but the size of records for SRV records, since not subject to randomization issues
-		t.Run("SRV lookup limitARecord", func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
-			if err != nil {
-				t.Fatalf("Expected service SRV lookup %s to pass: %v", test.name, err)
-			}
+
+			// All those queries should have at max queriesLimited elements
+
+			t.Run("A", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize)
+			})
+
+			t.Run("AAAA", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize)
+			})
+
+			t.Run("ANY", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize)
+			})
+
+			// No limits but the size of records for SRV records, since not subject to randomization issues
+			t.Run("SRV", func(t *testing.T) {
+				t.Parallel()
+				checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
+			})
 		})
 	}
 }
@@ -8276,4 +8284,73 @@ func TestECSNotGlobalError(t *testing.T) {
 		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
 		require.Equal(t, errNameNotFound, errors.Unwrap(e))
 	})
+}
+
+// perfectlyRandomChoices assigns exactly the provided fraction of size items a
+// true value, and then presents a random permutation of those boolean values.
+func perfectlyRandomChoices(size int, frac float64) []bool {
+	out := make([]bool, size)
+
+	max := int(float64(size) * frac)
+	for i := 0; i < max; i++ {
+		out[i] = true
+	}
+
+	rand.Shuffle(size, func(i, j int) {
+		out[i], out[j] = out[j], out[i]
+	})
+	return out
+}
+
+func TestPerfectlyRandomChoices(t *testing.T) {
+	count := func(got []bool) int {
+		var x int
+		for _, v := range got {
+			if v {
+				x++
+			}
+		}
+		return x
+	}
+
+	type testcase struct {
+		size   int
+		frac   float64
+		expect int
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		got := perfectlyRandomChoices(tc.size, tc.frac)
+		require.Equal(t, tc.expect, count(got))
+	}
+
+	cases := []testcase{
+		// 100%
+		{0, 1, 0},
+		{1, 1, 1},
+		{2, 1, 2},
+		{3, 1, 3},
+		{5, 1, 5},
+		// 50%
+		{0, 0.5, 0},
+		{1, 0.5, 0},
+		{2, 0.5, 1},
+		{3, 0.5, 1},
+		{5, 0.5, 2},
+		// 10%
+		{0, 0.1, 0},
+		{1, 0.1, 0},
+		{2, 0.1, 0},
+		{3, 0.1, 0},
+		{5, 0.1, 0},
+		{10, 0.1, 1},
+		{11, 0.1, 1},
+		{15, 0.1, 1},
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("size=%d frac=%g", tc.size, tc.frac), func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

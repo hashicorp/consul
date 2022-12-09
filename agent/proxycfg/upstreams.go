@@ -326,6 +326,10 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
 			needGateways[gk.String()] = struct{}{}
 		}
+		// Register a local gateway watch if any targets are pointing to a peer and require a mode of local.
+		if target.Peer != "" && target.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+			s.setupWatchForLocalGWEndpoints(ctx, snap)
+		}
 	}
 
 	// If the discovery chain's targets do not lead to watching all endpoints
@@ -547,4 +551,31 @@ func parseReducedUpstreamConfig(m map[string]interface{}) (reducedUpstreamConfig
 	var cfg reducedUpstreamConfig
 	err := mapstructure.WeakDecode(m, &cfg)
 	return cfg, err
+}
+
+func (s *handlerUpstreams) setupWatchForLocalGWEndpoints(
+	ctx context.Context,
+	upstreams *ConfigSnapshotUpstreams,
+) error {
+	gk := GatewayKey{
+		Partition:  s.proxyID.PartitionOrDefault(),
+		Datacenter: s.source.Datacenter,
+	}
+	// If the watch is already initialized, do nothing.
+	if upstreams.WatchedLocalGWEndpoints.IsWatched(gk.String()) {
+		return nil
+	}
+
+	opts := gatewayWatchOpts{
+		internalServiceDump: s.dataSources.InternalServiceDump,
+		notifyCh:            s.ch,
+		source:              *s.source,
+		token:               s.token,
+		key:                 gk,
+	}
+	if err := watchMeshGateway(ctx, opts); err != nil {
+		return fmt.Errorf("error while watching for local mesh gateway: %w", err)
+	}
+	upstreams.WatchedLocalGWEndpoints.InitWatch(gk.String(), nil)
+	return nil
 }

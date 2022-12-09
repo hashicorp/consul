@@ -110,9 +110,9 @@
             "Method": "",
             "Name": "zoo",
             "Notes": "",
+            "OSService": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
-            "OSService": "",
             "ServiceID": "",
             "Shell": "",
             "Status": "",
@@ -140,7 +140,6 @@
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
-    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -258,6 +257,7 @@
     "PrimaryGatewaysInterval": "0s",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
+    "RPCClientTimeout": "0s",
     "RPCConfig": {
         "EnableStreaming": false
     },
@@ -267,7 +267,6 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RPCClientTimeout": "0s",
     "RaftBoltDBConfig": {
         "NoFreelistSync": false
     },
@@ -331,6 +330,7 @@
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
+                "OSService": "",
                 "OutputMaxSize": 4096,
                 "ProxyGRPC": "",
                 "ProxyHTTP": "",
@@ -338,7 +338,6 @@
                 "Shell": "",
                 "Status": "",
                 "SuccessBeforePassing": 0,
-                "OSService": "",
                 "TCP": "",
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
