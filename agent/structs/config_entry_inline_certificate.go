@@ -15,42 +15,47 @@ type InlineCertificateConfigEntry struct {
 	RaftIndex
 }
 
-func (i *InlineCertificateConfigEntry) GetKind() string {
+func (e *InlineCertificateConfigEntry) GetKind() string {
 	return InlineCertificate
 }
 
-func (i *InlineCertificateConfigEntry) GetName() string {
-	return i.Name
+func (e *InlineCertificateConfigEntry) GetName() string {
+	return e.Name
 }
 
-func (i *InlineCertificateConfigEntry) Normalize() error {
+func (e *InlineCertificateConfigEntry) Normalize() error {
 	return nil
 }
 
-func (i *InlineCertificateConfigEntry) Validate() error {
+func (e *InlineCertificateConfigEntry) Validate() error {
 	return nil
 }
 
-func (i *InlineCertificateConfigEntry) CanRead(authorizer acl.Authorizer) error {
+func (e *InlineCertificateConfigEntry) CanRead(authorizer acl.Authorizer) error {
 	return nil
 }
 
-func (i *InlineCertificateConfigEntry) CanWrite(authorizer acl.Authorizer) error {
+func (e *InlineCertificateConfigEntry) CanWrite(authorizer acl.Authorizer) error {
 	return nil
 }
 
-func (i *InlineCertificateConfigEntry) GetMeta() map[string]string {
-	return nil
+func (e *InlineCertificateConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
-func (i *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	return nil
+func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
 }
 
-func (i *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
-
-	if i == nil {
+func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
 		return &RaftIndex{}
 	}
-	return &i.RaftIndex
+	return &e.RaftIndex
 }

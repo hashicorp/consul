@@ -40,11 +40,17 @@ func (e *HTTPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 }
 
 func (e *HTTPRouteConfigEntry) GetMeta() map[string]string {
-	return nil
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *HTTPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	return nil
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
 }
 
 func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
@@ -106,5 +112,8 @@ func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 }
 
 func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	return nil
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
 }

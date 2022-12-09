@@ -734,7 +734,10 @@ func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 }
 
 func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	return nil
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
@@ -790,5 +793,8 @@ func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	return nil
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
 }
