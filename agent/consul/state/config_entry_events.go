@@ -117,6 +117,26 @@ func (s *Store) ServiceDefaultsSnapshot(req stream.SubscribeRequest, buf stream.
 	return s.configEntrySnapshot(structs.ServiceDefaults, req, buf)
 }
 
+func (s *Store) APIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.APIGateway, req, buf)
+}
+
+func (s *Store) InlineCertificateSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.InlineCertificate, req, buf)
+}
+
+func (s *Store) TCPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.TCPRoute, req, buf)
+}
+
+func (s *Store) HTTPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.HTTPRoute, req, buf)
+}
+
+func (s *Store) BoundAPIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.BoundAPIGateway, req, buf)
+}
+
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	var (
 		idx     uint64
