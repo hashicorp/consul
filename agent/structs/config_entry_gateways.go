@@ -684,9 +684,11 @@ func (g *GatewayService) Clone() *GatewayService {
 // APIGatewayConfigEntry manages the configuration for an API gateway
 // with the given name.
 type APIGatewayConfigEntry struct {
-	Name string
 	Kind string
-	Meta map[string]string `json:",omitempty"`
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -742,9 +744,11 @@ func (e *APIGatewayConfigEntry) Warnings() []string {
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name.
 type BoundAPIGatewayConfigEntry struct {
-	Name string
 	Kind string
-	Meta map[string]string `json:",omitempty"`
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 

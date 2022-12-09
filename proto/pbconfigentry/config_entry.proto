@@ -446,7 +446,7 @@ enum ProxyMode {
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
 message InlineCertificateConfig {}
 
 // mog annotation:

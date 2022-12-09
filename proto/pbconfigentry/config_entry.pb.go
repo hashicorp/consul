@@ -2799,7 +2799,7 @@ func (x *ServiceDefaults) GetMeta() map[string]string {
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta,Meta
 type InlineCertificateConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

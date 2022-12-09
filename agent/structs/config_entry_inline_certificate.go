@@ -10,6 +10,7 @@ type InlineCertificateConfigEntry struct {
 	// Name is used to match the config entry with its associated inline certificate.
 	Name string
 
+	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }

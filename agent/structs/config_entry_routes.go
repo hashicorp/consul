@@ -4,9 +4,11 @@ import "github.com/hashicorp/consul/acl"
 
 // HTTPRouteConfigEntry stub
 type HTTPRouteConfigEntry struct {
-	Name string
 	Kind string
-	Meta map[string]string `json:",omitempty"`
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -58,9 +60,11 @@ func (e *HTTPRouteConfigEntry) Warnings() []string {
 
 // TCPRouteConfigEntry stub
 type TCPRouteConfigEntry struct {
-	Name string
 	Kind string
-	Meta map[string]string `json:",omitempty"`
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
