@@ -569,7 +569,7 @@ message DestinationConfig {
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message APIGateway {
-    map<string, string> Meta = 1;
+  map<string, string> Meta = 1;
 }
 
 // mog annotation:
@@ -579,7 +579,7 @@ message APIGateway {
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message InlineCertificate {
-    map<string, string> Meta = 1;
+  map<string, string> Meta = 1;
 }
 
 // mog annotation:
@@ -589,7 +589,7 @@ message InlineCertificate {
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message HTTPRoute {
-    map<string, string> Meta = 1;
+  map<string, string> Meta = 1;
 }
 
 // mog annotation:
@@ -599,5 +599,5 @@ message HTTPRoute {
 // name=Structs
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message TCPRoute {
-    map<string, string> Meta = 1;
+  map<string, string> Meta = 1;
 }
