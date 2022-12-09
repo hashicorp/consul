@@ -15,8 +15,6 @@ import (
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/consul"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	agentdns "github.com/hashicorp/consul/agent/dns"
