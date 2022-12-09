@@ -189,7 +189,7 @@ func (b *Builder) ToAgentConfig() (*Config, error) {
 		Cmd:     []string{"agent"},
 		Image:   *utils.TargetImage,
 		JSON:    string(out),
-		Version: *utils.TargetVersion,
+		Version: b.context.consulVersion,
 	}
 
 	return conf, nil

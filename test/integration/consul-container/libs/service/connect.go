@@ -21,6 +21,7 @@ type ConnectContainer struct {
 	appPort   int
 	adminPort int
 	req       testcontainers.ContainerRequest
+	followLog bool
 }
 
 func (g ConnectContainer) GetName() string {
@@ -53,10 +54,14 @@ func (c ConnectContainer) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	var err error
+	if c.followLog {
+		err := c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
+	} else {
+		err = c.container.Terminate(c.ctx)
 	}
 
 	c.container = nil
@@ -64,7 +69,7 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent, followLog bool) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -122,12 +127,14 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		return nil, err
 	}
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return nil, err
+	if followLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: containerName,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: containerName,
-	})
 
 	// Register the termination function the agent so the containers can stop together
 	terminate := func() error {
@@ -140,5 +147,6 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		ip:        ip,
 		appPort:   mappedAppPort.Int(),
 		adminPort: mappedAdminPort.Int(),
+		followLog: followLog,
 	}, nil
 }

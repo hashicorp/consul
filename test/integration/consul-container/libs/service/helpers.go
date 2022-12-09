@@ -10,14 +10,14 @@ import (
 	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 
-func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Service, error) {
+func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent, followLog bool) (Service, Service, error) {
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
+	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node, followLog)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node, followLog) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,9 +72,9 @@ func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Servi
 	return serverService, serverConnectProxy, nil
 }
 
-func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool) (*ConnectContainer, error) {
+func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool, followLog bool) (*ConnectContainer, error) {
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node, followLog)
 	if err != nil {
 		return nil, err
 	}

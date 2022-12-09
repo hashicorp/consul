@@ -28,4 +28,6 @@ type Config struct {
 	Image   string
 	Version string
 	Cmd     []string
+	// FollowLog enables output container log to stdout
+	FollowLog bool
 }
