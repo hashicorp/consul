@@ -175,24 +175,38 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	return cfg, err
 }
 
-// Return an envoy.OutlierDetection populated by the values from this struct.
+// Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthChec.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
+// If override is not nil, it will overwrite the values from p, e.g., ingress gateway defaults
+func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
 	od := &envoy_cluster_v3.OutlierDetection{}
-	if p == nil {
-		return od
+	if p != nil {
+
+		if p.Interval != 0 {
+			od.Interval = durationpb.New(p.Interval)
+		}
+		if p.MaxFailures != 0 {
+			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+		}
+
+		if p.EnforcingConsecutive5xx != nil {
+			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+		}
 	}
 
-	if p.Interval != 0 {
-		od.Interval = durationpb.New(p.Interval)
-	}
-	if p.MaxFailures != 0 {
-		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
-	}
+	// override the default outlier detection value
+	if override != nil {
+		if override.Interval != 0 {
+			od.Interval = durationpb.New(override.Interval)
+		}
+		if override.MaxFailures != 0 {
+			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: override.MaxFailures}
+		}
 
-	if p.EnforcingConsecutive5xx != nil {
-		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+		if override.EnforcingConsecutive5xx != nil {
+			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+		}
 	}
 
 	return od

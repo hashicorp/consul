@@ -850,22 +850,12 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 		c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
 	}
 
-	// Configure the default outlier detector for upstream service
-	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck)
-
-	// override the default outlier detection value
-	if svc.PassiveHealthCheck != nil {
-		if svc.PassiveHealthCheck.Interval != 0 {
-			outlierDetection.Interval = durationpb.New(svc.PassiveHealthCheck.Interval)
-		}
-		if svc.PassiveHealthCheck.MaxFailures != 0 {
-			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{Value: svc.PassiveHealthCheck.MaxFailures}
-		}
-
-		if svc.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
-			outlierDetection.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *svc.PassiveHealthCheck.EnforcingConsecutive5xx}
-		}
+	// Configure the outlier detector for upstream service
+	var override *structs.PassiveHealthCheck
+	if svc != nil {
+		override = svc.PassiveHealthCheck
 	}
+	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override)
 
 	// Specail handling for failover peering service, which has set MaxEjectionPercent
 	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
@@ -973,7 +963,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	clusterName := generatePeeredClusterName(uid, tbs)
 
-	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck)
+	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil)
 	// We can't rely on health checks for services on cluster peers because they
 	// don't take into account service resolvers, splitters and routers. Setting
 	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
@@ -1108,7 +1098,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck, nil),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			if err := s.setHttp2ProtocolOptions(c); err != nil {
@@ -1351,7 +1341,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 					Thresholds: makeThresholdsIfNeeded(upstreamConfig.Limits),
 				},
-				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck),
+				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil),
 			}
 
 			var lb *structs.LoadBalancer
