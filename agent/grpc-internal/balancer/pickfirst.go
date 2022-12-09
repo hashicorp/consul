@@ -1,3 +1,8 @@
+// NOTICE: This file is a derivative of grpc's pick_first implementation [1].
+// It is preserved as-is with the init() removed for easier updating.
+//
+// [1]: https://github.com/grpc/grpc-go/blob/v1.49.x/pickfirst.go
+
 /*
  *
  * Copyright 2017 gRPC authors.
@@ -15,9 +20,6 @@
  * limitations under the License.
  *
  */
-
-// NOTICE: This file is a derivative of grpc's grpc/pickfirst.go implementation.
-// It is preserved as-is with the init() removed for easier updating.
 
 package balancer
 
@@ -180,3 +182,8 @@ func (i *idlePicker) Pick(balancer.PickInfo) (balancer.PickResult, error) {
 	i.subConn.Connect()
 	return balancer.PickResult{}, balancer.ErrNoSubConnAvailable
 }
+
+// Intentionally removed
+// func init() {
+// 	balancer.Register(newPickfirstBuilder())
+// }
