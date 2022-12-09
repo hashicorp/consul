@@ -31,12 +31,16 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *InlineCertificateConfigEntry) CanRead(authorizer acl.Authorizer) error {
-	return nil
+func (e *InlineCertificateConfigEntry) CanRead(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
-func (e *InlineCertificateConfigEntry) CanWrite(authorizer acl.Authorizer) error {
-	return nil
+func (e *InlineCertificateConfigEntry) CanWrite(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *InlineCertificateConfigEntry) GetMeta() map[string]string {

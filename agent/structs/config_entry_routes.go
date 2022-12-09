@@ -32,11 +32,15 @@ func (e *HTTPRouteConfigEntry) Validate() error {
 }
 
 func (e *HTTPRouteConfigEntry) CanRead(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
 func (e *HTTPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *HTTPRouteConfigEntry) GetMeta() map[string]string {
@@ -97,11 +101,15 @@ func (e *TCPRouteConfigEntry) Validate() error {
 }
 
 func (e *TCPRouteConfigEntry) CanRead(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
 func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {

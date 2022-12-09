@@ -719,11 +719,15 @@ func (e *APIGatewayConfigEntry) Validate() error {
 }
 
 func (e *APIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
 func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
@@ -778,7 +782,9 @@ func (e *BoundAPIGatewayConfigEntry) Validate() error {
 }
 
 func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
 func (e *BoundAPIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
