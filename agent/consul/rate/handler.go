@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/agent/consul/rate/multilimiter"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
 var (
