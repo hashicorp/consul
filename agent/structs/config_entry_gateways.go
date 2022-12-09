@@ -737,10 +737,6 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return nil
 }
 
-func (e *APIGatewayConfigEntry) Warnings() []string {
-	return []string{}
-}
-
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name.
 type BoundAPIGatewayConfigEntry struct {
@@ -795,8 +791,4 @@ func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 
 func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return nil
-}
-
-func (e *BoundAPIGatewayConfigEntry) Warnings() []string {
-	return []string{}
 }

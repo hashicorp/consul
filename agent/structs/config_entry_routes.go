@@ -54,10 +54,6 @@ func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *HTTPRouteConfigEntry) Warnings() []string {
-	return []string{}
-}
-
 // TCPRouteConfigEntry stub
 type TCPRouteConfigEntry struct {
 	Kind string
@@ -111,8 +107,4 @@ func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 
 func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return nil
-}
-
-func (e *TCPRouteConfigEntry) Warnings() []string {
-	return []string{}
 }
