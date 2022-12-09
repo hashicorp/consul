@@ -32,7 +32,7 @@ import (
 )
 
 // PickFirstBalancerName is the name of the pick_first balancer.
-const PickFirstBalancerName = "pick_first"
+const PickFirstBalancerName = "pick_first_original"
 
 func newPickfirstBuilder() balancer.Builder {
 	return &pickfirstBuilder{}
