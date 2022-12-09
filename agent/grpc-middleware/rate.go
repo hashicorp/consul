@@ -27,6 +27,11 @@ func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.Reco
 			}
 		}()
 
+		// Do not rate-limit the xDS service, it handles its own limiting.
+		if info.FullMethodName == "/envoy.service.discovery.v3.AggregatedDiscoveryService/DeltaAggregatedResources" {
+			return ctx, nil
+		}
+
 		peer, ok := peer.FromContext(ctx)
 		if !ok {
 			// This should never happen!
