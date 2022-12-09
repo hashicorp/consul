@@ -1391,6 +1391,10 @@
             "path": "nia/usage/run-ha"
           },
           {
+            "title": "Automate Palo Alto Next Generation Firewall (NGFW)",
+            "path": "nia/usage/palo-alto-ngfw"
+          },
+          {
             "title": "Error Messages",
             "path": "nia/usage/errors-ref"
           }
