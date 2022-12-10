@@ -220,7 +220,7 @@ Complete the following instructions to install a specific version of the CLI so 
 After installing the Consul K8s CLI tool (`consul-k8s`), issue the `install` subcommand and any additional options to install Consul on your existing Kubernetes cluster. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli) for details about all commands and available options. If you do not include any additional options, the `consul-k8s` CLI installs Consul on Kubernetes using the default settings form the Consul Helm chart values. The following example installs Consul on Kubernetes with service mesh and CRDs enabled.
 
 ```shell-session
-$ consul-k8s install -set connectInject.enabled=true -set controller.enabled=true
+$ consul-k8s install 
 
 ==> Pre-Install Checks
 No existing installations found.
