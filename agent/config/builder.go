@@ -666,7 +666,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
-	serverlessPluginEnabled := boolVal(c.Connect.EnableServerlessPlugin)
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -969,7 +968,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
-		ConnectServerlessPluginEnabled:         serverlessPluginEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
