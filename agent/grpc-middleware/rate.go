@@ -49,8 +49,10 @@ func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.Reco
 			return ctx, nil
 		case errors.Is(err, rate.ErrRetryElsewhere):
 			return ctx, status.Error(codes.ResourceExhausted, err.Error())
-		default:
+		case errors.Is(err, rate.ErrRetryLater):
 			return ctx, status.Error(codes.Unavailable, err.Error())
+		default:
+			return ctx, status.Error(codes.Internal, err.Error())
 		}
 	}
 }

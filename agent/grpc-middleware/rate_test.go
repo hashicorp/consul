@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net"
 	"testing"
 
@@ -73,6 +74,16 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
 		require.Error(t, err)
 		require.Equal(t, codes.Unavailable.String(), status.Code(err).String())
+	})
+
+	t.Run("unexpected error", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Return(errors.New("uh oh")).
+			Once()
+
+		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		require.Error(t, err)
+		require.Equal(t, codes.Internal.String(), status.Code(err).String())
 	})
 
 	t.Run("operation allowed", func(t *testing.T) {
