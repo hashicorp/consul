@@ -192,7 +192,9 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	config := leader.GetConfig()
 	config.Version = targetVersion
 	err = leader.Upgrade(context.Background(), config, 1)
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	WaitForMembers(t, client, len(c.Agents))
 

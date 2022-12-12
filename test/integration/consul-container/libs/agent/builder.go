@@ -189,7 +189,12 @@ func (b *Builder) ToAgentConfig() (*Config, error) {
 		Cmd:     []string{"agent"},
 		Image:   *utils.TargetImage,
 		JSON:    string(out),
-		Version: b.context.consulVersion,
+		Version: *utils.TargetVersion,
+	}
+
+	// Override the default version
+	if b.context != nil && b.context.consulVersion != "" {
+		conf.Version = b.context.consulVersion
 	}
 
 	return conf, nil

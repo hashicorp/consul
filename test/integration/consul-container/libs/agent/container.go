@@ -265,11 +265,11 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 
 	time.Sleep(5 * time.Second)
 	container, err := startContainer(ctx, c.consulReq)
+	c.container = container
 	if err != nil {
 		return err
 	}
 	c.ctx = ctx
-	c.container = container
 
 	if config.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
