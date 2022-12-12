@@ -225,7 +225,6 @@ connect {
     }
     enable_mesh_gateway_wan_federation = false
     enabled = true
-    enable_serverless_plugin = true
 }
 gossip_lan {
     gossip_nodes    = 6

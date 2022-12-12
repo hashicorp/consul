@@ -216,7 +216,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p2State[AWSStateCAARNKey],
 		})
 		p2 = testAWSProvider(t, cfg2)
-		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM))
+		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM, ""))
 
 		root, err = p1.GenerateRoot()
 		require.NoError(t, err)
