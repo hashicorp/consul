@@ -68,8 +68,8 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceName: "web",
 		},
-		Tags: []string{
-			"test-tag",
+		Meta: map[string]string{
+			"MetaKey": "MetaValue",
 		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
@@ -78,7 +78,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	// And another proxy so we can test handling with multiple endpoints returned
 	regProxy.Port = 9091
 	regProxy.ID = "web-proxy-2"
-	regProxy.Tags = []string{}
+	regProxy.Meta = map[string]string{}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
 
@@ -156,7 +156,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Namespace: "default",
 				Name:      "web",
 				Type:      ConsulResolverTypeService,
-				Filter:    "`test-tag` in Service.Tags",
+				Filter:    "Service.Meta[`MetaKey`] == `MetaValue`",
 			},
 			// Want empty host since we don't enforce trust domain outside of TLS and
 			// don't need to load the current one this way.
@@ -172,7 +172,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Namespace: "default",
 				Name:      "web",
 				Type:      ConsulResolverTypeService,
-				Filter:    "`another-tag` in Service.Tags",
+				Filter:    "`AnotherMetaValue` in Service.Meta.MetaKey",
 			},
 			wantErr: true,
 		},
