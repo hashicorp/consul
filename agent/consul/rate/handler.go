@@ -116,7 +116,7 @@ func (h *Handler) Run(ctx context.Context) {
 	h.limiter.Run(ctx)
 }
 
-// Allow returns an error if the given operation is now allowed to proceed
+// Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
 	// TODO(NET-1383): actually implement the rate limiting logic.
@@ -142,17 +142,13 @@ var (
 	globalRead = globalLimit("global.read")
 )
 
-type globalLimit string
+type globalLimit []byte
 
 // Key satisfies the multilimiter.LimitedEntity interface. It returns the key
 // of the leaf node in which the limiter is stored.
-func (gl globalLimit) Key() []byte {
-	return multilimiter.Key(gl.ConfigKey(), []byte("limiter"))
+func (prefix globalLimit) Key() []byte {
+	return multilimiter.Key(prefix, []byte("limiter"))
 }
 
 // ConfigKey is the key of the multilimiter tree node in which the config lives.
-//
-// TODO: we have to do this beacause the multilimiter doesn't currently support
-// setting config directly on a leaf node, which we were eventually going to do
-// for per-identity/per-tenant limits. Maybe we should do that sooner?
-func (gl globalLimit) ConfigKey() []byte { return []byte(gl) }
+func (prefix globalLimit) ConfigKey() []byte { return prefix }
