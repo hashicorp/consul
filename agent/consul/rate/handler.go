@@ -96,8 +96,8 @@ type HandlerDelegate interface {
 // NewHandler creates a new RPC rate limit handler.
 func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
 	limiter := multilimiter.NewMultiLimiter(cfg.Config)
-	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite.ConfigKey())
-	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead.ConfigKey())
+	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
 	h := &Handler{
 		cfg:      new(atomic.Pointer[HandlerConfig]),
@@ -130,8 +130,8 @@ func (h *Handler) Allow(op Operation) error {
 // TODO(NET-1379): call this on `consul reload`.
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	h.cfg.Store(&cfg)
-	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite.ConfigKey())
-	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead.ConfigKey())
+	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 }
 
 var (
@@ -142,13 +142,10 @@ var (
 	globalRead = globalLimit("global.read")
 )
 
+// globalLimit represents a limit that applies to all writes or reads.
 type globalLimit []byte
 
-// Key satisfies the multilimiter.LimitedEntity interface. It returns the key
-// of the leaf node in which the limiter is stored.
-func (prefix globalLimit) Key() []byte {
-	return multilimiter.Key(prefix, []byte("limiter"))
+// Key satisfies the multilimiter.LimitedEntity interface.
+func (prefix globalLimit) Key() multilimiter.KeyType {
+	return multilimiter.Key(prefix, nil)
 }
-
-// ConfigKey is the key of the multilimiter tree node in which the config lives.
-func (prefix globalLimit) ConfigKey() []byte { return prefix }
