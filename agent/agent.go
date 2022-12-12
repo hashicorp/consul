@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/proto/pboperator"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -3874,13 +3876,13 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}
