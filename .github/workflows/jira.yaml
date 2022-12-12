@@ -35,14 +35,14 @@ jobs:
         if: github.event.action == 'opened'
         id: set-ticket-labels
         run: |
-          LABELS="[consul-k8s]"
+          LABELS="[consul]"
           echo "::set-output name=labels::${LABELS}"
           
       - name: Check if team member
         if: github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task'
         id: is-team-member
         run: |
-          TEAM=core-kubernetes
+          TEAM=consul
           ROLE="$(hub api orgs/hashicorp/teams/${TEAM}/memberships/${{ github.actor }} | jq -r '.role | select(.!=null)')"
           if [[ -n ${ROLE} ]]; then
             echo "Actor ${{ github.actor }} is a ${TEAM} team member"
