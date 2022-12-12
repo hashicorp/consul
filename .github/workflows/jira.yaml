@@ -52,7 +52,7 @@ jobs:
         if: ( github.event.action == 'opened' && steps.set-ticket-type.outputs.type != 'Task' ) || ( github.event.action == 'opened' && steps.set-ticket-type.outputs.type == 'Task' && steps.is-team-member.outputs.message == 'false' )
         uses: tomhjp/gh-action-jira-create@v0.1.3
         with:
-          project: DIAG
+          project: NET
           issuetype: "${{ steps.set-ticket-type.outputs.type }}"
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.type }} #${{ github.event.issue.number || github.event.pull_request.number }}]: ${{ github.event.issue.title || github.event.pull_request.title }}"
           description: "${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
