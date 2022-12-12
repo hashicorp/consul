@@ -1007,15 +1007,15 @@ RESOLVE_AGAIN:
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
-			target.TransparentProxy = serviceDefault.TransparentProxy
+			target.TransparentProxy.DialedDirectly = serviceDefault.TransparentProxy.DialedDirectly
 		}
 		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
 		if proxyDefault != nil {
 			if target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 				target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
 			}
-			if target.TransparentProxy.IsZero() {
-				target.TransparentProxy = proxyDefault.TransparentProxy
+			if !target.TransparentProxy.DialedDirectly {
+				target.TransparentProxy.DialedDirectly = proxyDefault.TransparentProxy.DialedDirectly
 			}
 		}
 
