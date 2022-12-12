@@ -173,13 +173,10 @@ var (
 	globalRead = globalLimit("global.read")
 )
 
+// globalLimit represents a limit that applies to all writes or reads.
 type globalLimit []byte
 
-// Key satisfies the multilimiter.LimitedEntity interface. It returns the key
-// of the leaf node in which the limiter is stored.
-func (prefix globalLimit) Key() []byte {
-	return multilimiter.Key(prefix, []byte("limiter"))
+// Key satisfies the multilimiter.LimitedEntity interface.
+func (prefix globalLimit) Key() multilimiter.KeyType {
+	return multilimiter.Key(prefix, nil)
 }
-
-// ConfigKey is the key of the multilimiter tree node in which the config lives.
-func (prefix globalLimit) ConfigKey() []byte { return prefix }
