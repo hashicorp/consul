@@ -122,22 +122,32 @@ func (s *Store) ServiceDefaultsSnapshot(req stream.SubscribeRequest, buf stream.
 	return s.configEntrySnapshot(structs.ServiceDefaults, req, buf)
 }
 
+// APIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
+// api-gateway config entries.
 func (s *Store) APIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.APIGateway, req, buf)
 }
 
-func (s *Store) InlineCertificateSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.InlineCertificate, req, buf)
-}
-
+// TCPRouteSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// tcp-route config entries.
 func (s *Store) TCPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.TCPRoute, req, buf)
 }
 
+// HTTPRouteSnapshot is a stream.SnapshotFunc that retuns a snapshot of
+// http-route config entries.
 func (s *Store) HTTPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.HTTPRoute, req, buf)
 }
 
+// InlineCertificateSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// inline-certificate config entries.
+func (s *Store) InlineCertificateSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.InlineCertificate, req, buf)
+}
+
+// BoundAPIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
+// bound-api-gateways config entries.
 func (s *Store) BoundAPIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.BoundAPIGateway, req, buf)
 }
