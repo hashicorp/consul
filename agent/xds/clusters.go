@@ -855,7 +855,7 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 	if svc != nil {
 		override = svc.PassiveHealthCheck
 	}
-	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override)
+	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override, false)
 
 	// Specail handling for failover peering service, which has set MaxEjectionPercent
 	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
@@ -963,7 +963,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	clusterName := generatePeeredClusterName(uid, tbs)
 
-	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil)
+	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true)
 	// We can't rely on health checks for services on cluster peers because they
 	// don't take into account service resolvers, splitters and routers. Setting
 	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
@@ -1098,7 +1098,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck, nil),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck, nil, true),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			if err := s.setHttp2ProtocolOptions(c); err != nil {
@@ -1341,7 +1341,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 					Thresholds: makeThresholdsIfNeeded(upstreamConfig.Limits),
 				},
-				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil),
+				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true),
 			}
 
 			var lb *structs.LoadBalancer
