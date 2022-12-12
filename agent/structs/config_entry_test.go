@@ -296,7 +296,7 @@ func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
 }
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
-// command/config/write/config_write_test.go:TestParseConfigEntry
+// command/helpers/helpers_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
 
 	for _, tc := range []struct {
@@ -1896,6 +1896,114 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				Peering: &PeeringMeshConfig{
 					PeerThroughMeshGateways: true,
+				},
+			},
+		},
+		{
+			name: "api-gateway",
+			snake: `
+				kind = "api-gateway"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "api-gateway"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "inline-certificate",
+			snake: `
+				kind = "inline-certificate"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "inline-certificate"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &InlineCertificateConfigEntry{
+				Kind: "inline-certificate",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "http-route",
+			snake: `
+				kind = "http-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "http-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &HTTPRouteConfigEntry{
+				Kind: "http-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "tcp-route",
+			snake: `
+				kind = "tcp-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "tcp-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &TCPRouteConfigEntry{
+				Kind: "tcp-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
 				},
 			},
 		},
