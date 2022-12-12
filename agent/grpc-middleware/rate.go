@@ -41,6 +41,7 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 		operationType, ok := rpcRateLimitSpecs[info.FullMethodName]
 		if !ok {
 			logger.Warn("failed to determine which rate limit to apply to RPC", "rpc", info.FullMethodName)
+			return ctx, nil
 		}
 
 		err := limiter.Allow(rate.Operation{
