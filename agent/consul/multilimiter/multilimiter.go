@@ -119,7 +119,7 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 
 			defer waiter.Stop()
 			for {
-				if txn = m.runStoreOnce(ctx, wt, txn, cfg.ReconcileCheckLimit); txn == nil {
+				if txn = m.reconcile(ctx, wt, txn, cfg.ReconcileCheckLimit); txn == nil {
 					return
 				}
 			}
@@ -180,7 +180,7 @@ func (t tickerWrapper) Ticker() <-chan time.Time {
 	return t.ticker.C
 }
 
-func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *radix.Txn, reconcileCheckLimit time.Duration) *radix.Txn {
+func (m *MultiLimiter) reconcile(ctx context.Context, waiter ticker, txn *radix.Txn, reconcileCheckLimit time.Duration) *radix.Txn {
 	select {
 	case <-waiter.Ticker():
 		tree := txn.Commit()

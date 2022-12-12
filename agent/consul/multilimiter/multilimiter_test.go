@@ -109,9 +109,9 @@ func storeLimiter(m *MultiLimiter) {
 	mockTicker := mockTicker{tickerCh: make(chan time.Time, 1)}
 	ctx := context.Background()
 	reconcileCheckLimit := m.defaultConfig.Load().ReconcileCheckLimit
-	m.runStoreOnce(ctx, &mockTicker, txn, reconcileCheckLimit)
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
 	mockTicker.tickerCh <- time.Now()
-	m.runStoreOnce(ctx, &mockTicker, txn, reconcileCheckLimit)
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
 }
 
 func reconcile(m *MultiLimiter) {
@@ -120,7 +120,7 @@ func reconcile(m *MultiLimiter) {
 	ctx := context.Background()
 	reconcileCheckLimit := m.defaultConfig.Load().ReconcileCheckLimit
 	mockTicker.tickerCh <- time.Now()
-	m.runStoreOnce(ctx, &mockTicker, txn, reconcileCheckLimit)
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
 }
 
 func TestRateLimiterStore(t *testing.T) {
