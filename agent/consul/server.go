@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"io"
 	"net"
 	"os"
@@ -468,6 +469,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
 	s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
+		// TODO(server-rate-limit): revisit those value based on the multilimiter final implementation
+		Config: multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
 		// TODO(NET-1379): pass in _real_ configuration.
 		GlobalMode: rpcRate.ModePermissive,
 	}, s)
