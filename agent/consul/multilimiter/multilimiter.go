@@ -110,29 +110,17 @@ func NewMultiLimiter(c Config) *MultiLimiter {
 func (m *MultiLimiter) Run(ctx context.Context) {
 	m.once.Do(func() {
 		go func() {
-			writeTimeout := 10 * time.Millisecond
+			cfg := m.defaultConfig.Load()
+			writeTimeout := cfg.ReconcileCheckInterval
 			limiters := m.limiters.Load()
 			txn := limiters.Txn()
 			waiter := time.NewTicker(writeTimeout)
 			wt := tickerWrapper{ticker: waiter}
+
 			defer waiter.Stop()
 			for {
-				if txn = m.runStoreOnce(ctx, wt, txn); txn == nil {
+				if txn = m.runStoreOnce(ctx, wt, txn, cfg.ReconcileCheckLimit); txn == nil {
 					return
-				}
-			}
-		}()
-		go func() {
-			waiter := time.NewTimer(0)
-			for {
-				c := m.defaultConfig.Load()
-				waiter.Reset(c.ReconcileCheckInterval)
-				select {
-				case <-ctx.Done():
-					waiter.Stop()
-					return
-				case now := <-waiter.C:
-					m.reconcileLimitedOnce(now, c.ReconcileCheckLimit)
 				}
 			}
 		}()
@@ -192,13 +180,16 @@ func (t tickerWrapper) Ticker() <-chan time.Time {
 	return t.ticker.C
 }
 
-func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *radix.Txn) *radix.Txn {
+func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *radix.Txn, reconcileCheckLimit time.Duration) *radix.Txn {
 	select {
 	case <-waiter.Ticker():
 		tree := txn.Commit()
 		m.limiters.Store(tree)
 		txn = tree.Txn()
-
+		m.cleanLimiters(time.Now(), reconcileCheckLimit, txn)
+		m.reconcileConfig(txn)
+		tree = txn.Commit()
+		txn = tree.Txn()
 	case lk := <-m.limiterCh:
 		v, ok := txn.Get(lk.k)
 		if !ok {
@@ -215,33 +206,9 @@ func (m *MultiLimiter) runStoreOnce(ctx context.Context, waiter ticker, txn *rad
 	return txn
 }
 
-// reconcileLimitedOnce is called by the MultiLimiter clean up routine to remove old Limited entries
-// it will wait for ReconcileCheckInterval before traversing the radix tree and removing all entries
-// with lastAccess > ReconcileCheckLimit
-func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit time.Duration) {
-	limiters := m.limiters.Load()
-	storedLimiters := limiters
-	iter := limiters.Root().Iterator()
+func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
+	iter := txn.Root().Iterator()
 	k, v, ok := iter.Next()
-	var txn *radix.Txn
-	txn = limiters.Txn()
-	// remove all expired limiters
-	for ok {
-		if t, ok := v.(*Limiter); ok {
-			if t.limiter != nil {
-				lastAccess := t.lastAccess.Load()
-				lastAccessT := time.UnixMilli(lastAccess)
-				diff := now.Sub(lastAccessT)
-
-				if diff > reconcileCheckLimit {
-					txn.Delete(k)
-				}
-			}
-		}
-		k, v, ok = iter.Next()
-	}
-	iter = txn.Root().Iterator()
-	k, v, ok = iter.Next()
 
 	// make sure all limiters have the latest defaultConfig of their prefix
 	for ok {
@@ -267,8 +234,27 @@ func (m *MultiLimiter) reconcileLimitedOnce(now time.Time, reconcileCheckLimit t
 		}
 		k, v, ok = iter.Next()
 	}
-	limiters = txn.Commit()
-	m.limiters.CompareAndSwap(storedLimiters, limiters)
+}
+
+func (m *MultiLimiter) cleanLimiters(now time.Time, reconcileCheckLimit time.Duration, txn *radix.Txn) {
+
+	iter := txn.Root().Iterator()
+	k, v, ok := iter.Next()
+	// remove all expired limiters
+	for ok {
+		if t, ok := v.(*Limiter); ok {
+			if t.limiter != nil {
+				lastAccess := t.lastAccess.Load()
+				lastAccessT := time.UnixMilli(lastAccess)
+				diff := now.Sub(lastAccessT)
+
+				if diff > reconcileCheckLimit {
+					txn.Delete(k)
+				}
+			}
+		}
+		k, v, ok = iter.Next()
+	}
 }
 
 func (lc *LimiterConfig) isApplied(l *rate.Limiter) bool {
