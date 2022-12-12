@@ -547,3 +547,72 @@ func TestServiceDefaultsSnapshot(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIGatewaySnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "agw1",
+	}
+	ixn2 := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "agw2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.APIGatewaySnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
