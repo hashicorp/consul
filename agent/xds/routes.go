@@ -874,6 +874,10 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		clusters = append(clusters, cw)
 	}
 
+	if len(clusters) <= 0 {
+		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
+	}
+
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
