@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"io"
 	"net"
 	"os"
@@ -474,14 +473,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
 	if s.incomingRPCLimiter == nil {
+		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
 		limitsConfig := &RequestLimits{
-			Config:    multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
 			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
 			ReadRate:  config.RequestLimitsReadRate,
 			WriteRate: config.RequestLimitsWriteRate,
 		}
 
-		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig), s)
+		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg), s)
 	}
 	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -1690,7 +1689,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	if config.RequestLimits != nil {
-		s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits))
+		s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
 	}
 
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
