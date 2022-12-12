@@ -1,0 +1,3 @@
+```release-note:feature
+cli: Adds support for exporting a service to a peer
+```
