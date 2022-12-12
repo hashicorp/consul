@@ -17,6 +17,11 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.IngressGateway:    EventTopicIngressGateway,
 	structs.ServiceIntentions: EventTopicServiceIntentions,
 	structs.ServiceDefaults:   EventTopicServiceDefaults,
+	structs.APIGateway:        EventTopicAPIGateway,
+	structs.TCPRoute:          EventTopicTCPRoute,
+	structs.HTTPRoute:         EventTopicHTTPRoute,
+	structs.InlineCertificate: EventTopicInlineCertificate,
+	structs.BoundAPIGateway:   EventTopicBoundAPIGateway,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
