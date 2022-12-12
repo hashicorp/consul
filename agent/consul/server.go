@@ -1512,7 +1512,7 @@ func (i *inmemCodec) Close() error {
 
 // RPC is used to make a local RPC call
 func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
-	remoteAddr, _ := ctx.Value("remote-addr").(net.Addr)
+	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
 		method:     method,
 		args:       args,
