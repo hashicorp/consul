@@ -1,6 +1,7 @@
 # Service Mesh (Connect)
 
 - call out: envoy/proxy is the data plane, Consul is the control plane
+- [Configuration Entries](./config-entries)
 - [xDS Server] - a gRPC service that implements [xDS] and handles requests from an [envoy proxy].
 - [agent/proxycfg]
 - [Certificate Authority](./ca) for issuing TLS certs for services and client agents

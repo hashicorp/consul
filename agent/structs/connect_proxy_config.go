@@ -36,6 +36,14 @@ const (
 	MeshGatewayModeRemote MeshGatewayMode = "remote"
 )
 
+type LogSinkType string
+
+const (
+	FileLogSinkType   LogSinkType = "file"
+	StdErrLogSinkType LogSinkType = "stderr"
+	StdOutLogSinkType LogSinkType = "stdout"
+)
+
 const (
 	// TODO (freddy) Should we have a TopologySourceMixed when there is a mix of proxy reg and tproxy?
 	//				 Currently we label as proxy-registration if ANY instance has the explicit upstream definition.
@@ -140,6 +148,46 @@ func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
 
 func (c *TransparentProxyConfig) IsZero() bool {
 	zeroVal := TransparentProxyConfig{}
+	return *c == zeroVal
+}
+
+// AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
+type AccessLogsConfig struct {
+	// Enabled turns off all access logging
+	Enabled bool `json:",omitempty" alias:"enabled"`
+
+	// DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
+	// have a matching listener filter.
+	DisableListenerLogs bool `json:",omitempty" alias:"disable_listener_logs"`
+
+	// Type selects the output for logs: "file", "stderr". "stdout"
+	Type LogSinkType `json:",omitempty" alias:"type"`
+
+	// Path is the output file to write logs
+	Path string `json:",omitempty" alias:"path"`
+
+	// The presence of one format string or the other implies the access log string encoding.
+	// Defining Both is invalid.
+	JSONFormat string `json:",omitempty" alias:"json_format"`
+	TextFormat string `json:",omitempty" alias:"text_format"`
+}
+
+func (c AccessLogsConfig) ToAPI() *api.AccessLogsConfig {
+	if c.IsZero() {
+		return nil
+	}
+	return &api.AccessLogsConfig{
+		Enabled:             c.Enabled,
+		DisableListenerLogs: c.DisableListenerLogs,
+		Type:                api.LogSinkType(c.Type),
+		Path:                c.Path,
+		JSONFormat:          c.JSONFormat,
+		TextFormat:          c.TextFormat,
+	}
+}
+
+func (c *AccessLogsConfig) IsZero() bool {
+	zeroVal := AccessLogsConfig{}
 	return *c == zeroVal
 }
 

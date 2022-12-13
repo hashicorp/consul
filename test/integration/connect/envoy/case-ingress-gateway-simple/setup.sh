@@ -9,6 +9,9 @@ Defaults {
   MaxConnections        = 10
   MaxPendingRequests    = 20
   MaxConcurrentRequests = 30
+  PassiveHealthCheck {
+    Interval     = 5000000000
+  }
 }
 listeners = [
   {
