@@ -76,10 +76,14 @@ Usage: `consul acl token create [options] [args]`
 
 ## Examples
 
-Create a new token:
+The following examples describe how to create ACL tokens for common scenarios.
+
+### Create a token with policy by name
+
+The following example creates a token that includes a policy by its name.
 
 ```shell-session
-$ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965
+$ consul acl token create -description "Read Nodes and Services" -policy-name node-services-read
 AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
 SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
 Description:  Read Nodes and Services
@@ -89,42 +93,54 @@ Policies:
    06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
 ```
 
-Create a new local token:
+### Create a token for a service
+
+The following example creates a token with the privileges necessary
+for registering a service named `my-api`.
+If `my-api` is in the service mesh, the token also has the privileges necessary
+to register its associated sidecar proxy and must be provided to the proxy when
+launched with [`consul connect envoy`](/consul/commands/connect/envoy#sidecar-proxy-with-acls-enabled).
 
 ```shell-session
-$ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965 -local
-AccessorID:   4fdf0ec8-d251-3865-079c-7247c974fc50
-SecretID:     02143514-abf2-6c23-0aa1-ec2107e68f6b
-Description:  Read Nodes and Services
-Local:        true
-Create Time:  2018-10-22 15:34:19.330265 -0400 EDT
-Policies:
-   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+$ consul acl token create -description 'my-api token' -service-identity 'my-api'
+AccessorID:       0c083aca-6c15-f0cc-c4d9-30578db54cd9
+SecretID:         930dafb6-5c08-040b-23fb-a368a95256f9
+Description:      api token
+Local:            false
+Create Time:      2019-04-25 16:45:49.337687334 -0500 CDT
+Service Identities:
+   my-api (Datacenters: all)
 ```
 
-Create a new token and link with policies by name:
+### Create a temporary and highly-privileged token
+
+The following example creates a token with a lifetime of 15 minutes that
+includes the built-in [`global-management` policy](/consul/docs/security/acl/acl-policies#global-management).
 
 ```shell-session
-$ consul acl token create -description "Super User" -policy-name global-management
+$ consul acl token create -description "Temp Super User" -policy-name global-management -expires-ttl '15m'
 AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
 SecretID:     ada7f751-f654-8872-7f93-498e799158b6
-Description:  Super User
+Description:  Temp Super User
 Local:        false
-Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
+Create Time:      2019-04-25 16:45:49.337687334 -0500 CDT
+Expiration Time:  2019-04-25 17:00:49.337687334 -0500 CDT
 Policies:
    00000000-0000-0000-0000-000000000001 - global-management
 ```
 
-Create a new token with one service identity that expires in 15 minutes:
+### Create a local token with policy by ID
+
+The following example creates a token that is only valid in this datacenter
+and includes a policy by its UUID.
 
 ```shell-session
-$ consul acl token create -description 'crawler token' -service-identity 'crawler' -expires-ttl '15m'
-AccessorID:       0c083aca-6c15-f0cc-c4d9-30578db54cd9
-SecretID:         930dafb6-5c08-040b-23fb-a368a95256f9
-Description:      crawler token
-Local:            false
-Create Time:      2019-04-25 16:45:49.337687334 -0500 CDT
-Expiration Time:  2019-04-25 17:00:49.337687334 -0500 CDT
-Service Identities:
-   crawler (Datacenters: all)
+$ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965 -local
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  Read Nodes and Services
+Local:        true
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
 ```
