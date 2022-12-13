@@ -805,8 +805,8 @@ func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *BoundAPIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
-	return acl.PermissionDeniedError{Cause: "only writeable by controller"}
+func (e *BoundAPIGatewayConfigEntry) CanWrite(_ acl.Authorizer) error {
+	return acl.PermissionDenied("only writeable by controller")
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
