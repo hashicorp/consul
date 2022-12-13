@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1045,6 +1046,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
+		RequestLimitsReadRate:             limitVal(c.Limits.RequestLimits.ReadRate),
+		RequestLimitsWriteRate:            limitVal(c.Limits.RequestLimits.WriteRate),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -1778,6 +1782,19 @@ func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
 	return out
 }
 
+func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
+	var out consulrate.Mode
+
+	mode, ok := consulrate.RequestLimitsModeFromName(v)
+	if !ok {
+		b.err = multierror.Append(b.err, fmt.Errorf("limits.request_limits.mode: invalid mode: %q", v))
+	} else {
+		out = mode
+	}
+
+	return out
+}
+
 func (b *builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	var out structs.ExposeConfig
 	if v == nil {
@@ -1991,6 +2008,15 @@ func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 
 func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
+}
+
+func limitVal(v *float64) rate.Limit {
+	f := float64Val(v)
+	if f < 0 {
+		return rate.Inf
+	}
+
+	return rate.Limit(f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {

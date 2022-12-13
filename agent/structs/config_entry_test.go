@@ -3030,6 +3030,57 @@ func TestProxyConfigEntry(t *testing.T) {
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},
+		"proxy config has invalid access log type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    "stdin",
+				},
+			},
+			validateErr: "invalid access log type: stdin",
+		},
+		"proxy config has invalid access log config - both text and json formats": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "[%START_TIME%]",
+					TextFormat: "{\"start_time\": \"[%START_TIME%]\"}",
+				},
+			},
+			validateErr: "cannot specify both access log JSONFormat and TextFormat",
+		},
+		"proxy config has invalid access log config - file path with wrong type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Path:    "/tmp/logs.txt",
+				},
+			},
+			validateErr: "path is only valid for file type access logs",
+		},
+		"proxy config has invalid access log config - no file path specified": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    FileLogSinkType,
+				},
+			},
+			validateErr: "path must be specified when using file type access logs",
+		},
+		"proxy config has invalid access log JSON format": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "{\"start_time\": \"[%START_TIME%]\"", // Missing trailing brace
+				},
+			},
+			validateErr: "invalid access log json for JSON format",
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }

@@ -712,16 +712,23 @@ type UnixSocket struct {
 	User  *string `mapstructure:"user"`
 }
 
+type RequestLimits struct {
+	Mode      *string  `mapstructure:"mode"`
+	ReadRate  *float64 `mapstructure:"read_rate"`
+	WriteRate *float64 `mapstructure:"write_rate"`
+}
+
 type Limits struct {
-	HTTPMaxConnsPerClient *int     `mapstructure:"http_max_conns_per_client"`
-	HTTPSHandshakeTimeout *string  `mapstructure:"https_handshake_timeout"`
-	RPCClientTimeout      *string  `mapstructure:"rpc_client_timeout"`
-	RPCHandshakeTimeout   *string  `mapstructure:"rpc_handshake_timeout"`
-	RPCMaxBurst           *int     `mapstructure:"rpc_max_burst"`
-	RPCMaxConnsPerClient  *int     `mapstructure:"rpc_max_conns_per_client"`
-	RPCRate               *float64 `mapstructure:"rpc_rate"`
-	KVMaxValueSize        *uint64  `mapstructure:"kv_max_value_size"`
-	TxnMaxReqLen          *uint64  `mapstructure:"txn_max_req_len"`
+	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
+	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
+	RequestLimits         RequestLimits `mapstructure:"request_limits"`
+	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
+	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCRate               *float64      `mapstructure:"rpc_rate"`
+	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
+	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
 }
 
 type Segment struct {

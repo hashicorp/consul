@@ -29,6 +29,8 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -331,7 +333,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, grpcmiddleware.NullRateLimiter())
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRateLimiter())
 	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
@@ -1818,6 +1820,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RequestLimitsMode = "permissive"
+		c.RequestLimitsReadRate = 500
+		c.RequestLimitsWriteRate = 500
 		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
@@ -1835,6 +1840,11 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
 
 	rc := ReloadableConfig{
+		RequestLimits: &RequestLimits{
+			Mode:      rpcRate.ModeEnforcing,
+			ReadRate:  1000,
+			WriteRate: 1100,
+		},
 		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
@@ -1848,6 +1858,11 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 		// Leave other raft fields default
 	}
+
+	mockHandler := rpcRate.NewMockRequestLimitsHandler(t)
+	mockHandler.On("UpdateConfig", mock.Anything).Return(func(cfg rpcRate.HandlerConfig) {})
+
+	s.incomingRPCLimiter = mockHandler
 	require.NoError(t, s.ReloadConfig(rc))
 
 	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -1863,6 +1878,19 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check the incoming RPC rate limiter got updated
+	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
+		GlobalMode: rc.RequestLimits.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.ReadRate,
+			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.WriteRate,
+			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	})
 
 	// Check RPC client timeout got updated
 	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())

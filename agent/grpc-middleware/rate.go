@@ -17,7 +17,7 @@ import (
 // ServerRateLimiterMiddleware implements a ServerInHandle function to perform
 // RPC rate limiting at the cheapest possible point (before the full request has
 // been decoded).
-func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.RecoveryHandlerFunc) tap.ServerInHandle {
+func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler recovery.RecoveryHandlerFunc) tap.ServerInHandle {
 	return func(ctx context.Context, info *tap.Info) (_ context.Context, retErr error) {
 		// This function is called before unary and stream RPC interceptors, so we
 		// must handle our own panics here.
@@ -56,17 +56,3 @@ func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.Reco
 		}
 	}
 }
-
-//go:generate mockery --name RateLimiter --inpackage
-type RateLimiter interface {
-	Allow(rate.Operation) error
-}
-
-// NullRateLimiter returns a RateLimiter that allows every operation.
-func NullRateLimiter() RateLimiter {
-	return nullRateLimiter{}
-}
-
-type nullRateLimiter struct{}
-
-func (nullRateLimiter) Allow(rate.Operation) error { return nil }
