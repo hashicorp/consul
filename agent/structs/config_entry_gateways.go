@@ -755,7 +755,7 @@ type BoundAPIGatewayConfigEntry struct {
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetKind() string {
-	return APIGateway
+	return BoundAPIGateway
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetName() string {
