@@ -82,6 +82,11 @@ func TestCompile(t *testing.T) {
 		// circular references
 		"circular resolver redirect": testcase_Resolver_CircularRedirect(),
 		"circular split":             testcase_CircularSplit(),
+
+		// tproxy
+		"tproxy service defaults only":     testcase_ServiceDefaultsTProxy(),
+		"tproxy proxy defaults only":       testcase_ProxyDefaultsTProxy(),
+		"tproxy service defaults override": testcase_ServiceDefaultsOverrideTProxy(),
 	}
 
 	for name, tc := range cases {
@@ -2939,6 +2944,119 @@ func testcase_LBResolver() compileTestCase {
 		},
 	}
 
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceDefaultsTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			TransparentProxy: structs.TransparentProxyConfig{
+				DialedDirectly: true,
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ProxyDefaultsTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		TransparentProxy: structs.TransparentProxyConfig{
+			DialedDirectly: true,
+		},
+	})
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceDefaultsOverrideTProxy() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		TransparentProxy: structs.TransparentProxyConfig{
+			DialedDirectly: false,
+		},
+	})
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			TransparentProxy: structs.TransparentProxyConfig{
+				DialedDirectly: true,
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		Default:   true,
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, func(t *structs.DiscoveryTarget) {
+				t.TransparentProxy.DialedDirectly = true
+			}),
+		},
+	}
 	return compileTestCase{entries: entries, expect: expect}
 }
 

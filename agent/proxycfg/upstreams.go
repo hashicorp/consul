@@ -131,6 +131,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
+		// Skip adding passthroughs unless it's a connect sidecar in tproxy mode.
 		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
 			return nil
 		}
@@ -148,7 +149,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+			dialedDirectly := node.Service.Proxy.TransparentProxy.DialedDirectly
+			// We must do a manual merge here on the DialedDirectly field, because the service-defaults
+			// and proxy-defaults are not automatically merged into the CheckServiceNodes when in
+			// agentless mode (because the streaming backend doesn't yet support the MergeCentralConfig field).
+			if chain := snap.ConnectProxy.DiscoveryChain[uid]; chain != nil {
+				if target := chain.Targets[targetID]; target != nil {
+					dialedDirectly = dialedDirectly || target.TransparentProxy.DialedDirectly
+				}
+			}
+			// Skip adding a passthrough for the upstream node if not DialedDirectly.
+			if !dialedDirectly {
 				continue
 			}
 
@@ -179,10 +190,12 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			upstreamsSnapshot.PassthroughIndices[addr] = indexedTarget{idx: csnIdx, upstreamID: uid, targetID: targetID}
 			passthroughs[addr] = struct{}{}
 		}
+		// Always clear out the existing target passthroughs list so that clusters are cleaned up
+		// correctly if no entries are populated.
+		upstreamsSnapshot.PassthroughUpstreams[uid] = make(map[string]map[string]struct{})
 		if len(passthroughs) > 0 {
-			upstreamsSnapshot.PassthroughUpstreams[uid] = map[string]map[string]struct{}{
-				targetID: passthroughs,
-			}
+			// Add the passthroughs to the target if any were found.
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = passthroughs
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
