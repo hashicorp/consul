@@ -1842,6 +1842,27 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 	}
 }
 
+// convertConsulConfigToRateLimitHandlerConfig creates a rate limite handler config
+// from the relevant fields in the consul runtime config.
+func (s *Server) convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	hc := &rpcRate.HandlerConfig{
+		GlobalMode: limitsConfig.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.ReadRate,
+			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.WriteRate,
+			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	}
+	if multilimiterConfig != nil {
+		hc.Config = *multilimiterConfig
+	}
+
+	return hc
+}
+
 // IncomingRPCLimiter returns the server's configured rate limit handler for
 // incoming RPCs. This is necessary because the external gRPC server is created
 // by the agent (as it is also used for xDS).
