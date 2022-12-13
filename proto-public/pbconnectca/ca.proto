@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package hashicorp.consul.connectca;
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/timestamp.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 service ConnectCAService {
   // WatchRoots provides a stream on which you can receive the list of active

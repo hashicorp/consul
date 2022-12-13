@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "google/protobuf/descriptor.proto";
-
 package hashicorp.consul.internal.ratelimit;
+
+import "google/protobuf/descriptor.proto";
 
 // OperationType determines the kind of rate limit that will be applied to this
 // RPC (i.e. read or write).

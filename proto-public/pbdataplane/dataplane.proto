@@ -4,8 +4,8 @@ syntax = "proto3";
 
 package hashicorp.consul.dataplane;
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 

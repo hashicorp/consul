@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package hashicorp.consul.internal.peerstream;
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "proto/pbpeering/peering.proto";
 import "proto/pbservice/node.proto";
 // TODO(peering): Handle this some other way

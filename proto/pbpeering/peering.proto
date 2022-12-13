@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package hashicorp.consul.internal.peering;
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/timestamp.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -12,13 +12,13 @@ service PeeringService {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: WRITE,
     };
-  };
+  }
 
   rpc Establish(EstablishRequest) returns (EstablishResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: WRITE,
     };
-  };
+  }
 
   rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {

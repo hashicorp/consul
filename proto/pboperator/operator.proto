@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
-
 package hashicorp.consul.internal.operator;
+
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 // Operator defines a set of operators operation applicable to Consul
 service OperatorService {
