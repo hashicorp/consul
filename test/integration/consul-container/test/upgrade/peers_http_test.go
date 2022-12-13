@@ -20,6 +20,8 @@ const (
 	dialingPeerName   = "dialing-to-acceptor"
 )
 
+// TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
+// and accepting cluster upgrade
 func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	type testcase struct {
 		oldversion    string

@@ -207,19 +207,7 @@ func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, erro
 // Upgrade terminates a running container and create a new one using the provided config.
 // The upgraded node will
 //   - use the same node name and the data dir as the old version node
-func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
-	_, err := readSomeConfigFileFields(config.JSON)
-	if err != nil {
-		return err
-	}
-
-	// NOTE: keep this as we may want to add an option to change the node name in certain scenario
-	// consulType := "client"
-	// if pc.Server {
-	// 	consulType = "server"
-	// }
-	// name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, c.id))
-
+func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
 	// Reuse the node name since we assume upgrade on the same node
 	config.Cmd = append(config.Cmd, "-node", c.name)
 

@@ -152,10 +152,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			snapshotCount++
 		}
 	}
-
-	if snapshotCount != 1 {
-		return fmt.Errorf("only leader agent can have a snapshot file, got %d", snapshotCount)
-	}
+	require.Equalf(t, 1, snapshotCount, "only leader agent can have a snapshot file")
 
 	// Upgrade individual agent to the target version in the following order
 	// 1. followers
@@ -175,7 +172,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 
 		config := agent.GetConfig()
 		config.Version = targetVersion
-		err = agent.Upgrade(context.Background(), config, 1)
+		err = agent.Upgrade(context.Background(), config)
 		if err != nil {
 			return err
 		}
@@ -191,7 +188,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	t.Log("Upgrade leader:", leader.GetName())
 	config := leader.GetConfig()
 	config.Version = targetVersion
-	err = leader.Upgrade(context.Background(), config, 1)
+	err = leader.Upgrade(context.Background(), config)
 	if err != nil {
 		return err
 	}
