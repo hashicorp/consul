@@ -192,3 +192,16 @@ type globalLimit []byte
 func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
+
+// NullRateLimiter returns a RateLimiter that allows every operation.
+func NullRateLimiter() RequestLimitsHandler {
+	return nullRateLimiter{}
+}
+
+type nullRateLimiter struct{}
+
+func (nullRateLimiter) Allow(Operation) error { return nil }
+
+func (nullRateLimiter) Run(ctx context.Context) {}
+
+func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}

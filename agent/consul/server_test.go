@@ -30,7 +30,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -333,7 +333,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, grpcmiddleware.NullRateLimiter())
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRateLimiter())
 	srv, err := NewServer(c, deps, grpcServer)
 	if err != nil {
 		return nil, err
@@ -1841,7 +1841,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	rc := ReloadableConfig{
 		RequestLimits: &RequestLimits{
-			Mode:      consulrate.ModeEnforcing,
+			Mode:      rpcRate.ModeEnforcing,
 			ReadRate:  1000,
 			WriteRate: 1100,
 		},
@@ -1859,8 +1859,8 @@ func TestServer_ReloadConfig(t *testing.T) {
 		// Leave other raft fields default
 	}
 
-	mockHandler := consulrate.NewMockRequestLimitsHandler(t)
-	mockHandler.On("UpdateConfig", mock.Anything).Return(func(cfg consulrate.HandlerConfig) {})
+	mockHandler := rpcRate.NewMockRequestLimitsHandler(t)
+	mockHandler.On("UpdateConfig", mock.Anything).Return(func(cfg rpcRate.HandlerConfig) {})
 
 	s.incomingRPCLimiter = mockHandler
 	require.NoError(t, s.ReloadConfig(rc))
@@ -1880,7 +1880,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, 10000, limiter.Burst())
 
 	// Check the incoming RPC rate limiter got updated
-	mockHandler.AssertCalled(t, "UpdateConfig", consulrate.HandlerConfig{
+	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
 		GlobalMode: rc.RequestLimits.Mode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
 			Rate:  rc.RequestLimits.ReadRate,
