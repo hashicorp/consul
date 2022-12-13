@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"io"
 	"net"
 	"os"
@@ -35,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -143,6 +143,8 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+const requestLimitsBurstMultiplier = 10
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -279,7 +281,7 @@ type Server struct {
 	rpcServer   *rpc.Server
 
 	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
-	incomingRPCLimiter *rpcRate.Handler
+	incomingRPCLimiter rpcRate.RequestLimitsHandler
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -396,6 +398,7 @@ type Server struct {
 	EnterpriseServer
 	operatorServer *operator.Server
 }
+
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)
@@ -469,12 +472,16 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	})
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
-	s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
-		// TODO(server-rate-limit): revisit those value based on the multilimiter final implementation
-		Config: multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
-		// TODO(NET-1379): pass in _real_ configuration.
-		GlobalMode: rpcRate.ModePermissive,
-	}, s)
+	if s.incomingRPCLimiter == nil {
+		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+		limitsConfig := &RequestLimits{
+			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
+			ReadRate:  config.RequestLimitsReadRate,
+			WriteRate: config.RequestLimitsWriteRate,
+		}
+
+		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg), s)
+	}
 	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
@@ -1680,6 +1687,11 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	}
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+
+	if config.RequestLimits != nil {
+		s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+	}
+
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
@@ -1830,10 +1842,31 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 	}
 }
 
+// convertConsulConfigToRateLimitHandlerConfig creates a rate limite handler config
+// from the relevant fields in the consul runtime config.
+func (s *Server) convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	hc := &rpcRate.HandlerConfig{
+		GlobalMode: limitsConfig.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.ReadRate,
+			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.WriteRate,
+			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	}
+	if multilimiterConfig != nil {
+		hc.Config = *multilimiterConfig
+	}
+
+	return hc
+}
+
 // IncomingRPCLimiter returns the server's configured rate limit handler for
 // incoming RPCs. This is necessary because the external gRPC server is created
 // by the agent (as it is also used for xDS).
-func (s *Server) IncomingRPCLimiter() *rpcRate.Handler { return s.incomingRPCLimiter }
+func (s *Server) IncomingRPCLimiter() rpcRate.RequestLimitsHandler { return s.incomingRPCLimiter }
 
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/hashicorp/consul/agent/consul/rate"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -23,7 +24,7 @@ var (
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *tlsutil.Configurator, limiter agentmiddleware.RateLimiter) *grpc.Server {
+func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *tlsutil.Configurator, limiter rate.RequestLimitsHandler) *grpc.Server {
 	if metricsObj == nil {
 		metricsObj = metrics.Default()
 	}

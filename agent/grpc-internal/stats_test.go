@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/proto/prototest"
@@ -26,7 +26,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, middleware.NullRateLimiter())
+	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, rate.NullRateLimiter())
 
 	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
 

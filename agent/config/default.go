@@ -97,6 +97,11 @@ func DefaultSource() Source {
 		limits = {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
+			request_limits = {
+				mode = "disabled"
+				read_rate = -1
+				write_rate = -1
+			}
 			rpc_handshake_timeout = "5s"
 			rpc_client_timeout = "60s"
 			rpc_rate = -1
