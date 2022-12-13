@@ -102,7 +102,6 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		license:           license,
 		addtionalNetworks: []string{"bridge", network},
 		hostname:          fmt.Sprintf("agent-%d", index),
-		followLog:         config.FollowLog,
 	}
 	podReq, consulReq := newContainerRequest(config, opts)
 
@@ -126,7 +125,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	if config.FollowLog {
+	if *utils.FollowLog {
 		if err := consulContainer.StartLogProducer(ctx); err != nil {
 			return nil, err
 		}
@@ -237,7 +236,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	consulReq2.Env = c.consulReq.Env // copy license
 	fmt.Printf("Upgraded node %s config:%s\n", c.name, file)
 
-	if c.container != nil && config.FollowLog {
+	if c.container != nil && *utils.FollowLog {
 		err = c.container.StopLogProducer()
 		time.Sleep(2 * time.Second)
 		if err != nil {
@@ -259,7 +258,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 	}
 	c.ctx = ctx
 
-	if config.FollowLog {
+	if *utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
 			return err
 		}
@@ -289,7 +288,7 @@ func (c *consulContainerNode) Terminate() error {
 	}
 
 	state, err := c.container.State(context.Background())
-	if err == nil && state.Running && c.config.FollowLog {
+	if err == nil && state.Running && *utils.FollowLog {
 		// StopLogProducer can only be called on running containers
 		err = c.container.StopLogProducer()
 		if err1 := c.container.Terminate(c.ctx); err == nil {
@@ -330,8 +329,6 @@ type containerOpts struct {
 	license           string
 	name              string
 	addtionalNetworks []string
-
-	followLog bool
 }
 
 func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {

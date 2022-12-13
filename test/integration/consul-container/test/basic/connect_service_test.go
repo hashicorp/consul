@@ -25,7 +25,7 @@ func TestBasicConnectService(t *testing.T) {
 	cluster := createCluster(t)
 	defer terminate(t, cluster)
 
-	clientService := createServices(t, cluster, *utils.FollowLog)
+	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
 
 	libassert.HTTPServiceEchoes(t, "localhost", port)
@@ -67,19 +67,19 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	return cluster
 }
 
-func createServices(t *testing.T, cluster *libcluster.Cluster, followLog bool) libservice.Service {
+func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 
 	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, followLog)
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
 	libassert.CatalogServiceExists(t, client, "static-server")
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, followLog)
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")

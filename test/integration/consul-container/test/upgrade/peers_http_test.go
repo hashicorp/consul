@@ -48,7 +48,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			acceptingCluster, acceptingClient, _ = libcluster.CreatingAcceptingClusterAndSetup(t, 3, tc.oldversion, acceptingPeerName, *utils.FollowLog)
+			acceptingCluster, acceptingClient, _ = libcluster.CreatingAcceptingClusterAndSetup(t, 3, tc.oldversion, acceptingPeerName)
 			wg.Done()
 		}()
 		defer func() {
@@ -57,7 +57,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			dialingCluster, dialingClient, _ = libcluster.CreateDialingClusterAndSetup(t, tc.oldversion, dialingPeerName, *utils.FollowLog)
+			dialingCluster, dialingClient, _ = libcluster.CreateDialingClusterAndSetup(t, tc.oldversion, dialingPeerName)
 			wg.Done()
 		}()
 		defer func() {

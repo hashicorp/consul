@@ -21,7 +21,6 @@ type ConnectContainer struct {
 	appPort   int
 	adminPort int
 	req       testcontainers.ContainerRequest
-	followLog bool
 }
 
 func (g ConnectContainer) GetName() string {
@@ -55,7 +54,7 @@ func (c ConnectContainer) Terminate() error {
 	}
 
 	var err error
-	if c.followLog {
+	if *utils.FollowLog {
 		err := c.container.StopLogProducer()
 		if err1 := c.container.Terminate(c.ctx); err == nil {
 			err = err1
@@ -69,7 +68,7 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent, followLog bool) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -127,7 +126,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		return nil, err
 	}
 
-	if followLog {
+	if *utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
 			return nil, err
 		}
@@ -147,6 +146,5 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		ip:        ip,
 		appPort:   mappedAppPort.Int(),
 		adminPort: mappedAdminPort.Int(),
-		followLog: followLog,
 	}, nil
 }

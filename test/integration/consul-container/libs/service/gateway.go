@@ -19,7 +19,6 @@ type gatewayContainer struct {
 	ip        string
 	port      int
 	req       testcontainers.ContainerRequest
-	followLog bool
 }
 
 func (g gatewayContainer) GetName() string {
@@ -49,7 +48,7 @@ func (c gatewayContainer) Terminate() error {
 	}
 
 	var err error
-	if c.followLog {
+	if *utils.FollowLog {
 		err = c.container.StopLogProducer()
 		if err1 := c.container.Terminate(c.ctx); err == nil {
 			err = err1
@@ -63,7 +62,7 @@ func (c gatewayContainer) Terminate() error {
 	return err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent, followLog bool) (Service, error) {
+func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -117,7 +116,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 		return nil, err
 	}
 
-	if followLog {
+	if *utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
 			return nil, err
 		}

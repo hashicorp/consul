@@ -18,7 +18,7 @@ import (
 // creatingAcceptingClusterAndSetup creates a cluster with 3 servers and 1 client.
 // It also creates and registers a service+sidecar.
 // The API client returned is pointed at the client agent.
-func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version string, acceptingPeerName string, followLog bool) (*Cluster, *api.Client, *libagent.BuildContext) {
+func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version string, acceptingPeerName string) (*Cluster, *api.Client, *libagent.BuildContext) {
 	var configs []libagent.Config
 
 	opts := libagent.BuildOptions{
@@ -68,11 +68,11 @@ func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version strin
 	require.True(t, ok)
 
 	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode, followLog)
+	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
 	require.NoError(t, err)
 
 	// Create a service and proxy instance
-	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, followLog)
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNode)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-server")
@@ -100,7 +100,7 @@ func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version strin
 }
 
 // createDialingClusterAndSetup creates a cluster for peering with a single dev agent
-func CreateDialingClusterAndSetup(t *testing.T, version string, dialingPeerName string, followLog bool) (*Cluster, *api.Client, libservice.Service) {
+func CreateDialingClusterAndSetup(t *testing.T, version string, dialingPeerName string) (*Cluster, *api.Client, libservice.Service) {
 	opts := libagent.BuildOptions{
 		Datacenter:             "dc2",
 		InjectAutoEncryption:   true,
@@ -132,11 +132,11 @@ func CreateDialingClusterAndSetup(t *testing.T, version string, dialingPeerName 
 	require.True(t, ok)
 
 	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", node, followLog)
+	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", node)
 	require.NoError(t, err)
 
 	// Create a service and proxy instance
-	clientProxyService, err := libservice.CreateAndRegisterStaticClientSidecar(node, dialingPeerName, true, followLog)
+	clientProxyService, err := libservice.CreateAndRegisterStaticClientSidecar(node, dialingPeerName, true)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")

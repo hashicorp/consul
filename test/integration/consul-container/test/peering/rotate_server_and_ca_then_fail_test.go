@@ -59,7 +59,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		acceptingCluster, acceptingClient, acceptingCtx = libcluster.CreatingAcceptingClusterAndSetup(t, 3, *utils.TargetVersion, acceptingPeerName, *utils.FollowLog)
+		acceptingCluster, acceptingClient, acceptingCtx = libcluster.CreatingAcceptingClusterAndSetup(t, 3, *utils.TargetVersion, acceptingPeerName)
 		wg.Done()
 	}()
 	defer func() {
@@ -68,7 +68,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		dialingCluster, dialingClient, clientSidecarService = libcluster.CreateDialingClusterAndSetup(t, *utils.TargetVersion, dialingPeerName, *utils.FollowLog)
+		dialingCluster, dialingClient, clientSidecarService = libcluster.CreateDialingClusterAndSetup(t, *utils.TargetVersion, dialingPeerName)
 		wg.Done()
 	}()
 	defer func() {
