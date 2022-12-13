@@ -2,9 +2,14 @@ package structs
 
 import "github.com/hashicorp/consul/acl"
 
-// HTTPRouteConfigEntry stub
+// HTTPRouteConfigEntry manages the configuration for a HTTP route
+// with the given name.
 type HTTPRouteConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.HTTPRoute.
 	Kind string
+
+	// Name is used to match the config entry with its associated set
+	// of resources, which may include routers, splitters, filters, etc.
 	Name string
 
 	Meta               map[string]string `json:",omitempty"`
@@ -64,9 +69,14 @@ func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-// TCPRouteConfigEntry stub
+// TCPRouteConfigEntry manages the configuration for a TCP route
+// with the given name.
 type TCPRouteConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.TCPRoute.
 	Kind string
+
+	// Name is used to match the config entry with its associated set
+	// of resources.
 	Name string
 
 	Meta               map[string]string `json:",omitempty"`

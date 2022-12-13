@@ -2,9 +2,10 @@ package structs
 
 import "github.com/hashicorp/consul/acl"
 
-// InlineCertificateConfigEntry TODO
+// InlineCertificateConfigEntry manages the configuration for an inline certificate
+// with the given name.
 type InlineCertificateConfigEntry struct {
-	// Kind of config entry. This will be set to structs.InlineCertificateConfig
+	// Kind of config entry. This will be set to structs.InlineCertificate.
 	Kind string
 
 	// Name is used to match the config entry with its associated inline certificate.

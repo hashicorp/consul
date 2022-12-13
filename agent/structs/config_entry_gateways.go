@@ -680,10 +680,14 @@ func (g *GatewayService) Clone() *GatewayService {
 	}
 }
 
-// APIGatewayConfigEntry manages the configuration for an API gateway
+// APIGatewayConfigEntry manages the configuration for an API gateway service
 // with the given name.
 type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.APIGateway.
 	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the service definition.
 	Name string
 
 	Meta               map[string]string `json:",omitempty"`
@@ -744,9 +748,16 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
-// gateway with the given name.
+// gateway with the given name. This type is never written from the client.
+// It is only written by the controller in order to represent an API gateway
+// and the resources that are bound to it.
 type BoundAPIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.BoundAPIGateway.
 	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the corresponding API
+	// gateway service definition.
 	Name string
 
 	Meta               map[string]string `json:",omitempty"`
