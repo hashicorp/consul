@@ -179,8 +179,8 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
 //   - If override is not nil, it will overwrite the values from p, e.g., ingress gateway defaults
-//   - allowZero is added to handle the legacy case where connec-proxy and mesh gateway can set 0
-//     for EnforcingConsecutive5xx. Due to the definitino of proto of PassiveHealthCheck, ingress
+//   - allowZero is added to handle the legacy case where connect-proxy and mesh gateway can set 0
+//     for EnforcingConsecutive5xx. Due to the definition of proto of PassiveHealthCheck, ingress
 //     gateway's EnforcingConsecutive5xx must be > 0.
 func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.PassiveHealthCheck, allowZero bool) *envoy_cluster_v3.OutlierDetection {
 	od := &envoy_cluster_v3.OutlierDetection{}
