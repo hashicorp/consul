@@ -29,12 +29,12 @@ jobs:
           # for PRs against the main branch, the changelog file name should match the PR number
           if [ "${{ github.event.pull_request.base.ref }}" = "${{ github.event.repository.default_branch }}" ]; then
             enforce_matching_pull_request_number="matching this PR number "
-            changelog_file_path=".changelog/${{ github.event.pull_request.number }}.txt"
+            changelog_file_path=".changelog/(_)?${{ github.event.pull_request.number }}.txt"
           else
-            changelog_file_path=".changelog/*.txt"
+            changelog_file_path=".changelog/[_0-9]*.txt"
           fi
 
-          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/main")" -- ${changelog_file_path})
+          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/main")" | egrep ${changelog_file_path})
 
           # If we do not find a file in .changelog/, we fail the check
           if [ -z "$changelog_files" ]; then

@@ -3,11 +3,12 @@ package multilimiter
 import (
 	"bytes"
 	"context"
-	radix "github.com/hashicorp/go-immutable-radix"
-	"golang.org/x/time/rate"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	radix "github.com/hashicorp/go-immutable-radix"
+	"golang.org/x/time/rate"
 )
 
 var _ RateLimiter = &MultiLimiter{}

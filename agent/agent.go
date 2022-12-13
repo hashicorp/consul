@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/proto/pboperator"
 	"io"
 	"net"
 	"net/http"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/proto/pboperator"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -562,12 +563,19 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
+	// gRPC calls are only rate-limited on server, not client agents.
+	grpcRateLimiter := middleware.NullRateLimiter()
+	if s, ok := a.delegate.(*consul.Server); ok {
+		grpcRateLimiter = s.IncomingRPCLimiter()
+	}
+
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
 	a.externalGRPCServer = external.NewServer(
 		a.logger.Named("grpc.external"),
 		metrics.Default(),
 		a.tlsConfigurator,
+		grpcRateLimiter,
 	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
@@ -4026,13 +4034,13 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}
