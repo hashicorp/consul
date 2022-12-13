@@ -17,6 +17,7 @@ Thumbs.db
 .vscode
 __debug_bin
 coverage.out
+*.tmp
 
 # MacOS
 .DS_Store
@@ -65,6 +66,3 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
-
-proto-public/*/.ratelimit
-proto/*/.ratelimit

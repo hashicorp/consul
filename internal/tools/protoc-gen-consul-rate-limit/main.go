@@ -16,7 +16,7 @@
 //	     }
 //	   }
 //
-//	   We write a JSON array of the limits to protobuf/package/path/.ratelimit:
+//	   We write a JSON array of the limits to protobuf/package/path/.ratelimit.tmp:
 //
 //	   [
 //	     {
@@ -26,7 +26,7 @@
 //	   ]
 //
 //	2. The protobuf.sh script (invoked by make proto) runs our postprocess script
-//	   which reads all of the .ratelimit files in proto and proto-public and
+//	   which reads all of the .ratelimit.tmp files in proto and proto-public and
 //	   generates a single Go map in agent/grpc-middleware/rate_limit_mappings.gen.go
 package main
 
@@ -44,7 +44,7 @@ import (
 )
 
 const (
-	outputFileName = ".ratelimit"
+	outputFileName = ".ratelimit.tmp"
 
 	missingSpecTmpl = `RPC %s is missing rate-limit specification, fix it with:
 

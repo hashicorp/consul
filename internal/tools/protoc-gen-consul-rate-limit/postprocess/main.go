@@ -108,7 +108,7 @@ func (s spec) GoOperationType() string {
 func collectSpecs(inputPaths []string) ([]spec, []spec, error) {
 	var specs []spec
 	for _, protoPath := range inputPaths {
-		specFiles, err := filepath.Glob(filepath.Join(protoPath, "*", ".ratelimit"))
+		specFiles, err := filepath.Glob(filepath.Join(protoPath, "*", ".ratelimit.tmp"))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to glob directory: %s - %s", protoPath, err)
 		}
