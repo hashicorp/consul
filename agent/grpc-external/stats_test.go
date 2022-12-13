@@ -23,7 +23,7 @@ import (
 func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default(), metricsObj, nil)
+	srv := NewServer(hclog.Default(), metricsObj, nil, grpcmiddleware.NullRateLimiter())
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 

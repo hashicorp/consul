@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"io"
 	"net"
 	"os"
@@ -17,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -29,10 +29,13 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -275,6 +278,9 @@ type Server struct {
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
 
+	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
+	incomingRPCLimiter *rpcRate.Handler
+
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
 	// to request client certificates. At this point a client doesn't have
@@ -461,6 +467,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		StatusFn: s.hcpServerStatus(flat),
 		Logger:   logger.Named("hcp_manager"),
 	})
+
+	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
+	s.incomingRPCLimiter = rpcRate.NewHandler(rpcRate.HandlerConfig{
+		// TODO(server-rate-limit): revisit those value based on the multilimiter final implementation
+		Config: multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second},
+		// TODO(NET-1379): pass in _real_ configuration.
+		GlobalMode: rpcRate.ModePermissive,
+	}, s)
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -862,7 +877,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.externalConnectCAServer.Register(srv)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -1814,6 +1829,11 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		return status, nil
 	}
 }
+
+// IncomingRPCLimiter returns the server's configured rate limit handler for
+// incoming RPCs. This is necessary because the external gRPC server is created
+// by the agent (as it is also used for xDS).
+func (s *Server) IncomingRPCLimiter() *rpcRate.Handler { return s.incomingRPCLimiter }
 
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same

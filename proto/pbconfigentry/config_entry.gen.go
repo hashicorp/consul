@@ -304,6 +304,11 @@ func IngressServiceToStructs(s *IngressService, t *structs.IngressService) {
 	t.MaxConnections = s.MaxConnections
 	t.MaxPendingRequests = s.MaxPendingRequests
 	t.MaxConcurrentRequests = s.MaxConcurrentRequests
+	if s.PassiveHealthCheck != nil {
+		var x structs.PassiveHealthCheck
+		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
+		t.PassiveHealthCheck = &x
+	}
 	t.Meta = s.Meta
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
@@ -331,6 +336,11 @@ func IngressServiceFromStructs(t *structs.IngressService, s *IngressService) {
 	s.MaxConnections = t.MaxConnections
 	s.MaxPendingRequests = t.MaxPendingRequests
 	s.MaxConcurrentRequests = t.MaxConcurrentRequests
+	if t.PassiveHealthCheck != nil {
+		var x PassiveHealthCheck
+		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
+		s.PassiveHealthCheck = &x
+	}
 	s.Meta = t.Meta
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
@@ -341,6 +351,11 @@ func IngressServiceConfigToStructs(s *IngressServiceConfig, t *structs.IngressSe
 	t.MaxConnections = s.MaxConnections
 	t.MaxPendingRequests = s.MaxPendingRequests
 	t.MaxConcurrentRequests = s.MaxConcurrentRequests
+	if s.PassiveHealthCheck != nil {
+		var x structs.PassiveHealthCheck
+		PassiveHealthCheckToStructs(s.PassiveHealthCheck, &x)
+		t.PassiveHealthCheck = &x
+	}
 }
 func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *IngressServiceConfig) {
 	if s == nil {
@@ -349,6 +364,11 @@ func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *Ingress
 	s.MaxConnections = t.MaxConnections
 	s.MaxPendingRequests = t.MaxPendingRequests
 	s.MaxConcurrentRequests = t.MaxConcurrentRequests
+	if t.PassiveHealthCheck != nil {
+		var x PassiveHealthCheck
+		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
+		s.PassiveHealthCheck = &x
+	}
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {

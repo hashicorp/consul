@@ -16,6 +16,9 @@
         }
       },
       "connectTimeout": "33s",
+      "outlierDetection": {
+
+      },
       "lbPolicy": "CLUSTER_PROVIDED"
     },
     {
