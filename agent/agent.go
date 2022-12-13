@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -564,7 +565,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// gRPC calls are only rate-limited on server, not client agents.
-	grpcRateLimiter := middleware.NullRateLimiter()
+	var grpcRateLimiter rpcRate.RequestLimitsHandler
+	grpcRateLimiter = middleware.NullRateLimiter()
 	if s, ok := a.delegate.(*consul.Server); ok {
 		grpcRateLimiter = s.IncomingRPCLimiter()
 	}

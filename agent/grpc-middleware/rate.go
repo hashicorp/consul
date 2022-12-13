@@ -60,6 +60,8 @@ func ServerRateLimiterMiddleware(limiter RateLimiter, panicHandler recovery.Reco
 //go:generate mockery --name RateLimiter --inpackage
 type RateLimiter interface {
 	Allow(rate.Operation) error
+	Run(ctx context.Context)
+	UpdateConfig(cfg rate.HandlerConfig)
 }
 
 // NullRateLimiter returns a RateLimiter that allows every operation.
@@ -70,3 +72,7 @@ func NullRateLimiter() RateLimiter {
 type nullRateLimiter struct{}
 
 func (nullRateLimiter) Allow(rate.Operation) error { return nil }
+
+func (nullRateLimiter) Run(ctx context.Context) {}
+
+func (nullRateLimiter) UpdateConfig(cfg rate.HandlerConfig) {}
