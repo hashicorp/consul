@@ -106,6 +106,18 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 // DeepCopy generates a deep copy of *ConnectProxyConfig
 func (o *ConnectProxyConfig) DeepCopy() *ConnectProxyConfig {
 	var cp ConnectProxyConfig = *o
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
+					cp.EnvoyExtensions[i2].Arguments[k4] = v4
+				}
+			}
+		}
+	}
 	if o.Config != nil {
 		cp.Config = make(map[string]interface{}, len(o.Config))
 		for k2, v2 := range o.Config {

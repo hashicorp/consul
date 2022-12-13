@@ -4,6 +4,7 @@ package hashicorp.consul.internal.service;
 
 import "google/protobuf/struct.proto";
 import "proto/pbcommon/common.proto";
+import "proto/pbconfigentry/config_entry.proto";
 import "proto/pbservice/healthcheck.proto";
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -69,6 +70,9 @@ message ConnectProxyConfig {
 
   // LocalServiceSocketPath is the path to the unix domain socket for the local service instance
   string LocalServiceSocketPath = 11;
+
+  // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
+  repeated hashicorp.consul.internal.configentry.EnvoyExtension EnvoyExtensions = 12;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It

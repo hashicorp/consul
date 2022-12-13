@@ -2886,7 +2886,7 @@ type EnvoyExtension struct {
 
 	Name     string `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
 	Required bool   `protobuf:"varint,2,opt,name=Required,proto3" json:"Required,omitempty"`
-	// mog: func-to=envoyExtensionArgumentsToStructs func-from=envoyExtensionArgumentsFromStructs
+	// mog: func-to=EnvoyExtensionArgumentsToStructs func-from=EnvoyExtensionArgumentsFromStructs
 	Arguments *structpb.Value `protobuf:"bytes,3,opt,name=Arguments,proto3" json:"Arguments,omitempty"`
 }
 

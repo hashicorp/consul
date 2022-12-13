@@ -98,6 +98,13 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 		Partition: "default",
 		Namespace: "default",
 	}
+	webService := api.CompoundServiceName{
+		Name:      "web",
+		Partition: "",
+		Namespace: "default",
+	}
+
+	// Setup multiple extensions to ensure all of them are in the ExtensionConfiguration map.
 	envoyExtensions := []structs.EnvoyExtension{
 		{
 			Name: structs.BuiltinAWSLambdaExtension,
@@ -105,6 +112,13 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 				"ARN":                "lambda-arn",
 				"PayloadPassthrough": true,
 				"Region":             "us-east-1",
+			},
+		},
+		{
+			Name: "ext2",
+			Arguments: map[string]interface{}{
+				"arg1": 1,
+				"arg2": "val2",
 			},
 		},
 	}
@@ -116,8 +130,14 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 		EnvoyExtensions: envoyExtensions,
 	}
 
+	// Setup a snapshot where the db upstream is on a connect proxy.
 	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
+	// Setup a snapshot where the db upstream is on a terminating gateway.
 	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, serviceDefaults)
+	// Setup a snapshot with the local service web has extensions.
+	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+		ns.Proxy.EnvoyExtensions = envoyExtensions
+	}, nil)
 
 	type testCase struct {
 		snapshot *proxycfg.ConfigSnapshot
@@ -149,7 +169,28 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 						},
 						Kind: api.ServiceKindConnectProxy,
 					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
 				},
+				webService: {},
 			},
 		},
 		"terminating gateway upstream": {
@@ -176,6 +217,60 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						Kind: api.ServiceKindConnectProxy,
+					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "terminating-gateway",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
+				},
+				webService: {},
+			},
+		},
+		"local service extensions": {
+			snapshot: snapWebConnect,
+			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+				dbService: {},
+				webService: {
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: structs.BuiltinAWSLambdaExtension,
+							Arguments: map[string]interface{}{
+								"ARN":                "lambda-arn",
+								"PayloadPassthrough": true,
+								"Region":             "us-east-1",
+							},
+						},
+						ServiceName: webService,
+						Upstreams:   nil,
+						Kind:        api.ServiceKindConnectProxy,
+					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: webService,
+						Upstreams:   nil,
+						Kind:        api.ServiceKindConnectProxy,
 					},
 				},
 			},

@@ -197,6 +197,9 @@ func (c *AccessLogsConfig) IsZero() bool {
 // centralized proxy that routed traffic for multiple services, a different one
 // of these would be needed for each, sharing the same LogicalProxyID.
 type ConnectProxyConfig struct {
+	// EnvoyExtensions are the list of Envoy extensions configured for the local service.
+	EnvoyExtensions []EnvoyExtension `json:",omitempty" alias:"envoy_extensions"`
+
 	// DestinationServiceName is required and is the name of the service to accept
 	// traffic for.
 	DestinationServiceName string `json:",omitempty" alias:"destination_service_name"`
