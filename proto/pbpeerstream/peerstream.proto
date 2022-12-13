@@ -21,7 +21,7 @@ service PeerStreamService {
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 
@@ -29,7 +29,7 @@ service PeerStreamService {
   // for a long-lived stream secret.
   rpc ExchangeSecret(ExchangeSecretRequest) returns (ExchangeSecretResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: WRITE,
+      operation_type: OPERATION_TYPE_WRITE,
     };
   }
 }

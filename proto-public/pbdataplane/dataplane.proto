@@ -85,13 +85,13 @@ message GetEnvoyBootstrapParamsResponse {
 service DataplaneService {
   rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 
   rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 }

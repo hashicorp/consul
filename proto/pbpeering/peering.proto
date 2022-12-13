@@ -10,31 +10,31 @@ import "proto-public/annotations/ratelimit/ratelimit.proto";
 service PeeringService {
   rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: WRITE,
+      operation_type: OPERATION_TYPE_WRITE,
     };
   }
 
   rpc Establish(EstablishRequest) returns (EstablishResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: WRITE,
+      operation_type: OPERATION_TYPE_WRITE,
     };
   }
 
   rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 
   rpc PeeringList(PeeringListRequest) returns (PeeringListResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 
   rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: WRITE,
+      operation_type: OPERATION_TYPE_WRITE,
     };
   }
 
@@ -42,20 +42,20 @@ service PeeringService {
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
   rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: WRITE,
+      operation_type: OPERATION_TYPE_WRITE,
     };
   }
 
   // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
   rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 
   rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 }

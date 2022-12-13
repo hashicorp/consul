@@ -14,7 +14,7 @@ service ServerDiscoveryService {
   // catalog queries, xDS proxy configurations and similar services.
   rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 }

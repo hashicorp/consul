@@ -41,7 +41,7 @@ service StateChangeSubscription {
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc Subscribe(SubscribeRequest) returns (stream Event) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: READ,
+      operation_type: OPERATION_TYPE_READ,
     };
   }
 }

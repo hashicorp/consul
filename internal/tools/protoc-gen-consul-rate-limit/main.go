@@ -11,7 +11,7 @@
 //	   service Foo {
 //	     rpc Bar(BarRequest) returns (BarResponse) {
 //	       option (hashicorp.consul.internal.ratelimit.spec) = {
-//	         operation_type: WRITE,
+//	         operation_type: OPERATION_TYPE_WRITE,
 //	       };
 //	     }
 //	   }
@@ -21,7 +21,7 @@
 //	   [
 //	     {
 //	       "MethodName": "/Foo/Bar",
-//	       "OperationType": "WRITE",
+//	       "OperationType": "OPERATION_TYPE_WRITE",
 //	     }
 //	   ]
 //
@@ -53,7 +53,7 @@ const (
 	service %s {
 	  rpc %s(...) returns (...) {
 	    option (hashicorp.consul.internal.ratelimit.spec) = {
-	      operation_type: READ | WRITE,
+	      operation_type: OPERATION_TYPE_READ | OPERATION_TYPE_WRITE,
 	    };
 	  }
 	}
