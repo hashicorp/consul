@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -788,7 +787,7 @@ func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 }
 
 func (e *BoundAPIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
-	return errors.New("only writeable by controller")
+	return acl.PermissionDeniedError{Cause: "only writeable by controller"}
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
