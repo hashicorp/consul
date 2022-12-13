@@ -659,7 +659,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 	if addr == "" {
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+			return g, fmt.Errorf("Could not look up xDS port: %w", err)
 		}
 		if port <= 0 {
 			// This is the dev mode default and recommended production setting if
@@ -725,6 +725,9 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
+		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
+			return 0, "", fmt.Errorf("agent has grpc disabled")
+		}
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -733,8 +736,9 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// Fallback to old API for the case where a new consul CLI is being used with
-	// an older API version.
+	// If above TLS and Plaintext ports are both 0, fallback to
+	// old API for the case where a new consul CLI is being used
+	// with an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
@@ -747,6 +751,9 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	portN, ok := port.(float64)
 	if !ok {
 		return 0, "", fmt.Errorf("invalid grpc port in agent response")
+	}
+	if portN < 0 {
+		return 0, "", fmt.Errorf("agent has grpc disabled")
 	}
 
 	return int(portN), "", nil
