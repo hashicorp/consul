@@ -2,11 +2,11 @@ module github.com/hashicorp/consul
 
 go 1.19
 
-replace github.com/hashicorp/consul/api => ./api
+//replace github.com/hashicorp/consul/api => ./api
 
-replace github.com/hashicorp/consul/sdk => ./sdk
+//replace github.com/hashicorp/consul/sdk => ./sdk
 
-replace github.com/hashicorp/consul/proto-public => ./proto-public
+// replace github.com/hashicorp/consul/proto-public => ./proto-public
 
 replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
