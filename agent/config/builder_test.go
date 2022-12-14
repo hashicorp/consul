@@ -138,9 +138,11 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				NodeName: pString(tc.nodeName),
-				DataDir:  pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					NodeName: pString(tc.nodeName),
+					DataDir:  pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -178,9 +180,11 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: Config{
-			NodeName: pString("foo"),
-			DataDir:  pString("dir"),
+		FlagValues: FlagValuesTarget{
+			Config: Config{
+				NodeName: pString("foo"),
+				DataDir:  pString("dir"),
+			},
 		},
 	})
 
@@ -259,9 +263,11 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				ClientAddr: tc.clientAddr,
-				DataDir:    pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					ClientAddr: tc.clientAddr,
+					DataDir:    pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)

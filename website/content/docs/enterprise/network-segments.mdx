@@ -230,7 +230,6 @@ segments are:
 - [`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port):
   Serf LAN port for the above segment on this client. This is not required
   to match the configured Serf LAN port for other agents on this segment.
-- [`retry_join`](/docs/agent/config/config-files#retry_join) or
-  [`start_join`](/docs/agent/config/config-files#start_join): A list of agent addresses to join
+- [`retry_join`](/docs/agent/config/config-files#retry_join): A list of agent addresses to join
   when starting. Ensure the correct Serf LAN port for this segment is used when joining
   the LAN gossip pool using one of the [available configuration methods](#join_a_client_to_a_segment).

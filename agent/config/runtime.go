@@ -1387,22 +1387,6 @@ type RuntimeConfig struct {
 	// hcl: auto_reload_config = (true|false)
 	AutoReloadConfig bool
 
-	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join = []string
-	// flag: -join string -join string
-	StartJoinAddrsLAN []string
-
-	// StartJoinWAN is a list of addresses to attempt to join -wan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join_wan = []string
-	// flag: -join-wan string -join-wan string
-	StartJoinAddrsWAN []string
-
 	// TLS configures certificates, CA, cipher suites, and other TLS settings
 	// on Consul's listeners (i.e. Internal multiplexed RPC, HTTPS and gRPC).
 	//
