@@ -48,6 +48,11 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.rules, "rules", "", "The policy rules. May be prefixed with '@' "+
 		"to indicate that the value is a file path to load the rules from. '-' may also be "+
 		"given to indicate that the rules are available on stdin")
+<<<<<<< HEAD
+=======
+	c.flags.BoolVar(&c.tokenIsSecret, "token-secret", false, "Indicates the token provided with "+
+		"-from-token is a SecretID and not an AccessorID")
+>>>>>>> 5fb4b2d63f (remove legacy tokens)
 	c.flags.StringVar(
 		&c.format,
 		"format",
