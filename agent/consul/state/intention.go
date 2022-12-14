@@ -1020,6 +1020,7 @@ func (s *Store) intentionTopologyTxn(
 			services[s.Service] = struct{}{}
 		}
 	}
+
 	var tempServices []*KindServiceName
 	if intentionTarget == structs.IntentionTargetService {
 		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
@@ -1027,12 +1028,15 @@ func (s *Store) intentionTopologyTxn(
 			return index, nil, fmt.Errorf("failed to list service names: %v", err)
 		}
 		addSvcs(tempServices)
-		// TODO consider the implications of the wildcard-meta below.
-		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindVirtual, *wildcardMeta)
+		// Include any virtual IPs in the listing of "found" services so that they are also considered
+		// in this intention lookup for tproxy.
+		vips, err := getServiceVirtualIPs(tx, true)
 		if err != nil {
-			return index, nil, fmt.Errorf("failed to list virtual service names: %v", err)
+			return index, nil, fmt.Errorf("failed to list virtual ips: %v", err)
 		}
-		addSvcs(tempServices)
+		for _, v := range vips {
+			services[v.Service.ServiceName] = struct{}{}
+		}
 	} else {
 		// destinations can only ever be upstream, since they are only allowed as intention destination.
 		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)

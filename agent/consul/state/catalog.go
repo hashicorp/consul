@@ -1970,12 +1970,8 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		}
 
 		// Only delete virtual IPs if the virtual service of the same name doesn't exist.
-		if virtsExist, err := virtualServiceExists(tx, name); err != nil {
-			return err
-		} else if !virtsExist {
-			if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
-				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
-			}
+		if err := cleanupVirtualIP(tx, idx, psn); err != nil {
+			return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 		}
 
 		if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -1990,6 +1986,29 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 	}
 
 	return nil
+}
+
+func getServiceVirtualIPs(
+	tx ReadTxn,
+	excludePeers bool,
+) ([]ServiceVirtualIP, error) {
+	iter, err := tx.Get(tableServiceVirtualIPs, indexID)
+	if err != nil {
+		return nil, err
+	}
+
+	vips := make([]ServiceVirtualIP, 0)
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		vip, ok := entry.(ServiceVirtualIP)
+		if !ok {
+			return nil, fmt.Errorf("unable to cast entry to ServiceVirtualIP")
+		}
+		if excludePeers && vip.Service.Peer != "" {
+			continue
+		}
+		vips = append(vips, vip)
+	}
+	return vips, nil
 }
 
 // freeServiceVirtualIP is used to free a virtual IP for a service after the last instance
@@ -2008,21 +2027,6 @@ func freeServiceVirtualIP(
 		return nil
 	}
 
-	// Do not free the virtual IP if a virtual service references it.
-	q := KindServiceNameQuery{
-		Name:           psn.ServiceName.Name,
-		Kind:           structs.ServiceKindVirtual,
-		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
-	}
-	existing, err := tx.First(tableKindServiceNames, indexID, q)
-	if err != nil {
-		return err
-	}
-	if existing != nil {
-		// TODO make sure that traditional services also don't exist before clearing vips
-		hclog.Default().Error("------------ refused vip delete. virt exists.", "svc", psn.ServiceName.Name)
-		return nil
-	}
 	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
 	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
 	if err != nil {
@@ -2066,6 +2070,7 @@ func freeServiceVirtualIP(
 	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
 		return err
 	}
+	hclog.Default().Error("------------ vip deleted.", "svc", psn.ServiceName.Name)
 
 	return nil
 }

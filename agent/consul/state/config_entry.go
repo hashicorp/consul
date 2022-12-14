@@ -350,6 +350,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
 	sn := structs.NewServiceName(name, entMeta)
+	psn := structs.PeeredServiceName{ServiceName: sn}
 
 	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
 		if _, err := tx.DeleteAll(tableGatewayServices, indexGateway, sn); err != nil {
@@ -386,15 +387,15 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			}
 		}
 	case *structs.ServiceResolverConfigEntry:
-		if err = cleanupVirtualService(tx, idx, q); err != nil {
+		if err = cleanupVirtualIP(tx, idx, psn); err != nil {
 			return err
 		}
 	case *structs.ServiceRouterConfigEntry:
-		if err = cleanupVirtualService(tx, idx, q); err != nil {
+		if err = cleanupVirtualIP(tx, idx, psn); err != nil {
 			return err
 		}
 	case *structs.ServiceSplitterConfigEntry:
-		if err = cleanupVirtualService(tx, idx, q); err != nil {
+		if err = cleanupVirtualIP(tx, idx, psn); err != nil {
 			return err
 		}
 	}
@@ -440,6 +441,7 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 
 	sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
+	psn := structs.PeeredServiceName{ServiceName: sn}
 	switch conf.GetKind() {
 	case structs.ServiceDefaults:
 		if conf.(*structs.ServiceConfigEntry).Destination != nil {
@@ -462,16 +464,12 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			}
 		}
 	case structs.ServiceResolver:
-		if err := upsertVirtualService(tx, idx, sn); err != nil {
-			return err
-		}
+		fallthrough
 	case structs.ServiceRouter:
-		if err := upsertVirtualService(tx, idx, sn); err != nil {
-			return err
-		}
+		fallthrough
 	case structs.ServiceSplitter:
-		if err := upsertVirtualService(tx, idx, sn); err != nil {
-			return err
+		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
+			return fmt.Errorf("failed to allocate virtual IP: %v", err)
 		}
 	}
 
@@ -1743,22 +1741,22 @@ func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) 
 	return out
 }
 
-// virtualServiceConfigsExist indicates whether any resolver / splitter / router
+// discoveryChainConfigsExist indicates whether any resolver / splitter / router
 // config entry exists in the datastore with the given name.
-func virtualServiceConfigsExist(
+func discoveryChainConfigsExist(
 	tx ReadTxn,
 	ws memdb.WatchSet,
-	serviceName string,
-	entMeta *acl.EnterpriseMeta,
+	serviceName structs.ServiceName,
 ) (uint64, bool, error) {
 	var maxIdx uint64
 	var found bool
-	for _, k := range []string{
+	for _, kind := range []string{
 		structs.ServiceResolver,
 		structs.ServiceRouter,
 		structs.ServiceSplitter,
 	} {
-		idx, entry, err := configEntryWithOverridesTxn(tx, ws, k, serviceName, nil, entMeta)
+		idx, entry, err := configEntryWithOverridesTxn(
+			tx, ws, kind, serviceName.Name, nil, &serviceName.EnterpriseMeta)
 		if err != nil {
 			return 0, false, err
 		}
@@ -1768,22 +1766,18 @@ func virtualServiceConfigsExist(
 	return maxIdx, found, nil
 }
 
-func cleanupVirtualService(tx WriteTxn, idx uint64, kn configentry.KindName) error {
+// cleanupVirtualIP attempts to free a VirtualIP address.
+// It will only free the IP if there are no resolvers/routers/splitters/service-instances
+// that share the same name.
+func cleanupVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceName) error {
 	// Lookup if there are routers / resolvers / splitters with the given name.
-	_, exists, err := virtualServiceConfigsExist(tx, nil, kn.Name, &kn.EnterpriseMeta)
+	_, exists, err := discoveryChainConfigsExist(tx, nil, psn.ServiceName)
 	if err != nil {
 		return err
 	}
 	// If any exist, then we don't need to cleanup the virtual-IP and KindServiceName tables.
 	if exists {
 		return nil
-	}
-	// Perform cleanup
-	psn := structs.PeeredServiceName{
-		ServiceName: structs.NewServiceName(kn.Name, &kn.EnterpriseMeta),
-	}
-	if err := cleanupKindServiceName(tx, idx, psn.ServiceName, structs.ServiceKindVirtual); err != nil {
-		return fmt.Errorf("failed to delete virtual service: %v", err)
 	}
 	// Only free the virtual-IP if a typical service of the same name doesn't exist.
 	typicalExist, err := typicalServicesExist(tx, psn)
@@ -1795,36 +1789,6 @@ func cleanupVirtualService(tx WriteTxn, idx uint64, kn configentry.KindName) err
 			return fmt.Errorf("failed to delete virtual IP: %v", err)
 		}
 	}
-	hclog.Default().Error("----------------Virtual service deleted.", "svc", kn.Name)
+	hclog.Default().Error("----------------Virtual service deleted.", "svc", psn.ServiceName.Name)
 	return nil
-}
-
-func upsertVirtualService(tx WriteTxn, idx uint64, name structs.ServiceName) error {
-	psn := structs.PeeredServiceName{ServiceName: name}
-	// TODO Figure out if registering a "typical" vs "virtual" service is correct or not.
-	// This is used during intention-topology lookups so that disco chains are discoverable via
-	// intentions.
-	if err := upsertKindServiceName(tx, idx, structs.ServiceKindVirtual, psn.ServiceName); err != nil {
-		return fmt.Errorf("failed to persist virtual service: %v", err)
-	}
-	// Add a virtual ip for the service if it doesn't already exist.
-	vip, err := assignServiceVirtualIP(tx, idx, psn)
-	if err != nil {
-		return fmt.Errorf("failed to allocate virtual IP: %v", err)
-	}
-	hclog.Default().Error("----------------Virtual service created.", "svc", psn.ServiceName.Name, "vip", vip)
-	return nil
-}
-
-func virtualServiceExists(tx ReadTxn, sn structs.ServiceName) (bool, error) {
-	q := KindServiceNameQuery{
-		Name:           sn.Name,
-		Kind:           structs.ServiceKindVirtual,
-		EnterpriseMeta: sn.EnterpriseMeta,
-	}
-	existing, err := tx.First(tableKindServiceNames, indexID, q)
-	if err != nil {
-		return false, err
-	}
-	return existing != nil, nil
 }
