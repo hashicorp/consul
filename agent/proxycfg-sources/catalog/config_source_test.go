@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -48,14 +49,15 @@ func TestConfigSource_Success(t *testing.T) {
 	cfgMgr := testConfigManager(t, serviceID, nodeName, token)
 
 	mgr := NewConfigSource(Config{
-		Manager:    cfgMgr,
-		LocalState: testLocalState(t),
-		Logger:     hclog.NewNullLogger(),
-		GetStore:   func() Store { return store },
+		Manager:        cfgMgr,
+		LocalState:     testLocalState(t),
+		Logger:         hclog.NewNullLogger(),
+		GetStore:       func() Store { return store },
+		SessionLimiter: nullSessionLimiter{},
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	snapCh, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
+	snapCh, _, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 
 	// Expect Register to have been called with the proxy's inital port.
@@ -111,7 +113,7 @@ func TestConfigSource_Success(t *testing.T) {
 	}
 
 	// Start another watch.
-	_, cancelWatch2, err := mgr.Watch(serviceID, nodeName, token)
+	_, _, cancelWatch2, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 
 	// Expect the service to have not been re-registered by the second watch.
@@ -149,7 +151,7 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 
 	localWatcher := NewMockWatcher(t)
 	localWatcher.On("Watch", serviceID, nodeName, token).
-		Return(make(<-chan *proxycfg.ConfigSnapshot), proxycfg.CancelFunc(func() {}), nil)
+		Return(make(<-chan *proxycfg.ConfigSnapshot), nil, proxycfg.CancelFunc(func() {}), nil)
 
 	mgr := NewConfigSource(Config{
 		NodeName:          nodeName,
@@ -157,10 +159,11 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 		LocalConfigSource: localWatcher,
 		Logger:            hclog.NewNullLogger(),
 		GetStore:          func() Store { panic("state store shouldn't have been used") },
+		SessionLimiter:    nullSessionLimiter{},
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, err := mgr.Watch(serviceID, nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
 }
 
@@ -193,14 +196,15 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 		Return(errors.New("KABOOM"))
 
 	mgr := NewConfigSource(Config{
-		Manager:    cfgMgr,
-		LocalState: testLocalState(t),
-		Logger:     hclog.NewNullLogger(),
-		GetStore:   func() Store { return store },
+		Manager:        cfgMgr,
+		LocalState:     testLocalState(t),
+		Logger:         hclog.NewNullLogger(),
+		GetStore:       func() Store { return store },
+		SessionLimiter: nullSessionLimiter{},
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, err := mgr.Watch(serviceID, nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.Error(t, err)
 	require.True(t, canceledWatch, "watch should've been canceled")
 }
@@ -231,17 +235,36 @@ func TestConfigSource_NotProxyService(t *testing.T) {
 		Return(make(<-chan *proxycfg.ConfigSnapshot), cancel)
 
 	mgr := NewConfigSource(Config{
-		Manager:    cfgMgr,
-		LocalState: testLocalState(t),
-		Logger:     hclog.NewNullLogger(),
-		GetStore:   func() Store { return store },
+		Manager:        cfgMgr,
+		LocalState:     testLocalState(t),
+		Logger:         hclog.NewNullLogger(),
+		GetStore:       func() Store { return store },
+		SessionLimiter: nullSessionLimiter{},
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, err := mgr.Watch(serviceID, nodeName, token)
+	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "must be a sidecar proxy or gateway")
 	require.True(t, canceledWatch, "watch should've been canceled")
+}
+
+func TestConfigSource_SessionLimiterError(t *testing.T) {
+	lim := NewMockSessionLimiter(t)
+	lim.On("BeginSession").Return(nil, limiter.ErrCapacityReached)
+
+	src := NewConfigSource(Config{
+		LocalState:     testLocalState(t),
+		SessionLimiter: lim,
+	})
+	t.Cleanup(src.Shutdown)
+
+	_, _, _, err := src.Watch(
+		structs.NewServiceID("web-sidecar-proxy-1", nil),
+		"node-name",
+		"token",
+	)
+	require.Equal(t, limiter.ErrCapacityReached, err)
 }
 
 func testConfigManager(t *testing.T, serviceID structs.ServiceID, nodeName string, token string) ConfigManager {
@@ -294,3 +317,15 @@ func testLocalState(t *testing.T) *local.State {
 	l.TriggerSyncChanges = func() {}
 	return l
 }
+
+type nullSessionLimiter struct{}
+
+func (nullSessionLimiter) BeginSession() (limiter.Session, error) {
+	return nullSession{}, nil
+}
+
+type nullSession struct{}
+
+func (nullSession) End() {}
+
+func (nullSession) Terminated() limiter.SessionTerminatedChan { return nil }

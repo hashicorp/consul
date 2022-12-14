@@ -3,8 +3,10 @@
 package catalog
 
 import (
-	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
+	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
 	mock "github.com/stretchr/testify/mock"
+
+	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
 
 	structs "github.com/hashicorp/consul/agent/structs"
 )
@@ -15,7 +17,7 @@ type MockWatcher struct {
 }
 
 // Watch provides a mock function with given fields: proxyID, nodeName, token
-func (_m *MockWatcher) Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
+func (_m *MockWatcher) Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
 	ret := _m.Called(proxyID, nodeName, token)
 
 	var r0 <-chan *proxycfg.ConfigSnapshot
@@ -27,23 +29,32 @@ func (_m *MockWatcher) Watch(proxyID structs.ServiceID, nodeName string, token s
 		}
 	}
 
-	var r1 proxycfg.CancelFunc
-	if rf, ok := ret.Get(1).(func(structs.ServiceID, string, string) proxycfg.CancelFunc); ok {
+	var r1 limiter.SessionTerminatedChan
+	if rf, ok := ret.Get(1).(func(structs.ServiceID, string, string) limiter.SessionTerminatedChan); ok {
 		r1 = rf(proxyID, nodeName, token)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(proxycfg.CancelFunc)
+			r1 = ret.Get(1).(limiter.SessionTerminatedChan)
 		}
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(structs.ServiceID, string, string) error); ok {
+	var r2 proxycfg.CancelFunc
+	if rf, ok := ret.Get(2).(func(structs.ServiceID, string, string) proxycfg.CancelFunc); ok {
 		r2 = rf(proxyID, nodeName, token)
 	} else {
-		r2 = ret.Error(2)
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).(proxycfg.CancelFunc)
+		}
 	}
 
-	return r0, r1, r2
+	var r3 error
+	if rf, ok := ret.Get(3).(func(structs.ServiceID, string, string) error); ok {
+		r3 = rf(proxyID, nodeName, token)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
 }
 
 type mockConstructorTestingTNewMockWatcher interface {
