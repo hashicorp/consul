@@ -122,6 +122,35 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
+type LogSinkType string
+
+const (
+	FileLogSinkType   LogSinkType = "file"
+	StdErrLogSinkType LogSinkType = "stderr"
+	StdOutLogSinkType LogSinkType = "stdout"
+)
+
+// AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
+type AccessLogsConfig struct {
+	// Enabled turns off all access logging
+	Enabled bool `json:",omitempty" alias:"enabled"`
+
+	// DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
+	// have a matching listener filter.
+	DisableListenerLogs bool `json:",omitempty" alias:"disable_listener_logs"`
+
+	// Type selects the output for logs: "file", "stderr". "stdout"
+	Type LogSinkType `json:",omitempty" alias:"type"`
+
+	// Path is the output file to write logs
+	Path string `json:",omitempty" alias:"path"`
+
+	// The presence of one format string or the other implies the access log string encoding.
+	// Defining Both is invalid.
+	JSONFormat string `json:",omitempty" alias:"json_format"`
+	TextFormat string `json:",omitempty" alias:"text_format"`
+}
+
 type UpstreamConfiguration struct {
 	// Overrides is a slice of per-service configuration. The name field is
 	// required.
@@ -266,6 +295,7 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
+	AccessLogs       AccessLogsConfig        `json:",omitempty"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64

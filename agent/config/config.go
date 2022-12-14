@@ -198,7 +198,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id" json:"node_id,omitempty"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta" json:"node_meta,omitempty"`
 	NodeName                         *string             `mapstructure:"node_name" json:"node_name,omitempty"`
-	Peering                          Peering             `mapstructure:"peering" json:"peering,omitempty"`
+	Peering                          Peering             `mapstructure:"peering" json:"-"`
 	Performance                      Performance         `mapstructure:"performance" json:"-"`
 	PidFile                          *string             `mapstructure:"pid_file" json:"pid_file,omitempty"`
 	Ports                            Ports               `mapstructure:"ports" json:"ports,omitempty"`
@@ -613,7 +613,6 @@ type Connect struct {
 	CAProvider                      *string                `mapstructure:"ca_provider" json:"ca_provider,omitempty"`
 	CAConfig                        map[string]interface{} `mapstructure:"ca_config" json:"ca_config,omitempty"`
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation" json:"enable_mesh_gateway_wan_federation,omitempty"`
-	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin" json:"enable_serverless_plugin,omitempty"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
@@ -713,16 +712,23 @@ type UnixSocket struct {
 	User  *string `mapstructure:"user"`
 }
 
+type RequestLimits struct {
+	Mode      *string  `mapstructure:"mode"`
+	ReadRate  *float64 `mapstructure:"read_rate"`
+	WriteRate *float64 `mapstructure:"write_rate"`
+}
+
 type Limits struct {
-	HTTPMaxConnsPerClient *int     `mapstructure:"http_max_conns_per_client"`
-	HTTPSHandshakeTimeout *string  `mapstructure:"https_handshake_timeout"`
-	RPCClientTimeout      *string  `mapstructure:"rpc_client_timeout"`
-	RPCHandshakeTimeout   *string  `mapstructure:"rpc_handshake_timeout"`
-	RPCMaxBurst           *int     `mapstructure:"rpc_max_burst"`
-	RPCMaxConnsPerClient  *int     `mapstructure:"rpc_max_conns_per_client"`
-	RPCRate               *float64 `mapstructure:"rpc_rate"`
-	KVMaxValueSize        *uint64  `mapstructure:"kv_max_value_size"`
-	TxnMaxReqLen          *uint64  `mapstructure:"txn_max_req_len"`
+	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
+	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
+	RequestLimits         RequestLimits `mapstructure:"request_limits"`
+	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
+	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCRate               *float64      `mapstructure:"rpc_rate"`
+	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
+	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
 }
 
 type Segment struct {

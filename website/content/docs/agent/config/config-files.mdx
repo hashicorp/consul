@@ -102,6 +102,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `http` - The HTTP API. Defaults to `client_addr`
   - `https` - The HTTPS API. Defaults to `client_addr`
   - `grpc` - The gRPC API. Defaults to `client_addr`
+  - `grpc_tls` - The gRPC API with TLS. Defaults to `client_addr`
 
 - `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/docs/agent/config/cli-flags#_alt_domain)
 
@@ -540,6 +541,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `http_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single client IP address is allowed to open to the agent's HTTP(S) server. This affects the HTTP(S) servers in both client and server agents. Default value is `200`.
   - `https_handshake_timeout` - Configures the limit for how long the HTTPS server in both client and server agents will wait for a client to complete a TLS handshake. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). Default value is `5s`.
+  - `request_limits` - This object povides configuration for rate limiting RPC and gRPC requests on the consul server.  As a result of rate limiting gRPC and RPC request, HTTP requests to the Consul server are rate limited.
+    - `mode` - Configures whether rate limiting is enabled or not as well as how it behaves through the use of 3 possible modes.  The default value of "disabled" will prevent any rate limiting from occuring.  A value of "permissive" will cause the system to track requests against the `read_rate` and `write_rate` but will only log violations and will not block and will allow the request to continue processing.  A value of "enforcing" also tracks requests against the `read_rate` and `write_rate` but in addition to logging violations, the system will block the request from processings by returning an error.
+    - `read_rate` - Configures how frequently RPC, gRPC, and HTTP queries are allowed to happen. The rate limiter limits the rate to tokens per second equal to this value. See https://en.wikipedia.org/wiki/Token_bucket for more about token buckets.
+    - `write_rate` - Configures how frequently RPC, gRPC, and HTTP write are allowed to happen. The rate limiter limits the rate to tokens per second equal to this value. See https://en.wikipedia.org/wiki/Token_bucket for more about token buckets.
   - `rpc_handshake_timeout` - Configures the limit for how long servers will wait after a client TCP connection is established before they complete the connection handshake. When TLS is used, the same timeout applies to the TLS handshake separately from the initial protocol negotiation. All Consul clients should perform this immediately on establishing a new connection. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). When `verify_incoming` is true on servers, this limits how long the connection socket and associated goroutines will be held open before the client successfully authenticates. Default value is `5s`.
   - `rpc_client_timeout` - Configures the limit for how long a client is allowed to read from an RPC connection. This is used to set an upper bound for calls to eventually terminate so that RPC connections are not held indefinitely. Blocking queries can override this timeout. Default is `60s`.
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
@@ -1067,11 +1072,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
     through mesh gateways. This was added in Consul 1.8.0.
 
-  - `enable_serverless_plugin` ((#connect_enable_serverless_plugin)) (Defaults to `false`) Determines whether the serverless plugin
-    is enabled. The serverless plugin supports [AWS
-    Lambda](https://aws.amazon.com/lambda/). For additional information on invoking Lambda functions
-    from mesh services, refer to the [Lambda documentation](/docs/lambda).
-
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
     use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
@@ -1501,6 +1501,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `retry_join` - Equivalent to the [`-retry-join`](/docs/agent/config/cli-flags#retry-join) command-line flag.
 
 - `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/docs/agent/config/cli-flags#_retry_interval).
+
+- `retry_max` - Equivalent to the [`-retry-max`](/docs/agent/config/cli-flags#_retry_max) command-line flag.
 
 - `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/docs/agent/config/cli-flags#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
@@ -1983,8 +1985,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
     - `tls_cipher_suites` ((#tls_defaults_tls_cipher_suites)) This specifies
       the list of supported ciphersuites as a comma-separated-list. Applicable
-      to TLS 1.2 and below only. The list of all supported ciphersuites is
-      available through [this search](https://github.com/hashicorp/consul/search?q=goTLSCipherSuites+%3D+map).
+      to TLS 1.2 and below only. The list of all ciphersuites supported by Consul is
+      available in [the TLS configuration source code](https://github.com/hashicorp/consul/search?q=%22var+goTLSCipherSuites%22).
 
       ~> **Note:** The ordering of cipher suites will not be guaranteed from
       Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)
@@ -2217,3 +2219,7 @@ server.
     The default value is `250`. It is based on a load test of 5,000 streams connected to a single server with two CPU cores.
 
     If necessary, you can lower or increase the limit without a rolling restart by using the `consul reload` command or by sending the server a `SIGHUP`.
+
+<!-- list of reference-style links -->
+
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

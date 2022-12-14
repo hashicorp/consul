@@ -18,7 +18,6 @@ Verify that your environment meets the following requirements prior to using Con
 Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
 
 - Kubernetes 1.21+
-  - Kubernetes 1.24 is not supported at this time.
 - `kubectl` 1.21+
 - Consul 1.11.2+
 - HashiCorp Consul Helm chart 0.47.1+
@@ -48,9 +47,8 @@ The following table lists API Gateway limitations related to specific Consul fea
 
 | Consul Feature | Limitation |
 | -------------- | ---------- |
-| [Admin partitions](/docs/enterprise/admin-partitions) | You can only deploy Consul API Gateway into the `default` admin partition and it can only route to other services within that partition, i.e. you cannot route to services in other admin partitions. |
-| Datacenter federation | If you are connecting multiple Consul datacenters to create a federated network, you can only deploy Consul API Gateway in the `primary` datacenter. |
-| Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, API Gateway can only route traffic to Services in the local datacenter. However, API Gateway can route to Services in other Kubernetes clusters when they are in the same Consul datacenter. Refer to [Single Consul Datacenter in Multiple Kubernetes Clusters](/docs/k8s/deployment-configurations/single-dc-multi-k8s) for more details. |
+| [Admin partitions](/docs/enterprise/admin-partitions) | You can deploy Consul API Gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
+| Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, you can route to services in other datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 
 ## Deployment Environments
 

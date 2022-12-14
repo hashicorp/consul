@@ -69,6 +69,15 @@ load helpers
   [ "$UPS" = "envoy.filters.http.router" ]
 }
 
+@test "s1 proxy should have been configured with passive_health_check" {
+  CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 1a47f6e1~s2.default.primary)
+  echo $CLUSTER_CONFIG
+
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = null ]
+  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.enforcing_consecutive_5xx')" = null ]
+}
+
 @test "s2 proxy should have been configured with http rbac filters" {
   HTTP_FILTERS=$(get_envoy_http_filters localhost:19001)
   PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')

@@ -20,6 +20,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -4107,6 +4109,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									  "namespace"               : "leek",
 									  "prefix_rewrite"          : "/alternate",
 									  "request_timeout"         : "99s",
+									  "idle_timeout"            : "99s",
 									  "num_retries"             : 12345,
 									  "retry_on_connect_failure": true,
 									  "retry_on_status_codes"   : [401, 209]
@@ -4195,6 +4198,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								  namespace             = "leek"
 								  prefix_rewrite         = "/alternate"
 								  request_timeout        = "99s"
+								  idle_timeout           = "99s"
 								  num_retries            = 12345
 								  retry_on_connect_failure = true
 								  retry_on_status_codes    = [401, 209]
@@ -4284,6 +4288,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
+								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},
@@ -4612,6 +4617,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.RequestLimitsMode = consulrate.ModeDisabled
+			rt.RequestLimitsReadRate = rate.Inf
+			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
 		},
@@ -6061,7 +6069,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
-		ConnectServerlessPluginEnabled:         true,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",
 			ClientID:     "6WvsDZCP",
@@ -6161,6 +6168,9 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
+		RequestLimitsMode:       consulrate.ModePermissive,
+		RequestLimitsReadRate:   99.0,
+		RequestLimitsWriteRate:  101.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,

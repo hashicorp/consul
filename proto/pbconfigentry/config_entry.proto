@@ -242,6 +242,7 @@ message IngressServiceConfig {
   uint32 MaxConnections = 1;
   uint32 MaxPendingRequests = 2;
   uint32 MaxConcurrentRequests = 3;
+  PassiveHealthCheck PassiveHealthCheck = 4;
 }
 
 // mog annotation:
@@ -300,6 +301,7 @@ message IngressService {
   uint32 MaxConnections = 8;
   uint32 MaxPendingRequests = 9;
   uint32 MaxConcurrentRequests = 10;
+  PassiveHealthCheck PassiveHealthCheck = 11;
 }
 
 // mog annotation:

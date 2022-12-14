@@ -577,6 +577,10 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
+				if destination.IdleTimeout > 0 {
+					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
+				}
+
 				if destination.HasRetryFeatures() {
 					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
 				}
@@ -868,6 +872,10 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 
 		clusters = append(clusters, cw)
+	}
+
+	if len(clusters) <= 0 {
+		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
 	return &envoy_route_v3.Route_Route{

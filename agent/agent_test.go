@@ -4243,6 +4243,28 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }
 
+func TestAgent_consulConfig_RequestLimits(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	hcl := `
+		limits { 
+			request_limits {
+				mode = "enforcing"
+				read_rate = 8888
+				write_rate = 9999
+			}
+		}
+	`
+	a := NewTestAgent(t, hcl)
+	defer a.Shutdown()
+	require.Equal(t, "enforcing", a.consulConfig().RequestLimitsMode)
+	require.Equal(t, rate.Limit(8888), a.consulConfig().RequestLimitsReadRate)
+	require.Equal(t, rate.Limit(9999), a.consulConfig().RequestLimitsWriteRate)
+}
+
 func TestAgent_grpcInjectAddr(t *testing.T) {
 	tt := []struct {
 		name string

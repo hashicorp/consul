@@ -14,6 +14,12 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.15.x
+
+#### Removing configuration options
+
+The `connect.enable_serverless_plugin` configuration option was removed. Lambda integration is now enabled by default.
+
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility
@@ -23,6 +29,17 @@ A breaking change was made in Consul 1.14 that:
 [`peering.enabled`](/docs/agent/config/config-files#peering_enabled) to `false`.
 - [Consul Connect is enabled by default.](/docs/connect) To disable, set
 [`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
+
+The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and
+earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until
+[hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) is
+fixed.
+
+For 1.14.0, there is a known issue with `consul connect envoy`. If the command is configured
+to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC.
+Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
+conjunction with TLS-encrypted HTTP APIs.
+
 
 #### Changes to gRPC TLS configuration
 
@@ -35,12 +52,18 @@ A breaking change was made in Consul 1.14 that:
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
 Consul 1.14 introduces [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port), a new configuration
-for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-
-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+for encrypting communication over gRPC. The existing [`ports.grpc`](/docs/agent/config/config-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
 [`ports.grpc_tls`](/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
-If you already use gRPC encryption, change the existing `ports.grpc` to `ports.grpc_tls` in your configuration to ensure compatibility.
+If you already use gRPC encryption, change the following fields to ensure compatibility:
+
++ Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/docs/agent/config/config-files#grpc_tls_port) for details.
++ Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/docs/agent/config/config-files#grpc_tls) for details.
++ Update `consul connect envoy` command invocations to specify gRPC CA certificates with one of the new configuration options:
+[`-grpc-ca-file`](/commands/connect/envoy#grpc-ca-file) or
+[`-grpc-ca-path`](/commands/connect/envoy#grpc-ca-path)
+(or their corresponding environment variables).
 
 #### Changes to peering
 

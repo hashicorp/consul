@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"golang.org/x/mod/semver"
 
 	agentconfig "github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -26,6 +27,7 @@ type BuildContext struct {
 	injectAutoEncryption   bool // initialize the built-in CA and set up agents to use auto-encrpt
 	injectCerts            bool // initializes the built-in CA and distributes client certificates to agents
 	injectGossipEncryption bool // setup the agents to use a gossip encryption key
+	consulVersion          string
 }
 
 // BuildOptions define the desired automated test setup overrides that are
@@ -35,6 +37,7 @@ type BuildOptions struct {
 	InjectCerts            bool   // Provides a CA for all agents and (future) agent certs.
 	InjectAutoEncryption   bool   // Configures auto-encrypt for TLS and sets up certs. Overrides InjectCerts.
 	InjectGossipEncryption bool   // Provides a gossip encryption key for all agents.
+	ConsulVersion          string // The default Consul version for agents in the cluster when none is specified.
 }
 
 func NewBuildContext(opts BuildOptions) (*BuildContext, error) {
@@ -43,6 +46,11 @@ func NewBuildContext(opts BuildOptions) (*BuildContext, error) {
 		injectAutoEncryption:   opts.InjectAutoEncryption,
 		injectCerts:            opts.InjectCerts,
 		injectGossipEncryption: opts.InjectGossipEncryption,
+		consulVersion:          opts.ConsulVersion,
+	}
+
+	if opts.ConsulVersion == "" {
+		ctx.consulVersion = *utils.TargetVersion
 	}
 
 	if opts.InjectGossipEncryption {
@@ -105,10 +113,14 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		HTTP:    nil,
 		HTTPS:   utils.IntToPointer(8501),
 		GRPC:    utils.IntToPointer(8502),
-		GRPCTLS: utils.IntToPointer(8503),
 		SerfLAN: utils.IntToPointer(8301),
 		SerfWAN: utils.IntToPointer(8302),
 		Server:  utils.IntToPointer(8300),
+	}
+
+	if ctx != nil && (ctx.consulVersion == "local" || semver.Compare("v"+ctx.consulVersion, "v1.14.0") >= 0) {
+		// Enable GRPCTLS for version after v1.14.0
+		b.conf.Ports.GRPCTLS = utils.IntToPointer(8503)
 	}
 
 	return b

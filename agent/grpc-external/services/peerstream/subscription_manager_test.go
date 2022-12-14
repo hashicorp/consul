@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/types"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -19,12 +17,14 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
@@ -835,6 +835,154 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 			},
 		)
 	})
+}
+
+func TestFlattenChecks(t *testing.T) {
+	type testcase struct {
+		checks         []*pbservice.HealthCheck
+		expect         string
+		expectNoResult bool
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		t.Helper()
+		got := flattenChecks(
+			"node-name", "service-id", "service-name", nil, tc.checks,
+		)
+		if tc.expectNoResult {
+			require.Empty(t, got)
+		} else {
+			require.Len(t, got, 1)
+			require.Equal(t, tc.expect, got[0].Status)
+		}
+	}
+
+	cases := map[string]testcase{
+		"empty": {
+			checks:         nil,
+			expectNoResult: true,
+		},
+		"passing": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthPassing,
+		},
+		"warning": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+		"critical": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+			},
+			expect: api.HealthCritical,
+		},
+		"node_maintenance": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.NodeMaint,
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"service_maintenance": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.ServiceMaintPrefix + "service",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"unknown": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  "nope-nope-noper",
+				},
+			},
+			expect: "nope-nope-noper",
+		},
+		"maintenance_over_critical": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.NodeMaint,
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"critical_over_warning": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthCritical,
+		},
+		"warning_over_passing": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+		"lots": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 type testSubscriptionBackend struct {
