@@ -2,10 +2,11 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
@@ -34,7 +35,6 @@ import (
 	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
 	aclrread "github.com/hashicorp/consul/command/acl/role/read"
 	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
-	aclrules "github.com/hashicorp/consul/command/acl/rules"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
@@ -139,7 +139,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl policy read", func(ui cli.Ui) (cli.Command, error) { return aclpread.New(ui), nil }},
 		entry{"acl policy update", func(ui cli.Ui) (cli.Command, error) { return aclpupdate.New(ui), nil }},
 		entry{"acl policy delete", func(ui cli.Ui) (cli.Command, error) { return aclpdelete.New(ui), nil }},
-		entry{"acl translate-rules", func(ui cli.Ui) (cli.Command, error) { return aclrules.New(ui), nil }},
 		entry{"acl set-agent-token", func(ui cli.Ui) (cli.Command, error) { return aclagent.New(ui), nil }},
 		entry{"acl token", func(cli.Ui) (cli.Command, error) { return acltoken.New(), nil }},
 		entry{"acl token create", func(ui cli.Ui) (cli.Command, error) { return acltcreate.New(ui), nil }},

@@ -8,9 +8,7 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
-	aclhelpers "github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/policy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
@@ -52,9 +50,6 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.rules, "rules", "", "The policy rules. May be prefixed with '@' "+
 		"to indicate that the value is a file path to load the rules from. '-' may also be "+
 		"given to indicate that the rules are available on stdin")
-	c.flags.StringVar(&c.fromToken, "from-token", "", "The legacy token to retrieve the rules "+
-		"for when creating this policy. When this is specified no other rules should be given. "+
-		"Similar to the -rules option the token to use can be loaded from stdin or from a file")
 	c.flags.BoolVar(&c.tokenIsSecret, "token-secret", false, "Indicates the token provided with "+
 		"-from-token is a SecretID and not an AccessorID")
 	c.flags.StringVar(
@@ -71,26 +66,7 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
-func (c *cmd) getRules(client *api.Client) (string, error) {
-	if c.fromToken != "" && c.rules != "" {
-		return "", fmt.Errorf("Cannot specify both -rules and -from-token")
-	}
-
-	if c.fromToken != "" {
-		tokenID, err := helpers.LoadDataSource(c.fromToken, c.testStdin)
-		if err != nil {
-			return "", fmt.Errorf("Invalid -from-token value: %v", err)
-		}
-
-		rules, err := aclhelpers.GetRulesFromLegacyToken(client, tokenID, c.tokenIsSecret)
-		if err != nil {
-			return "", err
-		}
-
-		translated, err := acl.TranslateLegacyRules([]byte(rules))
-		return string(translated), err
-	}
-
+func (c *cmd) getRules() (string, error) {
 	return helpers.LoadDataSource(c.rules, c.testStdin)
 }
 
@@ -111,7 +87,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	rules, err := c.getRules(client)
+	rules, err := c.getRules()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error loading rules: %v", err))
 		return 1
@@ -172,11 +148,5 @@ Usage: consul acl policy create -name NAME [options]
                                    -datacenter "dc1" \
                                    -datacenter "dc2" \
                                    -rules @rules.hcl
-
-    Creation a policy from a legacy token:
-
-        $ consul acl policy create -name "legacy-policy" \
-                                   -description "Token Converted to policy" \
-                                   -from-token "c1e34113-e7ab-4451-b1a6-336ddcc58fc6"
 `
 )

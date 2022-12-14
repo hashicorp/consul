@@ -57,9 +57,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// We fetch the legacy token later to give server time to async background
-	// upgrade it.
-
 	run := func(t *testing.T, args []string) *api.ACLToken {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
