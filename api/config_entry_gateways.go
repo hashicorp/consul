@@ -221,3 +221,41 @@ func (g *TerminatingGatewayConfigEntry) GetNamespace() string       { return g.N
 func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
+
+// APIGatewayConfigEntry manages the configuration for an API gateway
+// with the given name.
+type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This should be set to api.APIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated api gateway
+	// service. This should match the name provided in the service definition.
+	Name string
+
+	Meta map[string]string `json:",omitempty"`
+
+	// CreateIndex is the Raft index this entry was created at. This is a
+	// read-only field.
+	CreateIndex uint64
+
+	// ModifyIndex is used for the Check-And-Set operations and can also be fed
+	// back into the WaitIndex of the QueryOptions in order to perform blocking
+	// queries.
+	ModifyIndex uint64
+
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
+}
+
+func (g *APIGatewayConfigEntry) GetKind() string            { return g.Kind }
+func (g *APIGatewayConfigEntry) GetName() string            { return g.Name }
+func (g *APIGatewayConfigEntry) GetPartition() string       { return g.Partition }
+func (g *APIGatewayConfigEntry) GetNamespace() string       { return g.Namespace }
+func (g *APIGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
+func (g *APIGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
+func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }

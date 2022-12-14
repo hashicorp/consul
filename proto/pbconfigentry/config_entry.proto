@@ -13,6 +13,11 @@ enum Kind {
   KindIngressGateway = 3;
   KindServiceIntentions = 4;
   KindServiceDefaults = 5;
+  KindInlineCertificate = 6;
+  KindAPIGateway = 7;
+  KindBoundAPIGateway = 8;
+  KindHTTPRoute = 9;
+  KindTCPRoute = 10;
 }
 
 message ConfigEntry {
@@ -560,4 +565,54 @@ message DestinationConfig {
   repeated string Addresses = 1;
   // mog: func-to=int func-from=int32
   int32 Port = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message APIGateway {
+  map<string, string> Meta = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message BoundAPIGateway {
+  map<string, string> Meta = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message InlineCertificate {
+  map<string, string> Meta = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message HTTPRoute {
+  map<string, string> Meta = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TCPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message TCPRoute {
+  map<string, string> Meta = 1;
 }

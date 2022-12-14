@@ -687,3 +687,138 @@ func (g *GatewayService) Clone() *GatewayService {
 		ServiceKind:  g.ServiceKind,
 	}
 }
+
+// APIGatewayConfigEntry manages the configuration for an API gateway service
+// with the given name.
+type APIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.APIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the service definition.
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	RaftIndex
+}
+
+func (e *APIGatewayConfigEntry) GetKind() string {
+	return APIGateway
+}
+
+func (e *APIGatewayConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+	return e.Name
+}
+
+func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
+func (e *APIGatewayConfigEntry) Normalize() error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) Validate() error {
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
+}
+
+func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+}
+
+func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
+}
+
+func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
+}
+
+// BoundAPIGatewayConfigEntry manages the configuration for a bound API
+// gateway with the given name. This type is never written from the client.
+// It is only written by the controller in order to represent an API gateway
+// and the resources that are bound to it.
+type BoundAPIGatewayConfigEntry struct {
+	// Kind of the config entry. This will be set to structs.BoundAPIGateway.
+	Kind string
+
+	// Name is used to match the config entry with its associated API gateway
+	// service. This should match the name provided in the corresponding API
+	// gateway service definition.
+	Name string
+
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	RaftIndex
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetKind() string {
+	return BoundAPIGateway
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+	return e.Name
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
+func (e *BoundAPIGatewayConfigEntry) Normalize() error {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) Validate() error {
+	return nil
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
+}
+
+func (e *BoundAPIGatewayConfigEntry) CanWrite(_ acl.Authorizer) error {
+	return acl.PermissionDenied("only writeable by controller")
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+	return &e.RaftIndex
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+	return &e.EnterpriseMeta
+}

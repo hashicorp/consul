@@ -70,7 +70,7 @@ type PermissionDeniedError struct {
 	Accessor string
 	// Resource (e.g. Service)
 	Resource Resource
-	// Access leve (e.g. Read)
+	// Access level (e.g. Read)
 	AccessLevel AccessLevel
 	// e.g. "sidecar-proxy-1"
 	ResourceID ResourceDescriptor

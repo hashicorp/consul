@@ -4,6 +4,30 @@ package pbconfigentry
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
+}
+func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
+}
 func CookieConfigToStructs(s *CookieConfig, t *structs.CookieConfig) {
 	if s == nil {
 		return
@@ -161,6 +185,18 @@ func HTTPHeaderModifiersFromStructs(t *structs.HTTPHeaderModifiers, s *HTTPHeade
 	s.Add = t.Add
 	s.Set = t.Set
 	s.Remove = t.Remove
+}
+func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
@@ -369,6 +405,18 @@ func IngressServiceConfigFromStructs(t *structs.IngressServiceConfig, s *Ingress
 		PassiveHealthCheckFromStructs(t.PassiveHealthCheck, &x)
 		s.PassiveHealthCheck = &x
 	}
+}
+func InlineCertificateToStructs(s *InlineCertificate, t *structs.InlineCertificateConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificate) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -1003,6 +1051,18 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.LegacyUpdateTime = timeFromStructs(t.LegacyUpdateTime)
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
+}
+func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {
