@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -777,7 +778,7 @@ func testApplyConfigEntries(t *testing.T, a *TestAgent, entries ...structs.Confi
 			Entry:      entry,
 		}
 		var out bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", args, &out))
 	}
 }
 

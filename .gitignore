@@ -15,6 +15,7 @@ exit-code
 Thumbs.db
 .idea
 .vscode
+__debug_bin
 
 # MacOS
 .DS_Store

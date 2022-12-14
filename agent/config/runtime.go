@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -923,14 +924,14 @@ type RuntimeConfig struct {
 	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
 	// buckets.
 	//
-	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
+	// hcl: limits { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
 
 	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
 	// RPC server will accept from any single source IP address.
 	//
-	// hcl: limits{ rpc_max_conns_per_client = 100 }
+	// hcl: limits { rpc_max_conns_per_client = 100 }
 	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
@@ -1008,6 +1009,37 @@ type RuntimeConfig struct {
 	// hcl: rejoin_after_leave = (true|false)
 	// flag: -rejoin
 	RejoinAfterLeave bool
+
+	// RequestLimitsMode will disable or enable rate limiting.  If not disabled, it
+	// enforces the action that will occur when RequestLimitsReadRate
+	// or RequestLimitsWriteRate is exceeded.  The default value of "disabled" will
+	// prevent any rate limiting from occuring.  A value of "enforce" will block
+	// the request from processings by returning an error.  A value of
+	// "permissive" will not block the request and will allow the request to
+	// continue processing.
+	//
+	// hcl: limits { request_limits { mode = "permissive" } }
+	RequestLimitsMode consulrate.Mode
+
+	// RequestLimitsReadRate controls how frequently RPC, gRPC, and HTTP
+	// queries are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsReadRate tokens per second.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	//
+	// hcl: limits { request_limits { read_rate = (float64|MaxFloat64) } }
+	RequestLimitsReadRate rate.Limit
+
+	// RequestLimitsWriteRate controls how frequently RPC, gRPC, and HTTP
+	// writes are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsWriteRate tokens per second.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	//
+	// hcl: limits { request_limits { write_rate = (float64|MaxFloat64) } }
+	RequestLimitsWriteRate rate.Limit
 
 	// RetryJoinIntervalLAN specifies the amount of time to wait in between join
 	// attempts on agent start. The minimum allowed value is 1 second and

@@ -317,6 +317,14 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 			cp.Listeners[k2] = cp_Listeners_v2
 		}
 	}
+	if o.Defaults.PassiveHealthCheck != nil {
+		cp.Defaults.PassiveHealthCheck = new(structs.PassiveHealthCheck)
+		*cp.Defaults.PassiveHealthCheck = *o.Defaults.PassiveHealthCheck
+		if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+			cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+		}
+	}
 	return &cp
 }
 

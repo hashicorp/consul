@@ -2,11 +2,12 @@ package agent
 
 import (
 	"fmt"
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto/pboperator"
 	"net/http"
 	"strconv"
 	"time"
+
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/proto/pboperator"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
@@ -26,7 +27,7 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 	}
 
 	var reply structs.RaftConfigurationResponse
-	if err := s.agent.RPC("Operator.RaftGetConfiguration", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Operator.RaftGetConfiguration", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +103,7 @@ func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Requ
 	if hasAddress {
 		method = "Operator.RaftRemovePeerByAddress"
 	}
-	if err := s.agent.RPC(method, &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), method, &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -242,7 +243,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		}
 
 		var reply structs.AutopilotConfig
-		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -294,7 +295,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		}
 
 		var reply bool
-		if err := s.agent.RPC("Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -317,7 +318,7 @@ func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.
 	}
 
 	var reply structs.AutopilotHealthReply
-	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Operator.ServerHealth", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -357,7 +358,7 @@ func (s *HTTPHandlers) OperatorAutopilotState(resp http.ResponseWriter, req *htt
 	}
 
 	var reply autopilot.State
-	if err := s.agent.RPC("Operator.AutopilotState", &args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Operator.AutopilotState", &args, &reply); err != nil {
 		return nil, err
 	}
 
