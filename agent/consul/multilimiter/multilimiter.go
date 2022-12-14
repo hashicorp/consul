@@ -237,24 +237,19 @@ func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
 }
 
 func (m *MultiLimiter) cleanLimiters(now time.Time, reconcileCheckLimit time.Duration, txn *radix.Txn) {
-
-	iter := txn.Root().Iterator()
-	k, v, ok := iter.Next()
 	// remove all expired limiters
-	for ok {
-		if t, ok := v.(*Limiter); ok {
-			if t.limiter != nil {
-				lastAccess := t.lastAccess.Load()
-				lastAccessT := time.UnixMilli(lastAccess)
-				diff := now.Sub(lastAccessT)
-
-				if diff > reconcileCheckLimit {
-					txn.Delete(k)
-				}
-			}
+	for k, v, ok := iter.Next(); ok; k, v, ok = iter.Next() {
+		t, isLimiter := v.(*Limiter)
+		if !isLimiter || t.limiter == nil {
+			continue
 		}
-		k, v, ok = iter.Next()
+
+		lastAccess := time.UnixMilli(t.lastAccess.Load())
+		if now.Sub(lastAccess) > reconcileCheckLimit {
+			txn.Delete(k)
+		}
 	}
+
 }
 
 func (lc *LimiterConfig) isApplied(l *rate.Limiter) bool {
