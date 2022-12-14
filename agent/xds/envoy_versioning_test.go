@@ -68,7 +68,6 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 
 func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	const (
-		err1_13   = "is too old of a point release and is not supported by Consul because it does not support RBAC rules using url_path. Please upgrade to version 1.13.1+."
 		errTooOld = "is too old and is not supported by Consul"
 	)
 
