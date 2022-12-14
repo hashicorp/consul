@@ -136,7 +136,6 @@ func newTestServerDeltaScenario(
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
-	serverlessPluginEnabled bool,
 	sessionLimiter SessionLimiter,
 ) *testServerScenario {
 	mgr := newTestManager(t)
@@ -163,7 +162,6 @@ func newTestServerDeltaScenario(
 	s := NewServer(
 		"node-123",
 		testutil.Logger(t),
-		serverlessPluginEnabled,
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/

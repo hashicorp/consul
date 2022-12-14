@@ -31,7 +31,12 @@ load helpers
 }
 
 @test "peer the two clusters together" {
-  create_peering primary alpha
+  retry_default create_peering primary alpha
+}
+
+@test "s2 alpha proxies should be imported in primary" {
+  retry_long assert_service_has_imported primary s2 primary-to-alpha
+  [ "$status" -eq 0 ]
 }
 
 @test "acceptor gateway-primary should have healthy endpoints for primary servers" {

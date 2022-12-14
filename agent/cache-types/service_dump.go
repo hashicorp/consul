@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -42,7 +43,7 @@ func (c *InternalServiceDump) Fetch(opts cache.FetchOptions, req cache.Request) 
 
 	// Fetch
 	var reply structs.IndexedNodesWithGateways
-	if err := c.RPC.RPC("Internal.ServiceDump", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "Internal.ServiceDump", reqReal, &reply); err != nil {
 		return result, err
 	}
 

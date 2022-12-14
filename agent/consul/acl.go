@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -134,7 +135,7 @@ type ACLResolverBackend interface {
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
 	IsServerManagementToken(token string) bool
 	// TODO: separate methods for each RPC call (there are 4)
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 	EnterpriseACLResolverDelegate
 }
 
@@ -354,7 +355,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	}
 
 	var resp structs.ACLTokenResponse
-	err := r.backend.RPC("ACL.TokenRead", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.TokenRead", &req, &resp)
 	if err == nil {
 		if resp.Token == nil {
 			r.cache.RemoveIdentityWithSecretToken(token)
@@ -441,7 +442,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 	}
 
 	var resp structs.ACLPolicyBatchResponse
-	err := r.backend.RPC("ACL.PolicyResolve", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLPolicy)
 		for _, policy := range resp.Policies {
@@ -496,7 +497,7 @@ func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity
 	}
 
 	var resp structs.ACLRoleBatchResponse
-	err := r.backend.RPC("ACL.RoleResolve", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.RoleResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLRole)
 		for _, role := range resp.Roles {

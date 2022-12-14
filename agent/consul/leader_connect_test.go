@@ -614,7 +614,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(t, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	var updatedRoot *structs.CARoot
@@ -1010,7 +1010,7 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	args := structs.DCSpecificRequest{Datacenter: "dc2"}
 	var dc2PrimaryRoots structs.IndexedCARoots
-	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
+	require.NoError(t, s2.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2PrimaryRoots))
 	require.Len(t, dc2PrimaryRoots.Roots, 1)
 
 	// Shutdown s2 and restart it with the dc1 as the primary
@@ -1033,12 +1033,12 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		args = structs.DCSpecificRequest{Datacenter: "dc1"}
 		var dc1Roots structs.IndexedCARoots
-		require.NoError(r, s1.RPC("ConnectCA.Roots", &args, &dc1Roots))
+		require.NoError(r, s1.RPC(context.Background(), "ConnectCA.Roots", &args, &dc1Roots))
 		require.Len(r, dc1Roots.Roots, 1)
 
 		args = structs.DCSpecificRequest{Datacenter: "dc2"}
 		var dc2SecondaryRoots structs.IndexedCARoots
-		require.NoError(r, s3.RPC("ConnectCA.Roots", &args, &dc2SecondaryRoots))
+		require.NoError(r, s3.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2SecondaryRoots))
 
 		// dc2's TrustDomain should have changed to the primary's
 		require.Equal(r, dc2SecondaryRoots.TrustDomain, dc1Roots.TrustDomain)
@@ -1191,7 +1191,7 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 		Datacenter: datacenter,
 	}
 	var rootList structs.IndexedCARoots
-	if err := s.RPC("ConnectCA.Roots", rootReq, &rootList); err != nil {
+	if err := s.RPC(context.Background(), "ConnectCA.Roots", rootReq, &rootList); err != nil {
 		return nil, nil, err
 	}
 
@@ -1586,7 +1586,7 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 
@@ -1628,7 +1628,7 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 

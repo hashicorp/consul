@@ -960,6 +960,10 @@
             "path": "k8s/connect"
           },
           {
+            "title": "Admin Partitions",
+            "href": "/docs/enterprise/admin-partitions"
+          },
+          {
             "title": "Transparent Proxy",
             "href": "/docs/connect/transparent-proxy"
           },
@@ -1306,8 +1310,8 @@
             "path": "api-gateway/usage/usage"
           },
           {
-          "title": "Reroute HTTP Requests",
-          "path": "api-gateway/usage/reroute-http-requests"
+            "title": "Reroute HTTP Requests",
+            "path": "api-gateway/usage/reroute-http-requests"
           },
           {
             "title": "Route Traffic to Peered Services",
@@ -1316,8 +1320,7 @@
           {
             "title": "Error Messages",
             "path": "api-gateway/usage/errors"
-          }              
-              
+          }
         ]
       },
       {

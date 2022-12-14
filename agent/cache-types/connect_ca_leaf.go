@@ -618,7 +618,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		Datacenter:   req.Datacenter,
 		CSR:          csr,
 	}
-	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "ConnectCA.Sign", &args, &reply); err != nil {
 		if err.Error() == consul.ErrRateLimited.Error() {
 			if result.Value == nil {
 				// This was a first fetch - we have no good value in cache. In this case

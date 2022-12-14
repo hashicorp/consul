@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/netip"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -288,12 +289,27 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
+
 	h = s.enterpriseHandler(h)
+	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
 	return s.h
+}
+
+// Injects remote addr into the request's context
+func withRemoteAddrHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
+		if err == nil {
+			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
+			ctx := consul.ContextWithRemoteAddr(req.Context(), remoteAddr)
+			req = req.WithContext(ctx)
+		}
+		next.ServeHTTP(resp, req)
+	})
 }
 
 // nodeName returns the node name of the agent

@@ -1,0 +1,7 @@
+```release-note:feature
+config-entry(ingress-gateway): support outlier detection (passive health check) for upstream cluster
+```
+
+```release-note:breaking-change
+ingress-gateway: upstream cluster will have empty outlier_detection if passive health check is unspecified
+```
