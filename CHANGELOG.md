@@ -1,3 +1,19 @@
+## 1.12.8 (December 13, 2022)
+
+SECURITY:
+
+* Upgrade to use Go 1.18.9. This resolves a vulnerability where restricted files can be read on Windows. [CVE-2022-41720](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41720) [[GH-15727](https://github.com/hashicorp/consul/issues/15727)]
+* Upgrades `golang.org/x/net` to prevent a denial of service by excessive memory usage caused by HTTP2 requests. [CVE-2022-41717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41717) [[GH-15746](https://github.com/hashicorp/consul/issues/15746)]
+
+IMPROVEMENTS:
+
+* connect: ensure all vault connect CA tests use limited privilege tokens [[GH-15669](https://github.com/hashicorp/consul/issues/15669)]
+
+BUG FIXES:
+
+* cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+* connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
+
 ## 1.12.7 (November 30, 2022)
 
 BUG FIXES:
