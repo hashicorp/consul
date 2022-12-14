@@ -16,6 +16,18 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	}
 	s.Meta = t.Meta
 }
+func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Meta = s.Meta
+}
+func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
+	if s == nil {
+		return
+	}
+	s.Meta = t.Meta
+}
 func CookieConfigToStructs(s *CookieConfig, t *structs.CookieConfig) {
 	if s == nil {
 		return
