@@ -1690,8 +1690,10 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 
 func TestWithRemoteAddrHandler_ValidAddr(t *testing.T) {
 	expected := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:8080"))
+	nextHandlerCalled := false
 
 	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
 		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
 		if !ok || remoteAddr.String() != expected.String() {
 			t.Errorf("remote addr not present but expected %v", expected)
@@ -1702,11 +1704,15 @@ func TestWithRemoteAddrHandler_ValidAddr(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://ignoreme", nil)
 	req.RemoteAddr = expected.String()
 	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }
 
 func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
+	nextHandlerCalled := false
 
 	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
 		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
 		if ok || remoteAddr != nil {
 			t.Errorf("remote addr %v present but not expected", remoteAddr)
@@ -1717,4 +1723,6 @@ func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://ignoreme", nil)
 	req.RemoteAddr = "i.am.not.a.valid.ipaddr:port"
 	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }
