@@ -38,7 +38,7 @@ func (r *logDrop) Info(s string, i ...interface{}) {
 
 func (r *logDrop) pushLog(l Log) {
 	select {
-	case r.logCH <- l:
+	case r.logCh <- l:
 	default:
 		r.dropFn(l)
 	}
@@ -47,7 +47,7 @@ func (r *logDrop) pushLog(l Log) {
 func (r *logDrop) logConsumer(ctx context.Context) {
 	for {
 		select {
-		case l := <-r.logCH:
+		case l := <-r.logCh:
 			switch l.l {
 			case INFO:
 				r.logger.Info(l.s, l.i)
@@ -61,7 +61,7 @@ func (r *logDrop) logConsumer(ctx context.Context) {
 func NewLogDrop(ctx context.Context, name string, depth int, logger Logger, dropFn func(l Log)) Logger {
 	r := &logDrop{
 		logger: logger,
-		logCH:  make(chan Log, depth),
+		logCh:  make(chan Log, depth),
 		name:   name,
 		dropFn: dropFn,
 	}

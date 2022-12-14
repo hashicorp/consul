@@ -1,4 +1,4 @@
-package log_drop
+package logdrop
 
 import (
 	"context"
