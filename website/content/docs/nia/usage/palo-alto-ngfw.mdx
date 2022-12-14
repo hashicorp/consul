@@ -8,6 +8,7 @@ description: Use Consul-Terraform-Sync (CTS) to automatically configure your Pal
 This topic describes how to automatically configure your Palo Alto Next-Generation Firewall's (NGFW) dynamic address group using Terraform and Consul.
 
 ## Overview
+
 You can use Consul-Terraform-Sync (CTS) for network infrastructure automation (NIA). This enables you to automatically update your infrastructure and network devices using Terraform whenever your service networking control plane (Consul) changes.
 
 The following image shows the basic architecture of an NIA setup with Palo Alto NGFW.
@@ -22,47 +23,9 @@ Complete the following steps to configure your NGFW:
 1. Start CTS
 1. Verify NIA workflow
 
-## Requirements
+## Background
 
-1. A [Palo Alto NGFW](#palo-alto-ngfw)
-1. A [Consul datacenter](#consul) for service networking and service mesh
-1. A server with [Consul-Terraform-Sync (CTS)](#consul-terraform-sync) installed. This server must be able to communicate with the NGFW and the Consul datacenter.
-1. Two servers running a web service on port 80
-
-In addition, it assumes you are familiar with the standard Consul workflow and CTS. If you are unfamiliar with these topics, reference their respective tutorials to learn more.
-
-- Complete the [Get Started with Consul on VMs](/consul/tutorials/get-started-vms) or [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes) tutorials to learn more about Consul.
-- Complete the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to learn more about CTS.
-
-### Palo Alto NGFW
-
-These instructions support [Palo Alto NGFW](https://www.paloaltonetworks.com/network-security/next-generation-firewall) and other and other PAN OS-based devices.
-
-Configure your Palo Alto NGFW dynamic address group (DAG). The following minimal example defines a DAG named `web` with a matching selection for `'web'`, enabling CTS to automatically register or deregister the web server resources. Refer to the [Palo Alto documentation](https://docs.paloaltonetworks.com/network-security/security-policy/objects/address-groups/dynamic-address-groups) for additional information about dynamic address groups.
-
-![Palo Alto NGFW Dynamic Address Group](/img/nia/palo_alto_ngfw_dynamic_address_group.png)
-
-### Consul
-
-Confirm that you have deployed the web services and the respective servers have Consul agents running on them.
-
-``` shell-session
-$ consul members
-Node              Address             Status  Type    Build   Protocol  DC   Segment
-consul-server     10.88.0.100:8301    alive   server  1.14.1  2         dc1  <all>
-web-1             10.88.0.102:8301    alive   client  1.14.1  2         dc1  <default>
-web-2             10.88.0.103:8301    alive   client  1.14.1  2         dc1  <default> 
-```
-
-Once Consul is deployed and all agents have joined the datacenter, it is time to prepare CTS.
-
-- CTS requires access to the Consul catalog. 
-- If you're using Consul as a Terraform backend, you will also need privileges to store the Terraform state into Consul's key-value (KV) store.
-- In production environments, we recommend enabling access control lists (ACLs) on Consul. In order for CTS to retrieve information from Consul, it must pass a token in its configuration. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
-
-### Consul-Terraform-Sync
-
-CTS uses Consul's service catalog as a source of truth for all applications running in a given environment. When it detects services are registered or removed from Consul, CTS dynamically applies the necessary changes to your infrastructure using Terraform, in this case, the NGFW's dynamic address group.
+The Palo Alto NGFW and Panorama are compatible with various cloud providers, hypervisors, and containers. Combined with the extreme portability of Consul and Terraform, CTS makes the workflow portable with minimal changes, in any platform, increasing your flexibility and simplifying workflow migration across different solutions.
 
 The [`dag-nia`](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) Terraform module, a Palo Alto Networks managed Terraform module for CTS, lets operators automate their network infrastructure by dynamically configuring address groups and dynamic address tags. Once configured, CTS will register or deregister address group IP tags based on changes to the respective services in Consul.
 
@@ -70,93 +33,115 @@ The following diagram shows an example network infrastructure automation (NIA) w
 
 ![NIA CTS with PAN NGFW workflow](/img/nia/palo_alto_ngfw_workflow.png)
 
-~> **Compatibility Note:** CTS requires Terraform 0.13 or later to operate. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
+This topic assumes you are familiar with the standard Consul workflow and CTS. If you are unfamiliar with these topics, reference their respective tutorials to learn more.
+
+- Complete the [Get Started with Consul on VMs](/consul/tutorials/get-started-vms) or [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes) tutorials to learn more about Consul.
+- Complete the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to learn more about CTS.
+
+## Requirements
+
+1. A [Palo Alto NGFW](https://www.paloaltonetworks.com/network-security/next-generation-firewall) or other PAN OS-based device. The PAN OS-based network device must use a dynamic address group (DAG). 
+1. A [Consul datacenter](#consul) for service networking and service mesh
+1. A server with [Consul-Terraform-Sync (CTS)](#consul-terraform-sync) installed. This server must be able to communicate with the NGFW and the Consul datacenter.
+
+  ~> **Compatibility Note:** CTS requires Terraform 0.13 or later. You can either install Terraform before starting CTS or let the CTS install a compatible Terraform version for you.
+
+1. Application servers running a service. You must register these servers to Consul. Refer to [Register Services with Service Definitions](/consul/docs/discover/services) for instructions.
+
+### Configure NGFW dynamic address group
+
+Configure your Palo Alto NGFW dynamic address group (DAG) by choosing **Dynamic** from the **Type** field in the Palo Alto NGFW interface. CTS will automatically register or deregister the web server resources to the DAG. Refer to the [Palo Alto documentation](https://docs.paloaltonetworks.com/network-security/security-policy/objects/address-groups/dynamic-address-groups) for additional information about dynamic address groups. The following minimal example defines a DAG named `web` with a matching selection for `'web'`.
+
+![Palo Alto NGFW Dynamic Address Group](/img/nia/palo_alto_ngfw_dynamic_address_group.png)
 
 ## Register your Consul services
 
 Before you can use CTS, you must register your services to Consul.
 
-For each service, create a service configuration file with information about the service (for example, IP, port, etc), and health check information. The service name must match the `service-group` name defined on the Palo Alto NGFW.
+1. For each service, create a service configuration file with a health check. The service name must match the `service-group` name defined on the Palo Alto NGFW. Refer to the [service registration usage docs](/consul/docs/discovery/services) to learn how to register Consul services. The following example registers a service called `web` on port `80` and enables a health check named `web TCP check`:.
 
-Refer to the [service registration usage docs](/consul/docs/discovery/services) to learn how to register Consul services.
+  <Tabs>
+  <Tab heading="HCL" group="hcl">
 
-Select a tab for an example service configuration in HCL or JSON.
+  Create a service configuration file with the following details named `web.hcl`.
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+  <CodeBlockConfig filename="web.hcl">
 
-Create a service configuration file with the following details named `web.hcl`.
-
-<CodeBlockConfig filename="web.hcl">
-
-```hcl
-service {
-  name = "web"
-  port = 80
-  check {
-    id = "web
-    name = "web TCP check"
-    tcp = "localhost:80"
-    interval = "10s"
-    timeout = "1s"
+  ```hcl
+  service {
+    name = "web"
+    port = 80
+    check {
+      id = "web"
+      name = "web TCP check"
+      tcp = "localhost:80"
+      interval = "10s"
+      timeout = "1s"
+    }
   }
-}
-```
+  ```
 
-</CodeBlockConfig>
+  </CodeBlockConfig>
 
-Once you have created the configuration file, register the service with Consul.
+  </Tab>
+  <Tab heading="JSON" group="json">
 
-```shell-session
-$ consul services register web.hcl
-```
+  Create a service configuration file with the following details named `web.json`.
 
-</Tab>
+  <CodeBlockConfig filename="web.json">
 
-<Tab heading="JSON" group="json">
-
-Create a service configuration file with the following details named `web.json`.
-
-
-<CodeBlockConfig filename="web.json">
-
-```json
-{
-  "service": {
-    "name": "web",
-    "port": 80,
-    "checks": [
-      {
-        "id": "web",
-        "name": "web TCP Check",
-        "tcp": "localhost:80",
-        "interval": "10s",
-        "timeout": "1s"
-      }
-    ]
+  ```json
+  {
+    "service": {
+      "name": "web",
+      "port": 80,
+      "checks": [
+        {
+          "id": "web",
+          "name": "web TCP Check",
+          "tcp": "localhost:80",
+          "interval": "10s",
+          "timeout": "1s"
+        }
+      ]
+    }
   }
-}
-```
+  ```
+  </CodeBlockConfig>
 
-</CodeBlockConfig>
+  </Tab>
+  </Tabs>
 
-Once you have created the configuration file, register the service with Consul.
+1. Register the service with Consul.
 
-```shell-session
-$ consul services register web.json
-```
+  <Tabs>
+  <Tab heading="HCL" group="hcl">
 
-</Tab>
-</Tabs>
+  ```shell-session
+  $ consul services register web.hcl
+  ```
 
-Reload the Consul dashboard to find the newly registered Consul services.
+  </Tab>
+  <Tab heading="JSON" group="json">
 
+  ```shell-session
+  $ consul services register web.json
+  ```
+
+  </Tab>
+  </Tabs>
+
+Reload the Consul dashboard to find the newly registered `web` services.
 
 ![Consul services tab for web](/img/nia/palo_alto_ngfw_consul_services_web.png)
 
 ## Configure CTS
 
-CTS expects to run a set of tasks whenever a service is registered or removed from Consul. Create a CTS configuration file that defines these tasks. The following is an example CTS configuration file. Update the values for the `consul` and `panos` providers to match your environment.
+CTS requires access to the Consul catalog. If you're using Consul as a Terraform backend, you will also need privileges to store the Terraform state into Consul's key-value (KV) store.
+
+In production environments, we recommend enabling access control lists (ACLs) on Consul. In order for CTS to retrieve information from Consul, it must pass a token in its configuration. Refer to the [production CTS tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure) for more information about ACL tokens and an example of a secure CTS configuration.
+
+Create a CTS configuration file that defines a set of tasks to run when a service is registered or removed from Consul. In the following example, CTS uses the `consul` and `panos` providers to run the `Create_DAG_on_PANOS1` task when the `web` service changes.
 
 <CodeBlockConfig filename="tasks.hcl">
 
@@ -196,7 +181,7 @@ task {
 
 </CodeBlockConfig>
 
-The driver defines all Terraform providers required to execute the task. This specific configuration requires the `PaloAltoNetworks/panos` provider.
+The `driver` block defines all Terraform providers required to execute the task. In the following example, the `PaloAltoNetworks/panos` provider is required.
 
 <CodeBlockConfig filename="tasks.hcl" hideClipboard highlight="5">
 
@@ -231,10 +216,10 @@ terraform_provider "panos" {
 
 The `task` block defines a task for CTS to run when specific Consul services change.
 
-`name` defines the task name.
-`providers` defines the providers this task uses. In this case, the previously defined `panos.panos1` provider (aliased).
-`module` defines the path to the Palo Alto Terraform NIA module. This module lets Terraform dynamically manage address group configuration when there are changes to specific Consul services.
-`condition “services"` defines the Consul services, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task.
+- `name` defines the task name.
+- `providers` defines the providers this task uses. In this case, the previously defined `panos.panos1` provider (aliased).
+- `module` defines the path to the Palo Alto Terraform NIA module. This module lets Terraform dynamically manage address group configuration when there are changes to specific Consul services.
+- `condition "services"` defines the Consul services, when changed, would trigger this CTS task. The names must match the name of the Consul service you want to trigger the task.
 
 <CodeBlockConfig filename="tasks.hcl" hideClipboard>
 
@@ -254,9 +239,10 @@ task {
 </CodeBlockConfig>
 
 For more details about the configuration, refer to the [CTS configuration docs](/consul/docs/nia/configuration). For more details on the Terraform NIA module for PAN-OS devices, refer to its [Terraform Registry](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) or [GitHub repository](https://github.com/PaloAltoNetworks/terraform-panos-dag-nia).
+
 ## Start CTS
 
-Once you have configured CTS, start it using the `consul-terraform-sync` command. On startup, CTS will:
+Run the the `consul-terraform-sync start` command to start CTS and perform the following operations:
 
 - download and install the Terraform providers and modules according to the configuration file you have provided (`tasks.hcl`),
 - create Terraform files for the defined tasks, and 
@@ -331,27 +317,20 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 [INFO]  api: starting server: port=8558
 ```
 
-CTS will continue running as a daemon and will automatically execute the `Create_DAG_on_PANOS1` task when it detects changes to the `web` Consul service.
+CTS continuously runs as a daemon and automatically executes the `Create_DAG_on_PANOS1` task when it detects changes to the `web` Consul service.
 
 ## Verify NIA automation workflow
 
-Once you have configured and started CTS, verify the workflow by clicking the **more...** link for your dynamic address group.
+In the Palo Alto Networks interface, click the **more…** link for your dynamic address group to verify the workflow.
 
 ![PAN NGFW Dynamic Address Group IP Addresses tab](/img/nia/palo_alto_ngfw_dynamic_address_group_addresses.png)
 
 Any time Consul detects changes to your Consul service, CTS will automatically register or deregister the IP addresses tags in your Palo Alto NGFW's dynamic address group.
 
-## Next steps
+## Related resources
 
-CTS helps you automatically update your network infrastructure when your upstream infrastructure changes or fails. In addition, you can extend CTS to support CI/CD operations including [blue-green deployment by leveraging Terraform](https://www.hashicorp.com/blog/terraform-feature-toggles-blue-green-deployments-canary-test) and service tags on Consul.
+CTS helps you automatically update your network infrastructure when your upstream infrastructure changes or fails. In addition, you can extend CTS to support CI/CD operations including [blue-green and canary deployment by leveraging Terraform](/consul/tutorials/get-started-hcp/hcp-gs-canary-deployments) and service tags on Consul.
 
-The Palo Alto NGFW and Panorama are compatible with various cloud providers, hypervisors, and containers. Combined with the extreme portability of Consul and Terraform, CTS makes the workflow portable with minimal changes, in any platform, increasing your flexibility and simplifying workflow migration across different solutions.
+Check out the following resource to learn more about network infrastructure automation with CTS and Palo Alto.
 
-### Links and references
-
-Check out the following resources to learn more about network infrastructure automation with CTS and Palo Alto.
-
-- Try Palo Alto NGFW [free for 30 days](https://www.paloaltonetworks.com/vm-series-trial) 
 - Learn more about the [Terraform NIA module for Palo Alto NGFW](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest)
-- Webinar: [Automating Network Infrastructure Tasks with Palo Alto and HashiCorp](https://www.hashicorp.com/events/webinars/palo-alto-networks-and-hashicorp-cts)
-- Whitepaper: [Enabling Dynamic Firewalling with Palo Alto and HashiCorp](https://www.datocms-assets.com/2885/1621464663-consulpaloaltosolutionbriefdigital-3.pdf)
