@@ -1158,7 +1158,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out struct{}
-		require.NoError(t, s1.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &req, &out))
 	})
 
 	var conn *grpc.ClientConn

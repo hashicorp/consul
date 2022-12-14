@@ -571,7 +571,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	// Wait til CA root is setup
 	retry.Run(t, func(r *retry.R) {
 		var out structs.IndexedCARoots
-		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+		r.Check(s1.RPC(context.Background(), "ConnectCA.Roots", structs.DCSpecificRequest{
 			Datacenter: conf1.Datacenter,
 		}, &out))
 	})

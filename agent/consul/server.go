@@ -1494,10 +1494,11 @@ func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
-	method string
-	args   interface{}
-	reply  interface{}
-	err    error
+	method     string
+	args       interface{}
+	reply      interface{}
+	err        error
+	sourceAddr net.Addr
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1523,16 +1524,22 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 	return nil
 }
 
+func (i *inmemCodec) SourceAddr() net.Addr {
+	return i.sourceAddr
+}
+
 func (i *inmemCodec) Close() error {
 	return nil
 }
 
 // RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
+		method:     method,
+		args:       args,
+		reply:      reply,
+		sourceAddr: remoteAddr,
 	}
 
 	// Enforce the RPC limit.

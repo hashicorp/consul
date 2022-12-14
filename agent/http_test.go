@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,6 +27,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -1684,4 +1686,43 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			assertConn(conn4, true)
 		})
 	}
+}
+
+func TestWithRemoteAddrHandler_ValidAddr(t *testing.T) {
+	expected := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:8080"))
+	nextHandlerCalled := false
+
+	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
+		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
+		if !ok || remoteAddr.String() != expected.String() {
+			t.Errorf("remote addr not present but expected %v", expected)
+		}
+	})
+
+	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
+	req := httptest.NewRequest("GET", "http://ignoreme", nil)
+	req.RemoteAddr = expected.String()
+	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
+}
+
+func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
+	nextHandlerCalled := false
+
+	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
+		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
+		if ok || remoteAddr != nil {
+			t.Errorf("remote addr %v present but not expected", remoteAddr)
+		}
+	})
+
+	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
+	req := httptest.NewRequest("GET", "http://ignoreme", nil)
+	req.RemoteAddr = "i.am.not.a.valid.ipaddr:port"
+	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }

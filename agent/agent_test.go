@@ -208,7 +208,7 @@ func TestAgent_RPCPing(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	var out struct{}
-	if err := a.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	if err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -837,7 +837,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		args.Node = "node1"
 		args.AllowStale = true
 		var out structs.IndexedNodeServices
-		err := a.RPC("Catalog.NodeServices", &args, &out)
+		err := a.RPC(context.Background(), "Catalog.NodeServices", &args, &out)
 		assert.NoError(r, err)
 		foundService := false
 		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMetaInDefaultPartition())
@@ -1451,7 +1451,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	// check is added to an agent. 500ms so that we don't see flakiness ever.
 	time.Sleep(500 * time.Millisecond)
 
-	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
+	if err := a.RPC(context.Background(), "Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	for _, name := range before.Nodes[0].Checks {
@@ -1474,7 +1474,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	// has changed for the RPC, which means that idempotent ops
 	// are not working as intended.
 	var after structs.IndexedCheckServiceNodes
-	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
+	if err := a.RPC(context.Background(), "Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	require.Equal(t, before, after)
@@ -5281,7 +5281,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 		},
 	}
 	var reply interface{}
-	require.NoError(t, srv.RPC("ConnectCA.ConfigurationSet", &req, &reply))
+	require.NoError(t, srv.RPC(context.Background(), "ConnectCA.ConfigurationSet", &req, &reply))
 
 	// ensure that a new cert gets generated and pushed into the TLS configurator
 	retry.Run(t, func(r *retry.R) {

@@ -148,7 +148,7 @@ func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Reque
 
 	// Forward to the servers
 	var out struct{}
-	if err := s.agent.RPC("Catalog.Register", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.Register", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_register"}, 1,
 			s.nodeMetricsLabels())
 		return nil, err
@@ -178,7 +178,7 @@ func (s *HTTPHandlers) CatalogDeregister(resp http.ResponseWriter, req *http.Req
 
 	// Forward to the servers
 	var out struct{}
-	if err := s.agent.RPC("Catalog.Deregister", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.Deregister", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_deregister"}, 1,
 			s.nodeMetricsLabels())
 		return nil, err
@@ -212,7 +212,7 @@ func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Re
 		defer setCacheMeta(resp, &m)
 		out = *reply
 	} else {
-		if err := s.agent.RPC("Catalog.ListDatacenters", &args, &out); err != nil {
+		if err := s.agent.RPC(req.Context(), "Catalog.ListDatacenters", &args, &out); err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
 				s.nodeMetricsLabels())
 			return nil, err
@@ -244,7 +244,7 @@ func (s *HTTPHandlers) CatalogNodes(resp http.ResponseWriter, req *http.Request)
 	var out structs.IndexedNodes
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.ListNodes", &args, &out); err != nil {
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -297,7 +297,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
+		if err := s.agent.RPC(req.Context(), "Catalog.ListServices", &args, &out); err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
 				s.nodeMetricsLabels())
 			return nil, err
@@ -387,7 +387,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
+		if err := s.agent.RPC(req.Context(), "Catalog.ServiceNodes", &args, &out); err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
 				s.nodeMetricsLabels())
 			return nil, err
@@ -442,7 +442,7 @@ func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedNodeServices
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.NodeServices", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_services"}, 1,
 			s.nodeMetricsLabels())
 		return nil, err
@@ -507,7 +507,7 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 	var out structs.IndexedNodeServiceList
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.NodeServiceList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.NodeServiceList", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_service_list"}, 1,
 			s.nodeMetricsLabels())
 		return nil, err
@@ -554,7 +554,7 @@ func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *htt
 	var out structs.IndexedGatewayServices
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.GatewayServices", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Catalog.GatewayServices", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_gateway_services"}, 1,
 			s.nodeMetricsLabels())
 		return nil, err

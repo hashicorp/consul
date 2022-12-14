@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -671,7 +672,7 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 	return testRoleForID(roleID)
 }
 
-func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
+func (d *ACLResolverTestDelegate) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	switch method {
 	case "ACL.TokenRead":
 		atomic.AddInt32(&d.remoteTokenResolutions, 1)
@@ -692,7 +693,7 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 		}
 		panic("Bad Test Implementation: should provide a roleResolveFn to the ACLResolverTestDelegate")
 	}
-	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(method, args, reply); handled {
+	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(context.Background(), method, args, reply); handled {
 		return err
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
