@@ -1,4 +1,4 @@
-package log_drop
+package logdrop
 
 import (
 	"context"
@@ -27,7 +27,7 @@ type Log struct {
 
 type logDrop struct {
 	logger Logger
-	logCH  chan Log
+	logCh  chan Log
 	name   string
 	dropFn func(l Log)
 }
