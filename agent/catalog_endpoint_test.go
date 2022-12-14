@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -167,7 +168,7 @@ func TestCatalogNodes(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -208,7 +209,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -253,7 +254,7 @@ func TestCatalogNodes_Filter(t *testing.T) {
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?filter="+url.QueryEscape("Meta.somekey == somevalue"), nil)
 	resp := httptest.NewRecorder()
@@ -322,7 +323,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a2.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -389,7 +390,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var out structs.IndexedNodes
-	if err := a.RPC("Catalog.ListNodes", *args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.ListNodes", *args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -404,7 +405,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 			Address:    "127.0.0.1",
 		}
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			t.Errorf("err: %v", err)
 		}
 	}()
@@ -469,14 +470,14 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "127.0.0.2",
 	}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	// Nobody has coordinates set so this will still return them in the
 	// order they are indexed.
@@ -498,7 +499,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	require.NoError(t, a.RPC("Coordinate.Update", &arg, &out))
+	require.NoError(t, a.RPC(context.Background(), "Coordinate.Update", &arg, &out))
 	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
@@ -536,7 +537,7 @@ func TestCatalogServices(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -578,7 +579,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -632,7 +633,7 @@ func TestCatalogRegister_checkRegistration(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -689,7 +690,7 @@ func TestCatalogRegister_checkRegistration_UDP(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -752,7 +753,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -804,7 +805,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 		args2 := args
 		args2.Node = "bar"
 		args2.Address = "127.0.0.2"
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
@@ -868,7 +869,7 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -925,7 +926,7 @@ func TestCatalogServiceNodes_Filter(t *testing.T) {
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	// Register a second service for the node
 	args = &structs.RegisterRequest{
@@ -942,7 +943,7 @@ func TestCatalogServiceNodes_Filter(t *testing.T) {
 		SkipNodeUpdate: true,
 	}
 
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", queryPath, nil)
 	resp := httptest.NewRecorder()
@@ -1005,7 +1006,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a2.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a2.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Query for the node in DC2 from DC1.
@@ -1061,7 +1062,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1075,7 +1076,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 			Tags:    []string{"a"},
 		},
 	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1106,7 +1107,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
+	if err := a.RPC(context.Background(), "Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1149,7 +1150,7 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/service/%s", args.Service.Service), nil)
@@ -1177,7 +1178,7 @@ func registerService(t *testing.T, a *TestAgent) (registerServiceReq *structs.Re
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", registerServiceReq, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", registerServiceReq, &out))
 
 	return
 }
@@ -1201,7 +1202,7 @@ func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs
 		Entry:      &proxyGlobalEntry,
 	}
 	var proxyDefaultsConfigEntryResp bool
-	require.NoError(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
 	return
 }
 
@@ -1230,7 +1231,7 @@ func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (se
 		Entry:      &serviceDefaultsConfigEntry,
 	}
 	var serviceDefaultsConfigEntryResp bool
-	require.NoError(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
 	return
 }
 
@@ -1352,7 +1353,7 @@ func TestCatalogServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
 		MergeCentralConfig: true,
 	}
 	var rpcResp structs.IndexedServiceNodes
-	require.NoError(t, a.RPC("Catalog.ServiceNodes", &rpcReq, &rpcResp))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.ServiceNodes", &rpcReq, &rpcResp))
 
 	require.Len(t, rpcResp.ServiceNodes, 1)
 	serviceNode := rpcResp.ServiceNodes[0]
@@ -1424,7 +1425,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Address = "127.0.0.55"
 	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/connect/%s", args.Service.Proxy.DestinationServiceName), nil)
@@ -1455,7 +1456,7 @@ func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Address = "127.0.0.55"
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Address = "127.0.0.55"
@@ -1464,7 +1465,7 @@ func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
 	}
 	args.Service.ID = "web-proxy2"
 	args.SkipNodeUpdate = true
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/connect/%s?filter=%s",
@@ -1504,13 +1505,13 @@ func TestCatalogNodeServices(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Register a connect proxy
 	args.Service = structs.TestNodeServiceProxy(t)
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -1551,13 +1552,13 @@ func TestCatalogNodeServiceList(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Register a connect proxy
 	args.Service = structs.TestNodeServiceProxy(t)
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/node-services/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -1637,7 +1638,7 @@ func TestCatalogNodeServiceList_MergeCentralConfigBlocking(t *testing.T) {
 		MergeCentralConfig: true,
 	}
 	var rpcResp structs.IndexedNodeServiceList
-	require.NoError(t, a.RPC("Catalog.NodeServiceList", &rpcReq, &rpcResp))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.NodeServiceList", &rpcReq, &rpcResp))
 	require.Len(t, rpcResp.NodeServices.Services, 1)
 	nodeService := rpcResp.NodeServices.Services[0]
 	require.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
@@ -1710,11 +1711,11 @@ func TestCatalogNodeServices_Filter(t *testing.T) {
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	// Register a connect proxy
 	args.Service = structs.TestNodeServiceProxy(t)
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1&filter="+url.QueryEscape("Kind == `connect-proxy`"), nil)
 	resp := httptest.NewRecorder()
@@ -1745,7 +1746,7 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/node/%s", args.Node), nil)
@@ -1813,7 +1814,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, a2.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a2.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// Query for the node in DC2 from DC1.
@@ -1872,7 +1873,7 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 		ServiceID: args.Service.Service,
 	}
 	var out struct{}
-	assert.NoError(t, a.RPC("Catalog.Register", &args, &out))
+	assert.NoError(t, a.RPC(context.Background(), "Catalog.Register", &args, &out))
 
 	// Associate the gateway and api/redis services
 	entryArgs := &structs.ConfigEntryRequest{
@@ -1900,7 +1901,7 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 		},
 	}
 	var entryResp bool
-	assert.NoError(t, a.RPC("ConfigEntry.Apply", &entryArgs, &entryResp))
+	assert.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &entryArgs, &entryResp))
 
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/gateway-services/terminating", nil)
@@ -1985,7 +1986,7 @@ func TestCatalog_GatewayServices_Ingress(t *testing.T) {
 	}
 
 	var entryResp bool
-	require.NoError(t, a.RPC("ConfigEntry.Apply", &entryArgs, &entryResp))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &entryArgs, &entryResp))
 
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/gateway-services/ingress", nil)

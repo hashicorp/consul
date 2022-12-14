@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/consul/rate"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
@@ -23,7 +24,7 @@ import (
 func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default(), metricsObj, nil, grpcmiddleware.NullRateLimiter())
+	srv := NewServer(hclog.Default(), metricsObj, nil, rate.NullRateLimiter())
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 

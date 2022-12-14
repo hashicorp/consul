@@ -19,10 +19,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
-	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbcommon"
@@ -381,7 +381,7 @@ func runTestServer(t *testing.T, server *Server) net.Addr {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
 		},
 		nil,
-		middleware.NullRateLimiter(),
+		rate.NullRateLimiter(),
 	)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -252,7 +253,7 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 	get.Token = a.tokens.AgentToken()
 	var out structs.IndexedDirEntries
 QUERY:
-	if err := a.RPC("KVS.Get", &get, &out); err != nil {
+	if err := a.RPC(context.Background(), "KVS.Get", &get, &out); err != nil {
 		a.logger.Error("failed to get remote exec job", "error", err)
 		return false
 	}
@@ -318,7 +319,7 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 	}
 	write.Token = a.tokens.AgentToken()
 	var success bool
-	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
+	if err := a.RPC(context.Background(), "KVS.Apply", &write, &success); err != nil {
 		return err
 	}
 	if !success {

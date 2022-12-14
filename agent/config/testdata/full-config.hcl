@@ -305,6 +305,11 @@ limits {
     rpc_max_conns_per_client = 2954
     kv_max_value_size = 1234567800
     txn_max_req_len = 567800000
+    request_limits {
+        mode = "permissive"
+        read_rate = 99.0
+        write_rate = 101.0
+    }
 }
 log_level = "k1zo9Spt"
 log_json = true

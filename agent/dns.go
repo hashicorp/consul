@@ -421,7 +421,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// TODO: Replace ListNodes with an internal RPC that can do the filter
 	// server side to avoid transferring the entire node list.
-	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
+	if err := d.agent.RPC(context.Background(), "Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
 			lookup := serviceLookup{
 				// Peering PTR lookups are currently not supported, so we don't
@@ -457,7 +457,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 
 		var sout structs.IndexedServiceNodes
-		if err := d.agent.RPC("Catalog.ServiceNodes", &sargs, &sout); err == nil {
+		if err := d.agent.RPC(context.Background(), "Catalog.ServiceNodes", &sargs, &sout); err == nil {
 			for _, n := range sout.ServiceNodes {
 				if n.ServiceAddress == serviceAddress {
 					ptr := &dns.PTR{
@@ -872,7 +872,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		}
 
 		var out string
-		if err := d.agent.RPC("Catalog.VirtualIPForService", &args, &out); err != nil {
+		if err := d.agent.RPC(context.Background(), "Catalog.VirtualIPForService", &args, &out); err != nil {
 			return err
 		}
 		if out != "" {
@@ -1135,7 +1135,7 @@ RPC:
 		}
 		out = *reply
 	} else {
-		if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+		if err := d.agent.RPC(context.Background(), "Catalog.NodeServices", &args, &out); err != nil {
 			return nil, err
 		}
 	}
@@ -1599,7 +1599,7 @@ RPC:
 
 		out = *reply
 	} else {
-		if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
+		if err := d.agent.RPC(context.Background(), "PreparedQuery.Execute", &args, &out); err != nil {
 			return nil, err
 		}
 	}

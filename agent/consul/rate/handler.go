@@ -30,13 +30,50 @@ var (
 type Mode int
 
 const (
+	// ModeDisabled causes rate limiting to be bypassed.
+	ModeDisabled Mode = iota
+
 	// ModePermissive causes the handler to log the rate-limited operation but
 	// still allow it to proceed.
-	ModePermissive Mode = iota
+	ModePermissive
 
-	// ModeEnforcing causes the handler to reject the rate-limted operation.
+	// ModeEnforcing causes the handler to reject the rate-limited operation.
 	ModeEnforcing
 )
+
+var modeToName = map[Mode]string{
+	ModeDisabled:   "disabled",
+	ModeEnforcing:  "enforcing",
+	ModePermissive: "permissive",
+}
+var modeFromName = func() map[string]Mode {
+	vals := map[string]Mode{
+		"": ModeDisabled,
+	}
+	for k, v := range modeToName {
+		vals[v] = k
+	}
+	return vals
+}()
+
+func (m Mode) String() string {
+	return modeToName[m]
+}
+
+// RequestLimitsModeFromName will unmarshal the string form of a configMode.
+func RequestLimitsModeFromName(name string) (Mode, bool) {
+	s, ok := modeFromName[name]
+	return s, ok
+}
+
+// RequestLimitsModeFromNameWithDefault will unmarshal the string form of a configMode.
+func RequestLimitsModeFromNameWithDefault(name string) Mode {
+	s, ok := modeFromName[name]
+	if !ok {
+		return ModePermissive
+	}
+	return s
+}
 
 // OperationType is the type of operation the client is attempting to perform.
 type OperationType int
@@ -59,6 +96,13 @@ type Operation struct {
 
 	// Type of operation to be performed (e.g. read or write).
 	Type OperationType
+}
+
+//go:generate mockery --name RequestLimitsHandler --inpackage --filename mock_RequestLimitsHandler_test.go
+type RequestLimitsHandler interface {
+	Run(ctx context.Context)
+	Allow(op Operation) error
+	UpdateConfig(cfg HandlerConfig)
 }
 
 // Handler enforces rate limits for incoming RPCs.
@@ -127,7 +171,6 @@ func (h *Handler) Allow(op Operation) error {
 	return nil
 }
 
-// TODO(NET-1379): call this on `consul reload`.
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	h.cfg.Store(&cfg)
 	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
@@ -149,3 +192,16 @@ type globalLimit []byte
 func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
+
+// NullRateLimiter returns a RateLimiter that allows every operation.
+func NullRateLimiter() RequestLimitsHandler {
+	return nullRateLimiter{}
+}
+
+type nullRateLimiter struct{}
+
+func (nullRateLimiter) Allow(Operation) error { return nil }
+
+func (nullRateLimiter) Run(ctx context.Context) {}
+
+func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}
