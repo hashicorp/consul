@@ -208,35 +208,40 @@ func (m *MultiLimiter) reconcile(ctx context.Context, waiter ticker, txn *radix.
 
 func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
 	iter := txn.Root().Iterator()
-	k, v, ok := iter.Next()
-
 	// make sure all limiters have the latest defaultConfig of their prefix
-	for ok {
-		if pl, ok := v.(*Limiter); ok {
-			// check if it has a limiter, if so that's a lead
-			if pl.limiter != nil {
-				// find the prefix for the leaf and check if the defaultConfig is up-to-date
-				// it's possible that the prefix is equal to the key
-				prefix, _ := splitKey(k)
-				v, ok := m.limitersConfigs.Load().Get(prefix)
-				if ok {
-					if cl, ok := v.(*LimiterConfig); ok {
-						if cl != nil {
-							if !cl.isApplied(pl.limiter) {
-								limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
-								limiter.lastAccess.Store(pl.lastAccess.Load())
-								txn.Insert(k, &limiter)
-							}
-						}
-					}
-				}
-			}
+	for k, v, ok := iter.Next(); ok; k, v, ok = iter.Next() {
+		pl, ok := v.(*Limiter)
+		if pl == nil || !ok {
+			continue
 		}
-		k, v, ok = iter.Next()
+		if pl.limiter == nil {
+			continue
+		}
+
+		// find the prefix for the leaf and check if the defaultConfig is up-to-date
+		// it's possible that the prefix is equal to the key
+		prefix, _ := splitKey(k)
+		v, ok := m.limitersConfigs.Load().Get(prefix)
+		if v == nil || !ok {
+			continue
+		}
+		cl, ok := v.(*LimiterConfig)
+		if cl == nil || !ok {
+			continue
+		}
+		if cl.isApplied(pl.limiter) {
+			continue
+		}
+
+		limiter := Limiter{limiter: rate.NewLimiter(cl.Rate, cl.Burst)}
+		limiter.lastAccess.Store(pl.lastAccess.Load())
+		txn.Insert(k, &limiter)
+
 	}
 }
 
 func (m *MultiLimiter) cleanLimiters(now time.Time, reconcileCheckLimit time.Duration, txn *radix.Txn) {
+	iter := txn.Root().Iterator()
 	// remove all expired limiters
 	for k, v, ok := iter.Next(); ok; k, v, ok = iter.Next() {
 		t, isLimiter := v.(*Limiter)
