@@ -2,41 +2,32 @@ package logdrop
 
 import (
 	"context"
-)
-
-type Level int
-
-const (
-	TRACE Level = iota
-	DEBUG
-	INFO
-	WARN
-	ERROR
+	"github.com/hashicorp/go-hclog"
 )
 
 //go:generate mockery --name Logger --inpackage
 type Logger interface {
-	Info(string, ...interface{})
+	Log(level hclog.Level, msg string, args ...interface{})
 }
 
 type Log struct {
 	s string
 	i []interface{}
-	l Level
+	l hclog.Level
 }
 
-type logDrop struct {
+type logDropSink struct {
 	logger Logger
 	logCh  chan Log
 	name   string
 	dropFn func(l Log)
 }
 
-func (r *logDrop) Info(s string, i ...interface{}) {
-	r.pushLog(Log{l: INFO, s: s, i: i})
+func (r *logDropSink) Accept(name string, level hclog.Level, msg string, args ...interface{}) {
+	r.pushLog(Log{l: level, s: msg, i: args})
 }
 
-func (r *logDrop) pushLog(l Log) {
+func (r *logDropSink) pushLog(l Log) {
 	select {
 	case r.logCh <- l:
 	default:
@@ -44,22 +35,19 @@ func (r *logDrop) pushLog(l Log) {
 	}
 }
 
-func (r *logDrop) logConsumer(ctx context.Context) {
+func (r *logDropSink) logConsumer(ctx context.Context) {
 	for {
 		select {
 		case l := <-r.logCh:
-			switch l.l {
-			case INFO:
-				r.logger.Info(l.s, l.i)
-			}
+			r.logger.Log(l.l, l.s, l.i)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func NewLogDrop(ctx context.Context, name string, depth int, logger Logger, dropFn func(l Log)) Logger {
-	r := &logDrop{
+func NewLogDropSink(ctx context.Context, name string, depth int, logger Logger, dropFn func(l Log)) hclog.SinkAdapter {
+	r := &logDropSink{
 		logger: logger,
 		logCh:  make(chan Log, depth),
 		name:   name,

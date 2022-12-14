@@ -2,6 +2,7 @@ package logdrop
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -10,26 +11,26 @@ import (
 
 func TestNewLogDrop(t *testing.T) {
 	mockLogger := NewMockLogger(t)
-	mockLogger.On("Info", "test Log", []interface{}{"val", 0}).Return()
-	ld := NewLogDrop(context.Background(), "test", 10, mockLogger, func(_ Log) {})
+	mockLogger.On("Log", hclog.Info, "hello", []interface{}{"test", 0}).Return()
+	ld := NewLogDropSink(context.Background(), "test", 10, mockLogger, func(_ Log) {})
 	require.NotNil(t, ld)
-	ld.Info("test Log", "val", 0)
+	ld.Accept("test Log", hclog.Info, "hello", "test", 0)
 	time.Sleep(10 * time.Millisecond)
-	mockLogger.AssertNumberOfCalls(t, "Info", 1)
+	mockLogger.AssertNumberOfCalls(t, "Log", 1)
 }
 
 func TestLogDroppedWhenChannelFilled(t *testing.T) {
 	mockLogger := NewMockLogger(t)
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	called := false
-	ld := NewLogDrop(ctx, "test", 1, mockLogger, func(l Log) {
+	ld := NewLogDropSink(ctx, "test", 1, mockLogger, func(l Log) {
 		called = true
 	})
 	cancelFunc()
 	time.Sleep(1 * time.Second)
 	for i := 0; i < 2; i++ {
-		ld.Info("test", "test", "hello")
+		ld.Accept("test", hclog.Debug, "hello")
 	}
-	mockLogger.AssertNotCalled(t, "Info", mock.Anything)
+	mockLogger.AssertNotCalled(t, "Log", mock.Anything)
 	require.True(t, called)
 }
