@@ -313,9 +313,9 @@ information.
   retried until success. Once the agent joins successfully as a member, it will not attempt to join
   again. After joining, the agent solely maintains its membership via gossip. This option can be
   specified multiple times to specify multiple agents to join. By default, the agent won't join any
-  nodes when it starts up. The value can contain IPv4, IPv6, or DNS addresses. IPv6 must use the
-  "bracketed" syntax. If multiple values are given, they are tried and retried in the order listed
-  until the first succeeds.
+  nodes when it starts up. The value can contain IPv4, IPv6, or DNS addresses. Literal IPv6
+  addresses must be enclosed in square brackets. If multiple values are given, they are tried and
+  retried in the order listed until the first succeeds.
 
   This supports [Cloud Auto-Joining](#cloud-auto-joining).
 
