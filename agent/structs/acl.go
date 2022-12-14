@@ -286,13 +286,6 @@ type ACLToken struct {
 	// The node identities that this token should be allowed to manage.
 	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
-	// Type is the V1 Token Type
-	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
-	// Even though we are going to auto upgrade management tokens we still
-	// want to be able to have the old APIs operate on the upgraded management tokens
-	// so this field is being kept to identify legacy tokens even after an auto-upgrade
-	Type string `json:"-"`
-
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
 	Local bool
@@ -479,7 +472,6 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 		// Write all the user set fields
 		hash.Write([]byte(t.Description))
-		hash.Write([]byte(t.Type))
 
 		if t.Local {
 			hash.Write([]byte("local"))
@@ -516,7 +508,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 func (t *ACLToken) EstimateSize() int {
 	// 41 = 16 (RaftIndex) + 8 (Hash) + 8 (ExpirationTime) + 8 (CreateTime) + 1 (Local)
-	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.AuthMethod)
+	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.AuthMethod)
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}

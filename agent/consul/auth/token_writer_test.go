@@ -98,10 +98,6 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			fromLogin:     false,
 			errorContains: "AuthMethod field is disallowed outside of login",
 		},
-		"Type set": {
-			token:         structs.ACLToken{Type: "some-type"},
-			errorContains: "Type cannot be specified for this token",
-		},
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -493,10 +489,6 @@ func TestTokenWriter_Update_Validation(t *testing.T) {
 		"ExpirationTime changed": {
 			token:         structs.ACLToken{AccessorID: token.AccessorID, ExpirationTime: timePointer(token.ExpirationTime.Add(1 * time.Minute))},
 			errorContains: "Cannot change expiration time",
-		},
-		"Type set": {
-			token:         structs.ACLToken{AccessorID: token.AccessorID, Type: "some-type"},
-			errorContains: "Type cannot be specified for this token",
 		},
 	}
 	for desc, tc := range testCases {
