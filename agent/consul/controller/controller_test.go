@@ -226,3 +226,48 @@ func TestBasicController_Retry(t *testing.T) {
 	require.EqualValues(t, 1, queue.requeues())
 	require.EqualValues(t, 1, queue.addAfters())
 }
+
+func TestBasicController_RunPanicAssertions(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	started := make(chan struct{})
+	reconciler := newTestReconciler(false)
+	publisher := stream.NewEventPublisher(0)
+	controller := New(publisher, reconciler).WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
+		close(started)
+		return RunWorkQueue(ctx, baseBackoff, maxBackoff)
+	})
+	subscription := &stream.SubscribeRequest{
+		Topic:   state.EventTopicIngressGateway,
+		Subject: stream.SubjectWildcard,
+	}
+
+	// kick off the controller
+	go controller.Subscribe(subscription).Run(ctx)
+
+	// wait to make sure the following assertions don't
+	// get run before the above goroutine is spawned
+	<-started
+
+	// make sure we can't call Run again
+	require.Panics(t, func() {
+		controller.Run(ctx)
+	})
+
+	// make sure all of our configuration methods panic
+	require.Panics(t, func() {
+		controller.Subscribe(subscription)
+	})
+	require.Panics(t, func() {
+		controller.WithBackoff(1, 10)
+	})
+	require.Panics(t, func() {
+		controller.WithWorkers(1)
+	})
+	require.Panics(t, func() {
+		controller.WithQueueFactory(RunWorkQueue)
+	})
+}
