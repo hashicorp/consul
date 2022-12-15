@@ -1384,7 +1384,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
-				"TracingStrategy": "client_sampling",
+				"Tracing": {
+					"ClientSampling": 22.4,
+					"RandomSampling": 39.2,
+					"OverallSampling": 87.4
+				},
 				"TracingPercentage": 42.0,
 				"Meta" : {
 					"foo": "bar",
@@ -1420,10 +1424,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "client_sampling",
-				TracingPercentage: 42.0,
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					ClientSampling:  float64Pointer(float64(22.4)),
+					RandomSampling:  float64Pointer(float64(39.2)),
+					OverallSampling: float64Pointer(float64(87.4)),
+				},
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1492,5 +1499,9 @@ func intPointer(v int) *int {
 }
 
 func uint32Pointer(v uint32) *uint32 {
+	return &v
+}
+
+func float64Pointer(v float64) *float64 {
 	return &v
 }
