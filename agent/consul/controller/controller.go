@@ -16,7 +16,7 @@ import (
 // much of this is a re-implementation of
 // https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.13/pkg/internal/controller/controller.go
 
-// Transformer is a function that takes on type of config entry that has changed
+// Transformer is a function that takes one type of config entry that has changed
 // and transforms that into a set of reconciliation requests to enqueue.
 type Transformer func(entry structs.ConfigEntry) []Request
 
