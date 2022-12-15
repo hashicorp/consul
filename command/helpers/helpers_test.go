@@ -3042,8 +3042,11 @@ func TestParseConfigEntry(t *testing.T) {
 			snake: `
 				kind               = "ingress-gateway"
 				name               = "ingress-web"
-				tracing_strategy   = "client_sampling"
-				tracing_percentage = 42.0
+				tracing {
+					client_sampling = 22.4
+					random_sampling = 39.2
+					overall_sampling = 87.4
+				}
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -3071,8 +3074,11 @@ func TestParseConfigEntry(t *testing.T) {
 			camel: `
 				Kind              = "ingress-gateway"
 				Name              = "ingress-web"
-				TracingStrategy   = "client_sampling"
-				TracingPercentage = 42.0
+				Tracing {
+					ClientSampling = 22.4
+					RandomSampling = 39.2
+					OverallSampling = 87.4
+				}
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -3101,8 +3107,11 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "ingress-gateway",
 				"name": "ingress-web",
-				"tracing_strategy": "client_sampling",
-				"tracing_percentage": 42.0,
+				"tracing": {
+					"client_sampling": 22.4,
+					"random_sampling": 39.2,
+					"overall_sampling": 87.4
+				},
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -3132,8 +3141,11 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"Kind": "ingress-gateway",
 				"Name": "ingress-web",
-				"TracingStrategy": "client_sampling",
-				"TracingPercentage": 42.0,
+				"Tracing": {
+					"ClientSampling": 22.4,
+					"RandomSampling": 39.2,
+					"OverallSampling": 87.4
+				},
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -3160,10 +3172,13 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "client_sampling",
-				TracingPercentage: 42.0,
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &api.IngressTracingConfig{
+					ClientSampling:  float64Pointer(float64(22.4)),
+					RandomSampling:  float64Pointer(float64(39.2)),
+					OverallSampling: float64Pointer(float64(87.4)),
+				},
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -3238,5 +3253,8 @@ func requireContainsLower(t *testing.T, haystack, needle string) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+func float64Pointer(v float64) *float64 {
 	return &v
 }
