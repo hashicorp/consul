@@ -1369,7 +1369,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `tls` (Defaults to `false`) Allows the client to request the
     Connect CA and certificates from the servers, for encrypting RPC communication.
-    The client will make the request to any servers listed in the `-join` or `-retry-join`
+    The client will make the request to any servers listed in the `-retry-join`
     option. This requires that every server to have `auto_encrypt.allow_tls` enabled.
     When both `auto_encrypt` options are used, it allows clients to receive certificates
     that are generated on the servers. If the `-server-port` is not the default one,
@@ -1508,13 +1508,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/docs/agent/config/cli-flags#_retry_interval_wan).
 
-- `start_join` An array of strings specifying addresses
-  of nodes to [`-join`](/docs/agent/config/cli-flags#_join) upon startup. Note that using
-  `retry_join` could be more appropriate to help mitigate
-  node startup race conditions when automating a Consul cluster deployment.
+- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/docs/agent/config/config-files#retry_join) field instead. This field will be removed in a future version of Consul.**
+  This field is an alias of `retry_join`.
 
-- `start_join_wan` An array of strings specifying addresses
-  of WAN nodes to [`-join-wan`](/docs/agent/config/cli-flags#_join_wan) upon startup.
+- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/docs/agent/config/config-files#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
+  This field is an alias of `retry_join_wan`.
 
 ## Log Parameters
 
@@ -2219,7 +2217,3 @@ server.
     The default value is `250`. It is based on a load test of 5,000 streams connected to a single server with two CPU cores.
 
     If necessary, you can lower or increase the limit without a rolling restart by using the `consul reload` command or by sending the server a `SIGHUP`.
-
-<!-- list of reference-style links -->
-
-[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template
