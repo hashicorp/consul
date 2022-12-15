@@ -20,7 +20,7 @@ jobs:
       - name: Set ticket type
         id: set-ticket-type
         run: |
-          echo "TYPE=Github Issue" >> $GITHUB_OUTPUT
+          echo "TYPE=GH Issue" >> $GITHUB_OUTPUT
           
       - name: Set ticket labels
         if: github.event.action == 'opened'
