@@ -567,7 +567,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// gRPC calls are only rate-limited on server, not client agents.
 	var grpcRateLimiter rpcRate.RequestLimitsHandler
-	grpcRateLimiter = rpcRate.NullRateLimiter()
+	grpcRateLimiter = rpcRate.NullRequestLimitsHandler()
 	if s, ok := a.delegate.(*consul.Server); ok {
 		grpcRateLimiter = s.IncomingRPCLimiter()
 	}

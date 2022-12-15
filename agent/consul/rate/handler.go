@@ -205,15 +205,15 @@ func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
 
-// NullRateLimiter returns a RateLimiter that allows every operation.
-func NullRateLimiter() RequestLimitsHandler {
-	return nullRateLimiter{}
+// NullRequestLimitsHandler returns a RequestLimitsHandler that allows every operation.
+func NullRequestLimitsHandler() RequestLimitsHandler {
+	return nullRequestLimitsHandler{}
 }
 
-type nullRateLimiter struct{}
+type nullRequestLimitsHandler struct{}
 
-func (nullRateLimiter) Allow(Operation) error { return nil }
+func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 
-func (nullRateLimiter) Run(ctx context.Context) {}
+func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
-func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}
+func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
