@@ -45,11 +45,10 @@ func TestConnectExpose(t *testing.T) {
 	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
 	ap := entry.(*api.IngressGatewayConfigEntry).Partition
 	expected := &api.IngressGatewayConfigEntry{
-		Kind:            api.IngressGateway,
-		Name:            "ingress",
-		Namespace:       ns,
-		Partition:       ap,
-		TracingStrategy: "random_sampling",
+		Kind:      api.IngressGateway,
+		Name:      "ingress",
+		Namespace: ns,
+		Partition: ap,
 		Listeners: []api.IngressListener{
 			{
 				Port:     8888,
@@ -291,7 +290,6 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 		}
 		ingressConf.CreateIndex = entry.GetCreateIndex()
 		ingressConf.ModifyIndex = entry.GetModifyIndex()
-		ingressConf.TracingStrategy = "random_sampling"
 		require.Equal(t, ingressConf, entry)
 	}
 
