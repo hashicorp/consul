@@ -122,16 +122,23 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 		"router-override": {
 			serverProvider: providerWithServer,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN:      []string{"127.0.0.1:9876"},
-				StartJoinAddrsLAN: []string{"192.168.1.2:4321"},
+				RetryJoinLAN: []string{"127.0.0.1:9876", "192.168.1.2:4321"},
 			},
 			hosts: []string{"198.18.0.1:1234"},
 		},
 		"various-addresses": {
 			serverProvider: providerNone,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN:      []string{"198.18.0.1", "foo.com", "[2001:db8::1234]:1234", "abc.local:9876"},
-				StartJoinAddrsLAN: []string{"192.168.1.1:5432", "start.local", "[::ffff:172.16.5.4]", "main.dev:6789"},
+				RetryJoinLAN: []string{
+					"192.168.1.1:5432",
+					"start.local",
+					"[::ffff:172.16.5.4]",
+					"main.dev:6789",
+					"198.18.0.1",
+					"foo.com",
+					"[2001:db8::1234]:1234",
+					"abc.local:9876",
+				},
 			},
 			hosts: []string{
 				"192.168.1.1",
@@ -147,7 +154,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 		"split-host-port-error": {
 			serverProvider: providerNone,
 			config: &config.RuntimeConfig{
-				StartJoinAddrsLAN: []string{"this-is-not:a:ip:and_port"},
+				RetryJoinLAN: []string{"this-is-not:a:ip:and_port"},
 			},
 			err: "no auto-encrypt server addresses available for use",
 		},

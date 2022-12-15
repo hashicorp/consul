@@ -46,11 +46,13 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+type FlagValuesTarget = decodeTarget
+
 // LoadOpts used by Load to construct and validate a RuntimeConfig.
 type LoadOpts struct {
 	// FlagValues contains the command line arguments that can also be set
 	// in a config file.
-	FlagValues Config
+	FlagValues FlagValuesTarget
 
 	// ConfigFiles is a slice of paths to config files and directories that will
 	// be loaded.
@@ -169,12 +171,15 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, DevSource())
 	}
 
+	cfg, warns := applyDeprecatedFlags(&opts.FlagValues)
+	b.Warnings = append(b.Warnings, warns...)
+
 	// Since the merge logic is to overwrite all fields with later
 	// values except slices which are merged by appending later values
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(opts.FlagValues)
+	slices, values := splitSlicesAndValues(cfg)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	if opts.DefaultConfig != nil {
 		b.Head = append(b.Head, opts.DefaultConfig)
@@ -1072,8 +1077,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
-		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TaggedAddresses:                   c.TaggedAddresses,
 		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
 		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
@@ -1348,9 +1351,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires that 'node_name' not contain '/' characters")
 	}
 	if rt.ConnectMeshGatewayWANFederationEnabled {
-		if len(rt.StartJoinAddrsWAN) > 0 {
-			return fmt.Errorf("'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
-		}
 		if len(rt.RetryJoinWAN) > 0 {
 			return fmt.Errorf("'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
 		}

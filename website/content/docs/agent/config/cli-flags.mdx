@@ -306,34 +306,20 @@ information.
   server. This option may be provided multiple times, and is functionally equivalent
   to the [`recursors` configuration option](/docs/agent/config/config-files#recursors).
 
-## Join Options
+- `-join` ((#\_join)) - **Deprecated in Consul 1.15. This flag will be removed in a future version of Consul. Use the `-retry-join` flag instead.**
+  This is an alias of [`-retry-join`](#_retry_join).
 
-- `-join` ((#\_join)) - Address of another agent to join upon starting up.
-  This can be specified multiple times to specify multiple agents to join. If Consul
-  is unable to join with any of the specified addresses, agent startup will fail.
-  By default, the agent won't join any nodes when it starts up. Note that using [`-retry-join`](#_retry_join) could be more appropriate to help mitigate node startup race conditions when automating
-  a Consul cluster deployment.
+- `-retry-join` ((#\_retry_join)) - Address of another agent to join upon starting up. Joining is
+  retried until success. Once the agent joins successfully as a member, it will not attempt to join
+  again. After joining, the agent solely maintains its membership via gossip. This option can be
+  specified multiple times to specify multiple agents to join. By default, the agent won't join any
+  nodes when it starts up. The value can contain IPv4, IPv6, or DNS addresses. Literal IPv6
+  addresses must be enclosed in square brackets. If multiple values are given, they are tried and
+  retried in the order listed until the first succeeds.
 
-  In Consul 1.1.0 and later this can be dynamically defined with a
-  [go-sockaddr]
-  template that is resolved at runtime.
+  This supports [Cloud Auto-Joining](#cloud-auto-joining).
 
-  If using Enterprise network segments, see [additional documentation on
-  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
-
-- `-retry-join` ((#\_retry_join)) - Similar to [`-join`](#_join) but allows retrying a join until
-  it is successful. Once it joins successfully to a member in a list of members
-  it will never attempt to join again. Agents will then solely maintain their
-  membership via gossip. This is useful for cases where you know the address will
-  eventually be available. This option can be specified multiple times to
-  specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
-  addresses. IPv6 must use the "bracketed" syntax. If multiple values
-  are given, they are tried and retried in the order listed until the first
-  succeeds.
-
-  In Consul 1.1.0 and later this can be dynamically defined with a
-  [go-sockaddr]
-  template that is resolved at runtime.
+  This can be dynamically defined with a [go-sockaddr] template that is resolved at runtime.
 
   If Consul is running on the non-default Serf LAN port, the port must
   be specified in the join address, or configured as the agent's default Serf port
@@ -387,7 +373,7 @@ information.
 
   ### Cloud Auto-Joining
 
-  As of Consul 0.9.1, `retry-join` accepts a unified interface using the
+  The `-retry-join` option accepts a unified interface using the
   [go-discover](https://github.com/hashicorp/go-discover) library for doing
   automatic cluster joining using cloud metadata. For more information, see
   the [Cloud Auto-join page](/docs/install/cloud-auto-join).
@@ -407,22 +393,17 @@ information.
   [`-retry-join`](#_retry_join) before exiting with return code 1. By default, this is set
   to 0 which is interpreted as infinite retries.
 
-- `-join-wan` ((#\_join_wan)) - Address of another wan agent to join upon
-  starting up. This can be specified multiple times to specify multiple WAN agents
-  to join. If Consul is unable to join with any of the specified addresses, agent
-  startup will fail. By default, the agent won't [`-join-wan`](#_join_wan) any nodes
-  when it starts up.
+- `-join-wan` ((#\_join_wan)) - **Deprecated in Consul 1.15. This flag will be removed in a future version of Consul. Use the `-retry-join-wan` flag instead.**
+  This is an alias of [`-retry-join-wan`](#_retry_join_wan)
 
-  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
-  template that is resolved at runtime.
+- `-retry-join-wan` ((#\_retry_join_wan)) - Address of another WAN agent to join upon starting up.
+  WAN joining is retried until success. This can be specified multiple times to specify multiple WAN
+  agents to join. If multiple values are given, they are tried and retried in the order listed
+  until the first succeeds. By default, the agent won't WAN join any nodes when it starts up.
 
-- `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`-retry-join`](#_retry_join)
-  but allows retrying a wan join if the first attempt fails. This is useful for cases
-  where we know the address will become available eventually. As of Consul 0.9.3
-  [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
+  This supports [Cloud Auto-Joining](#cloud-auto-joining).
 
-  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
-  template that is resolved at runtime.
+  This can be dynamically defined with a [go-sockaddr] template that is resolved at runtime.
 
 - `-primary-gateway` ((#\_primary_gateway)) - Similar to [`-retry-join-wan`](#_retry_join_wan)
   but allows retrying discovery of fallback addresses for the mesh gateways in the
@@ -432,9 +413,9 @@ information.
   templates. This was added in Consul 1.8.0.
 
 - `-retry-interval-wan` ((#\_retry_interval_wan)) - Time to wait between
-  [`-join-wan`](#_join_wan) attempts. Defaults to 30s.
+  [`-retry-join-wan`](#_retry_join_wan) attempts. Defaults to 30s.
 
-- `-retry-max-wan` ((#\_retry_max_wan)) - The maximum number of [`-join-wan`](#_join_wan)
+- `-retry-max-wan` ((#\_retry_max_wan)) - The maximum number of [`-retry-join-wan`](#_join_wan)
   attempts to be made before exiting with return code 1. By default, this is set
   to 0 which is interpreted as infinite retries.
 

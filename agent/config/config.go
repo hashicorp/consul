@@ -230,8 +230,6 @@ type Config struct {
 	Services                         []ServiceDefinition `mapstructure:"services" json:"-"`
 	SessionTTLMin                    *string             `mapstructure:"session_ttl_min" json:"session_ttl_min,omitempty"`
 	SkipLeaveOnInt                   *bool               `mapstructure:"skip_leave_on_interrupt" json:"skip_leave_on_interrupt,omitempty"`
-	StartJoinAddrsLAN                []string            `mapstructure:"start_join" json:"start_join,omitempty"`
-	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan" json:"start_join_wan,omitempty"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility" json:"syslog_facility,omitempty"`
 	TLS                              TLS                 `mapstructure:"tls" json:"tls,omitempty"`
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses" json:"tagged_addresses,omitempty"`
