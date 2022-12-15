@@ -20,6 +20,7 @@ const (
 	TokenKindAgentRecovery
 	TokenKindUser
 	TokenKindReplication
+	TokenKindConfigFileRegistration
 )
 
 type watcher struct {
@@ -73,6 +74,13 @@ type Store struct {
 
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
+
+	// configFileRegistrationToken is used to register services defined
+	// with a service definitions in a config file.
+	configFileRegistrationToken string
+
+	// configFileRegistrationTokenSource indicates where this token originated from
+	configFileRegistrationTokenSource TokenSource
 
 	watchers     map[int]watcher
 	watcherIndex int
@@ -216,6 +224,27 @@ func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 	return changed
 }
 
+// UpdateConfigFileRegistrationToken replaces the current config file registration token
+// in the store. Returns true if it was changed.
+func (t *Store) UpdateConfigFileRegistrationToken(token string, source TokenSource) bool {
+	return t.updateToken(token, source,
+		&t.configFileRegistrationToken, &t.configFileRegistrationTokenSource,
+		TokenKindConfigFileRegistration,
+	)
+}
+
+func (t *Store) updateToken(token string, source TokenSource, dstToken *string, dstSource *TokenSource, kind TokenKind) bool {
+	t.l.Lock()
+	changed := *dstToken != token || *dstSource != source
+	*dstToken = token
+	*dstSource = source
+	if changed {
+		t.sendNotificationLocked(kind)
+	}
+	t.l.Unlock()
+	return changed
+}
+
 // UserToken returns the best token to use for user operations.
 func (t *Store) UserToken() string {
 	t.l.RLock()
@@ -254,6 +283,13 @@ func (t *Store) ReplicationToken() string {
 	return t.replicationToken
 }
 
+func (t *Store) ConfigFileRegistrationToken() string {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.configFileRegistrationToken
+}
+
 // UserToken returns the best token to use for user operations.
 func (t *Store) UserTokenAndSource() (string, TokenSource) {
 	t.l.RLock()
@@ -277,12 +313,19 @@ func (t *Store) AgentRecoveryTokenAndSource() (string, TokenSource) {
 	return t.agentRecoveryToken, t.agentRecoveryTokenSource
 }
 
-// ReplicationToken returns the replication token.
+// ReplicationTokenAndSource returns the replication token and its source.
 func (t *Store) ReplicationTokenAndSource() (string, TokenSource) {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
 	return t.replicationToken, t.replicationTokenSource
+}
+
+func (t *Store) ConfigFileRegistrationTokenAndSource() (string, TokenSource) {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.configFileRegistrationToken, t.configFileRegistrationTokenSource
 }
 
 // IsAgentRecoveryToken checks to see if a given token is the agent recovery token.
