@@ -18,8 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pboperator"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
