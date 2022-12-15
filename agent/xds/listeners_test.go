@@ -601,7 +601,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						clientSampling := float64(10)
 						randomSampling := float64(20)
 						overallSampling := float64(30)
-						entry.Tracing = structs.IngressTracingConfig{
+						entry.Tracing = &structs.IngressTracingConfig{
 							ClientSampling:  &clientSampling,
 							RandomSampling:  &randomSampling,
 							OverallSampling: &overallSampling,
