@@ -95,6 +95,7 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token
 		if err := m.startSync(w.closeCh, proxyID); err != nil {
 			delete(m.watches, proxyID)
 			cancelWatch()
+			session.End()
 			return nil, nil, nil, err
 		}
 	}

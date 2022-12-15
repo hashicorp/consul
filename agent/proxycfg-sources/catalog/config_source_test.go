@@ -48,17 +48,33 @@ func TestConfigSource_Success(t *testing.T) {
 	// behavior without sleeping which leads to slow/racy tests.
 	cfgMgr := testConfigManager(t, serviceID, nodeName, token)
 
+	lim := NewMockSessionLimiter(t)
+
+	session1 := newMockSession(t)
+	session1TermCh := make(limiter.SessionTerminatedChan)
+	session1.On("Terminated").Return(session1TermCh)
+	session1.On("End").Return()
+
+	session2 := newMockSession(t)
+	session2TermCh := make(limiter.SessionTerminatedChan)
+	session2.On("Terminated").Return(session2TermCh)
+	session2.On("End").Return()
+
+	lim.On("BeginSession").Return(session1, nil).Once()
+	lim.On("BeginSession").Return(session2, nil).Once()
+
 	mgr := NewConfigSource(Config{
 		Manager:        cfgMgr,
 		LocalState:     testLocalState(t),
 		Logger:         hclog.NewNullLogger(),
 		GetStore:       func() Store { return store },
-		SessionLimiter: nullSessionLimiter{},
+		SessionLimiter: lim,
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	snapCh, _, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
+	snapCh, termCh, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
+	require.Equal(t, session1TermCh, termCh)
 
 	// Expect Register to have been called with the proxy's inital port.
 	select {
@@ -113,8 +129,9 @@ func TestConfigSource_Success(t *testing.T) {
 	}
 
 	// Start another watch.
-	_, _, cancelWatch2, err := mgr.Watch(serviceID, nodeName, token)
+	_, termCh2, cancelWatch2, err := mgr.Watch(serviceID, nodeName, token)
 	require.NoError(t, err)
+	require.Equal(t, session2TermCh, termCh2)
 
 	// Expect the service to have not been re-registered by the second watch.
 	select {
@@ -139,6 +156,9 @@ func TestConfigSource_Success(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for service to be de-registered")
 	}
+
+	session1.AssertCalled(t, "End")
+	session2.AssertCalled(t, "End")
 }
 
 func TestConfigSource_LocallyManagedService(t *testing.T) {
@@ -195,18 +215,26 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 	cfgMgr.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errors.New("KABOOM"))
 
+	session := newMockSession(t)
+	session.On("End").Return()
+
+	lim := NewMockSessionLimiter(t)
+	lim.On("BeginSession").Return(session, nil)
+
 	mgr := NewConfigSource(Config{
 		Manager:        cfgMgr,
 		LocalState:     testLocalState(t),
 		Logger:         hclog.NewNullLogger(),
 		GetStore:       func() Store { return store },
-		SessionLimiter: nullSessionLimiter{},
+		SessionLimiter: lim,
 	})
 	t.Cleanup(mgr.Shutdown)
 
 	_, _, _, err := mgr.Watch(serviceID, nodeName, token)
 	require.Error(t, err)
 	require.True(t, canceledWatch, "watch should've been canceled")
+
+	session.AssertCalled(t, "End")
 }
 
 func TestConfigSource_NotProxyService(t *testing.T) {
@@ -329,3 +357,22 @@ type nullSession struct{}
 func (nullSession) End() {}
 
 func (nullSession) Terminated() limiter.SessionTerminatedChan { return nil }
+
+type mockSession struct {
+	mock.Mock
+}
+
+func newMockSession(t *testing.T) *mockSession {
+	m := &mockSession{}
+	m.Mock.Test(t)
+
+	t.Cleanup(func() { m.AssertExpectations(t) })
+
+	return m
+}
+
+func (m *mockSession) End() { m.Called() }
+
+func (m *mockSession) Terminated() limiter.SessionTerminatedChan {
+	return m.Called().Get(0).(limiter.SessionTerminatedChan)
+}
