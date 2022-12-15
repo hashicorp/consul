@@ -2220,7 +2220,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		HttpFilters: []*envoy_http_v3.HttpFilter{
 			router,
 		},
-		//Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{},
 		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 			// Don't trace any requests by default unless the client application
 			// explicitly propagates trace headers that indicate this should be
