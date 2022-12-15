@@ -9,8 +9,7 @@ import (
 
 func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 	mockRateLimiter := multilimiter.NewMockRateLimiter(t)
-	mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return(
-		func(c multilimiter.LimiterConfig, prefix []byte) {})
+	mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 	readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
 	writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
 	cfg := &HandlerConfig{
@@ -19,22 +18,6 @@ func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 		GlobalMode:        ModeEnforcing,
 	}
 	NewHandlerWithLimiter(*cfg, nil, mockRateLimiter)
-	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)
-}
-
-func TestUpdateConfig_DoesNotUpdateRateLimiterIfNoConfigChange(t *testing.T) {
-	mockRateLimiter := multilimiter.NewMockRateLimiter(t)
-	mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return(
-		func(c multilimiter.LimiterConfig, prefix []byte) {})
-	readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
-	writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
-	cfg := &HandlerConfig{
-		GlobalReadConfig:  readCfg,
-		GlobalWriteConfig: writeCfg,
-		GlobalMode:        ModeEnforcing,
-	}
-	handler := NewHandlerWithLimiter(*cfg, nil, mockRateLimiter)
-	handler.UpdateConfig(*cfg)
 	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)
 }
 
@@ -93,8 +76,7 @@ func TestUpdateConfig(t *testing.T) {
 				GlobalMode:        ModeEnforcing,
 			}
 			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
-			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return(
-				func(c multilimiter.LimiterConfig, prefix []byte) {})
+			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			handler := NewHandlerWithLimiter(*cfg, nil, mockRateLimiter)
 			mockRateLimiter.Calls = nil
 			tc.configModFunc(cfg)
