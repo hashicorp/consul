@@ -1275,6 +1275,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		routeName:        name,
 		cluster:          LocalAppClusterName,
 		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+		idleTimeoutMs:    cfg.LocalIdleTimeoutMs,
 		tracing:          tracing,
 	}
 	if useHTTPFilter {
@@ -2114,6 +2115,7 @@ type listenerFilterOpts struct {
 	statPrefix           string
 	routePath            string
 	requestTimeoutMs     *int
+	idleTimeoutMs        *int
 	ingressGateway       bool
 	httpAuthzFilter      *envoy_http_v3.HttpFilter
 	forwardClientDetails bool
@@ -2258,6 +2260,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		if opts.requestTimeoutMs != nil {
 			r := route.GetRoute()
 			r.Timeout = durationpb.New(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
+		}
+
+		if opts.idleTimeoutMs != nil {
+			r := route.GetRoute()
+			r.IdleTimeout = durationpb.New(time.Duration(*opts.idleTimeoutMs) * time.Millisecond)
 		}
 
 		// If a path is provided, do not match on a catch-all prefix

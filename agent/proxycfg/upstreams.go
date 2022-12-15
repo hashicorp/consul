@@ -131,6 +131,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
+		// Skip adding passthroughs unless it's a connect sidecar in tproxy mode.
 		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
 			return nil
 		}
@@ -148,7 +149,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+			dialedDirectly := node.Service.Proxy.TransparentProxy.DialedDirectly
+			// We must do a manual merge here on the DialedDirectly field, because the service-defaults
+			// and proxy-defaults are not automatically merged into the CheckServiceNodes when in
+			// agentless mode (because the streaming backend doesn't yet support the MergeCentralConfig field).
+			if chain := snap.ConnectProxy.DiscoveryChain[uid]; chain != nil {
+				if target := chain.Targets[targetID]; target != nil {
+					dialedDirectly = dialedDirectly || target.TransparentProxy.DialedDirectly
+				}
+			}
+			// Skip adding a passthrough for the upstream node if not DialedDirectly.
+			if !dialedDirectly {
 				continue
 			}
 
@@ -179,10 +190,12 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			upstreamsSnapshot.PassthroughIndices[addr] = indexedTarget{idx: csnIdx, upstreamID: uid, targetID: targetID}
 			passthroughs[addr] = struct{}{}
 		}
+		// Always clear out the existing target passthroughs list so that clusters are cleaned up
+		// correctly if no entries are populated.
+		upstreamsSnapshot.PassthroughUpstreams[uid] = make(map[string]map[string]struct{})
 		if len(passthroughs) > 0 {
-			upstreamsSnapshot.PassthroughUpstreams[uid] = map[string]map[string]struct{}{
-				targetID: passthroughs,
-			}
+			// Add the passthroughs to the target if any were found.
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = passthroughs
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
@@ -325,6 +338,10 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
 			needGateways[gk.String()] = struct{}{}
+		}
+		// Register a local gateway watch if any targets are pointing to a peer and require a mode of local.
+		if target.Peer != "" && target.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+			s.setupWatchForLocalGWEndpoints(ctx, snap)
 		}
 	}
 
@@ -547,4 +564,31 @@ func parseReducedUpstreamConfig(m map[string]interface{}) (reducedUpstreamConfig
 	var cfg reducedUpstreamConfig
 	err := mapstructure.WeakDecode(m, &cfg)
 	return cfg, err
+}
+
+func (s *handlerUpstreams) setupWatchForLocalGWEndpoints(
+	ctx context.Context,
+	upstreams *ConfigSnapshotUpstreams,
+) error {
+	gk := GatewayKey{
+		Partition:  s.proxyID.PartitionOrDefault(),
+		Datacenter: s.source.Datacenter,
+	}
+	// If the watch is already initialized, do nothing.
+	if upstreams.WatchedLocalGWEndpoints.IsWatched(gk.String()) {
+		return nil
+	}
+
+	opts := gatewayWatchOpts{
+		internalServiceDump: s.dataSources.InternalServiceDump,
+		notifyCh:            s.ch,
+		source:              *s.source,
+		token:               s.token,
+		key:                 gk,
+	}
+	if err := watchMeshGateway(ctx, opts); err != nil {
+		return fmt.Errorf("error while watching for local mesh gateway: %w", err)
+	}
+	upstreams.WatchedLocalGWEndpoints.InitWatch(gk.String(), nil)
+	return nil
 }

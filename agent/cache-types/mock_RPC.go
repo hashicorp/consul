@@ -3,6 +3,7 @@
 package cachetype
 
 import (
+	"context"
 	testing "testing"
 
 	mock "github.com/stretchr/testify/mock"
@@ -13,8 +14,8 @@ type MockRPC struct {
 	mock.Mock
 }
 
-// RPC provides a mock function with given fields: method, args, reply
-func (_m *MockRPC) RPC(method string, args interface{}, reply interface{}) error {
+// RPC provides a mock function with given fields: ctx, method, args, reply
+func (_m *MockRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	ret := _m.Called(method, args, reply)
 
 	var r0 error

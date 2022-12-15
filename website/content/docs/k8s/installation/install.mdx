@@ -25,7 +25,7 @@ The Helm chart has no required configuration, so it installs a Consul cluster wi
 
 ## Requirements
 
-Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
+Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
 
 ## Install Consul
 
@@ -41,7 +41,7 @@ Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https:
    ```shell-session
    $ helm search repo hashicorp/consul
    NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-   hashicorp/consul	0.45.0       	1.14.0      Official HashiCorp Consul Chart
+   hashicorp/consul	1.0.1       	1.14.1      Official HashiCorp Consul Chart
    ```
 
 1. Before you install Consul on Kubernetes with Helm, ensure that the `consul` Kubernetes namespace does not exist. We recommend installing Consul on a dedicated namespace.
@@ -68,7 +68,7 @@ Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https:
   - To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag:
 
     ```shell-session
-    $ export VERSION=0.43.0
+    $ export VERSION=1.0.1
     $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
     ```
 
@@ -113,7 +113,8 @@ The Consul Helm Chart is responsible for installing the Consul CNI plugin.
 To configure the plugin to be installed, add the following configuration to your `values.yaml` file:
 
 <Tabs>
-<Tab heading="Reference configuration"> ", "]}>
+  
+<Tab heading="Reference configuration">
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -176,10 +177,11 @@ To configure the plugin to be installed, add the following configuration to your
 
 The following table describes the available CNI plugin options:
 
-| Option | Description | Default |
-| ---    | ---         | ---     |
+| Option     | Description | Default       |
+| ---------- | ----------- | ------------- |
 | `cni.enabled` | Boolean value that enables or disables the CNI plugin. If `true`, the plugin is responsible for redirecting traffic in the service mesh. If `false`, redirection is handled by the `connect-inject init` container. | `false` |
 | `cni.logLevel` | String value that specifies the log level for the installer and plugin. You can specify the following values: `info`, `debug`, `error`. | `info` |
+| `cni.namespace` | Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources, for example `kube-system` | namespace used for `consul-k8s` install, for example `consul` |
 | `cni.multus` | Boolean value that enables multus CNI plugin support. If `true`, multus will be enabled. If `false`, Consul CNI will operate as a chained plugin. | `false` |
 | `cni.cniBinDir` | String value that specifies the location on the Kubernetes node where the CNI plugin is installed. | `/opt/cni/bin` |
 | `cni.cniNetDir` | String value that specifies the location on the Kubernetes node for storing the CNI configuration. | `/etc/cni/net.d` |

@@ -72,6 +72,9 @@ Consul will only cease operation after license *termination*, which occurs 10 ye
 after license expiration and is defined in
 [`termination_time`](/api-docs/operator/license#getting-the-consul-license).
 
+~> **Starting with Consul 1.14, and patch releases 1.13.3 and 1.12.6, Consul will support non-terminating licenses**:
+   Please contact your support representative for more details on non-terminating licenses.
+
 ## Q: Does this affect client agents?
 
 There are upgrade requirements that affect Consul Enterprise clients.
@@ -89,14 +92,14 @@ Consul client agents will attempt to retrieve the license from servers if certai
 
 - ACLs are enabled.
 - An ACL token is provided to the client agent.
-- The client agents configuration contains `start_join/retry_join` addresses.
-- The start/retry join addresses are addresses of the Consul servers.
+- The client agents configuration contains `retry_join` addresses.
+- The retry join addresses are addresses of the Consul servers.
 
-Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `start_join/retry_join` addresses, the start/retry join addresses are addresses of the Consul servers.
+Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `retry_join` addresses, the retry join addresses are addresses of the Consul servers.
 
 ## Q: Where can users get a trial license for Consul Enterprise?
 
-Visit [consul.io/trial](https://www.hashicorp.com/products/consul/trial) for a free 30-day trial license.
+Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a development license.
 
 ~> **Trial install will cease operation 24 hours after 30-day license expiration**:
    Trial licenses are not meant to be used in production.

@@ -20,6 +20,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -546,8 +548,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsLAN = []string{"a", "b"}
+			rt.RetryJoinLAN = []string{"a", "b"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join", "-retry-join"),
 		},
 	})
 	run(t, testCase{
@@ -558,8 +563,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsWAN = []string{"a", "b"}
+			rt.RetryJoinWAN = []string{"a", "b"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
 		},
 	})
 	run(t, testCase{
@@ -1403,8 +1411,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1413,8 +1424,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecationWarning("start_join_wan", "retry_join_wan"),
 		},
 	})
 	run(t, testCase{
@@ -1512,9 +1526,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
 			rt.PrimaryDatacenter = "b"
-			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
+			rt.RetryJoinLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			// TODO: deduplicate warnings?
+			deprecationWarning("start_join", "retry_join"),
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1571,7 +1590,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 			rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
-			rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
+			rt.RetryJoinLAN = []string{"c", "d", "a", "b"}
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "1.1.1.1",
 				"lan_ipv4": "1.1.1.1",
@@ -1579,6 +1598,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"wan_ipv4": "2.2.2.2",
 			}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join", "-retry-join"),
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 
@@ -3542,7 +3565,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			    enable_mesh_gateway_wan_federation = true
 			  }
 			`},
-		expectedErr: "'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
+		expectedErr: "'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
+		},
 	})
 	run(t, testCase{
 		desc: "connect.enable_mesh_gateway_wan_federation cannot use -retry-join-wan",
@@ -4107,6 +4133,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									  "namespace"               : "leek",
 									  "prefix_rewrite"          : "/alternate",
 									  "request_timeout"         : "99s",
+									  "idle_timeout"            : "99s",
 									  "num_retries"             : 12345,
 									  "retry_on_connect_failure": true,
 									  "retry_on_status_codes"   : [401, 209]
@@ -4195,6 +4222,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								  namespace             = "leek"
 								  prefix_rewrite         = "/alternate"
 								  request_timeout        = "99s"
+								  idle_timeout           = "99s"
 								  num_retries            = 12345
 								  retry_on_connect_failure = true
 								  retry_on_status_codes    = [401, 209]
@@ -4284,6 +4312,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
+								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},
@@ -4612,6 +4641,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.RequestLimitsMode = consulrate.ModeDisabled
+			rt.RequestLimitsReadRate = rate.Inf
+			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
 		},
@@ -6061,7 +6093,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
-		ConnectServerlessPluginEnabled:         true,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",
 			ClientID:     "6WvsDZCP",
@@ -6161,13 +6192,16 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
+		RequestLimitsMode:       consulrate.ModePermissive,
+		RequestLimitsReadRate:   99.0,
+		RequestLimitsWriteRate:  101.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,
-		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij", "LR3hGDoG", "MwVpZ4Up"},
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
-		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER", "EbFSc3nA", "kwXTh623"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentLimit:            123,
 		SerfPortLAN:             8301,
@@ -6481,8 +6515,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
-		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6628,6 +6660,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
 		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
+		deprecationWarning("start_join", "retry_join"),
+		deprecationWarning("start_join_wan", "retry_join_wan"),
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
 

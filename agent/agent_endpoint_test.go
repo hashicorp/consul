@@ -7095,7 +7095,12 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
+
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
 
 	a := StartTestAgent(t, TestAgent{Overrides: fmt.Sprintf(`
 		connect {
@@ -7108,7 +7113,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 				intermediate_pki_path = "pki-intermediate/"
 			}
 		}
-	`, testVault.Addr, testVault.RootToken)})
+	`, testVault.Addr, vaultToken)})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -7117,7 +7122,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	{
 		args := &structs.DCSpecificRequest{Datacenter: "dc1"}
 		var reply structs.IndexedCARoots
-		require.NoError(t, a.RPC("ConnectCA.Roots", args, &reply))
+		require.NoError(t, a.RPC(context.Background(), "ConnectCA.Roots", args, &reply))
 		for _, r := range reply.Roots {
 			if r.ID == reply.ActiveRootID {
 				ca1 = r
@@ -7545,7 +7550,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionAllow
 
-		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7595,7 +7600,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionDeny
 
-		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	// Short sleep lets the cache background refresh happen
@@ -7648,7 +7653,7 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7701,7 +7706,7 @@ func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	{
@@ -7750,7 +7755,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 	{
 		// Allow web to DB
@@ -7766,7 +7771,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	// Web should be allowed
