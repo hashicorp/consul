@@ -86,8 +86,6 @@ function assert_trace_count {
 }
 
 @test "client sampling set to 100% should send traces to zipkin/jaeger conditionally" {
-  #sleep 9999
-
   assert_trace_count localhost:9991 0
 
   run curl -s -f localhost:9991
