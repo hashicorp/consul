@@ -57,7 +57,7 @@
                     "address": {
                       "socket_address": {
                         "address": "127.0.0.1",
-                        "port_value": 8503
+                        "port_value": 8502
                       }
                     }
                   }

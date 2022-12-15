@@ -169,8 +169,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -192,8 +191,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -221,8 +219,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -252,8 +249,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -286,8 +282,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -312,8 +307,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -337,8 +331,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -364,8 +357,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -392,8 +384,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -476,7 +467,7 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:     "xds-addr-config",
 			Flags:    []string{"-proxy-id", "test-proxy"},
-			XDSPorts: agent.GRPCPorts{Plaintext: 9999, TLS: -1},
+			XDSPorts: agent.GRPCPorts{Plaintext: 9999, TLS: 0},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -562,8 +553,7 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/some/path/access.log",
 				AdminBindAddress:      "127.0.0.1",
@@ -573,30 +563,15 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-file",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503", // Note this is the gRPC port
-					AgentTLS:     true,
-				},
-			},
+			Name:    "missing-ca-file",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			WantErr: "Error loading CA File: open some/path: no such file or directory",
 		},
 		{
 			Name:      "existing-ca-file",
 			TLSServer: true,
 			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-file", "../../../test/ca/root.cer"},
-			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8503"},
+			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -608,7 +583,7 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
+					AgentPort:    "8502",
 					AgentTLS:     true,
 				},
 				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
@@ -620,29 +595,15 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-				},
-			},
+			Name:    "missing-ca-path",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
 			Name:      "existing-ca-path",
 			TLSServer: true,
 			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-path", "../../../test/ca_path/"},
-			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8503"},
+			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -654,7 +615,7 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
+					AgentPort:    "8502",
 					AgentTLS:     true,
 				},
 				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIFADCCAuqgAwIBAgIBATALBgkqhkiG9w0BAQswEzERMA8GA1UEAxMIQ2VydEF1\ndGgwHhcNMTUwNTExMjI0NjQzWhcNMjUwNTExMjI0NjU0WjATMREwDwYDVQQDEwhD\nZXJ0QXV0aDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALcMByyynHsA\n+K4PJwo5+XHygaEZAhPGvHiKQK2Cbc9NDm0ZTzx0rA/dRTZlvouhDyzcJHm+6R1F\nj6zQv7iaSC3qQtJiPnPsfZ+/0XhFZ3fQWMnfDiGbZpF1kJF01ofB6vnsuocFC0zG\naGC+SZiLAzs+QMP3Bebw1elCBIeoN+8NWnRYmLsYIaYGJGBSbNo/lCpLTuinofUn\nL3ehWEGv1INwpHnSVeN0Ml2GFe23d7PUlj/wNIHgUdpUR+KEJxIP3klwtsI3QpSH\nc4VjWdf4aIcka6K3IFuw+K0PUh3xAAPnMpAQOtCZk0AhF5rlvUbevC6jADxpKxLp\nOONmvCTer4LtyNURAoBH52vbK0r/DNcTpPEFV0IP66nXUFgkk0mRKsu8HTb4IOkC\nX3K4mp18EiWUUtrHZAnNct0iIniDBqKK0yhSNhztG6VakVt/1WdQY9Ey3mNtxN1O\nthqWFKdpKUzPKYC3P6PfVpiE7+VbWTLLXba+8BPe8BxWPsVkjJqGSGnCte4COusz\nM8/7bbTgifwJfsepwFtZG53tvwjWlO46Exl30VoDNTaIGvs1fO0GqJlh2A7FN5F2\nS1rS5VYHtPK8QdmUSvyq+7JDBc1HNT5I2zsIQbNcLwDTZ5EsbU6QR7NHDJKxjv/w\nbs3eTXJSSNcFD74wRU10pXjgE5wOFu9TAgMBAAGjYzBhMA4GA1UdDwEB/wQEAwIA\nBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQHazgZ3Puiuc6K2LzgcX5b6fAC\nPzAfBgNVHSMEGDAWgBQHazgZ3Puiuc6K2LzgcX5b6fACPzALBgkqhkiG9w0BAQsD\nggIBAEmeNrSUhpHg1I8dtfqu9hCU/6IZThjtcFA+QcPkkMa+Z1k0SOtsgW8MdlcA\ngCf5g5yQZ0DdpWM9nDB6xDIhQdccm91idHgf8wmpEHUj0an4uyn2ESCt8eqrAWf7\nAClYORCASTYfguJCxcfvwtI1uqaOeCxSOdmFay79UVitVsWeonbCRGsVgBDifJxw\nG2oCQqoYAmXPM4J6syk5GHhB1O9MMq+g1+hOx9s+XHyTui9FL4V+IUO1ygVqEQB5\nPSiRBvcIsajSGVao+vK0gf2XfcXzqr3y3NhBky9rFMp1g+ykb2yWekV4WiROJlCj\nTsWwWZDRyjiGahDbho/XW8JciouHZhJdjhmO31rqW3HdFviCTdXMiGk3GQIzz/Jg\nP+enOaHXoY9lcxzDvY9z1BysWBgNvNrMnVge/fLP9o+a0a0PRIIVl8T0Ef3zeg1O\nCLCSy/1Vae5Tx63ZTFvGFdOSusYkG9rlAUHXZE364JRCKzM9Bz0bM+t+LaO0MaEb\nYoxcXEPU+gB2IvmARpInN3oHexR6ekuYHVTRGdWrdmuHFzc7eFwygRqTFdoCCU+G\nQZEkd+lOEyv0zvQqYg+Jp0AEGz2B2zB53uBVECtn0EqrSdPtRzUBSByXVs6QhSXn\neVmy+z3U3MecP63X6oSPXekqSyZFuegXpNNuHkjNoL4ep2ix\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
@@ -698,8 +659,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -736,8 +696,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -779,8 +738,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -809,8 +767,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -869,8 +826,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -880,9 +836,9 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "CONSUL_HTTP_ADDR-with-http-scheme-does-not-affect-grpc-tls",
+			Name:  "CONSUL_HTTP_ADDR-with-https-scheme-does-not-affect-grpc-tls",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
-			Env:   []string{"CONSUL_HTTP_ADDR=http://127.0.0.1:8500"},
+			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8500"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -894,22 +850,47 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
+					AgentTLS:     false,
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
-				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
-			Name:  "both-CONSUL_HTTP_ADDR-and-CONSUL_GRPC_ADDR-is-plain",
+			Name:  "CONSUL_GRPC_ADDR-with-https-scheme-enables-tls",
+			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
+			Env:   []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+					AgentTLS:     true,
+				},
+				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:  "both-CONSUL_HTTP_ADDR-TLS-and-CONSUL_GRPC_ADDR-PLAIN-is-plain",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
 			Env: []string{
-				"CONSUL_HTTP_ADDR=http://127.0.0.1:8500",
+				"CONSUL_HTTP_ADDR=https://127.0.0.1:8500",
 				"CONSUL_GRPC_ADDR=http://127.0.0.1:8502",
 			},
 			WantArgs: BootstrapTplArgs{
@@ -934,11 +915,11 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "CONSUL_HTTP_ADDR-is-plain-and-CONSUL_GRPC_ADDR-TLS-is-tls",
+			Name:  "both-CONSUL_HTTP_ADDR-PLAIN-and-CONSUL_GRPC_ADDR-TLS-is-tls",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
 			Env: []string{
 				"CONSUL_HTTP_ADDR=http://127.0.0.1:8500",
-				"CONSUL_GRPC_ADDR=https://127.0.0.1:8503",
+				"CONSUL_GRPC_ADDR=https://127.0.0.1:8502",
 			},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
@@ -951,7 +932,7 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
+					AgentPort:    "8502",
 					AgentTLS:     true,
 				},
 				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
@@ -971,8 +952,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -990,8 +970,7 @@ func TestGenerateConfig(t *testing.T) {
 				NodeName:     "test-node",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -1009,8 +988,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -1028,8 +1006,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "my-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -1047,8 +1024,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "my-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -1066,8 +1042,7 @@ func TestGenerateConfig(t *testing.T) {
 				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
-					AgentPort:    "8503",
-					AgentTLS:     true,
+					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
@@ -1102,7 +1077,6 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Default the ports
 			if tc.XDSPorts.TLS == 0 && tc.XDSPorts.Plaintext == 0 {
-				tc.XDSPorts.TLS = 8503
 				tc.XDSPorts.Plaintext = 8502
 			}
 
