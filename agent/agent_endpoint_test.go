@@ -92,7 +92,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	// Add another service
 	srv2 := &structs.NodeService{
@@ -139,7 +139,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 1234,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
 	resp := httptest.NewRecorder()
@@ -187,7 +187,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 			Upstreams:              structs.TestUpstreams(t),
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -231,7 +231,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -280,7 +280,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -324,7 +324,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -369,7 +369,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, s := range services {
-		a.State.AddServiceWithChecks(s, nil, "")
+		a.State.AddServiceWithChecks(s, nil, "", false)
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -8009,7 +8009,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()

@@ -280,7 +280,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
-	}, nil, "")
+	}, nil, "", false)
 	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
@@ -310,7 +310,7 @@ func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	err = vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
@@ -367,7 +367,7 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
@@ -416,7 +416,7 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",

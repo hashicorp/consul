@@ -18,6 +18,7 @@
         "ACLAgentToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
+        "ACLConfigFileRegistrationToken": "hidden",
         "DataDir": "",
         "EnablePersistence": false,
         "EnterpriseConfig": {}

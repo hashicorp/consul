@@ -65,7 +65,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	assert.False(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	args.Service = srv1
 	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
@@ -84,7 +84,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv2, nil, "")
+	a.State.AddServiceWithChecks(srv2, nil, "", false)
 
 	srv2_mod := new(structs.NodeService)
 	*srv2_mod = *srv2
@@ -106,7 +106,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv3, nil, "")
+	a.State.AddServiceWithChecks(srv3, nil, "", false)
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
@@ -138,7 +138,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv5, nil, "")
+	a.State.AddServiceWithChecks(srv5, nil, "", false)
 
 	srv5_mod := new(structs.NodeService)
 	*srv5_mod = *srv5
@@ -291,7 +291,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       a.Config.NodeName,
@@ -312,7 +312,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv2, nil, "")
+	a.State.AddServiceWithChecks(srv2, nil, "", false)
 
 	srv2_mod := clone(srv2)
 	srv2_mod.Port = 9000
@@ -336,7 +336,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv3, nil, "")
+	a.State.AddServiceWithChecks(srv3, nil, "", false)
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
@@ -497,7 +497,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 		Tags:    []string{"tag1"},
 		Port:    6100,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	verifyState := func(ss *local.ServiceState) {
 		require.NotNil(t, ss)
@@ -519,7 +519,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 	go func() {
 		srv2 := srv1
 		srv2.Port = 6200
-		require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, ""))
+		require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, "", false))
 	}()
 
 	// We should observe WatchCh close
@@ -596,7 +596,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	// register a local service with tag override disabled
 	srv2 := &structs.NodeService{
@@ -611,7 +611,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv2, nil, "")
+	a.State.AddServiceWithChecks(srv2, nil, "", false)
 
 	// make sure they are both in the catalog
 	if err := a.State.SyncChanges(); err != nil {
@@ -723,7 +723,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			Tags:    []string{"primary"},
 			Port:    5000,
 		}
-		a.State.AddServiceWithChecks(srv, nil, "")
+		a.State.AddServiceWithChecks(srv, nil, "", false)
 
 		chk := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -773,7 +773,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			Tags:    []string{"primary"},
 			Port:    5000,
 		}
-		a.State.AddServiceWithChecks(srv, nil, "")
+		a.State.AddServiceWithChecks(srv, nil, "", false)
 
 		chk1 := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -874,7 +874,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv1, nil, token)
+	a.State.AddServiceWithChecks(srv1, nil, token, false)
 
 	// Create service (allowed)
 	srv2 := &structs.NodeService{
@@ -888,7 +888,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv2, nil, token)
+	a.State.AddServiceWithChecks(srv2, nil, token, false)
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1333,7 +1333,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "root")
+	a.State.AddServiceWithChecks(srv1, nil, "root", false)
 	srv2 := &structs.NodeService{
 		ID:      "api",
 		Service: "api",
@@ -1345,7 +1345,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddServiceWithChecks(srv2, nil, "root")
+	a.State.AddServiceWithChecks(srv2, nil, "root", false)
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1862,14 +1862,14 @@ func TestState_ServiceTokens(t *testing.T) {
 	})
 
 	t.Run("empty string when there is no token", func(t *testing.T) {
-		err := l.AddServiceWithChecks(&structs.NodeService{ID: "redis"}, nil, "")
+		err := l.AddServiceWithChecks(&structs.NodeService{ID: "redis"}, nil, "", false)
 		require.NoError(t, err)
 
 		require.Equal(t, "", l.ServiceToken(id))
 	})
 
 	t.Run("returns configured token", func(t *testing.T) {
-		err := l.AddServiceWithChecks(&structs.NodeService{ID: "redis"}, nil, "abc123")
+		err := l.AddServiceWithChecks(&structs.NodeService{ID: "redis"}, nil, "abc123", false)
 		require.NoError(t, err)
 
 		require.Equal(t, "abc123", l.ServiceToken(id))
@@ -1932,7 +1932,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	l.TriggerSyncChanges = func() {}
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
-	l.AddServiceWithChecks(svc, nil, "")
+	l.AddServiceWithChecks(svc, nil, "", false)
 
 	// Add a passing check and make sure it's not critical.
 	checkID := types.CheckID("redis:1")
@@ -2018,8 +2018,8 @@ func TestAgent_AliasCheck(t *testing.T) {
 	l.TriggerSyncChanges = func() {}
 
 	// Add checks
-	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, ""))
-	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s2"}, nil, ""))
+	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, "", false))
+	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s2"}, nil, "", false))
 	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c1"), ServiceID: "s1"}, ""))
 	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c2"), ServiceID: "s2"}, ""))
 
@@ -2072,7 +2072,7 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 	require.NoError(t, l.AddAliasCheck(structs.NewCheckID(types.CheckID("a1"), nil), structs.NewServiceID("s1", nil), notifyCh))
 
 	// Add aliased service, s1, and verify we get notified
-	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, ""))
+	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, "", false))
 	select {
 	case <-notifyCh:
 	default:
@@ -2080,7 +2080,7 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 	}
 
 	// Re-adding same service should not lead to a notification
-	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, ""))
+	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, "", false))
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
@@ -2088,7 +2088,7 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 	}
 
 	// Add different service and verify we do not get notified
-	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s2"}, nil, ""))
+	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s2"}, nil, "", false))
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
@@ -2193,7 +2193,7 @@ func TestState_RemoveServiceErrorMessages(t *testing.T) {
 	err := state.AddServiceWithChecks(&structs.NodeService{
 		ID:      "web-id",
 		Service: "web-name",
-	}, nil, "")
+	}, nil, "", false)
 	require.NoError(t, err)
 
 	// Attempt to remove service that doesn't exist
@@ -2233,7 +2233,7 @@ func TestState_Notify(t *testing.T) {
 	// Add a service
 	err := state.AddServiceWithChecks(&structs.NodeService{
 		Service: "web",
-	}, nil, "fake-token-web")
+	}, nil, "fake-token-web", false)
 	require.NoError(t, err)
 
 	// Should have a notification
@@ -2244,7 +2244,7 @@ func TestState_Notify(t *testing.T) {
 	err = state.AddServiceWithChecks(&structs.NodeService{
 		Service: "web",
 		Port:    4444,
-	}, nil, "fake-token-web")
+	}, nil, "fake-token-web", false)
 	require.NoError(t, err)
 
 	// Should have a notification
@@ -2264,7 +2264,7 @@ func TestState_Notify(t *testing.T) {
 	// Add a service
 	err = state.AddServiceWithChecks(&structs.NodeService{
 		Service: "web",
-	}, nil, "fake-token-web")
+	}, nil, "fake-token-web", false)
 	require.NoError(t, err)
 
 	// Should NOT have a notification
@@ -2294,7 +2294,7 @@ func TestAliasNotifications_local(t *testing.T) {
 		Address: "127.0.0.10",
 		Port:    8080,
 	}
-	a.State.AddServiceWithChecks(srv, nil, "")
+	a.State.AddServiceWithChecks(srv, nil, "", false)
 
 	scID := "socat-sidecar-proxy"
 	sc := &structs.NodeService{
@@ -2304,7 +2304,7 @@ func TestAliasNotifications_local(t *testing.T) {
 		Address: "127.0.0.10",
 		Port:    9090,
 	}
-	a.State.AddServiceWithChecks(sc, nil, "")
+	a.State.AddServiceWithChecks(sc, nil, "", false)
 
 	tcpID := types.CheckID("service:socat-tcp")
 	chk0 := &structs.HealthCheck{
@@ -2394,14 +2394,14 @@ func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
 		{Node: "this-node", CheckID: "the-id-2", Name: "check-healthy-2"},
 	}
 	tok := "the-token"
-	err := state.AddServiceWithChecks(srv, checks, tok)
+	err := state.AddServiceWithChecks(srv, checks, tok, false)
 	require.NoError(t, err)
 	require.NoError(t, state.SyncChanges())
 	// 4 rpc calls, one node register, one service register, two checks
 	require.Len(t, rpc.calls, 4)
 
 	// adding the service again should not catalog register
-	err = state.AddServiceWithChecks(srv, checks, tok)
+	err = state.AddServiceWithChecks(srv, checks, tok, false)
 	require.NoError(t, err)
 	require.NoError(t, state.SyncChanges())
 	require.Len(t, rpc.calls, 4)
