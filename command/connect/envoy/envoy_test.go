@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -116,8 +117,9 @@ type generateConfigTestCase struct {
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
 	NamespacesEnabled bool
-	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
-	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
+	XDSPorts          agent.GRPCPorts                                 // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
+	AgentSelf110      bool                                            // fake the agent API from versions v1.10 and earlier
+	DialFunc          func(network, address string) (net.Conn, error) // defaults to a no-op function. Overwrite to test error handling.
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 }
@@ -147,6 +149,14 @@ func TestGenerateConfig(t *testing.T) {
 				TLS:       -1,
 			},
 			WantErr: "agent has grpc disabled",
+		},
+		{
+			Name:  "connection not available",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			DialFunc: func(network, address string) (net.Conn, error) {
+				return net.DialTimeout(network, address, time.Second)
+			},
+			WantErr: "connection refused",
 		},
 		{
 			Name:  "defaults",
@@ -1117,6 +1127,14 @@ func TestGenerateConfig(t *testing.T) {
 			c := New(ui)
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
+
+			if tc.DialFunc != nil {
+				c.dialFunc = tc.DialFunc
+			} else {
+				c.dialFunc = func(_, _ string) (net.Conn, error) {
+					return nil, nil
+				}
+			}
 
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
