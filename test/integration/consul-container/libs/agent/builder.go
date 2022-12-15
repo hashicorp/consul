@@ -192,6 +192,11 @@ func (b *Builder) ToAgentConfig() (*Config, error) {
 		Version: *utils.TargetVersion,
 	}
 
+	// Override the default version
+	if b.context != nil && b.context.consulVersion != "" {
+		conf.Version = b.context.consulVersion
+	}
+
 	return conf, nil
 }
 

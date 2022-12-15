@@ -49,10 +49,14 @@ func (c exampleContainer) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	var err error
+	if *utils.FollowLog {
+		err = c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err1 == nil {
+			err = err1
+		}
+	} else {
+		err = c.container.Terminate(c.ctx)
 	}
 
 	c.container = nil
@@ -97,12 +101,14 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		return nil, err
 	}
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return nil, err
+	if *utils.FollowLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: containerName,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: containerName,
-	})
 
 	terminate := func() error {
 		return container.Terminate(context.Background())
