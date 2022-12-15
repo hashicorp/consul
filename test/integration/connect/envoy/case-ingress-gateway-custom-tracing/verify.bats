@@ -77,6 +77,8 @@ function assert_trace_count {
   assert_trace_count localhost:9990 0
 
   # send with trace header, should not create a trace
+  # note: these trace ids that are manually provided must be unique from
+  # previous requests otherwise a trace will not be recorded
   run curl -s -f -H "x-client-trace-id:aabbcc" localhost:9990
   [ "$status" -eq 0 ]
 
@@ -84,8 +86,7 @@ function assert_trace_count {
 }
 
 @test "client sampling set to 100% should send traces to zipkin/jaeger conditionally" {
-
-  sleep 9999
+  #sleep 9999
 
   assert_trace_count localhost:9991 0
 
@@ -95,10 +96,12 @@ function assert_trace_count {
   assert_trace_count localhost:9991 0
 
   # send with trace header, should create a trace
-  run curl -s -f -H "x-client-trace-id:bar" localhost:9991
+  # note: these trace ids that are manually provided must be unique from
+  # previous requests otherwise a trace will not be recorded
+  run curl -s -f -H "x-client-trace-id:bbccdd" localhost:9991
   [ "$status" -eq 0 ]
 
-  assert_trace_count localhost:9991 1
+  retry_long assert_trace_count localhost:9991 1
 }
 
 @test "overall sampling set to 0% should send not traces to zipkin/jaeger" {
@@ -110,7 +113,9 @@ function assert_trace_count {
   retry_long assert_trace_count localhost:9992 0
 
   # send with trace header, should create not create a trace
-  run curl -s -f -H "x-client-trace-id:baz" localhost:9992
+  # note: these trace ids that are manually provided must be unique from
+  # previous requests otherwise a trace will not be recorded
+  run curl -s -f -H "x-client-trace-id:ccddee" localhost:9992
   [ "$status" -eq 0 ]
 
   assert_trace_count localhost:9992 0
@@ -125,7 +130,9 @@ function assert_trace_count {
   retry_long assert_trace_count localhost:9993 0
 
   # send with trace header, should create not create a trace
-  run curl -s -f -H "x-client-trace-id:baz" localhost:9993
+  # note: these trace ids that are manually provided must be unique from
+  # previous requests otherwise a trace will not be recorded
+  run curl -s -f -H "x-client-trace-id:ddeeff" localhost:9993
   [ "$status" -eq 0 ]
 
   assert_trace_count localhost:9993 0

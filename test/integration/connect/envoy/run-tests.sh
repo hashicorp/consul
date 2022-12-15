@@ -772,13 +772,6 @@ function run_container_s3-sidecar-proxy-alpha {
 function common_run_container_gateway {
   local name="$1"
   local DC="$2"
-  local ADMIN_PORT="$3"
-  local expose_admin_port_snippet
-  local envoy_admin_args_snippet
-
-  if [ ! -z "$ADMIN_PORT}" ]; then
-    expose_admin_port_snippet="-p $ADMIN_PORT:$ADMIN_PORT"
-  fi
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
