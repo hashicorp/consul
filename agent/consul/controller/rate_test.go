@@ -36,12 +36,14 @@ func TestRateLimiter_Overflow(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		limiter.NextRetry(request)
 	}
+	// ensure we have a normally incrementing exponential backoff
 	require.Equal(t, 32*time.Millisecond, limiter.NextRetry(request))
 
 	overflow := Request{Kind: "overflow"}
 	for i := 0; i < 1000; i++ {
 		limiter.NextRetry(overflow)
 	}
+	// make sure we're capped at the passed in max backoff
 	require.Equal(t, 1000*time.Second, limiter.NextRetry(overflow))
 
 	limiter = NewRateLimiter(1*time.Minute, 1000*time.Hour)
@@ -49,10 +51,12 @@ func TestRateLimiter_Overflow(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		limiter.NextRetry(request)
 	}
+	// ensure we have a normally incrementing exponential backoff
 	require.Equal(t, 4*time.Minute, limiter.NextRetry(request))
 
 	for i := 0; i < 1000; i++ {
 		limiter.NextRetry(overflow)
 	}
+	// make sure we're capped at the passed in max backoff
 	require.Equal(t, 1000*time.Hour, limiter.NextRetry(overflow))
 }

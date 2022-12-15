@@ -47,7 +47,7 @@ func TestBasicController(t *testing.T) {
 	go New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
 		Topic:   state.EventTopicIngressGateway,
 		Subject: stream.SubjectWildcard,
-	}).WithWorkers(10).Start(ctx)
+	}).WithWorkers(10).Run(ctx)
 
 	received := []string{}
 LOOP:
@@ -99,7 +99,7 @@ func TestBasicController_Transform(t *testing.T) {
 			Kind: "foo",
 			Name: "bar",
 		}}
-	}).Start(ctx)
+	}).Run(ctx)
 
 	require.NoError(t, store.EnsureConfigEntry(1, &structs.IngressGatewayConfigEntry{
 		Kind: structs.IngressGateway,
@@ -145,7 +145,7 @@ func TestBasicController_Retry(t *testing.T) {
 		queue := newCountingWorkQueue(RunWorkQueue(ctx, baseBackoff, maxBackoff))
 		queueInitialized <- queue
 		return queue
-	}).Start(ctx)
+	}).Run(ctx)
 
 	queue := <-queueInitialized
 

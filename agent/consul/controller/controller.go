@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -15,31 +16,35 @@ import (
 // much of this is a re-implementation of
 // https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.13/pkg/internal/controller/controller.go
 
+// Transformer is a function that takes on type of config entry that has changed
+// and transforms that into a set of reconciliation requests to enqueue.
+type Transformer func(entry structs.ConfigEntry) []Request
+
 // Controller subscribes to a set of watched resources from the
 // state store and delegates processing them to a given Reconciler.
 // If a Reconciler errors while processing a Request, then the
 // Controller handles rescheduling the Request to be re-processed.
 type Controller interface {
-	// Start begins the Controller's main processing loop. When the given
+	// Run begins the Controller's main processing loop. When the given
 	// context is canceled, the Controller stops processing any remaining work.
-	// The Start function should only ever be called once.
-	Start(ctx context.Context) error
+	// The Run function should only ever be called once.
+	Run(ctx context.Context) error
 	// Subscribe tells the controller to subscribe to updates for config entries based
 	// on the given request. Optional transformation functions can also be passed in
 	// to Subscribe, allowing a controller to map a config entry to a different type of
 	// request under the hood (i.e. watching a dependency and triggering a Reconcile on
-	// the dependent resource). This should only ever be called prior to running Start.
-	Subscribe(request *stream.SubscribeRequest, transformers ...func(entry structs.ConfigEntry) []Request) Controller
+	// the dependent resource). This should only ever be called prior to calling Run.
+	Subscribe(request *stream.SubscribeRequest, transformers ...Transformer) Controller
 	// WithBackoff changes the base and maximum backoff values for the Controller's
 	// Request retry rate limiter. This should only ever be called prior to
-	// running Start.
+	// running Run.
 	WithBackoff(base, max time.Duration) Controller
 	// WithWorkers sets the number of worker goroutines used to process the queue
 	// this defaults to 1 goroutine.
 	WithWorkers(i int) Controller
 	// WithQueueFactory allows a Controller to replace its underlying work queue
 	// implementation. This is most useful for testing. This should only ever be called
-	// prior to running Start.
+	// prior to running Run.
 	WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue) Controller
 }
 
@@ -47,7 +52,7 @@ var _ Controller = &controller{}
 
 type subscription struct {
 	request      *stream.SubscribeRequest
-	transformers []func(entry structs.ConfigEntry) []Request
+	transformers []Transformer
 }
 
 // controller implements the Controller interface
@@ -72,6 +77,9 @@ type controller struct {
 	subscriptions []subscription
 	// publisher is the event publisher that should be subscribed to for any updates
 	publisher state.EventPublisher
+
+	// running ensures that we are only calling Run a single time
+	running int32
 }
 
 // New returns a new Controller associated with the given state store and reconciler.
@@ -89,7 +97,9 @@ func New(publisher state.EventPublisher, reconciler Reconciler) Controller {
 // Subscribe tells the controller to subscribe to updates for config entries of the
 // given kind and with the associated enterprise metadata. This should only ever be
 // called prior to running Start.
-func (c *controller) Subscribe(request *stream.SubscribeRequest, transformers ...func(entry structs.ConfigEntry) []Request) Controller {
+func (c *controller) Subscribe(request *stream.SubscribeRequest, transformers ...Transformer) Controller {
+	c.ensureNotRunning()
+
 	c.subscriptions = append(c.subscriptions, subscription{
 		request:      request,
 		transformers: transformers,
@@ -101,6 +111,8 @@ func (c *controller) Subscribe(request *stream.SubscribeRequest, transformers ..
 // Request retry rate limiter. This should only ever be called prior to
 // running Start.
 func (c *controller) WithBackoff(base, max time.Duration) Controller {
+	c.ensureNotRunning()
+
 	c.baseBackoff = base
 	c.maxBackoff = max
 	return c
@@ -109,6 +121,8 @@ func (c *controller) WithBackoff(base, max time.Duration) Controller {
 // WithWorkers sets the number of worker goroutines used to process the queue
 // this defaults to 1 goroutine.
 func (c *controller) WithWorkers(i int) Controller {
+	c.ensureNotRunning()
+
 	if i <= 0 {
 		i = 1
 	}
@@ -120,14 +134,29 @@ func (c *controller) WithWorkers(i int) Controller {
 // queue, this is predominantly just used for testing. This should only ever be called
 // prior to running Start.
 func (c *controller) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue) Controller {
+	c.ensureNotRunning()
+
 	c.makeQueue = fn
 	return c
 }
 
-// Start begins the Controller's main processing loop. When the given
+// ensureNotRunning makes sure we aren't trying to reconfigure an already
+// running controller, it panics if Run has already been invoked
+func (c *controller) ensureNotRunning() {
+	if atomic.LoadInt32(&c.running) == 1 {
+		panic("cannot configure controller once Run is called")
+	}
+}
+
+// Run begins the Controller's main processing loop. When the given
 // context is canceled, the Controller stops processing any remaining work.
-// The Start function should only ever be called once.
-func (c *controller) Start(ctx context.Context) error {
+// The Run function should only ever be called once, calling it multiple
+// times will result in a panic.
+func (c *controller) Run(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&c.running, 0, 1) {
+		panic("Run cannot be called more than once")
+	}
+
 	group, groupCtx := errgroup.WithContext(ctx)
 
 	// set up our queue
@@ -194,7 +223,7 @@ func (c *controller) Start(ctx context.Context) error {
 func (c *controller) processEvent(sub subscription, event stream.Event) error {
 	switch payload := event.Payload.(type) {
 	case state.EventPayloadConfigEntry:
-		c.enqueueEntry(sub.transformers, payload.Value)
+		c.enqueueEntry(payload.Value, sub.transformers...)
 		return nil
 	case *stream.PayloadEvents:
 		for _, event := range payload.Items {
@@ -208,8 +237,10 @@ func (c *controller) processEvent(sub subscription, event stream.Event) error {
 	}
 }
 
-// enqueueEntry adds all of the given entry into the work queue
-func (c *controller) enqueueEntry(transformers []func(entry structs.ConfigEntry) []Request, entry structs.ConfigEntry) {
+// enqueueEntry adds all of the given entry into the work queue. If given
+// one or more transformation functions, it will enqueue all of the resulting
+// reconciliation requests returned from each Transformer.
+func (c *controller) enqueueEntry(entry structs.ConfigEntry, transformers ...Transformer) {
 	if len(transformers) == 0 {
 		c.work.Add(Request{
 			Kind: entry.GetKind(),
@@ -229,7 +260,7 @@ func (c *controller) enqueueEntry(transformers []func(entry structs.ConfigEntry)
 func (c *controller) reconcile(ctx context.Context, req Request) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v [recovered]", r)
+			err = fmt.Errorf("panic [recovered]: %v", r)
 			return
 		}
 	}()
