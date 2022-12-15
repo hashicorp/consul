@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"reflect"
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
@@ -137,9 +138,8 @@ type HandlerDelegate interface {
 	IsLeader() bool
 }
 
-// NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
-	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+func NewHandlerWithLimiter(cfg HandlerConfig, delegate HandlerDelegate,
+	limiter multilimiter.RateLimiter) *Handler {
 	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
@@ -151,6 +151,12 @@ func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
 	h.cfg.Store(&cfg)
 
 	return h
+}
+
+// NewHandler creates a new RPC rate limit handler.
+func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
+	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+	return NewHandlerWithLimiter(cfg, delegate, limiter)
 }
 
 // Run the limiter cleanup routine until the given context is canceled.
@@ -172,9 +178,15 @@ func (h *Handler) Allow(op Operation) error {
 }
 
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
+	existingCfg := h.cfg.Load()
 	h.cfg.Store(&cfg)
-	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
-	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+	}
+	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+
+	}
 }
 
 var (
