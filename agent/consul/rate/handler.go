@@ -169,11 +169,13 @@ func (h *Handler) Run(ctx context.Context) {
 // Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
-	// TODO(NET-1383): actually implement the rate limiting logic.
-	//
-	// Example:
-	//	if !h.limiter.Allow(globalWrite) {
-	//	}
+	existingCfg := h.cfg.Load()
+	if existingCfg.GlobalMode == ModeDisabled {
+		return nil
+	} else if !h.limiter.Allow(globalWrite) {
+		// TODO(NET-1383): actually implement the rate limiting logic and replace this returned nil.
+		return nil
+	}
 	return nil
 }
 

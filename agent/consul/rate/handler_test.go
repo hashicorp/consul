@@ -1,10 +1,13 @@
 package rate
 
 import (
+	"net"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
@@ -82,6 +85,64 @@ func TestUpdateConfig(t *testing.T) {
 			tc.configModFunc(cfg)
 			handler.UpdateConfig(*cfg)
 			tc.assertFunc(mockRateLimiter, cfg)
+		})
+	}
+}
+
+func TestAllow(t *testing.T) {
+	readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
+	writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
+
+	type testCase struct {
+		description        string
+		cfg                *HandlerConfig
+		expectedAllowCalls int
+	}
+	testCases := []testCase{
+		{
+			description: "RateLimiter does not get called when mode is disabled.",
+			cfg: &HandlerConfig{
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeDisabled,
+			},
+			expectedAllowCalls: 0,
+		},
+		{
+			description: "RateLimiter gets called when mode is permissive.",
+			cfg: &HandlerConfig{
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModePermissive,
+			},
+			expectedAllowCalls: 1,
+		},
+		{
+			description: "RateLimiter gets called when mode is enforcing.",
+			cfg: &HandlerConfig{
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeEnforcing,
+			},
+			expectedAllowCalls: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
+			if tc.expectedAllowCalls > 0 {
+				mockRateLimiter.On("Allow", mock.Anything).Return(func(entity multilimiter.LimitedEntity) bool { return true })
+			}
+			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
+			handler := NewHandlerWithLimiter(*tc.cfg, nil, mockRateLimiter)
+			h, p, err := net.SplitHostPort("127.0.0.1:1234")
+			require.NoError(t, err)
+			port, err := strconv.Atoi(p)
+			require.NoError(t, err)
+			mockRateLimiter.Calls = nil
+			handler.Allow(Operation{Name: "test", SourceAddr: &net.TCPAddr{IP: net.ParseIP(h), Port: port}})
+			mockRateLimiter.AssertNumberOfCalls(t, "Allow", tc.expectedAllowCalls)
 		})
 	}
 }
