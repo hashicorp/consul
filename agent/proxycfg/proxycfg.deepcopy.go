@@ -283,6 +283,18 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 		cp.Hosts = make([]string, len(o.Hosts))
 		copy(cp.Hosts, o.Hosts)
 	}
+	if o.Tracing.ClientSampling != nil {
+		cp.Tracing.ClientSampling = new(float64)
+		*cp.Tracing.ClientSampling = *o.Tracing.ClientSampling
+	}
+	if o.Tracing.RandomSampling != nil {
+		cp.Tracing.RandomSampling = new(float64)
+		*cp.Tracing.RandomSampling = *o.Tracing.RandomSampling
+	}
+	if o.Tracing.OverallSampling != nil {
+		cp.Tracing.OverallSampling = new(float64)
+		*cp.Tracing.OverallSampling = *o.Tracing.OverallSampling
+	}
 	if o.Upstreams != nil {
 		cp.Upstreams = make(map[IngressListenerKey]structs.Upstreams, len(o.Upstreams))
 		for k2, v2 := range o.Upstreams {
