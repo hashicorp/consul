@@ -42,13 +42,13 @@ func TestUpdateConfig(t *testing.T) {
 	type testCase struct {
 		description   string
 		configModFunc func(cfg *HandlerConfig)
-		assertFunc    func(mockRateLimiter *multilimiter.MockRateLimiter)
+		assertFunc    func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig)
 	}
 	testCases := []testCase{
 		{
 			description:   "RateLimiter does not get updated when config does not change.",
 			configModFunc: func(cfg *HandlerConfig) {},
-			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter) {
+			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 0)
 			},
 		},
@@ -57,8 +57,9 @@ func TestUpdateConfig(t *testing.T) {
 			configModFunc: func(cfg *HandlerConfig) {
 				cfg.GlobalReadConfig.Burst++
 			},
-			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter) {
+			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalReadConfig, []byte("global.read"))
 			},
 		},
 		{
@@ -66,8 +67,9 @@ func TestUpdateConfig(t *testing.T) {
 			configModFunc: func(cfg *HandlerConfig) {
 				cfg.GlobalWriteConfig.Burst++
 			},
-			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter) {
+			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalWriteConfig, []byte("global.write"))
 			},
 		},
 		{
@@ -75,7 +77,7 @@ func TestUpdateConfig(t *testing.T) {
 			configModFunc: func(cfg *HandlerConfig) {
 				cfg.GlobalMode = ModePermissive
 			},
-			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter) {
+			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 0)
 			},
 		},
@@ -97,7 +99,7 @@ func TestUpdateConfig(t *testing.T) {
 			mockRateLimiter.Calls = nil
 			tc.configModFunc(cfg)
 			handler.UpdateConfig(*cfg)
-			tc.assertFunc(mockRateLimiter)
+			tc.assertFunc(mockRateLimiter, cfg)
 		})
 	}
 }
