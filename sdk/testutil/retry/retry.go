@@ -38,7 +38,7 @@ type R struct {
 }
 
 func (r *R) Logf(format string, args ...interface{}) {
-	r.log(fmt.Sprintf(format, args))
+	r.log(fmt.Sprintf(format, args...))
 }
 
 func (r *R) Helper() {}
