@@ -8,6 +8,7 @@ import (
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
 	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
+	invalidSampling := float64(-1.0)
 
 	cases := map[string]configEntryTestcase{
 		"normalize: empty protocol": {
@@ -23,10 +24,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			expected: &IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "random_sampling",
-				TracingPercentage: 0.0,
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -56,10 +55,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			expected: &IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "random_sampling",
-				TracingPercentage: 0.0,
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -105,9 +102,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"http features: wildcard": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -325,9 +321,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"wildcard specifier is only allowed in the leftmost label": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -382,9 +377,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"wildcard specifier is allowed for hosts when TLS is disabled": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -423,9 +417,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"request header manip allowed for http(ish) protocol": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -534,9 +527,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS kitchen sink": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				TLS: GatewayTLSConfig{
 					SDS: &GatewayTLSSDSConfig{
 						ClusterName:  "secret-service1",
@@ -571,9 +563,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS gateway-level": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				TLS: GatewayTLSConfig{
 					SDS: &GatewayTLSSDSConfig{
 						ClusterName:  "secret-service1",
@@ -596,9 +587,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS listener-level": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -636,9 +626,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS gateway-level cluster only": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				TLS: GatewayTLSConfig{
 					SDS: &GatewayTLSSDSConfig{
 						ClusterName: "secret-service",
@@ -679,9 +668,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS mixed TLS and non-TLS listeners": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				// No Gateway level TLS.Enabled or SDS config
 				Listeners: []IngressListener{
 					{
@@ -715,9 +703,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS only service-level mixed": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				// No Gateway level TLS.Enabled or SDS config
 				Listeners: []IngressListener{
 					{
@@ -763,9 +750,8 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 		},
 		"TLS.SDS requires cluster if gateway-level cert specified": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "random_sampling",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
 				TLS: GatewayTLSConfig{
 					SDS: &GatewayTLSSDSConfig{
 						CertResource: "foo",
@@ -910,11 +896,13 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 			// since the service name is normalized differently on OSS and Ent
 			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
 		},
-		"trace sampling strategy must be supported by envoy listener": {
+		"Tracing.ClientSampling value must be between 0 and 100": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:            "ingress-gateway",
-				Name:            "ingress-web",
-				TracingStrategy: "bogus",
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					ClientSampling: &invalidSampling,
+				},
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -928,14 +916,15 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `"bogus" is not a valid trace sampling strategy. valid values are "random_sampling" and "client_sampling"`,
+			validateErr: `Tracing.ClientSampling percentage must be between 0.0 and 100.0 inclusive`,
 		},
-		"trace sampling percentage must be between 0 and 100": {
+		"Tracing.RandomSampling value must be between 0 and 100": {
 			entry: &IngressGatewayConfigEntry{
-				Kind:              "ingress-gateway",
-				Name:              "ingress-web",
-				TracingStrategy:   "client_sampling",
-				TracingPercentage: 200,
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					RandomSampling: &invalidSampling,
+				},
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -949,7 +938,29 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `trace sampling percentage must be between 0 and 100 inclusive`,
+			validateErr: `Tracing.RandomSampling percentage must be between 0.0 and 100.0 inclusive`,
+		},
+		"Tracing.OverallSampling value must be between 0 and 100": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					OverallSampling: &invalidSampling,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Tracing.OverallSampling percentage must be between 0.0 and 100.0 inclusive`,
 		},
 	}
 
