@@ -12,7 +12,6 @@ import (
 	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // creatingAcceptingClusterAndSetup creates a cluster with 3 servers and 1 client.
@@ -62,11 +61,6 @@ func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version strin
 	WaitForLeader(t, cluster, client)
 	WaitForMembers(t, client, numServer+1)
 
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
-
 	// Create the mesh gateway for dataplane traffic
 	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
 	require.NoError(t, err)
@@ -92,7 +86,7 @@ func CreatingAcceptingClusterAndSetup(t *testing.T, numServer int, version strin
 		},
 	}
 
-	ok, _, err = client.ConfigEntries().Set(config, &api.WriteOptions{})
+	ok, _, err := client.ConfigEntries().Set(config, &api.WriteOptions{})
 	require.NoError(t, err)
 	require.True(t, ok)
 
@@ -125,11 +119,6 @@ func CreateDialingClusterAndSetup(t *testing.T, version string, dialingPeerName 
 	client := node.GetClient()
 	WaitForLeader(t, cluster, client)
 	WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
 
 	// Create the mesh gateway for dataplane traffic
 	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", node)

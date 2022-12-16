@@ -9,7 +9,6 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // TestBasicConnectService Summary
@@ -58,11 +57,6 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	client := node.GetClient()
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
 
 	return cluster
 }
