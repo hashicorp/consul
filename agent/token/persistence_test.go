@@ -18,26 +18,29 @@ func TestStore_Load(t *testing.T) {
 
 	t.Run("with empty store", func(t *testing.T) {
 		cfg := Config{
-			DataDir:               dataDir,
-			ACLAgentToken:         "alfa",
-			ACLAgentRecoveryToken: "bravo",
-			ACLDefaultToken:       "charlie",
-			ACLReplicationToken:   "delta",
+			DataDir:                        dataDir,
+			ACLAgentToken:                  "alfa",
+			ACLAgentRecoveryToken:          "bravo",
+			ACLDefaultToken:                "charlie",
+			ACLReplicationToken:            "delta",
+			ACLConfigFileRegistrationToken: "echo",
 		}
 		require.NoError(t, store.Load(cfg, logger))
 		require.Equal(t, "alfa", store.AgentToken())
 		require.Equal(t, "bravo", store.AgentRecoveryToken())
 		require.Equal(t, "charlie", store.UserToken())
 		require.Equal(t, "delta", store.ReplicationToken())
+		require.Equal(t, "echo", store.ConfigFileRegistrationToken())
 	})
 
 	t.Run("updated from Config", func(t *testing.T) {
 		cfg := Config{
-			DataDir:               dataDir,
-			ACLDefaultToken:       "echo",
-			ACLAgentToken:         "foxtrot",
-			ACLAgentRecoveryToken: "golf",
-			ACLReplicationToken:   "hotel",
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "echo",
+			ACLAgentToken:                  "foxtrot",
+			ACLAgentRecoveryToken:          "golf",
+			ACLReplicationToken:            "hotel",
+			ACLConfigFileRegistrationToken: "india",
 		}
 		// ensures no error for missing persisted tokens file
 		require.NoError(t, store.Load(cfg, logger))
@@ -45,22 +48,25 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "foxtrot", store.AgentToken())
 		require.Equal(t, "golf", store.AgentRecoveryToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
+		require.Equal(t, "india", store.ConfigFileRegistrationToken())
 	})
 
 	t.Run("with persisted tokens", func(t *testing.T) {
 		cfg := Config{
-			DataDir:               dataDir,
-			ACLDefaultToken:       "echo",
-			ACLAgentToken:         "foxtrot",
-			ACLAgentRecoveryToken: "golf",
-			ACLReplicationToken:   "hotel",
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "echo",
+			ACLAgentToken:                  "foxtrot",
+			ACLAgentRecoveryToken:          "golf",
+			ACLReplicationToken:            "hotel",
+			ACLConfigFileRegistrationToken: "delta",
 		}
 
 		tokens := `{
 			"agent" : "india",
 			"agent_recovery" : "juliett",
 			"default": "kilo",
-			"replication" : "lima"
+			"replication": "lima",
+			"config_file_registration": "mike"
 		}`
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -71,6 +77,7 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "foxtrot", store.AgentToken())
 		require.Equal(t, "golf", store.AgentRecoveryToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
+		require.Equal(t, "delta", store.ConfigFileRegistrationToken())
 
 		cfg.EnablePersistence = true
 		require.NoError(t, store.Load(cfg, logger))
@@ -79,6 +86,7 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "juliett", store.AgentRecoveryToken())
 		require.Equal(t, "kilo", store.UserToken())
 		require.Equal(t, "lima", store.ReplicationToken())
+		require.Equal(t, "mike", store.ConfigFileRegistrationToken())
 
 		// check store persistence was enabled
 		require.NotNil(t, store.persistence)
@@ -103,16 +111,18 @@ func TestStore_Load(t *testing.T) {
 			"agent" : "mike",
 			"agent_recovery" : "november",
 			"default": "oscar",
-			"replication" : "papa"
+			"replication" : "papa",
+			"config_file_registration" : "lima"
 		}`
 
 		cfg := Config{
-			EnablePersistence:     true,
-			DataDir:               dataDir,
-			ACLDefaultToken:       "quebec",
-			ACLAgentToken:         "romeo",
-			ACLAgentRecoveryToken: "sierra",
-			ACLReplicationToken:   "tango",
+			EnablePersistence:              true,
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "quebec",
+			ACLAgentToken:                  "romeo",
+			ACLAgentRecoveryToken:          "sierra",
+			ACLReplicationToken:            "tango",
+			ACLConfigFileRegistrationToken: "uniform",
 		}
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -122,6 +132,7 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "november", store.AgentRecoveryToken())
 		require.Equal(t, "oscar", store.UserToken())
 		require.Equal(t, "papa", store.ReplicationToken())
+		require.Equal(t, "lima", store.ConfigFileRegistrationToken())
 	})
 
 	t.Run("with some persisted tokens", func(t *testing.T) {
@@ -131,12 +142,13 @@ func TestStore_Load(t *testing.T) {
 		}`
 
 		cfg := Config{
-			EnablePersistence:     true,
-			DataDir:               dataDir,
-			ACLDefaultToken:       "whiskey",
-			ACLAgentToken:         "xray",
-			ACLAgentRecoveryToken: "yankee",
-			ACLReplicationToken:   "zulu",
+			EnablePersistence:              true,
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "whiskey",
+			ACLAgentToken:                  "xray",
+			ACLAgentRecoveryToken:          "yankee",
+			ACLReplicationToken:            "zulu",
+			ACLConfigFileRegistrationToken: "victor",
 		}
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -146,16 +158,18 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "victor", store.AgentRecoveryToken())
 		require.Equal(t, "whiskey", store.UserToken())
 		require.Equal(t, "zulu", store.ReplicationToken())
+		require.Equal(t, "victor", store.ConfigFileRegistrationToken())
 	})
 
 	t.Run("persisted file contains invalid data", func(t *testing.T) {
 		cfg := Config{
-			EnablePersistence:     true,
-			DataDir:               dataDir,
-			ACLDefaultToken:       "one",
-			ACLAgentToken:         "two",
-			ACLAgentRecoveryToken: "three",
-			ACLReplicationToken:   "four",
+			EnablePersistence:              true,
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "one",
+			ACLAgentToken:                  "two",
+			ACLAgentRecoveryToken:          "three",
+			ACLReplicationToken:            "four",
+			ACLConfigFileRegistrationToken: "five",
 		}
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
@@ -167,16 +181,18 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "two", store.AgentToken())
 		require.Equal(t, "three", store.AgentRecoveryToken())
 		require.Equal(t, "four", store.ReplicationToken())
+		require.Equal(t, "five", store.ConfigFileRegistrationToken())
 	})
 
 	t.Run("persisted file contains invalid json", func(t *testing.T) {
 		cfg := Config{
-			EnablePersistence:     true,
-			DataDir:               dataDir,
-			ACLDefaultToken:       "alfa",
-			ACLAgentToken:         "bravo",
-			ACLAgentRecoveryToken: "charlie",
-			ACLReplicationToken:   "foxtrot",
+			EnablePersistence:              true,
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "alfa",
+			ACLAgentToken:                  "bravo",
+			ACLAgentRecoveryToken:          "charlie",
+			ACLReplicationToken:            "foxtrot",
+			ACLConfigFileRegistrationToken: "golf",
 		}
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte("[1,2,3]"), 0600))
@@ -188,6 +204,7 @@ func TestStore_Load(t *testing.T) {
 		require.Equal(t, "bravo", store.AgentToken())
 		require.Equal(t, "charlie", store.AgentRecoveryToken())
 		require.Equal(t, "foxtrot", store.ReplicationToken())
+		require.Equal(t, "golf", store.ConfigFileRegistrationToken())
 	})
 }
 
@@ -195,12 +212,13 @@ func TestStore_WithPersistenceLock(t *testing.T) {
 	dataDir := testutil.TempDir(t, "datadir")
 	store := new(Store)
 	cfg := Config{
-		EnablePersistence:     true,
-		DataDir:               dataDir,
-		ACLDefaultToken:       "default-token",
-		ACLAgentToken:         "agent-token",
-		ACLAgentRecoveryToken: "recovery-token",
-		ACLReplicationToken:   "replication-token",
+		EnablePersistence:              true,
+		DataDir:                        dataDir,
+		ACLDefaultToken:                "default-token",
+		ACLAgentToken:                  "agent-token",
+		ACLAgentRecoveryToken:          "recovery-token",
+		ACLReplicationToken:            "replication-token",
+		ACLConfigFileRegistrationToken: "registration-token",
 	}
 	err := store.Load(cfg, hclog.New(nil))
 	require.NoError(t, err)

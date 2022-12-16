@@ -6221,6 +6221,7 @@ func TestAgent_Token(t *testing.T) {
 				agent = ""
 				agent_recovery = ""
 				replication = ""
+				config_file_registration = ""
 			}
 		}
 	`)
@@ -6236,6 +6237,8 @@ func TestAgent_Token(t *testing.T) {
 		agentRecoverySource tokenStore.TokenSource
 		repl                string
 		replSource          tokenStore.TokenSource
+		registration        string
+		registrationSource  tokenStore.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
@@ -6243,6 +6246,7 @@ func TestAgent_Token(t *testing.T) {
 		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
 		a.tokens.UpdateAgentRecoveryToken(init.agentRecovery, init.agentRecoverySource)
 		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
+		a.tokens.UpdateConfigFileRegistrationToken(init.registration, init.registrationSource)
 	}
 
 	body := func(token string) io.Reader {
@@ -6363,6 +6367,15 @@ func TestAgent_Token(t *testing.T) {
 			effective: tokens{repl: "R"},
 		},
 		{
+			name:      "set registration",
+			method:    "PUT",
+			url:       "config_file_registration?token=root",
+			body:      body("G"),
+			code:      http.StatusOK,
+			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
+			effective: tokens{registration: "G"},
+		},
+		{
 			name:   "clear user legacy",
 			method: "PUT",
 			url:    "acl_token?token=root",
@@ -6443,6 +6456,15 @@ func TestAgent_Token(t *testing.T) {
 			init:   tokens{repl: "R"},
 			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
 		},
+		{
+			name:   "clear registration",
+			method: "PUT",
+			url:    "config_file_registration?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{registration: "G"},
+			raw:    tokens{registrationSource: tokenStore.TokenSourceAPI},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6461,6 +6483,7 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
 			require.Equal(t, tt.effective.agentRecovery, a.tokens.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
+			require.Equal(t, tt.effective.registration, a.tokens.ConfigFileRegistrationToken())
 
 			tok, src := a.tokens.UserTokenAndSource()
 			require.Equal(t, tt.raw.user, tok)
@@ -6477,6 +6500,10 @@ func TestAgent_Token(t *testing.T) {
 			tok, src = a.tokens.ReplicationTokenAndSource()
 			require.Equal(t, tt.raw.repl, tok)
 			require.Equal(t, tt.raw.replSource, src)
+
+			tok, src = a.tokens.ConfigFileRegistrationTokenAndSource()
+			require.Equal(t, tt.raw.registration, tok)
+			require.Equal(t, tt.raw.registrationSource, src)
 		})
 	}
 

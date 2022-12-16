@@ -1883,6 +1883,75 @@ func TestState_ServiceTokens(t *testing.T) {
 	})
 }
 
+func TestState_registrationTokenFallback(t *testing.T) {
+	id := structs.NewServiceID("redis", nil)
+
+	// When the token is not configured
+	{
+		cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
+		l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+		l.TriggerSyncChanges = func() {}
+
+		t.Run("defaults to empty string", func(t *testing.T) {
+			fn := l.RegistrationTokenFallback(id)
+			require.Equal(t, "", fn())
+		})
+
+		t.Run("empty string when there is no registration token", func(t *testing.T) {
+			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", true)
+			require.NoError(t, err)
+
+			fn := l.RegistrationTokenFallback(id)
+			require.Equal(t, "", fn())
+		})
+	}
+
+	// When the token is configured
+	{
+		cfg := loadRuntimeConfig(t, `
+			bind_addr = "127.0.0.1"
+			data_dir = "dummy"
+			node_name = "dummy"
+			acl = {
+				enabled = true
+				tokens = {
+					config_file_registration = "token123"
+				}
+			}
+		`)
+		t.Logf("cfg := %+v", cfg)
+		tokens := new(token.Store)
+		err := tokens.Load(cfg.ACLTokens, nil)
+		require.NoError(t, err)
+
+		l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
+		l.TriggerSyncChanges = func() {}
+
+		t.Run("empty string when service not found", func(t *testing.T) {
+			fn := l.RegistrationTokenFallback(id)
+			require.Equal(t, "", fn())
+		})
+
+		t.Run("empty string when the service is not locally defined", func(t *testing.T) {
+			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", false)
+			require.NoError(t, err)
+
+			fn := l.RegistrationTokenFallback(id)
+			require.Equal(t, "", fn())
+		})
+
+		t.Run("returns configured token when service is locally defined", func(t *testing.T) {
+			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", true)
+			require.NoError(t, err)
+
+			t.Logf("l = %#v", l)
+
+			fn := l.RegistrationTokenFallback(id)
+			require.Equal(t, "token123", fn())
+		})
+	}
+}
+
 func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 	t.Helper()
 	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
