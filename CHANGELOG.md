@@ -15,6 +15,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
 * connect: Fix issue where DialedDirectly configuration was not used by Consul Dataplane. [[GH-15760](https://github.com/hashicorp/consul/issues/15760)]
 * connect: Fix peering failovers ignoring local mesh gateway configuration. [[GH-15690](https://github.com/hashicorp/consul/issues/15690)]
 * connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
