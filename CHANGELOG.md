@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
 * cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
 * connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
 
