@@ -179,7 +179,7 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
 	h.limiter.Run(ctx)
-	h.logger.RegisterSink(logdrop.NewLogDropSink(ctx, "rate-limiter", 100, hclog.NewSinkAdapter(nil), func(l logdrop.Log) {
+	h.logger.RegisterSink(logdrop.NewLogDropSink(ctx, "rate-limiter", 100, hclog.NewSinkAdapter(&hclog.LoggerOptions{}), func(l logdrop.Log) {
 		metrics.IncrCounter([]string{"consul", "rate_limit", "log_dropped"}, 1)
 	}))
 }
