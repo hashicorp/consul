@@ -199,6 +199,10 @@ func (p *fileStore) saveToFile(s *Store) error {
 		tokens.Replication = tok
 	}
 
+	if tok, source := s.ConfigFileRegistrationTokenAndSource(); tok != "" && source == TokenSourceAPI {
+		tokens.ConfigFileRegistration = tok
+	}
+
 	data, err := json.Marshal(tokens)
 	if err != nil {
 		p.logger.Warn("failed to persist tokens", "error", err)

@@ -209,37 +209,66 @@ func TestStore_Load(t *testing.T) {
 }
 
 func TestStore_WithPersistenceLock(t *testing.T) {
-	dataDir := testutil.TempDir(t, "datadir")
-	store := new(Store)
-	cfg := Config{
-		EnablePersistence:              true,
-		DataDir:                        dataDir,
-		ACLDefaultToken:                "default-token",
-		ACLAgentToken:                  "agent-token",
-		ACLAgentRecoveryToken:          "recovery-token",
-		ACLReplicationToken:            "replication-token",
-		ACLConfigFileRegistrationToken: "registration-token",
-	}
-	err := store.Load(cfg, hclog.New(nil))
-	require.NoError(t, err)
+	setupStore := func() (string, *Store) {
+		dataDir := testutil.TempDir(t, "datadir")
+		store := new(Store)
+		cfg := Config{
+			EnablePersistence:              true,
+			DataDir:                        dataDir,
+			ACLDefaultToken:                "default-token",
+			ACLAgentToken:                  "agent-token",
+			ACLAgentRecoveryToken:          "recovery-token",
+			ACLReplicationToken:            "replication-token",
+			ACLConfigFileRegistrationToken: "registration-token",
+		}
+		err := store.Load(cfg, hclog.New(nil))
+		require.NoError(t, err)
 
-	f := func() error {
-		updated := store.UpdateUserToken("the-new-token", TokenSourceAPI)
-		require.True(t, updated)
-
-		updated = store.UpdateAgentRecoveryToken("the-new-recovery-token", TokenSourceAPI)
-		require.True(t, updated)
-		return nil
+		return dataDir, store
 	}
 
-	err = store.WithPersistenceLock(f)
-	require.NoError(t, err)
-
-	tokens, err := readPersistedFromFile(filepath.Join(dataDir, tokensPath))
-	require.NoError(t, err)
-	expected := persistedTokens{
-		Default:       "the-new-token",
-		AgentRecovery: "the-new-recovery-token",
+	requirePersistedTokens := func(t *testing.T, dataDir string, expected persistedTokens) {
+		t.Helper()
+		tokens, err := readPersistedFromFile(filepath.Join(dataDir, tokensPath))
+		require.NoError(t, err)
+		require.Equal(t, expected, tokens)
 	}
-	require.Equal(t, expected, tokens)
+
+	t.Run("persist some tokens", func(t *testing.T) {
+		dataDir, store := setupStore()
+		err := store.WithPersistenceLock(func() error {
+			require.True(t, store.UpdateUserToken("the-new-default-token", TokenSourceAPI))
+			require.True(t, store.UpdateAgentRecoveryToken("the-new-recovery-token", TokenSourceAPI))
+			return nil
+		})
+		require.NoError(t, err)
+
+		// Only API-sourced tokens are persisted.
+		requirePersistedTokens(t, dataDir, persistedTokens{
+			Default:       "the-new-default-token",
+			AgentRecovery: "the-new-recovery-token",
+		})
+	})
+
+	t.Run("persist all tokens", func(t *testing.T) {
+		dataDir, store := setupStore()
+		err := store.WithPersistenceLock(func() error {
+			require.True(t, store.UpdateUserToken("the-new-default-token", TokenSourceAPI))
+			require.True(t, store.UpdateAgentToken("the-new-agent-token", TokenSourceAPI))
+			require.True(t, store.UpdateAgentRecoveryToken("the-new-recovery-token", TokenSourceAPI))
+			require.True(t, store.UpdateReplicationToken("the-new-replication-token", TokenSourceAPI))
+			require.True(t, store.UpdateConfigFileRegistrationToken("the-new-registration-token", TokenSourceAPI))
+			return nil
+		})
+		require.NoError(t, err)
+
+		requirePersistedTokens(t, dataDir, persistedTokens{
+			Default:                "the-new-default-token",
+			Agent:                  "the-new-agent-token",
+			AgentRecovery:          "the-new-recovery-token",
+			Replication:            "the-new-replication-token",
+			ConfigFileRegistration: "the-new-registration-token",
+		})
+	})
+
 }
