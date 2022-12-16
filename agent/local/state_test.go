@@ -1919,7 +1919,6 @@ func TestState_registrationTokenFallback(t *testing.T) {
 				}
 			}
 		`)
-		t.Logf("cfg := %+v", cfg)
 		tokens := new(token.Store)
 		err := tokens.Load(cfg.ACLTokens, nil)
 		require.NoError(t, err)
@@ -1943,8 +1942,6 @@ func TestState_registrationTokenFallback(t *testing.T) {
 		t.Run("returns configured token when service is locally defined", func(t *testing.T) {
 			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", true)
 			require.NoError(t, err)
-
-			t.Logf("l = %#v", l)
 
 			fn := l.RegistrationTokenFallback(id)
 			require.Equal(t, "token123", fn())
