@@ -685,7 +685,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info("No gRPC address discovered for xDS. Defaulting to port 8502")
+			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
