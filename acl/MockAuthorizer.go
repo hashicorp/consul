@@ -6,6 +6,16 @@ type MockAuthorizer struct {
 	mock.Mock
 }
 
+func (m *MockAuthorizer) NamespaceRead(s string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(s, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+func (m *MockAuthorizer) NamespaceWrite(s string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(s, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 var _ Authorizer = (*MockAuthorizer)(nil)
 
 // ACLRead checks for permission to list all the ACLs
