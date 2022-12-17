@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 

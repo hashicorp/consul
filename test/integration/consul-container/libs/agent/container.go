@@ -14,7 +14,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 

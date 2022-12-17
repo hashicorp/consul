@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 )
 
 // Agent represent a Consul agent abstraction

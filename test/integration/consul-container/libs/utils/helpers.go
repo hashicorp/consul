@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 )
 
 func ApplyDefaultProxySettings(c *api.Client) (bool, error) {

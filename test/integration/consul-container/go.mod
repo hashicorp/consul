@@ -2,11 +2,14 @@ module github.com/hashicorp/consul/test/integration/consul-container
 
 go 1.19
 
+replace github.com/hashicorp/consul/api/v118 => github.com/hashicorp/consul/api v1.18.0
+
 require (
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/hashicorp/consul v1.14.1
 	github.com/hashicorp/consul/api v1.18.0
+	github.com/hashicorp/consul/api/v118 v118.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9

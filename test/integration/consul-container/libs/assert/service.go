@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 

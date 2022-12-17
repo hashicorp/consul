@@ -15,7 +15,7 @@ import (
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v118"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
