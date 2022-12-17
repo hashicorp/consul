@@ -92,6 +92,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				statPrefix:      "ingress_upstream_",
 				routePath:       "",
 				httpAuthzFilter: nil,
+				tracing:         makeTracingFromIngressConfig(cfgSnap.IngressGateway.Tracing),
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs

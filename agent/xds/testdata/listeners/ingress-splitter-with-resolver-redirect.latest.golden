@@ -36,9 +36,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 }
               }
             }

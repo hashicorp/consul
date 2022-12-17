@@ -8,6 +8,7 @@ import (
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
 	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
+	invalidSampling := float64(-1.0)
 
 	cases := map[string]configEntryTestcase{
 		"normalize: empty protocol": {
@@ -894,6 +895,72 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 			// Note we don't assert the last part `(service \"foo\" on listener on port 1111)`
 			// since the service name is normalized differently on OSS and Ent
 			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"Tracing.ClientSampling value must be between 0 and 100": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					ClientSampling: &invalidSampling,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Tracing.ClientSampling percentage must be between 0.0 and 100.0 inclusive`,
+		},
+		"Tracing.RandomSampling value must be between 0 and 100": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					RandomSampling: &invalidSampling,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Tracing.RandomSampling percentage must be between 0.0 and 100.0 inclusive`,
+		},
+		"Tracing.OverallSampling value must be between 0 and 100": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &IngressTracingConfig{
+					OverallSampling: &invalidSampling,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Tracing.OverallSampling percentage must be between 0.0 and 100.0 inclusive`,
 		},
 	}
 

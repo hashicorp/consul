@@ -644,6 +644,8 @@ type configSnapshotIngressGateway struct {
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
 
+	Tracing structs.IngressTracingConfig
+
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.

@@ -399,6 +399,11 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 	{
 		"Kind": "ingress-gateway",
 		"Name": "ingress",
+        "Tracing": {
+			"ClientSampling": 10.5,
+			"RandomSampling": 20.4,
+			"OverallSampling": 85.2
+		},
 		"Listeners": [
 		  {
 				"Port": 8080,
@@ -431,9 +436,18 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 		got.CreateIndex = 0
 		got.ModifyIndex = 0
 
+		clientSampling := float64(10.5)
+		randomSampling := float64(20.4)
+		overallSampling := float64(85.2)
+
 		expect := &structs.IngressGatewayConfigEntry{
 			Name: "ingress",
 			Kind: structs.IngressGateway,
+			Tracing: &structs.IngressTracingConfig{
+				ClientSampling:  &clientSampling,
+				RandomSampling:  &randomSampling,
+				OverallSampling: &overallSampling,
+			},
 			Listeners: []structs.IngressListener{
 				{
 					Port:     8080,

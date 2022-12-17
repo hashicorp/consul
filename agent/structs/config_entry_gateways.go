@@ -34,6 +34,9 @@ type IngressGatewayConfigEntry struct {
 	// Defaults contains default configuration for all upstream service instances
 	Defaults *IngressServiceConfig `json:",omitempty"`
 
+	// Tracing configures the tracing behavior for http listeners.
+	Tracing *IngressTracingConfig `json:",omitempty" alias:"tracing"`
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -47,6 +50,12 @@ type IngressServiceConfig struct {
 	// PassiveHealthCheck configuration determines how upstream proxy instances will
 	// be monitored for removal from the load balancing pool.
 	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+}
+
+type IngressTracingConfig struct {
+	ClientSampling  *float64 `alias:"client_sampling"`
+	RandomSampling  *float64 `alias:"random_sampling"`
+	OverallSampling *float64 `alias:"overall_sampling"`
 }
 
 type IngressListener struct {
@@ -355,6 +364,18 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 					return err
 				}
 			}
+		}
+	}
+
+	if e.Tracing != nil {
+		if e.Tracing.ClientSampling != nil && (*e.Tracing.ClientSampling < 0 || *e.Tracing.ClientSampling > 100) {
+			return fmt.Errorf("Tracing.ClientSampling percentage must be between 0.0 and 100.0 inclusive")
+		}
+		if e.Tracing.RandomSampling != nil && (*e.Tracing.RandomSampling < 0 || *e.Tracing.RandomSampling > 100) {
+			return fmt.Errorf("Tracing.RandomSampling percentage must be between 0.0 and 100.0 inclusive")
+		}
+		if e.Tracing.OverallSampling != nil && (*e.Tracing.OverallSampling < 0 || *e.Tracing.OverallSampling > 100) {
+			return fmt.Errorf("Tracing.OverallSampling percentage must be between 0.0 and 100.0 inclusive")
 		}
 	}
 

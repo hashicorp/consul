@@ -198,6 +198,16 @@ func (msg *IngressServiceConfig) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *IngressTracingConfig) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *IngressTracingConfig) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *GatewayTLSConfig) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

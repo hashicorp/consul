@@ -946,6 +946,45 @@ You can specify the following parameters to configure ingress gateway configurat
       yaml: false,
     },
     {
+      name: "Tracing",
+      type: 'IngressTracingConfig: <optional>',
+      description:
+        'Specifies the tracing configuration to be used by the underlying http connection manager.',
+      children: [
+        {
+          name: 'client_sampling',
+          type: 'float: 100.0',
+          description: {
+            hcl:
+              "Sets the client_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`client_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+            yaml:
+              "Sets the client_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`client_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+          },
+        },
+        {
+           name: 'random_sampling',
+           type: 'float: 100.0',
+           description: {
+             hcl:
+               "Sets the random_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`random_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+             yaml:
+               "Sets the random_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`random_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+           },
+        },
+        {
+           name: 'overall_sampling',
+           type: 'float: 100.0',
+           description: {
+             hcl:
+               "Sets the overall_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`overall_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+             yaml:
+               "Sets the overall_sampling value for the connection manager that underlies the listener for the gateway. This maps directly to the Envoy configuration value for [`overall_sampling`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing).",
+           },
+         },
+      ],
+      hcl: false,
+    },
+    {
       name: 'Meta',
       type: 'map<string|string>: nil',
       description:

@@ -41,9 +41,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 }
               }
             }
@@ -114,9 +112,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 }
               }
             }

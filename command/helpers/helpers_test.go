@@ -3037,6 +3037,173 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ingress-gateway: custom tracing",
+			snake: `
+				kind               = "ingress-gateway"
+				name               = "ingress-web"
+				tracing {
+					client_sampling = 22.4
+					random_sampling = 39.2
+					overall_sampling = 87.4
+				}
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				tls {
+					enabled = true
+				}
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+								hosts = ["test.example.com"]
+							},
+							{
+								name = "db"
+								namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind              = "ingress-gateway"
+				Name              = "ingress-web"
+				Tracing {
+					ClientSampling = 22.4
+					RandomSampling = 39.2
+					OverallSampling = 87.4
+				}
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Tls {
+					Enabled = true
+				}
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+								Hosts = ["test.example.com"]
+							},
+							{
+								Name = "db"
+								Namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "ingress-gateway",
+				"name": "ingress-web",
+				"tracing": {
+					"client_sampling": 22.4,
+					"random_sampling": 39.2,
+					"overall_sampling": 87.4
+				},
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"tls": {
+					"enabled": true
+				},
+				"listeners": [
+					{
+						"port": 8080,
+						"protocol": "http",
+						"services": [
+							{
+								"name": "web",
+								"hosts": ["test.example.com"]
+							},
+							{
+								"name": "db",
+								"namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"Tracing": {
+					"ClientSampling": 22.4,
+					"RandomSampling": 39.2,
+					"OverallSampling": 87.4
+				},
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Tls": {
+					"Enabled": true
+				},
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"Hosts": ["test.example.com"]
+							},
+							{
+								"Name": "db",
+								"Namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &api.IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Tracing: &api.IngressTracingConfig{
+					ClientSampling:  float64Pointer(float64(22.4)),
+					RandomSampling:  float64Pointer(float64(39.2)),
+					OverallSampling: float64Pointer(float64(87.4)),
+				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TLS: api.GatewayTLSConfig{
+					Enabled: true,
+				},
+				Listeners: []api.IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []api.IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"test.example.com"},
+							},
+							{
+								Name:      "db",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 
@@ -3086,5 +3253,8 @@ func requireContainsLower(t *testing.T, haystack, needle string) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+func float64Pointer(v float64) *float64 {
 	return &v
 }

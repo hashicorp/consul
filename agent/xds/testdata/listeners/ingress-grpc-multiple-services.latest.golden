@@ -49,9 +49,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 },
                 "http2ProtocolOptions": {
 

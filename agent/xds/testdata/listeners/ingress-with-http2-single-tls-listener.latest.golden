@@ -36,9 +36,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 },
                 "http2ProtocolOptions": {
 
@@ -85,9 +83,7 @@
                   }
                 ],
                 "tracing": {
-                  "randomSampling": {
 
-                  }
                 },
                 "http2ProtocolOptions": {
 

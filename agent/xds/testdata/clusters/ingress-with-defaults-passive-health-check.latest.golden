@@ -25,9 +25,9 @@
         ]
       },
       "outlierDetection": {
-          "consecutive5xx": 10,
-          "interval": "5s",
-          "enforcingConsecutive5xx": 80
+        "consecutive5xx": 10,
+        "interval": "5s",
+        "enforcingConsecutive5xx": 80
       },
       "commonLbConfig": {
         "healthyPanicThreshold": {

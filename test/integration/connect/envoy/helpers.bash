@@ -732,7 +732,7 @@ function gen_envoy_bootstrap {
     # Command failed, instead of swallowing error (printed on stdout by docker
     # it seems) by writing it to file, echo it
     echo "$output"
-    return $status
+    return $st
   fi
 }
 
