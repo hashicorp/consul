@@ -433,7 +433,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
-				AccessLogs: AccessLogsConfig{
+				AccessLogs: &AccessLogsConfig{
 					Enabled:             true,
 					DisableListenerLogs: true,
 					Type:                FileLogSinkType,
