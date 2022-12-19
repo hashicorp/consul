@@ -51,7 +51,7 @@ func (b *customPickfirstBalancer) UpdateClientConnState(state balancer.ClientCon
 		// of addresses matched the currently connected address, it would
 		// be an effective no-op.
 		if equalAddr(b.activeAddr, a) {
-			return nil
+			break
 		}
 
 		// Attempt to make a new SubConn with a single address so we can
