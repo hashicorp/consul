@@ -40,6 +40,7 @@ type customPickfirstBalancer struct {
 
 // shim since resolver.Address.Equal method does not exist in older gRPC versions.
 func equalAddr(a, o resolver.Address) bool {
+	//nolint:staticcheck
 	return a.Addr == o.Addr && a.ServerName == o.ServerName &&
 		a.Type == o.Type && a.Metadata == o.Metadata
 }
