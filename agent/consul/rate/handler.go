@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -115,6 +116,7 @@ type Handler struct {
 	delegate HandlerDelegate
 
 	limiter multilimiter.RateLimiter
+	logger  hclog.Logger
 }
 
 type HandlerConfig struct {
@@ -142,7 +144,7 @@ type HandlerDelegate interface {
 }
 
 func NewHandlerWithLimiter(cfg HandlerConfig, delegate HandlerDelegate,
-	limiter multilimiter.RateLimiter) *Handler {
+	limiter multilimiter.RateLimiter, logger hclog.Logger) *Handler {
 	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
@@ -150,6 +152,7 @@ func NewHandlerWithLimiter(cfg HandlerConfig, delegate HandlerDelegate,
 		cfg:      new(atomic.Pointer[HandlerConfig]),
 		delegate: delegate,
 		limiter:  limiter,
+		logger:   logger,
 	}
 	h.cfg.Store(&cfg)
 
@@ -157,9 +160,9 @@ func NewHandlerWithLimiter(cfg HandlerConfig, delegate HandlerDelegate,
 }
 
 // NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
+func NewHandler(cfg HandlerConfig, delegate HandlerDelegate, logger hclog.Logger) *Handler {
 	limiter := multilimiter.NewMultiLimiter(cfg.Config)
-	return NewHandlerWithLimiter(cfg, delegate, limiter)
+	return NewHandlerWithLimiter(cfg, delegate, limiter, logger)
 }
 
 // Run the limiter cleanup routine until the given context is canceled.
@@ -183,12 +186,15 @@ func (h *Handler) Allow(op Operation) error {
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	existingCfg := h.cfg.Load()
 	h.cfg.Store(&cfg)
+	if reflect.DeepEqual(existingCfg, cfg) {
+		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the multilimiter.")
+		return
+	}
 	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
 		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	}
 	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
 		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
-
 	}
 }
 
