@@ -1251,7 +1251,16 @@
       },
       {
         "title": "Network Segments",
-        "path": "enterprise/network-segments"
+        "routes":[
+          {
+            "title": "Network Segments Overview",
+            "path": "enterprise/network-segments/network-segments-overview"
+          },
+          {
+            "title": "Create a Network Segment",
+            "path": "enterprise/network-segments/create-network-segment"
+          }
+        ]
       },
       {
         "title": "Namespaces",
