@@ -84,6 +84,9 @@ const (
 
 	// OperationTypeWrite represents a write operation.
 	OperationTypeWrite
+
+	// OperationTypeExempt represents an operation that is exempt from rate-limiting.
+	OperationTypeExempt
 )
 
 // Operation the client is attempting to perform.
