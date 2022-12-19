@@ -333,6 +333,82 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "servicedefaults envoy extension",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "sd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				EnvoyExtensions: []structs.EnvoyExtension{
+					{
+						Name:      "sd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+				},
+			},
+		},
+		{
+			name: "proxydefaults envoy extension appended to servicedefaults extension",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "pd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							EnvoyExtensions: []structs.EnvoyExtension{
+								{
+									Name:      "sd-ext",
+									Required:  false,
+									Arguments: map[string]interface{}{"arg": "val"},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				EnvoyExtensions: []structs.EnvoyExtension{
+					{
+						Name:      "pd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+					{
+						Name:      "sd-ext",
+						Required:  false,
+						Arguments: map[string]interface{}{"arg": "val"},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

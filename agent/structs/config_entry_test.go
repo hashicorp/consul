@@ -2701,6 +2701,42 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "invalid value for balance_outbound_connections",
 		},
+		"validate: invalid extension": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{},
+				},
+			},
+			validateErr: "invalid EnvoyExtensions[0]: Name is required",
+		},
+		"validate: invalid extension name": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: "not-a-builtin",
+					},
+				},
+			},
+			validateErr: `invalid EnvoyExtensions[0]: Name "not-a-builtin" is not a built-in extension`,
+		},
+		"validate: valid extension name": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: "builtin/aws/lambda",
+					},
+				},
+			},
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
