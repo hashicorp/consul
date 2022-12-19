@@ -1123,3 +1123,60 @@ func TestGatewayService_Addresses(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIGateway_Listeners(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"listener name conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Name: "foo",
+					},
+					{
+						Name: "foo",
+					},
+				},
+			},
+			validateErr: "multiple listeners with the name",
+		},
+		"merged listener protocol conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-two",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"merged listener hostname conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-three",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Hostname: "host.two",
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
