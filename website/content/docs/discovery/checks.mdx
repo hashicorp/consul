@@ -34,8 +34,7 @@ There are severeal types of checks:
 - [`OSService + Interval`](#osservice-check) - These checks periodically direct the Consul agent to monitor
   the health of a service running on the host operating system.
 
-- [`Time to Live (TTL)`](#time-to-live-ttl-check) - These checks retain their last known state
-  for a given TTL.
+- [`Time to Live (TTL)`](#time-to-live-ttl-check) - These checks attempt an HTTP connection after a given TTL elapses.
   
 - [`Docker + Interval`](#docker-check) - These checks invoke an external application that
   is packaged within a Docker container.
