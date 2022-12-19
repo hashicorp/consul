@@ -3,9 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/go-hclog"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -51,11 +48,4 @@ type Reconciler interface {
 	// The Controller will requeue the Request to be processed again if an error is non-nil.
 	// If no error is returned, the Request will be removed from the working queue.
 	Reconcile(context.Context, Request) error
-}
-
-//baseReconciler contains fields shared across multiple reconciler implementations
-type baseReconciler struct {
-	fsm    *fsm.FSM
-	logger hclog.Logger
-	mutex  sync.Mutex
 }
