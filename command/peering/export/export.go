@@ -182,6 +182,6 @@ Usage: consul peering export [options] -service <service name> -peers <other clu
 
   Example:
 
-	$ consul peering export -service=web -peers=other-cluster
+  $ consul peering export -service=web -peers=other-cluster
 `
 )
