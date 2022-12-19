@@ -420,12 +420,9 @@ use one of the following agent configuration options:
 - [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks):
   Enable script checks no matter how they are registered.
 
-  ~> **Security Warning:**
-  Enabling non-local script checks in some configurations may introduce
-  a remote execution vulnerability known to be targeted by malware.
-  We strongly recommend `enable_local_script_checks` instead.
-  For more information, refer to
-  [this blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations).
+  !> **Security Warning:**
+  We recommend using `enable_local_script_checks` instead of `enable_script_checks` in production 
+  environments, as remote script checks are more vulnerable to malware attacks. Learn more about how [script checks can be exploited](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations#how-script-checks-can-be-exploited).
 
 The following service definition file snippet is an example
 of a Docker check definition:
