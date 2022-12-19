@@ -347,7 +347,7 @@ check = {
 ### Time to live (TTL) check
 
 TTL checks retain their last known state for the specified `ttl` duration.
-The state of the check must be updated periodically over the HTTP interface.
+The state of the check updates periodically over the HTTP interface.
 If the `ttl` duration elapses before a new check update
 is provided over the HTTP interface,
 the check is set to `critical` state.
