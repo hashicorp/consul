@@ -804,6 +804,10 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 				return fmt.Errorf("certificate reference must have a name")
 			}
 		}
+}
+
+func (e *APIGatewayConfigEntry) validateTLS() error {
+	for _, listener := range e.Listeners {
 		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
 			return err
 		}
