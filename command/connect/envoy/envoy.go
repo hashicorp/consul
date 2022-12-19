@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -70,6 +71,8 @@ type cmd struct {
 
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
+
+	dialFunc func(network string, address string) (net.Conn, error)
 }
 
 const meshGatewayVal = "mesh"
@@ -206,6 +209,10 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	c.dialFunc = func(network string, address string) (net.Conn, error) {
+		return net.DialTimeout(network, address, 3*time.Second)
+	}
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -486,6 +493,10 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
+	if err := checkDial(xdsAddr, c.dialFunc); err != nil {
+		return nil, fmt.Errorf("error dialing xDS address: %w", err)
+	}
+
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
@@ -657,14 +668,24 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 
 	addr := c.grpcAddr
 	if addr == "" {
+		// This lookup is a UX optimization and requires acl policy agent:read,
+		// which sidecars may not have.
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+			if strings.Contains(err.Error(), "Permission denied") {
+				// Token did not have agent:read. Log and proceed with defaults.
+				c.UI.Info(fmt.Sprintf("Could not query /v1/agent/self for xDS ports: %s", err))
+			} else {
+				// If not a permission denied error, gRPC is explicitly disabled
+				// or something went fatally wrong.
+				return g, fmt.Errorf("Error looking up xDS port: %s", err)
+			}
 		}
 		if port <= 0 {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
+			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
@@ -725,6 +746,9 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
+		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
+			return 0, "", fmt.Errorf("agent has grpc disabled")
+		}
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -733,13 +757,13 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// Fallback to old API for the case where a new consul CLI is being used with
-	// an older API version.
+	// If above TLS and Plaintext ports are both 0, fallback to
+	// old API for the case where a new consul CLI is being used
+	// with an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
 	}
-	// TODO what does this mean? What did the old API look like? How does this affect compatibility?
 	port, ok := cfg["GRPCPort"]
 	if !ok {
 		return 0, "", fmt.Errorf("agent does not have grpc port enabled")
@@ -750,6 +774,25 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	}
 
 	return int(portN), "", nil
+}
+
+func checkDial(g GRPC, dial func(string, string) (net.Conn, error)) error {
+	var (
+		conn net.Conn
+		err  error
+	)
+	if g.AgentSocket != "" {
+		conn, err = dial("unix", g.AgentSocket)
+	} else {
+		conn, err = dial("tcp", fmt.Sprintf("%s:%s", g.AgentAddress, g.AgentPort))
+	}
+	if err != nil {
+		return err
+	}
+	if conn != nil {
+		conn.Close()
+	}
+	return nil
 }
 
 func (c *cmd) Synopsis() string {

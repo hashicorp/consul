@@ -115,6 +115,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           []EnvoyExtension       `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -235,6 +236,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
+	if err := validateEnvoyExtensions(e.EnvoyExtensions); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
 	return validationErr
 }
 
@@ -280,6 +285,38 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	}
 
 	return &e.EnterpriseMeta
+}
+
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+type EnvoyExtension struct {
+	Name      string
+	Required  bool
+	Arguments map[string]interface{}
+}
+
+func builtInExtension(name string) bool {
+	extensions := map[string]struct{}{
+		"builtin/aws/lambda": {},
+	}
+
+	_, ok := extensions[name]
+
+	return ok
+}
+
+func validateEnvoyExtensions(extensions []EnvoyExtension) error {
+	var err error
+	for i, extension := range extensions {
+		if extension.Name == "" {
+			err = multierror.Append(err, fmt.Errorf("invalid EnvoyExtensions[%d]: Name is required", i))
+		}
+
+		if !builtInExtension(extension.Name) {
+			err = multierror.Append(err, fmt.Errorf("invalid EnvoyExtensions[%d]: Name %q is not a built-in extension", i, extension.Name))
+		}
+	}
+
+	return err
 }
 
 type UpstreamConfiguration struct {
@@ -343,6 +380,7 @@ type ProxyConfigEntry struct {
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
 	AccessLogs       AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  []EnvoyExtension       `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -424,6 +462,10 @@ func (e *ProxyConfigEntry) Validate() error {
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := validateEnvoyExtensions(e.EnvoyExtensions); err != nil {
 		return err
 	}
 
@@ -1127,6 +1169,7 @@ type ServiceConfigResponse struct {
 	Mode              ProxyMode              `json:",omitempty"`
 	Destination       DestinationConfig      `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
+	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
 	QueryMeta
 }
 

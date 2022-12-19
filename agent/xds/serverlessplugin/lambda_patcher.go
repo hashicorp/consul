@@ -14,73 +14,69 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 )
 
-const (
-	lambdaPrefix                string = "serverless.consul.hashicorp.com/v1alpha1"
-	lambdaEnabledTag            string = lambdaPrefix + "/lambda/enabled"
-	lambdaArnTag                string = lambdaPrefix + "/lambda/arn"
-	lambdaPayloadPassthroughTag string = lambdaPrefix + "/lambda/payload-passthrough"
-	lambdaRegionTag             string = lambdaPrefix + "/lambda/region"
-	lambdaInvocationMode        string = lambdaPrefix + "/lambda/invocation-mode"
-)
-
 type lambdaPatcher struct {
-	arn                string
-	payloadPassthrough bool
-	region             string
-	kind               api.ServiceKind
-	invocationMode     envoy_lambda_v3.Config_InvocationMode
+	ARN                string `mapstructure:"ARN"`
+	PayloadPassthrough bool   `mapstructure:"PayloadPassthrough"`
+	Region             string `mapstructure:"Region"`
+	Kind               api.ServiceKind
+	InvocationMode     string `mapstructure:"InvocationMode"`
 }
 
 var _ patcher = (*lambdaPatcher)(nil)
 
 func makeLambdaPatcher(serviceConfig xdscommon.ServiceConfig) (patcher, bool) {
 	var patcher lambdaPatcher
-	if !isStringTrue(serviceConfig.Meta[lambdaEnabledTag]) {
-		return patcher, true
+
+	// TODO this is a hack. We should iterate through the extensions outside of here
+	if len(serviceConfig.EnvoyExtensions) == 0 {
+		return nil, false
 	}
 
-	arn := serviceConfig.Meta[lambdaArnTag]
-	if arn == "" {
-		return patcher, false
+	// TODO this is a hack. We should iterate through the extensions outside of here
+	extension := serviceConfig.EnvoyExtensions[0]
+	if extension.Name != "builtin/aws/lambda" {
+		return nil, false
 	}
 
-	region := serviceConfig.Meta[lambdaRegionTag]
-	if region == "" {
-		return patcher, false
+	// TODO this fails when types aren't encode properly. We need to check this earlier in the Validate RPC.
+	err := mapstructure.Decode(extension.Arguments, &patcher)
+	if err != nil {
+		return nil, false
 	}
 
-	payloadPassthrough := isStringTrue(serviceConfig.Meta[lambdaPayloadPassthroughTag])
-
-	invocationModeStr := serviceConfig.Meta[lambdaInvocationMode]
-	invocationMode := envoy_lambda_v3.Config_SYNCHRONOUS
-	if invocationModeStr == "asynchronous" {
-		invocationMode = envoy_lambda_v3.Config_ASYNCHRONOUS
+	if patcher.ARN == "" {
+		return nil, false
 	}
 
-	return lambdaPatcher{
-		arn:                arn,
-		payloadPassthrough: payloadPassthrough,
-		region:             region,
-		kind:               serviceConfig.Kind,
-		invocationMode:     invocationMode,
-	}, true
+	if patcher.Region == "" {
+		return nil, false
+	}
+
+	patcher.Kind = serviceConfig.Kind
+
+	return patcher, true
 }
 
-func isStringTrue(v string) bool {
-	return v == "true"
+func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
+	m := envoy_lambda_v3.Config_SYNCHRONOUS
+	if s == "asynchronous" {
+		m = envoy_lambda_v3.Config_ASYNCHRONOUS
+	}
+	return m
 }
 
 func (p lambdaPatcher) CanPatch(kind api.ServiceKind) bool {
-	return kind == p.kind
+	return kind == p.Kind
 }
 
 func (p lambdaPatcher) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	if p.kind != api.ServiceKindTerminatingGateway {
+	if p.Kind != api.ServiceKindTerminatingGateway {
 		return route, false, nil
 	}
 
@@ -136,7 +132,7 @@ func (p lambdaPatcher) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster
 									Address: &envoy_core_v3.Address{
 										Address: &envoy_core_v3.Address_SocketAddress{
 											SocketAddress: &envoy_core_v3.SocketAddress{
-												Address: fmt.Sprintf("lambda.%s.amazonaws.com", p.region),
+												Address: fmt.Sprintf("lambda.%s.amazonaws.com", p.Region),
 												PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
 													PortValue: 443,
 												},
@@ -170,9 +166,9 @@ func (p lambdaPatcher) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_lis
 	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
-			Arn:                p.arn,
-			PayloadPassthrough: p.payloadPassthrough,
-			InvocationMode:     p.invocationMode,
+			Arn:                p.ARN,
+			PayloadPassthrough: p.PayloadPassthrough,
+			InvocationMode:     toEnvoyInvocationMode(p.InvocationMode),
 		},
 	)
 	if err != nil {

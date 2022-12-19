@@ -950,11 +950,15 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 		CorrelationID: serviceConfigIDPrefix + web.String(),
 		Result: &structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
-			Meta: map[string]string{
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: "builtin/aws/lambda",
+					Arguments: map[string]interface{}{
+						"ARN":                "lambda-arn",
+						"PayloadPassthrough": true,
+						"Region":             "us-east-1",
+					},
+				},
 			},
 		},
 	})

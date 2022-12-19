@@ -3,6 +3,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.configentry;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "proto/pbcommon/common.proto";
 
@@ -433,6 +434,7 @@ message ServiceDefaults {
   int32 LocalRequestTimeoutMs = 11;
   string BalanceInboundConnections = 12;
   map<string, string> Meta = 13;
+  repeated EnvoyExtension EnvoyExtensions = 14;
 }
 
 enum ProxyMode {
@@ -450,6 +452,18 @@ message TransparentProxyConfig {
   // mog: func-to=int func-from=int32
   int32 OutboundListenerPort = 1;
   bool DialedDirectly = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.EnvoyExtension
+// output=config_entry.gen.go
+// name=Structs
+message EnvoyExtension {
+  string Name = 1;
+  bool Required = 2;
+  // mog: func-to=envoyExtensionArgumentsToStructs func-from=envoyExtensionArgumentsFromStructs
+  google.protobuf.Value Arguments = 3;
 }
 
 // mog annotation:
