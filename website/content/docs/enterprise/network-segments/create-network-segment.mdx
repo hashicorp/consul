@@ -32,8 +32,8 @@ This topic describes how to create Consul network segments so that services can 
    },
    {
       name = "beta"
-      bind = "{{GetPrivateIP}}"
-      advertise = "{{GetPrivateIP}}"
+      bind = "10.0.0.1"
+      advertise = "10.0.0.1"
       port = 8304
    }
    ]
@@ -44,14 +44,14 @@ This topic describes how to create Consul network segments so that services can 
    "segments": [
       {
          "name": "alpha",
-         "bind": "{{GetPrivateIP}}",
-         "advertise": "{{GetPrivateIP}}",
+         "bind": "10.0.0.1",
+         "advertise": "10.0.0.1",
          "port": 8303
       },
       {
          "name": "beta",
-         "bind": "{{GetPrivateIP}}",
-         "advertise": "{{GetPrivateIP}}",
+         "bind": "10.0.0.1",
+         "advertise": "10.0.0.1",
          "port": 8304
       }
    ]
@@ -114,8 +114,8 @@ Run the `consul members` command to verify that the client agents are joined to 
 ```shell-session
 $ consul members
 Node             Address        Status  Type     Build       Protocol  DC   Partition  Segment
-server    192.168.4.159:8301    alive   server   1.13.1+ent  2         dc1  default    <all>
-client1   192.168.4.159:8447    alive   client   1.13.1+ent  2         dc1  default    alpha
+server    192.168.4.159:8301    alive   server   1.14+ent  2         dc1  default    <all>
+client1   192.168.4.159:8447    alive   client   1.14+ent  2         dc1  default    alpha
 ```
 
 </CodeBlockConfig> 
@@ -127,8 +127,8 @@ You can also pass the name of a segment in the `-segment` flag to view agents in
 ```shell-session
 $ consul members -segment alpha
 Node          Address           Status  Type    Build      Protocol  DC   Segment
-server1      10.20.10.11:8301   alive   server  1.6.2+ent  2         dc1  alpha
-client1      10.20.10.21:8303   alive   client  1.6.2+ent  2         dc1  alpha
+server1      10.20.10.11:8301   alive   server  1.14+ent  2         dc1  alpha
+client1      10.20.10.21:8303   alive   client  1.14+ent  2         dc1  alpha
 ```
 
 </CodeBlockConfig>
@@ -139,9 +139,9 @@ Refer to the [`members`](/consul/commands/members) documentation for additional 
 
 <Tab heading="API">
 
-You can call the [`/agent/members` API endpoint](/consul/api-docs/agent#list-members) to view members that the agent sees in the cluster gossip pool. 
+Call the `/agent/members` API endpoint to view members that the agent sees in the cluster gossip pool. 
 
-<CodeBlockConfig highlight="23">
+<CodeBlockConfig highlight="21">
 
 ```shell-session
 $ curl http://127.0.0.1:8500/v1/agent/members?segment=alpha 
@@ -171,11 +171,12 @@ $ curl http://127.0.0.1:8500/v1/agent/members?segment=alpha
    }
 }
 ```
+Refer to the [`/agent/members` API endpoint documentation](/consul/api-docs/agent#list-members) for additional information.
 
 </CodeBlockConfig>
 
 </Tab>
-<Tab heading="GUI">
+<Tab heading="UI">
 
 If the UI is enabled in your agent configuration, the segment name appears in the node’s Metadata tab. 
 
