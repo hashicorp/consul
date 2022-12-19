@@ -172,8 +172,8 @@ func (h *Handler) Allow(op Operation) error {
 	existingCfg := h.cfg.Load()
 	if existingCfg.GlobalMode == ModeDisabled {
 		return nil
-	} 
-	
+	}
+
 	if !h.limiter.Allow(globalWrite) {
 		// TODO(NET-1383): actually implement the rate limiting logic and replace this returned nil.
 		return nil
