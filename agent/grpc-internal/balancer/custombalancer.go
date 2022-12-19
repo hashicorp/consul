@@ -38,13 +38,19 @@ type customPickfirstBalancer struct {
 	activeAddr resolver.Address
 }
 
+// shim since resolver.Address.Equal method does not exist in older gRPC versions.
+func equalAddr(a, o resolver.Address) bool {
+	return a.Addr == o.Addr && a.ServerName == o.ServerName &&
+		a.Type == o.Type && a.Metadata == o.Metadata
+}
+
 func (b *customPickfirstBalancer) UpdateClientConnState(state balancer.ClientConnState) error {
 	for _, a := range state.ResolverState.Addresses {
 		// This hack preserves an existing behavior in our client-side
 		// load balancing where if the first address in a shuffled list
 		// of addresses matched the currently connected address, it would
 		// be an effective no-op.
-		if a.Equal(b.activeAddr) {
+		if equalAddr(b.activeAddr, a) {
 			return nil
 		}
 
