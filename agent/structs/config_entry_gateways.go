@@ -813,8 +813,8 @@ type APIGatewayListener struct {
 	// optional, however, it must be unique. Therefore, if a gateway has more
 	// than a single listener, all but one must specify a Name.
 	Name string
-	// Hostname is the host name that a listener should be bound to, the listener
-	// accepts requests for all hostnames.
+	// Hostname is the host name that a listener should be bound to, if
+	// unspecified, the listener accepts requests for all hostnames.
 	Hostname string
 	// Port is the port at which this listener should bind.
 	Port int
