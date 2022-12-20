@@ -53,7 +53,7 @@ const (
 	service %s {
 	  rpc %s(...) returns (...) {
 	    option (hashicorp.consul.internal.ratelimit.spec) = {
-	      operation_type: OPERATION_TYPE_READ | OPERATION_TYPE_WRITE,
+	      operation_type: OPERATION_TYPE_READ | OPERATION_TYPE_WRITE | OPERATION_TYPE_EXEMPT,
 	    };
 	  }
 	}

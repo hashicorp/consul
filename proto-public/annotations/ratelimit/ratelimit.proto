@@ -8,8 +8,9 @@ import "google/protobuf/descriptor.proto";
 // RPC (i.e. read or write).
 enum OperationType {
   OPERATION_TYPE_UNSPECIFIED = 0;
-  OPERATION_TYPE_READ = 1;
-  OPERATION_TYPE_WRITE = 2;
+  OPERATION_TYPE_EXEMPT = 1;
+  OPERATION_TYPE_READ = 2;
+  OPERATION_TYPE_WRITE = 3;
 }
 
 // Spec describes the kind of rate limit that will be applied to this RPC.

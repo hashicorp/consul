@@ -99,10 +99,15 @@ type spec struct {
 }
 
 func (s spec) GoOperationType() string {
-	if s.OperationType == "OPERATION_TYPE_WRITE" {
+	switch s.OperationType {
+	case "OPERATION_TYPE_WRITE":
 		return "rate.OperationTypeWrite"
+	case "OPERATION_TYPE_READ":
+		return "rate.OperationTypeRead"
+	case "OPERATION_TYPE_EXEMPT":
+		return "rate.OperationTypeExempt"
 	}
-	return "rate.OperationTypeRead"
+	panic(fmt.Sprintf("unknown rate limit operation type: %s", s.OperationType))
 }
 
 func collectSpecs(inputPaths []string) ([]spec, []spec, error) {

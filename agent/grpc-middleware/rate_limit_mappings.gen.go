@@ -11,7 +11,7 @@ var rpcRateLimitSpecs = map[string]rate.OperationType{
 	"/hashicorp.consul.dataplane.DataplaneService/GetEnvoyBootstrapParams":       rate.OperationTypeRead,
 	"/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures": rate.OperationTypeRead,
 	"/hashicorp.consul.dns.DNSService/Query":                                     rate.OperationTypeRead,
-	"/hashicorp.consul.internal.operator.OperatorService/TransferLeader":         rate.OperationTypeWrite,
+	"/hashicorp.consul.internal.operator.OperatorService/TransferLeader":         rate.OperationTypeExempt,
 	"/hashicorp.consul.internal.peering.PeeringService/Establish":                rate.OperationTypeWrite,
 	"/hashicorp.consul.internal.peering.PeeringService/GenerateToken":            rate.OperationTypeWrite,
 	"/hashicorp.consul.internal.peering.PeeringService/PeeringDelete":            rate.OperationTypeWrite,
