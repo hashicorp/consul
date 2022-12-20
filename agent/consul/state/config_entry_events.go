@@ -147,7 +147,7 @@ func (s *Store) InlineCertificateSnapshot(req stream.SubscribeRequest, buf strea
 }
 
 // BoundAPIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
-// bound-api-gateways config entries.
+// bound-api-gateway config entries.
 func (s *Store) BoundAPIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.BoundAPIGateway, req, buf)
 }
