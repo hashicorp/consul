@@ -105,7 +105,7 @@ type Operation struct {
 	Type OperationType
 }
 
-//go:generate mockery --name RequestLimitsHandler --inpackage --filename mock_RequestLimitsHandler_test.go
+//go:generate mockery --name RequestLimitsHandler --inpackage
 type RequestLimitsHandler interface {
 	Run(ctx context.Context)
 	Allow(op Operation) error
