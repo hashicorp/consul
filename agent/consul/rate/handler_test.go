@@ -1,6 +1,8 @@
 package rate
 
 import (
+	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
@@ -136,7 +138,8 @@ func TestAllow(t *testing.T) {
 				mockRateLimiter.On("Allow", mock.Anything).Return(func(entity multilimiter.LimitedEntity) bool { return true })
 			}
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
-			handler := NewHandlerWithLimiter(*tc.cfg, nil, mockRateLimiter)
+			logger := hclog.NewNullLogger()
+			handler := NewHandlerWithLimiter(*tc.cfg, nil, mockRateLimiter, logger)
 			addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:1234"))
 			mockRateLimiter.Calls = nil
 			handler.Allow(Operation{Name: "test", SourceAddr: addr})
