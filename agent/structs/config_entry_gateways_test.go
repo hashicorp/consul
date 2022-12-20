@@ -1132,17 +1132,11 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-one",
 				Listeners: []APIGatewayListener{
 					{
-<<<<<<< HEAD
 						Port: 80,
 						Name: "foo",
 					},
 					{
 						Port: 80,
-=======
-						Name: "foo",
-					},
-					{
->>>>>>> 7ed74eef18 (Add APIGateway validation)
 						Name: "foo",
 					},
 				},
@@ -1185,7 +1179,6 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "cannot be merged",
 		},
-<<<<<<< HEAD
 		"invalid protocol": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -1279,8 +1272,6 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "certificate reference must have a name",
 		},
-=======
->>>>>>> 7ed74eef18 (Add APIGateway validation)
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
