@@ -1,6 +1,14 @@
 package structs
 
-import "github.com/hashicorp/consul/acl"
+import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate
 // with the given name.
@@ -10,6 +18,11 @@ type InlineCertificateConfigEntry struct {
 
 	// Name is used to match the config entry with its associated inline certificate.
 	Name string
+
+	// Certificate is the public certificate component of an x509 key pair encoded in raw PEM format.
+	Certificate string
+	// PrivateKey is the private key component of an x509 key pair encoded in raw PEM format.
+	PrivateKey string
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -29,6 +42,28 @@ func (e *InlineCertificateConfigEntry) Normalize() error {
 }
 
 func (e *InlineCertificateConfigEntry) Validate() error {
+	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
+	if privateKeyBlock == nil {
+		return errors.New("failed to parse private key PEM")
+	}
+
+	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
+	if certificateBlock == nil {
+		return errors.New("failed to parse certificate PEM")
+	}
+
+	// make sure we have a valid x509 certificate
+	_, err := x509.ParseCertificate(certificateBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	// validate that the cert was generated with the given private key
+	_, err = tls.X509KeyPair([]byte(e.Certificate), []byte(e.PrivateKey))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

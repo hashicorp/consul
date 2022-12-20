@@ -524,12 +524,16 @@ func InlineCertificateToStructs(s *InlineCertificate, t *structs.InlineCertifica
 	if s == nil {
 		return
 	}
+	t.Certificate = s.Certificate
+	t.PrivateKey = s.PrivateKey
 	t.Meta = s.Meta
 }
 func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificate) {
 	if s == nil {
 		return
 	}
+	s.Certificate = t.Certificate
+	s.PrivateKey = t.PrivateKey
 	s.Meta = t.Meta
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
