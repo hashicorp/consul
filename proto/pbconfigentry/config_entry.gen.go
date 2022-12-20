@@ -106,13 +106,79 @@ func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConf
 	if s == nil {
 		return
 	}
+	{
+		t.Listeners = make([]structs.BoundAPIGatewayListener, len(s.Listeners))
+		for i := range s.Listeners {
+			if s.Listeners[i] != nil {
+				BoundAPIGatewayListenerToStructs(s.Listeners[i], &t.Listeners[i])
+			}
+		}
+	}
 	t.Meta = s.Meta
 }
 func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
 	if s == nil {
 		return
 	}
+	{
+		s.Listeners = make([]*BoundAPIGatewayListener, len(t.Listeners))
+		for i := range t.Listeners {
+			{
+				var x BoundAPIGatewayListener
+				BoundAPIGatewayListenerFromStructs(&t.Listeners[i], &x)
+				s.Listeners[i] = &x
+			}
+		}
+	}
 	s.Meta = t.Meta
+}
+func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.BoundAPIGatewayListener) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	{
+		t.Routes = make([]structs.ResourceReference, len(s.Routes))
+		for i := range s.Routes {
+			if s.Routes[i] != nil {
+				ResourceReferenceToStructs(s.Routes[i], &t.Routes[i])
+			}
+		}
+	}
+	{
+		t.Certificates = make([]structs.ResourceReference, len(s.Certificates))
+		for i := range s.Certificates {
+			if s.Certificates[i] != nil {
+				ResourceReferenceToStructs(s.Certificates[i], &t.Certificates[i])
+			}
+		}
+	}
+}
+func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *BoundAPIGatewayListener) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	{
+		s.Routes = make([]*ResourceReference, len(t.Routes))
+		for i := range t.Routes {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Routes[i], &x)
+				s.Routes[i] = &x
+			}
+		}
+	}
+	{
+		s.Certificates = make([]*ResourceReference, len(t.Certificates))
+		for i := range t.Certificates {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Certificates[i], &x)
+				s.Certificates[i] = &x
+			}
+		}
+	}
 }
 func ConditionToStructs(s *Condition, t *structs.Condition) {
 	if s == nil {

@@ -1275,3 +1275,69 @@ func TestAPIGateway_Listeners(t *testing.T) {
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
+
+func TestBoundAPIGateway(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"invalid certificate, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-one",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Kind: InlineCertificate,
+						}},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+		"invalid certificate, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-two",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"invalid route, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-three",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Kind: TCPRoute,
+						}},
+					},
+				},
+			},
+			validateErr: "route reference must have a name",
+		},
+		"invalid route, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-four",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported route kind",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
