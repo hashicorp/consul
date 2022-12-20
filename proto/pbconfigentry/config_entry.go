@@ -266,3 +266,25 @@ func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
 		return structs.MeshGatewayModeDefault
 	}
 }
+
+func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGatewayListenerProtocol {
+	switch a {
+	case structs.ListenerProtocolHTTP:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	case structs.ListenerProtocolTCP:
+		return APIGatewayListenerProtocol_ListenerProtocolTCP
+	default:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	}
+}
+
+func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewayListenerProtocol {
+	switch a {
+	case APIGatewayListenerProtocol_ListenerProtocolHTTP:
+		return structs.ListenerProtocolHTTP
+	case APIGatewayListenerProtocol_ListenerProtocolTCP:
+		return structs.ListenerProtocolTCP
+	default:
+		return structs.ListenerProtocolHTTP
+	}
+}
