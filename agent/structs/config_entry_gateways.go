@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+const (
+	wildcardPrefix = "*."
+)
+
 // IngressGatewayConfigEntry manages the configuration for an ingress service
 // with the given name.
 type IngressGatewayConfigEntry struct {
@@ -371,7 +375,6 @@ func validateHost(tlsEnabled bool, host string) error {
 		return nil
 	}
 
-	wildcardPrefix := "*."
 	if _, ok := dns.IsDomainName(host); !ok {
 		return fmt.Errorf("Host %q must be a valid DNS hostname", host)
 	}
@@ -728,6 +731,11 @@ func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
 }
 
 func (e *APIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		protocol := strings.ToLower(string(listener.Protocol))
+		listener.Protocol = APIGatewayListenerProtocol(protocol)
+		e.Listeners[i] = listener
+	}
 	return nil
 }
 
@@ -738,7 +746,8 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	if err := e.validateMergedListeners(); err != nil {
 		return err
 	}
-	return e.validateTLS()
+
+	return e.validateListeners()
 }
 
 func (e *APIGatewayConfigEntry) validateListenerNames() error {
@@ -764,8 +773,26 @@ func (e *APIGatewayConfigEntry) validateMergedListeners() error {
 	return nil
 }
 
-func (e *APIGatewayConfigEntry) validateTLS() error {
+func (e *APIGatewayConfigEntry) validateListeners() error {
+	validProtocols := map[APIGatewayListenerProtocol]bool{
+		ListenerProtocolHTTP: true,
+		ListenerProtocolTCP:  true,
+	}
+
 	for _, listener := range e.Listeners {
+		if !validProtocols[listener.Protocol] {
+			return fmt.Errorf("unsupported listener protocol %q", listener.Protocol)
+		}
+		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
+			// TODO: once we have SNI matching we should be able to implement this
+			return fmt.Errorf("hostname specification is not supported when using TCP")
+		}
+		if listener.Port <= 0 || listener.Port > 65535 {
+			return fmt.Errorf("listener port %d not in the range 1-65535", listener.Port)
+		}
+		if strings.ContainsRune(strings.TrimPrefix(listener.Hostname, wildcardPrefix), '*') {
+			return fmt.Errorf("host %q is not valid, a wildcard specifier is only allowed as the left-most label", listener.Hostname)
+		}
 		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
 			return err
 		}

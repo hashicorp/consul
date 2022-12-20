@@ -1132,9 +1132,11 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-one",
 				Listeners: []APIGatewayListener{
 					{
+						Port: 80,
 						Name: "foo",
 					},
 					{
+						Port: 80,
 						Name: "foo",
 					},
 				},
@@ -1176,6 +1178,61 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 			},
 			validateErr: "cannot be merged",
+		},
+		"invalid protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-four",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("UDP"),
+					},
+				},
+			},
+			validateErr: "unsupported listener protocol",
+		},
+		"hostname in unsupported protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-five",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "hostname specification is not supported",
+		},
+		"invalid port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-six",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     -1,
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "not in the range 1-65535",
+		},
+		"invalid hostname": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-seven",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "*.*.host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "only allowed as the left-most label",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
