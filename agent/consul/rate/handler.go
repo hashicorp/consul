@@ -187,7 +187,7 @@ func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	existingCfg := h.cfg.Load()
 	h.cfg.Store(&cfg)
 	if reflect.DeepEqual(existingCfg, cfg) {
-		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the multilimiter.")
+		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the server rate limiter configuration.")
 		return
 	}
 	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
