@@ -619,7 +619,7 @@ message APIGatewayListener {
   int32 Port = 3;
   // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
   APIGatewayListenerProtocol Protocol = 4;
-  APIGatewayTLSConfiguration TLS = 5;
+	APIGatewayTLSConfiguration TLS = 5;
 }
 
 // mog annotation:
