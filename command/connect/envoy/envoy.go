@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-version"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -39,26 +41,27 @@ type cmd struct {
 	client *api.Client
 
 	// flags
-	meshGateway           bool
-	gateway               string
-	proxyID               string
-	nodeName              string
-	sidecarFor            string
-	adminAccessLogPath    string
-	adminBind             string
-	envoyBin              string
-	bootstrap             bool
-	disableCentralConfig  bool
-	grpcAddr              string
-	grpcCAFile            string
-	grpcCAPath            string
-	envoyVersion          string
-	prometheusBackendPort string
-	prometheusScrapePath  string
-	prometheusCAFile      string
-	prometheusCAPath      string
-	prometheusCertFile    string
-	prometheusKeyFile     string
+	meshGateway              bool
+	gateway                  string
+	proxyID                  string
+	nodeName                 string
+	sidecarFor               string
+	adminAccessLogPath       string
+	adminBind                string
+	envoyBin                 string
+	bootstrap                bool
+	disableCentralConfig     bool
+	grpcAddr                 string
+	grpcCAFile               string
+	grpcCAPath               string
+	envoyVersion             string
+	prometheusBackendPort    string
+	prometheusScrapePath     string
+	prometheusCAFile         string
+	prometheusCAPath         string
+	prometheusCertFile       string
+	prometheusKeyFile        string
+	ignoreEnvoyCompatibility bool
 
 	// mesh gateway registration information
 	register           bool
@@ -204,6 +207,10 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.prometheusKeyFile, "prometheus-key-file", "",
 		"Path to a private key file for Envoy to use when serving TLS on the Prometheus metrics endpoint. "+
 			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+	c.flags.BoolVar(&c.ignoreEnvoyCompatibility, "ignore-envoy-compatibility", false,
+		"If set to `true`, this flag ignores the Envoy version compatibility check. We recommend setting this "+
+			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
+			"Default is `false`.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -453,6 +460,27 @@ func (c *cmd) run(args []string) int {
 	if err != nil {
 		c.UI.Error("Couldn't find envoy binary: " + err.Error())
 		return 1
+	}
+
+	// Check if envoy version is supported
+	if !c.ignoreEnvoyCompatibility {
+		v, err := execEnvoyVersion(binary)
+		if err != nil {
+			c.UI.Warn("Couldn't get envoy version for compatibility check: " + err.Error())
+			return 1
+		}
+
+		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+
+		if err != nil {
+			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
+		} else if !ok {
+			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
+				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
+				"is not recommended and your experience may vary. For more information on compatibility "+
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", v))
+			return 1
+		}
 	}
 
 	err = execEnvoy(binary, nil, args, bootstrapJson)
@@ -834,3 +862,35 @@ Usage: consul connect envoy [options] [-- pass-through options]
     $ consul connect envoy -sidecar-for web -- --log-level debug
 `
 )
+
+func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (bool, error) {
+	// Now compare the versions to the list of supported versions
+	v, err := version.NewVersion(envoyVersion)
+	if err != nil {
+		return false, err
+	}
+
+	var cs strings.Builder
+
+	// Add one to the max minor version so that we accept all patches
+	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	minor, err := strconv.Atoi(splitS[1])
+	if err != nil {
+		return false, err
+	}
+	minor++
+	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
+
+	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
+	for _, s := range unsupportedList {
+		cs.WriteString(fmt.Sprintf(", != %s", s))
+	}
+
+	constraints, err := version.NewConstraint(cs.String())
+	if err != nil {
+		return false, err
+	}
+
+	return constraints.Check(v), nil
+}

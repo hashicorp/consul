@@ -104,6 +104,10 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
 
+- `-ignore-envoy-compatibility` - If set to `true`, this flag ignores the Envoy version
+compatibility check. We recommend setting this flag to `false` to ensure
+compatibility with Envoy and prevent potential issues. Default is `false`.
+
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
   documentation](https://www.envoyproxy.io/docs) for more details. The command
