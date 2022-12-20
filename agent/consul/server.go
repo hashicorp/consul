@@ -480,7 +480,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			WriteRate: config.RequestLimitsWriteRate,
 		}
 
-		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg), s)
+		s.incomingRPCLimiter = rpcRate.NewHandler(
+			*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg),
+			s,
+			serverLogger.Named("rpc-rate-limit"),
+		)
 	}
 	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
