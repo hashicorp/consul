@@ -47,5 +47,5 @@ type Condition struct {
 	// condition applies
 	Resource *ResourceReference
 	// LastTransitionTime is the time at which this Condition was created
-	LastTransitionTime time.Time
+	LastTransitionTime *time.Time
 }

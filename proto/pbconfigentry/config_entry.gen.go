@@ -831,7 +831,7 @@ func ResourceReferenceToStructs(s *ResourceReference, t *structs.ResourceReferen
 	t.Kind = s.Kind
 	t.Name = s.Name
 	t.SectionName = s.SectionName
-	t.EnterpriseMeta = *s.EnterpriseMeta
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func ResourceReferenceFromStructs(t *structs.ResourceReference, s *ResourceReference) {
 	if s == nil {
@@ -840,7 +840,7 @@ func ResourceReferenceFromStructs(t *structs.ResourceReference, s *ResourceRefer
 	s.Kind = t.Kind
 	s.Name = t.Name
 	s.SectionName = t.SectionName
-	s.EnterpriseMeta = &t.EnterpriseMeta
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func RingHashConfigToStructs(s *RingHashConfig, t *structs.RingHashConfig) {
 	if s == nil {

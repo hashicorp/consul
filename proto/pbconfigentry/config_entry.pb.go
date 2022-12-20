@@ -3894,9 +3894,10 @@ type ResourceReference struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Kind           string                   `protobuf:"bytes,1,opt,name=Kind,proto3" json:"Kind,omitempty"`
-	Name           string                   `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
-	SectionName    string                   `protobuf:"bytes,3,opt,name=SectionName,proto3" json:"SectionName,omitempty"`
+	Kind        string `protobuf:"bytes,1,opt,name=Kind,proto3" json:"Kind,omitempty"`
+	Name        string `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
+	SectionName string `protobuf:"bytes,3,opt,name=SectionName,proto3" json:"SectionName,omitempty"`
+	// mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
 	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,4,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
 }
 
