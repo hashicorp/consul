@@ -889,8 +889,14 @@ RESOLVE_AGAIN:
 
 	targetID := target.ServiceID()
 
-	if err := c.recordServiceProtocol(targetID); err != nil {
-		return nil, err
+	// Only validate protocol if it is not a peered service.
+	// TODO: Add in remote peer protocol validation when building a chain.
+	// This likely would require querying the imported services, which
+	// shouldn't belong in the discovery chain compilation here.
+	if target.Peer == "" {
+		if err := c.recordServiceProtocol(targetID); err != nil {
+			return nil, err
+		}
 	}
 
 	// Fetch the config entry.
