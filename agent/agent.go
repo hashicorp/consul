@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
@@ -542,6 +543,24 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+// Nasty hack to deal with the circular dependency.
+// rate.Handler needs a reference to consul.Server to ask it "isLeader()".
+// consul.Server needs a reference to rate.Handler to implement rate limiting and reload rate-limiting config
+// Neither can be created without the other existing first.
+// Use ServerWrapper as a proxy for consul.Server to break the chain
+// TODO: There has got to be a better way!
+type ServerWrapper struct {
+	server *consul.Server
+}
+
+func (sw *ServerWrapper) SetServer(server *consul.Server) {
+	sw.server = server
+}
+
+func (sw *ServerWrapper) IsLeader() bool {
+	return sw.server.IsLeader()
+}
+
 // Start verifies its configuration and runs an agent's various subprocesses.
 func (a *Agent) Start(ctx context.Context) error {
 	a.stateLock.Lock()
@@ -565,21 +584,23 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
+	// XXX
+
 	// gRPC calls are only rate-limited on server, not client agents.
-	var grpcRateLimiter rpcRate.RequestLimitsHandler
-	grpcRateLimiter = rpcRate.NullRateLimiter()
-	if s, ok := a.delegate.(*consul.Server); ok {
-		grpcRateLimiter = s.IncomingRPCLimiter()
-	}
+	// var grpcRateLimiter rpcRate.RequestLimitsHandler
+	// grpcRateLimiter = rpcRate.NullRateLimiter()
+	// if s, ok := a.delegate.(*consul.Server); ok {
+	// 	grpcRateLimiter = s.IncomingRPCLimiter()
+	// }
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(
-		a.logger.Named("grpc.external"),
-		metrics.Default(),
-		a.tlsConfigurator,
-		grpcRateLimiter,
-	)
+	// a.externalGRPCServer = external.NewServer(
+	// 	a.logger.Named("grpc.external"),
+	// 	metrics.Default(),
+	// 	a.tlsConfigurator,
+	// 	grpcRateLimiter,
+	// )
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -618,11 +639,38 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
+
+		// XXX
+
+		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+		limitsConfig := &consul.RequestLimits{
+			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
+			ReadRate:  consulCfg.RequestLimitsReadRate,
+			WriteRate: consulCfg.RequestLimitsWriteRate,
+		}
+
+		serverWrapper := &ServerWrapper{}
+
+		rateLimiterConfig := consul.ConvertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
+		incomingRPCLimiter := rpcRate.NewHandler(
+			rateLimiterConfig,
+			serverWrapper,
+			serverLogger.Named("rpc-rate-limit"),
+		)
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
+		serverWrapper.SetServer(server)
+
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			grpcRateLimiter,
+		)
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
 			d := servercert.Deps{
@@ -642,6 +690,13 @@ func (a *Agent) Start(ctx context.Context) error {
 		}
 
 	} else {
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			rpcRate.NullRateLimiter(),
+		)
+
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)

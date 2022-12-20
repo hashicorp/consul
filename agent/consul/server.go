@@ -407,7 +407,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -463,6 +463,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
+		incomingRPCLimiter:      incomingRPCLimiter,
 	}
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
@@ -472,21 +473,22 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	})
 
 	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
-	if s.incomingRPCLimiter == nil {
-		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
-		limitsConfig := &RequestLimits{
-			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
-			ReadRate:  config.RequestLimitsReadRate,
-			WriteRate: config.RequestLimitsWriteRate,
-		}
+	// XXX
+	// if s.incomingRPCLimiter == nil {
+	// 	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+	// 	limitsConfig := &RequestLimits{
+	// 		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
+	// 		ReadRate:  config.RequestLimitsReadRate,
+	// 		WriteRate: config.RequestLimitsWriteRate,
+	// 	}
 
-		s.incomingRPCLimiter = rpcRate.NewHandler(
-			*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg),
-			s,
-			serverLogger.Named("rpc-rate-limit"),
-		)
-	}
-	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+	// 	s.incomingRPCLimiter = rpcRate.NewHandler(
+	// 		*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg),
+	// 		s,
+	// 		serverLogger.Named("rpc-rate-limit"),
+	// 	)
+	// }
+	// s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -1700,7 +1702,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	if config.RequestLimits != nil {
-		s.incomingRPCLimiter.UpdateConfig(*s.convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+		s.incomingRPCLimiter.UpdateConfig(*ConvertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
 	}
 
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
@@ -1855,7 +1857,26 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 
 // convertConsulConfigToRateLimitHandlerConfig creates a rate limite handler config
 // from the relevant fields in the consul runtime config.
-func (s *Server) convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+// func (s *Server) convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+// 	hc := &rpcRate.HandlerConfig{
+// 		GlobalMode: limitsConfig.Mode,
+// 		GlobalReadConfig: multilimiter.LimiterConfig{
+// 			Rate:  limitsConfig.ReadRate,
+// 			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+// 		},
+// 		GlobalWriteConfig: multilimiter.LimiterConfig{
+// 			Rate:  limitsConfig.WriteRate,
+// 			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+// 		},
+// 	}
+// 	if multilimiterConfig != nil {
+// 		hc.Config = *multilimiterConfig
+// 	}
+
+// 	return hc
+// }
+
+func ConvertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
 	hc := &rpcRate.HandlerConfig{
 		GlobalMode: limitsConfig.Mode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
