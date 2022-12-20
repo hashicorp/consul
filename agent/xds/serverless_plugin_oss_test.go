@@ -29,9 +29,9 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
 	// This is used to test all the permutations.
 	makeServiceDefaults := func(opposite bool) *structs.ServiceConfigEntry {
-		payloadPassthrough := "true"
+		payloadPassthrough := true
 		if opposite {
-			payloadPassthrough = "false"
+			payloadPassthrough = false
 		}
 
 		invocationMode := "synchronous"
@@ -43,12 +43,16 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 			Kind:     structs.ServiceDefaults,
 			Name:     "db",
 			Protocol: "http",
-			Meta: map[string]string{
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": payloadPassthrough,
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/invocation-mode":     invocationMode,
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: "builtin/aws/lambda",
+					Arguments: map[string]interface{}{
+						"ARN":                "lambda-arn",
+						"PayloadPassthrough": payloadPassthrough,
+						"InvocationMode":     invocationMode,
+						"Region":             "us-east-1",
+					},
+				},
 			},
 		}
 	}

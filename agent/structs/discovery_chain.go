@@ -38,6 +38,9 @@ type CompiledDiscoveryChain struct {
 	// entry for the service named ServiceName.
 	ServiceMeta map[string]string `json:",omitempty"`
 
+	// EnvoyExtensions has a list of configurations for an extension that patches Envoy resources.
+	EnvoyExtensions []EnvoyExtension `json:",omitempty"`
+
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
 	StartNode string `json:",omitempty"`
