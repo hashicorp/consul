@@ -136,12 +136,9 @@ func TestAllow(t *testing.T) {
 			}
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			handler := NewHandlerWithLimiter(*tc.cfg, nil, mockRateLimiter)
-			h, p, err := net.SplitHostPort("127.0.0.1:1234")
-			require.NoError(t, err)
-			port, err := strconv.Atoi(p)
-			require.NoError(t, err)
+			addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:1234"))
 			mockRateLimiter.Calls = nil
-			handler.Allow(Operation{Name: "test", SourceAddr: &net.TCPAddr{IP: net.ParseIP(h), Port: port}})
+			handler.Allow(Operation{Name: "test", SourceAddr: addr})
 			mockRateLimiter.AssertNumberOfCalls(t, "Allow", tc.expectedAllowCalls)
 		})
 	}
