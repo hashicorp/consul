@@ -9,6 +9,9 @@ type TCPRouteConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	Parents  []ResourceReference
+	Services []TCPService
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
@@ -67,6 +70,20 @@ func (a *TCPRouteConfigEntry) GetCreateIndex() uint64 {
 
 func (a *TCPRouteConfigEntry) GetModifyIndex() uint64 {
 	return a.ModifyIndex
+}
+
+// TCPService is a service reference for a TCPRoute
+type TCPService struct {
+	Name   string
+	Weight int
+
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	Namespace string `json:",omitempty"`
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route

@@ -1216,13 +1216,65 @@ func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
 	if s == nil {
 		return
 	}
+	{
+		t.Parents = make([]structs.ResourceReference, len(s.Parents))
+		for i := range s.Parents {
+			if s.Parents[i] != nil {
+				ResourceReferenceToStructs(s.Parents[i], &t.Parents[i])
+			}
+		}
+	}
+	{
+		t.Services = make([]structs.TCPService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				TCPServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
 	t.Meta = s.Meta
 }
 func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 	if s == nil {
 		return
 	}
+	{
+		s.Parents = make([]*ResourceReference, len(t.Parents))
+		for i := range t.Parents {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Parents[i], &x)
+				s.Parents[i] = &x
+			}
+		}
+	}
+	{
+		s.Services = make([]*TCPService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x TCPService
+				TCPServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
 	s.Meta = t.Meta
+}
+func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Weight = int(s.Weight)
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Weight = int32(t.Weight)
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {
