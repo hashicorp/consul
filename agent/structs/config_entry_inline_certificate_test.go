@@ -2,9 +2,9 @@ package structs
 
 import "testing"
 
-func TestInlineCertificate(t *testing.T) {
+const (
 	// generated via openssl req -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout private.key -out certificate.crt
-	var validPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+	validPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAx95Opa6t4lGEpiTUogEBptqOdam2ch4BHQGhNhX/MrDwwuZQ
 httBwMfngQ/wd9NmYEPAwj0dumUoAITIq6i2jQlhqTodElkbsd5vWY8R/bxJWQSo
 NvVE12TlzECxGpJEiHt4W0r8pGffk+rvpljiUyCfnT1kGF3znOSjK1hRMTn6RKWC
@@ -31,7 +31,7 @@ T0+9gwKBgHDoerX7NTskg0H0t8O+iSMevdxpEWp34ZYa9gHiftTQGyrRgERCa7Gj
 nZPAxKb2JoWyfnu3v7G5gZ8fhDFsiOxLbZv6UZJBbUIh1MjJISpXrForDrC2QNLX
 kHrHfwBFDB3KMudhQknsJzEJKCL/KmFH6o0MvsoaT9yzEl3K+ah/
 -----END RSA PRIVATE KEY-----`
-	var validCertificate = `-----BEGIN CERTIFICATE-----
+	validCertificate = `-----BEGIN CERTIFICATE-----
 MIICljCCAX4CCQCQMDsYO8FrPjANBgkqhkiG9w0BAQsFADANMQswCQYDVQQGEwJV
 UzAeFw0yMjEyMjAxNzUwMjVaFw0yNzEyMTkxNzUwMjVaMA0xCzAJBgNVBAYTAlVT
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx95Opa6t4lGEpiTUogEB
@@ -47,7 +47,7 @@ NtyHRuD+KYRmjXtyX1yHNqfGN3vOQmwavHq2R8wHYuBSc6LAHHV9vG+j0VsgMELO
 qwxn8SmLkSKbf2+MsQVzLCXXN5u+D8Yv+4py+oKP4EQ5aFZuDEx+r/G/31rTthww
 AAJAMaoXmoYVdgXV+CPuBb2M4XCpuzLu3bcA2PXm5ipSyIgntMKwXV7r
 -----END CERTIFICATE-----`
-	var mismatchedCertificate = `-----BEGIN CERTIFICATE-----
+	mismatchedCertificate = `-----BEGIN CERTIFICATE-----
 MIICljCCAX4CCQC49bq8e0QgLDANBgkqhkiG9w0BAQsFADANMQswCQYDVQQGEwJV
 UzAeFw0yMjEyMjAxNzUyMzJaFw0yNzEyMTkxNzUyMzJaMA0xCzAJBgNVBAYTAlVT
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk7Are9ulVDY0IqaG5Pt/
@@ -63,7 +63,9 @@ pWLwGZKJifKPa7ObVWmKj727kbU59nA2Hx+Y4qa/MyiPWxJM9Y0JsFGxSBxp4kmQ
 q4ikzSWaPv/TvtV+d4mO1H44aggdNMCYIQd/5BXQzG40l+ecHnBueJyG312ax/Zp
 NsYUAKQT864cGlxrnWVgT4sW/tsl9Qen7g9iAdeBAPvLO7cQjAjtc7KZ
 -----END CERTIFICATE-----`
+)
 
+func TestInlineCertificate(t *testing.T) {
 	cases := map[string]configEntryTestcase{
 		"invalid private key": {
 			entry: &InlineCertificateConfigEntry{
