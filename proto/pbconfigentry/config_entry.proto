@@ -669,7 +669,7 @@ message BoundAPIGateway {
 message BoundAPIGatewayListener {
   string Name = 1;
   repeated ResourceReference Certificates = 2;
-  repeated ResourceReference Routes = 3;  
+  repeated ResourceReference Routes = 3;
 }
 
 // mog annotation:
