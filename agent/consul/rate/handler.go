@@ -175,11 +175,15 @@ func (h *Handler) Run(ctx context.Context) {
 // Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
-	// TODO(NET-1383): actually implement the rate limiting logic.
-	//
-	// Example:
-	//	if !h.limiter.Allow(globalWrite) {
-	//	}
+	cfg := h.cfg.Load()
+	if cfg.GlobalMode == ModeDisabled {
+		return nil
+	}
+
+	if !h.limiter.Allow(globalWrite) {
+		// TODO(NET-1383): actually implement the rate limiting logic and replace this returned nil.
+		return nil
+	}
 	return nil
 }
 
@@ -214,15 +218,15 @@ func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
 
-// NullRateLimiter returns a RateLimiter that allows every operation.
-func NullRateLimiter() RequestLimitsHandler {
-	return nullRateLimiter{}
+// NullRequestLimitsHandler returns a RequestLimitsHandler that allows every operation.
+func NullRequestLimitsHandler() RequestLimitsHandler {
+	return nullRequestLimitsHandler{}
 }
 
-type nullRateLimiter struct{}
+type nullRequestLimitsHandler struct{}
 
-func (nullRateLimiter) Allow(Operation) error { return nil }
+func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 
-func (nullRateLimiter) Run(ctx context.Context) {}
+func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
-func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}
+func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
