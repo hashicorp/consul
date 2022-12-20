@@ -234,6 +234,12 @@ type APIGatewayConfigEntry struct {
 
 	Meta map[string]string `json:",omitempty"`
 
+	// Listeners is the set of listener configuration to which an API Gateway
+	// might bind.
+	Listeners []APIGatewayListener
+	// Status is the asynchronous status which an APIGateway propagates to the user.
+	Status ConfigEntryStatus
+
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
 	CreateIndex uint64
@@ -246,12 +252,6 @@ type APIGatewayConfigEntry struct {
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
-
-	// Listeners is the set of listener configuration to which an API Gateway
-	// might bind.
-	Listeners []APIGatewayListener
-	// Status is the asynchronous status which an APIGateway propagates to the user.
-	Status ConfigEntryStatus
 
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
