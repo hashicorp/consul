@@ -717,7 +717,7 @@ enum HTTPMatchMethod {
   HTTPMatchMethodPatch = 6;
   HTTPMatchMethodPost = 7;
   HTTPMatchMethodPut = 8;
-  HTTPMatchMethodTrace = 9; 
+  HTTPMatchMethodTrace = 9;
 }
 
 enum HTTPHeaderMatchType {
