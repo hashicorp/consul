@@ -125,6 +125,14 @@ func TestPBToStreamSubscribeRequest(t *testing.T) {
 		"Unrecognized topic returns error": {
 			req: &pbsubscribe.SubscribeRequest{
 				Topic: 99999,
+				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+					NamedSubject: &pbsubscribe.NamedSubject{
+						Key:       "key",
+						Namespace: "consul",
+						Partition: "partition",
+						PeerName:  "peer",
+					},
+				},
 			},
 			entMeta:                  acl.EnterpriseMeta{},
 			expectedSubscribeRequest: nil,
@@ -137,7 +145,7 @@ func TestPBToStreamSubscribeRequest(t *testing.T) {
 			actual, err := PBToStreamSubscribeRequest(tc.req, tc.entMeta)
 
 			if tc.err != nil {
-				require.Error(t, err)
+				require.EqualError(t, err, tc.err.Error())
 			} else {
 				require.NoError(t, err)
 			}
