@@ -1234,6 +1234,44 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "only allowed as the left-most label",
 		},
+		"unsupported certificate kind": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-eight",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: APIGateway,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"unnamed certificate": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-nine",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: InlineCertificate,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }

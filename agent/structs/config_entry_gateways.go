@@ -778,6 +778,9 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		ListenerProtocolHTTP: true,
 		ListenerProtocolTCP:  true,
 	}
+	allowedCertificateKinds := map[string]bool{
+		InlineCertificate: true,
+	}
 
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
@@ -792,6 +795,14 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		if strings.ContainsRune(strings.TrimPrefix(listener.Hostname, wildcardPrefix), '*') {
 			return fmt.Errorf("host %q is not valid, a wildcard specifier is only allowed as the left-most label", listener.Hostname)
+		}
+		for _, certificate := range listener.TLS.Certificates {
+			if !allowedCertificateKinds[certificate.Kind] {
+				return fmt.Errorf("unsupported certificate kind: %q", certificate.Kind)
+			}
+			if certificate.Name == "" {
+				return fmt.Errorf("certificate reference must have a name")
+			}
 		}
 		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
 			return err
