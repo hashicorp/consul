@@ -247,6 +247,12 @@ type APIGatewayConfigEntry struct {
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
 
+	// Listeners is the set of listener configuration to which an API Gateway
+	// might bind.
+	Listeners []APIGatewayListener
+	// Status is the asynchronous status which an APIGateway propagates to the user.
+	Status ConfigEntryStatus
+
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
@@ -259,3 +265,38 @@ func (g *APIGatewayConfigEntry) GetNamespace() string       { return g.Namespace
 func (g *APIGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
 func (g *APIGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
+
+// APIGatewayListener represents an individual listener for an APIGateway
+type APIGatewayListener struct {
+	// Name is the optional name of the listener in a given gateway. This is
+	// optional, however, it must be unique. Therefore, if a gateway has more
+	// than a single listener, all but one must specify a Name.
+	Name string
+	// Hostname is the host name that a listener should be bound to, if
+	// unspecified, the listener accepts requests for all hostnames.
+	Hostname string
+	// Port is the port at which this listener should bind.
+	Port int
+	// Protocol is the protocol that a listener should use, it must
+	// either be "http" or "tcp"
+	Protocol string
+	// TLS is the TLS settings for the listener.
+	TLS APIGatewayTLSConfiguration
+}
+
+// APIGatewayTLSConfiguration specifies the configuration of a listener’s
+// TLS settings.
+type APIGatewayTLSConfiguration struct {
+	// Certificates is a set of references to certificates
+	// that a gateway listener uses for TLS termination.
+	Certificates []ResourceReference
+	// MaxVersion is the maximum TLS version that the listener
+	// should support.
+	MaxVersion string `json:",omitempty" alias:"tls_max_version"`
+	// MinVersion is the minimum TLS version that the listener
+	// should support.
+	MinVersion string `json:",omitempty" alias:"tls_min_version"`
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
+}
