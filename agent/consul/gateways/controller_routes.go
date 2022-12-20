@@ -10,19 +10,18 @@ import (
 )
 
 type tcpRouteReconciler struct {
-	baseReconciler
+	fsm    *fsm.FSM
+	logger hclog.Logger
 }
 
 func (r tcpRouteReconciler) Reconcile(ctx context.Context, req controller.Request) error {
 	return nil
 }
 
-func TCPRouteController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
+func NewTCPRouteController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
 	reconciler := tcpRouteReconciler{
-		baseReconciler{
-			fsm:    fsm,
-			logger: logger,
-		},
+		fsm:    fsm,
+		logger: logger,
 	}
 	return controller.New(publisher, reconciler).Subscribe(
 		&stream.SubscribeRequest{
@@ -33,19 +32,18 @@ func TCPRouteController(fsm *fsm.FSM, publisher state.EventPublisher, logger hcl
 }
 
 type httpRouteReconciler struct {
-	baseReconciler
+	fsm    *fsm.FSM
+	logger hclog.Logger
 }
 
 func (r httpRouteReconciler) Reconcile(ctx context.Context, req controller.Request) error {
 	return nil
 }
 
-func HTTPRouteController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
+func NewHTTPRouteController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
 	reconciler := httpRouteReconciler{
-		baseReconciler{
-			fsm:    fsm,
-			logger: logger,
-		},
+		fsm:    fsm,
+		logger: logger,
 	}
 	return controller.New(publisher, reconciler).Subscribe(
 		&stream.SubscribeRequest{
