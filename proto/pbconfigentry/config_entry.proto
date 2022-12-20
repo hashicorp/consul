@@ -585,7 +585,7 @@ message APIGateway {
 // output=config_entry.gen.go
 // name=Structs
 message Status {
-	repeated Condition Conditions = 1;
+  repeated Condition Conditions = 1;
 }
 
 // mog annotation:
@@ -594,9 +594,9 @@ message Status {
 // output=config_entry.gen.go
 // name=Structs
 message Condition {
-	string Status = 1;
-	string Reason = 2;
-	string Message = 3;
+  string Status = 1;
+  string Reason = 2;
+  string Message = 3;
   ResourceReference Resource = 4;
   // mog: func-to=timeToStructs func-from=timeFromStructs
   google.protobuf.Timestamp LastTransitionTime = 5;
@@ -619,7 +619,7 @@ message APIGatewayListener {
   int32 Port = 3;
   // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
   APIGatewayListenerProtocol Protocol = 4;
-	APIGatewayTLSConfiguration TLS = 5;
+  APIGatewayTLSConfiguration TLS = 5;
 }
 
 // mog annotation:
