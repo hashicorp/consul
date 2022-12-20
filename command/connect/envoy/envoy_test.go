@@ -3,14 +3,18 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mitchellh/cli"
@@ -116,8 +120,9 @@ type generateConfigTestCase struct {
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
 	NamespacesEnabled bool
-	XDSPorts          agent.GRPCPorts // only used for testing custom-configured grpc port
-	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
+	XDSPorts          agent.GRPCPorts                                 // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
+	AgentSelf110      bool                                            // fake the agent API from versions v1.10 and earlier
+	DialFunc          func(network, address string) (net.Conn, error) // defaults to a no-op function. Overwrite to test error handling.
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 }
@@ -138,6 +143,23 @@ func TestGenerateConfig(t *testing.T) {
 			Name:    "node-name without proxy-id",
 			Flags:   []string{"-node-name", "test-node"},
 			WantErr: "'-node-name' requires '-proxy-id'",
+		},
+		{
+			Name:  "gRPC disabled",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			XDSPorts: agent.GRPCPorts{
+				Plaintext: -1,
+				TLS:       -1,
+			},
+			WantErr: "agent has grpc disabled",
+		},
+		{
+			Name:  "connection not available",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			DialFunc: func(network, address string) (net.Conn, error) {
+				return net.DialTimeout(network, address, time.Second)
+			},
+			WantErr: "connection refused",
 		},
 		{
 			Name:  "defaults",
@@ -544,22 +566,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-file",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8502",
-				},
-			},
+			Name:    "missing-ca-file",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			WantErr: "Error loading CA File: open some/path: no such file or directory",
 		},
 		{
@@ -590,22 +598,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "missing-ca-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
-			WantArgs: BootstrapTplArgs{
-				ProxyCluster: "test-proxy",
-				ProxyID:      "test-proxy",
-				// We don't know this til after the lookup so it will be empty in the
-				// initial args call we are testing here.
-				ProxySourceService: "",
-				// Should resolve IP, note this might not resolve the same way
-				// everywhere which might make this test brittle but not sure what else
-				// to do.
-				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
-					AgentPort:    "8502",
-				},
-			},
+			Name:    "missing-ca-path",
+			Flags:   []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
@@ -1084,6 +1078,11 @@ func TestGenerateConfig(t *testing.T) {
 				}
 			}
 
+			// Default the ports
+			if tc.XDSPorts.TLS == 0 && tc.XDSPorts.Plaintext == 0 {
+				tc.XDSPorts.Plaintext = 8502
+			}
+
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
 			var srv *httptest.Server
@@ -1105,6 +1104,14 @@ func TestGenerateConfig(t *testing.T) {
 			c := New(ui)
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
+
+			if tc.DialFunc != nil {
+				c.dialFunc = tc.DialFunc
+			} else {
+				c.dialFunc = func(_, _ string) (net.Conn, error) {
+					return nil, nil
+				}
+			}
 
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
@@ -1517,4 +1524,84 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 		}
 		w.Write(selfJSON)
 	}
+}
+
+func TestCheckEnvoyVersionCompatibility(t *testing.T) {
+	tests := []struct {
+		name            string
+		envoyVersion    string
+		unsupportedList []string
+		expectedSupport bool
+		isErrorExpected bool
+	}{
+		{
+			name:            "supported-using-proxy-support-defined",
+			envoyVersion:    proxysupport.EnvoyVersions[1],
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "supported-at-max",
+			envoyVersion:    proxysupport.GetMaxEnvoyMinorVersion(),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "supported-patch-higher",
+			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "not-supported-minor-higher",
+			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+		},
+		{
+			name:            "not-supported-minor-lower",
+			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[len(proxysupport.EnvoyVersions)-1], -1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+		},
+		{
+			name:            "not-supported-explicitly-unsupported-version",
+			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: []string{"1.23.1", addNPatchVersion(proxysupport.EnvoyVersions[0], 1)},
+			expectedSupport: false,
+		},
+		{
+			name:            "error-bad-input",
+			envoyVersion:    "1.abc.3",
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+			isErrorExpected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := checkEnvoyVersionCompatibility(tc.envoyVersion, tc.unsupportedList)
+			if tc.isErrorExpected {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.expectedSupport, actual)
+		})
+	}
+}
+
+func addNPatchVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	minor, _ := strconv.Atoi(splitS[2])
+	minor += n
+	return fmt.Sprintf("%s.%s.%d", splitS[0], splitS[1], minor)
+}
+
+func addNMinorVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	major, _ := strconv.Atoi(splitS[1])
+	major += n
+	return fmt.Sprintf("%s.%d.%s", splitS[0], major, splitS[2])
 }

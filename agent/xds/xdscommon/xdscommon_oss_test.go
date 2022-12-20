@@ -42,11 +42,15 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
 			webService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+				EnvoyExtensions: []api.EnvoyExtension{
+					{
+						Name: "builtin/aws/lambda",
+						Arguments: map[string]interface{}{
+							"ARN":                "lambda-arn",
+							"PayloadPassthrough": true,
+							"Region":             "us-east-1",
+						},
+					},
 				},
 			},
 			apiService: {
@@ -84,17 +88,22 @@ func TestMakePluginConfiguration_ConnectProxy(t *testing.T) {
 		Partition: "default",
 		Namespace: "default",
 	}
-	lambdaMeta := map[string]string{
-		"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-		"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-		"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
-		"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+	envoyExtensions := []structs.EnvoyExtension{
+		{
+			Name: "builtin/aws/lambda",
+			Arguments: map[string]interface{}{
+				"ARN":                "lambda-arn",
+				"PayloadPassthrough": true,
+				"Region":             "us-east-1",
+			},
+		},
 	}
+
 	serviceDefaults := &structs.ServiceConfigEntry{
-		Kind:     structs.ServiceDefaults,
-		Name:     "db",
-		Protocol: "http",
-		Meta:     lambdaMeta,
+		Kind:            structs.ServiceDefaults,
+		Name:            "db",
+		Protocol:        "http",
+		EnvoyExtensions: envoyExtensions,
 	}
 
 	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
@@ -102,8 +111,8 @@ func TestMakePluginConfiguration_ConnectProxy(t *testing.T) {
 		Kind: api.ServiceKindConnectProxy,
 		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
 			dbService: {
-				Kind: api.ServiceKindConnectProxy,
-				Meta: lambdaMeta,
+				Kind:            api.ServiceKindConnectProxy,
+				EnvoyExtensions: convertEnvoyExtensions(envoyExtensions),
 			},
 		},
 		SNIToServiceName: map[string]api.CompoundServiceName{

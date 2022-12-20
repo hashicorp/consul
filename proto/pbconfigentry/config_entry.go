@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
@@ -265,4 +266,15 @@ func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
 	default:
 		return structs.MeshGatewayModeDefault
 	}
+}
+
+func envoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
+	return args.GetStructValue().AsMap()
+}
+
+func envoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
+	if s, err := structpb.NewValue(args); err == nil {
+		return s
+	}
+	return nil
 }

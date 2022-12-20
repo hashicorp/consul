@@ -1,13 +1,11 @@
 package rate
 
 import (
-	"net"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/go-hclog"
 	mock "github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
@@ -20,7 +18,9 @@ func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 		GlobalWriteConfig: writeCfg,
 		GlobalMode:        ModeEnforcing,
 	}
-	NewHandlerWithLimiter(*cfg, nil, mockRateLimiter)
+
+	logger := hclog.NewNullLogger()
+	NewHandlerWithLimiter(*cfg, nil, mockRateLimiter, logger)
 	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)
 }
 
@@ -80,7 +80,8 @@ func TestUpdateConfig(t *testing.T) {
 			}
 			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
-			handler := NewHandlerWithLimiter(*cfg, nil, mockRateLimiter)
+			logger := hclog.NewNullLogger()
+			handler := NewHandlerWithLimiter(*cfg, nil, mockRateLimiter, logger)
 			mockRateLimiter.Calls = nil
 			tc.configModFunc(cfg)
 			handler.UpdateConfig(*cfg)
