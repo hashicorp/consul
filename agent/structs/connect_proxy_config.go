@@ -149,6 +149,9 @@ func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
 }
 
 func (c *TransparentProxyConfig) IsZero() bool {
+	if c == nil {
+		return true
+	}
 	zeroVal := TransparentProxyConfig{}
 	return *c == zeroVal
 }
@@ -174,8 +177,19 @@ type AccessLogsConfig struct {
 	TextFormat string `json:",omitempty" alias:"text_format"`
 }
 
-func (c AccessLogsConfig) ToAPI() api.AccessLogsConfig {
-	return api.AccessLogsConfig{
+func (c *AccessLogsConfig) IsZero() bool {
+	if c == nil {
+		return true
+	}
+	zeroVal := AccessLogsConfig{}
+	return *c == zeroVal
+}
+
+func (c *AccessLogsConfig) ToAPI() *api.AccessLogsConfig {
+	if c.IsZero() {
+		return nil
+	}
+	return &api.AccessLogsConfig{
 		Enabled:             c.Enabled,
 		DisableListenerLogs: c.DisableListenerLogs,
 		Type:                api.LogSinkType(c.Type),
@@ -185,7 +199,7 @@ func (c AccessLogsConfig) ToAPI() api.AccessLogsConfig {
 	}
 }
 
-func (c AccessLogsConfig) Validate() error {
+func (c *AccessLogsConfig) Validate() error {
 	switch c.Type {
 	case DefaultLogSinkType, StdErrLogSinkType, StdOutLogSinkType:
 		// OK
@@ -286,6 +300,7 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		LocalServiceSocketPathSnake string                 `json:"local_service_socket_path"`
 		MeshGatewaySnake            MeshGatewayConfig      `json:"mesh_gateway"`
 		TransparentProxySnake       TransparentProxyConfig `json:"transparent_proxy"`
+		AccessLogsSnake             AccessLogsConfig       `json:"access_logs"`
 		*Alias
 	}{
 		Alias: (*Alias)(t),
@@ -317,7 +332,24 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	if !t.TransparentProxy.DialedDirectly {
 		t.TransparentProxy.DialedDirectly = aux.TransparentProxySnake.DialedDirectly
 	}
-
+	if !t.AccessLogs.Enabled {
+		t.AccessLogs.Enabled = aux.AccessLogsSnake.Enabled
+	}
+	if !t.AccessLogs.DisableListenerLogs {
+		t.AccessLogs.DisableListenerLogs = aux.AccessLogsSnake.DisableListenerLogs
+	}
+	if t.AccessLogs.Type == "" {
+		t.AccessLogs.Type = aux.AccessLogsSnake.Type
+	}
+	if t.AccessLogs.Path == "" {
+		t.AccessLogs.Path = aux.AccessLogsSnake.Path
+	}
+	if t.AccessLogs.JSONFormat == "" {
+		t.AccessLogs.JSONFormat = aux.AccessLogsSnake.JSONFormat
+	}
+	if t.AccessLogs.TextFormat == "" {
+		t.AccessLogs.TextFormat = aux.AccessLogsSnake.TextFormat
+	}
 	return nil
 }
 
@@ -341,7 +373,7 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 		out.TransparentProxy = &out.Alias.TransparentProxy
 	}
 
-	if c.AccessLogs.Enabled {
+	if !c.AccessLogs.IsZero() {
 		out.AccessLogs = &out.Alias.AccessLogs
 	}
 
