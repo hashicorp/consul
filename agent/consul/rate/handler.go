@@ -8,6 +8,7 @@ import (
 	"github.com/armon/go-metrics"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/go-hclog"
+	"io"
 	"net"
 	"reflect"
 	"sync/atomic"
@@ -179,7 +180,8 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
 	h.limiter.Run(ctx)
-	h.logger.RegisterSink(logdrop.NewLogDropSink(ctx, "rate-limiter", 100, hclog.NewSinkAdapter(&hclog.LoggerOptions{}), func(l logdrop.Log) {
+	discardLogger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
+	discardLogger.RegisterSink(logdrop.NewLogDropSink(ctx, 100, h.logger, func(l logdrop.Log) {
 		metrics.IncrCounter([]string{"consul", "rate_limit", "log_dropped"}, 1)
 	}))
 }
