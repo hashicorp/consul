@@ -537,7 +537,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 		},
 		{
 			name:  "inline-certificate",
-			entry: &InlineCertificateConfigEntry{Name: "test"},
+			entry: &InlineCertificateConfigEntry{Name: "test", Certificate: validCertificate, PrivateKey: validPrivateKey},
 			expectACLs: []testACL{
 				{
 					name:       "no-authz",

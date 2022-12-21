@@ -658,6 +658,18 @@ message ResourceReference {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message BoundAPIGateway {
   map<string, string> Meta = 1;
+  repeated BoundAPIGatewayListener Listeners = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayListener
+// output=config_entry.gen.go
+// name=Structs
+message BoundAPIGatewayListener {
+  string Name = 1;
+  repeated ResourceReference Certificates = 2;
+  repeated ResourceReference Routes = 3;
 }
 
 // mog annotation:
@@ -668,6 +680,8 @@ message BoundAPIGateway {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message InlineCertificate {
   map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
 }
 
 // mog annotation:
