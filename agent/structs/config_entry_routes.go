@@ -1,6 +1,10 @@
 package structs
 
-import "github.com/hashicorp/consul/acl"
+import (
+	"fmt"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
 // with the given name.
@@ -210,7 +214,15 @@ type TCPRouteConfigEntry struct {
 	// of resources.
 	Name string
 
-	Meta               map[string]string `json:",omitempty"`
+	// Parents is a list of gateways that this route should be bound to
+	Parents []ResourceReference
+	// Services is a list of TCP-based services that this should route to.
+	// Currently, this must specify at maximum one service.
+	Services []TCPService
+
+	Meta map[string]string `json:",omitempty"`
+	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -234,10 +246,28 @@ func (e *TCPRouteConfigEntry) GetMeta() map[string]string {
 }
 
 func (e *TCPRouteConfigEntry) Normalize() error {
+	for i, parent := range e.Parents {
+		if parent.Kind == "" {
+			parent.Kind = APIGateway
+			e.Parents[i] = parent
+		}
+	}
 	return nil
 }
 
 func (e *TCPRouteConfigEntry) Validate() error {
+	validParentKinds := map[string]bool{
+		APIGateway: true,
+	}
+
+	if len(e.Services) > 1 {
+		return fmt.Errorf("tcp-route currently only supports one service")
+	}
+	for _, parent := range e.Parents {
+		if !validParentKinds[parent.Kind] {
+			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
+		}
+	}
 	return nil
 }
 
@@ -265,4 +295,14 @@ func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+// TCPService is a service reference for a TCPRoute
+type TCPService struct {
+	Name string
+	// Weight specifies the proportion of requests forwarded to the referenced service.
+	// This is computed as weight/(sum of all weights in the list of services).
+	Weight int
+
+	acl.EnterpriseMeta
 }

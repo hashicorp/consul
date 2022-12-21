@@ -106,13 +106,79 @@ func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConf
 	if s == nil {
 		return
 	}
+	{
+		t.Listeners = make([]structs.BoundAPIGatewayListener, len(s.Listeners))
+		for i := range s.Listeners {
+			if s.Listeners[i] != nil {
+				BoundAPIGatewayListenerToStructs(s.Listeners[i], &t.Listeners[i])
+			}
+		}
+	}
 	t.Meta = s.Meta
 }
 func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
 	if s == nil {
 		return
 	}
+	{
+		s.Listeners = make([]*BoundAPIGatewayListener, len(t.Listeners))
+		for i := range t.Listeners {
+			{
+				var x BoundAPIGatewayListener
+				BoundAPIGatewayListenerFromStructs(&t.Listeners[i], &x)
+				s.Listeners[i] = &x
+			}
+		}
+	}
 	s.Meta = t.Meta
+}
+func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.BoundAPIGatewayListener) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	{
+		t.Routes = make([]structs.ResourceReference, len(s.Routes))
+		for i := range s.Routes {
+			if s.Routes[i] != nil {
+				ResourceReferenceToStructs(s.Routes[i], &t.Routes[i])
+			}
+		}
+	}
+	{
+		t.Certificates = make([]structs.ResourceReference, len(s.Certificates))
+		for i := range s.Certificates {
+			if s.Certificates[i] != nil {
+				ResourceReferenceToStructs(s.Certificates[i], &t.Certificates[i])
+			}
+		}
+	}
+}
+func BoundAPIGatewayListenerFromStructs(t *structs.BoundAPIGatewayListener, s *BoundAPIGatewayListener) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	{
+		s.Routes = make([]*ResourceReference, len(t.Routes))
+		for i := range t.Routes {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Routes[i], &x)
+				s.Routes[i] = &x
+			}
+		}
+	}
+	{
+		s.Certificates = make([]*ResourceReference, len(t.Certificates))
+		for i := range t.Certificates {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Certificates[i], &x)
+				s.Certificates[i] = &x
+			}
+		}
+	}
 }
 func ConditionToStructs(s *Condition, t *structs.Condition) {
 	if s == nil {
@@ -786,12 +852,16 @@ func InlineCertificateToStructs(s *InlineCertificate, t *structs.InlineCertifica
 	if s == nil {
 		return
 	}
+	t.Certificate = s.Certificate
+	t.PrivateKey = s.PrivateKey
 	t.Meta = s.Meta
 }
 func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificate) {
 	if s == nil {
 		return
 	}
+	s.Certificate = t.Certificate
+	s.PrivateKey = t.PrivateKey
 	s.Meta = t.Meta
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
@@ -1478,13 +1548,73 @@ func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
 	if s == nil {
 		return
 	}
+	{
+		t.Parents = make([]structs.ResourceReference, len(s.Parents))
+		for i := range s.Parents {
+			if s.Parents[i] != nil {
+				ResourceReferenceToStructs(s.Parents[i], &t.Parents[i])
+			}
+		}
+	}
+	{
+		t.Services = make([]structs.TCPService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				TCPServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
 	t.Meta = s.Meta
+	if s.Status != nil {
+		StatusToStructs(s.Status, &t.Status)
+	}
 }
 func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 	if s == nil {
 		return
 	}
+	{
+		s.Parents = make([]*ResourceReference, len(t.Parents))
+		for i := range t.Parents {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Parents[i], &x)
+				s.Parents[i] = &x
+			}
+		}
+	}
+	{
+		s.Services = make([]*TCPService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x TCPService
+				TCPServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
 	s.Meta = t.Meta
+	{
+		var x Status
+		StatusFromStructs(&t.Status, &x)
+		s.Status = &x
+	}
+}
+func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Weight = int(s.Weight)
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Weight = int32(t.Weight)
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {
