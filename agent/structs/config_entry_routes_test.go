@@ -18,7 +18,7 @@ func TestTCPRoute(t *testing.T) {
 					Name: "bar",
 				}},
 			},
-			validateErr: "tcp-based routes currently only support one service",
+			validateErr: "tcp-route currently only supports one service",
 		},
 		"normalize parent kind": {
 			entry: &TCPRouteConfigEntry{
