@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -39,9 +40,10 @@ const (
 type LogSinkType string
 
 const (
-	FileLogSinkType   LogSinkType = "file"
-	StdErrLogSinkType LogSinkType = "stderr"
-	StdOutLogSinkType LogSinkType = "stdout"
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
 )
 
 const (
@@ -172,11 +174,8 @@ type AccessLogsConfig struct {
 	TextFormat string `json:",omitempty" alias:"text_format"`
 }
 
-func (c AccessLogsConfig) ToAPI() *api.AccessLogsConfig {
-	if c.IsZero() {
-		return nil
-	}
-	return &api.AccessLogsConfig{
+func (c AccessLogsConfig) ToAPI() api.AccessLogsConfig {
+	return api.AccessLogsConfig{
 		Enabled:             c.Enabled,
 		DisableListenerLogs: c.DisableListenerLogs,
 		Type:                api.LogSinkType(c.Type),
@@ -186,9 +185,33 @@ func (c AccessLogsConfig) ToAPI() *api.AccessLogsConfig {
 	}
 }
 
-func (c *AccessLogsConfig) IsZero() bool {
-	zeroVal := AccessLogsConfig{}
-	return *c == zeroVal
+func (c AccessLogsConfig) Validate() error {
+	switch c.Type {
+	case DefaultLogSinkType, StdErrLogSinkType, StdOutLogSinkType:
+		// OK
+	case FileLogSinkType:
+		if c.Path == "" {
+			return errors.New("path must be specified when using file type access logs")
+		}
+	default:
+		return fmt.Errorf("invalid access log type: %s", c.Type)
+	}
+
+	if c.JSONFormat != "" && c.TextFormat != "" {
+		return errors.New("cannot specify both access log JSONFormat and TextFormat")
+	}
+
+	if c.Type != FileLogSinkType && c.Path != "" {
+		return errors.New("path is only valid for file type access logs")
+	}
+
+	if c.JSONFormat != "" {
+		msg := json.RawMessage{}
+		if err := json.Unmarshal([]byte(c.JSONFormat), &msg); err != nil {
+			return fmt.Errorf("invalid access log json for JSON format: %w", err)
+		}
+	}
+	return nil
 }
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -248,6 +271,9 @@ type ConnectProxyConfig struct {
 	// TransparentProxy defines configuration for when the proxy is in
 	// transparent mode.
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+
+	// AccessLogs configures the output and format of Envoy access logs
+	AccessLogs AccessLogsConfig `json:",omitempty" alias:"access_logs"`
 }
 
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
@@ -299,6 +325,7 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	type Alias ConnectProxyConfig
 	out := struct {
 		TransparentProxy *TransparentProxyConfig `json:",omitempty"`
+		AccessLogs       *AccessLogsConfig       `json:",omitempty"`
 		Alias
 	}{
 		Alias: (Alias)(*c),
@@ -312,6 +339,10 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 
 	if !c.TransparentProxy.IsZero() {
 		out.TransparentProxy = &out.Alias.TransparentProxy
+	}
+
+	if c.AccessLogs.Enabled {
+		out.AccessLogs = &out.Alias.AccessLogs
 	}
 
 	return json.Marshal(&out)
@@ -334,6 +365,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
 		Expose:                 c.Expose.ToAPI(),
+		AccessLogs:             c.AccessLogs.ToAPI(),
 	}
 }
 

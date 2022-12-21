@@ -73,6 +73,9 @@ message ConnectProxyConfig {
 
   // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
   repeated hashicorp.consul.internal.configentry.EnvoyExtension EnvoyExtensions = 12;
+
+  // AccessLogsConfig defines envoys access log configuration.
+  AccessLogsConfig AccessLogs = 13;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -237,6 +240,24 @@ message TransparentProxyConfig {
   // The discovery chain is not considered when dialing a service instance directly.
   // This setting is useful when addressing stateful services, such as a database cluster with a leader node.
   bool DialedDirectly = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AccessLogsConfig
+// output=service.gen.go
+// name=Structs
+message AccessLogsConfig {
+  bool Enabled = 1;
+  bool DisableListenerLogs = 2;
+
+  // Type represents the desired envoy log sink (e.g. stdout, stderr, file ...).
+  // mog: func-to=structs.LogSinkType func-from=string
+  string Type = 3;
+
+  string Path = 4;
+  string JSONFormat = 5;
+  string TextFormat = 6;
 }
 
 // ServiceDefinition is used to JSON decode the Service definitions. For

@@ -130,6 +130,62 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "proxy inherits kitchen sink from proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							Config: map[string]interface{}{
+								"foo": "bar",
+							},
+							Expose: structs.ExposeConfig{
+								Checks: true,
+								Paths:  []structs.ExposePath{},
+							},
+							Mode:        structs.ProxyModeTransparent,
+							MeshGateway: remoteMeshGW,
+							TransparentProxy: structs.TransparentProxyConfig{
+								OutboundListenerPort: 6666,
+								DialedDirectly:       true,
+							},
+							AccessLogs: structs.AccessLogsConfig{
+								Enabled:             true,
+								DisableListenerLogs: true,
+								Type:                structs.FileLogSinkType,
+								Path:                "/tmp/accesslog.txt",
+								JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"foo": "bar",
+				},
+				Expose: structs.ExposeConfig{
+					Checks: true,
+					Paths:  []structs.ExposePath{},
+				},
+				Mode:        structs.ProxyModeTransparent,
+				MeshGateway: remoteMeshGW,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 6666,
+					DialedDirectly:       true,
+				},
+				AccessLogs: structs.AccessLogsConfig{
+					Enabled:             true,
+					DisableListenerLogs: true,
+					Type:                structs.FileLogSinkType,
+					Path:                "/tmp/accesslog.txt",
+					JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
+				},
+			},
+		},
+		{
 			name: "proxy upstream mesh-gateway inherits service-defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{

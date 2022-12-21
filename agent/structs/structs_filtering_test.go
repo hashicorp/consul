@@ -109,6 +109,39 @@ var expectedFieldConfigTransparentProxyConfig bexpr.FieldConfigurations = bexpr.
 	},
 }
 
+var expectedFieldConfigAccessLogsConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Enabled": &bexpr.FieldConfiguration{
+		StructFieldName:     "Enabled",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"DisableListenerLogs": &bexpr.FieldConfiguration{
+		StructFieldName:     "DisableListenerLogs",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Type": &bexpr.FieldConfiguration{
+		StructFieldName:     "Type",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Path": &bexpr.FieldConfiguration{
+		StructFieldName:     "Path",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"JSONPath": &bexpr.FieldConfiguration{
+		StructFieldName:     "JSONPath",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"TextPath": &bexpr.FieldConfiguration{
+		StructFieldName:     "TextPath",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+}
+
 var expectedFieldConfigExposeConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Checks": &bexpr.FieldConfiguration{
 		StructFieldName:     "Checks",
@@ -271,6 +304,10 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 		StructFieldName:     "Mode",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"AccessLogs": &bexpr.FieldConfiguration{
+		StructFieldName: "AccessLogs",
+		SubFields:       expectedFieldConfigAccessLogsConfig,
 	},
 }
 

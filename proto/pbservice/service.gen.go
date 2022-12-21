@@ -4,6 +4,28 @@ package pbservice
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func AccessLogsConfigToStructs(s *AccessLogsConfig, t *structs.AccessLogsConfig) {
+	if s == nil {
+		return
+	}
+	t.Enabled = s.Enabled
+	t.DisableListenerLogs = s.DisableListenerLogs
+	t.Type = structs.LogSinkType(s.Type)
+	t.Path = s.Path
+	t.JSONFormat = s.JSONFormat
+	t.TextFormat = s.TextFormat
+}
+func AccessLogsConfigFromStructs(t *structs.AccessLogsConfig, s *AccessLogsConfig) {
+	if s == nil {
+		return
+	}
+	s.Enabled = t.Enabled
+	s.DisableListenerLogs = t.DisableListenerLogs
+	s.Type = string(t.Type)
+	s.Path = t.Path
+	s.JSONFormat = t.JSONFormat
+	s.TextFormat = t.TextFormat
+}
 func ConnectProxyConfigToStructs(s *ConnectProxyConfig, t *structs.ConnectProxyConfig) {
 	if s == nil {
 		return
@@ -25,6 +47,9 @@ func ConnectProxyConfigToStructs(s *ConnectProxyConfig, t *structs.ConnectProxyC
 	}
 	if s.TransparentProxy != nil {
 		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
+	}
+	if s.AccessLogs != nil {
+		AccessLogsConfigToStructs(s.AccessLogs, &t.AccessLogs)
 	}
 }
 func ConnectProxyConfigFromStructs(t *structs.ConnectProxyConfig, s *ConnectProxyConfig) {
@@ -54,6 +79,11 @@ func ConnectProxyConfigFromStructs(t *structs.ConnectProxyConfig, s *ConnectProx
 		var x TransparentProxyConfig
 		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
 		s.TransparentProxy = &x
+	}
+	{
+		var x AccessLogsConfig
+		AccessLogsConfigFromStructs(&t.AccessLogs, &x)
+		s.AccessLogs = &x
 	}
 }
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {

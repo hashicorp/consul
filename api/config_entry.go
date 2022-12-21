@@ -132,9 +132,10 @@ type ExposePath struct {
 type LogSinkType string
 
 const (
-	FileLogSinkType   LogSinkType = "file"
-	StdErrLogSinkType LogSinkType = "stderr"
-	StdOutLogSinkType LogSinkType = "stdout"
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
 )
 
 // AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
@@ -303,7 +304,7 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig       `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
 	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
