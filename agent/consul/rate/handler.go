@@ -153,7 +153,7 @@ type HandlerDelegate interface {
 }
 
 // NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, delegate HandlerDelegate, logger hclog.Logger) *Handler {
+func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 	var limiter multilimiter.RateLimiter
 	if fn := cfg.makeLimiter; fn == nil {
 		limiter = multilimiter.NewMultiLimiter(cfg.Config)
@@ -164,10 +164,9 @@ func NewHandler(cfg HandlerConfig, delegate HandlerDelegate, logger hclog.Logger
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
 	h := &Handler{
-		cfg:      new(atomic.Pointer[HandlerConfig]),
-		delegate: delegate,
-		limiter:  limiter,
-		logger:   logger,
+		cfg:     new(atomic.Pointer[HandlerConfig]),
+		limiter: limiter,
+		logger:  logger,
 	}
 	h.cfg.Store(&cfg)
 
@@ -219,6 +218,10 @@ func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	h.cfg.Store(&cfg)
 	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+}
+
+func (h *Handler) RegisterDelegate(isLeaderProvider HandlerDelegate) {
+	h.delegate = isLeaderProvider
 }
 
 type limit struct {

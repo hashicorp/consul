@@ -1855,28 +1855,25 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 	}
 }
 
-// convertConsulConfigToRateLimitHandlerConfig creates a rate limite handler config
-// from the relevant fields in the consul runtime config.
-// func (s *Server) convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
-// 	hc := &rpcRate.HandlerConfig{
-// 		GlobalMode: limitsConfig.Mode,
-// 		GlobalReadConfig: multilimiter.LimiterConfig{
-// 			Rate:  limitsConfig.ReadRate,
-// 			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
-// 		},
-// 		GlobalWriteConfig: multilimiter.LimiterConfig{
-// 			Rate:  limitsConfig.WriteRate,
-// 			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
-// 		},
-// 	}
-// 	if multilimiterConfig != nil {
-// 		hc.Config = *multilimiterConfig
-// 	}
+func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+	limitsConfig := &RequestLimits{
+		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
+		ReadRate:  consulCfg.RequestLimitsReadRate,
+		WriteRate: consulCfg.RequestLimitsWriteRate,
+	}
 
-// 	return hc
-// }
+	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
 
-func ConvertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	incomingRPCLimiter := rpcRate.NewHandler(
+		*rateLimiterConfig,
+		serverLogger.Named("rpc-rate-limit"),
+	)
+
+	return incomingRPCLimiter
+}
+
+func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
 	hc := &rpcRate.HandlerConfig{
 		GlobalMode: limitsConfig.Mode,
 		GlobalReadConfig: multilimiter.LimiterConfig{
@@ -1898,7 +1895,7 @@ func ConvertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 // IncomingRPCLimiter returns the server's configured rate limit handler for
 // incoming RPCs. This is necessary because the external gRPC server is created
 // by the agent (as it is also used for xDS).
-func (s *Server) IncomingRPCLimiter() rpcRate.RequestLimitsHandler { return s.incomingRPCLimiter }
+//func (s *Server) IncomingRPCLimiter() rpcRate.RequestLimitsHandler { return s.incomingRPCLimiter }
 
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same

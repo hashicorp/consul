@@ -199,9 +199,9 @@ func TestHandler(t *testing.T) {
 						return limiter
 					},
 				},
-				delegate,
 				logger,
 			)
+			handler.RegisterDelegate(delegate)
 
 			require.Equal(t, tc.expectErr, handler.Allow(tc.op))
 

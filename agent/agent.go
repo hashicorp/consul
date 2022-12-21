@@ -40,7 +40,6 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
@@ -639,38 +638,22 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
+		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
+		incomingRPCLimiter := ConfiguredIncomingRPCLimiter(serverLogger, consulCfg)
 
-		// XXX
-
-		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
-		limitsConfig := &consul.RequestLimits{
-			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
-			ReadRate:  consulCfg.RequestLimitsReadRate,
-			WriteRate: consulCfg.RequestLimitsWriteRate,
-		}
-
-		serverWrapper := &ServerWrapper{}
-
-		rateLimiterConfig := consul.ConvertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
-		incomingRPCLimiter := rpcRate.NewHandler(
-			rateLimiterConfig,
-			serverWrapper,
-			serverLogger.Named("rpc-rate-limit"),
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			incomingRPCLimiter,
 		)
 
 		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
+		incomingRPCLimiter.RegisterDelegate(server)
 		a.delegate = server
-		serverWrapper.SetServer(server)
-
-		a.externalGRPCServer = external.NewServer(
-			a.logger.Named("grpc.external"),
-			metrics.Default(),
-			a.tlsConfigurator,
-			grpcRateLimiter,
-		)
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
 			d := servercert.Deps{
@@ -684,7 +667,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				TLSConfigurator: a.tlsConfigurator,
 			}
 			a.certManager = servercert.NewCertManager(d)
-			if err := a.certManager.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+			if err := a.certManager.han&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 				return fmt.Errorf("failed to start server cert manager: %w", err)
 			}
 		}
