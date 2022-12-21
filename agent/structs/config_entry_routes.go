@@ -85,8 +85,8 @@ type TCPRouteConfigEntry struct {
 
 	// Parents is a list of gateways that this route should be bound to
 	Parents []ResourceReference
-	// Services are a list of TCP-based services that this should route to.
-	// Currently only one service must be specified.
+	// Services is a list of TCP-based services that this should route to.
+	// Currently, this must specify at maximum one service.
 	Services []TCPService
 
 	Meta               map[string]string `json:",omitempty"`
@@ -128,11 +128,11 @@ func (e *TCPRouteConfigEntry) Validate() error {
 	}
 
 	if len(e.Services) > 1 {
-		return fmt.Errorf("tcp-based routes currently only support one service")
+		return fmt.Errorf("tcp-route currently only supports one service")
 	}
 	for _, parent := range e.Parents {
 		if !validParentKinds[parent.Kind] {
-			return fmt.Errorf("unsupported parent kind: %q", parent.Kind)
+			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
 		}
 	}
 	return nil
