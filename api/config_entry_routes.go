@@ -9,7 +9,10 @@ type TCPRouteConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
-	Parents  []ResourceReference
+	// Parents is a list of gateways that this route should be bound to.
+	Parents []ResourceReference
+	// Services is a list of TCP-based services that this should route to.
+	// Currently, this must specify at maximum one service.
 	Services []TCPService
 
 	Meta map[string]string `json:",omitempty"`
