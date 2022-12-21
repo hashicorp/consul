@@ -784,7 +784,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
-			return fmt.Errorf("unsupported listener protocol %q", listener.Protocol)
+			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
 		}
 		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
 			// TODO: once we have SNI matching we should be able to implement this
@@ -798,7 +798,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		for _, certificate := range listener.TLS.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
@@ -938,7 +938,7 @@ func (e *BoundAPIGatewayConfigEntry) Validate() error {
 	for _, listener := range e.Listeners {
 		for _, certificate := range listener.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
@@ -946,7 +946,7 @@ func (e *BoundAPIGatewayConfigEntry) Validate() error {
 		}
 		for _, route := range listener.Routes {
 			if !allowedRouteKinds[route.Kind] {
-				return fmt.Errorf("unsupported route kind: %q", route.Kind)
+				return fmt.Errorf("unsupported route kind: %q, must be one of 'http-route', or 'tcp-route'", route.Kind)
 			}
 			if route.Name == "" {
 				return fmt.Errorf("route reference must have a name")
@@ -980,8 +980,8 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-// BoundAPIGatewayListener is an api gateway listener with binding information
-// about the routes and certificates successfully bound to it.
+// BoundAPIGatewayListener is an API gateway listener with information
+// about the routes and certificates that have successfully bound to it.
 type BoundAPIGatewayListener struct {
 	Name         string
 	Routes       []ResourceReference
