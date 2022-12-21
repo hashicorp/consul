@@ -116,8 +116,8 @@ func (ec ExtensionConfiguration) OutgoingProxyKind() api.ServiceKind {
 }
 
 func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.CompoundServiceName][]ExtensionConfiguration {
-	extensionConfigs := make(map[api.CompoundServiceName][]api.EnvoyExtension)
-	upstreamMappings := make(map[api.CompoundServiceName]UpstreamData)
+	extensionsMap := make(map[api.CompoundServiceName][]api.EnvoyExtension)
+	upstreamMap := make(map[api.CompoundServiceName]UpstreamData)
 	var kind api.ServiceKind
 
 	trustDomain := ""
@@ -154,7 +154,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 		// These are the discovery chains for upstreams which have the Envoy Extensions applied to the local service.
 		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
-			extensionConfigs[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
 
 			meta := uid.EnterpriseMeta
 			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
@@ -163,7 +163,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				outgoingKind = api.ServiceKindConnectProxy
 			}
 
-			upstreamMappings[compoundServiceName] = UpstreamData{
+			upstreamMap[compoundServiceName] = UpstreamData{
 				SNI:               map[string]struct{}{sni: {}},
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
@@ -173,7 +173,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 		kind = api.ServiceKindTerminatingGateway
 		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
-			extensionConfigs[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
 
 			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
@@ -188,7 +188,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				}
 			}
 
-			upstreamMappings[compoundServiceName] = UpstreamData{
+			upstreamMap[compoundServiceName] = UpstreamData{
 				SNI:               snis,
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
@@ -197,21 +197,21 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 		}
 	}
 
-	extensionConfigurations := make(map[api.CompoundServiceName][]ExtensionConfiguration)
-	for svc, exts := range extensionConfigs {
-		extensionConfigurations[svc] = []ExtensionConfiguration{}
+	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
+	for svc, exts := range extensionsMap {
+		extensionConfigurationsMap[svc] = []ExtensionConfiguration{}
 		for _, ext := range exts {
 			extCfg := ExtensionConfiguration{
 				EnvoyExtension: ext,
 				Kind:           kind,
 				ServiceName:    svc,
-				Upstreams:      upstreamMappings,
+				Upstreams:      upstreamMap,
 			}
-			extensionConfigurations[svc] = append(extensionConfigurations[svc], extCfg)
+			extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 		}
 	}
 
-	return extensionConfigurations
+	return extensionConfigurationsMap
 }
 
 func serviceNameToCompoundServiceName(svc structs.ServiceName) api.CompoundServiceName {
@@ -230,16 +230,6 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 	}
 }
 
-func convertEnvoyExtensions(structExtensions []structs.EnvoyExtension) []api.EnvoyExtension {
-	extensions := make([]api.EnvoyExtension, len(structExtensions))
-
-	for i, e := range structExtensions {
-		extensions[i] = api.EnvoyExtension{
-			Name:      e.Name,
-			Required:  e.Required,
-			Arguments: e.Arguments,
-		}
-	}
-
-	return extensions
+func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
+	return structExtensions.ToAPI()
 }

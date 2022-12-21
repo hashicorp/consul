@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
@@ -296,6 +297,19 @@ type EnvoyExtension struct {
 	Name      string
 	Required  bool
 	Arguments map[string]interface{}
+}
+type EnvoyExtensions []EnvoyExtension
+
+func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {
+	extensions := make([]api.EnvoyExtension, len(es))
+	for i, e := range es {
+		extensions[i] = api.EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: e.Arguments,
+		}
+	}
+	return extensions
 }
 
 func builtInExtension(name string) bool {
