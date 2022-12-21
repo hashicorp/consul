@@ -9,6 +9,11 @@ type InlineCertificateConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// Certificate is the public certificate component of an x509 key pair encoded in raw PEM format.
+	Certificate string
+	// PrivateKey is the private key component of an x509 key pair encoded in raw PEM format.
+	PrivateKey string
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
