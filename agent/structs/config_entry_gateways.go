@@ -784,7 +784,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
-			return fmt.Errorf("unsupported listener protocol %q", listener.Protocol)
+			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
 		}
 		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
 			// TODO: once we have SNI matching we should be able to implement this
@@ -798,7 +798,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		for _, certificate := range listener.TLS.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
@@ -892,6 +892,10 @@ type BoundAPIGatewayConfigEntry struct {
 	// gateway service definition.
 	Name string
 
+	// Listeners are the valid listeners of an APIGateway with information about
+	// what certificates and routes have successfully bound to it.
+	Listeners []BoundAPIGatewayListener
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -920,6 +924,35 @@ func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 }
 
 func (e *BoundAPIGatewayConfigEntry) Validate() error {
+	allowedCertificateKinds := map[string]bool{
+		InlineCertificate: true,
+	}
+	allowedRouteKinds := map[string]bool{
+		HTTPRoute: true,
+		TCPRoute:  true,
+	}
+
+	// These should already be validated by upstream validation
+	// logic in the gateways/routes, but just in case we validate
+	// here as well.
+	for _, listener := range e.Listeners {
+		for _, certificate := range listener.Certificates {
+			if !allowedCertificateKinds[certificate.Kind] {
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+			}
+			if certificate.Name == "" {
+				return fmt.Errorf("certificate reference must have a name")
+			}
+		}
+		for _, route := range listener.Routes {
+			if !allowedRouteKinds[route.Kind] {
+				return fmt.Errorf("unsupported route kind: %q, must be one of 'http-route', or 'tcp-route'", route.Kind)
+			}
+			if route.Name == "" {
+				return fmt.Errorf("route reference must have a name")
+			}
+		}
+	}
 	return nil
 }
 
@@ -945,4 +978,12 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+// BoundAPIGatewayListener is an API gateway listener with information
+// about the routes and certificates that have successfully bound to it.
+type BoundAPIGatewayListener struct {
+	Name         string
+	Routes       []ResourceReference
+	Certificates []ResourceReference
 }
