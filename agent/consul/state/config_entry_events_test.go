@@ -547,3 +547,348 @@ func TestServiceDefaultsSnapshot(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIGatewaySnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "agw1",
+	}
+	ixn2 := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "agw2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.APIGatewaySnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestTCPRouteSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.TCPRouteConfigEntry{
+		Kind: structs.TCPRoute,
+		Name: "tcprt1",
+	}
+	ixn2 := &structs.TCPRouteConfigEntry{
+		Kind: structs.TCPRoute,
+		Name: "tcprt2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicTCPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicTCPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicTCPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.TCPRouteSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestHTTPRouteSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "httprt1",
+	}
+	ixn2 := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "httprt2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicHTTPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicHTTPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicHTTPRoute,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.HTTPRouteSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestInlineCertificateSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.InlineCertificateConfigEntry{
+		Kind: structs.InlineCertificate,
+		Name: "inlinecert1",
+	}
+	ixn2 := &structs.InlineCertificateConfigEntry{
+		Kind: structs.InlineCertificate,
+		Name: "inlinecert2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicInlineCertificate,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicInlineCertificate,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicInlineCertificate,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.InlineCertificateSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestBoundAPIGatewaySnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.BoundAPIGatewayConfigEntry{
+		Kind: structs.BoundAPIGateway,
+		Name: "boundapigw1",
+	}
+	ixn2 := &structs.BoundAPIGatewayConfigEntry{
+		Kind: structs.BoundAPIGateway,
+		Name: "boundapigw2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicBoundAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicBoundAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicBoundAPIGateway,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.BoundAPIGatewaySnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}

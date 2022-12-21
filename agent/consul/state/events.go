@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
+// PBToStreamSubscribeRequest takes a protobuf subscribe request and enterprise
+// metadata to properly generate the matching stream subscribe request.
 func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.EnterpriseMeta) (*stream.SubscribeRequest, error) {
 	var subject stream.Subject
 
@@ -17,7 +19,7 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 	} else {
 		named := req.GetNamedSubject()
 
-		// Support the (deprcated) top-level Key, Partition, Namespace, and PeerName fields.
+		// Support the (deprecated) top-level Key, Partition, Namespace, and PeerName fields.
 		if named == nil {
 			named = &pbsubscribe.NamedSubject{
 				Key:       req.Key,       // nolint:staticcheck // SA1019 intentional use of deprecated field
@@ -38,7 +40,10 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 				EnterpriseMeta: entMeta,
 				PeerName:       named.PeerName,
 			}
-		case EventTopicMeshConfig, EventTopicServiceResolver, EventTopicIngressGateway, EventTopicServiceIntentions, EventTopicServiceDefaults:
+		case EventTopicMeshConfig, EventTopicServiceResolver, EventTopicIngressGateway,
+			EventTopicServiceIntentions, EventTopicServiceDefaults, EventTopicAPIGateway,
+			EventTopicTCPRoute, EventTopicHTTPRoute, EventTopicInlineCertificate,
+			EventTopicBoundAPIGateway:
 			subject = EventSubjectConfigEntry{
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,

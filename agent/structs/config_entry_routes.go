@@ -167,8 +167,8 @@ func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
 	Name string
-	// Weight is an arbitrary integer used in calculating how much
-	// traffic should be sent to the given service.
+	// Weight specifies the proportion of requests forwarded to the referenced service.
+	// This is computed as weight/(sum of all weights in the list of services).
 	Weight int
 
 	acl.EnterpriseMeta

@@ -74,7 +74,9 @@ func (a *TCPRouteConfigEntry) GetModifyIndex() uint64 {
 
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
-	Name   string
+	Name string
+	// Weight specifies the proportion of requests forwarded to the referenced service.
+	// This is computed as weight/(sum of all weights in the list of services).
 	Weight int
 
 	// Partition is the partition the config entry is associated with.
