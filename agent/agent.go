@@ -542,24 +542,6 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
-// Nasty hack to deal with the circular dependency.
-// rate.Handler needs a reference to consul.Server to ask it "isLeader()".
-// consul.Server needs a reference to rate.Handler to implement rate limiting and reload rate-limiting config
-// Neither can be created without the other existing first.
-// Use ServerWrapper as a proxy for consul.Server to break the chain
-// TODO: There has got to be a better way!
-type ServerWrapper struct {
-	server *consul.Server
-}
-
-func (sw *ServerWrapper) SetServer(server *consul.Server) {
-	sw.server = server
-}
-
-func (sw *ServerWrapper) IsLeader() bool {
-	return sw.server.IsLeader()
-}
-
 // Start verifies its configuration and runs an agent's various subprocesses.
 func (a *Agent) Start(ctx context.Context) error {
 	a.stateLock.Lock()
@@ -582,24 +564,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
-
-	// XXX
-
-	// gRPC calls are only rate-limited on server, not client agents.
-	// var grpcRateLimiter rpcRate.RequestLimitsHandler
-	// grpcRateLimiter = rpcRate.NullRateLimiter()
-	// if s, ok := a.delegate.(*consul.Server); ok {
-	// 	grpcRateLimiter = s.IncomingRPCLimiter()
-	// }
-
-	// This needs to happen after the initial auto-config is loaded, because TLS
-	// can only be configured on the gRPC server at the point of creation.
-	// a.externalGRPCServer = external.NewServer(
-	// 	a.logger.Named("grpc.external"),
-	// 	metrics.Default(),
-	// 	a.tlsConfigurator,
-	// 	grpcRateLimiter,
-	// )
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -648,7 +612,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			incomingRPCLimiter,
 		)
 
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -667,7 +631,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				TLSConfigurator: a.tlsConfigurator,
 			}
 			a.certManager = servercert.NewCertManager(d)
-			if err := a.certManager.han&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+			if err := a.certManager.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 				return fmt.Errorf("failed to start server cert manager: %w", err)
 			}
 		}
