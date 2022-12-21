@@ -603,7 +603,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Setup either the client or the server.
 	if c.ServerMode {
 		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
-		incomingRPCLimiter := ConfiguredIncomingRPCLimiter(serverLogger, consulCfg)
+		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(serverLogger, consulCfg)
 
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
