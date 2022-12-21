@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+const (
+	wildcardPrefix = "*."
+)
+
 // IngressGatewayConfigEntry manages the configuration for an ingress service
 // with the given name.
 type IngressGatewayConfigEntry struct {
@@ -371,7 +375,6 @@ func validateHost(tlsEnabled bool, host string) error {
 		return nil
 	}
 
-	wildcardPrefix := "*."
 	if _, ok := dns.IsDomainName(host); !ok {
 		return fmt.Errorf("Host %q must be a valid DNS hostname", host)
 	}
@@ -698,6 +701,12 @@ type APIGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// Listeners is the set of listener configuration to which an API Gateway
+	// might bind.
+	Listeners []APIGatewayListener
+	// Status is the asynchronous status which an APIGateway propagates to the user.
+	Status Status
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -722,10 +731,83 @@ func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
 }
 
 func (e *APIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		protocol := strings.ToLower(string(listener.Protocol))
+		listener.Protocol = APIGatewayListenerProtocol(protocol)
+		e.Listeners[i] = listener
+	}
 	return nil
 }
 
 func (e *APIGatewayConfigEntry) Validate() error {
+	if err := e.validateListenerNames(); err != nil {
+		return err
+	}
+	if err := e.validateMergedListeners(); err != nil {
+		return err
+	}
+
+	return e.validateListeners()
+}
+
+func (e *APIGatewayConfigEntry) validateListenerNames() error {
+	listeners := make(map[string]struct{})
+	for _, listener := range e.Listeners {
+		if _, found := listeners[listener.Name]; found {
+			return fmt.Errorf("found multiple listeners with the name %q", listener.Name)
+		}
+		listeners[listener.Name] = struct{}{}
+	}
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) validateMergedListeners() error {
+	listeners := make(map[int]APIGatewayListener)
+	for _, listener := range e.Listeners {
+		merged, found := listeners[listener.Port]
+		if found && (merged.Hostname != listener.Hostname || merged.Protocol != listener.Protocol) {
+			return fmt.Errorf("listeners %q and %q cannot be merged", merged.Name, listener.Name)
+		}
+		listeners[listener.Port] = listener
+	}
+	return nil
+}
+
+func (e *APIGatewayConfigEntry) validateListeners() error {
+	validProtocols := map[APIGatewayListenerProtocol]bool{
+		ListenerProtocolHTTP: true,
+		ListenerProtocolTCP:  true,
+	}
+	allowedCertificateKinds := map[string]bool{
+		InlineCertificate: true,
+	}
+
+	for _, listener := range e.Listeners {
+		if !validProtocols[listener.Protocol] {
+			return fmt.Errorf("unsupported listener protocol %q", listener.Protocol)
+		}
+		if listener.Protocol == ListenerProtocolTCP && listener.Hostname != "" {
+			// TODO: once we have SNI matching we should be able to implement this
+			return fmt.Errorf("hostname specification is not supported when using TCP")
+		}
+		if listener.Port <= 0 || listener.Port > 65535 {
+			return fmt.Errorf("listener port %d not in the range 1-65535", listener.Port)
+		}
+		if strings.ContainsRune(strings.TrimPrefix(listener.Hostname, wildcardPrefix), '*') {
+			return fmt.Errorf("host %q is not valid, a wildcard specifier is only allowed as the left-most label", listener.Hostname)
+		}
+		for _, certificate := range listener.TLS.Certificates {
+			if !allowedCertificateKinds[certificate.Kind] {
+				return fmt.Errorf("unsupported certificate kind: %q", certificate.Kind)
+			}
+			if certificate.Name == "" {
+				return fmt.Errorf("certificate reference must have a name")
+			}
+		}
+		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -753,6 +835,48 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+// APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
+type APIGatewayListenerProtocol string
+
+const (
+	ListenerProtocolHTTP APIGatewayListenerProtocol = "http"
+	ListenerProtocolTCP  APIGatewayListenerProtocol = "tcp"
+)
+
+// APIGatewayListener represents an individual listener for an APIGateway
+type APIGatewayListener struct {
+	// Name is the optional name of the listener in a given gateway. This is
+	// optional, however, it must be unique. Therefore, if a gateway has more
+	// than a single listener, all but one must specify a Name.
+	Name string
+	// Hostname is the host name that a listener should be bound to, if
+	// unspecified, the listener accepts requests for all hostnames.
+	Hostname string
+	// Port is the port at which this listener should bind.
+	Port int
+	// Protocol is the protocol that a listener should use, it must
+	// either be http or tcp
+	Protocol APIGatewayListenerProtocol
+	// TLS is the TLS settings for the listener.
+	TLS APIGatewayTLSConfiguration
+}
+
+// APIGatewayTLSConfiguration specifies the configuration of a listener’s
+// TLS settings.
+type APIGatewayTLSConfiguration struct {
+	// Certificates is a set of references to certificates
+	// that a gateway listener uses for TLS termination.
+	Certificates []ResourceReference
+	// MaxVersion is the maximum TLS version that the listener
+	// should support.
+	MaxVersion types.TLSVersion
+	// MinVersion is the minimum TLS version that the listener
+	// should support.
+	MinVersion types.TLSVersion
+	// CipherSuites is the cipher suites that the listener should support.
+	CipherSuites []types.TLSCipherSuite
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
