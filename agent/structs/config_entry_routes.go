@@ -89,7 +89,9 @@ type TCPRouteConfigEntry struct {
 	// Currently, this must specify at maximum one service.
 	Services []TCPService
 
-	Meta               map[string]string `json:",omitempty"`
+	Meta map[string]string `json:",omitempty"`
+	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }

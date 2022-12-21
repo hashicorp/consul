@@ -14,6 +14,9 @@ type TCPRouteConfigEntry struct {
 
 	Meta map[string]string `json:",omitempty"`
 
+	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	Status ConfigEntryStatus
+
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
 	CreateIndex uint64

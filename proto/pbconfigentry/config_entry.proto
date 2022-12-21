@@ -690,6 +690,7 @@ message TCPRoute {
   map<string, string> Meta = 1;
   repeated ResourceReference Parents = 2;
   repeated TCPService Services = 3;
+  Status Status = 4;
 }
 
 // mog annotation:

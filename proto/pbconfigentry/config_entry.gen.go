@@ -1233,6 +1233,9 @@ func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
 		}
 	}
 	t.Meta = s.Meta
+	if s.Status != nil {
+		StatusToStructs(s.Status, &t.Status)
+	}
 }
 func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 	if s == nil {
@@ -1259,6 +1262,11 @@ func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 		}
 	}
 	s.Meta = t.Meta
+	{
+		var x Status
+		StatusFromStructs(&t.Status, &x)
+		s.Status = &x
+	}
 }
 func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
 	if s == nil {
