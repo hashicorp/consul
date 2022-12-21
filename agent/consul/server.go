@@ -471,23 +471,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		Logger:   logger.Named("hcp_manager"),
 	})
 
-	// TODO(NET-1380, NET-1381): thread this into the net/rpc and gRPC interceptors.
-	// XXX
-	// if s.incomingRPCLimiter == nil {
-	// 	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
-	// 	limitsConfig := &RequestLimits{
-	// 		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
-	// 		ReadRate:  config.RequestLimitsReadRate,
-	// 		WriteRate: config.RequestLimitsWriteRate,
-	// 	}
-
-	// 	s.incomingRPCLimiter = rpcRate.NewHandler(
-	// 		*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg),
-	// 		s,
-	// 		serverLogger.Named("rpc-rate-limit"),
-	// 	)
-	// }
-	// s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -1701,7 +1685,7 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	if config.RequestLimits != nil {
-		s.incomingRPCLimiter.UpdateConfig(*ConvertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+		s.incomingRPCLimiter.UpdateConfig(*convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
 	}
 
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
@@ -1890,11 +1874,6 @@ func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 
 	return hc
 }
-
-// IncomingRPCLimiter returns the server's configured rate limit handler for
-// incoming RPCs. This is necessary because the external gRPC server is created
-// by the agent (as it is also used for xDS).
-//func (s *Server) IncomingRPCLimiter() rpcRate.RequestLimitsHandler { return s.incomingRPCLimiter }
 
 // peersInfoContent is used to help operators understand what happened to the
 // peers.json file. This is written to a file called peers.info in the same
