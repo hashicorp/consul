@@ -32,51 +32,9 @@ type patcher interface {
 
 type patchers map[api.CompoundServiceName]patcher
 
-// getPatcherBySNI gets the patcher for the associated SNI.
-func getPatcherBySNI(config xdscommon.PluginConfiguration, sni string) patcher {
-	serviceName, ok := config.SNIToServiceName[sni]
-
-	if !ok {
-		return nil
-	}
-
-	serviceConfig, ok := config.ServiceConfigs[serviceName]
-	if !ok {
-		return nil
-	}
-
-	p := makePatcher(serviceConfig)
-	if p == nil || !p.CanPatch(config.Kind) {
-		return nil
-	}
-
-	return p
-}
-
-// getPatcherByEnvoyID gets the patcher for the associated envoy id.
-func getPatcherByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) patcher {
-	serviceName, ok := config.EnvoyIDToServiceName[envoyID]
-
-	if !ok {
-		return nil
-	}
-
-	serviceConfig, ok := config.ServiceConfigs[serviceName]
-	if !ok {
-		return nil
-	}
-
-	p := makePatcher(serviceConfig)
-	if p == nil || !p.CanPatch(config.Kind) {
-		return nil
-	}
-
-	return p
-}
-
-func makePatcher(serviceConfig xdscommon.ServiceConfig) patcher {
+func makePatcher(config xdscommon.ExtensionConfiguration) patcher {
 	for _, constructor := range patchConstructors {
-		patcher, ok := constructor(serviceConfig)
+		patcher, ok := constructor(config.EnvoyExtension, config.OutgoingProxyKind())
 		if ok {
 			return patcher
 		}
@@ -88,7 +46,7 @@ func makePatcher(serviceConfig xdscommon.ServiceConfig) patcher {
 // patchConstructor is used to construct patchers based on
 // xdscommon.ServiceConfig. This function contains all of the logic around
 // turning Meta data into the patcher.
-type patchConstructor func(xdscommon.ServiceConfig) (patcher, bool)
+type patchConstructor func(extension api.EnvoyExtension, upstreamKind api.ServiceKind) (patcher, bool)
 
 // patchConstructors contains all patchers that getPatchers tries to create.
 var patchConstructors = []patchConstructor{makeLambdaPatcher}

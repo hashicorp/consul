@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/proto"
@@ -45,7 +46,7 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 			Protocol: "http",
 			EnvoyExtensions: []structs.EnvoyExtension{
 				{
-					Name: "builtin/aws/lambda",
+					Name: structs.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
 						"ARN":                "lambda-arn",
 						"PayloadPassthrough": payloadPassthrough,
@@ -65,6 +66,13 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeServiceDefaults(false))
+			},
+		},
+		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.
+		{
+			name: "lambda-connect-proxy-with-terminating-gateway-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeServiceDefaults(false))
 			},
 		},
 		{
@@ -107,8 +115,17 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 					require.NoError(t, err)
 
 					indexedResources := indexResources(g.Logger, res)
-					newResourceMap, err := serverlessplugin.MutateIndexedResources(indexedResources, xdscommon.MakePluginConfiguration(snap))
-					require.NoError(t, err)
+					var newResourceMap *xdscommon.IndexedResources
+					cfgs := xdscommon.GetExtensionConfigurations(snap)
+					for _, extensions := range cfgs {
+						for _, ext := range extensions {
+							switch ext.EnvoyExtension.Name {
+							case structs.BuiltinAWSLambdaExtension:
+								newResourceMap, err = serverlessplugin.Extend(indexedResources, ext)
+								require.NoError(t, err)
+							}
+						}
+					}
 
 					entities := []struct {
 						name   string
@@ -139,6 +156,15 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 							sorter: func(msgs []proto.Message) func(int, int) bool {
 								return func(i, j int) bool {
 									return msgs[i].(*envoy_route_v3.RouteConfiguration).Name < msgs[j].(*envoy_route_v3.RouteConfiguration).Name
+								}
+							},
+						},
+						{
+							name: "endpoints",
+							key:  xdscommon.EndpointType,
+							sorter: func(msgs []proto.Message) func(int, int) bool {
+								return func(i, j int) bool {
+									return msgs[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < msgs[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
 								}
 							},
 						},

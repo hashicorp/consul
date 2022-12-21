@@ -60,35 +60,65 @@ type ServiceConfig struct {
 	EnvoyExtensions []api.EnvoyExtension
 }
 
-// PluginConfiguration is passed into Envoy plugins. It should depend on the
-// API client rather than the structs package because the API client is meant
-// to be public.
-type PluginConfiguration struct {
-	// ServiceConfigs is a mapping from service names to the data Envoy plugins
-	// need to override the default Envoy configurations.
-	ServiceConfigs map[api.CompoundServiceName]ServiceConfig
+// ExtensionConfiguration is the configuration for an extension attached to a service on the local proxy. Currently, it
+// is only created for the local proxy's upstream service if the upstream service has an extension configured. In the
+// future it will also include information about the service local to the local proxy as well. It should depend on the
+// API client rather than the structs package because the API client is meant to be public.
+type ExtensionConfiguration struct {
+	// EnvoyExtension is the extension that will patch Envoy resources.
+	EnvoyExtension api.EnvoyExtension
 
-	// SNIToServiceName is a mapping from SNIs to service names. This allows
-	// Envoy plugins to easily convert from an SNI Envoy resource name to the
-	// associated service's CompoundServiceName
-	SNIToServiceName map[string]api.CompoundServiceName
+	// ServiceName is the name of the service the EnvoyExtension is being applied to. It could be the local service or
+	// an upstream of the local service.
+	ServiceName api.CompoundServiceName
 
-	// EnvoyIDToServiceName is a mapping from EnvoyIDs to service names. This allows
-	// Envoy plugins to easily convert from an EnvoyID Envoy resource name to the
-	// associated service's CompoundServiceName
-	EnvoyIDToServiceName map[string]api.CompoundServiceName
+	// Upstreams will only be configured on the ExtensionConfiguration if the EnvoyExtension is being applied to an
+	// upstream. If there are no Upstreams, then EnvoyExtension is being applied to the local service's resources.
+	Upstreams map[api.CompoundServiceName]UpstreamData
 
-	// Kind is mode the local Envoy proxy is running in. For now, only
+	// Kind is mode the local Envoy proxy is running in. For now, only connect proxy and
 	// terminating gateways are supported.
 	Kind api.ServiceKind
 }
 
-// MakePluginConfiguration generates the configuration that will be sent to
-// Envoy plugins.
-func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfiguration {
-	serviceConfigs := make(map[api.CompoundServiceName]ServiceConfig)
-	sniMappings := make(map[string]api.CompoundServiceName)
-	envoyIDMappings := make(map[string]api.CompoundServiceName)
+// UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
+// is used to choose which Envoy resources to patch.
+type UpstreamData struct {
+	// SNI is the SNI header used to reach an upstream service.
+	SNI map[string]struct{}
+	// EnvoyID is the envoy ID of an upstream service, structured <service> or <partition>/<ns>/<service> when using a
+	// non-default namespace or partition.
+	EnvoyID string
+	// OutgoingProxyKind is the type of proxy of the upstream service. However, if the upstream is "typical" this will
+	// be set to "connect-proxy" instead.
+	OutgoingProxyKind api.ServiceKind
+}
+
+func (ec ExtensionConfiguration) IsUpstream() bool {
+	_, ok := ec.Upstreams[ec.ServiceName]
+	return ok
+}
+
+func (ec ExtensionConfiguration) MatchesUpstreamServiceSNI(sni string) bool {
+	u := ec.Upstreams[ec.ServiceName]
+	_, match := u.SNI[sni]
+	return match
+}
+
+func (ec ExtensionConfiguration) EnvoyID() string {
+	u := ec.Upstreams[ec.ServiceName]
+	return u.EnvoyID
+}
+
+func (ec ExtensionConfiguration) OutgoingProxyKind() api.ServiceKind {
+	u := ec.Upstreams[ec.ServiceName]
+	return u.OutgoingProxyKind
+}
+
+func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.CompoundServiceName][]ExtensionConfiguration {
+	extensionsMap := make(map[api.CompoundServiceName][]api.EnvoyExtension)
+	upstreamMap := make(map[api.CompoundServiceName]UpstreamData)
+	var kind api.ServiceKind
 
 	trustDomain := ""
 	if cfgSnap.Roots != nil {
@@ -97,70 +127,91 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		connectProxies := make(map[proxycfg.UpstreamID]struct{})
+		kind = api.ServiceKindConnectProxy
+		outgoingKindByService := make(map[api.CompoundServiceName]api.ServiceKind)
 		for uid, upstreamData := range cfgSnap.ConnectProxy.WatchedUpstreamEndpoints {
+			sn := upstreamIDToCompoundServiceName(uid)
+
 			for _, serviceNodes := range upstreamData {
-				// Lambdas and likely other integrations won't be attached to nodes.
-				// After agentless, we may need to reconsider this.
-				if len(serviceNodes) == 0 {
-					connectProxies[uid] = struct{}{}
-				}
 				for _, serviceNode := range serviceNodes {
-					if serviceNode.Service.Kind == structs.ServiceKindTypical || serviceNode.Service.Kind == structs.ServiceKindConnectProxy {
-						connectProxies[uid] = struct{}{}
+					if serviceNode.Service == nil {
+						continue
 					}
+					// Store the upstream's kind, and for ServiceKindTypical we don't do anything because we'll default
+					// any unset upstreams to ServiceKindConnectProxy below.
+					switch serviceNode.Service.Kind {
+					case structs.ServiceKindTypical:
+					default:
+						outgoingKindByService[sn] = api.ServiceKind(serviceNode.Service.Kind)
+					}
+					// We only need the kind from one instance, so break once we find it.
+					break
 				}
 			}
 		}
 
 		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
-
+		// These are the discovery chains for upstreams which have the Envoy Extensions applied to the local service.
 		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
-			if _, ok := connectProxies[uid]; !ok {
-				continue
-			}
-
-			serviceConfigs[upstreamIDToCompoundServiceName(uid)] = ServiceConfig{
-				Kind:            api.ServiceKindConnectProxy,
-				EnvoyExtensions: convertEnvoyExtensions(dc.EnvoyExtensions),
-			}
-
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
+
 			meta := uid.EnterpriseMeta
 			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-			sniMappings[sni] = compoundServiceName
-			envoyIDMappings[uid.EnvoyID()] = compoundServiceName
-		}
-	case structs.ServiceKindTerminatingGateway:
-		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
-			compoundServiceName := serviceNameToCompoundServiceName(svc)
-			serviceConfigs[compoundServiceName] = ServiceConfig{
-				EnvoyExtensions: convertEnvoyExtensions(c.EnvoyExtensions),
-				Kind:            api.ServiceKindTerminatingGateway,
+			outgoingKind, ok := outgoingKindByService[compoundServiceName]
+			if !ok {
+				outgoingKind = api.ServiceKindConnectProxy
 			}
 
-			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-			sniMappings[sni] = compoundServiceName
+			upstreamMap[compoundServiceName] = UpstreamData{
+				SNI:               map[string]struct{}{sni: {}},
+				EnvoyID:           uid.EnvoyID(),
+				OutgoingProxyKind: outgoingKind,
+			}
+		}
+	case structs.ServiceKindTerminatingGateway:
+		kind = api.ServiceKindTerminatingGateway
+		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
+			compoundServiceName := serviceNameToCompoundServiceName(svc)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
 
+			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
-			envoyIDMappings[envoyID.EnvoyID()] = compoundServiceName
+
+			snis := map[string]struct{}{sni: {}}
 
 			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 			if hasResolver {
 				for subsetName := range resolver.Subsets {
 					sni := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-					sniMappings[sni] = compoundServiceName
+					snis[sni] = struct{}{}
 				}
 			}
+
+			upstreamMap[compoundServiceName] = UpstreamData{
+				SNI:               snis,
+				EnvoyID:           envoyID.EnvoyID(),
+				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
+			}
+
 		}
 	}
 
-	return PluginConfiguration{
-		ServiceConfigs:       serviceConfigs,
-		SNIToServiceName:     sniMappings,
-		EnvoyIDToServiceName: envoyIDMappings,
-		Kind:                 api.ServiceKind(cfgSnap.Kind),
+	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
+	for svc, exts := range extensionsMap {
+		extensionConfigurationsMap[svc] = []ExtensionConfiguration{}
+		for _, ext := range exts {
+			extCfg := ExtensionConfiguration{
+				EnvoyExtension: ext,
+				Kind:           kind,
+				ServiceName:    svc,
+				Upstreams:      upstreamMap,
+			}
+			extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
+		}
 	}
+
+	return extensionConfigurationsMap
 }
 
 func serviceNameToCompoundServiceName(svc structs.ServiceName) api.CompoundServiceName {
@@ -179,16 +230,6 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 	}
 }
 
-func convertEnvoyExtensions(structExtensions []structs.EnvoyExtension) []api.EnvoyExtension {
-	var extensions []api.EnvoyExtension
-
-	for _, e := range structExtensions {
-		extensions = append(extensions, api.EnvoyExtension{
-			Name:      e.Name,
-			Required:  e.Required,
-			Arguments: e.Arguments,
-		})
-	}
-
-	return extensions
+func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
+	return structExtensions.ToAPI()
 }

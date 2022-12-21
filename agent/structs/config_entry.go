@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
@@ -55,6 +56,10 @@ var AllConfigEntryKinds = []string{
 	MeshConfig,
 	ExportedServices,
 }
+
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+)
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
 // Currently only service-defaults and proxy-defaults are supported.
@@ -293,10 +298,23 @@ type EnvoyExtension struct {
 	Required  bool
 	Arguments map[string]interface{}
 }
+type EnvoyExtensions []EnvoyExtension
+
+func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {
+	extensions := make([]api.EnvoyExtension, len(es))
+	for i, e := range es {
+		extensions[i] = api.EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: e.Arguments,
+		}
+	}
+	return extensions
+}
 
 func builtInExtension(name string) bool {
 	extensions := map[string]struct{}{
-		"builtin/aws/lambda": {},
+		BuiltinAWSLambdaExtension: {},
 	}
 
 	_, ok := extensions[name]
