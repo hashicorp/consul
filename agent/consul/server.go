@@ -477,18 +477,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		Logger:   logger.Named("hcp_manager"),
 	})
 
-	if s.incomingRPCLimiter == nil {
-		mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
-		limitsConfig := &RequestLimits{
-			Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(config.RequestLimitsMode),
-			ReadRate:  config.RequestLimitsReadRate,
-			WriteRate: config.RequestLimitsWriteRate,
-		}
-
-		s.incomingRPCLimiter = rpcRate.NewHandler(*s.convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg), s, s.logger)
-	}
-	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
 		recorder = flat.NewRequestRecorderFunc(serverLogger, s.IsLeader, s.config.Datacenter)

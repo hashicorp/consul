@@ -4,13 +4,15 @@ package rate
 import (
 	"context"
 	"errors"
-	"github.com/armon/go-metrics"
-	logdrop "github.com/hashicorp/consul/agent/log-drop"
-	"github.com/hashicorp/go-hclog"
+	"fmt"
 	"io"
 	"net"
 	"reflect"
 	"sync/atomic"
+
+	"github.com/armon/go-metrics"
+	logdrop "github.com/hashicorp/consul/agent/log-drop"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
@@ -121,7 +123,7 @@ type Handler struct {
 
 	limiter multilimiter.RateLimiter
 
-	logger hclog.InterceptLogger
+	logger hclog.Logger
 }
 
 type HandlerConfig struct {
@@ -160,7 +162,7 @@ func NewHandlerWithLimiter(
 	h := &Handler{
 		cfg:     new(atomic.Pointer[HandlerConfig]),
 		limiter: limiter,
-		logger:  logger.NamedIntercept("rate-limit"),
+		logger:  logger.Named("rate-limit"),
 	}
 	h.cfg.Store(&cfg)
 
@@ -168,7 +170,7 @@ func NewHandlerWithLimiter(
 }
 
 // NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, logger hclog.InterceptLogger) *Handler {
+func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 	limiter := multilimiter.NewMultiLimiter(cfg.Config)
 	return NewHandlerWithLimiter(cfg, limiter, logger)
 }
@@ -209,8 +211,7 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: metrics.
-		// TODO: is this the correct log-level?
+		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
@@ -221,6 +222,7 @@ func (h *Handler) Allow(op Operation) error {
 		)
 
 		if enforced {
+			// TODO(NET-1382) - use the logger to print rate limiter logs.
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}
