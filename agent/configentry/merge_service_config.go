@@ -113,6 +113,25 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		return nil, err
 	}
 
+	// defaults.EnvoyExtensions contains the extensions from the proxy defaults config entry followed by extensions from
+	// the service defaults config entry. This adds the extensions to structs.NodeService.Proxy which in turn is copied
+	// into the proxycfg snapshot to ensure the local service's extensions are accessible from the snapshot.
+	//
+	// This will replace any existing extensions in the NodeService but that is ok because defaults.EnvoyExtensions
+	// should have the latest extensions computed from service defaults and proxy defaults.
+	ns.Proxy.EnvoyExtensions = nil
+	if len(defaults.EnvoyExtensions) > 0 {
+		nsExtensions := make([]structs.EnvoyExtension, len(defaults.EnvoyExtensions))
+		for i, ext := range defaults.EnvoyExtensions {
+			nsExtensions[i] = structs.EnvoyExtension{
+				Name:      ext.Name,
+				Required:  ext.Required,
+				Arguments: ext.Arguments,
+			}
+		}
+		ns.Proxy.EnvoyExtensions = nsExtensions
+	}
+
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = defaults.MeshGateway.Mode
 	}

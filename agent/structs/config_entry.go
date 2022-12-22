@@ -296,7 +296,7 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 type EnvoyExtension struct {
 	Name      string
 	Required  bool
-	Arguments map[string]interface{}
+	Arguments map[string]interface{} `bexpr:"-"`
 }
 type EnvoyExtensions []EnvoyExtension
 

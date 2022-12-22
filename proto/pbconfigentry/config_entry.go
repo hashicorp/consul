@@ -268,13 +268,50 @@ func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
 	}
 }
 
-func envoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
-	return args.GetStructValue().AsMap()
+func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
+	if args != nil {
+		st := args.GetStructValue()
+		if st != nil {
+			return st.AsMap()
+		}
+	}
+	return nil
 }
 
-func envoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
+func EnvoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
 	if s, err := structpb.NewValue(args); err == nil {
 		return s
 	}
 	return nil
+}
+
+func EnvoyExtensionsToStructs(args []*EnvoyExtension) []structs.EnvoyExtension {
+	o := make([]structs.EnvoyExtension, len(args))
+	for i := range args {
+		var e structs.EnvoyExtension
+		if args[i] != nil {
+			e = structs.EnvoyExtension{
+				Name:      args[i].Name,
+				Required:  args[i].Required,
+				Arguments: EnvoyExtensionArgumentsToStructs(args[i].Arguments),
+			}
+		}
+
+		o[i] = e
+	}
+
+	return o
+}
+
+func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension {
+	o := make([]*EnvoyExtension, len(args))
+	for i, e := range args {
+		o[i] = &EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: EnvoyExtensionArgumentsFromStructs(e.Arguments),
+		}
+	}
+
+	return o
 }

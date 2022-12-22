@@ -40,7 +40,7 @@ func EnvoyExtensionToStructs(s *EnvoyExtension, t *structs.EnvoyExtension) {
 	}
 	t.Name = s.Name
 	t.Required = s.Required
-	t.Arguments = envoyExtensionArgumentsToStructs(s.Arguments)
+	t.Arguments = EnvoyExtensionArgumentsToStructs(s.Arguments)
 }
 func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
 	if s == nil {
@@ -48,7 +48,7 @@ func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
 	}
 	s.Name = t.Name
 	s.Required = t.Required
-	s.Arguments = envoyExtensionArgumentsFromStructs(t.Arguments)
+	s.Arguments = EnvoyExtensionArgumentsFromStructs(t.Arguments)
 }
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
 	if s == nil {

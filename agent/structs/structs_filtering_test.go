@@ -150,6 +150,18 @@ var expectedFieldConfigPaths bexpr.FieldConfigurations = bexpr.FieldConfiguratio
 	},
 }
 
+var expectedFieldConfigEnvoyExtensions bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Name": &bexpr.FieldConfiguration{
+		StructFieldName:     "Name",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Required": &bexpr.FieldConfiguration{
+		StructFieldName:     "Required",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"DestinationType": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationType",
@@ -208,6 +220,11 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 }
 
 var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"EnvoyExtensions": &bexpr.FieldConfiguration{
+		StructFieldName:     "EnvoyExtensions",
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty},
+		SubFields:           expectedFieldConfigEnvoyExtensions,
+	},
 	"DestinationServiceName": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationServiceName",
 		CoerceFn:            bexpr.CoerceString,
