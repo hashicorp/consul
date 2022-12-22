@@ -25,13 +25,14 @@ import (
 // These fields are public in the event someone might want to surgically
 // craft a test case.
 type Cluster struct {
-	Agents      []libagent.Agent
-	CACert      string
-	CAKey       string
-	ID          string
-	Index       int
-	Network     testcontainers.Network
-	NetworkName string
+	Agents       []libagent.Agent
+	BuildContext *libagent.BuildContext
+	CACert       string
+	CAKey        string
+	ID           string
+	Index        int
+	Network      testcontainers.Network
+	NetworkName  string
 }
 
 // New creates a Consul cluster. An agent will be started for each of the given
