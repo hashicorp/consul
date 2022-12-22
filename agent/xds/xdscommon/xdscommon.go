@@ -119,6 +119,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 	extensionsMap := make(map[api.CompoundServiceName][]api.EnvoyExtension)
 	upstreamMap := make(map[api.CompoundServiceName]UpstreamData)
 	var kind api.ServiceKind
+	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
 
 	trustDomain := ""
 	if cfgSnap.Roots != nil {
@@ -169,6 +170,26 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				OutgoingProxyKind: outgoingKind,
 			}
 		}
+		// Adds extensions configured for the local service to the ExtensionConfiguration. This only applies to
+		// connect-proxies because extensions are either global or tied to a specific service, so the terminating
+		// gateway's Envoy resources for the local service (i.e not to upstreams) would never need to be modified.
+		localSvc := api.CompoundServiceName{
+			Name:      cfgSnap.Proxy.DestinationServiceName,
+			Namespace: cfgSnap.ProxyID.NamespaceOrDefault(),
+			Partition: cfgSnap.ProxyID.PartitionOrEmpty(),
+		}
+		extensionConfigurationsMap[localSvc] = []ExtensionConfiguration{}
+		cfgSnapExts := convertEnvoyExtensions(cfgSnap.Proxy.EnvoyExtensions)
+		for _, ext := range cfgSnapExts {
+			extCfg := ExtensionConfiguration{
+				EnvoyExtension: ext,
+				ServiceName:    localSvc,
+				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
+				Upstreams: nil,
+				Kind:      kind,
+			}
+			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
+		}
 	case structs.ServiceKindTerminatingGateway:
 		kind = api.ServiceKindTerminatingGateway
 		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
@@ -197,7 +218,6 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 		}
 	}
 
-	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
 	for svc, exts := range extensionsMap {
 		extensionConfigurationsMap[svc] = []ExtensionConfiguration{}
 		for _, ext := range exts {

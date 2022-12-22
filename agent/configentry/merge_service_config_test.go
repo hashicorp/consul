@@ -110,6 +110,124 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 	}
 }
 
+func Test_MergeServiceConfig_Extensions(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "inherit extensions",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "replaces existing extensions",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						EnvoyExtensions: []structs.EnvoyExtension{
+							{
+								Name:     "existing-ext",
+								Required: true,
+								Arguments: map[string]interface{}{
+									"arg1": "val1",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := MergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
 func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 	type args struct {
 		defaults *structs.ServiceConfigResponse

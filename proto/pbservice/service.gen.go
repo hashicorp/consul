@@ -8,6 +8,7 @@ func ConnectProxyConfigToStructs(s *ConnectProxyConfig, t *structs.ConnectProxyC
 	if s == nil {
 		return
 	}
+	t.EnvoyExtensions = EnvoyExtensionsToStructs(s.EnvoyExtensions)
 	t.DestinationServiceName = s.DestinationServiceName
 	t.DestinationServiceID = s.DestinationServiceID
 	t.LocalServiceAddress = s.LocalServiceAddress
@@ -30,6 +31,7 @@ func ConnectProxyConfigFromStructs(t *structs.ConnectProxyConfig, s *ConnectProx
 	if s == nil {
 		return
 	}
+	s.EnvoyExtensions = EnvoyExtensionsFromStructs(t.EnvoyExtensions)
 	s.DestinationServiceName = t.DestinationServiceName
 	s.DestinationServiceID = t.DestinationServiceID
 	s.LocalServiceAddress = t.LocalServiceAddress

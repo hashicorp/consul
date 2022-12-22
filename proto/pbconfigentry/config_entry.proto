@@ -462,7 +462,7 @@ message TransparentProxyConfig {
 message EnvoyExtension {
   string Name = 1;
   bool Required = 2;
-  // mog: func-to=envoyExtensionArgumentsToStructs func-from=envoyExtensionArgumentsFromStructs
+  // mog: func-to=EnvoyExtensionArgumentsToStructs func-from=EnvoyExtensionArgumentsFromStructs
   google.protobuf.Value Arguments = 3;
 }
 
