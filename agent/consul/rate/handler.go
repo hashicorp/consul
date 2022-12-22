@@ -177,15 +177,16 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 //
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
-	if h.delegate == nil {
-		panic("delegate not set on handler via RegisterDelegate(..)")
-	}
 	h.limiter.Run(ctx)
 }
 
 // Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
+	if h.delegate == nil {
+		panic("delegate not set on handler via RegisterDelegate(..)")
+	}
+
 	for _, l := range h.limits(op) {
 		if l.mode == ModeDisabled {
 			continue

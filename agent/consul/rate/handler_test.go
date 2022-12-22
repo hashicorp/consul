@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
-func TestHandler_Run_PanicsWhenDelegateNotRegistered(t *testing.T) {
+func TestHandler_Allow_PanicsWhenDelegateNotRegistered(t *testing.T) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -24,7 +24,7 @@ func TestHandler_Run_PanicsWhenDelegateNotRegistered(t *testing.T) {
 	}()
 
 	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
-	handler.Run(context.Background())
+	handler.Allow(Operation{})
 	// intentionally skip handler.RegisterDelegate(...)
 }
 
