@@ -3,15 +3,18 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mitchellh/cli"
@@ -1521,4 +1524,84 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 		}
 		w.Write(selfJSON)
 	}
+}
+
+func TestCheckEnvoyVersionCompatibility(t *testing.T) {
+	tests := []struct {
+		name            string
+		envoyVersion    string
+		unsupportedList []string
+		expectedSupport bool
+		isErrorExpected bool
+	}{
+		{
+			name:            "supported-using-proxy-support-defined",
+			envoyVersion:    proxysupport.EnvoyVersions[1],
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "supported-at-max",
+			envoyVersion:    proxysupport.GetMaxEnvoyMinorVersion(),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "supported-patch-higher",
+			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: true,
+		},
+		{
+			name:            "not-supported-minor-higher",
+			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+		},
+		{
+			name:            "not-supported-minor-lower",
+			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[len(proxysupport.EnvoyVersions)-1], -1),
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+		},
+		{
+			name:            "not-supported-explicitly-unsupported-version",
+			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
+			unsupportedList: []string{"1.23.1", addNPatchVersion(proxysupport.EnvoyVersions[0], 1)},
+			expectedSupport: false,
+		},
+		{
+			name:            "error-bad-input",
+			envoyVersion:    "1.abc.3",
+			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			expectedSupport: false,
+			isErrorExpected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := checkEnvoyVersionCompatibility(tc.envoyVersion, tc.unsupportedList)
+			if tc.isErrorExpected {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.expectedSupport, actual)
+		})
+	}
+}
+
+func addNPatchVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	minor, _ := strconv.Atoi(splitS[2])
+	minor += n
+	return fmt.Sprintf("%s.%s.%d", splitS[0], splitS[1], minor)
+}
+
+func addNMinorVersion(s string, n int) string {
+	splitS := strings.Split(s, ".")
+	major, _ := strconv.Atoi(splitS[1])
+	major += n
+	return fmt.Sprintf("%s.%d.%s", splitS[0], major, splitS[2])
 }

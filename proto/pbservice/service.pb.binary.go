@@ -88,6 +88,16 @@ func (msg *TransparentProxyConfig) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *AccessLogsConfig) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *AccessLogsConfig) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *ServiceDefinition) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

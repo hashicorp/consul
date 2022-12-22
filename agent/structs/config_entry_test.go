@@ -2732,7 +2732,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Protocol: "http",
 				EnvoyExtensions: []EnvoyExtension{
 					{
-						Name: "builtin/aws/lambda",
+						Name: BuiltinAWSLambdaExtension,
 					},
 				},
 			},

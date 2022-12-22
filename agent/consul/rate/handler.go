@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"sync/atomic"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -137,10 +137,6 @@ type HandlerConfig struct {
 
 	// GlobalReadConfig configures the global rate limiter for read operations.
 	GlobalReadConfig multilimiter.LimiterConfig
-
-	// makeLimiter is a function that can be passed by tests to inject a mock
-	// multilimiter (it is unexported so it cannot be used in production code).
-	makeLimiter func(multilimiter.Config) multilimiter.RateLimiter
 }
 
 //go:generate mockery --name HandlerDelegate --inpackage --filename mock_HandlerDelegate_test.go
@@ -152,14 +148,11 @@ type HandlerDelegate interface {
 	IsLeader() bool
 }
 
-// NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
-	var limiter multilimiter.RateLimiter
-	if fn := cfg.makeLimiter; fn == nil {
-		limiter = multilimiter.NewMultiLimiter(cfg.Config)
-	} else {
-		limiter = fn(cfg.Config)
-	}
+func NewHandlerWithLimiter(
+	cfg HandlerConfig,
+	limiter multilimiter.RateLimiter,
+	logger hclog.Logger) *Handler {
+
 	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
@@ -173,6 +166,12 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 	return h
 }
 
+// NewHandler creates a new RPC rate limit handler.
+func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
+	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+	return NewHandlerWithLimiter(cfg, limiter, logger)
+}
+
 // Run the limiter cleanup routine until the given context is canceled.
 //
 // Note: this starts a goroutine.
@@ -183,8 +182,14 @@ func (h *Handler) Run(ctx context.Context) {
 // Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
+
 	if h.delegate == nil {
 		panic("delegate not set on handler via RegisterDelegate(..)")
+	}
+
+	cfg := h.cfg.Load()
+	if cfg.GlobalMode == ModeDisabled {
+		return nil
 	}
 
 	for _, l := range h.limits(op) {
@@ -214,14 +219,22 @@ func (h *Handler) Allow(op Operation) error {
 			}
 		}
 	}
-
 	return nil
 }
 
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
+	existingCfg := h.cfg.Load()
 	h.cfg.Store(&cfg)
-	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
-	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	if reflect.DeepEqual(existingCfg, cfg) {
+		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the server rate limiter configuration.")
+		return
+	}
+	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+	}
+	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	}
 }
 
 func (h *Handler) RegisterDelegate(isLeaderProvider HandlerDelegate) {
@@ -282,15 +295,15 @@ func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
 
-// NullRateLimiter returns a RateLimiter that allows every operation.
-func NullRateLimiter() RequestLimitsHandler {
-	return nullRateLimiter{}
+// NullRequestLimitsHandler returns a RequestLimitsHandler that allows every operation.
+func NullRequestLimitsHandler() RequestLimitsHandler {
+	return nullRequestLimitsHandler{}
 }
 
-type nullRateLimiter struct{}
+type nullRequestLimitsHandler struct{}
 
-func (nullRateLimiter) Allow(Operation) error { return nil }
+func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 
-func (nullRateLimiter) Run(ctx context.Context) {}
+func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
-func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}
+func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}

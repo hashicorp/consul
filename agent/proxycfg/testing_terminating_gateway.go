@@ -952,7 +952,7 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
 			EnvoyExtensions: []structs.EnvoyExtension{
 				{
-					Name: "builtin/aws/lambda",
+					Name: structs.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
 						"ARN":                "lambda-arn",
 						"PayloadPassthrough": true,

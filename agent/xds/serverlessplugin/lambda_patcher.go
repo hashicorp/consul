@@ -14,9 +14,9 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -30,22 +30,15 @@ type lambdaPatcher struct {
 
 var _ patcher = (*lambdaPatcher)(nil)
 
-func makeLambdaPatcher(serviceConfig xdscommon.ServiceConfig) (patcher, bool) {
+func makeLambdaPatcher(ext api.EnvoyExtension, upstreamKind api.ServiceKind) (patcher, bool) {
 	var patcher lambdaPatcher
 
-	// TODO this is a hack. We should iterate through the extensions outside of here
-	if len(serviceConfig.EnvoyExtensions) == 0 {
+	if ext.Name != structs.BuiltinAWSLambdaExtension {
 		return nil, false
 	}
 
-	// TODO this is a hack. We should iterate through the extensions outside of here
-	extension := serviceConfig.EnvoyExtensions[0]
-	if extension.Name != "builtin/aws/lambda" {
-		return nil, false
-	}
-
-	// TODO this fails when types aren't encode properly. We need to check this earlier in the Validate RPC.
-	err := mapstructure.Decode(extension.Arguments, &patcher)
+	// TODO this blows up if types aren't encode properly. We need to check this earlier in the Validate RPC.
+	err := mapstructure.Decode(ext.Arguments, &patcher)
 	if err != nil {
 		return nil, false
 	}
@@ -58,7 +51,7 @@ func makeLambdaPatcher(serviceConfig xdscommon.ServiceConfig) (patcher, bool) {
 		return nil, false
 	}
 
-	patcher.Kind = serviceConfig.Kind
+	patcher.Kind = upstreamKind
 
 	return patcher, true
 }

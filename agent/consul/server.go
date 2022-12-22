@@ -439,7 +439,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	if incomingRPCLimiter == nil {
-		incomingRPCLimiter = rpcRate.NullRateLimiter()
+		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
 
 	// Create server.

@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
+func TestGetExtensionConfigurations_TerminatingGateway(t *testing.T) {
 	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t)
 
 	webService := api.CompoundServiceName{
@@ -37,64 +37,88 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 		Partition: "default",
 	}
 
-	expected := PluginConfiguration{
-		Kind: api.ServiceKindTerminatingGateway,
-		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
-			webService: {
-				Kind: api.ServiceKindTerminatingGateway,
-				EnvoyExtensions: []api.EnvoyExtension{
-					{
-						Name: "builtin/aws/lambda",
-						Arguments: map[string]interface{}{
-							"ARN":                "lambda-arn",
-							"PayloadPassthrough": true,
-							"Region":             "us-east-1",
-						},
+	expected := map[api.CompoundServiceName][]ExtensionConfiguration{
+		apiService:   {},
+		cacheService: {},
+		dbService:    {},
+		webService: {
+			{
+				EnvoyExtension: api.EnvoyExtension{
+					Name: structs.BuiltinAWSLambdaExtension,
+					Arguments: map[string]interface{}{
+						"ARN":                "lambda-arn",
+						"PayloadPassthrough": true,
+						"Region":             "us-east-1",
 					},
 				},
-			},
-			apiService: {
+				ServiceName: webService,
+				Upstreams: map[api.CompoundServiceName]UpstreamData{
+					apiService: {
+						SNI: map[string]struct{}{
+							"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+						},
+						EnvoyID:           "api",
+						OutgoingProxyKind: "terminating-gateway",
+					},
+					cacheService: {
+						SNI: map[string]struct{}{
+							"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+						},
+						EnvoyID:           "cache",
+						OutgoingProxyKind: "terminating-gateway",
+					},
+					dbService: {
+						SNI: map[string]struct{}{
+							"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+						},
+						EnvoyID:           "db",
+						OutgoingProxyKind: "terminating-gateway",
+					},
+					webService: {
+						SNI: map[string]struct{}{
+							"canary1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+							"canary2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+							"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         {},
+						},
+						EnvoyID:           "web",
+						OutgoingProxyKind: "terminating-gateway",
+					},
+				},
 				Kind: api.ServiceKindTerminatingGateway,
 			},
-			cacheService: {
-				Kind: api.ServiceKindTerminatingGateway,
-			},
-			dbService: {
-				Kind: api.ServiceKindTerminatingGateway,
-			},
-		},
-		SNIToServiceName: map[string]api.CompoundServiceName{
-			"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         apiService,
-			"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":       cacheService,
-			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":          dbService,
-			"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         webService,
-			"canary1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
-			"canary2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
-		},
-		EnvoyIDToServiceName: map[string]api.CompoundServiceName{
-			"web":   webService,
-			"db":    dbService,
-			"cache": cacheService,
-			"api":   apiService,
 		},
 	}
 
-	require.Equal(t, expected, MakePluginConfiguration(snap))
+	require.Equal(t, expected, GetExtensionConfigurations(snap))
 }
 
-func TestMakePluginConfiguration_ConnectProxy(t *testing.T) {
+func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 	dbService := api.CompoundServiceName{
 		Name:      "db",
 		Partition: "default",
 		Namespace: "default",
 	}
+	webService := api.CompoundServiceName{
+		Name:      "web",
+		Partition: "",
+		Namespace: "default",
+	}
+
+	// Setup multiple extensions to ensure all of them are in the ExtensionConfiguration map.
 	envoyExtensions := []structs.EnvoyExtension{
 		{
-			Name: "builtin/aws/lambda",
+			Name: structs.BuiltinAWSLambdaExtension,
 			Arguments: map[string]interface{}{
 				"ARN":                "lambda-arn",
 				"PayloadPassthrough": true,
 				"Region":             "us-east-1",
+			},
+		},
+		{
+			Name: "ext2",
+			Arguments: map[string]interface{}{
+				"arg1": 1,
+				"arg2": "val2",
 			},
 		},
 	}
@@ -106,22 +130,156 @@ func TestMakePluginConfiguration_ConnectProxy(t *testing.T) {
 		EnvoyExtensions: envoyExtensions,
 	}
 
-	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
-	expected := PluginConfiguration{
-		Kind: api.ServiceKindConnectProxy,
-		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
-			dbService: {
-				Kind:            api.ServiceKindConnectProxy,
-				EnvoyExtensions: convertEnvoyExtensions(envoyExtensions),
+	// Setup a snapshot where the db upstream is on a connect proxy.
+	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
+	// Setup a snapshot where the db upstream is on a terminating gateway.
+	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, serviceDefaults)
+	// Setup a snapshot with the local service web has extensions.
+	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+		ns.Proxy.EnvoyExtensions = envoyExtensions
+	}, nil)
+
+	type testCase struct {
+		snapshot *proxycfg.ConfigSnapshot
+		expected map[api.CompoundServiceName][]ExtensionConfiguration
+	}
+	cases := map[string]testCase{
+		"connect proxy upstream": {
+			snapshot: snapConnect,
+			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+				dbService: {
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: structs.BuiltinAWSLambdaExtension,
+							Arguments: map[string]interface{}{
+								"ARN":                "lambda-arn",
+								"PayloadPassthrough": true,
+								"Region":             "us-east-1",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
+				},
+				webService: {},
 			},
 		},
-		SNIToServiceName: map[string]api.CompoundServiceName{
-			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": dbService,
+		"terminating gateway upstream": {
+			snapshot: snapTermGw,
+			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+				dbService: {
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: structs.BuiltinAWSLambdaExtension,
+							Arguments: map[string]interface{}{
+								"ARN":                "lambda-arn",
+								"PayloadPassthrough": true,
+								"Region":             "us-east-1",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "terminating-gateway",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: dbService,
+						Upstreams: map[api.CompoundServiceName]UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "terminating-gateway",
+							},
+						},
+						Kind: api.ServiceKindConnectProxy,
+					},
+				},
+				webService: {},
+			},
 		},
-		EnvoyIDToServiceName: map[string]api.CompoundServiceName{
-			"db": dbService,
+		"local service extensions": {
+			snapshot: snapWebConnect,
+			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+				dbService: {},
+				webService: {
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: structs.BuiltinAWSLambdaExtension,
+							Arguments: map[string]interface{}{
+								"ARN":                "lambda-arn",
+								"PayloadPassthrough": true,
+								"Region":             "us-east-1",
+							},
+						},
+						ServiceName: webService,
+						Upstreams:   nil,
+						Kind:        api.ServiceKindConnectProxy,
+					},
+					{
+						EnvoyExtension: api.EnvoyExtension{
+							Name: "ext2",
+							Arguments: map[string]interface{}{
+								"arg1": 1,
+								"arg2": "val2",
+							},
+						},
+						ServiceName: webService,
+						Upstreams:   nil,
+						Kind:        api.ServiceKindConnectProxy,
+					},
+				},
+			},
 		},
 	}
 
-	require.Equal(t, expected, MakePluginConfiguration(snap))
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expected, GetExtensionConfigurations(tc.snapshot))
+		})
+	}
 }

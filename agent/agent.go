@@ -641,7 +641,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
 			a.tlsConfigurator,
-			rpcRate.NullRateLimiter(),
+			rpcRate.NullRequestLimitsHandler(),
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
