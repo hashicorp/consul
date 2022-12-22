@@ -4,7 +4,6 @@ package rate
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/armon/go-metrics"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/go-hclog"
@@ -159,10 +158,9 @@ func NewHandlerWithLimiter(
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
 	h := &Handler{
-		cfg:      new(atomic.Pointer[HandlerConfig]),
-		delegate: delegate,
-		limiter:  limiter,
-		logger:   logger.NamedIntercept("rate-limit"),
+		cfg:     new(atomic.Pointer[HandlerConfig]),
+		limiter: limiter,
+		logger:  logger.NamedIntercept("rate-limit"),
 	}
 	h.cfg.Store(&cfg)
 
@@ -170,7 +168,7 @@ func NewHandlerWithLimiter(
 }
 
 // NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
+func NewHandler(cfg HandlerConfig, logger hclog.InterceptLogger) *Handler {
 	limiter := multilimiter.NewMultiLimiter(cfg.Config)
 	return NewHandlerWithLimiter(cfg, limiter, logger)
 }
