@@ -1,0 +1,9 @@
+| Rule | Description | Type |  Required | 
+| --- 	    | ---	       | ---         | ---         | 
+| `Add` <br/>`add` in Kubernetes | Defines a set of key-value pairs to add to the header. If header values with the same name already exist, the value is appended and Consul applies both headers. <br/> | map of strings | optional |
+| `Set` <br/>`set` in Kubernetes | Defines a set of key-value pairs to add to the request header or to replace existing header values with. If header values with the same names already exist, Consul replaces the header values. <br/> | map of strings | optional |
+| `Remove` <br/>`Remove` in Kubernetes | Defines an array of headers to remove. Consul removes only headers containing exact matches. | array of strings | optional |
+
+For all rules, no header names are case sensitive.
+
+For `Add` and `Set` (`add` and `set` in Kubernetes), use header names as the keys. If the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.

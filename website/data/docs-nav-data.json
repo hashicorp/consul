@@ -457,6 +457,15 @@
           {
             "title": "Discovery Chain",
             "path": "connect/l7-traffic/discovery-chain"
+          },
+          {
+            "title": "Configuration",
+            "routes": [
+              {
+                "title": "Service Splitter",
+                "path": "connect/l7-traffic/configuration/service-splitter"
+              }
+            ]
           }
         ]
       },

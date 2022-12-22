@@ -1,0 +1,391 @@
+---
+layout: docs
+page_title: Service Splitter - Configuration Entry Reference
+description: >-
+  The service splitter configuration entry kind defines how to divide service mesh traffic between service instances. Use the reference guide to learn about `""service-splitter""` config entry parameters and how it can be used for traffic management behaviors like canary rollouts, blue green deployment, and load balancing across environments.
+---
+
+# Service Splitter Configuration Entry Reference
+
+This topic provides configuration reference information for the service splitter configuration entry. 
+
+The `service-splitter` configuration entry kind (`ServiceSplitter` on Kubernetes) splits incoming requests across different subsets of a single service (like during staged canary rollouts), or across different services (like during a v2 rewrite or other type of codebase migration).
+
+## Configuration model
+
+The following outline shows how to format the service splitter configuration entry. Click on a property name to view details about the configuration.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+- [`Kind`](#kind): string | required
+- [`Name`](#name): string | required
+- [`Namespace`](#namespace): string | optional | <EnterpriseAlert inline /> 
+- [`Partition`](#partition): string | optional | <EnterpriseAlert inline /> 
+- [`Meta`](#meta): object | optional
+- [`Splits`](#splits): array of objects | optional
+  - [`Namespace`](#splits-namespace): string | optional | <EnterpriseAlert inline /> 
+  - [`Partition`](#splits-partition): string | optional | <EnterpriseAlert inline /> 
+  - [`RequestHeaders`](#splits-requestheaders): array of objects | optional
+  - [`ResponseHeaders`](#splits-responseheaders): object | optional
+  - [`Service`](#splits-service): string | optional
+  - [`ServiceSubset`](#splits-service-subset): string | optional
+  - [`Weight`](#splits-weight): float32 | optional
+
+</Tab>
+<Tab heading="Kubernetes YAML" group="yaml">
+
+- [`metadata`](): string | required
+  - [`name`](#name): string | required
+  - [`namespace`](#namespace): string | optional | <EnterpriseAlert inline /> 
+- [`splits`](#splits): array of objects | optional
+  - [`namespace`](#splits-namespace): string | optional | <EnterpriseAlert inline /> 
+  - [`partition`](#splits-partition): string | optional | <EnterpriseAlert inline /> 
+  - [`requestHeaders`](#splits-requestheaders): object | optional
+  - [`responseHeaders`](#splits-responseheaders): object | optional
+  - [`service`](#splits-service): string | optional
+  - [`serviceSubset`](#splits-service-subset): string | optional
+  - [`weight`](#splits-weight): float32 | optional
+
+</Tab>
+</Tabs>
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading a `service-splitter` configuration entry requires `service:read` on the resource.
+
+Creating, updating, or deleting a `service-splitter` configuration entry requires `service:write` on the resource and `service:read` on any other service referenced by name in these fields:
+
+- [`Splits[].Service`](#service)
+
+## Specification
+
+This topic provides details about the configuration parameters.
+
+### Kind
+
+Specifies the type of configuration entry to implement. 
+
+For HCL, the value for service splitters is always `service-splitter`.
+
+The Kubernetes equivalent is `kind`. The value for service splitters is always `serviceSplitter`. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+## ...
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+## ...
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  ## ...
+}
+```
+
+</CodeTabs>
+
+### Name
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings. 
+
+- Type: string
+- Required: required
+
+For Kubernetes, the value is stored in the `metadata` field. In the following example, the configuration entry is named `web`:
+
+```yaml
+metadata:
+  name: web
+```
+
+### Namespace
+
+Specifies the namespace for the configuration entry.
+
+- Type: string
+- Required: optional
+
+For Kubernetes, the value is stored in the `metadata` field. In the following example, the configuration entry is in the `main` namespace:
+
+```yaml
+metadata:
+  namespace: main
+```
+
+### Partition <EnterpriseAlert inline />
+
+Specifies which admin partition to use for resolving the service. By default, Consul uses the current partition. The Kubernetes equivalent is `partition`.
+
+- Type: string
+- Required: optional 
+
+This value does not exist for Kubernetes.
+
+### Splits
+
+Defines how the configuration entry splits traffic. 
+
+- Type: array of objects
+- Required: optional
+
+For Kubernetes, define the `splits` block in the `spec` field:
+
+```yaml
+spec:
+  splits:
+    ## ...
+```
+
+### Splits.Namespace <EnterpriseAlert inline />
+
+Specifies which namespace to use for resolving the service. By default, Consul uses the current namespace. The Kubernetes equivalent is `namespace`. 
+
+- Type: string
+- Required: optional
+
+### Splits.Partition <EnterpriseAlert inline />
+
+Specifies which admin partition to use for resolving the service. By default, Consul uses the current partition. The Kubernetes equivalent is `partition`.
+
+- Type: string
+- Required: optional
+
+### Splits.RequestHeaders
+
+The `RequestHeaders` object contains a set of HTTP-specific header modification rules that are applied to requests routed through the split. You cannot use request headers with a `tcp` listener. The Kubernetes equivalent is `requestHeaders`.
+
+The following table describes the modification rules you can define in the `RequestHeaders` field.
+
+@include 'config-entry-http-header-modifiers.mdx'
+
+Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
+
+### Splits.ResponseHeaders
+
+The `ResponseHeaders` object contains a set of HTTP-specific header modification rules that are applied to responses routed through the split. You cannot use request headers with a `tcp` listener. The Kubernetes equivalent is `responseHeaders`.
+
+The following table describes the modification rules you can define in the `ResponseHeaders` field. 
+
+@include 'config-entry-http-header-modifiers.mdx'
+
+Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
+
+### splits.Service
+Specifies the name of the service to resolve. If undefined, this value defaults to the service with the same name as the configuration entry.
+
+- Type: string
+- Required: optional
+
+Refer to [Two subsets of same service](#two-subsets-of-same-service) for an example configuration. 
+### splits.ServiceSubset
+Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. If empty, the `split` will use the default subset.
+
+- Type: string
+- Required: optional
+### splits.Namespace
+
+### splits.Partition
+
+### splits.weight
+Specifies what percentage of the traffic is sent to the set of service instances specified in the [`splits.Service`](#splits-service) field. The field is the same for Kubernetes and virtual machines. 
+
+Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+- Type: float32
+- Required: optional
+
+## Example configurations
+The following examples show possible service splitter configurations.
+### Two subsets of same service
+
+In the following example, the ServiceSplitter routes 90% of the traffic to the `v1` service subset and 10%to `v2` service subset. Since neither item in `Splits` does not have a `Service`, ServiceSplitter defaults to the service with the same name as the configuration entry (`web`). 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "web"
+Splits = [
+  {
+    Weight        = 90
+    ServiceSubset = "v1"
+  },
+  {
+    Weight        = 10
+    ServiceSubset = "v2"
+  },
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+    - weight: 10
+      serviceSubset: v2
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1"
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### Two different services
+
+In the following example, the ServiceSplitter splits half of the traffic to the `web` service and the other half to `web-rewrite`. Since the first item in `Splits` does not have a `Service`, it defaults to the service with the same name as the configuration entry (`web`). 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "web"
+Splits = [
+  {
+    Weight  = 50
+    # will default to service with same name as config entry ("web")
+  },
+  {
+    Weight  = 50
+    Service = "web-rewrite"
+  },
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 50
+      # will default to service with same name as config entry ("web")
+    - weight: 50
+      service: web-rewrite
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 50
+    },
+    {
+      "Weight": 50,
+      "Service": "web-rewrite"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### Set HTTP Headers
+
+In the following example, the ServiceSplitter splits traffic between two service subsets and sets headers so downstream services can tell which version it received. For items served by the `v1` service subset, ServiceSplitter sets the `X-Web-Version` header to `v1`.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "web"
+Splits = [
+  {
+    Weight        = 90
+    ServiceSubset = "v1"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v1"
+      }
+    }
+  },
+  {
+    Weight        = 10
+    ServiceSubset = "v2"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v2"
+      }
+    }
+  },
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+      responseHeaders:
+        set:
+          x-web-version: v1
+    - weight: 10
+      serviceSubset: v2
+      responseHeaders:
+        set:
+          x-web-version: v2
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v1"
+        }
+      }
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v2"
+        }
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
