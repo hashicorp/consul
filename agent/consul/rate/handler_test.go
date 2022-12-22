@@ -15,6 +15,19 @@ import (
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
+func TestHandler_Run_PanicsWhenDelegateNotRegistered(t *testing.T) {
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Fatal("Run should panic")
+		}
+	}()
+
+	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
+	handler.Run(context.Background())
+	// intentionally skip handler.RegisterDelegate(...)
+}
+
 func TestHandler(t *testing.T) {
 	var (
 		rpcName    = "Foo.Bar"

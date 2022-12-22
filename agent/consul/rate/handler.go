@@ -177,6 +177,9 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 //
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
+	if h.delegate == nil {
+		panic("delegate not set on handler via RegisterDelegate(..)")
+	}
 	h.limiter.Run(ctx)
 }
 
