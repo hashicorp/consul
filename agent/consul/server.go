@@ -438,6 +438,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		Publisher: flat.EventPublisher,
 	}
 
+	if incomingRPCLimiter == nil {
+		incomingRPCLimiter = rpcRate.NullRateLimiter()
+	}
+
 	// Create server.
 	s := &Server{
 		config:                  config,
