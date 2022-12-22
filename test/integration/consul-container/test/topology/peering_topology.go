@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -56,13 +57,21 @@ func BasicPeeringTwoClustersSetup(t *testing.T, consulVersion string) (*libclust
 	}()
 	wg.Wait()
 
-	err := dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName)
+	// Create the mesh gateway for dataplane traffic
+	clientNodes, _ := acceptingCluster.Clients()
+	_, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNodes[0])
+	require.NoError(t, err)
+	clientNodes, _ = dialingCluster.Clients()
+	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNodes[0])
+	require.NoError(t, err)
+
+	err = dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName)
 	require.NoError(t, err)
 
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
 
 	// Register an static-server service in acceptingCluster and export to dialing cluster
-	clientNodes, err := acceptingCluster.Clients()
+	clientNodes, err = acceptingCluster.Clients()
 	require.NoError(t, err)
 	require.True(t, len(clientNodes) > 0)
 	staticServerSvc, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNodes[0])

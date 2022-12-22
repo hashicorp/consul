@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -43,14 +42,14 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 
-		var configs []libagent.Config
+		var configs []libcluster.Config
 
-		configCtx, err := libagent.NewBuildContext(libagent.BuildOptions{
+		configCtx, err := libcluster.NewBuildContext(libcluster.BuildOptions{
 			ConsulVersion: tc.oldversion,
 		})
 		require.NoError(t, err)
 		numServers := 1
-		leaderConf, err := libagent.NewConfigBuilder(configCtx).
+		leaderConf, err := libcluster.NewConfigBuilder(configCtx).
 			Bootstrap(numServers).
 			ToAgentConfig()
 		require.NoError(t, err)

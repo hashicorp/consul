@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -71,9 +70,9 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	var configs []libagent.Config
+	var configs []libcluster.Config
 
-	leaderConf, err := libagent.NewConfigBuilder(nil).ToAgentConfig()
+	leaderConf, err := libcluster.NewConfigBuilder(nil).ToAgentConfig()
 	require.NoError(t, err)
 
 	configs = append(configs, *leaderConf)
@@ -91,7 +90,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 
 	for i := 1; i < 3; i++ {
 		configs = append(configs,
-			libagent.Config{
+			libcluster.Config{
 				JSON:    serverConf,
 				Cmd:     []string{"agent"},
 				Version: *utils.LatestVersion,
@@ -152,10 +151,10 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
-	var configs []libagent.Config
+	var configs []libcluster.Config
 
 	for i := 0; i < 2; i++ {
-		serverConf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
+		serverConf, err := libcluster.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
 		require.NoError(t, err)
 		configs = append(configs, *serverConf)
 	}
@@ -169,7 +168,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}`
 
 	configs = append(configs,
-		libagent.Config{
+		libcluster.Config{
 			JSON:    leaderConf,
 			Cmd:     []string{"agent"},
 			Version: *utils.LatestVersion,
@@ -227,8 +226,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(t *testing.T, numClients int, image string, version string, cluster *libcluster.Cluster) []libagent.Agent {
-	clients := make([]libagent.Agent, numClients)
+func clientsCreate(t *testing.T, numClients int, image string, version string, cluster *libcluster.Cluster) []libcluster.Agent {
+	clients := make([]libcluster.Agent, numClients)
 
 	// This needs a specialized config since it is using an older version of the agent.
 	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
@@ -241,8 +240,8 @@ func clientsCreate(t *testing.T, numClients int, image string, version string, c
 
 	for i := 0; i < numClients; i++ {
 		var err error
-		clients[i], err = libagent.NewConsulContainer(context.Background(),
-			libagent.Config{
+		clients[i], err = libcluster.NewConsulContainer(context.Background(),
+			libcluster.Config{
 				JSON:    conf,
 				Cmd:     []string{"agent"},
 				Version: version,
@@ -277,9 +276,9 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 }
 
 func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
-	var configs []libagent.Config
+	var configs []libcluster.Config
 
-	conf, err := libagent.NewConfigBuilder(nil).
+	conf, err := libcluster.NewConfigBuilder(nil).
 		Bootstrap(numServers).
 		ToAgentConfig()
 	require.NoError(t, err)

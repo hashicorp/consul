@@ -16,8 +16,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -25,8 +25,8 @@ import (
 // These fields are public in the event someone might want to surgically
 // craft a test case.
 type Cluster struct {
-	Agents       []libagent.Agent
-	BuildContext *libagent.BuildContext
+	Agents       []Agent
+	BuildContext *BuildContext
 	CACert       string
 	CAKey        string
 	ID           string
@@ -39,7 +39,7 @@ type Cluster struct {
 // configs and joined to the cluster.
 //
 // A cluster has its own docker network for DNS connectivity, but is also joined
-func New(configs []libagent.Config) (*Cluster, error) {
+func New(configs []Config) (*Cluster, error) {
 	id, err := shortid.Generate()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not cluster id")
@@ -64,11 +64,11 @@ func New(configs []libagent.Config) (*Cluster, error) {
 }
 
 // Add starts an agent with the given configuration and joins it with the existing cluster
-func (c *Cluster) Add(configs []libagent.Config) error {
+func (c *Cluster) Add(configs []Config) error {
 
-	agents := make([]libagent.Agent, len(configs))
+	agents := make([]Agent, len(configs))
 	for idx, conf := range configs {
-		n, err := libagent.NewConsulContainer(context.Background(), conf, c.NetworkName, c.Index)
+		n, err := NewConsulContainer(context.Background(), conf, c.NetworkName, c.Index)
 		if err != nil {
 			return errors.Wrapf(err, "could not add container index %d", idx)
 		}
@@ -82,7 +82,7 @@ func (c *Cluster) Add(configs []libagent.Config) error {
 }
 
 // Join joins the given agent to the cluster.
-func (c *Cluster) Join(agents []libagent.Agent) error {
+func (c *Cluster) Join(agents []Agent) error {
 	var joinAddr string
 	if len(c.Agents) >= 1 {
 		joinAddr, _ = c.Agents[0].GetAddr()
@@ -102,7 +102,7 @@ func (c *Cluster) Join(agents []libagent.Agent) error {
 
 // Remove instructs the agent to leave the cluster then removes it
 // from the cluster Agent list.
-func (c *Cluster) Remove(n libagent.Agent) error {
+func (c *Cluster) Remove(n Agent) error {
 	err := n.GetClient().Agent().Leave()
 	if err != nil {
 		return errors.Wrapf(err, "could not remove agent %s", n.GetName())
@@ -195,7 +195,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	}
 
 	WaitForMembers(t, client, len(c.Agents))
-
+	WaitForLeader(t, c, client)
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (c *Cluster) Terminate() error {
 
 // Leader returns the cluster leader agent, or an error if no leader is
 // available.
-func (c *Cluster) Leader() (libagent.Agent, error) {
+func (c *Cluster) Leader() (Agent, error) {
 	if len(c.Agents) < 1 {
 		return nil, fmt.Errorf("no agent available")
 	}
@@ -242,7 +242,7 @@ func (c *Cluster) Leader() (libagent.Agent, error) {
 // GetClient returns a consul API client to the node if node is provided.
 // Otherwise, GetClient returns the API client to the first node of either
 // server or client agent.
-func (c *Cluster) GetClient(node libagent.Agent, isServer bool) (*api.Client, error) {
+func (c *Cluster) GetClient(node Agent, isServer bool) (*api.Client, error) {
 	var err error
 	if node != nil {
 		return node.GetClient(), err
@@ -276,8 +276,8 @@ func getLeader(client *api.Client) (string, error) {
 }
 
 // Followers returns the cluster following servers.
-func (c *Cluster) Followers() ([]libagent.Agent, error) {
-	var followers []libagent.Agent
+func (c *Cluster) Followers() ([]Agent, error) {
+	var followers []Agent
 
 	leader, err := c.Leader()
 	if err != nil {
@@ -293,8 +293,8 @@ func (c *Cluster) Followers() ([]libagent.Agent, error) {
 }
 
 // Servers returns the handle to server agents
-func (c *Cluster) Servers() ([]libagent.Agent, error) {
-	var servers []libagent.Agent
+func (c *Cluster) Servers() ([]Agent, error) {
+	var servers []Agent
 
 	for _, n := range c.Agents {
 		if n.IsServer() {
@@ -305,8 +305,8 @@ func (c *Cluster) Servers() ([]libagent.Agent, error) {
 }
 
 // Clients returns the handle to client agents
-func (c *Cluster) Clients() ([]libagent.Agent, error) {
-	var clients []libagent.Agent
+func (c *Cluster) Clients() ([]Agent, error) {
+	var clients []Agent
 
 	for _, n := range c.Agents {
 		if !n.IsServer() {
@@ -339,6 +339,27 @@ func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName
 	}
 
 	return nil
+}
+
+func (c *Cluster) ConfigEntryWrite(entryStr string) error {
+	client, _ := c.GetClient(nil, true)
+
+	entry, err := helpers.ParseConfigEntry(entryStr)
+	fmt.Println("Config entry kind", entry.GetKind())
+	if err != nil {
+		return fmt.Errorf("error parse config entry string")
+	}
+
+	entries := client.ConfigEntries()
+	written := false
+	written, _, err = entries.Set(entry, nil)
+	if err != nil {
+		return fmt.Errorf("error set config entry: %v", err)
+	}
+	if !written {
+		return fmt.Errorf("config entry not updated: %s/%s", entry.GetKind(), entry.GetName())
+	}
+	return err
 }
 
 const retryTimeout = 90 * time.Second

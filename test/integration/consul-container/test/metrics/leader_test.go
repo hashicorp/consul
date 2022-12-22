@@ -12,37 +12,29 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
 func TestLeadershipMetrics(t *testing.T) {
-	var configs []agent.Config
-
-	statsConf, err := libagent.NewConfigBuilder(nil).Telemetry("127.0.0.0:2180").ToAgentConfig()
-	require.NoError(t, err)
-	configs = append(configs, *statsConf)
-
-	conf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
-	require.NoError(t, err)
-	numServer := 3
-	for i := 1; i < numServer; i++ {
-		configs = append(configs, *conf)
-	}
-
-	cluster, err := libcluster.New(configs)
-	require.NoError(t, err)
-	defer terminate(t, cluster)
+	cluster := topology.BasicSingleClusterTopology(t, &libcluster.Options{
+		Datacenter: "dc1",
+		NumServer:  3,
+		NumClient:  1,
+	})
+	defer func() {
+		err := cluster.Terminate()
+		require.NoErrorf(t, err, "termining cluster")
+	}()
 
 	svrCli := cluster.Agents[0].GetClient()
 	libcluster.WaitForLeader(t, cluster, svrCli)
-	libcluster.WaitForMembers(t, svrCli, 3)
+	libcluster.WaitForMembers(t, svrCli, 4)
 
-	retryWithBackoff := func(agent agent.Agent, expectedStr string) error {
-		waiter := &utils.Waiter{
+	retryWithBackoff := func(agent libcluster.Agent, expectedStr string) error {
+		waiter := &libutils.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
 		_, port := agent.GetAddr()
@@ -67,7 +59,9 @@ func TestLeadershipMetrics(t *testing.T) {
 	require.NoError(t, err)
 	leadAddr, leaderPort := leader.GetAddr()
 
-	for i, n := range cluster.Agents {
+	servers, err := cluster.Servers()
+	require.NoError(t, err)
+	for i, n := range servers {
 		addr, port := n.GetAddr()
 		if addr == leadAddr && port == leaderPort {
 			err = retryWithBackoff(leader, ".server.isLeader\",\"Value\":1,")
@@ -92,9 +86,4 @@ func getMetrics(t *testing.T, addr string, port int, path string) (string, error
 		return "nil", fmt.Errorf("error read metrics: %v", err)
 	}
 	return string(body), nil
-}
-
-func terminate(t *testing.T, cluster *libcluster.Cluster) {
-	err := cluster.Terminate()
-	require.NoError(t, err)
 }

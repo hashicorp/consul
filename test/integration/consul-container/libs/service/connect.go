@@ -10,9 +10,17 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
+
+// Agent represent a Consul agent abstraction
+type Agent interface {
+	GetAddr() (string, int)
+	GetClient() *api.Client
+	GetDatacenter() string
+	RegisterTermination(func() error)
+	RegisterConnectSidecar(*ConnectContainer)
+}
 
 // ConnectContainer
 type ConnectContainer struct {
@@ -32,7 +40,7 @@ func (g ConnectContainer) GetName() string {
 	return name
 }
 
-func (g ConnectContainer) GetAddr() (string, int) {
+func (g *ConnectContainer) GetAddr() (string, int) {
 	return g.ip, g.appPort
 }
 
@@ -43,13 +51,13 @@ func (g ConnectContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
-func (g ConnectContainer) GetAdminAddr() (string, int) {
+func (g *ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
 // Terminate attempts to terminate the container. On failure, an error will be
 // returned and the reaper process (RYUK) will handle cleanup.
-func (c ConnectContainer) Terminate() error {
+func (c *ConnectContainer) Terminate() error {
 	if c.container == nil {
 		return nil
 	}
@@ -77,12 +85,38 @@ func (g ConnectContainer) GetServiceName() string {
 	return g.serviceName
 }
 
+func (g *ConnectContainer) Restart(serviceBindPort int) error {
+	g.ctx = context.Background()
+	err := g.container.Start(g.ctx)
+	if err != nil {
+		return err
+	}
+	ip, err := g.container.ContainerIP(g.ctx)
+	if err != nil {
+		return err
+	}
+
+	mappedAppPort, err := g.container.MappedPort(g.ctx, nat.Port(fmt.Sprintf("%d", serviceBindPort)))
+	if err != nil {
+		return err
+	}
+	mappedAdminPort, err := g.container.MappedPort(g.ctx, nat.Port(fmt.Sprintf("%d", 19000)))
+	if err != nil {
+		return err
+	}
+
+	g.ip = ip
+	g.appPort = mappedAppPort.Int()
+	g.adminPort = mappedAdminPort.Int()
+	return nil
+}
+
 // NewConnectService returns a container that runs envoy sidecar, launched by
 // "consul connect envoy", for service name (serviceName) on the specified
 // node. The container exposes port serviceBindPort and envoy admin port (19000)
 // by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -153,15 +187,17 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		return container.Terminate(context.Background())
 	}
 	node.RegisterTermination(terminate)
-
-	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
-		serviceName, mappedAppPort.Int(), serviceBindPort)
-
-	return &ConnectContainer{
+	connectC := &ConnectContainer{
 		container:   container,
 		ip:          ip,
 		appPort:     mappedAppPort.Int(),
 		adminPort:   mappedAdminPort.Int(),
 		serviceName: name,
-	}, nil
+	}
+	node.RegisterConnectSidecar(connectC)
+
+	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
+		serviceName, mappedAppPort.Int(), serviceBindPort)
+
+	return connectC, nil
 }

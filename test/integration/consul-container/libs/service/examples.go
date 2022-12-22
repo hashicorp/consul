@@ -10,7 +10,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -87,7 +86,7 @@ func (g exampleContainer) GetServiceName() string {
 	return g.serviceName
 }
 
-func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libnode.Agent) (Service, error) {
+func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node Agent) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 

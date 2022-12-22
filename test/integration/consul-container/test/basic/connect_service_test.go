@@ -5,11 +5,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestBasicConnectService Summary
@@ -22,49 +21,20 @@ import (
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
-	cluster := createCluster(t)
-	defer terminate(t, cluster)
+	cluster := topology.BasicSingleClusterTopology(t, &libcluster.Options{
+		Datacenter: "dc1",
+		NumServer:  1,
+		NumClient:  1,
+	})
+	defer func() {
+		err := cluster.Terminate()
+		require.NoErrorf(t, err, "termining cluster")
+	}()
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
 
 	libassert.HTTPServiceEchoes(t, "localhost", port)
-}
-
-func terminate(t *testing.T, cluster *libcluster.Cluster) {
-	err := cluster.Terminate()
-	require.NoError(t, err)
-}
-
-// createCluster
-func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libagent.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-	}
-	ctx, err := libagent.NewBuildContext(opts)
-	require.NoError(t, err)
-
-	conf, err := libagent.NewConfigBuilder(ctx).ToAgentConfig()
-	require.NoError(t, err)
-	t.Logf("Cluster config:\n%s", conf.JSON)
-
-	configs := []libagent.Config{*conf}
-
-	cluster, err := libcluster.New(configs)
-	require.NoError(t, err)
-
-	client, err := cluster.GetClient(nil, true)
-	require.NoError(t, err)
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	return cluster
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {

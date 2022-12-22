@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -164,15 +163,15 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 }
 
 // rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
-func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libagent.BuildContext, node libagent.Agent) {
-	conf, err := libagent.NewConfigBuilder(cluster.BuildContext).
+func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libcluster.BuildContext, node libcluster.Agent) {
+	conf, err := libcluster.NewConfigBuilder(cluster.BuildContext).
 		Bootstrap(0).
 		Peering(true).
 		RetryJoin("agent-3"). // Always use the client agent since it never leaves the cluster
 		ToAgentConfig()
 	require.NoError(t, err)
 
-	err = cluster.Add([]libagent.Config{*conf})
+	err = cluster.Add([]libcluster.Config{*conf})
 	require.NoError(t, err, "could not start new node")
 
 	libcluster.WaitForMembers(t, client, 5)

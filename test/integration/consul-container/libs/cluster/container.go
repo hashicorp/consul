@@ -1,4 +1,4 @@
-package agent
+package cluster
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/hashicorp/consul/api"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -24,23 +25,24 @@ const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
 type consulContainerNode struct {
-	ctx            context.Context
-	client         *api.Client
-	pod            testcontainers.Container
-	container      testcontainers.Container
-	serverMode     bool
-	ip             string
-	port           int
-	datacenter     string
-	config         Config
-	podReq         testcontainers.ContainerRequest
-	consulReq      testcontainers.ContainerRequest
-	certDir        string
-	dataDir        string
-	network        string
-	id             int
-	name           string
-	terminateFuncs []func() error
+	ctx             context.Context
+	client          *api.Client
+	pod             testcontainers.Container
+	container       testcontainers.Container
+	serverMode      bool
+	ip              string
+	port            int
+	datacenter      string
+	config          Config
+	podReq          testcontainers.ContainerRequest
+	consulReq       testcontainers.ContainerRequest
+	certDir         string
+	dataDir         string
+	network         string
+	id              int
+	name            string
+	connectSidecars []*libservice.ConnectContainer
+	terminateFuncs  []func() error
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
@@ -203,6 +205,10 @@ func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, erro
 	return c.container.Exec(ctx, cmd)
 }
 
+func (c *consulContainerNode) RegisterConnectSidecar(connectC *libservice.ConnectContainer) {
+	c.connectSidecars = append(c.connectSidecars, connectC)
+}
+
 // Upgrade terminates a running container and create a new one using the provided config.
 // The upgraded node will
 //   - use the same node name and the data dir as the old version node
@@ -267,6 +273,16 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		})
 	}
 
+	// make sure all affiliated envoy sidecar are running
+	for _, sidecar := range c.connectSidecars {
+		// TODO: remove the hardcoded client's upstream port number
+		//   the number is the upstream LocalBindPort of the static-client
+		//   registered to consul.
+		err := sidecar.Restart(5000)
+		if err != nil {
+			return fmt.Errorf("error restarting sidecar container: %s", err)
+		}
+	}
 	return nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/hashicorp/consul/api"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -19,7 +18,6 @@ type gatewayContainer struct {
 	container   testcontainers.Container
 	ip          string
 	port        int
-	req         testcontainers.ContainerRequest
 	serviceName string
 }
 
@@ -72,7 +70,7 @@ func (g gatewayContainer) GetServiceName() string {
 	return g.serviceName
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent) (Service, error) {
+func NewGatewayService(ctx context.Context, name string, kind string, node Agent) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 

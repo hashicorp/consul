@@ -7,10 +7,9 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/consul/api"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 
-func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Service, error) {
+func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, error) {
 	// Create a service and proxy instance
 	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
 	if err != nil {
@@ -72,7 +71,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libnode.Agent) (Service, Servi
 	return serverService, serverConnectProxy, nil
 }
 
-func CreateAndRegisterStaticClientSidecar(node libnode.Agent, peerName string, localMeshGateway bool) (*ConnectContainer, error) {
+func CreateAndRegisterStaticClientSidecar(node Agent, peerName string, localMeshGateway bool) (*ConnectContainer, error) {
 	// Create a service and proxy instance
 	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
 	if err != nil {
