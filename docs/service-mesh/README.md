@@ -17,7 +17,7 @@ A key distinction from the data plane is that the control plane is largely not i
 ### Connect Native
 Consul's service mesh supports a "native" app integration. In this setup users must explicitly request leaf and root certificates from Consul for use in service-to-service mTLS. Additionally, to consider intentions for authorization, applications can issue an authorization check to a Consul agent.
 
-The Go client library for this integration exists in the [connect](#connect) package.
+The Go client library for this integration exists in the [connect](https://github.com/hashicorp/consul/tree/main/connect) package.
 
 **APIs:**
 * [/agent/connect/authorize](https://developer.hashicorp.com/consul/api-docs/agent/connect#authorize) can be used to evaluate whether intentions allow connections by a client to some target service.
