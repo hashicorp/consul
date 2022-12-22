@@ -112,6 +112,9 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
 		return nil, err
 	}
+	if err := mergo.Merge(&ns.Proxy.AccessLogs, defaults.AccessLogs); err != nil {
+		return nil, err
+	}
 
 	// defaults.EnvoyExtensions contains the extensions from the proxy defaults config entry followed by extensions from
 	// the service defaults config entry. This adds the extensions to structs.NodeService.Proxy which in turn is copied

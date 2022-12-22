@@ -38,6 +38,7 @@ func ComputeResolvedServiceConfig(
 		thisReply.MeshGateway = proxyConf.MeshGateway
 		thisReply.Expose = proxyConf.Expose
 		thisReply.EnvoyExtensions = proxyConf.EnvoyExtensions
+		thisReply.AccessLogs = proxyConf.AccessLogs
 
 		// Extract the global protocol from proxyConf for upstream configs.
 		rawProtocol := proxyConf.Config["protocol"]

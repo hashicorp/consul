@@ -21,13 +21,34 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 		want *structs.NodeService
 	}{
 		{
-			name: "inherit transparent proxy settings",
+			name: "inherit transparent proxy settings + kitchen sink",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
 					Mode: structs.ProxyModeTransparent,
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
+					},
+					ProxyConfig: map[string]interface{}{
+						"foo": "bar",
+					},
+					Expose: structs.ExposeConfig{
+						Checks: true,
+						Paths: []structs.ExposePath{
+							{
+								ListenerPort: 8080,
+								Path:         "/",
+								Protocol:     "http",
+							},
+						},
+					},
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+					AccessLogs: structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.FileLogSinkType,
+						Path:                "/tmp/accesslog.txt",
+						JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
 					},
 				},
 				service: &structs.NodeService{
@@ -51,6 +72,27 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
+					},
+					Config: map[string]interface{}{
+						"foo": "bar",
+					},
+					Expose: structs.ExposeConfig{
+						Checks: true,
+						Paths: []structs.ExposePath{
+							{
+								ListenerPort: 8080,
+								Path:         "/",
+								Protocol:     "http",
+							},
+						},
+					},
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+					AccessLogs: structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.FileLogSinkType,
+						Path:                "/tmp/accesslog.txt",
+						JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
 					},
 				},
 			},

@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -453,30 +452,8 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
 	}
 
-	switch e.AccessLogs.Type {
-	case "", StdErrLogSinkType, StdOutLogSinkType:
-		// OK
-	case FileLogSinkType:
-		if e.AccessLogs.Path == "" {
-			return errors.New("path must be specified when using file type access logs")
-		}
-	default:
-		return fmt.Errorf("invalid access log type: %s", e.AccessLogs.Type)
-	}
-
-	if e.AccessLogs.JSONFormat != "" && e.AccessLogs.TextFormat != "" {
-		return errors.New("cannot specify both access log JSONFormat and TextFormat")
-	}
-
-	if e.AccessLogs.Type != FileLogSinkType && e.AccessLogs.Path != "" {
-		return errors.New("path is only valid for file type access logs")
-	}
-
-	if e.AccessLogs.JSONFormat != "" {
-		msg := json.RawMessage{}
-		if err := json.Unmarshal([]byte(e.AccessLogs.JSONFormat), &msg); err != nil {
-			return fmt.Errorf("invalid access log json for JSON format: %w", err)
-		}
+	if err := e.AccessLogs.Validate(); err != nil {
+		return err
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
@@ -1186,6 +1163,7 @@ type ServiceConfigResponse struct {
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
 	Destination       DestinationConfig      `json:",omitempty"`
+	AccessLogs        AccessLogsConfig       `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
 	QueryMeta
