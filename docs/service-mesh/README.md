@@ -79,6 +79,6 @@ Consul's certificate authority is the component responsible for certificate mana
 For additional details see: [Certificate Authority](./ca) and the [public documentation](https://developer.hashicorp.com/consul/docs/connect/ca).
 
 ### Configuration Entries
-Configuration entries are the primary way to apply configuration or policies uniformly across the mesh. They are stored centrally on Consul's servers, and can be scoped to a service, namespace, a cluster, or a federation of datacenters.
+Configuration entries are the primary way to apply configuration or policies uniformly across the mesh. They are stored centrally on Consul's servers, and can be scoped to a service, namespace, admin partition, or a federation of datacenters.
 
 For additional details see: [Configuration Entries](./config-entries) and the [public documentation](https://developer.hashicorp.com/consul/docs/connect/config-entries).
