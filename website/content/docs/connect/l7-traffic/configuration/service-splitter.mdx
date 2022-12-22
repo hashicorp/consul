@@ -9,7 +9,17 @@ description: >-
 
 This topic provides configuration reference information for the service splitter configuration entry. 
 
-The `service-splitter` configuration entry kind (`ServiceSplitter` on Kubernetes) splits incoming requests across different subsets of a single service (like during staged canary rollouts), or across different services (like during a v2 rewrite or other type of codebase migration).
+The `service-splitter` configuration entry kind (`ServiceSplitter` on Kubernetes) splits incoming requests across different subsets of a single service (like during staged canary rollouts), or across different services (like during a v2 rewrite or other type of codebase migration).  Since L7 traffic splitting is only meant for HTTP, you cannot use request headers with a TCP listener.
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+If you want to read a `service-splitter` configuration entry, you must present an ACL token with read permissions (`service:read`).
+
+If you want to create, update, or delete a `service-splitter` configuration entry, you must present an ACL token with write permissions (`service:write`) for the configuration entry and read permissions (`service:read`) for all services in the [`Splits[].Service`](#splits-service).
+
+For more information, refer to the [`consul config`](/consul/commands/config) page.
 
 ## Configuration model
 
@@ -26,7 +36,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`Splits`](#splits): array of objects | optional
   - [`Namespace`](#splits-namespace): string | optional | <EnterpriseAlert inline /> 
   - [`Partition`](#splits-partition): string | optional | <EnterpriseAlert inline /> 
-  - [`RequestHeaders`](#splits-requestheaders): array of objects | optional
+  - [`RequestHeaders`](#splits-requestheaders): object | optional
   - [`ResponseHeaders`](#splits-responseheaders): object | optional
   - [`Service`](#splits-service): string | optional
   - [`ServiceSubset`](#splits-service-subset): string | optional
@@ -49,16 +59,6 @@ The following outline shows how to format the service splitter configuration ent
 
 </Tab>
 </Tabs>
-
-## ACLs
-
-Configuration entries may be protected by [ACLs](/docs/security/acl).
-
-Reading a `service-splitter` configuration entry requires `service:read` on the resource.
-
-Creating, updating, or deleting a `service-splitter` configuration entry requires `service:write` on the resource and `service:read` on any other service referenced by name in these fields:
-
-- [`Splits[].Service`](#service)
 
 ## Specification
 
@@ -101,21 +101,21 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 - Type: string
 - Required: required
 
-For Kubernetes, the value is stored in the `metadata` field. In the following example, the configuration entry is named `web`:
+The Kubernetes equivalent is `name` and is defined in the `metadata` field. In the following example, the configuration entry is named `web`:
 
 ```yaml
 metadata:
   name: web
 ```
 
-### Namespace
+### Namespace <EnterpriseAlert inline />
 
-Specifies the namespace for the configuration entry.
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
 
 - Type: string
 - Required: optional
 
-For Kubernetes, the value is stored in the `metadata` field. In the following example, the configuration entry is in the `main` namespace:
+The Kubernetes equivalent is `namespace` and is defined in the `metadata` field. In the following example, the configuration entry is in the `main` namespace:
 
 ```yaml
 metadata:
@@ -124,7 +124,7 @@ metadata:
 
 ### Partition <EnterpriseAlert inline />
 
-Specifies which admin partition to use for resolving the service. By default, Consul uses the current partition. The Kubernetes equivalent is `partition`.
+Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
 
 - Type: string
 - Required: optional 
@@ -138,7 +138,7 @@ Defines how the configuration entry splits traffic.
 - Type: array of objects
 - Required: optional
 
-For Kubernetes, define the `splits` block in the `spec` field:
+The Kubernetes equivalent is `splits` and is defined in the `spec` field.
 
 ```yaml
 spec:
@@ -148,21 +148,27 @@ spec:
 
 ### Splits.Namespace <EnterpriseAlert inline />
 
-Specifies which namespace to use for resolving the service. By default, Consul uses the current namespace. The Kubernetes equivalent is `namespace`. 
+Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resolving the service. By default, the `service-splitter` uses the [namespace specified in the top-level configuration entry](#namespace).
 
 - Type: string
 - Required: optional
+
+The Kubernetes equivalent is `namespace`.
 
 ### Splits.Partition <EnterpriseAlert inline />
 
-Specifies which admin partition to use for resolving the service. By default, Consul uses the current partition. The Kubernetes equivalent is `partition`.
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use for resolving the service. By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
 
 - Type: string
 - Required: optional
 
+The Kubernetes equivalent is `partition`.
+
 ### Splits.RequestHeaders
 
-The `RequestHeaders` object contains a set of HTTP-specific header modification rules that are applied to requests routed through the split. You cannot use request headers with a `tcp` listener. The Kubernetes equivalent is `requestHeaders`.
+The `RequestHeaders` object contains a set of HTTP-specific header modification rules that are applied to requests routed through the split.
+
+The Kubernetes equivalent is `requestHeaders`.
 
 The following table describes the modification rules you can define in the `RequestHeaders` field.
 
@@ -172,7 +178,9 @@ Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
 ### Splits.ResponseHeaders
 
-The `ResponseHeaders` object contains a set of HTTP-specific header modification rules that are applied to responses routed through the split. You cannot use request headers with a `tcp` listener. The Kubernetes equivalent is `responseHeaders`.
+The `ResponseHeaders` object contains a set of HTTP-specific header modification rules that are applied to responses routed through the split.
+
+The Kubernetes equivalent is `responseHeaders`.
 
 The following table describes the modification rules you can define in the `ResponseHeaders` field. 
 
@@ -181,22 +189,27 @@ The following table describes the modification rules you can define in the `Resp
 Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
 ### splits.Service
+
 Specifies the name of the service to resolve. If undefined, this value defaults to the service with the same name as the configuration entry.
 
 - Type: string
 - Required: optional
 
+The Kubernetes equivalent is `service`.
+
 Refer to [Two subsets of same service](#two-subsets-of-same-service) for an example configuration. 
+
 ### splits.ServiceSubset
+
 Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. If empty, the `split` will use the default subset.
 
 - Type: string
 - Required: optional
-### splits.Namespace
 
-### splits.Partition
+The Kubernetes equivalent is `serviceSubset`.
 
-### splits.weight
+### splits.Weight
+
 Specifies what percentage of the traffic is sent to the set of service instances specified in the [`splits.Service`](#splits-service) field. The field is the same for Kubernetes and virtual machines. 
 
 Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
@@ -204,8 +217,12 @@ Each weight must be a floating integer between `0` and `100`. The smallest repre
 - Type: float32
 - Required: optional
 
+The Kubernetes equivalent is `weight`.
+
 ## Example configurations
+
 The following examples show possible service splitter configurations.
+
 ### Two subsets of same service
 
 In the following example, the ServiceSplitter routes 90% of the traffic to the `v1` service subset and 10%to `v2` service subset. Since neither item in `Splits` does not have a `Service`, ServiceSplitter defaults to the service with the same name as the configuration entry (`web`). 
