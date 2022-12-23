@@ -168,6 +168,10 @@ func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimits
 			SourceAddr: sourceAddr,
 			Type:       rpcRateLimitSpecs[reqServiceMethod],
 		}
+
+		// net/rpc does not provide a way to encode the nuances of the
+		// error response (retry or retry elsewhere) so the error string
+		// from the rate limiter is all that we have.
 		return requestLimitsHandler.Allow(op)
 	}
 }
