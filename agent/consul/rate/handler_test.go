@@ -170,7 +170,7 @@ func TestHandler(t *testing.T) {
 				{limit: globalRead, allow: false},
 			},
 			isLeader:  true,
-			expectErr: ErrRetryLater,
+			expectErr: ErrRetryElsewhere,
 			expectLog: true,
 		},
 		"global read limit exceeded (enforcing, follower)": {

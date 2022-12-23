@@ -184,7 +184,7 @@ func (h *Handler) Run(ctx context.Context) {
 func (h *Handler) Allow(op Operation) error {
 
 	if h.delegate == nil {
-		panic("delegate not set on handler via RegisterDelegate(..)")
+		panic("delegate required to be set via RegisterDelegate(..)")
 	}
 
 	cfg := h.cfg.Load()
@@ -203,6 +203,7 @@ func (h *Handler) Allow(op Operation) error {
 
 		// TODO: metrics.
 		// TODO: is this the correct log-level?
+
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
@@ -212,11 +213,10 @@ func (h *Handler) Allow(op Operation) error {
 		)
 
 		if enforced {
-			if h.delegate.IsLeader() {
+			if h.delegate.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
-			} else {
-				return ErrRetryElsewhere
 			}
+			return ErrRetryElsewhere
 		}
 	}
 	return nil
