@@ -125,6 +125,10 @@
       {
         "title": "Network Coordinates",
         "path": "architecture/coordinates"
+      },
+      {
+        "title": "Consul at Scale",
+        "path": "architecture/scale"
       }
     ]
   },
