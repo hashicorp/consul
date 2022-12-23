@@ -63,8 +63,17 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			opts := makeListenerOpts{
+				name:       uid.EnvoyID(),
+				accessLogs: cfgSnap.Proxy.AccessLogs,
+				addr:       address,
+				port:       u.LocalBindPort,
+				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
+				logger:     s.Logger,
+			}
+			l := makeListener(opts)
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				accessLogs:  &cfgSnap.Proxy.AccessLogs,
 				routeName:   uid.EnvoyID(),
 				useRDS:      useRDS,
 				clusterName: clusterName,
@@ -82,8 +91,17 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
-			opts := listenerFilterOpts{
+			listenerOpts := makeListenerOpts{
+				name:       listenerKey.Protocol,
+				accessLogs: cfgSnap.Proxy.AccessLogs,
+				addr:       address,
+				port:       listenerKey.Port,
+				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
+				logger:     s.Logger,
+			}
+			listener := makeListener(listenerOpts)
+
+			filterOpts := listenerFilterOpts{
 				useRDS:          true,
 				protocol:        listenerKey.Protocol,
 				filterName:      listenerKey.RouteName(),
@@ -92,11 +110,13 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				statPrefix:      "ingress_upstream_",
 				routePath:       "",
 				httpAuthzFilter: nil,
+				accessLogs:      &cfgSnap.Proxy.AccessLogs,
+				logger:          s.Logger,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
-			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, opts)
+			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, filterOpts)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +135,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
 			if len(sniFilterChains) < len(upstreams) {
-				defaultFilter, err := makeListenerFilter(opts)
+				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
 					return nil, err
 				}

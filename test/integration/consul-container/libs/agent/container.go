@@ -39,6 +39,7 @@ type consulContainerNode struct {
 	dataDir        string
 	network        string
 	id             int
+	name           string
 	terminateFuncs []func() error
 }
 
@@ -124,12 +125,14 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	if err := consulContainer.StartLogProducer(ctx); err != nil {
-		return nil, err
+	if *utils.FollowLog {
+		if err := consulContainer.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		consulContainer.FollowOutput(&LogConsumer{
+			Prefix: name,
+		})
 	}
-	consulContainer.FollowOutput(&LogConsumer{
-		Prefix: name,
-	})
 
 	uri, err := podContainer.Endpoint(ctx, "http")
 	if err != nil {
@@ -158,6 +161,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		certDir:    tmpCertData,
 		network:    network,
 		id:         index,
+		name:       name,
 	}, nil
 }
 
@@ -199,20 +203,12 @@ func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, erro
 	return c.container.Exec(ctx, cmd)
 }
 
-func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
-	pc, err := readSomeConfigFileFields(config.JSON)
-	if err != nil {
-		return err
-	}
-
-	consulType := "client"
-	if pc.Server {
-		consulType = "server"
-	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
-
-	// Inject new Agent name
-	config.Cmd = append(config.Cmd, "-node", name)
+// Upgrade terminates a running container and create a new one using the provided config.
+// The upgraded node will
+//   - use the same node name and the data dir as the old version node
+func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
+	// Reuse the node name since we assume upgrade on the same node
+	config.Cmd = append(config.Cmd, "-node", c.name)
 
 	file, err := createConfigFile(config.JSON)
 	if err != nil {
@@ -238,29 +234,38 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 	}
 	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
+	fmt.Printf("Upgraded node %s config:%s\n", c.name, file)
 
-	if c.container != nil {
-		_ = c.container.StopLogProducer()
-		if err := c.container.Terminate(c.ctx); err != nil {
-			return err
+	if c.container != nil && *utils.FollowLog {
+		err = c.container.StopLogProducer()
+		time.Sleep(2 * time.Second)
+		if err != nil {
+			fmt.Printf("WARN: error stop log producer: %v", err)
 		}
+	}
+
+	if err = c.container.Terminate(c.ctx); err != nil {
+		return fmt.Errorf("error terminate running container: %v", err)
 	}
 
 	c.consulReq = consulReq2
 
+	time.Sleep(5 * time.Second)
 	container, err := startContainer(ctx, c.consulReq)
-	c.ctx = ctx
 	c.container = container
 	if err != nil {
 		return err
 	}
+	c.ctx = ctx
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return err
+	if *utils.FollowLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: c.name,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: name,
-	})
 
 	return nil
 }
@@ -283,7 +288,7 @@ func (c *consulContainerNode) Terminate() error {
 	}
 
 	state, err := c.container.State(context.Background())
-	if err == nil && state.Running {
+	if err == nil && state.Running && *utils.FollowLog {
 		// StopLogProducer can only be called on running containers
 		err = c.container.StopLogProducer()
 		if err1 := c.container.Terminate(c.ctx); err == nil {

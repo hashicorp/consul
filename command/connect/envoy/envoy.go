@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-version"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -38,26 +41,27 @@ type cmd struct {
 	client *api.Client
 
 	// flags
-	meshGateway           bool
-	gateway               string
-	proxyID               string
-	nodeName              string
-	sidecarFor            string
-	adminAccessLogPath    string
-	adminBind             string
-	envoyBin              string
-	bootstrap             bool
-	disableCentralConfig  bool
-	grpcAddr              string
-	grpcCAFile            string
-	grpcCAPath            string
-	envoyVersion          string
-	prometheusBackendPort string
-	prometheusScrapePath  string
-	prometheusCAFile      string
-	prometheusCAPath      string
-	prometheusCertFile    string
-	prometheusKeyFile     string
+	meshGateway              bool
+	gateway                  string
+	proxyID                  string
+	nodeName                 string
+	sidecarFor               string
+	adminAccessLogPath       string
+	adminBind                string
+	envoyBin                 string
+	bootstrap                bool
+	disableCentralConfig     bool
+	grpcAddr                 string
+	grpcCAFile               string
+	grpcCAPath               string
+	envoyVersion             string
+	prometheusBackendPort    string
+	prometheusScrapePath     string
+	prometheusCAFile         string
+	prometheusCAPath         string
+	prometheusCertFile       string
+	prometheusKeyFile        string
+	ignoreEnvoyCompatibility bool
 
 	// mesh gateway registration information
 	register           bool
@@ -70,6 +74,8 @@ type cmd struct {
 
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
+
+	dialFunc func(network string, address string) (net.Conn, error)
 }
 
 const meshGatewayVal = "mesh"
@@ -201,11 +207,19 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.prometheusKeyFile, "prometheus-key-file", "",
 		"Path to a private key file for Envoy to use when serving TLS on the Prometheus metrics endpoint. "+
 			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+	c.flags.BoolVar(&c.ignoreEnvoyCompatibility, "ignore-envoy-compatibility", false,
+		"If set to `true`, this flag ignores the Envoy version compatibility check. We recommend setting this "+
+			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
+			"Default is `false`.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	c.dialFunc = func(network string, address string) (net.Conn, error) {
+		return net.DialTimeout(network, address, 3*time.Second)
+	}
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -448,6 +462,27 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
+	// Check if envoy version is supported
+	if !c.ignoreEnvoyCompatibility {
+		v, err := execEnvoyVersion(binary)
+		if err != nil {
+			c.UI.Warn("Couldn't get envoy version for compatibility check: " + err.Error())
+			return 1
+		}
+
+		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+
+		if err != nil {
+			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
+		} else if !ok {
+			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
+				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
+				"is not recommended and your experience may vary. For more information on compatibility "+
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", v))
+			return 1
+		}
+	}
+
 	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
@@ -484,6 +519,10 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	xdsAddr, err := c.xdsAddress()
 	if err != nil {
 		return nil, err
+	}
+
+	if err := checkDial(xdsAddr, c.dialFunc); err != nil {
+		return nil, fmt.Errorf("error dialing xDS address: %w", err)
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
@@ -657,14 +696,24 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 
 	addr := c.grpcAddr
 	if addr == "" {
+		// This lookup is a UX optimization and requires acl policy agent:read,
+		// which sidecars may not have.
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+			if strings.Contains(err.Error(), "Permission denied") {
+				// Token did not have agent:read. Log and proceed with defaults.
+				c.UI.Info(fmt.Sprintf("Could not query /v1/agent/self for xDS ports: %s", err))
+			} else {
+				// If not a permission denied error, gRPC is explicitly disabled
+				// or something went fatally wrong.
+				return g, fmt.Errorf("Error looking up xDS port: %s", err)
+			}
 		}
 		if port <= 0 {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
+			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
@@ -725,6 +774,9 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
+		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
+			return 0, "", fmt.Errorf("agent has grpc disabled")
+		}
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -733,13 +785,13 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// Fallback to old API for the case where a new consul CLI is being used with
-	// an older API version.
+	// If above TLS and Plaintext ports are both 0, fallback to
+	// old API for the case where a new consul CLI is being used
+	// with an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
 	}
-	// TODO what does this mean? What did the old API look like? How does this affect compatibility?
 	port, ok := cfg["GRPCPort"]
 	if !ok {
 		return 0, "", fmt.Errorf("agent does not have grpc port enabled")
@@ -750,6 +802,25 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	}
 
 	return int(portN), "", nil
+}
+
+func checkDial(g GRPC, dial func(string, string) (net.Conn, error)) error {
+	var (
+		conn net.Conn
+		err  error
+	)
+	if g.AgentSocket != "" {
+		conn, err = dial("unix", g.AgentSocket)
+	} else {
+		conn, err = dial("tcp", fmt.Sprintf("%s:%s", g.AgentAddress, g.AgentPort))
+	}
+	if err != nil {
+		return err
+	}
+	if conn != nil {
+		conn.Close()
+	}
+	return nil
 }
 
 func (c *cmd) Synopsis() string {
@@ -791,3 +862,35 @@ Usage: consul connect envoy [options] [-- pass-through options]
     $ consul connect envoy -sidecar-for web -- --log-level debug
 `
 )
+
+func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (bool, error) {
+	// Now compare the versions to the list of supported versions
+	v, err := version.NewVersion(envoyVersion)
+	if err != nil {
+		return false, err
+	}
+
+	var cs strings.Builder
+
+	// Add one to the max minor version so that we accept all patches
+	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	minor, err := strconv.Atoi(splitS[1])
+	if err != nil {
+		return false, err
+	}
+	minor++
+	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
+
+	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
+	for _, s := range unsupportedList {
+		cs.WriteString(fmt.Sprintf(", != %s", s))
+	}
+
+	constraints, err := version.NewConstraint(cs.String())
+	if err != nil {
+		return false, err
+	}
+
+	return constraints.Check(v), nil
+}

@@ -21,13 +21,34 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 		want *structs.NodeService
 	}{
 		{
-			name: "inherit transparent proxy settings",
+			name: "inherit transparent proxy settings + kitchen sink",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
 					Mode: structs.ProxyModeTransparent,
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
+					},
+					ProxyConfig: map[string]interface{}{
+						"foo": "bar",
+					},
+					Expose: structs.ExposeConfig{
+						Checks: true,
+						Paths: []structs.ExposePath{
+							{
+								ListenerPort: 8080,
+								Path:         "/",
+								Protocol:     "http",
+							},
+						},
+					},
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+					AccessLogs: structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.FileLogSinkType,
+						Path:                "/tmp/accesslog.txt",
+						JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
 					},
 				},
 				service: &structs.NodeService{
@@ -51,6 +72,27 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
+					},
+					Config: map[string]interface{}{
+						"foo": "bar",
+					},
+					Expose: structs.ExposeConfig{
+						Checks: true,
+						Paths: []structs.ExposePath{
+							{
+								ListenerPort: 8080,
+								Path:         "/",
+								Protocol:     "http",
+							},
+						},
+					},
+					MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+					AccessLogs: structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.FileLogSinkType,
+						Path:                "/tmp/accesslog.txt",
+						JSONFormat:          "{ \"custom_start_time\": \"%START_TIME%\" }",
 					},
 				},
 			},
@@ -89,6 +131,124 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 808,
 						DialedDirectly:       true,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := MergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
+func Test_MergeServiceConfig_Extensions(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "inherit extensions",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "replaces existing extensions",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						EnvoyExtensions: []structs.EnvoyExtension{
+							{
+								Name:     "existing-ext",
+								Required: true,
+								Arguments: map[string]interface{}{
+									"arg1": "val1",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: []structs.EnvoyExtension{
+						{
+							Name:     "ext1",
+							Required: true,
+							Arguments: map[string]interface{}{
+								"arg1": "val1",
+							},
+						},
 					},
 				},
 			},

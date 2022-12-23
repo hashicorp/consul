@@ -5,9 +5,11 @@ import (
 	"context"
 	"errors"
 	"net"
+	"reflect"
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -84,6 +86,9 @@ const (
 
 	// OperationTypeWrite represents a write operation.
 	OperationTypeWrite
+
+	// OperationTypeExempt represents an operation that is exempt from rate-limiting.
+	OperationTypeExempt
 )
 
 // Operation the client is attempting to perform.
@@ -111,6 +116,7 @@ type Handler struct {
 	delegate HandlerDelegate
 
 	limiter multilimiter.RateLimiter
+	logger  hclog.Logger
 }
 
 type HandlerConfig struct {
@@ -137,9 +143,8 @@ type HandlerDelegate interface {
 	IsLeader() bool
 }
 
-// NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
-	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+func NewHandlerWithLimiter(cfg HandlerConfig, delegate HandlerDelegate,
+	limiter multilimiter.RateLimiter, logger hclog.Logger) *Handler {
 	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
 	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
 
@@ -147,10 +152,17 @@ func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
 		cfg:      new(atomic.Pointer[HandlerConfig]),
 		delegate: delegate,
 		limiter:  limiter,
+		logger:   logger,
 	}
 	h.cfg.Store(&cfg)
 
 	return h
+}
+
+// NewHandler creates a new RPC rate limit handler.
+func NewHandler(cfg HandlerConfig, delegate HandlerDelegate, logger hclog.Logger) *Handler {
+	limiter := multilimiter.NewMultiLimiter(cfg.Config)
+	return NewHandlerWithLimiter(cfg, delegate, limiter, logger)
 }
 
 // Run the limiter cleanup routine until the given context is canceled.
@@ -163,18 +175,31 @@ func (h *Handler) Run(ctx context.Context) {
 // Allow returns an error if the given operation is not allowed to proceed
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
-	// TODO(NET-1383): actually implement the rate limiting logic.
-	//
-	// Example:
-	//	if !h.limiter.Allow(globalWrite) {
-	//	}
+	cfg := h.cfg.Load()
+	if cfg.GlobalMode == ModeDisabled {
+		return nil
+	}
+
+	if !h.limiter.Allow(globalWrite) {
+		// TODO(NET-1383): actually implement the rate limiting logic and replace this returned nil.
+		return nil
+	}
 	return nil
 }
 
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
+	existingCfg := h.cfg.Load()
 	h.cfg.Store(&cfg)
-	h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
-	h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	if reflect.DeepEqual(existingCfg, cfg) {
+		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the server rate limiter configuration.")
+		return
+	}
+	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+	}
+	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	}
 }
 
 var (
@@ -193,15 +218,15 @@ func (prefix globalLimit) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
 
-// NullRateLimiter returns a RateLimiter that allows every operation.
-func NullRateLimiter() RequestLimitsHandler {
-	return nullRateLimiter{}
+// NullRequestLimitsHandler returns a RequestLimitsHandler that allows every operation.
+func NullRequestLimitsHandler() RequestLimitsHandler {
+	return nullRequestLimitsHandler{}
 }
 
-type nullRateLimiter struct{}
+type nullRequestLimitsHandler struct{}
 
-func (nullRateLimiter) Allow(Operation) error { return nil }
+func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 
-func (nullRateLimiter) Run(ctx context.Context) {}
+func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
-func (nullRateLimiter) UpdateConfig(cfg HandlerConfig) {}
+func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
