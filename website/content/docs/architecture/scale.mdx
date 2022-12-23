@@ -7,7 +7,7 @@ description: >-
 
 # Operating Consul at Scale
 
-This page describes how subsystems within Consul impact its performance with large scale deployments, and shares recommendations for operating Consul in production at scale.
+This page describes how Consul's architecture and impact its performance with large scale deployments, and shares recommendations for operating Consul in production at scale.
 
 ## Overview
 
@@ -191,7 +191,7 @@ To figure out if a Consul server’s disk performance issues are the result of B
 
 In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
 
-In general, set `[raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true` to produce the following effects:
+In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true` to produce the following effects:
 
 - Reduce the amount of data written to disk
 - Increase the amount of time it takes to load the raft.db file on startup
