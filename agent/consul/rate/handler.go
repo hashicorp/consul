@@ -184,7 +184,10 @@ func (h *Handler) Run(ctx context.Context) {
 func (h *Handler) Allow(op Operation) error {
 
 	if h.delegate == nil {
-		panic("delegate required to be set via RegisterDelegate(..)")
+		h.logger.Error("delegate required to be set via RegisterDelegate(). bailing on rate limiter")
+		return nil
+		// TODO: panic and make sure to use the server's recovery handler
+		// panic("delegate required to be set via RegisterDelegate(..)")
 	}
 
 	cfg := h.cfg.Load()

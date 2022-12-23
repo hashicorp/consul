@@ -15,18 +15,21 @@ import (
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
-func TestHandler_Allow_PanicsWhenDelegateNotRegistered(t *testing.T) {
-	defer func() {
-		err := recover()
-		if err == nil {
-			t.Fatal("Run should panic")
-		}
-	}()
+//
+// Revisit test when handler.go:189 TODO implemented
+//
+// func TestHandler_Allow_PanicsWhenDelegateNotRegistered(t *testing.T) {
+// 	defer func() {
+// 		err := recover()
+// 		if err == nil {
+// 			t.Fatal("Run should panic")
+// 		}
+// 	}()
 
-	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
-	handler.Allow(Operation{})
-	// intentionally skip handler.RegisterDelegate(...)
-}
+// 	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
+// 	handler.Allow(Operation{})
+// 	// intentionally skip handler.RegisterDelegate(...)
+// }
 
 func TestHandler(t *testing.T) {
 	var (
