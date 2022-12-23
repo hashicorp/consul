@@ -337,16 +337,60 @@ deep-copy:
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
-version:
-	@echo -n "Version:                    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
-	@echo -n "Version + release:          "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
-	@echo -n "Version + git:              "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
-	@echo -n "Version + release + git:    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
+# version:
+# 	@echo -n "Version:                    "
+# 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
+# 	@echo -n "Version + release:          "
+# 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
+# 	@echo -n "Version + git:              "
+# 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
+# 	@echo -n "Version + release + git:    "
+# 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 
+# These crt targets are used for release builds by .github/workflows/build.yml
+.PHONY: crt-build
+crt-build:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh build
+
+.PHONY: crt-build-ui
+crt-build-ui:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh build-ui
+
+.PHONY: crt-bundle
+crt-bundle:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh bundle
+
+.PHONY: crt-get-artifact-basename
+crt-get-artifact-basename:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh artifact-basename
+
+.PHONY: crt-get-date
+crt-get-date:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh date
+
+.PHONY: crt-get-revision
+crt-get-revision:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh revision
+
+.PHONY: crt-get-version
+crt-get-version:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh version
+
+.PHONY: crt-get-version-base
+crt-get-version-base:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh version-base
+
+.PHONY: crt-get-version-pre
+crt-get-version-pre:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh version-pre
+
+.PHONY: crt-get-version-meta
+crt-get-version-meta:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh version-meta
+
+.PHONY: crt-prepare-legal
+crt-prepare-legal:
+	@$(CURDIR)/build-support/scripts/crt-builder.sh prepare-legal
 
 docker-images: go-build-image ui-build-image
 

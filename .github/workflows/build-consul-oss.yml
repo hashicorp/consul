@@ -1,0 +1,110 @@
+---
+name: build_consul
+
+# This workflow is intended to be called by the build workflow for each Consul
+# binary that needs to be built and packaged. The crt make targets that are
+# utilized automatically determine build metadata and handle building and
+# packing consul.
+
+on:
+  workflow_call:
+    inputs:
+      bundle-path:
+        required: false
+        type: string
+      cgo-enabled:
+        type: string
+        default: 0
+      create-packages:
+        type: boolean
+        default: true
+      goos:
+        required: true
+        type: string
+      goarch:
+        required: true
+        type: string
+      go-tags:
+        type: string
+      go-version:
+        type: string
+      package-name:
+        type: string
+        default: consul
+      consul-version:
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Consul ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.consul-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ inputs.go-version }}
+      - name: Set up node and yarn
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+          cache: yarn
+          cache-dependency-path: ui/yarn.lock
+      - name: Build UI
+        run: make crt-build-ui  
+      - name: Build Consul
+        env:
+          CGO_ENABLED: ${{ inputs.cgo-enabled }}
+          GOARCH: ${{ inputs.goarch }}
+          GOOS: ${{ inputs.goos }}
+          GO_TAGS: ${{ inputs.go-tags }}
+        run: make crt-build
+      - name: Determine artifact basename
+        env:
+          GOARCH: ${{ inputs.goarch }}
+          GOOS: ${{ inputs.goos }}
+        run: echo "ARTIFACT_BASENAME=$(make crt-get-artifact-basename)" >> $GITHUB_ENV
+      - name: Bundle Consul
+        env:
+          BUNDLE_PATH: out/${{ env.ARTIFACT_BASENAME }}.zip
+        run: make crt-bundle
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_BASENAME }}.zip
+          path: out/${{ env.ARTIFACT_BASENAME }}.zip
+          if-no-files-found: error
+      - if: ${{ inputs.create-packages }}
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: ${{ github.event.repository.name }}
+          description: Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
+          arch: ${{ inputs.goarch }}
+          version: ${{ inputs.consul-version }}
+          maintainer: HashiCorp
+          homepage: https://github.com/hashicorp/consul
+          license: MPL-2.0
+          binary: dist/${{ inputs.package-name }}
+          deb_depends: openssl
+          rpm_depends: openssl
+          config_dir: .release/linux/package/
+          preinstall: .release/linux/preinstall
+          postinstall: .release/linux/postinstall
+          preremove: .release/linux/preremove
+          postremove: .release/linux/postrm
+      - if: ${{ inputs.create-packages }}
+        name: Determine package file names
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+      - if: ${{ inputs.create-packages }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+          if-no-files-found: error
+      - if: ${{ inputs.create-packages }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+          if-no-files-found: error

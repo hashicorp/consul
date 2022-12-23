@@ -1,12 +1,14 @@
+---
 name: build
 
 on:
+  workflow_dispatch:
+  pull_request:
   push:
-    # Sequence of patterns matched against refs/heads
     branches:
-      # Push events on the main branch
       - main
       - release/**
+      - releng-329
 
 env:
   PKG_NAME: consul
@@ -89,85 +91,34 @@ jobs:
           - {go: "1.19.4", goos: "windows", goarch: "amd64"}
           - {go: "1.19.4", goos: "solaris", goarch: "amd64"}
       fail-fast: true
+    uses: ./.github/workflows/build-consul-oss.yml
+    with:
+      create-packages: false
+      goarch: ${{ matrix.goarch }}
+      goos: ${{ matrix.goos }}
+      go-tags: ui
+      go-version: ${{ needs.product-metadata.outputs.go-version }}
+      package-name: ${{ needs.product-metadata.outputs.package-name }}
+      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+    secrets: inherit
 
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup with node and yarn
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-          cache: 'yarn'
-          cache-dependency-path: 'ui/yarn.lock'
-
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul_date is ${CONSUL_DATE}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@v0.1.7
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: report
-          instructions: |-
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-
-      - name: Package
-        if: ${{ matrix.goos == 'linux' }}
-        uses: hashicorp/actions-packaging-linux@v1
-        with:
-          name: ${{ github.event.repository.name }}
-          description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
-          arch: ${{ matrix.goarch }}
-          version: ${{ needs.set-product-version.outputs.product-version }}
-          maintainer: "HashiCorp"
-          homepage: "https://github.com/hashicorp/consul"
-          license: "MPL-2.0"
-          binary: "dist/${{ env.PKG_NAME }}"
-          deb_depends: "openssl"
-          rpm_depends: "openssl"
-          config_dir: ".release/linux/package"
-          preinstall: ".release/linux/preinstall"
-          postinstall: ".release/linux/postinstall"
-          preremove: ".release/linux/preremove"
-          postremove: ".release/linux/postremove"
-
-      - name: Set Package Names
-        if: ${{ matrix.goos == 'linux' }}
-        run: |
-          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
-          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
-
-      - uses: actions/upload-artifact@v2
-        if: ${{ matrix.goos == 'linux' }}
-        with:
-          name: ${{ env.RPM_PACKAGE }}
-          path: out/${{ env.RPM_PACKAGE }}
-
-      - uses: actions/upload-artifact@v2
-        if: ${{ matrix.goos == 'linux' }}
-        with:
-          name: ${{ env.DEB_PACKAGE }}
-          path: out/${{ env.DEB_PACKAGE }}
+  build-linux:
+    name: Build Consul Linux
+    needs: product-metadata
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [arm, arm64, 386, amd64]
+      fail-fast: true
+    uses: ./.github/workflows/build-consul-oss.yml
+    with:
+      goarch: ${{ matrix.goarch }}
+      goos: ${{ matrix.goos }}
+      go-tags: ui
+      go-version: ${{ needs.product-metadata.outputs.go-version }}
+      package-name: ${{ needs.product-metadata.outputs.package-name }}
+      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+    secrets: inherit
 
   build-darwin:
     needs: set-product-version
@@ -178,48 +129,19 @@ jobs:
         goarch: [ "amd64", "arm64" ]
         go: [ "1.19.4" ]
       fail-fast: true
-
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@v3
-          
-      - name: Setup with node and yarn
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-          cache: 'yarn'
-          cache-dependency-path: 'ui/yarn.lock'
-
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@v0.1.7
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: report
-          instructions: |-
-            go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
+    uses: ./.github/workflows/build-consul-oss.yml
+    with:
+      create-packages: false
+      goarch: ${{ matrix.goarch }}
+      goos: ${{ matrix.goos }}
+      go-tags: ui netcgo
+      go-version: ${{ needs.product-metadata.outputs.go-version }}
+      package-name: ${{ needs.product-metadata.outputs.package-name }}
+      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+    secrets: inherit
 
   build-docker:
-    name: Docker ${{ matrix.arch }} build
+    name: Build Consul Docker
     needs:
       - set-product-version
       - build
