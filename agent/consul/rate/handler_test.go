@@ -18,7 +18,7 @@ import (
 //
 // Revisit test when handler.go:189 TODO implemented
 //
-// func TestHandler_Allow_PanicsWhenDelegateNotRegistered(t *testing.T) {
+// func TestHandler_Allow_PanicsWhenLeaderStatusProviderNotRegistered(t *testing.T) {
 // 	defer func() {
 // 		err := recover()
 // 		if err == nil {
@@ -28,7 +28,7 @@ import (
 
 // 	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
 // 	handler.Allow(Operation{})
-// 	// intentionally skip handler.RegisterDelegate(...)
+// 	// intentionally skip handler.Register(...)
 // }
 
 func TestHandler(t *testing.T) {
@@ -199,8 +199,8 @@ func TestHandler(t *testing.T) {
 				limiter.On("Allow", c.limit).Return(c.allow)
 			}
 
-			delegate := NewMockHandlerDelegate(t)
-			delegate.On("IsLeader").Return(tc.isLeader).Maybe()
+			leaderStatusProvider := NewMockLeaderStatusProvider(t)
+			leaderStatusProvider.On("IsLeader").Return(tc.isLeader).Maybe()
 
 			var output bytes.Buffer
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -215,7 +215,7 @@ func TestHandler(t *testing.T) {
 				limiter,
 				logger,
 			)
-			handler.RegisterDelegate(delegate)
+			handler.Register(leaderStatusProvider)
 
 			require.Equal(t, tc.expectErr, handler.Allow(tc.op))
 
@@ -357,10 +357,10 @@ func TestAllow(t *testing.T) {
 			}
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			logger := hclog.NewNullLogger()
-			delegate := NewMockHandlerDelegate(t)
+			delegate := NewMockLeaderStatusProvider(t)
 			delegate.On("IsLeader").Return(true).Maybe()
 			handler := NewHandlerWithLimiter(*tc.cfg, mockRateLimiter, logger)
-			handler.RegisterDelegate(delegate)
+			handler.Register(delegate)
 			addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:1234"))
 			mockRateLimiter.Calls = nil
 			handler.Allow(Operation{Name: "test", SourceAddr: addr})

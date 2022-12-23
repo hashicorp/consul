@@ -113,8 +113,8 @@ type RequestLimitsHandler interface {
 
 // Handler enforces rate limits for incoming RPCs.
 type Handler struct {
-	cfg      *atomic.Pointer[HandlerConfig]
-	delegate HandlerDelegate
+	cfg                  *atomic.Pointer[HandlerConfig]
+	leaderStatusProvider LeaderStatusProvider
 
 	limiter multilimiter.RateLimiter
 
@@ -139,8 +139,8 @@ type HandlerConfig struct {
 	GlobalReadConfig multilimiter.LimiterConfig
 }
 
-//go:generate mockery --name HandlerDelegate --inpackage --filename mock_HandlerDelegate_test.go
-type HandlerDelegate interface {
+//go:generate mockery --name LeaderStatusProvider --inpackage --filename mock_LeaderStatusProvider_test.go
+type LeaderStatusProvider interface {
 	// IsLeader is used to determine whether the operation is being performed
 	// against the cluster leader, such that if it can _only_ be performed by
 	// the leader (e.g. write operations) we don't tell clients to retry against
@@ -183,11 +183,11 @@ func (h *Handler) Run(ctx context.Context) {
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
 
-	if h.delegate == nil {
-		h.logger.Error("delegate required to be set via RegisterDelegate(). bailing on rate limiter")
+	if h.leaderStatusProvider == nil {
+		h.logger.Error("leaderStatusProvider required to be set via Register(). bailing on rate limiter")
 		return nil
 		// TODO: panic and make sure to use the server's recovery handler
-		// panic("delegate required to be set via RegisterDelegate(..)")
+		// panic("leaderStatusProvider required to be set via Register(..)")
 	}
 
 	cfg := h.cfg.Load()
@@ -216,7 +216,7 @@ func (h *Handler) Allow(op Operation) error {
 		)
 
 		if enforced {
-			if h.delegate.IsLeader() && op.Type == OperationTypeWrite {
+			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}
 			return ErrRetryElsewhere
@@ -240,8 +240,8 @@ func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 	}
 }
 
-func (h *Handler) RegisterDelegate(isLeaderProvider HandlerDelegate) {
-	h.delegate = isLeaderProvider
+func (h *Handler) Register(leaderStatusProvider LeaderStatusProvider) {
+	h.leaderStatusProvider = leaderStatusProvider
 }
 
 type limit struct {
