@@ -1556,7 +1556,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, grpc.NewServer())
+			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger)
 			require.NoError(t, err)
 			defer srv.Shutdown()
 

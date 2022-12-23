@@ -16,6 +16,7 @@ Thumbs.db
 .idea
 .vscode
 __debug_bin
+coverage.out
 
 # MacOS
 .DS_Store

@@ -41,7 +41,7 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 		err := limiter.Allow(rate.Operation{
 			Name:       info.FullMethodName,
 			SourceAddr: peer.Addr,
-			// TODO: operation type.
+			// TODO: add operation type from https://github.com/hashicorp/consul/pull/15564
 		})
 
 		switch {
