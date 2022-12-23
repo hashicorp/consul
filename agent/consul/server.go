@@ -471,7 +471,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	handler, ok := incomingRPCLimiter.(*rpcRate.Handler)
 	if ok {
-		handler.RegisterDelegate(s)
+		handler.Register(s)
 	}
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
