@@ -873,10 +873,10 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 	}
 }
 
-func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
+func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) (structs.PeeringServiceMeta, bool) {
 	nodes, _ := u.PeerUpstreamEndpoints.Get(uid)
 	if len(nodes) == 0 {
-		return structs.PeeringServiceMeta{}
+		return structs.PeeringServiceMeta{}, false
 	}
 
 	// In agent/rpc/peering/subscription_manager.go we denormalize the
@@ -892,9 +892,9 @@ func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.Peeri
 	// catalog to avoid this weird construction.
 	csn := nodes[0]
 	if csn.Service == nil {
-		return structs.PeeringServiceMeta{}
+		return structs.PeeringServiceMeta{}, false
 	}
-	return *csn.Service.Connect.PeerMeta
+	return *csn.Service.Connect.PeerMeta, true
 }
 
 // PeeredUpstreamIDs returns a slice of peered UpstreamIDs from explicit config entries
