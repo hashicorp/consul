@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sync/atomic"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/go-hclog"
 )
@@ -204,7 +205,6 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: metrics.
 		// TODO: is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
@@ -214,6 +214,21 @@ func (h *Handler) Allow(op Operation) error {
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
+
+		metrics.IncrCounterWithLabels([]string{"consul", "rate_limit"}, 1, []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		})
 
 		if enforced {
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
