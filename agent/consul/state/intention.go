@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -1038,6 +1039,12 @@ func (s *Store) intentionTopologyTxn(
 		services = append(services, ingress...)
 	}
 
+	hclog.Default().Error("++++++++++++++++++++++++++++ 1",
+		"target", target,
+		"ds", downstreams,
+		"services", services,
+	)
+
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
 	// if upstream candidates are covered by intentions that have the target service as a source.
 	// The reverse is true for downstreams.
@@ -1062,6 +1069,7 @@ func (s *Store) intentionTopologyTxn(
 			AllowPermissions: true,
 		}
 		decision, err := s.IntentionDecision(opts)
+		hclog.Default().Error("++++++++++++++++++++++++++++ 2", "s", svc.Service.Name, "d", decision.Allowed)
 		if err != nil {
 			src, dst := target, candidate
 			if downstreams {

@@ -10,6 +10,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -111,6 +112,15 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstream != nil {
 			mgwMode = upstream.MeshGateway.Mode
 		}
+		hclog.Default().Error("================================= 1",
+			"svc", cfgSnap.ProxyID.ServiceID,
+			"cluster", clusterName,
+			"uid", uid,
+			"mgwMode", mgwMode,
+			"upstream", upstream,
+			"upstreamids", cfgSnap.ConnectProxy.PeeredUpstreamIDs(),
+			"upstreamconfig", cfgSnap.ConnectProxy.UpstreamConfig,
+		)
 		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid, mgwMode)
 		if err != nil {
 			return nil, err
@@ -560,6 +570,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 	if upstreamGatewayMode == structs.MeshGatewayModeLocal {
 		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
 		if !ok {
+			hclog.Default().Error("--------------LOCALGW MISSING", "locality", cfgSnap.Locality.String())
 			// local GW is not ready; return early
 			return la, nil
 		}
@@ -694,6 +705,13 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			s.Logger.Debug("generating endpoints for", "cluster", targetOpt.clusterName)
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetOpt.targetID)
 			if targetUID.Peer != "" {
+				hclog.Default().Error("================================= 2",
+					"svc", cfgSnap.ProxyID.ServiceID,
+					"cluster", targetOpt.clusterName,
+					"uid", uid,
+					"mgwMode", mgwMode,
+					"tuid", targetUID,
+				)
 				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID, mgwMode)
 				if err != nil {
 					return nil, err

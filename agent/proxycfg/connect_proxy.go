@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/go-hclog"
 )
 
 type handlerConnectProxy struct {
@@ -388,6 +389,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
 
+		hclog.Default().Error("...................", "corr", u.CorrelationID, "s", resp.Services)
 		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, svc := range resp.Services {
 			uid := NewUpstreamIDFromServiceName(svc)
@@ -427,6 +429,13 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			if u != nil {
 				meshGateway = u.MeshGateway
 			}
+			hclog.Default().Error("...................",
+				"svc", svc.Name,
+				"u", u,
+				"ok", ok,
+				"mgw1", s.proxyCfg.MeshGateway,
+				"mgw2", meshGateway,
+			)
 			watchOpts := discoveryChainWatchOpts{
 				id:          NewUpstreamIDFromServiceName(svc),
 				name:        svc.Name,
