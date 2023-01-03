@@ -171,66 +171,34 @@ func (t *Store) sendNotificationLocked(kinds ...TokenKind) {
 // UpdateUserToken replaces the current user token in the store.
 // Returns true if it was changed.
 func (t *Store) UpdateUserToken(token string, source TokenSource) bool {
-	t.l.Lock()
-	changed := t.userToken != token || t.userTokenSource != source
-	t.userToken = token
-	t.userTokenSource = source
-	if changed {
-		t.sendNotificationLocked(TokenKindUser)
-	}
-	t.l.Unlock()
-	return changed
+	return t.updateToken(token, source, &t.userToken, &t.userTokenSource, TokenKindUser)
 }
 
 // UpdateAgentToken replaces the current agent token in the store.
 // Returns true if it was changed.
 func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
-	t.l.Lock()
-	changed := t.agentToken != token || t.agentTokenSource != source
-	t.agentToken = token
-	t.agentTokenSource = source
-	if changed {
-		t.sendNotificationLocked(TokenKindAgent)
-	}
-	t.l.Unlock()
-	return changed
+	return t.updateToken(token, source, &t.agentToken, &t.agentTokenSource, TokenKindAgent)
 }
 
 // UpdateAgentRecoveryToken replaces the current agent recovery token in the store.
 // Returns true if it was changed.
 func (t *Store) UpdateAgentRecoveryToken(token string, source TokenSource) bool {
-	t.l.Lock()
-	changed := t.agentRecoveryToken != token || t.agentRecoveryTokenSource != source
-	t.agentRecoveryToken = token
-	t.agentRecoveryTokenSource = source
-	if changed {
-		t.sendNotificationLocked(TokenKindAgentRecovery)
-	}
-	t.l.Unlock()
-	return changed
+	return t.updateToken(token, source, &t.agentRecoveryToken,
+		&t.agentRecoveryTokenSource, TokenKindAgentRecovery)
 }
 
 // UpdateReplicationToken replaces the current replication token in the store.
 // Returns true if it was changed.
 func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
-	t.l.Lock()
-	changed := t.replicationToken != token || t.replicationTokenSource != source
-	t.replicationToken = token
-	t.replicationTokenSource = source
-	if changed {
-		t.sendNotificationLocked(TokenKindReplication)
-	}
-	t.l.Unlock()
-	return changed
+	return t.updateToken(token, source, &t.replicationToken,
+		&t.replicationTokenSource, TokenKindReplication)
 }
 
 // UpdateConfigFileRegistrationToken replaces the current config file registration token
 // in the store. Returns true if it was changed.
 func (t *Store) UpdateConfigFileRegistrationToken(token string, source TokenSource) bool {
-	return t.updateToken(token, source,
-		&t.configFileRegistrationToken, &t.configFileRegistrationTokenSource,
-		TokenKindConfigFileRegistration,
-	)
+	return t.updateToken(token, source, &t.configFileRegistrationToken,
+		&t.configFileRegistrationTokenSource, TokenKindConfigFileRegistration)
 }
 
 func (t *Store) updateToken(token string, source TokenSource, dstToken *string, dstSource *TokenSource, kind TokenKind) bool {
