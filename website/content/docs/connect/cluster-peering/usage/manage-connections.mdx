@@ -1,0 +1,32 @@
+---
+layout: docs
+page_title: Manage Cluster Peering Connections
+description: >-
+  
+---
+
+# Manage Cluster Peering Connections
+
+After you establish a cluster peering connection, you can get a list of all active peering connections, read a specific peering connection's information, and delete peering connections.
+
+This page describes how to use the Consul UI to manage cluster peering connections. To manage cluster peering through the HTTP API, refer to the [`/peering` endpoint reference](/consul/api-docs/peering). If you prefer to use the command line, refer to [`peering` CLI command reference](/consul/commands/peering).
+
+## List all peering connections
+
+You can list all active peering connections in a cluster.
+
+In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in a datacenter. The name that appears in the list is the name of the cluster in a different datacenter with an established peering connection.
+
+## Read a peering connection
+
+You can get information about individual peering connections between clusters.
+
+In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in that datacenter. Click the name of a peered cluster to view additional details about the peering connection.
+
+## Delete peering connections
+
+You can disconnect the peered clusters by deleting their connection. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
+
+In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in that datacenter.
+
+Next to the name of the peer, click **More** (three horizontal dots) and then **Delete**. Click **Delete** to confirm and remove the peering connection.

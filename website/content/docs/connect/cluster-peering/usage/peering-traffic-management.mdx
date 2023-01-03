@@ -1,0 +1,158 @@
+---
+layout: docs
+page_title: Cluster Peering l7 Traffic Management
+description: >-
+  
+---
+
+# L7 Traffic Management for Cluster Peering
+
+This topic describes how to use the [`service-resolver` configuration entry](/docs/connect/config-entries/) to set up redirects and failovers between services that have an existing cluster peering connection.
+
+## Service resolvers for redirects and failover
+
+When you use cluster peering to connect datacenters through their admin partitions, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers.
+
+However, the `service-splitter` and `service-router` configuration entry kinds do not support directly targeting a service instance hosted on a peer. To split or route traffic to a service on a peer, you must combine the definition with a `service-resolver` configuration entry that defines the service hosted on the peer as an upstream service.
+
+## Update service resolver configuration
+
+The following examples updates the [`service-resolver` config entry](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "frontend"
+ConnectTimeout = "15s"
+Failover = {
+  "*" = {
+    Targets = [
+      {Peer = "cluster-02"}
+    ]   
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: frontend
+spec:
+  connectTimeout: 15s
+  failover:
+    '*':
+      targets:
+        - peer: 'cluster-02'
+          service: 'frontend'
+          namespace: 'default'
+```
+
+```json
+{
+    "ConnectTimeout": "15s",
+    "Kind": "service-resolver",
+    "Name": "frontend",
+    "Failover": {
+        "*": {
+            "Targets": [
+                {
+                    "Peer": "cluster-02"
+                }
+            ]
+        }
+    },
+    "CreateIndex": 250,
+    "ModifyIndex": 250
+}
+```
+
+## Update service splitter and router configurations
+
+To resolve traffic from a peer, define the behavior in `service-splitter` and `service-router` configuration entries and combine them with a `service-resolver` condiguration entry. For example, to split traffic evenly between `frontend` services hosted on peers, first define the desired behavior locally:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "frontend"
+Splits = [
+  {
+    Weight  = 50
+    ## defaults to service with same name as configuration entry ("frontend")
+  },
+  {
+    Weight  = 50
+    Service = "frontend-peer"
+  },
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: frontend
+spec:
+  splits:
+    - weight: 50
+      ## defaults to service with same name as configuration entry ("web")
+    - weight: 50
+      service: frontend-peer
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "frontend",
+  "Splits": [
+    {
+      "Weight": 50
+    },
+    {
+      "Weight": 50,
+      "Service": "frontend-peer"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+Then, create a local `service-resolver` configuration entry named `frontend-peer` and define a redirect targeting the peer and its service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind           = "service-resolver"
+Name           = "frontend-peer"
+Redirect {
+  Service = frontend
+  Peer = "cluster-02"
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: frontend-peer
+spec:
+  redirect:
+    peer: 'cluster-02'
+    service: 'frontend'
+```
+
+```json
+{
+    "Kind": "service-resolver",
+    "Name": "frontend-peer",
+    "Redirect": {
+      "Service": "frontend",
+      "Peer": "cluster-02"
+  }
+}
+```
+
+</CodeTabs>
