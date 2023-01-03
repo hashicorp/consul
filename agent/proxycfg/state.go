@@ -44,6 +44,7 @@ const (
 	upstreamPeerWatchIDPrefix          = "upstream-peer:"
 	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	proxyDefaultsID                    = "proxy-defaults"
 	DestinationConfigEntryID           = "destination:"
 	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"

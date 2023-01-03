@@ -109,6 +109,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		clusterName := generatePeeredClusterName(uid, tbs)
 
 		mgwMode := structs.MeshGatewayModeDefault
+		// This is necessary so that peering uses the correct mesh gateway mode.
+		// Peering doesn't have any discovery chains compiled to derive this information from.
+		if cfgSnap.ConnectProxy.ProxyDefaults != nil {
+			mgwMode = cfgSnap.ConnectProxy.ProxyDefaults.MeshGateway.Mode
+		}
 		if upstream != nil {
 			mgwMode = upstream.MeshGateway.Mode
 		}

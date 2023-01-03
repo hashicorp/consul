@@ -21,6 +21,9 @@ type ConfigSnapshotUpstreams struct {
 	MeshConfig    *structs.MeshConfigEntry
 	MeshConfigSet bool
 
+	ProxyDefaults    *structs.ProxyConfigEntry
+	ProxyDefaultsSet bool
+
 	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
 	// is used to determine what services could be targeted by this upstream.
 	// We then instantiate watches for those targets.
@@ -179,6 +182,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.PeeredUpstreams) == 0 &&
 		!c.InboundPeerTrustBundlesSet &&
 		!c.MeshConfigSet &&
+		!c.ProxyDefaultsSet &&
 		c.PeerUpstreamEndpoints.Len() == 0 &&
 		len(c.PeerUpstreamEndpointsUseHostnames) == 0
 }
@@ -670,7 +674,8 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
-		!c.MeshConfigSet
+		!c.MeshConfigSet &&
+		!c.ProxyDefaultsSet
 }
 
 type IngressListenerKey struct {
@@ -726,7 +731,9 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		if s.Proxy.Mode == structs.ProxyModeTransparent && !s.ConnectProxy.MeshConfigSet {
+		if s.Proxy.Mode == structs.ProxyModeTransparent &&
+			!s.ConnectProxy.MeshConfigSet &&
+			!s.ConnectProxy.ProxyDefaultsSet {
 			return false
 		}
 		return s.Roots != nil &&

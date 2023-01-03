@@ -94,6 +94,18 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	// Get proxy-defaults configuration
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
+		Kind:           structs.ProxyDefaults,
+		Name:           structs.ProxyConfigGlobal,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, proxyDefaultsID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch for service check updates
 	err = s.dataSources.HTTPChecks.Notify(ctx, &cachetype.ServiceHTTPChecksRequest{
 		ServiceID:      s.proxyCfg.DestinationServiceID,
