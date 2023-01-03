@@ -13,11 +13,17 @@ You can create peering connections between two or more independent clusters so t
 
 Cluster peering is a process that allows Consul clusters to communicate with each other by connecting two [admin partitions](/docs/enterprise/admin-partitions). Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a `default` partition.
 
-Mesh gateways are required for you to route service mesh traffic between partitions with cluster peering connections. For more information, refer to [mesh gateway requirements](#mesh-gateway-requirements).
+You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. The UI does not support exporting services between clusters or authorizing services for peers. If you use the HTTP API, refer to the [`/peering` endpoint reference](/consul/api-docs/peering). If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
 
-For detailed instructions about creating new cluster peering connections, refer to [Establish cluster peering connections](/docs/connect/cluster-peering/create-manage-peering).
+For specific cluster peering configuration and usage information, refer to the following topics:
 
-> To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
+- To review configuration requirements for gateways, sidecars, exported services, and ACLs, refer to [Cluster peering configuration](/docs/consul/cluster-peering/configuration).
+- To create new cluster peering connections, refer to [Establish cluster peering connections](/docs/connect/cluster-peering/create-manage-peering).
+- To manage or delete existing cluster peering connections, refer to [Manage cluster peering connections](/consul/docs/cluster-peering/usage/manage-connections).
+- To set up service failovers and redirects, refer to [L7 traffic management for cluster peering connections](/consul/docs/cluster-peering/usage/peering-traffic-management).
+- To use cluster peering with Kubernetes deployments, refer to [Cluster peering on Kubernetes](/consul/docs/cluster-peering/usage/k8s).
+
+> To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws).
 
 ## Differences between WAN federation and cluster peering
 
@@ -38,14 +44,6 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
 | Shares key/value stores                            |    &#9989;     |    &#10060;     |
 | Can replicate ACL tokens, policies, and roles      |    &#9989;     |    &#10060;     |
-
-## Mesh gateway requirements
-
-Consider the following requirements for using mesh gateways for cluster peering:
-
-- At a minimum, a peered cluster exporting a service must have a mesh gateway registered.
-- For Enterprise, this mesh gateway must also be registered in the same partition as the exported services.
-- To use the `local` mesh gateway mode, there must also be a mesh gateway regsitered in the importing cluster.
 
 ## Technical Constraints
 
