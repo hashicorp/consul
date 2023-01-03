@@ -72,10 +72,6 @@ session_prefix "" {
 	policy = "write"
 }` + EnterpriseACLPolicyGlobalManagement
 
-	// This is the policy ID for anonymous access. This is configurable by the
-	// user.
-	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
-
 	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
 )
 

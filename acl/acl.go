@@ -2,6 +2,10 @@ package acl
 
 const (
 	WildcardName = "*"
+
+	// AnonymousTokenID is the AccessorID of the anonymous token.
+	// When logging or displaying to users, use acl.CheckAnonymous.
+	AnonymousTokenID = "00000000-0000-0000-0000-000000000002"
 )
 
 // Config encapsulates all of the generic configuration parameters used for
@@ -42,4 +46,14 @@ func (c *Config) Close() {
 	if c != nil {
 		c.EnterpriseConfig.Close()
 	}
+}
+
+// CheckAnonymous returns the string "anonymous token" if
+// accessorID is acl.AnonymousTokenID. Used for better
+// UX when logging the accessorID.
+func CheckAnonymous(accessorID string) string {
+	if accessorID == AnonymousTokenID {
+		return "anonymous token"
+	}
+	return accessorID
 }

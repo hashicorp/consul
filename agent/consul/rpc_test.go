@@ -1046,7 +1046,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID: kvPolicy.ID,
@@ -1223,7 +1223,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{ID: policy.ID},
 				},

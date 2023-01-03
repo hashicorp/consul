@@ -20,6 +20,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -2409,7 +2410,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			AccessorID:  structs.ACLTokenAnonymousID,
+			AccessorID:  acl.AnonymousTokenID,
 			SecretID:    anonymousToken,
 			Description: "Anonymous Token",
 			CreateTime:  time.Now(),
