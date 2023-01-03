@@ -73,6 +73,9 @@ enum Topic {
 
   // ServiceDefaults topic contains events for changes to service-defaults.
   ServiceDefaults = 8;
+
+  // ProxyDefaults topic contains events for changes to proxy-defaults.
+  ProxyDefaults = 9;
 }
 
 message NamedSubject {

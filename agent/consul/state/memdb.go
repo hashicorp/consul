@@ -185,6 +185,7 @@ var (
 	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
 	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
 	EventTopicServiceDefaults      = pbsubscribe.Topic_ServiceDefaults
+	EventTopicProxyDefaults        = pbsubscribe.Topic_ProxyDefaults
 	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
 )
 

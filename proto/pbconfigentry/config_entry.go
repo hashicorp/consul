@@ -53,6 +53,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindProxyDefaults:
+		var target structs.ProxyConfigEntry
+		target.Name = s.Name
+
+		ProxyDefaultsToStructs(s.GetProxyDefaults(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -108,6 +116,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindServiceDefaults
 		configEntry.Entry = &ConfigEntry_ServiceDefaults{
 			ServiceDefaults: &serviceDefaults,
+		}
+	case *structs.ProxyConfigEntry:
+		var proxyDefaults ProxyDefaults
+		ProxyDefaultsFromStructs(v, &proxyDefaults)
+
+		configEntry.Kind = Kind_KindProxyDefaults
+		configEntry.Entry = &ConfigEntry_ProxyDefaults{
+			ProxyDefaults: &proxyDefaults,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
