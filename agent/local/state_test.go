@@ -732,7 +732,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "mysql",
 			Status:    api.HealthPassing,
 		}
-		a.State.AddCheck(chk, "")
+		a.State.AddCheck(chk, "", false)
 
 		if err := a.State.SyncFull(); err != nil {
 			t.Fatal("sync failed: ", err)
@@ -782,7 +782,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "redis",
 			Status:    api.HealthPassing,
 		}
-		a.State.AddCheck(chk1, "")
+		a.State.AddCheck(chk1, "", false)
 
 		chk2 := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -791,7 +791,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "redis",
 			Status:    api.HealthPassing,
 		}
-		a.State.AddCheck(chk2, "")
+		a.State.AddCheck(chk2, "", false)
 
 		if err := a.State.SyncFull(); err != nil {
 			t.Fatal("sync failed: ", err)
@@ -1044,7 +1044,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Status:         api.HealthPassing,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "", false)
 	args.Check = chk1
 	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1058,7 +1058,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Status:         api.HealthPassing,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddCheck(chk2, "")
+	a.State.AddCheck(chk2, "", false)
 
 	chk2_mod := new(structs.HealthCheck)
 	*chk2_mod = *chk2
@@ -1076,7 +1076,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Status:         api.HealthPassing,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddCheck(chk3, "")
+	a.State.AddCheck(chk3, "", false)
 
 	// Exists remote (delete)
 	chk4 := &structs.HealthCheck{
@@ -1401,7 +1401,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Status:         api.HealthPassing,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddCheck(chk1, token)
+	a.State.AddCheck(chk1, token, false)
 
 	// This one will be allowed.
 	chk2 := &structs.HealthCheck{
@@ -1414,7 +1414,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Status:         api.HealthPassing,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	a.State.AddCheck(chk2, token)
+	a.State.AddCheck(chk2, token, false)
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1537,7 +1537,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		Status:  api.HealthPassing,
 		Output:  "first output",
 	}
-	if err := a.State.AddCheck(check, ""); err != nil {
+	if err := a.State.AddCheck(check, "", false); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	if err := a.State.SyncFull(); err != nil {
@@ -1586,7 +1586,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		Status:  api.HealthPassing,
 		Output:  "",
 	}
-	a.State.AddCheck(check, "")
+	a.State.AddCheck(check, "", false)
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1970,14 +1970,14 @@ func TestState_CheckTokens(t *testing.T) {
 	})
 
 	t.Run("empty string when there is no token", func(t *testing.T) {
-		err := l.AddCheck(&structs.HealthCheck{CheckID: "mem"}, "")
+		err := l.AddCheck(&structs.HealthCheck{CheckID: "mem"}, "", false)
 		require.NoError(t, err)
 
 		require.Equal(t, "", l.CheckToken(id))
 	})
 
 	t.Run("returns configured token", func(t *testing.T) {
-		err := l.AddCheck(&structs.HealthCheck{CheckID: "mem"}, "abc123")
+		err := l.AddCheck(&structs.HealthCheck{CheckID: "mem"}, "abc123", false)
 		require.NoError(t, err)
 
 		require.Equal(t, "abc123", l.CheckToken(id))
@@ -2009,7 +2009,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 		ServiceID: "redis",
 		Status:    api.HealthPassing,
 	}
-	l.AddCheck(chk, "")
+	l.AddCheck(chk, "", false)
 	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
@@ -2072,7 +2072,7 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 	}
 	wantErr := errors.New(`Check ID "redis:1" refers to non-existent service ID "redis"`)
 
-	got := l.AddCheck(chk, "")
+	got := l.AddCheck(chk, "", false)
 	require.Equal(t, wantErr, got)
 }
 
@@ -2086,8 +2086,8 @@ func TestAgent_AliasCheck(t *testing.T) {
 	// Add checks
 	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s1"}, nil, "", false))
 	require.NoError(t, l.AddServiceWithChecks(&structs.NodeService{Service: "s2"}, nil, "", false))
-	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c1"), ServiceID: "s1"}, ""))
-	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c2"), ServiceID: "s2"}, ""))
+	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c1"), ServiceID: "s1"}, "", false))
+	require.NoError(t, l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c2"), ServiceID: "s2"}, "", false))
 
 	// Add an alias
 	notifyCh := make(chan struct{}, 1)
@@ -2380,7 +2380,7 @@ func TestAliasNotifications_local(t *testing.T) {
 		Status:    api.HealthPassing,
 		ServiceID: svcID,
 	}
-	a.State.AddCheck(chk0, "")
+	a.State.AddCheck(chk0, "", false)
 
 	// Register an alias for the service
 	proxyID := types.CheckID("service:socat-sidecar-proxy:2")
@@ -2394,7 +2394,7 @@ func TestAliasNotifications_local(t *testing.T) {
 	chkt := &structs.CheckType{
 		AliasService: svcID,
 	}
-	require.NoError(t, a.AddCheck(chk1, chkt, true, "", agent.ConfigSourceLocal))
+	require.NoError(t, a.AddCheck(chk1, chkt, true, "", agent.ConfigSourceLocal), false)
 
 	// Add a failing check to the same service ID, alias should also fail
 	maintID := types.CheckID("service:socat-maintenance")
@@ -2405,7 +2405,7 @@ func TestAliasNotifications_local(t *testing.T) {
 		Status:    api.HealthCritical,
 		ServiceID: svcID,
 	}
-	a.State.AddCheck(chk2, "")
+	a.State.AddCheck(chk2, "", false)
 
 	retry.Run(t, func(r *retry.R) {
 		check := a.State.Check(structs.NewCheckID(proxyID, nil))

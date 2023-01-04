@@ -2774,7 +2774,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	}
 
 	// Add to the local state for anti-entropy
-	err = a.State.AddCheck(check, token)
+	err = a.State.AddCheck(check, token, source == ConfigSourceLocal)
 	if err != nil {
 		return err
 	}
