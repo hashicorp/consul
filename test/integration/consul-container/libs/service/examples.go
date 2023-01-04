@@ -21,7 +21,6 @@ type exampleContainer struct {
 	ip          string
 	httpPort    int
 	grpcPort    int
-	req         testcontainers.ContainerRequest
 	serviceName string
 }
 

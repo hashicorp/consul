@@ -21,7 +21,6 @@ type ConnectContainer struct {
 	ip          string
 	appPort     int
 	adminPort   int
-	req         testcontainers.ContainerRequest
 	serviceName string
 }
 

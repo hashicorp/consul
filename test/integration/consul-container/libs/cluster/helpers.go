@@ -75,7 +75,8 @@ func CreatingPeeringClusterAndSetup(t *testing.T, clusterOpts *Options) (*Cluste
 	require.True(t, ok)
 
 	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
+	clientNodes, _ := cluster.Clients()
+	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNodes[0])
 	require.NoError(t, err)
 	return cluster, client
 }
