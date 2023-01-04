@@ -16,6 +16,9 @@ type HTTPRouteConfigEntry struct {
 	// of resources, which may include routers, splitters, filters, etc.
 	Name string
 
+	// Parents is a list of gateways that this route should be bound to
+	Parents []ResourceReference
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -85,6 +88,7 @@ type TCPRouteConfigEntry struct {
 
 	// Parents is a list of gateways that this route should be bound to
 	Parents []ResourceReference
+
 	// Services is a list of TCP-based services that this should route to.
 	// Currently, this must specify at maximum one service.
 	Services []TCPService
