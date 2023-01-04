@@ -3,7 +3,6 @@ package peering
 import (
 	"context"
 	"encoding/pem"
-	"sync"
 	"testing"
 	"time"
 
@@ -16,11 +15,7 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-)
-
-const (
-	acceptingPeerName = "accepting-to-dialer"
-	dialingPeerName   = "dialing-to-acceptor"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestPeering_RotateServerAndCAThenFail_
@@ -33,10 +28,11 @@ const (
 //     upstream.
 //
 // ## Steps
+//
+// ### Setup
+//   - Setup the basic peering topology: 2 clusters, exporting service from accepting cluster to dialing cluster
+//
 // ### Part 1
-//   - Create an accepting cluster with 3 servers. 1 client should be used to host a service for export
-//   - Create a single agent dialing cluster.
-//   - Create the peering and export the service. Verify it is working
 //   - Incrementally replace the follower nodes.
 //   - Replace the leader agent
 //   - Verify the dialer can reach the new server nodes and the service becomes available.
@@ -50,41 +46,20 @@ const (
 //   - Terminate the server nodes in the exporting cluster
 //   - Make sure there is still service connectivity from the importing cluster
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
-	var acceptingCluster, dialingCluster *libcluster.Cluster
-	var acceptingClient, dialingClient *api.Client
-	var acceptingCtx *libagent.BuildContext
-	var clientSidecarService libservice.Service
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		acceptingCluster, acceptingClient, acceptingCtx = libcluster.CreatingAcceptingClusterAndSetup(t, 3, *utils.TargetVersion, acceptingPeerName)
-		wg.Done()
-	}()
+	acceptingCluster, dialingCluster, _, staticClientSvcSidecar := topology.BasicPeeringTwoClustersSetup(t, *utils.TargetVersion)
 	defer func() {
-		terminate(t, acceptingCluster)
+		err := acceptingCluster.Terminate()
+		require.NoErrorf(t, err, "termining accepting cluster")
+		dialingCluster.Terminate()
+		require.NoErrorf(t, err, "termining dialing cluster")
 	}()
 
-	wg.Add(1)
-	go func() {
-		dialingCluster, dialingClient, clientSidecarService = libcluster.CreateDialingClusterAndSetup(t, *utils.TargetVersion, dialingPeerName)
-		wg.Done()
-	}()
-	defer func() {
-		terminate(t, dialingCluster)
-	}()
-
-	wg.Wait()
-
-	err := dialingCluster.PeerWithCluster(acceptingClient, acceptingPeerName, dialingPeerName)
+	dialingClient, err := dialingCluster.GetClient(nil, false)
 	require.NoError(t, err)
+	_, port := staticClientSvcSidecar.GetAddr()
 
-	libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
-	libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
-
-	_, port := clientSidecarService.GetAddr()
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+	acceptingClient, err := acceptingCluster.GetClient(nil, false)
+	require.NoError(t, err)
 
 	t.Run("test rotating servers", func(t *testing.T) {
 
@@ -98,21 +73,21 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		for idx, follower := range followers {
 			t.Log("Removing follower", idx)
-			rotateServer(t, acceptingCluster, acceptingClient, acceptingCtx, follower)
+			rotateServer(t, acceptingCluster, acceptingClient, acceptingCluster.BuildContext, follower)
 		}
 
 		t.Log("Removing leader")
-		rotateServer(t, acceptingCluster, acceptingClient, acceptingCtx, leader)
+		rotateServer(t, acceptingCluster, acceptingClient, acceptingCluster.BuildContext, leader)
 
-		libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
-		libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
+		libassert.PeeringStatus(t, acceptingClient, topology.AcceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringExports(t, acceptingClient, topology.AcceptingPeerName, 1)
 
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 	})
 
 	t.Run("rotate exporting cluster's root CA", func(t *testing.T) {
 		// we will verify that the peering on the dialing side persists the updates CAs
-		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), dialingPeerName, &api.QueryOptions{})
+		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{})
 		require.NoError(t, err)
 
 		_, caMeta, err := acceptingClient.Connect().CAGetConfig(&api.QueryOptions{})
@@ -141,7 +116,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.NoError(t, err)
 
 		// The peering object should reflect the update
-		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), dialingPeerName, &api.QueryOptions{
+		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{
 			WaitIndex: peerMeta.LastIndex,
 			WaitTime:  30 * time.Second,
 		})
@@ -155,10 +130,10 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.Len(t, rootList.Roots, 2)
 
 		// Connectivity should still be contained
-		_, port := clientSidecarService.GetAddr()
+		_, port := staticClientSvcSidecar.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 
-		verifySidecarHasTwoRootCAs(t, clientSidecarService)
+		verifySidecarHasTwoRootCAs(t, staticClientSvcSidecar)
 	})
 
 	t.Run("terminate exporting clusters servers and ensure imported services are still reachable", func(t *testing.T) {
@@ -178,7 +153,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		// ensure any transitory actions like replication cleanup would not affect the next verifications
 		time.Sleep(30 * time.Second)
 
-		_, port := clientSidecarService.GetAddr()
+		_, port := staticClientSvcSidecar.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 	})
 }
@@ -190,7 +165,7 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 
 // rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
 func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libagent.BuildContext, node libagent.Agent) {
-	conf, err := libagent.NewConfigBuilder(ctx).
+	conf, err := libagent.NewConfigBuilder(cluster.BuildContext).
 		Bootstrap(0).
 		Peering(true).
 		RetryJoin("agent-3"). // Always use the client agent since it never leaves the cluster

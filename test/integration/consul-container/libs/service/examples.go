@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -15,12 +16,12 @@ import (
 
 // exampleContainer
 type exampleContainer struct {
-	ctx       context.Context
-	container testcontainers.Container
-	ip        string
-	httpPort  int
-	grpcPort  int
-	req       testcontainers.ContainerRequest
+	ctx         context.Context
+	container   testcontainers.Container
+	ip          string
+	httpPort    int
+	grpcPort    int
+	serviceName string
 }
 
 func (g exampleContainer) GetName() string {
@@ -62,6 +63,28 @@ func (c exampleContainer) Terminate() error {
 	c.container = nil
 
 	return err
+}
+
+func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
+	config := &api.ExportedServicesConfigEntry{
+		Name: partition,
+		Services: []api.ExportedService{
+			{
+				Name: g.GetServiceName(),
+				Consumers: []api.ServiceConsumer{
+					// TODO: need to handle the changed field name in 1.13
+					{Peer: peerName},
+				},
+			},
+		},
+	}
+
+	_, _, err := client.ConfigEntries().Set(config, &api.WriteOptions{})
+	return err
+}
+
+func (g exampleContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libnode.Agent) (Service, error) {
@@ -115,5 +138,6 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 	}
 	node.RegisterTermination(terminate)
 
-	return &exampleContainer{container: container, ip: ip, httpPort: mappedHTPPPort.Int(), grpcPort: mappedGRPCPort.Int()}, nil
+	fmt.Printf("Example service exposed http port %d, gRPC port %d\n", mappedHTPPPort.Int(), mappedGRPCPort.Int())
+	return &exampleContainer{container: container, ip: ip, httpPort: mappedHTPPPort.Int(), grpcPort: mappedGRPCPort.Int(), serviceName: name}, nil
 }
