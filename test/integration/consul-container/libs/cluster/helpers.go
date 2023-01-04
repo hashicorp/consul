@@ -64,12 +64,8 @@ func CreatingPeeringClusterAndSetup(t *testing.T, clusterOpts *Options) (*Cluste
 	require.NoError(t, err)
 	cluster.BuildContext = ctx
 
-	// Use the client agent as the HTTP endpoint since we will not rotate it
-	clientNodes, err := cluster.Clients()
+	client, err := cluster.GetClient(nil, false)
 	require.NoError(t, err)
-	require.True(t, len(clientNodes) > 0)
-	clientNode := clientNodes[0]
-	client := clientNode.GetClient()
 	WaitForLeader(t, cluster, client)
 	WaitForMembers(t, client, numServer+1)
 

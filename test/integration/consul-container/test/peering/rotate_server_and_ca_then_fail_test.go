@@ -14,8 +14,8 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/test/integration/consul-container/test/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestPeering_RotateServerAndCAThenFail_
@@ -46,7 +46,7 @@ import (
 //   - Terminate the server nodes in the exporting cluster
 //   - Make sure there is still service connectivity from the importing cluster
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
-	acceptingCluster, dialingCluster, _, staticClientSvcSidecar := utils.BasicPeeringTwoClustersSetup(t, *libutils.TargetVersion)
+	acceptingCluster, dialingCluster, _, staticClientSvcSidecar := topology.BasicPeeringTwoClustersSetup(t, *utils.TargetVersion)
 	defer func() {
 		err := acceptingCluster.Terminate()
 		require.NoErrorf(t, err, "termining accepting cluster")
@@ -54,17 +54,12 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.NoErrorf(t, err, "termining dialing cluster")
 	}()
 
-	clientNodes, err := dialingCluster.Clients()
+	dialingClient, err := dialingCluster.GetClient(nil, false)
 	require.NoError(t, err)
-	require.True(t, len(clientNodes) > 0)
-	clientNode := clientNodes[0]
-	dialingClient := clientNode.GetClient()
 	_, port := staticClientSvcSidecar.GetAddr()
 
-	clientNodes, err = acceptingCluster.Clients()
+	acceptingClient, err := acceptingCluster.GetClient(nil, false)
 	require.NoError(t, err)
-	clientNode = clientNodes[0]
-	acceptingClient := clientNode.GetClient()
 
 	t.Run("test rotating servers", func(t *testing.T) {
 
@@ -84,15 +79,15 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		t.Log("Removing leader")
 		rotateServer(t, acceptingCluster, acceptingClient, acceptingCluster.BuildContext, leader)
 
-		libassert.PeeringStatus(t, acceptingClient, utils.AcceptingPeerName, api.PeeringStateActive)
-		libassert.PeeringExports(t, acceptingClient, utils.AcceptingPeerName, 1)
+		libassert.PeeringStatus(t, acceptingClient, topology.AcceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringExports(t, acceptingClient, topology.AcceptingPeerName, 1)
 
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 	})
 
 	t.Run("rotate exporting cluster's root CA", func(t *testing.T) {
 		// we will verify that the peering on the dialing side persists the updates CAs
-		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), utils.DialingPeerName, &api.QueryOptions{})
+		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{})
 		require.NoError(t, err)
 
 		_, caMeta, err := acceptingClient.Connect().CAGetConfig(&api.QueryOptions{})
@@ -121,7 +116,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.NoError(t, err)
 
 		// The peering object should reflect the update
-		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), utils.DialingPeerName, &api.QueryOptions{
+		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{
 			WaitIndex: peerMeta.LastIndex,
 			WaitTime:  30 * time.Second,
 		})
@@ -204,7 +199,7 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 
 		// Make sure there are two certs in the sidecar
 		filter := `.configs[] | select(.["@type"] | contains("type.googleapis.com/envoy.admin.v3.ClustersConfigDump")).dynamic_active_clusters[] | select(.cluster.name | contains("static-server.default.dialing-to-acceptor.external")).cluster.transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_string`
-		results, err := libutils.JQFilter(dump, filter)
+		results, err := utils.JQFilter(dump, filter)
 		if err != nil {
 			r.Fatal("could not parse envoy configuration")
 		}

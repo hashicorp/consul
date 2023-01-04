@@ -239,6 +239,31 @@ func (c *Cluster) Leader() (libagent.Agent, error) {
 	return nil, fmt.Errorf("leader not found")
 }
 
+// GetClient returns a consul API client to the node if node is provided.
+// Otherwise, GetClient returns the API client to the first node of either
+// server or client agent.
+func (c *Cluster) GetClient(node libagent.Agent, isServer bool) (*api.Client, error) {
+	var err error
+	if node != nil {
+		return node.GetClient(), err
+	}
+
+	nodes, err := c.Clients()
+	if isServer {
+		nodes, err = c.Servers()
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to get the api client: %s", err)
+	}
+
+	if len(nodes) <= 0 {
+		return nil, fmt.Errorf("not enough node: %d", len(nodes))
+	}
+
+	return nodes[0].GetClient(), err
+}
+
 func getLeader(client *api.Client) (string, error) {
 	leaderAdd, err := client.Status().Leader()
 	if err != nil {
