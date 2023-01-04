@@ -37,8 +37,6 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
             name: consul
           connectInject:
             enabled: true
-          controller:
-            enabled: true
           apiGateway:
             enabled: true
             image: hashicorp/consul-api-gateway:$VERSION
@@ -76,7 +74,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
     Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
     ```shell-session
-    $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
+    $ helm install consul hashicorp/consul --version 1.0.0 --values values.yaml --create-namespace --namespace consul
     ```
     </Tab>
   </Tabs>

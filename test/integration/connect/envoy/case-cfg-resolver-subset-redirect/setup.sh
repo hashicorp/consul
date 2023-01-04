@@ -2,10 +2,35 @@
 
 set -euo pipefail
 
-# wait for bootstrap to apply config entries
-wait_for_config_entry proxy-defaults global
-wait_for_config_entry service-resolver s2
-wait_for_config_entry service-resolver s3
+upsert_config_entry primary '
+kind = "proxy-defaults"
+name = "global"
+config {
+  protocol = "http"
+}
+'
+
+upsert_config_entry primary '
+kind = "service-resolver"
+name = "s3"
+subsets = {
+  "v1" = {
+    filter = "Service.Meta.version == v1"
+  }
+  "v2" = {
+    filter = "Service.Meta.version == v2"
+  }
+}
+'
+
+upsert_config_entry primary '
+kind = "service-resolver"
+name = "s2"
+redirect {
+  service        = "s3"
+  service_subset = "v2"
+}
+'
 
 register_services primary
 

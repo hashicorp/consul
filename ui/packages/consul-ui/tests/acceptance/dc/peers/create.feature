@@ -22,6 +22,7 @@ Feature: dc / peers / create: Peer Create Token
     ---
       body:
         PeerName: new-peer
+        ServerExternalAddresses: []
     ---
     Then I see the text "an-encoded-token" in ".consul-peer-form-generate code"
     When I click ".consul-peer-form-generate button[type=reset]"
@@ -33,11 +34,13 @@ Feature: dc / peers / create: Peer Create Token
     Then I fill in with yaml
     ---
       Name: another-new-peer
+      ServerExternalAddresses: "1.1.1.1:123,1.2.3.4:3202"
     ---
     When I click ".peer-create-modal .modal-dialog-footer button"
     Then a POST request was made to "/v1/peering/token" from yaml
     ---
       body:
         PeerName: another-new-peer
+        ServerExternalAddresses: ["1.1.1.1:123","1.2.3.4:3202"]
     ---
     Then I see the text "another-encoded-token" in ".consul-peer-form-generate code"

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/proto/pboperator"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -39,10 +40,12 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
+	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
@@ -186,7 +189,8 @@ type delegate interface {
 	// default partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -382,6 +386,8 @@ type Agent struct {
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
+	rpcClientOperator pboperator.OperatorServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -467,6 +473,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
+	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -558,13 +565,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	// This needs to happen after the initial auto-config is loaded, because TLS
-	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(
-		a.logger.Named("grpc.external"),
-		metrics.Default(),
-	)
-
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
 	}
@@ -602,10 +602,21 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
+		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
+		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(serverLogger, consulCfg)
+
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			incomingRPCLimiter,
+		)
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
+		incomingRPCLimiter.Register(server)
 		a.delegate = server
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
@@ -626,6 +637,13 @@ func (a *Agent) Start(ctx context.Context) error {
 		}
 
 	} else {
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			rpcRate.NullRequestLimitsHandler(),
+		)
+
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
@@ -843,7 +861,6 @@ func (a *Agent) listenAndServeGRPC() error {
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
-		a.config.ConnectServerlessPluginEnabled,
 		cfg,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
@@ -855,7 +872,7 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener
-	start := func(port_name string, addrs []net.Addr, tlsConf *tls.Config) error {
+	start := func(port_name string, addrs []net.Addr, protocol middleware.Protocol) error {
 		if len(addrs) < 1 {
 			return nil
 		}
@@ -865,10 +882,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			return err
 		}
 		for i := range ln {
-			// Wrap with TLS, if provided.
-			if tlsConf != nil {
-				ln[i] = tls.NewListener(ln[i], tlsConf)
-			}
+			ln[i] = middleware.LabelledListener{Listener: ln[i], Protocol: protocol}
 			listeners = append(listeners, ln[i])
 		}
 
@@ -888,23 +902,16 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	// The original grpc port may spawn in either plain-text or TLS mode (for backwards compatibility).
-	// TODO: Simplify this block to only spawn plain-text after 1.14 when deprecated TLS support is removed.
+	// Only allow grpc to spawn with a plain-text listener.
 	if a.config.GRPCPort > 0 {
-		// Only allow the grpc port to spawn TLS connections if the other grpc_tls port is NOT defined.
-		var tlsConf *tls.Config = nil
-		if a.config.GRPCTLSPort <= 0 && a.tlsConfigurator.GRPCServerUseTLS() {
-			a.logger.Warn("deprecated gRPC TLS configuration detected. Consider using `ports.grpc_tls` instead")
-			tlsConf = a.tlsConfigurator.IncomingGRPCConfig()
-		}
-		if err := start("grpc", a.config.GRPCAddrs, tlsConf); err != nil {
+		if err := start("grpc", a.config.GRPCAddrs, middleware.ProtocolPlaintext); err != nil {
 			closeListeners(listeners)
 			return err
 		}
 	}
 	// Only allow grpc_tls to spawn with a TLS listener.
 	if a.config.GRPCTLSPort > 0 {
-		if err := start("grpc_tls", a.config.GRPCTLSAddrs, a.tlsConfigurator.IncomingGRPCConfig()); err != nil {
+		if err := start("grpc_tls", a.config.GRPCTLSAddrs, middleware.ProtocolTLS); err != nil {
 			closeListeners(listeners)
 			return err
 		}
@@ -1477,6 +1484,10 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
 	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
 
+	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
+	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
+	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
@@ -1544,7 +1555,7 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
-func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	a.endpointsLock.RLock()
 	// fast path: only translate if there are overrides
 	if len(a.endpoints) > 0 {
@@ -1554,7 +1565,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 		}
 	}
 	a.endpointsLock.RUnlock()
-	return a.delegate.RPC(method, args, reply)
+	return a.delegate.RPC(ctx, method, args, reply)
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
@@ -1942,7 +1953,7 @@ OUTER:
 				var reply struct{}
 				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
 				// todo(kit) handle acl.ErrNotFound cases here in the future
-				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
+				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
 						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
@@ -2142,7 +2153,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	out := make(map[structs.ServiceID]*structs.ServiceConfigResponse)
 
 	configDir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	files, err := ioutil.ReadDir(configDir)
+	files, err := os.ReadDir(configDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -2164,7 +2175,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 
 		// Read the contents into a buffer
 		file := filepath.Join(configDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
@@ -3375,7 +3386,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	tempFile := file + ".tmp"
 
 	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
-	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
+	if err := os.WriteFile(tempFile, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
 	}
 	if err := os.Rename(tempFile, file); err != nil {
@@ -3390,12 +3401,12 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
 	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
 			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
-			buf, err = ioutil.ReadFile(oldFile)
+			buf, err = os.ReadFile(oldFile)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
@@ -3597,7 +3608,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Load any persisted services
 	svcDir := filepath.Join(a.config.DataDir, servicesDir)
-	files, err := ioutil.ReadDir(svcDir)
+	files, err := os.ReadDir(svcDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3618,7 +3629,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 		// Read the contents into a buffer
 		file := filepath.Join(svcDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
@@ -3761,7 +3772,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 	// Load any persisted checks
 	checkDir := filepath.Join(a.config.DataDir, checksDir)
-	files, err := ioutil.ReadDir(checkDir)
+	files, err := os.ReadDir(checkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3776,7 +3787,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 		// Read the contents into a buffer
 		file := filepath.Join(checkDir, fi.Name())
-		buf, err := ioutil.ReadFile(file)
+		buf, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}
@@ -4043,6 +4054,7 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 					return err
 				}
 			}
+
 			if revertStaticConfig(f.oldCfg, f.newCfg) {
 				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
@@ -4143,6 +4155,11 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
+		RequestLimits: &consul.RequestLimits{
+			Mode:      newCfg.RequestLimitsMode,
+			ReadRate:  newCfg.RequestLimitsReadRate,
+			WriteRate: newCfg.RequestLimitsWriteRate,
+		},
 		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,

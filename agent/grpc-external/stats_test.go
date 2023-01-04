@@ -14,6 +14,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/consul/rate"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/proto/prototest"
@@ -22,12 +24,13 @@ import (
 func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default(), metricsObj)
+	srv := NewServer(hclog.Default(), metricsObj, nil, rate.NullRequestLimitsHandler())
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+	lis = grpcmiddleware.LabelledListener{Listener: lis, Protocol: grpcmiddleware.ProtocolPlaintext}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -43,6 +46,7 @@ func TestServer_EmitsStats(t *testing.T) {
 		}
 	})
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })

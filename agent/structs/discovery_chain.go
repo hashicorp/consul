@@ -38,6 +38,9 @@ type CompiledDiscoveryChain struct {
 	// entry for the service named ServiceName.
 	ServiceMeta map[string]string `json:",omitempty"`
 
+	// EnvoyExtensions has a list of configurations for an extension that patches Envoy resources.
+	EnvoyExtensions []EnvoyExtension `json:",omitempty"`
+
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
 	StartNode string `json:",omitempty"`
@@ -192,8 +195,9 @@ type DiscoveryTarget struct {
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
 
-	MeshGateway MeshGatewayConfig     `json:",omitempty"`
-	Subset      ServiceResolverSubset `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
+	Subset           ServiceResolverSubset  `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty"`
 
 	ConnectTimeout time.Duration `json:",omitempty"`
 

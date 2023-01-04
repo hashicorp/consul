@@ -296,7 +296,7 @@ func (a *TestAgent) waitForUp() error {
 					MaxQueryTime:  25 * time.Millisecond,
 				},
 			}
-			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
+			if err := a.RPC(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}

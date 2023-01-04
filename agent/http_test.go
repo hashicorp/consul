@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,6 +27,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -92,7 +93,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if body, err := ioutil.ReadAll(resp.Body); err != nil || len(body) == 0 {
+	if body, err := io.ReadAll(resp.Body); err != nil || len(body) == 0 {
 		t.Fatalf("bad: %s %v", body, err)
 	}
 }
@@ -111,7 +112,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
-	if err := ioutil.WriteFile(socket, []byte("hello world"), 0644); err != nil {
+	if err := os.WriteFile(socket, []byte("hello world"), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err := os.Stat(socket)
@@ -210,7 +211,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -738,7 +739,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
 	expected = append(expected, "\n"...)
-	actual, err := ioutil.ReadAll(resp.Body)
+	actual, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1685,4 +1686,43 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			assertConn(conn4, true)
 		})
 	}
+}
+
+func TestWithRemoteAddrHandler_ValidAddr(t *testing.T) {
+	expected := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:8080"))
+	nextHandlerCalled := false
+
+	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
+		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
+		if !ok || remoteAddr.String() != expected.String() {
+			t.Errorf("remote addr not present but expected %v", expected)
+		}
+	})
+
+	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
+	req := httptest.NewRequest("GET", "http://ignoreme", nil)
+	req.RemoteAddr = expected.String()
+	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
+}
+
+func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
+	nextHandlerCalled := false
+
+	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextHandlerCalled = true
+		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
+		if ok || remoteAddr != nil {
+			t.Errorf("remote addr %v present but not expected", remoteAddr)
+		}
+	})
+
+	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
+	req := httptest.NewRequest("GET", "http://ignoreme", nil)
+	req.RemoteAddr = "i.am.not.a.valid.ipaddr:port"
+	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }

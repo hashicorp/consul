@@ -47,9 +47,13 @@ func (s *HTTPHandlers) SessionCreate(resp http.ResponseWriter, req *http.Request
 
 	fixupEmptySessionChecks(&args.Session)
 
+	if (s.agent.config.Datacenter != args.Datacenter) && (!s.agent.config.ServerMode) {
+		return nil, fmt.Errorf("cross datacenter lock must be created at server agent")
+	}
+
 	// Create the session, get the ID
 	var out string
-	if err := s.agent.RPC("Session.Apply", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.Apply", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -76,7 +80,7 @@ func (s *HTTPHandlers) SessionDestroy(resp http.ResponseWriter, req *http.Reques
 	}
 
 	var out string
-	if err := s.agent.RPC("Session.Apply", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.Apply", &args, &out); err != nil {
 		return nil, err
 	}
 	return true, nil
@@ -100,7 +104,7 @@ func (s *HTTPHandlers) SessionRenew(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var out structs.IndexedSessions
-	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Session id '%s' not found", args.SessionID)}
@@ -128,7 +132,7 @@ func (s *HTTPHandlers) SessionGet(resp http.ResponseWriter, req *http.Request) (
 
 	var out structs.IndexedSessions
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("Session.Get", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.Get", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -151,7 +155,7 @@ func (s *HTTPHandlers) SessionList(resp http.ResponseWriter, req *http.Request) 
 
 	var out structs.IndexedSessions
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("Session.List", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.List", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -180,7 +184,7 @@ func (s *HTTPHandlers) SessionsForNode(resp http.ResponseWriter, req *http.Reque
 
 	var out structs.IndexedSessions
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("Session.NodeSessions", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Session.NodeSessions", &args, &out); err != nil {
 		return nil, err
 	}
 

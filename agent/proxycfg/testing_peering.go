@@ -256,7 +256,7 @@ func TestConfigSnapshotPeeringLocalMeshGateway(t testing.T) *ConfigSnapshot {
 			DestinationName: "payments",
 			DestinationPeer: "cloud",
 			LocalBindPort:   9090,
-			MeshGateway:     structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
+			MeshGateway:     structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 		}
 		paymentsUID = NewUpstreamID(&paymentsUpstream)
 

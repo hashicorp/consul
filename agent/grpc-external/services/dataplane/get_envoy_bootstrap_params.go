@@ -74,15 +74,9 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		NodeId:      string(svc.ID),
 	}
 
-	// This is awkward because it's designed for different requests, but
-	// this fakes the ServiceSpecificRequest so that we can reuse code.
 	_, ns, err := configentry.MergeNodeServiceWithCentralConfig(
 		nil,
 		store,
-		&structs.ServiceSpecificRequest{
-			Datacenter:   s.Datacenter,
-			QueryOptions: options,
-		},
 		svc.ToNodeService(),
 		logger,
 	)

@@ -550,6 +550,65 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-with-service-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
+							Interval:    5000000000,
+							MaxFailures: 10,
+						}
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-defaults-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						enforcingConsecutive5xx := uint32(80)
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:        2048,
+							MaxPendingRequests:    512,
+							MaxConcurrentRequests: 4096,
+							PassiveHealthCheck: &structs.PassiveHealthCheck{
+								Interval:                5000000000,
+								MaxFailures:             10,
+								EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+							},
+						}
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-overwrite-defaults-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						defaultEnforcingConsecutive5xx := uint32(80)
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:     2048,
+							MaxPendingRequests: 512,
+							PassiveHealthCheck: &structs.PassiveHealthCheck{
+								Interval:                5000000000,
+								EnforcingConsecutive5xx: &defaultEnforcingConsecutive5xx,
+							},
+						}
+						enforcingConsecutive5xx := uint32(50)
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
+						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
+							Interval:                8000000000,
+							EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+						}
+					}, nil)
+			},
+		},
+		{
 			name: "ingress-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",

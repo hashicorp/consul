@@ -38,12 +38,6 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19003 server.primary.peering HEALTHY 1
 }
 
-# Re-peering the clusters is a way to have alpha dial out through its own gateway
-# since we know it is configured with endpoints for primary from the first time they peered.
-@test "re-peer the two clusters together" {
-  create_peering primary alpha
-}
-
-@test "alpha servers made connection to primary servers via alpha gateway" {
+@test "dialer servers in alpha made connection to primary servers via alpha gateway" {
   assert_envoy_metric_at_least 127.0.0.1:19003 "cluster.server.primary.peering.*cx_total" 1
 }

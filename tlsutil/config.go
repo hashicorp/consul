@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -516,7 +515,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	pems := []string{}
 
 	readFn := func(path string) error {
-		pem, err := ioutil.ReadFile(path)
+		pem, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}
@@ -770,8 +769,16 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 		c.base.GRPC,
 		c.base.GRPC.VerifyIncoming,
 	)
-	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingGRPCConfig(), nil
+	config.GetConfigForClient = func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+		conf := c.IncomingGRPCConfig()
+		// Do not enforce mutualTLS for peering SNI entries. This is necessary, because
+		// there is no way to specify an mTLS cert when establishing a peering connection.
+		// This bypass is only safe because the `grpc-middleware.AuthInterceptor` explicitly
+		// restricts the list of endpoints that can be called when peering SNI is present.
+		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
+			conf.ClientAuth = tls.NoClientCert
+		}
+		return conf, nil
 	}
 	config.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
@@ -948,6 +955,12 @@ func (c *Configurator) AutoEncryptCert() *x509.Certificate {
 		return nil
 	}
 	return cert
+}
+
+func (c *Configurator) PeeringServerName() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.autoTLS.peeringServerName
 }
 
 func (c *Configurator) log(name string) {
