@@ -844,6 +844,9 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 
 // isInvalidCertificateError checks the error string for an untrusted certificate error.
 // The specific error message is different on Linux and macOS.
+//
+// TODO: Revisit this when https://github.com/golang/go/issues/52010 is resolved.
+// We may be able to simplify this to check only one error string.
 func isInvalidCertificateError(err string) bool {
 	return strings.Contains(err, "certificate signed by unknown authority") ||
 		strings.Contains(err, "certificate is not trusted")
