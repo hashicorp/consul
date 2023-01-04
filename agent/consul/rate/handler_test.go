@@ -3,10 +3,14 @@ package rate
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"net/netip"
 	"testing"
+	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -42,12 +46,15 @@ func TestHandler(t *testing.T) {
 		allow bool
 	}
 	testCases := map[string]struct {
-		op         Operation
-		globalMode Mode
-		checks     []limitCheck
-		isLeader   bool
-		expectErr  error
-		expectLog  bool
+		op                Operation
+		globalMode        Mode
+		checks            []limitCheck
+		isLeader          bool
+		expectErr         error
+		expectLog         bool
+		expectMetric      bool
+		expectMetricName  string
+		expectMetricCount float64
 	}{
 		"operation exempt from limiting": {
 			op: Operation{
@@ -55,10 +62,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeEnforcing,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeEnforcing,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit disabled": {
 			op: Operation{
@@ -66,10 +74,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeDisabled,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeDisabled,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit within allowance": {
 			op: Operation{
@@ -81,8 +90,9 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: true},
 			},
-			expectErr: nil,
-			expectLog: false,
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit exceeded (permissive)": {
 			op: Operation{
@@ -94,8 +104,11 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			expectErr: nil,
-			expectLog: true,
+			expectErr:         nil,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=permissive",
+			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, leader)": {
 			op: Operation{
@@ -107,9 +120,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			isLeader:  true,
-			expectErr: ErrRetryLater,
-			expectLog: true,
+			isLeader:          true,
+			expectErr:         ErrRetryLater,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, follower)": {
 			op: Operation{
@@ -121,9 +137,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			isLeader:  false,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global read limit disabled": {
 			op: Operation{
@@ -131,10 +150,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeDisabled,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeDisabled,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global read limit within allowance": {
 			op: Operation{
@@ -146,8 +166,9 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: true},
 			},
-			expectErr: nil,
-			expectLog: false,
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global read limit exceeded (permissive)": {
 			op: Operation{
@@ -159,8 +180,11 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			expectErr: nil,
-			expectLog: true,
+			expectErr:         nil,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=permissive",
+			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, leader)": {
 			op: Operation{
@@ -172,9 +196,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			isLeader:  true,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          true,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, follower)": {
 			op: Operation{
@@ -186,13 +213,19 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			isLeader:  false,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
+			// Setup metrics to test they are recorded
+			sink := testSetupMetrics(t)
+
 			limiter := newMockLimiter(t)
 			limiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			for _, c := range tc.checks {
@@ -224,8 +257,65 @@ func TestHandler(t *testing.T) {
 			} else {
 				require.Zero(t, output.Len(), "expected no logs to be emitted")
 			}
+
+			if tc.expectMetric {
+				assertCounter(t, sink, tc.expectMetricName, tc.expectMetricCount)
+			}
 		})
 	}
+}
+
+func assertCounter(t *testing.T, sink *metrics.InmemSink, name string, value float64) {
+	t.Helper()
+
+	data := sink.Data()
+
+	var got float64
+	for _, intv := range data {
+		intv.RLock()
+		// Note that InMemSink uses SampledValue and treats the _Sum_ not the Count
+		// as the entire value.
+		if sample, ok := intv.Counters[name]; ok {
+			got += sample.Sum
+		}
+		intv.RUnlock()
+	}
+
+	if !assert.Equal(t, value, got) {
+		// no nice way to dump this - this is copied from private method in
+		// InMemSink used for dumping to stdout on SIGUSR1.
+		buf := bytes.NewBuffer(nil)
+		for _, intv := range data {
+			intv.RLock()
+			for name, val := range intv.Gauges {
+				fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val.Value)
+			}
+			for name, vals := range intv.Points {
+				for _, val := range vals {
+					fmt.Fprintf(buf, "[%v][P] '%s': %0.3f\n", intv.Interval, name, val)
+				}
+			}
+			for name, agg := range intv.Counters {
+				fmt.Fprintf(buf, "[%v][C] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
+			}
+			for name, agg := range intv.Samples {
+				fmt.Fprintf(buf, "[%v][S] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
+			}
+			intv.RUnlock()
+		}
+		t.Log(buf.String())
+	}
+}
+
+func testSetupMetrics(t *testing.T) *metrics.InmemSink {
+	// Record for ages (5 mins) so we can be confident that our assertions won't
+	// fail on silly long test runs due to dropped data.
+	s := metrics.NewInmemSink(10*time.Second, 300*time.Second)
+	cfg := metrics.DefaultConfig("")
+	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
+	metrics.NewGlobal(cfg, s)
+	return s
 }
 
 func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
