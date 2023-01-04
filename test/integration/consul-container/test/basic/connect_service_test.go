@@ -54,8 +54,8 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	cluster, err := libcluster.New(configs)
 	require.NoError(t, err)
 
-	node := cluster.Agents[0]
-	client := node.GetClient()
+	client, err := cluster.GetClient(nil, true)
+	require.NoError(t, err)
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
 

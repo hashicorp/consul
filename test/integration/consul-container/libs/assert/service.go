@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultHTTPTimeout = 30 * time.Second
+	defaultHTTPTimeout = 100 * time.Second
 	defaultHTTPWait    = defaultWait
 )
 
