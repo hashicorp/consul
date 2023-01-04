@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp"
@@ -111,25 +112,40 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{
+	resolverBuilder := resolver.NewServerResolverBuilder(resolver.Config{
 		// Set the authority to something sufficiently unique so any usage in
 		// tests would be self-isolating in the global resolver map, while also
 		// not incurring a huge penalty for non-test code.
 		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
 	})
-	resolver.Register(builder)
+	resolver.Register(resolverBuilder)
+
+	balancerBuilder := balancer.NewBuilder(
+		// Balancer name doesn't really matter, we set it to the resolver authority
+		// to keep it unique for tests.
+		resolverBuilder.Authority(),
+		d.Logger.Named("grpc.balancer"),
+	)
+	balancerBuilder.Register()
+
 	d.GRPCConnPool = grpcInt.NewClientConnPool(grpcInt.ClientConnPoolConfig{
-		Servers:               builder,
+		Servers:               resolverBuilder,
 		SrcAddr:               d.ConnPool.SrcAddr,
 		TLSWrapper:            grpcInt.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
 		ALPNWrapper:           grpcInt.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
 		UseTLSForDC:           d.TLSConfigurator.UseTLS,
 		DialingFromServer:     cfg.ServerMode,
 		DialingFromDatacenter: cfg.Datacenter,
+		BalancerBuilder:       balancerBuilder,
 	})
-	d.LeaderForwarder = builder
+	d.LeaderForwarder = resolverBuilder
 
-	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
+	d.Router = router.NewRouter(
+		d.Logger,
+		cfg.Datacenter,
+		fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter),
+		grpcInt.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	// this needs to happen prior to creating auto-config as some of the dependencies
 	// must also be passed to auto-config
