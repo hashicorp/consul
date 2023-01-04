@@ -153,12 +153,13 @@ dev-build:
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
-dev-docker: linux
+dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	#  'consul:local' tag is needed to run the integration tests
-	@docker buildx use default && docker buildx build -t 'consul:local' \
+	@#  'consul:local' tag is needed to run the integration tests
+	@#  'consul-dev:latest' is needed by older workflows
+	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
@@ -175,7 +176,10 @@ remote-docker: check-remote-dev-image-env
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
-	@docker buildx use default && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
+	@if ! docker buildx inspect consul-builder; then \
+		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
+	fi; 
+	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --push \

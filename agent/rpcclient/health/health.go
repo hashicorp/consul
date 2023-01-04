@@ -23,7 +23,7 @@ type Client struct {
 }
 
 type NetRPC interface {
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 }
 
 type CacheGetter interface {
@@ -71,7 +71,7 @@ func (c *Client) ServiceNodes(
 	// TODO: DNSServer emitted a metric here, do we still need it?
 	if req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.QueryMeta.LastContact > req.MaxStaleDuration {
 		req.AllowStale = false
-		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
+		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 
@@ -84,7 +84,7 @@ func (c *Client) getServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
 	if !req.QueryOptions.UseCache {
-		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
+		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 

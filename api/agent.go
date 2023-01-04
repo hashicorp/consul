@@ -118,6 +118,7 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
+	EnvoyExtensions        []EnvoyExtension        `json:",omitempty"`
 	DestinationServiceName string                  `json:",omitempty"`
 	DestinationServiceID   string                  `json:",omitempty"`
 	LocalServiceAddress    string                  `json:",omitempty"`
@@ -129,6 +130,7 @@ type AgentServiceConnectProxyConfig struct {
 	Upstreams              []Upstream              `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig       `json:",omitempty"`
 	Expose                 ExposeConfig            `json:",omitempty"`
+	AccessLogs             *AccessLogsConfig       `json:",omitempty"`
 }
 
 const (

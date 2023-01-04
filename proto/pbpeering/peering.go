@@ -75,10 +75,19 @@ func (req *TrustBundleListByServiceRequest) RequestDatacenter() string {
 
 // ShouldDial returns true when the peering was stored via the peering initiation endpoint,
 // AND the peering is not marked as terminated by our peer.
-// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
+// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses or ManualServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0
+	return len(p.PeerServerAddresses) > 0 || len(p.ManualServerAddresses) > 0
+}
+
+// GetAddressesToDial returns the listing of addresses that should be dialed for the peering.
+// It will ensure that manual addresses take precedence, if any are defined.
+func (p *Peering) GetAddressesToDial() []string {
+	if len(p.ManualServerAddresses) > 0 {
+		return p.ManualServerAddresses
+	}
+	return p.PeerServerAddresses
 }
 
 func (x PeeringState) GoString() string {
@@ -147,9 +156,9 @@ func StreamStatusToAPI(status *StreamStatus) api.PeeringStreamStatus {
 	return api.PeeringStreamStatus{
 		ImportedServices: status.ImportedServices,
 		ExportedServices: status.ExportedServices,
-		LastHeartbeat:    structs.TimeFromProto(status.LastHeartbeat),
-		LastReceive:      structs.TimeFromProto(status.LastReceive),
-		LastSend:         structs.TimeFromProto(status.LastSend),
+		LastHeartbeat:    TimePtrFromProto(status.LastHeartbeat),
+		LastReceive:      TimePtrFromProto(status.LastReceive),
+		LastSend:         TimePtrFromProto(status.LastSend),
 	}
 }
 
@@ -157,9 +166,9 @@ func StreamStatusFromAPI(status api.PeeringStreamStatus) *StreamStatus {
 	return &StreamStatus{
 		ImportedServices: status.ImportedServices,
 		ExportedServices: status.ExportedServices,
-		LastHeartbeat:    structs.TimeToProto(status.LastHeartbeat),
-		LastReceive:      structs.TimeToProto(status.LastReceive),
-		LastSend:         structs.TimeToProto(status.LastSend),
+		LastHeartbeat:    TimePtrToProto(status.LastHeartbeat),
+		LastReceive:      TimePtrToProto(status.LastReceive),
+		LastSend:         TimePtrToProto(status.LastSend),
 	}
 }
 
@@ -208,6 +217,7 @@ func (s *SecretsWriteRequest) Validate() error {
 // ara available. If no CAPems were provided in the peering token then the
 // WithInsecure dial option is returned.
 func (p *Peering) TLSDialOption() (grpc.DialOption, error) {
+	//nolint:staticcheck
 	tlsOption := grpc.WithInsecure()
 
 	if len(p.PeerCAPems) > 0 {

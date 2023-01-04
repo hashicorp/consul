@@ -603,6 +603,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  namespace             = "leek"
 						  prefix_rewrite         = "/alternate"
 						  request_timeout        = "99s"
+						  idle_timeout           = "99s"
 						  num_retries            = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
@@ -704,6 +705,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  Namespace             = "leek"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
+						  IdleTimeout           = "99s"
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
@@ -805,6 +807,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Namespace:             "leek",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -2698,6 +2701,42 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "invalid value for balance_outbound_connections",
 		},
+		"validate: invalid extension": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{},
+				},
+			},
+			validateErr: "invalid EnvoyExtensions[0]: Name is required",
+		},
+		"validate: invalid extension name": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: "not-a-builtin",
+					},
+				},
+			},
+			validateErr: `invalid EnvoyExtensions[0]: Name "not-a-builtin" is not a built-in extension`,
+		},
+		"validate: valid extension name": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: BuiltinAWSLambdaExtension,
+					},
+				},
+			},
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -3026,6 +3065,57 @@ func TestProxyConfigEntry(t *testing.T) {
 				Kind:           ProxyDefaults,
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
+		},
+		"proxy config has invalid access log type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    "stdin",
+				},
+			},
+			validateErr: "invalid access log type: stdin",
+		},
+		"proxy config has invalid access log config - both text and json formats": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "[%START_TIME%]",
+					TextFormat: "{\"start_time\": \"[%START_TIME%]\"}",
+				},
+			},
+			validateErr: "cannot specify both access log JSONFormat and TextFormat",
+		},
+		"proxy config has invalid access log config - file path with wrong type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Path:    "/tmp/logs.txt",
+				},
+			},
+			validateErr: "path is only valid for file type access logs",
+		},
+		"proxy config has invalid access log config - no file path specified": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    FileLogSinkType,
+				},
+			},
+			validateErr: "path must be specified when using file type access logs",
+		},
+		"proxy config has invalid access log JSON format": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "{\"start_time\": \"[%START_TIME%]\"", // Missing trailing brace
+				},
+			},
+			validateErr: "invalid access log json for JSON format",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)

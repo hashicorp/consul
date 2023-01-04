@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
@@ -40,6 +41,7 @@ func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -109,6 +111,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -161,6 +164,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
+									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
@@ -194,6 +198,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
+									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
@@ -246,6 +251,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								MeshGateway:      &pbservice.MeshGatewayConfig{},
 								Expose:           &pbservice.ExposeConfig{},
 								TransparentProxy: &pbservice.TransparentProxyConfig{},
+								AccessLogs:       &pbservice.AccessLogsConfig{},
 							},
 							Connect:        &pbservice.ServiceConnect{},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
@@ -378,6 +384,7 @@ func runTestServer(t *testing.T, server *Server) net.Addr {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
 		},
 		nil,
+		rate.NullRequestLimitsHandler(),
 	)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
@@ -441,6 +448,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	connRemoteDC, err := gogrpc.DialContext(ctx, addrRemoteDC.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connRemoteDC.Close))
@@ -488,6 +496,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		require.NoError(t, backendRemoteDC.store.EnsureRegistration(ids.Next("reg3"), req))
 	})
 
+	//nolint:staticcheck
 	connLocal, err := gogrpc.DialContext(ctx, addrLocal.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connLocal.Close))
@@ -541,6 +550,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
+									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -574,6 +584,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
+									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -627,6 +638,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								MeshGateway:      &pbservice.MeshGatewayConfig{},
 								Expose:           &pbservice.ExposeConfig{},
 								TransparentProxy: &pbservice.TransparentProxyConfig{},
+								AccessLogs:       &pbservice.AccessLogsConfig{},
 							},
 							Connect:        &pbservice.ServiceConnect{},
 							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
@@ -749,6 +761,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -901,6 +914,7 @@ node "node1" {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
+	//nolint:staticcheck
 	conn, err := gogrpc.DialContext(ctx, addr.String(), gogrpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
@@ -1038,6 +1052,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 													MeshGateway:      &pbservice.MeshGatewayConfig{},
 													Expose:           &pbservice.ExposeConfig{},
 													TransparentProxy: &pbservice.TransparentProxyConfig{},
+													AccessLogs:       &pbservice.AccessLogsConfig{},
 												},
 												Connect:        &pbservice.ServiceConnect{},
 												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
@@ -1060,6 +1075,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 													MeshGateway:      &pbservice.MeshGatewayConfig{},
 													Expose:           &pbservice.ExposeConfig{},
 													TransparentProxy: &pbservice.TransparentProxyConfig{},
+													AccessLogs:       &pbservice.AccessLogsConfig{},
 												},
 												Connect:        &pbservice.ServiceConnect{},
 												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
@@ -1099,6 +1115,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									MeshGateway:      &pbservice.MeshGatewayConfig{},
 									Expose:           &pbservice.ExposeConfig{},
 									TransparentProxy: &pbservice.TransparentProxyConfig{},
+									AccessLogs:       &pbservice.AccessLogsConfig{},
 								},
 								Connect:        &pbservice.ServiceConnect{},
 								EnterpriseMeta: &pbcommon.EnterpriseMeta{},

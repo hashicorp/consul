@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -329,13 +328,19 @@ func TestCAManager_RenewIntermediate_Vault_Primary(t *testing.T) {
 
 	testVault := ca.NewTestVaultServer(t)
 
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
+
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "vault",
 			Config: map[string]interface{}{
 				"Address":             testVault.Addr,
-				"Token":               testVault.RootToken,
+				"Token":               vaultToken,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
 				"LeafCertTTL":         "2s",
@@ -609,7 +614,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(t, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	var updatedRoot *structs.CARoot
@@ -701,7 +706,6 @@ func TestCAManager_Initialize_Vault_KeepOldRoots_Primary(t *testing.T) {
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
 
 	dir1pre, s1pre := testServer(t)
 	defer os.RemoveAll(dir1pre)
@@ -711,12 +715,18 @@ func TestCAManager_Initialize_Vault_KeepOldRoots_Primary(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1pre.RPC, "dc1")
 
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
+
 	// Update the CA config to use Vault - this should force the generation of a new root cert.
 	vaultCAConf := &structs.CAConfiguration{
 		Provider: "vault",
 		Config: map[string]interface{}{
 			"Address":             testVault.Addr,
-			"Token":               testVault.RootToken,
+			"Token":               vaultToken,
 			"RootPKIPath":         "pki-root/",
 			"IntermediatePKIPath": "pki-intermediate/",
 		},
@@ -766,7 +776,12 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
+
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
 
 	dir1pre, s1pre := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
@@ -775,7 +790,7 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 			Provider: "vault",
 			Config: map[string]interface{}{
 				"Address":             testVault.Addr,
-				"Token":               testVault.RootToken,
+				"Token":               vaultToken,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
 			},
@@ -995,7 +1010,7 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	args := structs.DCSpecificRequest{Datacenter: "dc2"}
 	var dc2PrimaryRoots structs.IndexedCARoots
-	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
+	require.NoError(t, s2.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2PrimaryRoots))
 	require.Len(t, dc2PrimaryRoots.Roots, 1)
 
 	// Shutdown s2 and restart it with the dc1 as the primary
@@ -1018,12 +1033,12 @@ func TestCAManager_Initialize_TransitionFromPrimaryToSecondary(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		args = structs.DCSpecificRequest{Datacenter: "dc1"}
 		var dc1Roots structs.IndexedCARoots
-		require.NoError(r, s1.RPC("ConnectCA.Roots", &args, &dc1Roots))
+		require.NoError(r, s1.RPC(context.Background(), "ConnectCA.Roots", &args, &dc1Roots))
 		require.Len(r, dc1Roots.Roots, 1)
 
 		args = structs.DCSpecificRequest{Datacenter: "dc2"}
 		var dc2SecondaryRoots structs.IndexedCARoots
-		require.NoError(r, s3.RPC("ConnectCA.Roots", &args, &dc2SecondaryRoots))
+		require.NoError(r, s3.RPC(context.Background(), "ConnectCA.Roots", &args, &dc2SecondaryRoots))
 
 		// dc2's TrustDomain should have changed to the primary's
 		require.Equal(r, dc2SecondaryRoots.TrustDomain, dc1Roots.TrustDomain)
@@ -1176,7 +1191,7 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 		Datacenter: datacenter,
 	}
 	var rootList structs.IndexedCARoots
-	if err := s.RPC("ConnectCA.Roots", rootReq, &rootList); err != nil {
+	if err := s.RPC(context.Background(), "ConnectCA.Roots", rootReq, &rootList); err != nil {
 		return nil, nil, err
 	}
 
@@ -1457,7 +1472,7 @@ func TestNewCARoot(t *testing.T) {
 func readTestData(t *testing.T, name string) string {
 	t.Helper()
 	path := filepath.Join("testdata", name)
-	bs, err := ioutil.ReadFile(path)
+	bs, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading fixture file %s: %s", name, err)
 	}
@@ -1546,13 +1561,19 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 	require.Empty(t, rootsList.Roots)
 	require.Nil(t, activeRoot)
 
+	goodVaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
+
 	// Now that the leader is up and we have verified that there are no roots / CA init failed,
 	// verify that we can reconfigure away from the bad configuration.
 	newConfig := &structs.CAConfiguration{
 		Provider: "vault",
 		Config: map[string]interface{}{
 			"Address":             testVault.Addr,
-			"Token":               testVault.RootToken,
+			"Token":               goodVaultToken,
 			"RootPKIPath":         "pki-root/",
 			"IntermediatePKIPath": "pki-intermediate/",
 		},
@@ -1565,7 +1586,7 @@ func TestCAManager_Initialize_Vault_BadCAConfigDoesNotPreventLeaderEstablishment
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 
@@ -1607,7 +1628,7 @@ func TestCAManager_Initialize_BadCAConfigDoesNotPreventLeaderEstablishment(t *te
 		var reply interface{}
 
 		retry.Run(t, func(r *retry.R) {
-			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+			require.NoError(r, s1.RPC(context.Background(), "ConnectCA.ConfigurationSet", args, &reply))
 		})
 	}
 
@@ -1676,7 +1697,13 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 	ca.SkipIfVaultNotPresent(t)
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
+
+	vaultToken1 := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+		WithSudo:         true,
+	})
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.9.1"
@@ -1685,7 +1712,7 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 			Provider: "vault",
 			Config: map[string]interface{}{
 				"Address":             testVault.Addr,
-				"Token":               testVault.RootToken,
+				"Token":               vaultToken1,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
 			},
@@ -1706,13 +1733,19 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
+	vaultToken2 := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root-2",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
+
 	// Update the provider config to use a new PKI path, which should
 	// cause a rotation.
 	newConfig := &structs.CAConfiguration{
 		Provider: "vault",
 		Config: map[string]interface{}{
 			"Address":             testVault.Addr,
-			"Token":               testVault.RootToken,
+			"Token":               vaultToken2,
 			"RootPKIPath":         "pki-root-2/",
 			"IntermediatePKIPath": "pki-intermediate/",
 		},

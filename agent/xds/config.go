@@ -49,6 +49,11 @@ type ProxyConfig struct {
 	// respected (15s)
 	LocalRequestTimeoutMs *int `mapstructure:"local_request_timeout_ms"`
 
+	// LocalIdleTimeoutMs is the number of milliseconds to timeout HTTP streams
+	// to the local app instance. If not set, no value is set, Envoy defaults are
+	// respected (300s)
+	LocalIdleTimeoutMs *int `mapstructure:"local_idle_timeout_ms"`
+
 	// Protocol describes the service's protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. This enables
 	// protocol aware features like per-request metrics and connection
@@ -170,24 +175,53 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	return cfg, err
 }
 
-// Return an envoy.OutlierDetection populated by the values from this struct.
+// Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthChec.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
+//   - If override is not nil, it will overwrite the values from p, e.g., ingress gateway defaults
+//   - allowZero is added to handle the legacy case where connect-proxy and mesh gateway can set 0
+//     for EnforcingConsecutive5xx. Due to the definition of proto of PassiveHealthCheck, ingress
+//     gateway's EnforcingConsecutive5xx must be > 0.
+func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.PassiveHealthCheck, allowZero bool) *envoy_cluster_v3.OutlierDetection {
 	od := &envoy_cluster_v3.OutlierDetection{}
-	if p == nil {
+	if p != nil {
+
+		if p.Interval != 0 {
+			od.Interval = durationpb.New(p.Interval)
+		}
+		if p.MaxFailures != 0 {
+			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+		}
+
+		if p.EnforcingConsecutive5xx != nil {
+			// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
+			if *p.EnforcingConsecutive5xx != 0 {
+				od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+			} else if allowZero {
+				od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+			}
+		}
+	}
+
+	if override == nil {
 		return od
 	}
 
-	if p.Interval != 0 {
-		od.Interval = durationpb.New(p.Interval)
+	// override the default outlier detection value
+	if override.Interval != 0 {
+		od.Interval = durationpb.New(override.Interval)
 	}
-	if p.MaxFailures != 0 {
-		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+	if override.MaxFailures != 0 {
+		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: override.MaxFailures}
 	}
 
-	if p.EnforcingConsecutive5xx != nil {
-		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+	if override.EnforcingConsecutive5xx != nil {
+		// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
+		if *override.EnforcingConsecutive5xx != 0 {
+			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+		} else if allowZero {
+			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+		}
 	}
 
 	return od

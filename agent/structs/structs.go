@@ -1048,6 +1048,15 @@ type ServiceNode struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (s *ServiceNode) FillAuthzContext(ctx *acl.AuthorizerContext) {
+	if ctx == nil {
+		return
+	}
+	ctx.Peer = s.PeerName
+
+	s.EnterpriseMeta.FillAuthzContext(ctx)
+}
+
 func (s *ServiceNode) PeerOrEmpty() string {
 	return s.PeerName
 }
@@ -1295,6 +1304,15 @@ func (m *PeeringServiceMeta) PrimarySNI() string {
 		return ""
 	}
 	return m.SNI[0]
+}
+
+func (ns *NodeService) FillAuthzContext(ctx *acl.AuthorizerContext) {
+	if ctx == nil {
+		return
+	}
+	ctx.Peer = ns.PeerName
+
+	ns.EnterpriseMeta.FillAuthzContext(ctx)
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
@@ -1744,6 +1762,15 @@ type HealthCheck struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (hc *HealthCheck) FillAuthzContext(ctx *acl.AuthorizerContext) {
+	if ctx == nil {
+		return
+	}
+	ctx.Peer = hc.PeerName
+
+	hc.EnterpriseMeta.FillAuthzContext(ctx)
+}
+
 func (hc *HealthCheck) PeerOrEmpty() string {
 	return hc.PeerName
 }
@@ -1995,14 +2022,14 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 
-	authzContext := new(acl.AuthorizerContext)
-	csn.Service.EnterpriseMeta.FillAuthzContext(authzContext)
+	var authzContext acl.AuthorizerContext
+	csn.Service.FillAuthzContext(&authzContext)
 
-	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
+	if authz.NodeRead(csn.Node.Node, &authzContext) != acl.Allow {
 		return acl.Deny
 	}
 
-	if authz.ServiceRead(csn.Service.Service, authzContext) != acl.Allow {
+	if authz.ServiceRead(csn.Service.Service, &authzContext) != acl.Allow {
 		return acl.Deny
 	}
 	return acl.Allow

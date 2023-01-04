@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -134,7 +135,7 @@ type ACLResolverBackend interface {
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
 	IsServerManagementToken(token string) bool
 	// TODO: separate methods for each RPC call (there are 4)
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 	EnterpriseACLResolverDelegate
 }
 
@@ -354,7 +355,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	}
 
 	var resp structs.ACLTokenResponse
-	err := r.backend.RPC("ACL.TokenRead", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.TokenRead", &req, &resp)
 	if err == nil {
 		if resp.Token == nil {
 			r.cache.RemoveIdentityWithSecretToken(token)
@@ -441,7 +442,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 	}
 
 	var resp structs.ACLPolicyBatchResponse
-	err := r.backend.RPC("ACL.PolicyResolve", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLPolicy)
 		for _, policy := range resp.Policies {
@@ -496,7 +497,7 @@ func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity
 	}
 
 	var resp structs.ACLRoleBatchResponse
-	err := r.backend.RPC("ACL.RoleResolve", &req, &resp)
+	err := r.backend.RPC(context.Background(), "ACL.RoleResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLRole)
 		for _, role := range resp.Roles {
@@ -632,6 +633,10 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
+	if len(policies) > 0 && len(filtered) == 0 {
+		r.logger.Warn("ACL token used lacks permissions in this datacenter: its associated ACL policies, service identities, and/or node identities are scoped to other datacenters", "accessor_id", identity.ID(), "datacenter", r.config.Datacenter)
+	}
+
 	return filtered, nil
 }
 
@@ -1068,19 +1073,9 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-// TODO(peering): fix all calls to use the new signature and rename it back
 func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	token string,
 	entMeta *acl.EnterpriseMeta,
-	authzContext *acl.AuthorizerContext,
-) (resolver.Result, error) {
-	return r.ResolveTokenAndDefaultMetaWithPeerName(token, entMeta, structs.DefaultPeerKeyword, authzContext)
-}
-
-func (r *ACLResolver) ResolveTokenAndDefaultMetaWithPeerName(
-	token string,
-	entMeta *acl.EnterpriseMeta,
-	peerName string,
 	authzContext *acl.AuthorizerContext,
 ) (resolver.Result, error) {
 	result, err := r.ResolveToken(token)
@@ -1095,8 +1090,9 @@ func (r *ACLResolver) ResolveTokenAndDefaultMetaWithPeerName(
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
 	switch {
-	case peerName == "" && result.ACLIdentity != nil:
+	case authzContext.PeerOrEmpty() == "" && result.ACLIdentity != nil:
 		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
+
 	case result.ACLIdentity != nil:
 		// We _do not_ normalize the enterprise meta from the token when a peer
 		// name was specified because namespaces across clusters are not

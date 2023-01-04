@@ -97,6 +97,13 @@ Configuration updated!
 
 The return code will indicate success or failure.
 
+~> **If currently using Vault CA provider:**
+   If you intend to change the CA provider from Vault to another,
+   or to change the Vault provider's [`RootPKIPath`](/docs/connect/ca/vault#rootpkipath),
+   you must temporarily elevate the privileges of the Vault token
+   or auth method in use as described in the
+   [Vault CA provider documentation](/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
+
 #### Command Options
 
 - `-config-file` - (required) Specifies a JSON-formatted file to use for the new configuration.
@@ -104,10 +111,13 @@ The return code will indicate success or failure.
   [Update CA Configuration API](/api-docs/connect/ca#update-ca-configuration).
 
 - `-force-without-cross-signing` `(bool: <optional>)` - Indicates that the CA change
-  should be forced to complete even if the current CA doesn't support cross
-  signing. Changing root without cross-signing may cause temporary connection
-  failures until the rollout completes. See [Forced Rotation Without
-  Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
+  should be forced to complete even if the current CA doesn't support root cross-signing.
+
+  ~> **Caution:** Use of this flag will cause temporary connection failures
+  until service mesh proxies and/or Consul client agents receive a new certificate
+  that establishes trust with the new root.
+  Do not use this flag unless you are sure you need it.
+  Refer to [Forced Rotation Without Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
   for more detail.
 
 #### API Options

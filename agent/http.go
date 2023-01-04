@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/netip"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -209,13 +210,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
@@ -247,12 +241,14 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// Register wrapped pprof handlers
-	handlePProf("/debug/pprof/", pprof.Index)
-	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-	handlePProf("/debug/pprof/profile", pprof.Profile)
-	handlePProf("/debug/pprof/symbol", pprof.Symbol)
-	handlePProf("/debug/pprof/trace", pprof.Trace)
+	// If enableDebug or ACL enabled, register wrapped pprof handlers
+	if enableDebug || !s.checkACLDisabled() {
+		handlePProf("/debug/pprof/", pprof.Index)
+		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+		handlePProf("/debug/pprof/profile", pprof.Profile)
+		handlePProf("/debug/pprof/symbol", pprof.Symbol)
+		handlePProf("/debug/pprof/trace", pprof.Trace)
+	}
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -293,12 +289,27 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
+
 	h = s.enterpriseHandler(h)
+	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
 	return s.h
+}
+
+// Injects remote addr into the request's context
+func withRemoteAddrHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
+		if err == nil {
+			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
+			ctx := consul.ContextWithRemoteAddr(req.Context(), remoteAddr)
+			req = req.WithContext(ctx)
+		}
+		next.ServeHTTP(resp, req)
+	})
 }
 
 // nodeName returns the node name of the agent

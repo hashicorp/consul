@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -104,7 +103,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.
 // TODO: this would be much nicer with gotest.tools/fs
 func setupConfigFiles(t *testing.T) []string {
 	t.Helper()
-	path, err := ioutil.TempDir("", t.Name())
+	path, err := os.MkdirTemp("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
@@ -113,13 +112,13 @@ func setupConfigFiles(t *testing.T) []string {
 	require.NoError(t, err)
 
 	for _, dir := range []string{path, subpath} {
-		err = ioutil.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
 	return []string{
@@ -139,9 +138,11 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				NodeName: pString(tc.nodeName),
-				DataDir:  pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					NodeName: pString(tc.nodeName),
+					DataDir:  pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -179,9 +180,11 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: Config{
-			NodeName: pString("foo"),
-			DataDir:  pString("dir"),
+		FlagValues: FlagValuesTarget{
+			Config: Config{
+				NodeName: pString("foo"),
+				DataDir:  pString("dir"),
+			},
 		},
 	})
 
@@ -260,9 +263,11 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				ClientAddr: tc.clientAddr,
-				DataDir:    pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					ClientAddr: tc.clientAddr,
+					DataDir:    pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -364,6 +369,90 @@ func TestBuilder_tlsVersion(t *testing.T) {
 	require.Contains(t, b.err.Error(), "2 errors")
 	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
 	require.Contains(t, b.err.Error(), invalidTLSVersion)
+}
+
+func TestBuilder_WarnGRPCTLS(t *testing.T) {
+	tests := []struct {
+		name      string
+		hcl       string
+		expectErr bool
+	}{
+		{
+			name:      "success",
+			hcl:       ``,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is disabled but explicitly defined",
+			hcl: `
+			ports { grpc_tls = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			// This behavior is a little strange, but it allows users
+			// to setup TLS and disable the port if they wish.
+			expectErr: false,
+		},
+		{
+			name: "grpc is disabled",
+			hcl: `
+			ports { grpc = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is undefined with default manual cert",
+			hcl: `
+			tls { defaults { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with manual cert",
+			hcl: `
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto encrypt",
+			hcl: `
+			auto_encrypt { tls = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto config",
+			hcl: `
+			auto_config { enabled = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+	}
+	for _, tc := range tests {
+		// using dev mode skips the need for a data dir
+		// and enables both grpc ports by default.
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "listener no longer supports TLS")
+		} else {
+			require.NoError(t, err)
+		}
+	}
 }
 
 func TestBuilder_tlsCipherSuites(t *testing.T) {

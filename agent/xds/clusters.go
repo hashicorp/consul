@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -129,7 +128,10 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			continue
 		}
 
-		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		peerMeta, found := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		if !found {
+			s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "uid", uid)
+		}
 		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
 
 		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, cfg, peerMeta, cfgSnap)
@@ -849,6 +851,20 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 	if threshold != nil {
 		c.CircuitBreakers.Thresholds = []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}
 	}
+
+	// Configure the outlier detector for upstream service
+	var override *structs.PassiveHealthCheck
+	if svc != nil {
+		override = svc.PassiveHealthCheck
+	}
+	outlierDetection := ToOutlierDetection(cfgSnap.IngressGateway.Defaults.PassiveHealthCheck, override, false)
+
+	// Specail handling for failover peering service, which has set MaxEjectionPercent
+	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
+		outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
+	}
+
+	c.OutlierDetection = outlierDetection
 }
 
 func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
@@ -949,7 +965,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	clusterName := generatePeeredClusterName(uid, tbs)
 
-	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck)
+	outlierDetection := ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true)
 	// We can't rely on health checks for services on cluster peers because they
 	// don't take into account service resolvers, splitters and routers. Setting
 	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
@@ -1084,7 +1100,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck, nil, true),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			if err := s.setHttp2ProtocolOptions(c); err != nil {
@@ -1282,18 +1298,13 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		for _, targetData := range targetClustersData {
 			target := chain.Targets[targetData.targetID]
 			sni := target.SNI
-			var additionalSpiffeIDs []string
 
-			targetSpiffeID := connect.SpiffeIDService{
-				Host:       cfgSnap.Roots.TrustDomain,
-				Namespace:  target.Namespace,
-				Partition:  target.Partition,
-				Datacenter: target.Datacenter,
-				Service:    target.Service,
-			}.URI().String()
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetData.targetID)
 			if targetUID.Peer != "" {
-				peerMeta := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
+				peerMeta, found := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
+				if !found {
+					s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "target", targetUID)
+				}
 				upstreamCluster, err := s.makeUpstreamClusterForPeerService(targetUID, upstreamConfig, peerMeta, cfgSnap)
 				if err != nil {
 					continue
@@ -1303,6 +1314,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				out = append(out, upstreamCluster)
 				continue
 			}
+
+			targetSpiffeID := connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Namespace:  target.Namespace,
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+				Service:    target.Service,
+			}.URI().String()
 
 			s.Logger.Debug("generating cluster for", "cluster", targetData.clusterName)
 			c := &envoy_cluster_v3.Cluster{
@@ -1327,7 +1346,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 					Thresholds: makeThresholdsIfNeeded(upstreamConfig.Limits),
 				},
-				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck),
+				OutlierDetection: ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true),
 			}
 
 			var lb *structs.LoadBalancer
@@ -1357,9 +1376,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 				)
 
-				spiffeIDs := append([]string{targetSpiffeID}, additionalSpiffeIDs...)
-				sort.Strings(spiffeIDs)
-				err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+				err = injectSANMatcher(commonTLSContext, targetSpiffeID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 				}
@@ -1455,6 +1472,8 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			},
 		})
 	}
+
+	//nolint:staticcheck
 	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
 
 	return nil

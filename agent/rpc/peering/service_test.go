@@ -2,12 +2,11 @@ package peering_test
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -23,12 +22,14 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
+	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -69,7 +70,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	signer, _, _ := tlsutil.GeneratePrivateKey()
 	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	cafile := path.Join(dir, "cacert.pem")
-	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(cafile, []byte(ca), 0600))
 
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, func(c *consul.Config) {
@@ -173,6 +174,45 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		require.Equal(t, token.EstablishmentSecret, s.GetEstablishment().GetSecretID())
 	})
 
+}
+
+func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
+	dir := testutil.TempDir(t, "consul")
+
+	signer, _, _ := tlsutil.GeneratePrivateKey()
+	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	cafile := path.Join(dir, "cacert.pem")
+	require.NoError(t, os.WriteFile(cafile, []byte(ca), 0600))
+
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(c *consul.Config) {
+		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
+		c.TLSConfig.GRPC.CAFile = cafile
+		c.DataDir = dir
+	})
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	externalAddresses := []string{"32.1.2.3:8502"}
+	// happy path
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
+	resp, err := client.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	token := &structs.PeeringToken{}
+	require.NoError(t, json.Unmarshal(tokenJSON, token))
+	require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
+	require.Equal(t, externalAddresses, token.ManualServerAddresses)
+	require.Equal(t, []string{s.PublicGRPCAddr}, token.ServerAddresses)
+
+	// The roots utilized should be the ConnectCA roots and not the ones manually configured.
+	_, roots, err := s.Server.FSM().State().CARoots(nil)
+	require.NoError(t, err)
+	require.Equal(t, []string{roots.Active().RootCert}, token.CA)
 }
 
 func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
@@ -475,7 +515,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		require.Error(t, err)
 		testutil.RequireErrorContains(t, err, "connection refused")
 
-		require.Greater(t, time.Since(start), 5*time.Second)
+		require.Greater(t, time.Since(start), 3*time.Second)
 	})
 
 	testutil.RunStep(t, "peering can be established from token", func(t *testing.T) {
@@ -489,7 +529,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		// Capture peering token for re-use later
 		peeringToken = tokenResp.PeeringToken
 
-		// The context timeout is short, it checks that we do not wait the 350ms that we do when peering through mesh gateways
+		// The context timeout is short, it checks that we do not wait the 1s that we do when peering through mesh gateways
 		ctx, cancel = context.WithTimeout(context.Background(), 300*time.Millisecond)
 		t.Cleanup(cancel)
 
@@ -546,7 +586,7 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 			},
 		}))
 
-		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), 6*time.Second)
 		t.Cleanup(cancel)
 
 		// Call to establish should succeed when we fall back to remote server address.
@@ -591,7 +631,8 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 			},
 		}))
 
-		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		// Context is 1s sleep + 3s retry loop. Any longer and we're trying the remote gateway
+		ctx, cancel = context.WithTimeout(context.Background(), 4*time.Second)
 		t.Cleanup(cancel)
 
 		start := time.Now()
@@ -603,8 +644,8 @@ func TestPeeringService_Establish_ThroughMeshGateway(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Dialing through a gateway is preceded by a mandatory 350ms sleep.
-		require.Greater(t, time.Since(start), 350*time.Millisecond)
+		// Dialing through a gateway is preceded by a mandatory 1s sleep.
+		require.Greater(t, time.Since(start), 1*time.Second)
 
 		// target.called is true when the tcproxy's conn handler was invoked.
 		// This lets us know that the "Establish" success flowed through the proxy masquerading as a gateway.
@@ -826,21 +867,26 @@ func TestPeeringService_Delete(t *testing.T) {
 			// TODO(peering): see note on newTestServer, refactor to not use this
 			s := newTestServer(t, nil)
 
-			// A pointer is kept for the following peering so that we can modify the object without another PeeringWrite.
-			p := &pbpeering.Peering{
-				ID:                  testUUID(t),
-				Name:                "foo",
-				PeerCAPems:          nil,
-				PeerServerName:      "test",
-				PeerServerAddresses: []string{"addr1"},
-			}
-			err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
+			id := testUUID(t)
+
+			// Write an initial peering
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+			}}))
+
+			_, p, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
 			require.NoError(t, err)
 			require.Nil(t, p.DeletedAt)
 			require.True(t, p.IsActive())
 
-			// Overwrite the peering state to simulate deleting from a non-initial state.
-			p.State = overrideState
+			require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
+				ID:   id,
+				Name: "foo",
+
+				// Update the peering state to simulate deleting from a non-initial state.
+				State: overrideState,
+			}}))
 
 			client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
@@ -1546,9 +1592,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, nil)
+	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler())
 
-	server, err := consul.NewServer(conf, deps, externalGRPCServer)
+	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())
@@ -1563,8 +1609,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 
 	ln, err := net.Listen("tcp", grpcAddr)
 	require.NoError(t, err)
-
-	ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+	ln = agentmiddleware.LabelledListener{Listener: ln, Protocol: agentmiddleware.ProtocolTLS}
 
 	go func() {
 		_ = externalGRPCServer.Serve(ln)
@@ -1589,6 +1634,7 @@ func (s testingServer) ClientConn(t *testing.T) *gogrpc.ClientConn {
 
 	conn, err := gogrpc.DialContext(ctx, rpcAddr,
 		gogrpc.WithContextDialer(newServerDialer(rpcAddr)),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)

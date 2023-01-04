@@ -58,7 +58,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start a Subscribe call to our streaming endpoint from the client.
@@ -301,7 +301,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start background writer
@@ -326,7 +326,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 				return
 			}
 			var out struct{}
-			require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+			require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 			req.Service.Port++
 			if req.Service.Port > 100 {
 				return
@@ -444,13 +444,17 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 			if err != nil {
 				return err
 			}
-			if expectPort != svc.Port {
+			switch svc.Port {
+			case expectPort:
+				atomic.AddUint64(updateCount, 1)
+				logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
+				expectPort++
+			case expectPort - 1:
+				logger.Logf("subscriber %05d: got event with repeated prior port=%d at index %d", i, expectPort-1, event.Index)
+			default:
 				return fmt.Errorf("subscriber %05d: at index %d: expected port %d, got %d",
 					i, event.Index, expectPort, svc.Port)
 			}
-			atomic.AddUint64(updateCount, 1)
-			logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
-			expectPort++
 		default:
 			// snapshot events
 			svc, err := svcOrErr(event)

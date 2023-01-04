@@ -9,6 +9,8 @@ import (
 
 	gogrpc "google.golang.org/grpc"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPeeringBackend_ForwardToLeader(t *testing.T) {
@@ -58,6 +59,7 @@ func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 	// Dial server2 directly
 	conn, err := gogrpc.DialContext(ctx, server2.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(server2.config.RPCAddr.String())),
+		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
@@ -196,7 +198,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 
 	type expectation struct {
 		addrs        []string
-		haveGateways bool
+		gatewayAddrs []string
 		err          string
 	}
 
@@ -212,13 +214,24 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			tc.setup(srv.fsm.State())
 		}
 
-		ring, haveGateways, err := backend.GetDialAddresses(testutil.Logger(t), nil, tc.peerID)
+		ring, gatewayRing, err := backend.GetDialAddresses(testutil.Logger(t), nil, tc.peerID)
 		if tc.expect.err != "" {
 			testutil.RequireErrorContains(t, err, tc.expect.err)
 			return
 		}
-		require.Equal(t, tc.expect.haveGateways, haveGateways)
+		require.Equal(t, len(tc.expect.gatewayAddrs) > 0, gatewayRing != nil)
 		require.NotNil(t, ring)
+
+		if len(tc.expect.gatewayAddrs) > 0 {
+			var addrs []string
+			gatewayRing.Do(func(value any) {
+				addr, ok := value.(string)
+
+				require.True(t, ok)
+				addrs = append(addrs, addr)
+			})
+			require.Equal(t, tc.expect.gatewayAddrs, addrs)
+		}
 
 		var addrs []string
 		ring.Do(func(value any) {
@@ -259,6 +272,24 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 		},
 		{
+			name: "manual server addrs are returned when defined",
+			setup: func(store *state.Store) {
+				require.NoError(t, store.PeeringWrite(2, &pbpeering.PeeringWriteRequest{
+					Peering: &pbpeering.Peering{
+						Name:                  "dialer",
+						ID:                    dialerPeerID,
+						ManualServerAddresses: []string{"5.6.7.8:8502"},
+						PeerServerAddresses:   []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+					},
+				}))
+				// Mesh config entry does not exist
+			},
+			peerID: dialerPeerID,
+			expect: expectation{
+				addrs: []string{"5.6.7.8:8502"},
+			},
+		},
+		{
 			name: "only server addrs are returned when mesh config does not exist",
 			setup: func(store *state.Store) {
 				require.NoError(t, store.PeeringWrite(2, &pbpeering.PeeringWriteRequest{
@@ -273,8 +304,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-				addrs:        []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
 		},
 		{
@@ -288,8 +318,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-				addrs:        []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
 		},
 		{
@@ -305,8 +334,6 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: false,
-
 				// Fall back to remote server addresses
 				addrs: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
 			},
@@ -351,10 +378,9 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				haveGateways: true,
-
 				// Gateways come first, and we use their LAN addresses since this is for outbound communication.
-				addrs: []string{"6.7.8.9:8443", "5.6.7.8:8443", "1.2.3.4:8502", "2.3.4.5:8503"},
+				addrs:        []string{"5.6.7.8:8443", "6.7.8.9:8443", "1.2.3.4:8502", "2.3.4.5:8503"},
+				gatewayAddrs: []string{"5.6.7.8:8443", "6.7.8.9:8443"},
 			},
 		},
 		{
@@ -459,6 +485,7 @@ func TestPeerStreamService_ForwardToLeader(t *testing.T) {
 		// We will dial server2 which should forward to server1
 		conn, err := gogrpc.DialContext(ctx, server2.config.RPCAddr.String(),
 			gogrpc.WithContextDialer(newServerDialer(server2.config.RPCAddr.String())),
+			//nolint:staticcheck
 			gogrpc.WithInsecure(),
 			gogrpc.WithBlock())
 		require.NoError(t, err)

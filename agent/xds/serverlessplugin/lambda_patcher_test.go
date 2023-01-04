@@ -1,12 +1,11 @@
 package serverlessplugin
 
 import (
-	"strconv"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -14,7 +13,6 @@ func TestMakeLambdaPatcher(t *testing.T) {
 	kind := api.ServiceKindTerminatingGateway
 	cases := []struct {
 		name               string
-		enabled            bool
 		arn                string
 		payloadPassthrough bool
 		region             string
@@ -22,37 +20,29 @@ func TestMakeLambdaPatcher(t *testing.T) {
 		ok                 bool
 	}{
 		{
-			name: "no meta",
-			ok:   true,
+			name: "no extension",
+			ok:   false,
 		},
 		{
-			name:    "lambda disabled",
-			enabled: false,
-			ok:      true,
+			name:   "missing arn",
+			region: "blah",
+			ok:     false,
 		},
 		{
-			name:    "missing arn",
-			enabled: true,
-			region:  "blah",
-			ok:      false,
-		},
-		{
-			name:    "missing region",
-			enabled: true,
-			region:  "arn",
-			ok:      false,
+			name: "missing region",
+			arn:  "arn",
+			ok:   false,
 		},
 		{
 			name:               "including payload passthrough",
-			enabled:            true,
 			arn:                "arn",
 			region:             "blah",
 			payloadPassthrough: true,
 			expected: lambdaPatcher{
-				arn:                "arn",
-				payloadPassthrough: true,
-				region:             "blah",
-				kind:               kind,
+				ARN:                "arn",
+				PayloadPassthrough: true,
+				Region:             "blah",
+				Kind:               kind,
 			},
 			ok: true,
 		},
@@ -60,24 +50,22 @@ func TestMakeLambdaPatcher(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := xdscommon.ServiceConfig{
-				Kind: kind,
-				Meta: map[string]string{
-					lambdaEnabledTag: strconv.FormatBool(tc.enabled),
-					lambdaArnTag:     tc.arn,
-					lambdaRegionTag:  tc.region,
+			ext := api.EnvoyExtension{
+				Name: structs.BuiltinAWSLambdaExtension,
+				Arguments: map[string]interface{}{
+					"ARN":                tc.arn,
+					"Region":             tc.region,
+					"PayloadPassthrough": tc.payloadPassthrough,
 				},
 			}
 
-			if tc.payloadPassthrough {
-				config.Meta[lambdaPayloadPassthroughTag] = strconv.FormatBool(tc.payloadPassthrough)
-			}
-
-			patcher, ok := makeLambdaPatcher(config)
+			patcher, ok := makeLambdaPatcher(ext, kind)
 
 			require.Equal(t, tc.ok, ok)
 
-			require.Equal(t, tc.expected, patcher)
+			if tc.ok {
+				require.Equal(t, tc.expected, patcher)
+			}
 		})
 	}
 }
