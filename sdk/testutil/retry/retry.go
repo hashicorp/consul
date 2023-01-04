@@ -37,6 +37,10 @@ type R struct {
 	output []string
 }
 
+func (r *R) Logf(format string, args ...interface{}) {
+	r.log(fmt.Sprintf(format, args...))
+}
+
 func (r *R) Helper() {}
 
 var runFailed = struct{}{}

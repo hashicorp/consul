@@ -1159,7 +1159,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 50 * time.Millisecond
+		c.incomingHeartbeatTimeout = 10 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1204,6 +1204,9 @@ func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "5678", msg.GetRequest().ResponseNonce)
 	})
+	// Add in a sleep to prevent the test from flaking.
+	// The mock client expects certain calls to be made.
+	time.Sleep(50 * time.Millisecond)
 }
 
 // Test that when the client doesn't send a heartbeat in time, the stream is disconnected.
@@ -1305,7 +1308,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 10 * time.Millisecond
+	incomingHeartbeatTimeout := 50 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -1354,7 +1357,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 				return
 			}
 			select {
-			case <-time.After(incomingHeartbeatTimeout / 2):
+			case <-time.After(incomingHeartbeatTimeout / 10): // Going any slower here triggers flakes when running
 			case <-ctx.Done():
 				close(errCh)
 				return
@@ -1593,17 +1596,20 @@ func Test_processResponse_Validation(t *testing.T) {
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 
 	type testCase struct {
-		name    string
-		in      *pbpeerstream.ReplicationMessage_Response
-		expect  *pbpeerstream.ReplicationMessage
-		wantErr bool
+		name       string
+		in         *pbpeerstream.ReplicationMessage_Response
+		expect     *pbpeerstream.ReplicationMessage
+		extraTests func(t *testing.T, s *state.Store)
+		wantErr    bool
 	}
 
 	srv, store := newTestServer(t, nil)
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
-			ID:   peerID,
-			Name: peerName,
+			Name:                  peerName,
+			ID:                    peerID,
+			ManualServerAddresses: []string{"manual"},
+			PeerServerAddresses:   []string{"one", "two"},
 		},
 	}))
 
@@ -1619,6 +1625,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			require.NoError(t, err)
 		}
 		require.Equal(t, tc.expect, reply)
+		if tc.extraTests != nil {
+			tc.extraTests(t, store)
+		}
 	}
 
 	tt := []testCase{
@@ -1725,6 +1734,32 @@ func Test_processResponse_Validation(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "manual server addresses are not overwritten",
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+				Nonce:       "1",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource: makeAnyPB(t, &pbpeering.PeeringServerAddresses{
+					Addresses: []string{"three"},
+				}),
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLPeeringServerAddresses,
+						ResponseNonce: "1",
+					},
+				},
+			},
+			extraTests: func(t *testing.T, s *state.Store) {
+				_, peer, err := s.PeeringReadByID(nil, peerID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"manual"}, peer.ManualServerAddresses)
+				require.Equal(t, []string{"three"}, peer.PeerServerAddresses)
+			},
+			wantErr: false,
 		},
 	}
 	for _, tc := range tt {

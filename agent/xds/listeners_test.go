@@ -230,6 +230,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Config["local_request_timeout_ms"] = 2345
+					ns.Proxy.Config["local_idle_timeout_ms"] = 3456
 				}, nil)
 			},
 		},
@@ -839,6 +840,48 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
 				}, nil)
+			},
+		},
+		{
+			name: "access-logs-defaults",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled: true,
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-json-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:    true,
+						Type:       structs.FileLogSinkType,
+						Path:       "/tmp/accesslog.txt",
+						JSONFormat: "{ \"custom_start_time\": \"%START_TIME%\" }",
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-text-stderr-disablelistenerlogs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.StdErrLogSinkType,
+						TextFormat:          "CUSTOM FORMAT %START_TIME%",
+					}
+				},
+					nil)
 			},
 		},
 	}

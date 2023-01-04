@@ -3,6 +3,8 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -121,6 +123,81 @@ func (c *Cluster) Remove(n libagent.Agent) error {
 	return nil
 }
 
+// StandardUpgrade upgrades a running consul cluster following the steps from
+//
+//	https://developer.hashicorp.com/consul/docs/upgrading#standard-upgrades
+//
+// - takes a snapshot
+// - terminate and rejoin the pod of new version of consul
+func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
+	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}, t, func(r *retry.R) {
+		// NOTE: to suppress flakiness
+		execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
+		require.Equal(r, 0, execCode)
+		require.NoError(r, err)
+	})
+
+	// verify only the leader can take a snapshot
+	snapshotCount := 0
+	for _, agent := range c.Agents {
+		if !agent.IsServer() {
+			continue
+		}
+
+		files, err := ioutil.ReadDir(filepath.Join(agent.DataDir(), "raft", "snapshots"))
+		if err != nil {
+			return err
+		}
+		if len(files) >= 1 {
+			snapshotCount++
+		}
+	}
+	require.Equalf(t, 1, snapshotCount, "only leader agent can have a snapshot file")
+
+	// Upgrade individual agent to the target version in the following order
+	// 1. followers
+	// 2. leader
+	// 3. clients (TODO)
+	leader, err := c.Leader()
+	client := leader.GetClient()
+	require.NoError(t, err)
+	t.Log("Leader name:", leader.GetName())
+
+	followers, err := c.Followers()
+	require.NoError(t, err)
+	t.Log("The number of followers", len(followers))
+
+	for _, agent := range followers {
+		t.Log("Upgrade follower", agent.GetName())
+
+		config := agent.GetConfig()
+		config.Version = targetVersion
+		err = agent.Upgrade(context.Background(), config)
+		if err != nil {
+			return err
+		}
+
+		WaitForMembers(t, client, len(c.Agents))
+		break
+	}
+
+	if len(followers) > 0 {
+		client = followers[0].GetClient()
+	}
+
+	t.Log("Upgrade leader:", leader.GetName())
+	config := leader.GetConfig()
+	config.Version = targetVersion
+	err = leader.Upgrade(context.Background(), config)
+	if err != nil {
+		return err
+	}
+
+	WaitForMembers(t, client, len(c.Agents))
+
+	return nil
+}
+
 // Terminate will attempt to terminate all agents in the cluster and its network. If any agent
 // termination fails, Terminate will abort and return an error.
 func (c *Cluster) Terminate() error {
@@ -213,7 +290,32 @@ func (c *Cluster) Clients() ([]libagent.Agent, error) {
 	return clients, nil
 }
 
-const retryTimeout = 20 * time.Second
+// PeerWithCluster establishes peering with the acceptor cluster
+func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName string, dialingPeerName string) error {
+	node := c.Agents[0]
+	dialingClient := node.GetClient()
+
+	generateReq := api.PeeringGenerateTokenRequest{
+		PeerName: acceptingPeerName,
+	}
+	generateRes, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	if err != nil {
+		return fmt.Errorf("error generate token: %v", err)
+	}
+
+	establishReq := api.PeeringEstablishRequest{
+		PeerName:     dialingPeerName,
+		PeeringToken: generateRes.PeeringToken,
+	}
+	_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})
+	if err != nil {
+		return fmt.Errorf("error establish peering: %v", err)
+	}
+
+	return nil
+}
+
+const retryTimeout = 90 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
 func LongFailer() *retry.Timer {
@@ -250,6 +352,6 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 			}
 		}
 		require.NoError(r, err)
-		require.Equal(r, activeMembers, expectN)
+		require.Equal(r, expectN, activeMembers)
 	})
 }

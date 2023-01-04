@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -219,11 +218,11 @@ func persistTLSCerts(dataDir string, bsCfg *hcp.BootstrapConfig) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(dir, certFileName), []byte(bsCfg.TLSCert), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, certFileName), []byte(bsCfg.TLSCert), 0600); err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(dir, keyFileName), []byte(bsCfg.TLSCertKey), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, keyFileName), []byte(bsCfg.TLSCertKey), 0600); err != nil {
 		return err
 	}
 
@@ -256,7 +255,7 @@ func persistBootstrapConfig(dataDir, cfgJSON string) error {
 	// Persist the important bits we got from bootstrapping. The TLS certs are
 	// already persisted, just need to persist the config we are going to add.
 	name := filepath.Join(dataDir, subDir, configFileName)
-	return ioutil.WriteFile(name, []byte(cfgJSON), 0600)
+	return os.WriteFile(name, []byte(cfgJSON), 0600)
 }
 
 func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool) {
@@ -281,7 +280,7 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 	}
 
 	name := filepath.Join(rc.DataDir, subDir, configFileName)
-	jsonBs, err := ioutil.ReadFile(name)
+	jsonBs, err := os.ReadFile(name)
 	if err != nil {
 		ui.Warn(fmt.Sprintf("failed to read local bootstrap config file, ignoring local files: %s", err))
 		return "", false

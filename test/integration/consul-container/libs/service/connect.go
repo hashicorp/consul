@@ -53,10 +53,14 @@ func (c ConnectContainer) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	var err error
+	if *utils.FollowLog {
+		err := c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
+	} else {
+		err = c.container.Terminate(c.ctx)
 	}
 
 	c.container = nil
@@ -64,7 +68,7 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (Service, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -94,7 +98,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
 			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
 			"--",
-			"--log-level", "trace"},
+			"--log-level", envoyLogLevel},
 		ExposedPorts: []string{
 			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
 			"19000/tcp",                            // Envoy Admin Port
@@ -122,12 +126,14 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		return nil, err
 	}
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return nil, err
+	if *utils.FollowLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: containerName,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: containerName,
-	})
 
 	// Register the termination function the agent so the containers can stop together
 	terminate := func() error {

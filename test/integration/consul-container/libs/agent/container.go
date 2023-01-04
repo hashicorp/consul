@@ -10,7 +10,6 @@ import (
 	"time"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -40,6 +39,7 @@ type consulContainerNode struct {
 	dataDir        string
 	network        string
 	id             int
+	name           string
 	terminateFuncs []func() error
 }
 
@@ -64,7 +64,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
 
-	tmpDirData, err := ioutils.TempDir("", name)
+	tmpDirData, err := os.MkdirTemp("", name)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	tmpCertData, err := ioutils.TempDir("", fmt.Sprintf("%s-certs", name))
+	tmpCertData, err := os.MkdirTemp("", fmt.Sprintf("%s-certs", name))
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,6 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	localIP, err := podContainer.Host(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	mappedPort, err := podContainer.MappedPort(ctx, "8500")
 	if err != nil {
 		return nil, err
@@ -130,14 +125,19 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	if err := consulContainer.StartLogProducer(ctx); err != nil {
+	if *utils.FollowLog {
+		if err := consulContainer.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		consulContainer.FollowOutput(&LogConsumer{
+			Prefix: name,
+		})
+	}
+
+	uri, err := podContainer.Endpoint(ctx, "http")
+	if err != nil {
 		return nil, err
 	}
-	consulContainer.FollowOutput(&LogConsumer{
-		Prefix: name,
-	})
-
-	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
 	apiConfig := api.DefaultConfig()
 	apiConfig.Address = uri
 	apiClient, err := api.NewClient(apiConfig)
@@ -161,6 +161,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		certDir:    tmpCertData,
 		network:    network,
 		id:         index,
+		name:       name,
 	}, nil
 }
 
@@ -198,20 +199,16 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
-func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index int) error {
-	pc, err := readSomeConfigFileFields(config.JSON)
-	if err != nil {
-		return err
-	}
+func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
+	return c.container.Exec(ctx, cmd)
+}
 
-	consulType := "client"
-	if pc.Server {
-		consulType = "server"
-	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
-
-	// Inject new Agent name
-	config.Cmd = append(config.Cmd, "-node", name)
+// Upgrade terminates a running container and create a new one using the provided config.
+// The upgraded node will
+//   - use the same node name and the data dir as the old version node
+func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
+	// Reuse the node name since we assume upgrade on the same node
+	config.Cmd = append(config.Cmd, "-node", c.name)
 
 	file, err := createConfigFile(config.JSON)
 	if err != nil {
@@ -237,27 +234,38 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 	}
 	_, consulReq2 := newContainerRequest(config, opts)
 	consulReq2.Env = c.consulReq.Env // copy license
+	fmt.Printf("Upgraded node %s config:%s\n", c.name, file)
 
-	_ = c.container.StopLogProducer()
-	if err := c.container.Terminate(ctx); err != nil {
-		return err
+	if c.container != nil && *utils.FollowLog {
+		err = c.container.StopLogProducer()
+		time.Sleep(2 * time.Second)
+		if err != nil {
+			fmt.Printf("WARN: error stop log producer: %v", err)
+		}
+	}
+
+	if err = c.container.Terminate(c.ctx); err != nil {
+		return fmt.Errorf("error terminate running container: %v", err)
 	}
 
 	c.consulReq = consulReq2
 
+	time.Sleep(5 * time.Second)
 	container, err := startContainer(ctx, c.consulReq)
+	c.container = container
 	if err != nil {
 		return err
 	}
+	c.ctx = ctx
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return err
+	if *utils.FollowLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: c.name,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: name,
-	})
-
-	c.container = container
 
 	return nil
 }
@@ -266,13 +274,12 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config, index 
 // This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
-
 	// Services might register a termination function that should also fire
 	// when the "agent" is cleaned up
 	for _, f := range c.terminateFuncs {
 		err := f()
 		if err != nil {
-
+			continue
 		}
 	}
 
@@ -280,10 +287,17 @@ func (c *consulContainerNode) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	state, err := c.container.State(context.Background())
+	if err == nil && state.Running && *utils.FollowLog {
+		// StopLogProducer can only be called on running containers
+		err = c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
+	} else {
+		if err1 := c.container.Terminate(c.ctx); err == nil {
+			err = err1
+		}
 	}
 
 	c.container = nil
@@ -291,7 +305,13 @@ func (c *consulContainerNode) Terminate() error {
 	return err
 }
 
+func (c *consulContainerNode) DataDir() string {
+	return c.dataDir
+}
+
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	defer cancel()
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
@@ -314,12 +334,14 @@ type containerOpts struct {
 func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
+	httpPort := "8500"
+
 	pod := testcontainers.ContainerRequest{
 		Image:        pauseImage,
 		AutoRemove:   false,
 		Name:         opts.name + "-pod",
 		SkipReaper:   skipReaper,
-		ExposedPorts: []string{"8500/tcp"},
+		ExposedPorts: []string{httpPort + "/tcp"},
 		Hostname:     opts.hostname,
 		Networks:     opts.addtionalNetworks,
 	}
@@ -374,7 +396,7 @@ func readLicense() (string, error) {
 }
 
 func createConfigFile(JSON string) (string, error) {
-	tmpDir, err := ioutils.TempDir("", "consul-container-test-config")
+	tmpDir, err := os.MkdirTemp("", "consul-container-test-config")
 	if err != nil {
 		return "", err
 	}

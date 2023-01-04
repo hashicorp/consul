@@ -23,7 +23,6 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	args *structs.ServiceSpecificRequest,
 	ns *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
@@ -47,8 +46,6 @@ func MergeNodeServiceWithCentralConfig(
 
 	configReq := &structs.ServiceConfigRequest{
 		Name:           serviceName,
-		Datacenter:     args.Datacenter,
-		QueryOptions:   args.QueryOptions,
 		MeshGateway:    ns.Proxy.MeshGateway,
 		Mode:           ns.Proxy.Mode,
 		UpstreamIDs:    upstreams,
@@ -115,6 +112,28 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
 		return nil, err
 	}
+	if err := mergo.Merge(&ns.Proxy.AccessLogs, defaults.AccessLogs); err != nil {
+		return nil, err
+	}
+
+	// defaults.EnvoyExtensions contains the extensions from the proxy defaults config entry followed by extensions from
+	// the service defaults config entry. This adds the extensions to structs.NodeService.Proxy which in turn is copied
+	// into the proxycfg snapshot to ensure the local service's extensions are accessible from the snapshot.
+	//
+	// This will replace any existing extensions in the NodeService but that is ok because defaults.EnvoyExtensions
+	// should have the latest extensions computed from service defaults and proxy defaults.
+	ns.Proxy.EnvoyExtensions = nil
+	if len(defaults.EnvoyExtensions) > 0 {
+		nsExtensions := make([]structs.EnvoyExtension, len(defaults.EnvoyExtensions))
+		for i, ext := range defaults.EnvoyExtensions {
+			nsExtensions[i] = structs.EnvoyExtension{
+				Name:      ext.Name,
+				Required:  ext.Required,
+				Arguments: ext.Arguments,
+			}
+		}
+		ns.Proxy.EnvoyExtensions = nsExtensions
+	}
 
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = defaults.MeshGateway.Mode
@@ -150,7 +169,7 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 	// localUpstreams stores the upstreams seen from the local registration so that we can merge in the synthetic entries.
 	// In transparent proxy mode ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
-	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with those values.
+	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstreams with those values.
 	localUpstreams := make(map[structs.ServiceID]struct{})
 
 	// Merge upstream defaults into the local registration

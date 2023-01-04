@@ -16,7 +16,9 @@ type Agent interface {
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error
-	Upgrade(ctx context.Context, config Config, index int) error
+	Upgrade(ctx context.Context, config Config) error
+	Exec(ctx context.Context, cmd []string) (int, error)
+	DataDir() string
 }
 
 // Config is a set of configurations required to create a Agent

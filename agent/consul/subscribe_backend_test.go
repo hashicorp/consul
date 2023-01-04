@@ -58,7 +58,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start a Subscribe call to our streaming endpoint from the client.
@@ -301,7 +301,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start background writer
@@ -326,7 +326,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 				return
 			}
 			var out struct{}
-			require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+			require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 			req.Service.Port++
 			if req.Service.Port > 100 {
 				return

@@ -1,0 +1,60 @@
+---
+layout: docs
+page_title: Consul API Gateway Error Messages
+description: >-
+  Learn how to apply a configured Consul API Gateway to your Kubernetes cluster, review the required fields for rerouting HTTP requests, and troubleshoot an error message.
+---
+
+# Error Messages
+
+This topic provides information about potential error messages associated with Consul API Gateway. If you receive an error message that does not appear in this section, refer to the following resources:
+
+- [Common Consul errors](/docs/troubleshoot/common-errors#common-errors-on-kubernetes)
+- [Consul troubleshooting guide](/docs/troubleshoot/common-errors)
+- [Consul Discuss forum](https://discuss.hashicorp.com/)
+
+<!---
+***************************************************************************
+Use markdown's Reference-Style links when including hyperlinks. This makes it easier to read the content im markdown.
+
+Each common error should have its own section on this page. Each section
+should start with a heading line that is a short description of the error or
+the text of the error.
+
+Two examples:
+    ### Failed opening file during installation
+    ### Message: "Can't connect to repository" when running Helm chart
+
+******** Template for new Error Messages ********
+ Copy and paste the following 13 lines when adding a new error message to this page.
+
+### Title for this error
+
+```
+Replace with text of example error message
+```
+**Conditions:**
+REPLACE THIS with description of when and why the error is typically seen
+
+**Impact:**
+REPLACE THIS with description of most likely impact of the event that caused this error to occur
+
+**Resolution:**
+REPLACE THIS with the actions the user should take to try to correct the situation
+
+***************************************************************************
+--->
+
+## Helm installation failed: "no matches for kind"
+
+```log
+Error: INSTALLATION FAILED: unable to build kubernetes objects from release manifest: [unable to recognize "": no matches for kind "GatewayClass" in version "gateway.networking.k8s.io/v1alpha2", unable to recognize "": no matches for kind "GatewayClassConfig" in version "api-gateway.consul.hashicorp.com/v1alpha1"]
+```
+**Conditions:**
+Consul API Gateway generates this error when the required CRD files have not been installed in Kubernetes prior to installing Consul API Gateway.
+
+**Impact:**
+The installation process typically fails after this error message is generated.
+
+**Resolution:**
+Install the required CRDs. Refer to the [Consul API Gateway installation instructions](/docs/api-gateway/install#installation) for instructions.

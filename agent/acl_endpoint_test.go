@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1905,7 +1906,7 @@ func TestACL_Authorize(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	var policy structs.ACLPolicy
-	require.NoError(t, a1.RPC("ACL.PolicySet", &policyReq, &policy))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.PolicySet", &policyReq, &policy))
 
 	tokenReq := structs.ACLTokenSetRequest{
 		ACLToken: structs.ACLToken{
@@ -1920,7 +1921,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var token structs.ACLToken
-	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.TokenSet", &tokenReq, &token))
 
 	// secondary also needs to setup a replication token to pull tokens and policies
 	secondaryParams := DefaultTestACLConfigParams()
@@ -1953,7 +1954,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var localToken structs.ACLToken
-	require.NoError(t, a2.RPC("ACL.TokenSet", &localTokenReq, &localToken))
+	require.NoError(t, a2.RPC(context.Background(), "ACL.TokenSet", &localTokenReq, &localToken))
 
 	t.Run("initial-management-token", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
@@ -2367,7 +2368,7 @@ func TestACL_Authorize(t *testing.T) {
 	})
 }
 
-type rpcFn func(string, interface{}, interface{}) error
+type rpcFn func(context.Context, string, interface{}, interface{}) error
 
 func upsertTestCustomizedAuthMethod(
 	rpc rpcFn, initialManagementToken string, datacenter string,
@@ -2393,7 +2394,7 @@ func upsertTestCustomizedAuthMethod(
 
 	var out structs.ACLAuthMethod
 
-	err = rpc("ACL.AuthMethodSet", &req, &out)
+	err = rpc(context.Background(), "ACL.AuthMethodSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -2414,7 +2415,7 @@ func upsertTestCustomizedBindingRule(rpc rpcFn, initialManagementToken string, d
 
 	var out structs.ACLBindingRule
 
-	err := rpc("ACL.BindingRuleSet", &req, &out)
+	err := rpc(context.Background(), "ACL.BindingRuleSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}
