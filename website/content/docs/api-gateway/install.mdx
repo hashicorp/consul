@@ -18,7 +18,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 1. Set the version of Consul API Gateway you are installing as an environment variable. The following steps use this environment variable in commands and configurations.
 
   ```shell-session
-  $ export VERSION=0.5.0
+  $ export VERSION=0.5.1
   ```
 
 1. Issue the following command to install the CRDs:
@@ -60,7 +60,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
     ```
 
     ```shell-session
-    $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+    $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.14.3
     ```
 
     </Tab>
@@ -74,7 +74,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
     Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
     ```shell-session
-    $ helm install consul hashicorp/consul --version 1.0.0 --values values.yaml --create-namespace --namespace consul
+    $ helm install consul hashicorp/consul --version 1.0.2 --values values.yaml --create-namespace --namespace consul
     ```
     </Tab>
   </Tabs>
