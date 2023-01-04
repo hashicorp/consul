@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -34,9 +35,19 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 		return nil, aclDisabled
 	}
 
-	args := structs.DCSpecificRequest{
+	args := structs.ACLInitialTokenBootstrapRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
+
+	// Handle optional request body
+	if req.ContentLength > 0 {
+		var bootstrapSecretRequest api.BootstrapRequest
+		if err := lib.DecodeJSON(req.Body, &bootstrapSecretRequest); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		}
+		args.BootstrapSecret = bootstrapSecretRequest.BootstrapSecret
+	}
+
 	var out structs.ACLToken
 	err := s.agent.RPC(req.Context(), "ACL.BootstrapTokens", &args, &out)
 	if err != nil {
