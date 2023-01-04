@@ -10,6 +10,7 @@ syntax = "proto3";
 // compatibility.
 package subscribe;
 
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 import "proto/pbcommon/common.proto";
 import "proto/pbconfigentry/config_entry.proto";
 import "proto/pbservice/node.proto";
@@ -38,7 +39,11 @@ service StateChangeSubscription {
   // stream, for example because the ACL permissions for the token changed, or
   // because the server state was restored from a snapshot.
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-  rpc Subscribe(SubscribeRequest) returns (stream Event) {}
+  rpc Subscribe(SubscribeRequest) returns (stream Event) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 }
 
 // Topic enumerates the supported event topics.

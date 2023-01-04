@@ -28,3 +28,9 @@ As defaults, their data is of lower precedence compared to data stored in proxy 
 
 ## Additional Information:
 - [Config Resolution](config-resolution.md): Summary of the mechanics of how configuration entries are resolved for sidecar proxies.
+
+## Lifecycle
+
+The diagram below shows the lifecycle of a configuration entry along with the locations where the concrete types are stored and common tests. The steps highlighted along these paths are ones that will likely require code or test updates when modifying a config entry or adding a new config entry kind.
+
+![Life of a Config Entry](./life-of-a-config-entry.png)

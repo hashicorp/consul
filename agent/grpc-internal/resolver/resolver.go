@@ -271,21 +271,7 @@ func (r *serverResolver) updateAddrs(addrs []resolver.Address) {
 // updateAddrsLocked updates this serverResolver's ClientConn to use the given
 // set of addrs. addrLock must be held by caller.
 func (r *serverResolver) updateAddrsLocked(addrs []resolver.Address) {
-	// Only pass the first address initially, which will cause the
-	// balancer to spin down the connection for its previous first address
-	// if it is different. If we don't do this, it will keep using the old
-	// first address as long as it is still in the list, making it impossible to
-	// rebalance until that address is removed.
-	var firstAddr []resolver.Address
-	if len(addrs) > 0 {
-		firstAddr = []resolver.Address{addrs[0]}
-	}
-	r.clientConn.UpdateState(resolver.State{Addresses: firstAddr})
-
-	// Call UpdateState again with the entire list of addrs in case we need them
-	// for failover.
 	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
-
 	r.addrs = addrs
 }
 

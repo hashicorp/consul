@@ -37,6 +37,8 @@ func ComputeResolvedServiceConfig(
 		thisReply.TransparentProxy = proxyConf.TransparentProxy
 		thisReply.MeshGateway = proxyConf.MeshGateway
 		thisReply.Expose = proxyConf.Expose
+		thisReply.EnvoyExtensions = proxyConf.EnvoyExtensions
+		thisReply.AccessLogs = proxyConf.AccessLogs
 
 		// Extract the global protocol from proxyConf for upstream configs.
 		rawProtocol := proxyConf.Config["protocol"]
@@ -102,6 +104,9 @@ func ComputeResolvedServiceConfig(
 		}
 
 		thisReply.Meta = serviceConf.Meta
+		// Service defaults' envoy extensions are appended to the proxy defaults extensions so that proxy defaults
+		// extensions are applied first.
+		thisReply.EnvoyExtensions = append(thisReply.EnvoyExtensions, serviceConf.EnvoyExtensions...)
 	}
 
 	// First collect all upstreams into a set of seen upstreams.

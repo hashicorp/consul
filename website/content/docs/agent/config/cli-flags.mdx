@@ -158,7 +158,7 @@ information.
   the name of the network segment the agent belongs to. An agent can only join and
   communicate with other agents within its network segment. Ensure the [join
   operation uses the correct port for this segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
-  Review the [Network Segments documentation](/docs/enterprise/network-segments)
+  Review the [Network Segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)
   for more details. By default, this is an empty string, which is the `<default>`
   network segment.
 
@@ -321,13 +321,9 @@ information.
 
   This can be dynamically defined with a [go-sockaddr] template that is resolved at runtime.
 
-  If Consul is running on the non-default Serf LAN port, the port must
-  be specified in the join address, or configured as the agent's default Serf port
-  using the [`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration option or
-  [`-serf-lan-port`](#_serf_lan_port) command line flag.
+  If Consul is running on a non-default Serf LAN port, you must specify the port number in the address when using the `-retry-join` flag. Alternatively, you can specify the custom port number as the default in the agent's [`ports.serf_lan`](/docs/agent/config/config-files#serf_lan_port) configuration or with the [`-serf-lan-port`](#_serf_lan_port) command line flag when starting the agent.
 
-  If using network segments (Enterprise), see [additional documentation on
-  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  If your network contains network segments, refer to the [network segements documentation](/docs/enterprise/network-segments/create-network-segment) for additional information.
 
   Here are some examples of using `-retry-join`:
 

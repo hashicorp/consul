@@ -40,6 +40,8 @@ func TestCompile(t *testing.T) {
 		"service and subset redirect":                      testcase_ServiceAndSubsetRedirect(),
 		"datacenter redirect":                              testcase_DatacenterRedirect(),
 		"redirect to cluster peer":                         testcase_PeerRedirect(),
+		"redirect to cluster peer http proxy-defaults":     testcase_PeerRedirectProxyDefHTTP(),
+		"redirect to cluster peer http service-defaults":   testcase_PeerRedirectSvcDefHTTP(),
 		"datacenter redirect with mesh gateways":           testcase_DatacenterRedirect_WithMeshGateways(),
 		"service failover":                                 testcase_ServiceFailover(),
 		"service failover through redirect":                testcase_ServiceFailoverThroughRedirect(),
@@ -56,6 +58,7 @@ func TestCompile(t *testing.T) {
 		"loadbalancer splitter and resolver":               testcase_LBSplitterAndResolver(),
 		"loadbalancer resolver":                            testcase_LBResolver(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
+		"extensions":                            testcase_Extensions(),
 		"service meta projection":               testcase_ServiceMetaProjection(),
 		"service meta projection with redirect": testcase_ServiceMetaProjectionWithRedirect(),
 
@@ -1131,6 +1134,102 @@ func testcase_PeerRedirect() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect}
 }
 
+func testcase_PeerRedirectProxyDefHTTP() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"Protocol": "http",
+		},
+	})
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+				Peer:    "cluster-01",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "resolver:other.default.default.external.cluster-01",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.external.cluster-01": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.external.cluster-01",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.external.cluster-01",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
+				Service: "other",
+				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_PeerRedirectSvcDefHTTP() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "main",
+			Protocol: "http",
+		},
+	)
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+				Peer:    "cluster-01",
+			},
+		},
+	)
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "resolver:other.default.default.external.cluster-01",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other.default.default.external.cluster-01": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other.default.default.external.cluster-01",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "other.default.default.external.cluster-01",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"other.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
+				Service: "other",
+				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
 func testcase_DatacenterRedirect_WithMeshGateways() compileTestCase {
 	entries := newEntries()
 	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
@@ -1668,6 +1767,59 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 			}),
 		},
 	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_Extensions() compileTestCase {
+	entries := newEntries()
+	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		EnvoyExtensions: []structs.EnvoyExtension{
+			{
+				Name: "ext1",
+			},
+		},
+	})
+	entries.AddServices(
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "main",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: "ext2",
+				},
+			},
+		},
+	)
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Default:  true,
+		EnvoyExtensions: []structs.EnvoyExtension{
+			{
+				Name: "ext1",
+			},
+			{
+				Name: "ext2",
+			},
+		},
+		StartNode: "resolver:main.default.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, nil),
+		},
+	}
+
 	return compileTestCase{entries: entries, expect: expect}
 }
 

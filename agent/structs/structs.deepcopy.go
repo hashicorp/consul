@@ -67,6 +67,18 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 			cp.ServiceMeta[k2] = v2
 		}
 	}
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
+					cp.EnvoyExtensions[i2].Arguments[k4] = v4
+				}
+			}
+		}
+	}
 	if o.Nodes != nil {
 		cp.Nodes = make(map[string]*DiscoveryGraphNode, len(o.Nodes))
 		for k2, v2 := range o.Nodes {
@@ -94,6 +106,18 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 // DeepCopy generates a deep copy of *ConnectProxyConfig
 func (o *ConnectProxyConfig) DeepCopy() *ConnectProxyConfig {
 	var cp ConnectProxyConfig = *o
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
+					cp.EnvoyExtensions[i2].Arguments[k4] = v4
+				}
+			}
+		}
+	}
 	if o.Config != nil {
 		cp.Config = make(map[string]interface{}, len(o.Config))
 		for k2, v2 := range o.Config {
@@ -540,6 +564,18 @@ func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
 			copy(cp.Destination.Addresses, o.Destination.Addresses)
 		}
 	}
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
+					cp.EnvoyExtensions[i2].Arguments[k4] = v4
+				}
+			}
+		}
+	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
 		for k2, v2 := range o.Meta {
@@ -595,6 +631,18 @@ func (o *ServiceConfigResponse) DeepCopy() *ServiceConfigResponse {
 		cp.Meta = make(map[string]string, len(o.Meta))
 		for k2, v2 := range o.Meta {
 			cp.Meta[k2] = v2
+		}
+	}
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
+					cp.EnvoyExtensions[i2].Arguments[k4] = v4
+				}
+			}
 		}
 	}
 	return &cp
