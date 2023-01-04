@@ -11,11 +11,18 @@ You can create peering connections between two or more independent clusters so t
 
 ## Introduction
 
-Cluster peering is a process that allows Consul clusters to communicate with each other by connecting two [admin partitions](/docs/enterprise/admin-partitions). Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a `default` partition.
+Cluster peering is a process that allows Consul clusters to communicate with each other. The cluster peering process consists of the following steps:
+
+1. Create a peering token in one cluster.
+1. Use the peering token to establish peering with a second cluster.
+1. Export services between clusters.
+1. Create intentions to authorize services for peers.
+
+The `exported-services` configuration entry enables services registered in two different [admin partitions](/docs/enterprise/admin-partitions) running in the same datacenter to communicate. Cluster peering combines an `exported-services` configuration entry with a peering token and a mesh gateway, enabling services to communicate securely with upstreams registered in different datacenters. Although deployments require an Enterprise license to use multiple admin partitions in a single datacenter, cluster peering is not restricted to Enterprise users because every datacenter automatically includes a `default` partition.
 
 You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. The UI does not support exporting services between clusters or authorizing services for peers. If you use the HTTP API, refer to the [`/peering` endpoint reference](/consul/api-docs/peering). If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
 
-For specific cluster peering configuration and usage information, refer to the following topics:
+You can find specific cluster peering configuration and usage information in the following topics:
 
 - To review configuration requirements for gateways, sidecars, exported services, and ACLs, refer to [Cluster peering configuration](/docs/consul/cluster-peering/configuration).
 - To create new cluster peering connections, refer to [Establish cluster peering connections](/docs/connect/cluster-peering/create-manage-peering).
@@ -25,9 +32,9 @@ For specific cluster peering configuration and usage information, refer to the f
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws).
 
-## Differences between WAN federation and cluster peering
+## Cluster Peering and WAN Federation Differences
 
-WAN federation and cluster peering are different ways to connect Consul deployments through mesh gateways. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
+WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
 WAN federation and cluster peering also treat encrypted traffic differently. While mesh gateways between WAN federated datacenters use mTLS to keep data encrypted, mesh gateways between peers terminate mTLS sessions, decrypt data to HTTP services, and then re-encrypt traffic to send to services. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
 
