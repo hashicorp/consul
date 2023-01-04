@@ -3,7 +3,6 @@ package upgrade
 import (
 	"context"
 	"fmt"
-	// "sync"
 	"testing"
 	"time"
 
