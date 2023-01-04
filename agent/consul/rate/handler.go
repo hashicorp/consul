@@ -109,6 +109,7 @@ type RequestLimitsHandler interface {
 	Run(ctx context.Context)
 	Allow(op Operation) error
 	UpdateConfig(cfg HandlerConfig)
+	Register(leaderStatusProvider LeaderStatusProvider)
 }
 
 // Handler enforces rate limits for incoming RPCs.
@@ -310,3 +311,5 @@ func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
 func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
+
+func (nullRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {}

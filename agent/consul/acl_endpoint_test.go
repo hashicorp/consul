@@ -38,7 +38,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	waitForLeaderEstablishment(t, srv)
 
 	// Expect an error initially since ACL bootstrap is not initialized.
-	arg := structs.DCSpecificRequest{
+	arg := structs.ACLInitialTokenBootstrapRequest{
 		Datacenter: "dc1",
 	}
 	var out structs.ACLToken
@@ -70,6 +70,53 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
+}
+
+func TestACLEndpoint_ProvidedBootstrapTokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
+		// remove this as we are bootstrapping
+		c.ACLInitialManagementToken = ""
+	}, false)
+	waitForLeaderEstablishment(t, srv)
+
+	// Expect an error initially since ACL bootstrap is not initialized.
+	arg := structs.ACLInitialTokenBootstrapRequest{
+		Datacenter:      "dc1",
+		BootstrapSecret: "2b778dd9-f5f1-6f29-b4b4-9a5fa948757a",
+	}
+	var out structs.ACLToken
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
+	require.Equal(t, out.SecretID, arg.BootstrapSecret)
+	require.Equal(t, 36, len(out.AccessorID))
+	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
+	require.True(t, out.CreateIndex > 0)
+	require.Equal(t, out.CreateIndex, out.ModifyIndex)
+}
+
+func TestACLEndpoint_ProvidedBootstrapTokensInvalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
+		// remove this as we are bootstrapping
+		c.ACLInitialManagementToken = ""
+	}, false)
+	waitForLeaderEstablishment(t, srv)
+
+	// Expect an error initially since ACL bootstrap is not initialized.
+	arg := structs.ACLInitialTokenBootstrapRequest{
+		Datacenter:      "dc1",
+		BootstrapSecret: "abc",
+	}
+	var out structs.ACLToken
+	require.EqualError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out), "uuid string is wrong length")
 }
 
 func TestACLEndpoint_ReplicationStatus(t *testing.T) {
