@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestResolvedServiceConfig(t *testing.T) {
@@ -18,15 +19,15 @@ func TestResolvedServiceConfig(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.ServiceConfigResponse
-	rpc.On("RPC", "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.ServiceConfigRequest)
+			req := args.Get(2).(*structs.ServiceConfigRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal(t, "foo", req.Name)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.ServiceConfigResponse)
+			reply := args.Get(3).(*structs.ServiceConfigResponse)
 			reply.ProxyConfig = map[string]interface{}{
 				"protocol": "http",
 			}
