@@ -11,18 +11,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/accesslogs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-version"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -115,9 +117,7 @@ func (c *cmd) init() {
 			"$PATH. Ignored if -bootstrap is used.")
 
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
-		fmt.Sprintf("The path to write the access log for the administration server. If no access "+
-			"log is desired specify %q. By default it will use %q.",
-			DefaultAdminAccessLogPath, DefaultAdminAccessLogPath))
+		"DEPRECATED: use proxy-defaults.accessLogs to set Envoy access logs.")
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
@@ -442,6 +442,11 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	if c.adminAccessLogPath != DefaultAdminAccessLogPath {
+		c.UI.Warn("-admin-access-log-path is deprecated and will be removed in a future version of Consul. " +
+			"Configure access logging with proxy-defaults.accessLogs.")
+	}
+
 	// Generate config
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
@@ -673,6 +678,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		args.Datacenter = datacenter
 	}
 
+	if err := generateAccessLogs(c, args); err != nil {
+		return nil, err
+	}
+
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {
 		lanAddr := c.lanAddress.String()
@@ -692,6 +701,58 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	return bsCfg.GenerateJSON(args, c.omitDeprecatedTags)
+}
+
+// generateAccessLogs checks if there is any access log customization from proxy-defaults.
+// If available, access log parameters are marshaled to JSON and added to the bootstrap template args.
+func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
+	configEntry, _, err := c.client.ConfigEntries().Get(api.ProxyDefaults, api.ProxyConfigGlobal, &api.QueryOptions{}) // Always assume the default partition
+
+	// We don't necessarily want to fail here if there isn't a proxy-defaults defined or if there
+	// is a server error.
+	var statusE api.StatusError
+	if err != nil && !errors.As(err, &statusE) {
+		return fmt.Errorf("failed fetch proxy-defaults: %w", err)
+	}
+
+	if configEntry != nil {
+		proxyDefaults, ok := configEntry.(*api.ProxyConfigEntry)
+		if !ok {
+			return fmt.Errorf("config entry %s is not a valid proxy-default", configEntry.GetName())
+		}
+
+		if proxyDefaults.AccessLogs != nil {
+			logConfig := &structs.AccessLogsConfig{
+				Enabled:             proxyDefaults.AccessLogs.Enabled,
+				DisableListenerLogs: false,
+				Type:                structs.LogSinkType(proxyDefaults.AccessLogs.Type),
+				JSONFormat:          proxyDefaults.AccessLogs.JSONFormat,
+				TextFormat:          proxyDefaults.AccessLogs.TextFormat,
+				Path:                proxyDefaults.AccessLogs.Path,
+			}
+			envoyLogs, err := accesslogs.MakeAccessLogs(logConfig, false)
+			if err != nil {
+				return fmt.Errorf("failure generating Envoy access log configuration: %w", err)
+			}
+
+			// Convert individual proto messages to JSON here
+			args.AdminAccessLogConfig = make([]string, 0, len(envoyLogs))
+
+			marshaler := jsonpb.Marshaler{}
+			for _, msg := range envoyLogs {
+				config, err := marshaler.MarshalToString(msg)
+				if err != nil {
+					return fmt.Errorf("could not marshal Envoy access log configuration: %w", err)
+				}
+				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, config)
+			}
+		}
+
+		if proxyDefaults.AccessLogs != nil && c.adminAccessLogPath != DefaultAdminAccessLogPath {
+			c.UI.Warn("-admin-access-log-path and proxy-defaults.accessLogs both specify Envoy access log configuration. Ignoring the deprecated -admin-access-log-path flag.")
+		}
+	}
+	return nil
 }
 
 // TODO: make method a function
