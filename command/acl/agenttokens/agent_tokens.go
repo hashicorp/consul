@@ -130,12 +130,12 @@ Usage: consul acl set-agent-token [options] TYPE TOKEN
                               operations. This token will need to be configured with read access
                               to whatever data is being replicated.
 
-    config_file_registration  This is the token that the agent will use to register services
-                              defined in local config files. This token will need to be configured
-                              with service:write permissions for the services being registered. If
-                              not set, the default token token will be used. If a service
-                              definition contains a 'token' field, then that token will be used to
-                              to register that service instead.
+    config_file_registration  This is the token that the agent uses to register services and checks
+                              defined in config files. This token needs to be configured with
+                              permission for the service or checks being registered. If not set,
+                              the default token is used. If a service or check definition contains
+							  a 'token' field, then that token is be used to to register that
+							  service or check instead of the config_file_registration token.
 
   Example:
 
