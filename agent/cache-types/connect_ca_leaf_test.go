@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -1093,7 +1094,7 @@ type testGatedRootsRPC struct {
 	ValueCh chan structs.IndexedCARoots
 }
 
-func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface{}) error {
+func (r *testGatedRootsRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	if method != "ConnectCA.Roots" {
 		return fmt.Errorf("invalid RPC method: %s", method)
 	}

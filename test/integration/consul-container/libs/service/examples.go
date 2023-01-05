@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -15,12 +16,12 @@ import (
 
 // exampleContainer
 type exampleContainer struct {
-	ctx       context.Context
-	container testcontainers.Container
-	ip        string
-	httpPort  int
-	grpcPort  int
-	req       testcontainers.ContainerRequest
+	ctx         context.Context
+	container   testcontainers.Container
+	ip          string
+	httpPort    int
+	grpcPort    int
+	serviceName string
 }
 
 func (g exampleContainer) GetName() string {
@@ -49,15 +50,41 @@ func (c exampleContainer) Terminate() error {
 		return nil
 	}
 
-	err := c.container.StopLogProducer()
-
-	if err1 := c.container.Terminate(c.ctx); err == nil {
-		err = err1
+	var err error
+	if *utils.FollowLog {
+		err = c.container.StopLogProducer()
+		if err1 := c.container.Terminate(c.ctx); err1 == nil {
+			err = err1
+		}
+	} else {
+		err = c.container.Terminate(c.ctx)
 	}
 
 	c.container = nil
 
 	return err
+}
+
+func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
+	config := &api.ExportedServicesConfigEntry{
+		Name: partition,
+		Services: []api.ExportedService{
+			{
+				Name: g.GetServiceName(),
+				Consumers: []api.ServiceConsumer{
+					// TODO: need to handle the changed field name in 1.13
+					{Peer: peerName},
+				},
+			},
+		},
+	}
+
+	_, _, err := client.ConfigEntries().Set(config, &api.WriteOptions{})
+	return err
+}
+
+func (g exampleContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libnode.Agent) (Service, error) {
@@ -97,17 +124,20 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		return nil, err
 	}
 
-	if err := container.StartLogProducer(ctx); err != nil {
-		return nil, err
+	if *utils.FollowLog {
+		if err := container.StartLogProducer(ctx); err != nil {
+			return nil, err
+		}
+		container.FollowOutput(&LogConsumer{
+			Prefix: containerName,
+		})
 	}
-	container.FollowOutput(&LogConsumer{
-		Prefix: containerName,
-	})
 
 	terminate := func() error {
 		return container.Terminate(context.Background())
 	}
 	node.RegisterTermination(terminate)
 
-	return &exampleContainer{container: container, ip: ip, httpPort: mappedHTPPPort.Int(), grpcPort: mappedGRPCPort.Int()}, nil
+	fmt.Printf("Example service exposed http port %d, gRPC port %d\n", mappedHTPPPort.Int(), mappedGRPCPort.Int())
+	return &exampleContainer{container: container, ip: ip, httpPort: mappedHTPPPort.Int(), grpcPort: mappedGRPCPort.Int(), serviceName: name}, nil
 }

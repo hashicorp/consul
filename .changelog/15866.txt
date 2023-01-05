@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Fix issue where the agent cache would incorrectly mark protobuf objects as updated.
+```

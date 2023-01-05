@@ -251,10 +251,16 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if s.serverlessPluginEnabled {
-				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-				if err != nil {
-					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
+			cfgs := xdscommon.GetExtensionConfigurations(cfgSnap)
+			for _, extensions := range cfgs {
+				for _, ext := range extensions {
+					switch ext.EnvoyExtension.Name {
+					case structs.BuiltinAWSLambdaExtension:
+						newResourceMap, err = serverlessplugin.Extend(newResourceMap, ext)
+						if err != nil && ext.EnvoyExtension.Required {
+							return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
+						}
+					}
 				}
 			}
 

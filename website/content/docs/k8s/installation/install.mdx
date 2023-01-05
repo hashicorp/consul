@@ -21,11 +21,15 @@ The Helm chart has no required configuration, so it installs a Consul cluster wi
 
 -> **Security warning**: By default, Helm installs Consul with security configurations disabled so that the out-of-box experience is optimized for new users. We strongly recommend using a properly-secured Kubernetes cluster or making sure that you understand and enable [Consul’s security features](/docs/security) before going into production. Some security features are not supported in the Helm chart and require additional manual configuration.
 
-> For a hands-on experience with Consul as a service mesh for Kubernetes, follow the [Getting Started with Consul service mesh tutorial](/consul/tutorials/kubernetes-features/service-mesh-deploy?utm_source=docs).
+Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
+
+For a hands-on experience with Consul as a service mesh
+for Kubernetes, follow the [Getting Started with Consul service
+mesh](/consul/tutorials/get-started-kubernetes) tutorial.
 
 ## Requirements
 
-Using the Helm Chart requires Helm version 3.2+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
+Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https://helm.sh/docs/intro/install/) to download the latest version.
 
 ## Install Consul
 
@@ -177,10 +181,11 @@ To configure the plugin to be installed, add the following configuration to your
 
 The following table describes the available CNI plugin options:
 
-| Option | Description | Default |
-| ---    | ---         | ---     |
+| Option     | Description | Default       |
+| ---------- | ----------- | ------------- |
 | `cni.enabled` | Boolean value that enables or disables the CNI plugin. If `true`, the plugin is responsible for redirecting traffic in the service mesh. If `false`, redirection is handled by the `connect-inject init` container. | `false` |
 | `cni.logLevel` | String value that specifies the log level for the installer and plugin. You can specify the following values: `info`, `debug`, `error`. | `info` |
+| `cni.namespace` | Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources, for example `kube-system` | namespace used for `consul-k8s` install, for example `consul` |
 | `cni.multus` | Boolean value that enables multus CNI plugin support. If `true`, multus will be enabled. If `false`, Consul CNI will operate as a chained plugin. | `false` |
 | `cni.cniBinDir` | String value that specifies the location on the Kubernetes node where the CNI plugin is installed. | `/opt/cni/bin` |
 | `cni.cniNetDir` | String value that specifies the location on the Kubernetes node for storing the CNI configuration. | `/etc/cni/net.d` |

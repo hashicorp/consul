@@ -14,6 +14,53 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.15.x
+
+#### Removing configuration options
+
+The `connect.enable_serverless_plugin` configuration option was removed. Lambda integration is now enabled by default.
+
+#### Lambda Configuration
+
+Instead of configuring Lambda functions in the `Meta` field of `service-defaults` configuration entries, configure them with the `EnvoyExtensions` field.
+
+Before Consul v1.15:
+
+   <CodeBlockConfig filename="lambda-service-defaults.hcl">
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   Meta = {
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
+   }
+   ```
+
+   </CodeBlockConfig>
+
+In Consul v1.15 and higher:
+
+   <CodeBlockConfig filename="lambda-service-defaults.hcl">
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   EnvoyExtensions = [
+     {
+       "Name": "builtin/aws/lambda",
+       "Arguments": {
+         "Region": "us-east-2",
+         "ARN": "<INSERT ARN HERE>",
+         "PayloadPassthrough": true
+       }
+     }
+   ]
+   ```
+
+   </CodeBlockConfig>
+
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility
@@ -25,7 +72,7 @@ A breaking change was made in Consul 1.14 that:
 [`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
 
 The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and
-earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until 
+earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until
 [hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) is
 fixed.
 

@@ -48,7 +48,7 @@ const (
 // interface that is implemented by the agent delegate for checks that need
 // to make RPC calls.
 type RPC interface {
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 }
 
 // CheckNotifier interface is used by the CheckMonitor

@@ -188,7 +188,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
@@ -213,11 +213,11 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()

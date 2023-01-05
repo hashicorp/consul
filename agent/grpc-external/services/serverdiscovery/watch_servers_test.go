@@ -123,7 +123,7 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 	// 2 times authorization should succeed and the third should fail.
 	resolver := newMockACLResolver(t)
 	resolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
+		Return(testutils.ACLNoPermissions(t), nil).Twice()
 
 	// add the token to the requests context
 	options := structs.QueryOptions{Token: testACLToken}
@@ -192,13 +192,13 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 	prototest.AssertDeepEqual(t, threeServerResponse, rsp)
 }
 
-func TestWatchServers_ACLToken_PermissionDenied(t *testing.T) {
+func TestWatchServers_ACLToken_AnonymousToken(t *testing.T) {
 	// setup the event publisher and snapshot handler
 	_, publisher := setupPublisher(t)
 
 	resolver := newMockACLResolver(t)
 	resolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerDenyAll(t), nil).Once()
+		Return(testutils.ACLAnonymous(t), nil).Once()
 
 	// add the token to the requests context
 	options := structs.QueryOptions{Token: testACLToken}
@@ -222,7 +222,7 @@ func TestWatchServers_ACLToken_PermissionDenied(t *testing.T) {
 
 	// Expect to get an Unauthenticated error immediately.
 	err = mustGetError(t, rspCh)
-	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.Equal(t, codes.Unauthenticated.String(), status.Code(err).String())
 }
 
 func TestWatchServers_ACLToken_Unauthenticated(t *testing.T) {

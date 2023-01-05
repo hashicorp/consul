@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -29,10 +28,14 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -140,6 +143,8 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+const requestLimitsBurstMultiplier = 10
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -275,6 +280,9 @@ type Server struct {
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
 
+	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
+	incomingRPCLimiter rpcRate.RequestLimitsHandler
+
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
 	// to request client certificates. At this point a client doesn't have
@@ -390,6 +398,7 @@ type Server struct {
 	EnterpriseServer
 	operatorServer *operator.Server
 }
+
 type connHandler interface {
 	Run() error
 	Handle(conn net.Conn)
@@ -398,7 +407,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -419,7 +428,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
 	fsmDeps := fsm.Deps{
@@ -428,6 +436,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
 		Publisher: flat.EventPublisher,
+	}
+
+	if incomingRPCLimiter == nil {
+		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
 
 	// Create server.
@@ -454,7 +466,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
+		incomingRPCLimiter:      incomingRPCLimiter,
 	}
+
+	incomingRPCLimiter.Register(s)
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
@@ -472,15 +487,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	if flat.GetNetRPCInterceptorFunc == nil {
-		s.rpcServer = rpc.NewServer()
-		s.insecureRPCServer = rpc.NewServer()
-	} else {
-		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	rpcServerOpts := []func(*rpc.Server){
+		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter)),
 	}
 
+	if flat.GetNetRPCInterceptorFunc != nil {
+		rpcServerOpts = append(rpcServerOpts, rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcServer = rpc.NewServerWithOpts(rpcServerOpts...)
+	s.insecureRPCServer = rpc.NewServerWithOpts(rpcServerOpts...)
+
 	s.rpcRecorder = recorder
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -862,7 +881,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.externalConnectCAServer.Register(srv)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -1472,10 +1491,11 @@ func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
-	method string
-	args   interface{}
-	reply  interface{}
-	err    error
+	method     string
+	args       interface{}
+	reply      interface{}
+	err        error
+	sourceAddr net.Addr
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1501,16 +1521,22 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 	return nil
 }
 
+func (i *inmemCodec) SourceAddr() net.Addr {
+	return i.sourceAddr
+}
+
 func (i *inmemCodec) Close() error {
 	return nil
 }
 
 // RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
+		method:     method,
+		args:       args,
+		reply:      reply,
+		sourceAddr: remoteAddr,
 	}
 
 	// Enforce the RPC limit.
@@ -1665,6 +1691,11 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	}
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+
+	if config.RequestLimits != nil {
+		s.incomingRPCLimiter.UpdateConfig(*convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+	}
+
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
@@ -1813,6 +1844,43 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 
 		return status, nil
 	}
+}
+
+func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+	limitsConfig := &RequestLimits{
+		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
+		ReadRate:  consulCfg.RequestLimitsReadRate,
+		WriteRate: consulCfg.RequestLimitsWriteRate,
+	}
+
+	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
+
+	incomingRPCLimiter := rpcRate.NewHandler(
+		*rateLimiterConfig,
+		serverLogger.Named("rpc-rate-limit"),
+	)
+
+	return incomingRPCLimiter
+}
+
+func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	hc := &rpcRate.HandlerConfig{
+		GlobalMode: limitsConfig.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.ReadRate,
+			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.WriteRate,
+			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	}
+	if multilimiterConfig != nil {
+		hc.Config = *multilimiterConfig
+	}
+
+	return hc
 }
 
 // peersInfoContent is used to help operators understand what happened to the
