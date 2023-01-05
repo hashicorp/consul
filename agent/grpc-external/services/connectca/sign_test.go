@@ -33,7 +33,7 @@ func TestSign_ConnectDisabled(t *testing.T) {
 func TestSign_Validation(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	server := NewServer(Config{
 		Logger:         hclog.NewNullLogger(),
@@ -90,7 +90,7 @@ func TestSign_Unauthenticated(t *testing.T) {
 func TestSign_PermissionDenied(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
@@ -116,7 +116,7 @@ func TestSign_PermissionDenied(t *testing.T) {
 func TestSign_InvalidCSR(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
@@ -142,7 +142,7 @@ func TestSign_InvalidCSR(t *testing.T) {
 func TestSign_RateLimited(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
@@ -168,7 +168,7 @@ func TestSign_RateLimited(t *testing.T) {
 func TestSign_InternalError(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
@@ -194,7 +194,7 @@ func TestSign_InternalError(t *testing.T) {
 func TestSign_Success(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
@@ -220,7 +220,7 @@ func TestSign_Success(t *testing.T) {
 func TestSign_RPCForwarding(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLAllowAll(t), nil)
+		Return(testutils.ACLsDisabled(t), nil)
 
 	caManager := &MockCAManager{}
 	caManager.On("AuthorizeAndSignCertificate", mock.Anything, mock.Anything).
