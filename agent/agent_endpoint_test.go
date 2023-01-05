@@ -762,7 +762,7 @@ func TestAgent_Checks(t *testing.T) {
 		Timeout:  "5s",
 		Status:   api.HealthPassing,
 	}
-	a.State.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
 	resp := httptest.NewRecorder()
@@ -807,7 +807,7 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 		Name:    "mysql",
 		Status:  api.HealthPassing,
 	}
-	a.State.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "", false)
 
 	chk2 := &structs.HealthCheck{
 		Node:    a.Config.NodeName,
@@ -815,7 +815,7 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 		Name:    "redis",
 		Status:  api.HealthPassing,
 	}
-	a.State.AddCheck(chk2, "")
+	a.State.AddCheck(chk2, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape("Name == `redis`"), nil)
 	resp := httptest.NewRecorder()
@@ -877,7 +877,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql",
 		Status:    api.HealthPassing,
 	}
-	err := a.State.AddCheck(chk1, "")
+	err := a.State.AddCheck(chk1, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -889,7 +889,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql",
 		Status:    api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk2, "")
+	err = a.State.AddCheck(chk2, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -901,7 +901,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql2",
 		Status:    api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk3, "")
+	err = a.State.AddCheck(chk3, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -913,7 +913,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql2",
 		Status:    api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk4, "")
+	err = a.State.AddCheck(chk4, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -925,7 +925,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql3",
 		Status:    api.HealthMaint,
 	}
-	err = a.State.AddCheck(chk5, "")
+	err = a.State.AddCheck(chk5, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -937,7 +937,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql3",
 		Status:    api.HealthCritical,
 	}
-	err = a.State.AddCheck(chk6, "")
+	err = a.State.AddCheck(chk6, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -996,7 +996,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		Name:    "diskCheck",
 		Status:  api.HealthCritical,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -1015,7 +1015,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		Name:    "_node_maintenance",
 		Status:  api.HealthMaint,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1091,7 +1091,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthPassing,
 	}
-	err := a.State.AddCheck(chk1, "")
+	err := a.State.AddCheck(chk1, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1104,7 +1104,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk2, "")
+	err = a.State.AddCheck(chk2, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1117,7 +1117,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk3, "")
+	err = a.State.AddCheck(chk3, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1130,7 +1130,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthCritical,
 	}
-	err = a.State.AddCheck(chk4, "")
+	err = a.State.AddCheck(chk4, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1143,7 +1143,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-rw",
 		Status:      api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk5, "")
+	err = a.State.AddCheck(chk5, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1156,7 +1156,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-rw",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk6, "")
+	err = a.State.AddCheck(chk6, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1169,7 +1169,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "httpd",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk7, "")
+	err = a.State.AddCheck(chk7, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1182,7 +1182,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "httpd",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk8, "")
+	err = a.State.AddCheck(chk8, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1248,7 +1248,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		Name:    "diskCheck",
 		Status:  api.HealthCritical,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -1267,7 +1267,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		Name:    "_node_maintenance",
 		Status:  api.HealthMaint,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1366,7 +1366,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, c := range checks {
-		a.State.AddCheck(c, "")
+		a.State.AddCheck(c, "", false)
 	}
 
 	t.Run("no token", func(t *testing.T) {
