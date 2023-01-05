@@ -80,7 +80,7 @@ type ServiceState struct {
 	// but has not been removed on the server yet.
 	Deleted bool
 
-	// IsLocallyDefined indicates whether the service as defined locally in config
+	// IsLocallyDefined indicates whether the service was defined locally in config
 	// as opposed to being registered through the Agent API.
 	IsLocallyDefined bool
 
@@ -129,7 +129,7 @@ type CheckState struct {
 	// deleted but has not been removed on the server yet.
 	Deleted bool
 
-	// IsLocallyDefined indicates whether the service as defined locally in config
+	// IsLocallyDefined indicates whether the check was defined locally in config
 	// as opposed to being registered through the Agent API.
 	IsLocallyDefined bool
 }
@@ -1382,12 +1382,12 @@ func (l *State) pruneCheck(id structs.CheckID) {
 	delete(l.checks, id)
 }
 
-// RegistrationTokenFallback returns a fallback function to be used when
+// serviceRegistrationTokenFallback returns a fallback function to be used when
 // determining the token to use for service sync.
 //
 // The fallback function will return the config file registration token if the
 // given service was sourced from a service definition in a config file.
-func (l *State) RegistrationTokenFallback(key structs.ServiceID) func() string {
+func (l *State) serviceRegistrationTokenFallback(key structs.ServiceID) func() string {
 	return func() string {
 		if s := l.services[key]; s != nil && s.IsLocallyDefined {
 			return l.tokens.ConfigFileRegistrationToken()
@@ -1396,7 +1396,7 @@ func (l *State) RegistrationTokenFallback(key structs.ServiceID) func() string {
 	}
 }
 
-func (l *State) CheckRegistrationTokenFallback(key structs.CheckID) func() string {
+func (l *State) checkRegistrationTokenFallback(key structs.CheckID) func() string {
 	return func() string {
 		if s := l.checks[key]; s != nil && s.IsLocallyDefined {
 			return l.tokens.ConfigFileRegistrationToken()
@@ -1407,7 +1407,7 @@ func (l *State) CheckRegistrationTokenFallback(key structs.CheckID) func() strin
 
 // syncService is used to sync a service to the server
 func (l *State) syncService(key structs.ServiceID) error {
-	st := l.aclTokenForServiceSync(key, l.RegistrationTokenFallback(key), l.tokens.UserToken)
+	st := l.aclTokenForServiceSync(key, l.serviceRegistrationTokenFallback(key), l.tokens.UserToken)
 
 	// If the service has associated checks that are out of sync,
 	// piggyback them on the service sync so they are part of the
@@ -1423,7 +1423,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		if !key.Matches(c.Check.CompoundServiceID()) {
 			continue
 		}
-		if st != l.aclTokenForCheckSync(checkKey, l.CheckRegistrationTokenFallback(checkKey), l.tokens.UserToken) {
+		if st != l.aclTokenForCheckSync(checkKey, l.checkRegistrationTokenFallback(checkKey), l.tokens.UserToken) {
 			continue
 		}
 		checks = append(checks, c.Check)
@@ -1489,7 +1489,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(key structs.CheckID) error {
 	c := l.checks[key]
-	ct := l.aclTokenForCheckSync(key, l.CheckRegistrationTokenFallback(key), l.tokens.UserToken)
+	ct := l.aclTokenForCheckSync(key, l.checkRegistrationTokenFallback(key), l.tokens.UserToken)
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
 		ID:              l.config.NodeID,

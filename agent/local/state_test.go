@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -984,6 +987,165 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	tokens := map[string]string{
+		"api": "5ece2854-989a-4e7a-8145-4801c13350d5",
+		"web": "b85e99b7-8d97-45a3-a175-5f33e167177b",
+	}
+
+	// Configure the agent with the config_file_registration token.
+	agentConfig := fmt.Sprintf(`
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+			tokens {
+				initial_management = "root"
+				config_file_registration = "%s"
+			}
+		}
+	`, tokens["api"])
+
+	// We need separate files because we can't put multiple 'service' stanzas in one config string/file.
+	dir := testutil.TempDir(t, "config")
+	apiFile := filepath.Join(dir, "api.hcl")
+	dbFile := filepath.Join(dir, "db.hcl")
+	webFile := filepath.Join(dir, "web.hcl")
+
+	// The "api" service and checks are able to register because the config_file_registration token
+	// has service:write for the "api" service.
+	require.NoError(t, os.WriteFile(apiFile, []byte(`
+		service {
+			name = "api"
+			id = "api"
+
+			check {
+				id = "api inline check"
+				status = "passing"
+				ttl = "99999h"
+			}
+		}
+
+		check {
+			id = "api standalone check"
+			status = "passing"
+			service_id = "api"
+			ttl = "99999h"
+		}
+	`), 0600))
+
+	// The "db" service and check is unable to register because the config_file_registration token
+	// does not have service:write for "db" and there are no inline tokens.
+	require.NoError(t, os.WriteFile(dbFile, []byte(`
+		service {
+			name = "db"
+			id = "db"
+		}
+
+		check {
+			id = "db standalone check"
+			service_id = "db"
+			status = "passing"
+			ttl = "99999h"
+		}
+	`), 0600))
+
+	// The "web" service is able to register because the inline tokens have service:write for "web".
+	// This tests that inline tokens take precedence over the config_file_registration token.
+	require.NoError(t, os.WriteFile(webFile, []byte(fmt.Sprintf(`
+		service {
+			name = "web"
+			id = "web"
+			token = "%[1]s"
+		}
+
+		check {
+			id = "web standalone check"
+			service_id = "web"
+			status = "passing"
+			ttl = "99999h"
+			token = "%[1]s"
+		}
+	`, tokens["web"])), 0600))
+
+	a := agent.NewTestAgentWithConfigFile(t, agentConfig, []string{apiFile, dbFile, webFile})
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Create the tokens referenced in the config files.
+	for svc, secret := range tokens {
+		req := structs.ACLTokenSetRequest{
+			ACLToken: structs.ACLToken{
+				SecretID:          secret,
+				ServiceIdentities: []*structs.ACLServiceIdentity{{ServiceName: svc}},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := a.RPC(context.Background(), "ACL.TokenSet", &req, &structs.ACLToken{}); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// All services are added from files into local state.
+	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: "api"}))
+	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: "db"}))
+	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: "web"}))
+
+	// Sync services with the remote.
+	if err := a.State.SyncFull(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Validate which services were able to register.
+	var services structs.IndexedNodeServices
+	require.NoError(t, a.RPC(
+		context.Background(),
+		"Catalog.NodeServices",
+		&structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         a.Config.NodeName,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		},
+		&services,
+	))
+
+	assert.Len(t, services.NodeServices.Services, 3)
+	assert.Contains(t, services.NodeServices.Services, "api")
+	assert.Contains(t, services.NodeServices.Services, "consul")
+	assert.Contains(t, services.NodeServices.Services, "web")
+	// No token with permission to register the "db" service.
+	assert.NotContains(t, services.NodeServices.Services, "db")
+
+	// Validate which checks were able to register.
+	var checks structs.IndexedHealthChecks
+	require.NoError(t, a.RPC(
+		context.Background(),
+		"Health.NodeChecks",
+		&structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         a.Config.NodeName,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		},
+		&checks,
+	))
+
+	sort.Slice(checks.HealthChecks, func(i, j int) bool {
+		return checks.HealthChecks[i].CheckID < checks.HealthChecks[j].CheckID
+	})
+	assert.Len(t, checks.HealthChecks, 4)
+	assert.Equal(t, checks.HealthChecks[0].CheckID, types.CheckID("api inline check"))
+	assert.Equal(t, checks.HealthChecks[1].CheckID, types.CheckID("api standalone check"))
+	assert.Equal(t, checks.HealthChecks[2].CheckID, types.CheckID("serfHealth"))
+	assert.Equal(t, checks.HealthChecks[3].CheckID, types.CheckID("web standalone check"))
+}
+
 type RPC interface {
 	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 }
@@ -1881,72 +2043,6 @@ func TestState_ServiceTokens(t *testing.T) {
 
 		require.Equal(t, "abc123", l.ServiceToken(id))
 	})
-}
-
-func TestState_registrationTokenFallback(t *testing.T) {
-	id := structs.NewServiceID("redis", nil)
-
-	// When the token is not configured
-	{
-		cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
-		l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
-		l.TriggerSyncChanges = func() {}
-
-		t.Run("defaults to empty string", func(t *testing.T) {
-			fn := l.RegistrationTokenFallback(id)
-			require.Equal(t, "", fn())
-		})
-
-		t.Run("empty string when there is no registration token", func(t *testing.T) {
-			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", true)
-			require.NoError(t, err)
-
-			fn := l.RegistrationTokenFallback(id)
-			require.Equal(t, "", fn())
-		})
-	}
-
-	// When the token is configured
-	{
-		cfg := loadRuntimeConfig(t, `
-			bind_addr = "127.0.0.1"
-			data_dir = "dummy"
-			node_name = "dummy"
-			acl = {
-				enabled = true
-				tokens = {
-					config_file_registration = "token123"
-				}
-			}
-		`)
-		tokens := new(token.Store)
-		err := tokens.Load(cfg.ACLTokens, nil)
-		require.NoError(t, err)
-
-		l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
-		l.TriggerSyncChanges = func() {}
-
-		t.Run("empty string when service not found", func(t *testing.T) {
-			fn := l.RegistrationTokenFallback(id)
-			require.Equal(t, "", fn())
-		})
-
-		t.Run("empty string when the service is not locally defined", func(t *testing.T) {
-			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", false)
-			require.NoError(t, err)
-
-			fn := l.RegistrationTokenFallback(id)
-			require.Equal(t, "", fn())
-		})
-
-		t.Run("returns configured token when service is locally defined", func(t *testing.T) {
-			err := l.AddServiceWithChecks(&structs.NodeService{ID: id.ID}, nil, "", true)
-			require.NoError(t, err)
-
-			fn := l.RegistrationTokenFallback(id)
-			require.Equal(t, "token123", fn())
-		})
-	}
 }
 
 func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
