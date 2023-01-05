@@ -7,7 +7,6 @@ on:
       # Push events on the main branch
       - main
       - release/**
-      - set-product-version
 
 env:
   PKG_NAME: consul
