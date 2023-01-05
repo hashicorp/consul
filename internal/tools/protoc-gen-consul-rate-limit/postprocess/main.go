@@ -23,7 +23,8 @@ import "github.com/hashicorp/consul/agent/consul/rate"
 `
 
 	entTags = `//go:build consulent
-// +build consulent`
+// +build consulent
+`
 )
 
 func main() {

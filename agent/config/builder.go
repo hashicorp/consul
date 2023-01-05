@@ -56,6 +56,10 @@ type LoadOpts struct {
 
 	// ConfigFiles is a slice of paths to config files and directories that will
 	// be loaded.
+	//
+	// It is an error for any config files to have an extension other than `hcl`
+	// or `json`, unless ConfigFormat is also set. However, non-HCL/JSON files in
+	// a config directory are merely skipped, with a warning.
 	ConfigFiles []string
 
 	// ConfigFormat forces all config files to be interpreted as this format
@@ -228,8 +232,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 	if !fi.IsDir() {
 		if !shouldParseFile(path, format) {
-			b.warn("skipping file %v, extension must be .hcl or .json, or config format must be set", path)
-			return nil, nil
+			return nil, fmt.Errorf("file %v has unknown extension; must be .hcl or .json, or config format must be set", path)
 		}
 
 		src, err := newSourceFromFile(path, format)

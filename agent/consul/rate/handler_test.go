@@ -238,7 +238,6 @@ func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 		GlobalWriteConfig: writeCfg,
 		GlobalMode:        ModeEnforcing,
 	}
-
 	logger := hclog.NewNullLogger()
 	NewHandlerWithLimiter(*cfg, mockRateLimiter, logger)
 	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)

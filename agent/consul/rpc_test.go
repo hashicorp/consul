@@ -1163,7 +1163,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	var conn *grpc.ClientConn
 	{
-		client, builder := newClientWithGRPCResolver(t, func(c *Config) {
+		client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.RPCConfig.EnableStreaming = true
@@ -1172,9 +1172,10 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		testrpc.WaitForTestAgent(t, client.RPC, "dc2", testrpc.WithToken("root"))
 
 		pool := agent_grpc.NewClientConnPool(agent_grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			DialingFromServer:     false,
 			DialingFromDatacenter: "dc2",
+			BalancerBuilder:       balancerBuilder,
 		})
 
 		conn, err = pool.ClientConn("dc2")
