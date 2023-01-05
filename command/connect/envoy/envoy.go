@@ -730,6 +730,10 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 	if grpcAddr := strings.TrimPrefix(addr, "unix://"); grpcAddr != addr {
 		// Path to unix socket
 		g.AgentSocket = grpcAddr
+		// Configure unix sockets to encrypt traffic whenever a certificate is explicitly defined.
+		if c.grpcCAFile != "" || c.grpcCAPath != "" {
+			g.AgentTLS = true
+		}
 	} else {
 		// Parse as host:port with option http prefix
 		grpcAddr = strings.TrimPrefix(addr, "http://")
