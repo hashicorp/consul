@@ -91,6 +91,7 @@ function postprocess_protobuf_code {
     fi
 
     local proto_go_path="${proto_path%%.proto}.pb.go"
+    local proto_go_grpc_path="${proto_path%%.proto}_grpc.pb.go"
     local proto_go_bin_path="${proto_path%%.proto}.pb.binary.go"
     local proto_go_rpcglue_path="${proto_path%%.proto}.rpcglue.pb.go"
 
@@ -104,15 +105,14 @@ function postprocess_protobuf_code {
     local build_tags
     build_tags="$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build' || true)"
     if test -n "${build_tags}"; then
-       for file in "${proto_go_bin_path}" "${proto_go_grpc_path}"
-       do
-            if test -f "${file}"
-            then
-                echo -e "${build_tags}\n" >> "${file}.new"
-                cat "${file}" >> "${file}.new"
-                mv "${file}.new" "${file}"
-            fi
-        done
+       local file 
+       file="${proto_go_grpc_path}"
+       if test -f "${file}"
+       then
+           echo -e "${build_tags}\n" >> "${file}.new"
+           cat "${file}" >> "${file}.new"
+           mv "${file}.new" "${file}"
+       fi
     fi
 
     # NOTE: this has to run after we fix up the build tags above
