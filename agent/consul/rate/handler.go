@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"sync/atomic"
 
-	"github.com/hashicorp/go-hclog"
-
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -213,6 +213,21 @@ func (h *Handler) Allow(op Operation) error {
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
+
+		metrics.IncrCounterWithLabels([]string{"consul", "rate_limit"}, 1, []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		})
 
 		if enforced {
 			// TODO(NET-1382) - use the logger to print rate limiter logs.
