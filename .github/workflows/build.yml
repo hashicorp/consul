@@ -109,24 +109,6 @@ jobs:
       consul-version: ${{ needs.set-product-version.outputs.product-version }}
     secrets: inherit
 
-  build-linux:
-    name: Build Consul Linux
-    needs: set-product-version
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [arm, arm64, 386, amd64]
-      fail-fast: true
-    uses: ./.github/workflows/build-consul-oss.yml
-    with:
-      goarch: ${{ matrix.goarch }}
-      goos: ${{ matrix.goos }}
-      go-tags: ui
-      go-version: ${{ needs.set-product-version.outputs.go-version }}
-      package-name: ${{ needs.set-product-version.outputs.package-name }}
-      consul-version: ${{ needs.set-product-version.outputs.product-version }}
-    secrets: inherit
-
   build-darwin:
     needs: set-product-version
     strategy:
