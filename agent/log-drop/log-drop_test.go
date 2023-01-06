@@ -2,17 +2,19 @@ package logdrop
 
 import (
 	"context"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestNewLogDrop(t *testing.T) {
 	mockLogger := NewMockLogger(t)
-	mockLogger.On("Log", hclog.Info, "hello", []interface{}{"test", 0}).Return()
+	mockLogger.On("Log", hclog.Info, "hello", "test", 0).Return()
 	ld := NewLogDropSink(context.Background(), 10, mockLogger, func(_ Log) {})
 	require.NotNil(t, ld)
 	ld.Accept("test Log", hclog.Info, "hello", "test", 0)
@@ -27,7 +29,7 @@ func TestLogDroppedWhenChannelFilled(t *testing.T) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 	block := make(chan interface{})
-	mockLogger.On("Log", hclog.Debug, "hello", []interface{}(nil)).Run(func(args mock.Arguments) {
+	mockLogger.On("Log", hclog.Debug, "hello").Run(func(args mock.Arguments) {
 		<-block
 	})
 

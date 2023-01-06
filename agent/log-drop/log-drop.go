@@ -2,6 +2,7 @@ package logdrop
 
 import (
 	"context"
+
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -42,7 +43,7 @@ func (r *logDropSink) logConsumer(ctx context.Context) {
 	for {
 		select {
 		case l := <-r.logCh:
-			r.logger.Log(l.l, l.s, l.i)
+			r.logger.Log(l.l, l.s, l.i...)
 		case <-ctx.Done():
 			return
 		}
