@@ -22,6 +22,12 @@ MOG_VERSION='v0.3.0'
 ###
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
+###
+# PROTOC_GEN_GO_BINARY_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use whatever is currently installed locally.
+###
+PROTOC_GEN_GO_BINARY_VERSION="v0.0.1"
+
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 GOARCH?=$(shell go env GOARCH)
