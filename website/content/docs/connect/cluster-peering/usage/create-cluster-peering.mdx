@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: Cluster Peering - Create and Manage Connections
+page_title: Establish Cluster Peering Connections
 description: >-
   Generate a peering token to establish communication, export services, and authorize requests for cluster peering connections. Learn how to create, list, read, check, and delete peering connections.
 ---
 
 # Establish Cluster Peering Connections
 
-A peering token enables cluster peering between different datacenters. Once you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and create intentions so that peered clusters can call those services.
+A peering token enables cluster peering between different datacenters. After you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and create intentions so that peered clusters can call those services.
 
 The process to create a peering connection is a sequence with multiple steps:
 
@@ -16,10 +16,20 @@ The process to create a peering connection is a sequence with multiple steps:
 1. Export services between clusters
 1. Authorize services for peers
 
-You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. If you use the API or CLI, we recommend performing these operations through a client agent in the partition you want to connect.
+## Requirements
 
-The UI does not currently support exporting services between clusters or authorizing services for peers.
+You must meet the following requirements to use cluster peering:
 
+- Consul v1.13 or higher
+
+### Mesh gateway requirements
+
+Mesh gateways are required for you to route service mesh traffic between partitions with cluster peering connections. Consider the following requirements when using mesh gateways for cluster peering:
+
+- A cluster requires a registered mesh gateway in order to export services to peers.
+- For Enterprise, this mesh gateway must also be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+- 
 ## Create a peering token
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.

@@ -18,7 +18,7 @@ Cluster peering is a process that allows Consul clusters to communicate with eac
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
 
-The `exported-services` configuration entry enables services registered in two different [admin partitions](/docs/enterprise/admin-partitions) running in the same datacenter to communicate. Cluster peering combines an `exported-services` configuration entry with a peering token and a mesh gateway, enabling services to communicate securely with upstreams registered in different datacenters. Although deployments require an Enterprise license to use multiple admin partitions in a single datacenter, cluster peering is not restricted to Enterprise users because every datacenter automatically includes a `default` partition.
+The `exported-services` configuration entry enables services registered in two different [admin partitions](/docs/enterprise/admin-partitions) running in the same datacenter to communicate. Cluster peering combines an `exported-services` configuration entry with a shared peering token and a mesh gateway, enabling services to communicate securely with upstreams registered in different datacenters. Although deployments require an Enterprise license to use multiple admin partitions in a single datacenter, cluster peering is not restricted to Enterprise users because every datacenter automatically includes a `default` partition.
 
 You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. The UI does not support exporting services between clusters or authorizing services for peers. If you use the HTTP API, refer to the [`/peering` endpoint reference](/consul/api-docs/peering). If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
 
@@ -32,7 +32,7 @@ You can find specific cluster peering configuration and usage information in the
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws).
 
-## Cluster Peering and WAN Federation Differences
+## Cluster Peering and WAN Federation Comparison
 
 WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
@@ -56,6 +56,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 
 Consider the following technical constraints:
 
+- Peer names can only contain lowercase characters.
 - Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
 - Two admin partitions in the same datacenter cannot be peered. You can use [`exported-services`](/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly instead.
 - The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
