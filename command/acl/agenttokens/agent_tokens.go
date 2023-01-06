@@ -134,8 +134,8 @@ Usage: consul acl set-agent-token [options] TYPE TOKEN
                               defined in config files. This token needs to be configured with
                               permission for the service or checks being registered. If not set,
                               the default token is used. If a service or check definition contains
-							  a 'token' field, then that token is be used to to register that
-							  service or check instead of the config_file_registration token.
+                              a 'token' field, then that token is be used to to register that
+                              service or check instead of the config_file_registration token.
 
   Example:
 
