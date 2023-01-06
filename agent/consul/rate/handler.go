@@ -211,7 +211,7 @@ func (h *Handler) Allow(op Operation) error {
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
-			"source_addr", op.SourceAddr.String(),
+			"source_addr", op.SourceAddr,
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
