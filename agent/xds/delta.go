@@ -133,17 +133,21 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
 		xdscommon.ListenerType: newDeltaType(generator, stream, xdscommon.ListenerType, func(kind structs.ServiceKind) bool {
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			// Ingress and API gateways are allowed to inform LDS of no listeners.
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.RouteType: newDeltaType(generator, stream, xdscommon.RouteType, func(kind structs.ServiceKind) bool {
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			// Ingress and API gateways are allowed to inform RDS of no routes.
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.ClusterType: newDeltaType(generator, stream, xdscommon.ClusterType, func(kind structs.ServiceKind) bool {
-			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
-			// no clusters.
+			// Mesh, Ingress, API and Terminating gateways are allowed to inform CDS of no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
-				cfgSnap.Kind == structs.ServiceKindIngressGateway
+				cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
 	}

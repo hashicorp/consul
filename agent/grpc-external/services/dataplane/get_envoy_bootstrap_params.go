@@ -126,6 +126,8 @@ func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbd
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TERMINATING_GATEWAY
 	case structs.ServiceKindIngressGateway:
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_INGRESS_GATEWAY
+	case structs.ServiceKindAPIGateway:
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_API_GATEWAY
 	case structs.ServiceKindTypical:
 		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TYPICAL
 	}

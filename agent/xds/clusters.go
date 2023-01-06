@@ -61,6 +61,12 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 			return nil, err
 		}
 		return res, nil
+	case structs.ServiceKindAPIGateway:
+		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap) // TODO Refactor func to handle ingress or API gw
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}

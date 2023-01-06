@@ -65,6 +65,10 @@ enum ServiceKind {
   // ServiceKind Ingress Gateway is an Ingress Gateway for the Connect feature.
   // This service will ingress connections into the service mesh.
   SERVICE_KIND_INGRESS_GATEWAY = 5;
+
+  // ServiceKind API Gateway is an API Gateway for the Connect feature.
+  // This service will ingress connections in to the service mesh.
+  SERVICE_KIND_API_GATEWAY = 6;
 }
 
 message GetEnvoyBootstrapParamsResponse {

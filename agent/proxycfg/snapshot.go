@@ -885,6 +885,8 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
 	case structs.ServiceKindIngressGateway:
 		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
+	case structs.ServiceKindAPIGateway:
+		return &s.APIGateway.ConfigSnapshotUpstreams, nil
 	default:
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)

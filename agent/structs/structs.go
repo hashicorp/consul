@@ -1185,7 +1185,8 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway:
+		ServiceKindIngressGateway,
+		ServiceKindAPIGateway:
 		return true
 	}
 	return false
@@ -1216,6 +1217,11 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindAPIGateway is an API Gateway for the Connect feature.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
 
 	// ServiceKindDestination is a Destination  for the Connect feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
@@ -1416,7 +1422,8 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway
+		s.Kind == ServiceKindIngressGateway ||
+		s.Kind == ServiceKindAPIGateway
 }
 
 // Validate validates the node service configuration.
