@@ -5,13 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"reflect"
 	"sync/atomic"
 
-	"github.com/armon/go-metrics"
-	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
@@ -162,7 +159,7 @@ func NewHandlerWithLimiter(
 	h := &Handler{
 		cfg:     new(atomic.Pointer[HandlerConfig]),
 		limiter: limiter,
-		logger:  logger.Named("rate-limit"),
+		logger:  logger,
 	}
 	h.cfg.Store(&cfg)
 
@@ -180,10 +177,6 @@ func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
 	h.limiter.Run(ctx)
-	discardLogger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
-	discardLogger.RegisterSink(logdrop.NewLogDropSink(ctx, 100, h.logger, func(l logdrop.Log) {
-		metrics.IncrCounter([]string{"consul", "rate_limit", "log_dropped"}, 1)
-	}))
 }
 
 // Allow returns an error if the given operation is not allowed to proceed
