@@ -1856,7 +1856,7 @@ func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.Interc
 	}
 
 	sink := logdrop.NewLogDropSink(ctx, 100, serverLogger.Named("rpc-rate-limit"), func(l logdrop.Log) {
-		metrics.IncrCounter([]string{"consul", "rate_limit", "log_dropped"}, 1)
+		metrics.IncrCounter([]string{"rpc", "rate_limit", "log_dropped"}, 1)
 	})
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
 	logger.RegisterSink(sink)
