@@ -180,7 +180,7 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 			AppliedIndex:         strconv.FormatUint(s.Raft.AppliedIndex, 10),
 			IsLeader:             s.Raft.IsLeader,
 			KnownLeader:          s.Raft.KnownLeader,
-			TimeSinceLastContact: s.Raft.TimeSinceLastContact.String(),
+			TimeSinceLastContact: formatDuration(s.Raft.TimeSinceLastContact),
 		},
 		RPCPort: int32(s.RPCPort),
 		TLS: &gnmmod.HashicorpCloudGlobalNetworkManager20220215TLSInfo{
