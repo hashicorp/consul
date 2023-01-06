@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -15,12 +16,12 @@ import (
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx       context.Context
-	container testcontainers.Container
-	ip        string
-	appPort   int
-	adminPort int
-	req       testcontainers.ContainerRequest
+	ctx         context.Context
+	container   testcontainers.Container
+	ip          string
+	appPort     int
+	adminPort   int
+	serviceName string
 }
 
 func (g ConnectContainer) GetName() string {
@@ -68,6 +69,19 @@ func (c ConnectContainer) Terminate() error {
 	return err
 }
 
+func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("ConnectContainer export unimplemented")
+}
+
+func (g ConnectContainer) GetServiceName() string {
+	return g.serviceName
+}
+
+// NewConnectService returns a container that runs envoy sidecar, launched by
+// "consul connect envoy", for service name (serviceName) on the specified
+// node. The container exposes port serviceBindPort and envoy admin port (19000)
+// by mapping them onto host ports. The container's name has a prefix
+// combining datacenter and name.
 func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
@@ -93,7 +107,6 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceName,
-			"-service", name,
 			"-admin-bind", "0.0.0.0:19000",
 			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
 			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
@@ -141,10 +154,14 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	node.RegisterTermination(terminate)
 
+	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
+		serviceName, mappedAppPort.Int(), serviceBindPort)
+
 	return &ConnectContainer{
-		container: container,
-		ip:        ip,
-		appPort:   mappedAppPort.Int(),
-		adminPort: mappedAdminPort.Int(),
+		container:   container,
+		ip:          ip,
+		appPort:     mappedAppPort.Int(),
+		adminPort:   mappedAdminPort.Int(),
+		serviceName: name,
 	}, nil
 }

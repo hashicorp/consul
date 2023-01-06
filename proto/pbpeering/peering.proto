@@ -3,24 +3,61 @@ syntax = "proto3";
 package hashicorp.consul.internal.peering;
 
 import "google/protobuf/timestamp.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
 service PeeringService {
-  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse);
-  rpc Establish(EstablishRequest) returns (EstablishResponse);
-  rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse);
-  rpc PeeringList(PeeringListRequest) returns (PeeringListResponse);
-  rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse);
+  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
+
+  rpc Establish(EstablishRequest) returns (EstablishResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
+
+  rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
+
+  rpc PeeringList(PeeringListRequest) returns (PeeringListResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
+
+  rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 
   // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
-  rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse);
+  rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 
   // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
-  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
+  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 
-  rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse);
+  rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 }
 
 // PeeringState enumerates all the states a peering can be in.

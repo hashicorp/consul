@@ -110,6 +110,7 @@ type RequestLimitsHandler interface {
 	Run(ctx context.Context)
 	Allow(op Operation) error
 	UpdateConfig(cfg HandlerConfig)
+	Register(leaderStatusProvider LeaderStatusProvider)
 }
 
 // Handler enforces rate limits for incoming RPCs.
@@ -119,8 +120,6 @@ type Handler struct {
 
 	limiter multilimiter.RateLimiter
 
-	// TODO: replace this with the real logger.
-	// https://github.com/hashicorp/consul/pull/15822
 	logger hclog.Logger
 }
 
@@ -205,7 +204,7 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: is this the correct log-level?
+		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
@@ -231,6 +230,7 @@ func (h *Handler) Allow(op Operation) error {
 		})
 
 		if enforced {
+			// TODO(NET-1382) - use the logger to print rate limiter logs.
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}
@@ -325,3 +325,5 @@ func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
 func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
+
+func (nullRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {}

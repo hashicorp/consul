@@ -177,4 +177,6 @@ replace github.com/hashicorp/consul/api => ../../../api
 
 replace github.com/hashicorp/consul/sdk => ../../../sdk
 
+replace github.com/hashicorp/consul/proto-public => ../../../proto-public
+
 replace github.com/hashicorp/consul => ../../..

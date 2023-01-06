@@ -162,7 +162,7 @@ func (a *ACL) aclPreCheck() error {
 
 // BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -207,9 +207,24 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err != nil {
 		return err
 	}
-	secret, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return err
+	secret := args.BootstrapSecret
+	if secret == "" {
+		secret, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = uuid.ParseUUID(secret)
+		if err != nil {
+			return err
+		}
+		ok, err := a.srv.checkTokenUUID(secret)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
+		}
 	}
 
 	req := structs.ACLTokenBootstrapRequest{

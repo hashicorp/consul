@@ -3,7 +3,6 @@ package upgrade
 import (
 	"context"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -11,13 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
-	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-)
-
-const (
-	acceptingPeerName = "accepting-to-dialer"
-	dialingPeerName   = "dialing-to-acceptor"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
@@ -41,46 +35,30 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		var acceptingCluster, dialingCluster *libcluster.Cluster
-		var acceptingClient, dialingClient *api.Client
-
-		var wg sync.WaitGroup
-
-		wg.Add(1)
-		go func() {
-			acceptingCluster, acceptingClient, _ = libcluster.CreatingAcceptingClusterAndSetup(t, 3, tc.oldversion, acceptingPeerName)
-			wg.Done()
-		}()
+		acceptingCluster, dialingCluster, _, staticClientSvcSidecar := topology.BasicPeeringTwoClustersSetup(t, tc.oldversion)
+		// move to teardown
 		defer func() {
-			terminate(t, acceptingCluster)
+			err := acceptingCluster.Terminate()
+			require.NoErrorf(t, err, "termining accepting cluster")
+			dialingCluster.Terminate()
+			require.NoErrorf(t, err, "termining dialing cluster")
 		}()
 
-		wg.Add(1)
-		go func() {
-			dialingCluster, dialingClient, _ = libcluster.CreateDialingClusterAndSetup(t, tc.oldversion, dialingPeerName)
-			wg.Done()
-		}()
-		defer func() {
-			terminate(t, dialingCluster)
-		}()
-		wg.Wait()
-
-		err := dialingCluster.PeerWithCluster(acceptingClient, acceptingPeerName, dialingPeerName)
+		dialingClient, err := dialingCluster.GetClient(nil, false)
 		require.NoError(t, err)
-
-		libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
-		libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
+		_, port := staticClientSvcSidecar.GetAddr()
 
 		// Upgrade the dialingCluster cluster and assert peering is still ACTIVE
 		err = dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
 		require.NoError(t, err)
-		libassert.PeeringStatus(t, dialingClient, dialingPeerName, api.PeeringStateActive)
+		libassert.PeeringStatus(t, dialingClient, topology.DialingPeerName, api.PeeringStateActive)
+		libassert.HTTPServiceEchoes(t, "localhost", port)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
 		err = acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
 		require.NoError(t, err)
 
-		libassert.PeeringStatus(t, acceptingClient, acceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringStatus(t, dialingClient, topology.DialingPeerName, api.PeeringStateActive)
 	}
 
 	for _, tc := range tcs {

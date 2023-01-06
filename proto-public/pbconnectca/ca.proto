@@ -3,16 +3,25 @@ syntax = "proto3";
 package hashicorp.consul.connectca;
 
 import "google/protobuf/timestamp.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 service ConnectCAService {
   // WatchRoots provides a stream on which you can receive the list of active
   // Connect CA roots. Current roots are sent immediately at the start of the
   // stream, and new lists will be sent whenever the roots are rotated.
-  rpc WatchRoots(WatchRootsRequest) returns (stream WatchRootsResponse) {}
+  rpc WatchRoots(WatchRootsRequest) returns (stream WatchRootsResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 
   // Sign a leaf certificate for the service or agent identified by the SPIFFE
   // ID in the given CSR's SAN.
-  rpc Sign(SignRequest) returns (SignResponse) {}
+  rpc Sign(SignRequest) returns (SignResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 }
 
 message WatchRootsRequest {}

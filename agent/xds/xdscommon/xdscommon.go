@@ -26,7 +26,29 @@ const (
 
 	// ListenerType is the TypeURL for Listener discovery responses.
 	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+
+	// PublicListenerName is the name we give the public listener in Envoy config.
+	PublicListenerName = "public_listener"
+
+	// LocalAppClusterName is the name we give the local application "cluster" in
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collide however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
+	LocalAppClusterName = "local_app"
 )
+
+type EnvoyExtension interface {
+	Extend(*IndexedResources, ExtensionConfiguration) (*IndexedResources, error)
+	Validate(ExtensionConfiguration) error
+}
 
 type IndexedResources struct {
 	// Index is a map of typeURL => resourceName => resource
