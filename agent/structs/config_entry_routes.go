@@ -156,6 +156,13 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	return e.Parents
+}
+
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	if e == nil {
 		return &RaftIndex{}
