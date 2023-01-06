@@ -2,7 +2,6 @@ package xds
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -30,207 +29,201 @@ import (
 // Stick to very straightforward stuff in xds_protocol_helpers_test.go.
 
 func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
-	for _, serverlessPluginEnabled := range []bool{false, true} {
-		t.Run(fmt.Sprintf("serverless patcher: %t", serverlessPluginEnabled), func(t *testing.T) {
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
-			aclResolve := func(id string) (acl.Authorizer, error) {
-				// Allow all
-				return acl.RootAuthorizer("manage"), nil
-			}
-			scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, serverlessPluginEnabled, nil)
-			mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
-			sid := structs.NewServiceID("web-sidecar-proxy", nil)
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
 
-			// Register the proxy to create state needed to Watch() on
-			mgr.RegisterProxy(t, sid)
+	var snap *proxycfg.ConfigSnapshot
 
-			var snap *proxycfg.ConfigSnapshot
+	testutil.RunStep(t, "initial setup", func(t *testing.T) {
+		snap = newTestSnapshot(t, nil, "")
 
-			testutil.RunStep(t, "initial setup", func(t *testing.T) {
-				snap = newTestSnapshot(t, nil, "")
-
-				// Send initial cluster discover. We'll assume we are testing a partial
-				// reconnect and include some initial resource versions that will be
-				// cleaned up.
-				envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-					InitialResourceVersions: mustMakeVersionMap(t,
-						makeTestCluster(t, snap, "tcp:geo-cache"),
-					),
-				})
-
-				// Check no response sent yet
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-				requireProtocolVersionGauge(t, scenario, "v3", 1)
-
-				// Deliver a new snapshot (tcp with one tcp upstream)
-				mgr.DeliverConfig(t, sid, snap)
-			})
-
-			testutil.RunStep(t, "first sync", func(t *testing.T) {
-				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-					TypeUrl: xdscommon.ClusterType,
-					Nonce:   hexString(1),
-					Resources: makeTestResources(t,
-						makeTestCluster(t, snap, "tcp:local_app"),
-						makeTestCluster(t, snap, "tcp:db"),
-						// SAME_AS_INITIAL_VERSION: makeTestCluster(t, snap, "tcp:geo-cache"),
-					),
-				})
-
-				// Envoy then tries to discover endpoints for those clusters.
-				envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-					// We'll assume we are testing a partial "reconnect"
-					InitialResourceVersions: mustMakeVersionMap(t,
-						makeTestEndpoints(t, snap, "tcp:geo-cache"),
-					),
-					ResourceNamesSubscribe: []string{
-						"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-						// "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-						//
-						// Include "fake-endpoints" here to test subscribing to an unknown
-						// thing and have consul tell us there's no data for it.
-						"fake-endpoints",
-					},
-				})
-
-				// It also (in parallel) issues the cluster ACK
-				envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
-				// We should get a response immediately since the config is already present in
-				// the server for endpoints. Note that this should not be racy if the server
-				// is behaving well since the Cluster send above should be blocked until we
-				// deliver a new config version.
-				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-					TypeUrl: xdscommon.EndpointType,
-					Nonce:   hexString(2),
-					Resources: makeTestResources(t,
-						makeTestEndpoints(t, snap, "tcp:db"),
-						// SAME_AS_INITIAL_VERSION: makeTestEndpoints(t, snap, "tcp:geo-cache"),
-						// SAME_AS_INITIAL_VERSION: "fake-endpoints",
-					),
-				})
-
-				// And no other response yet
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-				// Envoy now sends listener request
-				envoy.SendDeltaReq(t, xdscommon.ListenerType, nil)
-
-				// It also (in parallel) issues the endpoint ACK
-				envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 2)
-
-				// And should get a response immediately.
-				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-					TypeUrl: xdscommon.ListenerType,
-					Nonce:   hexString(3),
-					Resources: makeTestResources(t,
-						makeTestListener(t, snap, "tcp:public_listener"),
-						makeTestListener(t, snap, "tcp:db"),
-						makeTestListener(t, snap, "tcp:geo-cache"),
-					),
-				})
-
-				// And no other response yet
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-				// ACKs the listener
-				envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
-
-				// If we re-subscribe to something even if there are no changes we get a
-				// fresh copy.
-				envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-					ResourceNamesSubscribe: []string{
-						"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-					},
-				})
-
-				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-					TypeUrl: xdscommon.EndpointType,
-					Nonce:   hexString(4),
-					Resources: makeTestResources(t,
-						makeTestEndpoints(t, snap, "tcp:geo-cache"),
-					),
-				})
-
-				envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 4)
-
-				// And no other response yet
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-			})
-
-			deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
-				snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
-					snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
-			}
-
-			testutil.RunStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
-				envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-					ResourceNamesUnsubscribe: []string{
-						"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-					},
-				})
-
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-				// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for DB
-				snap = newTestSnapshot(t, snap, "")
-				deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
-				mgr.DeliverConfig(t, sid, snap)
-
-				// We never send an EDS reply about this change.
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-			})
-
-			testutil.RunStep(t, "restore endpoint subscription", func(t *testing.T) {
-				// Fix the snapshot
-				snap = newTestSnapshot(t, snap, "")
-				mgr.DeliverConfig(t, sid, snap)
-
-				// We never send an EDS reply about this change.
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-				// and fix the subscription
-				envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-					ResourceNamesSubscribe: []string{
-						"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-					},
-				})
-				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-					TypeUrl: xdscommon.EndpointType,
-					Nonce:   hexString(5),
-					Resources: makeTestResources(t,
-						makeTestEndpoints(t, snap, "tcp:db"),
-					),
-				})
-
-				envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 5)
-
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-			})
-
-			// NOTE: this has to be the last subtest since it kills the stream
-			testutil.RunStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
-				// Force sends to fail
-				envoy.SetSendErr(errors.New("test error"))
-
-				// Trigger only an EDS update (flipping BACK to 2 endpoints in the LBassignment)
-				snap = newTestSnapshot(t, snap, "")
-				mgr.DeliverConfig(t, sid, snap)
-
-				// We never send any replies about this change because we died.
-				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-			})
-
-			envoy.Close()
-			select {
-			case err := <-errCh:
-				require.NoError(t, err)
-			case <-time.After(50 * time.Millisecond):
-				t.Fatalf("timed out waiting for handler to finish")
-			}
+		// Send initial cluster discover. We'll assume we are testing a partial
+		// reconnect and include some initial resource versions that will be
+		// cleaned up.
+		envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			InitialResourceVersions: mustMakeVersionMap(t,
+				makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
 		})
+
+		// Check no response sent yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireProtocolVersionGauge(t, scenario, "v3", 1)
+
+		// Deliver a new snapshot (tcp with one tcp upstream)
+		mgr.DeliverConfig(t, sid, snap)
+	})
+
+	testutil.RunStep(t, "first sync", func(t *testing.T) {
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.ClusterType,
+			Nonce:   hexString(1),
+			Resources: makeTestResources(t,
+				makeTestCluster(t, snap, "tcp:local_app"),
+				makeTestCluster(t, snap, "tcp:db"),
+				// SAME_AS_INITIAL_VERSION: makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// Envoy then tries to discover endpoints for those clusters.
+		envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			// We'll assume we are testing a partial "reconnect"
+			InitialResourceVersions: mustMakeVersionMap(t,
+				makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+			ResourceNamesSubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+				// "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+				//
+				// Include "fake-endpoints" here to test subscribing to an unknown
+				// thing and have consul tell us there's no data for it.
+				"fake-endpoints",
+			},
+		})
+
+		// We should get a response immediately since the config is already present in
+		// the server for endpoints. Note that this should not be racy if the server
+		// is behaving well since the Cluster send above should be blocked until we
+		// deliver a new config version.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.EndpointType,
+			Nonce:   hexString(2),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db"),
+				// SAME_AS_INITIAL_VERSION: makeTestEndpoints(t, snap, "tcp:geo-cache"),
+				// SAME_AS_INITIAL_VERSION: "fake-endpoints",
+			),
+		})
+
+		// After receiving the endpoints Envoy sends an ACK for the cluster
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// Envoy now sends listener request
+		envoy.SendDeltaReq(t, xdscommon.ListenerType, nil)
+
+		// It also (in parallel) issues the endpoint ACK
+		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 2)
+
+		// And should get a response immediately.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.ListenerType,
+			Nonce:   hexString(3),
+			Resources: makeTestResources(t,
+				makeTestListener(t, snap, "tcp:public_listener"),
+				makeTestListener(t, snap, "tcp:db"),
+				makeTestListener(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// We are caught up, so there should be nothing queued to send.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// ACKs the listener
+		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
+
+		// If Envoy re-subscribes to something even if there are no changes we send a
+		// fresh copy.
+		envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.EndpointType,
+			Nonce:   hexString(4),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 4)
+
+		// We are caught up, so there should be nothing queued to send.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	})
+
+	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
+		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
+			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
+	}
+
+	testutil.RunStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
+		envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesUnsubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for db.
+		snap = newTestSnapshot(t, snap, "")
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
+		mgr.DeliverConfig(t, sid, snap)
+
+		// We never send an EDS reply about this change because Envoy is not subscribed to db anymore.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	})
+
+	testutil.RunStep(t, "restore endpoint subscription", func(t *testing.T) {
+		// Restore db's deleted endpoints by generating a new snapshot.
+		snap = newTestSnapshot(t, snap, "")
+		mgr.DeliverConfig(t, sid, snap)
+
+		// We never send an EDS reply about this change because Envoy is still not subscribed to db.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// When Envoy re-subscribes to db we send the endpoints for it.
+		envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.EndpointType,
+			Nonce:   hexString(5),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db"),
+			),
+		})
+
+		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 5)
+
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	})
+
+	// NOTE: this has to be the last subtest since it kills the stream
+	testutil.RunStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
+		// Force sends to fail
+		envoy.SetSendErr(errors.New("test error"))
+
+		// Trigger only an EDS update by deleting endpoints again.
+		deleteAllButOneEndpoint(snap, UID("db"), "db.default.default.dc1")
+
+		// We never send any replies about this change because we died.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	})
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
 
@@ -239,7 +232,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -267,7 +260,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		mgr.DeliverConfig(t, sid, snap)
 	})
 
-	testutil.RunStep(t, "first sync", func(t *testing.T) {
+	testutil.RunStep(t, "simulate Envoy NACKing initial listener", func(t *testing.T) {
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ClusterType,
 			Nonce:   hexString(1),
@@ -286,9 +279,6 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 			},
 		})
 
-		// It also (in parallel) issues the cluster ACK
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
 		// We should get a response immediately since the config is already present in
 		// the server for endpoints. Note that this should not be racy if the server
 		// is behaving well since the Cluster send above should be blocked until we
@@ -302,7 +292,10 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 			),
 		})
 
-		// And no other response yet
+		// After receiving the endpoints Envoy sends an ACK for the clusters
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
@@ -323,13 +316,14 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
-		// NACKs the listener update due to the bad public listener
+		// Envoy NACKs the listener update due to the bad public listener
 		envoy.SendDeltaReqNACK(t, xdscommon.ListenerType, 3, &rpcstatus.Status{})
 
 		// Consul should not respond until a new snapshot is delivered
+		// because the current snapshot is known to be bad.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
@@ -370,7 +364,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -411,9 +405,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 			},
 		})
 
-		// It also (in parallel) issues the cluster ACK
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
 		// We should get a response immediately since the config is already present in
 		// the server for endpoints. Note that this should not be racy if the server
 		// is behaving well since the Cluster send above should be blocked until we
@@ -427,7 +418,10 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 			),
 		})
 
-		// And no other response yet
+		// After receiving the endpoints Envoy sends an ACK for the clusters
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
@@ -447,13 +441,13 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
 		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
@@ -480,7 +474,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends routes request
@@ -489,9 +483,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 				"db",
 			},
 		})
-
-		// ACKs the listener
-		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 4)
 
 		// And should get a response immediately.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -502,6 +493,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 			),
 		})
 
+		// After receiving the routes, Envoy sends acks back for the listener and routes.
+		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 4)
 		envoy.SendDeltaReqACK(t, xdscommon.RouteType, 5)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
@@ -523,7 +516,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
 	server, mgr, errCh, envoy := scenario.server, scenario.mgr, scenario.errCh, scenario.envoy
 
 	// This mutateFn causes any endpoint with a name containing "geo-cache" to be
@@ -580,9 +573,6 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 			},
 		})
 
-		// It also (in parallel) issues the cluster ACK
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
 		// We should get a response immediately since the config is already present in
 		// the server for endpoints. Note that this should not be racy if the server
 		// is behaving well since the Cluster send above should be blocked until we
@@ -598,7 +588,14 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 			),
 		})
 
-		// And no other response yet
+		// After receiving the endpoints Envoy sends an ACK for the clusters.
+		// Envoy aims to wait to receive endpoints before ACKing clusters,
+		// but because it received an update for at least one of the clusters it cares about
+		// then it will ACK despite not having received an update for all clusters.
+		// This behavior was observed against Envoy v1.21 and v1.23.
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
@@ -618,7 +615,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
@@ -642,7 +639,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// It also (in parallel) issues the endpoint ACK
@@ -664,7 +661,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -705,9 +702,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 			},
 		})
 
-		// It also (in parallel) issues the cluster ACK
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
 		// We should get a response immediately since the config is already present in
 		// the server for endpoints. Note that this should not be racy if the server
 		// is behaving well since the Cluster send above should be blocked until we
@@ -721,7 +715,10 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 			),
 		})
 
-		// And no other response yet
+		// After receiving the endpoints Envoy sends an ACK for the clusters
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
@@ -741,7 +738,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
@@ -768,8 +765,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 			),
 		})
 
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 4)
-
 		// And we re-send the endpoints for the updated cluster after getting the
 		// ACK for the cluster.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -780,9 +775,12 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 				// SAME makeTestEndpoints(t, snap, "tcp:geo-cache"),
 			),
 		})
+
+		// Envoy then ACK's the clusters and the endpoints.
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 4)
 		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 5)
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
@@ -800,7 +798,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -847,9 +845,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			},
 		})
 
-		// It also (in parallel) issues the cluster ACK
-		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
-
 		// We should get a response immediately since the config is already present in
 		// the server for endpoints. Note that this should not be racy if the server
 		// is behaving well since the Cluster send above should be blocked until we
@@ -863,7 +858,10 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
-		// And no other response yet
+		// After receiving the endpoints Envoy sends an ACK for the clusters
+		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
+
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
@@ -883,7 +881,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
-		// And no other response yet
+		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends routes request
@@ -892,9 +890,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 				"db",
 			},
 		})
-
-		// ACKs the listener
-		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
 
 		// And should get a response immediately.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -905,6 +900,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
+		// After receiving the routes, Envoy sends acks back for the listener and routes.
+		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
 		envoy.SendDeltaReqACK(t, xdscommon.RouteType, 4)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
@@ -960,9 +957,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
-		// ACKs the listener
-		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 7)
-
 		// THE ACTUAL THING WE CARE ABOUT: replaced route config
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.RouteType,
@@ -972,6 +966,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 			),
 		})
 
+		// After receiving the routes, Envoy sends acks back for the listener and routes.
+		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 7)
 		envoy.SendDeltaReqACK(t, xdscommon.RouteType, 8)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
@@ -1060,7 +1056,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
 
-			scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", tt.token, 0, false, nil)
+			scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", tt.token, 0, nil)
 			mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 			sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1137,7 +1133,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	}
 	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", token,
 		100*time.Millisecond, // Make this short.
-		false,
 		nil,
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
@@ -1237,7 +1232,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	}
 	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", token,
 		100*time.Millisecond, // Make this short.
-		false,
 		nil,
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
@@ -1319,7 +1313,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "ingress-gateway", "", 0, false, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "ingress-gateway", "", 0, nil)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("ingress-gateway", nil)
@@ -1374,7 +1368,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 func TestServer_DeltaAggregatedResources_v3_CapacityReached(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) { return acl.ManageAll(), nil }
 
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, capacityReachedLimiter{})
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, capacityReachedLimiter{})
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1408,7 +1402,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 	limiter := &testLimiter{}
 
 	aclResolve := func(id string) (acl.Authorizer, error) { return acl.ManageAll(), nil }
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, false, limiter)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, limiter)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1448,7 +1442,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		}
 	})
 
-	testutil.RunStep(t, "check drain counter incremeted", func(t *testing.T) {
+	testutil.RunStep(t, "check drain counter incremented", func(t *testing.T) {
 		data := scenario.sink.Data()
 		require.Len(t, data, 1)
 
@@ -1459,6 +1453,19 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, 1, val.Count)
 	})
+
+	testutil.RunStep(t, "check streamStart metric recorded", func(t *testing.T) {
+		data := scenario.sink.Data()
+		require.Len(t, data, 1)
+
+		item := data[0]
+		require.Len(t, item.Counters, 1)
+
+		val, ok := item.Samples["consul.xds.test.xds.server.streamStart"]
+		require.True(t, ok)
+		require.Equal(t, 1, val.Count)
+	})
+
 }
 
 type testLimiter struct {

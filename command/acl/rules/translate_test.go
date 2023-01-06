@@ -2,7 +2,7 @@ package rules
 
 import (
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -52,7 +52,7 @@ func TestRulesTranslateCommand(t *testing.T) {
 
 	// From a file
 	t.Run("file", func(t *testing.T) {
-		err := ioutil.WriteFile(testDir+"/rules.hcl", []byte(rules), 0644)
+		err := os.WriteFile(testDir+"/rules.hcl", []byte(rules), 0644)
 		require.NoError(t, err)
 
 		args := []string{

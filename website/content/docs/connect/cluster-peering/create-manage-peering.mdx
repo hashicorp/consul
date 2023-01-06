@@ -8,22 +8,20 @@ description: >-
 
 # Create and Manage Cluster Peering Connections
 
-~> **Cluster peering is currently in beta:** Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.<br  /><br />Cluster peering is not currently available in the HCP Consul offering.
-
 A peering token enables cluster peering between different datacenters. Once you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and create intentions so that peered clusters can call those services.
 
 ## Create a peering connection
 
-Cluster peering is not enabled by default on Consul servers. To peer clusters, you must first configure all Consul servers so that `peering` is `enabled` and the gRPC port(8502) accepts traffic from the peering cluster (e.g., `client_addr="0.0.0.0"`). For additional information, refer to [Configuration Files](/docs/agent/config/config-files).
+Cluster peering is enabled by default on Consul servers as of v1.14. For additional information, including options to disable cluster peering, refer to [Configuration Files](/docs/agent/config/config-files).
 
-After enabling peering for all Consul servers, complete the following steps in order:
+The process to create a peering connection is a sequence with multiple steps:
 
 1. Create a peering token
 1. Establish a connection between clusters
 1. Export services between clusters
 1. Authorize services for peers
 
-You can generate peering tokens and initiate connections on any available agent using either the API or the Consul UI. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
+You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. If you use the API or CLI, we recommend performing these operations through a client agent in the partition you want to connect.
 
 The UI does not currently support exporting services between clusters or authorizing services for peers.
 
@@ -39,7 +37,7 @@ Every time you generate a peering token, a single-use establishment secret is em
 In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
 
 ```shell-session
-$ curl --request POST --data '{"PeerName":"cluster-02"}' --url http://localhost:8500/v1/peering/token
+$ curl --request POST --data '{"Peer":"cluster-02"}' --url http://localhost:8500/v1/peering/token
 ```
 
 The CLI outputs the peering token, which is a base64-encoded string containing the token details.
@@ -50,7 +48,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 ```json
 {
-    "PeerName": "cluster-01",
+    "Peer": "cluster-01",
     "PeeringToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
 }
 ```
@@ -60,7 +58,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 <Tab heading="Consul CLI" group="cli">
 
-In `cluster-01`, use the [`consul peering generate-token` command](/commands/operator/generate-token) to issue a request for a peering token.
+In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
 
 ```shell-session
 $ consul peering generate-token -name cluster-02
@@ -200,6 +198,19 @@ Then, add the configuration entry to your cluster.
 $ consul config write peering-intentions.hcl
 ```
 
+### Authorize Service Reads with ACLs
+
+If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access. 
+Read access to all imported services is granted using either of the following rules associated with an ACL token:
+- `service:write` permissions for any service in the sidecar's partition.
+- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
+For Consul Enterprise, access is granted to all imported services in the service's partition.
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+
+Example rule files can be found in [Reading Servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+
+Refer to [ACLs System Overview](/docs/security/acl) for more information on ACLs and their setup.
+
 ## Manage peering connections
 
 After you establish a peering connection, you can get a list of all active peering connections, read a specific peering connection's information, check peering connection health, and delete peering connections.
@@ -251,7 +262,7 @@ After you establish a peering connection, run the [`consul peering list`](/comma
 For example, the following command requests a list of all peering connections and returns the information in a table:
 
 ```shell-session
-$  consul peerings list
+$  consul peering list
 
 Name        State    Imported Svcs  Exported Svcs  Meta
 cluster-02  ACTIVE   0              2              env=production

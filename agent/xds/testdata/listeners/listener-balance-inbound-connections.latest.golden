@@ -113,7 +113,9 @@
       ],
       "trafficDirection": "INBOUND",
       "connectionBalanceConfig": {
-        "exactBalance": {}
+        "exactBalance": {
+
+        }
       }
     }
   ],

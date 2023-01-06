@@ -21,12 +21,14 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1463,10 +1465,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
+	ca := connect.TestCA(t, nil)
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc3"
 		c.NodeName = "acceptingServer.dc3"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -1505,6 +1517,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
+			//nolint:staticcheck
 			grpc.WithInsecure(),
 			grpc.WithBlock())
 		require.NoError(t, err)
@@ -1519,6 +1532,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+			//nolint:staticcheck
 			grpc.WithInsecure(),
 			grpc.WithBlock())
 		require.NoError(t, err)
@@ -1564,7 +1578,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
 	rules := `
-		service_prefix "foo" { policy = "read" }
+		service_prefix "" { policy = "read" }
 		node_prefix "" { policy = "read" }
 	`
 	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")

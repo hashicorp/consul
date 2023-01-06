@@ -17,11 +17,11 @@ Consul versions 1.4.0 and later
 
 ## Configure ACLs in the Primary Datacenter
 
-In a [federated Consul deployment](/docs/k8s/installation/multi-cluster), one of the datacenters is marked as the primary datacenter.
+In a [federated Consul deployment](/docs/k8s/deployment-configurations/multi-cluster), one of the datacenters is marked as the primary datacenter.
 The `acl` configuration block should be added to the primary datacenter server's configuration file
 as shown in the following example.
 
-See the [ACL Config Stanza](/docs/agent/options#acl) for more detailed descriptions of each option.
+See the [ACL Config Stanza](/docs/agent/config/config-files#acl) for more detailed descriptions of each option.
 
 -> **Versions before 1.11.0:** The `initial_management` token was called the `master` token in versions
 prior to 1.11.0

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -262,7 +263,7 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
-func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
 	// right at the time of the first request, vs. on the first retry as
 	// is done on the server side inside forward(). This is because the
@@ -397,12 +398,12 @@ func (c *Client) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.
@@ -422,6 +423,7 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (c *Client) ReloadConfig(config ReloadableConfig) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+	c.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 	return nil
 }
 

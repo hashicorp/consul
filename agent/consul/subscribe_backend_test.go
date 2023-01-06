@@ -15,11 +15,13 @@ import (
 	gogrpc "google.golang.org/grpc"
 
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -37,7 +39,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Shutdown()
 
-	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -58,17 +60,18 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
 		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
+			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -108,11 +111,12 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	// Start a Subscribe call to our streaming endpoint from the server's loopback client.
 	{
 		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
+			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -187,7 +191,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	defer server.Shutdown()
 
 	// Set up a client with valid certs and verify_outgoing = true
-	client, builder := newClientWithGRPCResolver(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
@@ -195,11 +199,12 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	joinLAN(t, client, server)
 
 	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-		Servers:               builder,
+		Servers:               resolverBuilder,
 		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
+		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -279,7 +284,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	client, builder := newClientWithGRPCResolver(t)
+	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -301,7 +306,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 			},
 		}
 		var out struct{}
-		require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 	}
 
 	// Start background writer
@@ -326,7 +331,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 				return
 			}
 			var out struct{}
-			require.NoError(t, server.RPC("Catalog.Register", &req, &out))
+			require.NoError(t, server.RPC(context.Background(), "Catalog.Register", &req, &out))
 			req.Service.Port++
 			if req.Service.Port > 100 {
 				return
@@ -336,11 +341,12 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	}()
 
 	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-		Servers:               builder,
+		Servers:               resolverBuilder,
 		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
+		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -370,33 +376,37 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		"at least some of the subscribers should have received non-snapshot updates")
 }
 
-func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
+func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder, *balancer.Builder) {
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
 	}
 
-	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
+	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
 		"client."+config.Datacenter+"."+string(config.NodeID)))
 
-	resolver.Register(builder)
+	resolver.Register(resolverBuilder)
 	t.Cleanup(func() {
-		resolver.Deregister(builder.Authority())
+		resolver.Deregister(resolverBuilder.Authority())
 	})
+
+	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
+	balancerBuilder.Register()
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(
 		deps.Logger,
 		config.Datacenter,
 		fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter),
-		builder)
+		grpc.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	client, err := NewClient(config, deps)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
-	return client, builder
+	return client, resolverBuilder, balancerBuilder
 }
 
 type testLogger interface {
@@ -444,13 +454,17 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 			if err != nil {
 				return err
 			}
-			if expectPort != svc.Port {
+			switch svc.Port {
+			case expectPort:
+				atomic.AddUint64(updateCount, 1)
+				logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
+				expectPort++
+			case expectPort - 1:
+				logger.Logf("subscriber %05d: got event with repeated prior port=%d at index %d", i, expectPort-1, event.Index)
+			default:
 				return fmt.Errorf("subscriber %05d: at index %d: expected port %d, got %d",
 					i, event.Index, expectPort, svc.Port)
 			}
-			atomic.AddUint64(updateCount, 1)
-			logger.Logf("subscriber %05d: got event with correct port=%d at index %d", i, expectPort, event.Index)
-			expectPort++
 		default:
 			// snapshot events
 			svc, err := svcOrErr(event)

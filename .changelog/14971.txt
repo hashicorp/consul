@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Display notice banner on nodes index page if synthetic nodes are being filtered.
+```

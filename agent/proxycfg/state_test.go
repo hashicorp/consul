@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -106,7 +107,7 @@ func TestStateChanged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			proxyID := ProxyID{ServiceID: tt.ns.CompoundServiceID()}
-			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)})
+			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)}, rate.NewLimiter(rate.Inf, 1))
 			require.NoError(t, err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
@@ -133,6 +134,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		IntentionUpstreamsDestination:   typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		InternalServiceDump:             typedWatchRecorder[*structs.ServiceDumpRequest]{wr},
 		LeafCertificate:                 typedWatchRecorder[*cachetype.ConnectCALeafRequest]{wr},
+		PeeringList:                     typedWatchRecorder[*cachetype.PeeringListRequest]{wr},
 		PeeredUpstreams:                 typedWatchRecorder[*structs.PartitionSpecificRequest]{wr},
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
@@ -191,7 +193,11 @@ type verifyWatchRequest func(t testing.TB, request any)
 func genVerifyDCSpecificWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.DCSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 	}
 }
@@ -205,6 +211,7 @@ func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.TrustBundleReadRequest)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, peer, reqReal.Request.Name)
 	}
 }
@@ -212,7 +219,9 @@ func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
 func genVerifyLeafWatchWithDNSSANs(expectedService string, expectedDatacenter string, expectedDNSSANs []string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.ConnectCALeafRequest)
+		reqReal.Token = aclToken
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedService, reqReal.Service)
 		require.ElementsMatch(t, expectedDNSSANs, reqReal.DNSSAN)
@@ -227,6 +236,7 @@ func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.TrustBundleListRequest)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, service, reqReal.Request.ServiceName)
 	}
 }
@@ -234,10 +244,23 @@ func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*cachetype.TrustBundleListRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
 		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Request.Kind)
 		require.True(t, acl.EqualPartitions(partition, reqReal.Request.Partition), "%q != %q", partition, reqReal.Request.Partition)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.NotEmpty(t, reqReal.Request.ServiceName)
+	}
+}
+
+func genVerifyPeeringListWatchForMeshGateway() verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*cachetype.PeeringListRequest)
+		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
+		require.Equal(t, acl.WildcardPartitionName, reqReal.Request.Partition)
 	}
 }
 
@@ -245,6 +268,7 @@ func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind st
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedService, reqReal.Name)
 		require.Equal(t, expectedKind, reqReal.Kind)
@@ -255,6 +279,7 @@ func genVerifyResolvedConfigWatch(expectedService string, expectedDatacenter str
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceConfigRequest)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedService, reqReal.Name)
 	}
@@ -263,7 +288,11 @@ func genVerifyResolvedConfigWatch(expectedService string, expectedDatacenter str
 func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedService, reqReal.ServiceName)
 	}
@@ -272,7 +301,11 @@ func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) 
 func genVerifyPreparedQueryWatch(expectedName string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.PreparedQueryExecuteRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedName, reqReal.QueryIDOrName)
 		require.Equal(t, true, reqReal.Connect)
@@ -282,7 +315,11 @@ func genVerifyPreparedQueryWatch(expectedName string, expectedDatacenter string)
 func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.DiscoveryChainRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expected, reqReal)
 	}
 }
@@ -290,7 +327,11 @@ func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verif
 func genVerifyMeshConfigWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, structs.MeshConfigMesh, reqReal.Name)
 		require.Equal(t, structs.MeshConfig, reqReal.Kind)
@@ -301,6 +342,7 @@ func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceDumpRequest)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.True(t, reqReal.UseServiceKind)
 		require.Equal(t, structs.ServiceKindMeshGateway, reqReal.ServiceKind)
@@ -315,7 +357,11 @@ func genVerifyServiceSpecificRequest(expectedService, expectedFilter, expectedDa
 func genVerifyServiceSpecificPeeredRequest(expectedService, expectedFilter, expectedDatacenter, expectedPeer string, connect bool) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceSpecificRequest)
+		reqReal.QueryOptions = structs.QueryOptions{
+			Token: aclToken,
+		}
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedPeer, reqReal.PeerName)
 		require.Equal(t, expectedService, reqReal.ServiceName)
@@ -328,6 +374,7 @@ func genVerifyPartitionSpecificRequest(expectedPartition, expectedDatacenter str
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.PartitionSpecificRequest)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedPartition, reqReal.PartitionOrDefault())
 	}
@@ -341,6 +388,7 @@ func genVerifyConfigEntryWatch(expectedKind, expectedName, expectedDatacenter st
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
 		require.True(t, ok)
+		require.Equal(t, aclToken, reqReal.Token)
 		require.Equal(t, expectedKind, reqReal.Kind)
 		require.Equal(t, expectedName, reqReal.Name)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
@@ -391,14 +439,14 @@ func upstreamIDForDC2(uid UpstreamID) UpstreamID {
 // routine. This allows the test to be fully synchronous and deterministic while still being able
 // to validate the logic of most of the watching and state updating.
 //
-// The general strategy here is to
+// The general strategy here is to:
 //
-// 1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
-//    We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
-// 2. Iterate through a list of verification stages performing validation and updates for each.
-//    a. Ensure that the required watches are in place and validate they are correct
-//    b. Process a bunch of UpdateEvents by calling handleUpdate
-//    c. Validate that the ConfigSnapshot has been updated appropriately
+//  1. Initialize a state with a call to newState + setting some of the extra stuff like the CacheNotifier
+//     We will not be using the CacheNotifier to send notifications but calling handleUpdate ourselves
+//  2. Iterate through a list of verification stages performing validation and updates for each.
+//     a. Ensure that the required watches are in place and validate they are correct
+//     b. Process a bunch of UpdateEvents by calling handleUpdate
+//     c. Validate that the ConfigSnapshot has been updated appropriately
 func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 
@@ -508,7 +556,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue != structs.MeshGatewayModeDefault {
-			ns.Proxy.MeshGateway.Mode = meshGatewayProxyConfigValue
+			for i := range ns.Proxy.Upstreams {
+				if u := &ns.Proxy.Upstreams[i]; u.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+					u.MeshGateway.Mode = meshGatewayProxyConfigValue
+				}
+			}
 		}
 
 		ixnMatch := TestIntentions()
@@ -526,6 +578,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
 					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-remote",
@@ -535,6 +590,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
 					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
@@ -546,6 +604,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeLocal,
 					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-direct",
@@ -555,6 +616,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeNone,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
 					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-failover-to-peer", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
@@ -566,6 +630,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
 					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
 				}),
 				fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-dc2",
@@ -575,6 +642,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
 					},
 				}),
 				"upstream:" + pqUID.String(): genVerifyPreparedQueryWatch("query", "dc1"),
@@ -696,6 +766,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 				require.True(t, snap.ConnectProxy.MeshConfigSet)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
@@ -729,6 +805,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
@@ -830,6 +912,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.MeshGateway.ServiceGroups)
 						require.Empty(t, snap.MeshGateway.ServiceResolvers)
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
+						require.Empty(t, snap.MeshGateway.WatchedPeeringServices)
+						require.Empty(t, snap.MeshGateway.WatchedPeers)
+						require.Empty(t, snap.MeshGateway.PeeringServices)
 					},
 				},
 				{
@@ -897,8 +982,22 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 						{
 							CorrelationID: peeringTrustBundlesWatchID,
-							Result: &pbpeering.TrustBundleListByServiceResponse{
-								Bundles: nil,
+							Result:        peerTrustBundles,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+								},
+							},
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-10"},
+								},
 							},
 						},
 					},
@@ -906,6 +1005,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 1)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 1)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 1)
 					},
 				},
 				{
@@ -920,11 +1023,33 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-a",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									{Name: "service-1"},
+									{Name: "service-2"},
+									{Name: "service-3"},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: peeringServiceListWatchID + "peer-b",
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{},
+							},
+							Err: nil,
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.MeshGateway.WatchedServices, 2)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 3)
+						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 0)
 					},
 				},
 				{
@@ -1087,6 +1212,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						consulServerListWatchID: genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
+						peerServersWatchID:      genVerifyPeeringListWatchForMeshGateway(),
 					},
 					events: []UpdateEvent{
 						{
@@ -1123,8 +1249,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshGateway.PeerServersWatchCancel)
 
-						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 						require.True(t, ok)
 
 						expect := structs.CheckServiceNodes{
@@ -1156,6 +1283,64 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 				},
 				{
+					requiredWatches: map[string]verifyWatchRequest{
+						consulServerListWatchID: genVerifyServiceSpecificPeeredRequest(structs.ConsulServiceName, "", "dc1", "", false),
+						peerServersWatchID:      genVerifyPeeringListWatchForMeshGateway(),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: peerServersWatchID,
+							Result: &pbpeering.PeeringListResponse{
+								Peerings: []*pbpeering.Peering{
+									{
+										Name:                "peer-bar",
+										PeerServerName:      "server.bar.peering.bar-domain",
+										PeerServerAddresses: []string{"1.2.3.4:8443", "2.3.4.5:8443"},
+										ModifyIndex:         30,
+									},
+									{
+										Name:                "peer-broken",
+										PeerServerName:      "server.broken.peering.broken-domain",
+										PeerServerAddresses: []string{},
+										ModifyIndex:         45,
+									},
+									{
+										Name:                "peer-foo-zap",
+										PeerServerName:      "server.foo.peering.foo-domain",
+										PeerServerAddresses: []string{"elb.now-aws.com:8443", "1.2.3.4:8443"},
+										ModifyIndex:         20,
+									},
+									{
+										Name:                "peer-foo-zip",
+										PeerServerName:      "server.foo.peering.foo-domain",
+										PeerServerAddresses: []string{"1.2.3.4:8443", "2.3.4.5:8443"},
+										ModifyIndex:         12,
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.NotNil(t, snap.MeshGateway.PeerServersWatchCancel)
+
+						expect := map[string]PeerServersValue{
+							"server.foo.peering.foo-domain": {
+								Addresses: []structs.ServiceAddress{{Address: "elb.now-aws.com", Port: 8443}},
+								UseCDS:    true,
+								Index:     20,
+							},
+							"server.bar.peering.bar-domain": {
+								Addresses: []structs.ServiceAddress{{Address: "1.2.3.4", Port: 8443}, {Address: "2.3.4.5", Port: 8443}},
+								UseCDS:    false,
+								Index:     30,
+							},
+						}
+						require.Equal(t, expect, snap.MeshGateway.PeerServers)
+					},
+				},
+				{
 					events: []UpdateEvent{
 						{
 							CorrelationID: meshConfigEntryID,
@@ -1172,8 +1357,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid())
 						require.NotNil(t, snap.MeshConfig())
 
-						require.False(t, snap.MeshGateway.WatchedConsulServers.IsWatched(structs.ConsulServiceName))
-						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						require.Nil(t, snap.MeshGateway.PeerServersWatchCancel)
+						require.Empty(t, snap.MeshGateway.PeerServers)
+
+						require.False(t, snap.MeshGateway.WatchedLocalServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 						require.False(t, ok)
 						require.Empty(t, servers)
 					},
@@ -1191,8 +1379,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid())
 						require.Nil(t, snap.MeshConfig())
 
-						require.False(t, snap.MeshGateway.WatchedConsulServers.IsWatched(structs.ConsulServiceName))
-						servers, ok := snap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+						require.False(t, snap.MeshGateway.WatchedLocalServers.IsWatched(structs.ConsulServiceName))
+						servers, ok := snap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 						require.False(t, ok)
 						require.Empty(t, servers)
 					},
@@ -1305,6 +1493,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInNamespace:  "default",
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 					},
 					events: []UpdateEvent{
@@ -2159,13 +2350,25 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Datacenter:             "dc1",
 							OverrideConnectTimeout: 6 * time.Second,
 							OverrideMeshGateway:    structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 					},
 					events: []UpdateEvent{
 						{
 							CorrelationID: "discovery-chain:" + dbUID.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil),
+								Chain: discoverychain.TestCompileConfigEntries(
+									t, "db", "default", "default", "dc1", "trustdomain.consul", nil,
+									&structs.ServiceConfigEntry{
+										Kind: structs.ServiceDefaults,
+										Name: "db",
+										TransparentProxy: structs.TransparentProxyConfig{
+											DialedDirectly: true,
+										},
+									},
+								),
 							},
 							Err: nil,
 						},
@@ -2202,7 +2405,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 											Proxy: structs.ConnectProxyConfig{
 												DestinationServiceName: "db",
 												TransparentProxy: structs.TransparentProxyConfig{
-													DialedDirectly: true,
+													DialedDirectly: false, // This is set true by the service-defaults entry above.
 												},
 											},
 											RaftIndex: structs.RaftIndex{
@@ -2261,7 +2464,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										Proxy: structs.ConnectProxyConfig{
 											DestinationServiceName: "db",
 											TransparentProxy: structs.TransparentProxyConfig{
-												DialedDirectly: true,
+												DialedDirectly: false,
 											},
 										},
 										RaftIndex: structs.RaftIndex{
@@ -2328,6 +2531,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Datacenter:             "dc1",
 							OverrideConnectTimeout: 6 * time.Second,
 							OverrideMeshGateway:    structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 					},
 					events: []UpdateEvent{
@@ -2785,6 +2991,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
 							OverrideMeshGateway:  structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 						rootsWatchID: genVerifyDCSpecificWatch("dc1"),
 						leafWatchID:  genVerifyLeafWatch("api", "dc1"),
@@ -2850,6 +3059,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
 							OverrideMeshGateway:  structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 					},
 					events: []UpdateEvent{
@@ -2885,6 +3097,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
 							OverrideMeshGateway:  structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 						rootsWatchID: genVerifyDCSpecificWatch("dc1"),
 						leafWatchID:  genVerifyLeafWatch("api", "dc1"),
@@ -2926,7 +3141,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					Mode:                   structs.ProxyModeTransparent,
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeLocal,
+					},
+					Mode: structs.ProxyModeTransparent,
 					Upstreams: structs.Upstreams{
 						{
 							DestinationName: "api-a",
@@ -3038,11 +3256,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 				},
 				{
-					// Peered upstream will have set up 3 more watches
 					requiredWatches: map[string]verifyWatchRequest{
 						upstreamPeerWatchIDPrefix + extApiUID.String(): genVerifyServiceSpecificPeeredRequest("api-a", "", "dc1", "peer-a", true),
 						upstreamPeerWatchIDPrefix + extDBUID.String():  genVerifyServiceSpecificPeeredRequest("db", "", "dc1", "peer-a", true),
 						peerTrustBundleIDPrefix + "peer-a":             genVerifyTrustBundleReadWatch("peer-a"),
+						"mesh-gateway:dc1":                             genVerifyGatewayWatch("dc1"),
 					},
 					events: []UpdateEvent{
 						{
@@ -3081,14 +3299,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, ok)
 						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
 
-						// Sanity check that local upstream maps are not populated
+						// Ensure that maps for non-peering endpoints are not populated.
 						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+
+						// Local gateway is  watched but there are no endpoints
+						require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+						_, ok = snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.False(t, ok)
 					},
 				},
 				{
-					// Add another instance of "api-a" service
 					events: []UpdateEvent{
 						{
 							CorrelationID: upstreamPeerWatchIDPrefix + extDBUID.String(),
@@ -3106,6 +3328,20 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 											PeerName: "peer-a",
 											Connect:  structs.ServiceConnect{},
 										},
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: "mesh-gateway:dc1",
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.1.2.3",
+										},
+										Service: structs.TestNodeServiceMeshGateway(t),
 									},
 								},
 							},
@@ -3129,12 +3365,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.NotNil(t, ep)
 						require.Len(t, ep, 1)
 
+						require.Equal(t, 1, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+
+						gwEp, _ := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.NotNil(t, gwEp)
+						require.Len(t, gwEp, 1)
+
 						// Expect a trust bundle
 						ptb, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
 						require.True(t, ok)
 						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
 
-						// Sanity check that local upstream maps are not populated
+						// Ensure that maps for non-peering endpoints are not populated.
 						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
 						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
@@ -3187,6 +3429,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							DestinationName: "api-a",
 							DestinationPeer: "peer-a",
 							LocalBindPort:   10001,
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
 						},
 					},
 				},
@@ -3202,12 +3447,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInNamespace:  "default",
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
 						}),
 						rootsWatchID:                                   genVerifyDCSpecificWatch("dc1"),
 						leafWatchID:                                    genVerifyLeafWatch("web", "dc1"),
 						peeringTrustBundlesWatchID:                     genVerifyTrustBundleListWatch("web"),
 						peerTrustBundleIDPrefix + "peer-a":             genVerifyTrustBundleReadWatch("peer-a"),
 						upstreamPeerWatchIDPrefix + extApiUID.String(): genVerifyServiceSpecificPeeredRequest("api-a", "", "dc1", "peer-a", true),
+						"mesh-gateway:dc1":                             genVerifyGatewayWatch("dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "should not be valid")
@@ -3229,6 +3478,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extApiUID))
 						_, ok = snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
 						require.False(t, ok) // but no data
+
+						// Local gateway is  watched but there are no endpoints
+						require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+						_, ok = snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.False(t, ok)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
@@ -3301,6 +3555,20 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								},
 							},
 						},
+						{
+							CorrelationID: "mesh-gateway:dc1",
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.1.2.3",
+										},
+										Service: structs.TestNodeServiceMeshGateway(t),
+									},
+								},
+							},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
@@ -3324,8 +3592,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						ep, _ := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
 						require.NotNil(t, ep)
 
-						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+						require.Equal(t, 1, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+
+						gwEp, _ := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+						require.NotNil(t, gwEp)
+						require.Len(t, gwEp, 1)
 					},
 				},
 			},
@@ -3348,7 +3619,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			}
 			wr := recordWatches(&sc)
 
-			state, err := newState(proxyID, &tc.ns, testSource, "", sc)
+			state, err := newState(proxyID, &tc.ns, testSource, aclToken, sc, rate.NewLimiter(rate.Inf, 0))
 
 			// verify building the initial state worked
 			require.NoError(t, err)
@@ -3521,3 +3792,5 @@ func Test_hostnameEndpoints(t *testing.T) {
 		})
 	}
 }
+
+const aclToken = "foo"

@@ -632,6 +632,48 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				},
 			},
 		)
+	case "imported-services":
+		peerTrustBundles := TestPeerTrustBundles(t).Bundles
+		dbSN := structs.NewServiceName("db", nil)
+		altSN := structs.NewServiceName("alt", nil)
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: peeringTrustBundlesWatchID,
+				Result: &pbpeering.TrustBundleListByServiceResponse{
+					Bundles: peerTrustBundles,
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-a",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{altSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringServiceListWatchID + "peer-b",
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{dbSN},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-a:db",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "peer-a", "10.40.1.2", false),
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peering-connect-service:peer-b:alt",
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.1", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "peer-b", "10.40.2.2", true),
+					},
+				},
+			},
+		)
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
@@ -727,6 +769,78 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 					Services: []structs.ServiceName{
 						dbSN,
 						altSN,
+					},
+				},
+			},
+		)
+	case "peer-through-mesh-gateway":
+
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: meshConfigEntryID,
+				Result: &structs.ConfigEntryResponse{
+					Entry: &structs.MeshConfigEntry{
+						Peering: &structs.PeeringMeshConfig{
+							PeerThroughMeshGateways: true,
+						},
+					},
+				},
+			},
+			// We add extra entries that should not necessitate any
+			// xDS changes in Envoy, plus one hostname and one
+			UpdateEvent{
+				CorrelationID: peerServersWatchID,
+				Result: &pbpeering.PeeringListResponse{
+					Peerings: []*pbpeering.Peering{
+						// Not active
+						{
+							Name:           "peer-a",
+							PeerServerName: connect.PeeringServerSAN("dc2", "f3f41279-001d-42bb-912e-f6103fb036b8"),
+							PeerServerAddresses: []string{
+								"1.2.3.4:5200",
+							},
+							State:       pbpeering.PeeringState_TERMINATED,
+							ModifyIndex: 2,
+						},
+						// No server addresses, so this should only be accepting connections
+						{
+							Name:                "peer-b",
+							PeerServerName:      connect.PeeringServerSAN("dc2", "0a3f8926-fda9-4274-b6f6-99ee1a43cbda"),
+							PeerServerAddresses: []string{},
+							State:               pbpeering.PeeringState_ESTABLISHING,
+							ModifyIndex:         3,
+						},
+						// This should override the peer-c entry since it has a higher index, even though it is processed earlier.
+						{
+							Name:           "peer-c-prime",
+							PeerServerName: connect.PeeringServerSAN("dc2", "6d942ff2-6a78-46f4-a52f-915e26c48797"),
+							PeerServerAddresses: []string{
+								"9.10.11.12:5200",
+								"13.14.15.16:5200",
+							},
+							State:       pbpeering.PeeringState_ESTABLISHING,
+							ModifyIndex: 20,
+						},
+						// Uses an ip as the address
+						{
+							Name:           "peer-c",
+							PeerServerName: connect.PeeringServerSAN("dc2", "6d942ff2-6a78-46f4-a52f-915e26c48797"),
+							PeerServerAddresses: []string{
+								"5.6.7.8:5200",
+							},
+							State:       pbpeering.PeeringState_ESTABLISHING,
+							ModifyIndex: 10,
+						},
+						// Uses a hostname as the address
+						{
+							Name:           "peer-d",
+							PeerServerName: connect.PeeringServerSAN("dc3", "f622dc37-7238-4485-ab58-0f53864a9ae5"),
+							PeerServerAddresses: []string{
+								"my-load-balancer-1234567890abcdef.elb.us-east-2.amazonaws.com:8080",
+							},
+							State:       pbpeering.PeeringState_ESTABLISHING,
+							ModifyIndex: 4,
+						},
 					},
 				},
 			},

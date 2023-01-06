@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1443,8 +1442,8 @@ func TestAgent_Self(t *testing.T) {
 			}
 			ports = {
 				grpc = -1
-			}
-			`,
+				grpc_tls = -1
+			}`,
 			expectXDS: false,
 			grpcTLS:   false,
 		},
@@ -1453,7 +1452,9 @@ func TestAgent_Self(t *testing.T) {
 			node_meta {
 				somekey = "somevalue"
 			}
-			`,
+			ports = {
+				grpc_tls = -1
+			}`,
 			expectXDS: true,
 			grpcTLS:   false,
 		},
@@ -1461,8 +1462,7 @@ func TestAgent_Self(t *testing.T) {
 			hcl: `
 				node_meta {
 					somekey = "somevalue"
-				}
-				`,
+				}`,
 			expectXDS: true,
 			grpcTLS:   true,
 		},
@@ -1762,7 +1762,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	}
 
 	dc1 := "dc1"
-	tmpFileRaw, err := ioutil.TempFile("", "rexec")
+	tmpFileRaw, err := os.CreateTemp("", "rexec")
 	require.NoError(t, err)
 	tmpFile := tmpFileRaw.Name()
 	defer os.Remove(tmpFile)
@@ -1801,7 +1801,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		contentsStr := ""
 		// Wait for watch to be populated
 		for i := 1; i < 7; i++ {
-			contents, err := ioutil.ReadFile(tmpFile)
+			contents, err := os.ReadFile(tmpFile)
 			if err != nil {
 				t.Fatalf("should be able to read file, but had: %#v", err)
 			}
@@ -7095,7 +7095,12 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	t.Parallel()
 
 	testVault := ca.NewTestVaultServer(t)
-	defer testVault.Stop()
+
+	vaultToken := ca.CreateVaultTokenWithAttrs(t, testVault.Client(), &ca.VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	})
 
 	a := StartTestAgent(t, TestAgent{Overrides: fmt.Sprintf(`
 		connect {
@@ -7108,7 +7113,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 				intermediate_pki_path = "pki-intermediate/"
 			}
 		}
-	`, testVault.Addr, testVault.RootToken)})
+	`, testVault.Addr, vaultToken)})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -7117,7 +7122,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	{
 		args := &structs.DCSpecificRequest{Datacenter: "dc1"}
 		var reply structs.IndexedCARoots
-		require.NoError(t, a.RPC("ConnectCA.Roots", args, &reply))
+		require.NoError(t, a.RPC(context.Background(), "ConnectCA.Roots", args, &reply))
 		for _, r := range reply.Roots {
 			if r.ID == reply.ActiveRootID {
 				ca1 = r
@@ -7545,7 +7550,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionAllow
 
-		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7595,7 +7600,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionDeny
 
-		require.Nil(t, a.RPC("Intention.Apply", &req, &ixnId))
+		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	// Short sleep lets the cache background refresh happen
@@ -7648,7 +7653,7 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7701,7 +7706,7 @@ func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	{
@@ -7750,7 +7755,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 	{
 		// Allow web to DB
@@ -7766,7 +7771,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		assert.Nil(t, a.RPC("Intention.Apply", &req, &reply))
+		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	// Web should be allowed

@@ -103,6 +103,9 @@ type DataSources struct {
 	// notification channel.
 	PeeredUpstreams PeeredUpstreams
 
+	// PeeringList provides peering updates on a notification channel.
+	PeeringList PeeringList
+
 	// PreparedQuery provides updates about the results of a prepared query.
 	PreparedQuery PreparedQuery
 
@@ -213,6 +216,11 @@ type LeafCertificate interface {
 // for all peered targets in a given partition.
 type PeeredUpstreams interface {
 	Notify(ctx context.Context, req *structs.PartitionSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// PeeringList is the interface used to consume updates about peerings in the cluster or partition
+type PeeringList interface {
+	Notify(ctx context.Context, req *cachetype.PeeringListRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // PreparedQuery is the interface used to consume updates about the results of

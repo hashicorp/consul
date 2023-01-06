@@ -39,22 +39,20 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
+| 1.14.x              | 1.24.0, 1.23.1, 1.22.5, 1.21.5                                                     |
 | 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
 | 1.12.x              | 1.22.5, 1.21.5, 1.20.7, 1.19.5                                                     |
-| 1.11.x              | 1.20.7, 1.19.5, 1.18.6, 1.17.4<sup>1</sup>                                         |
 
 1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
 Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
 
 ### Envoy and Consul Dataplane
 
-~> **Note:** Consul Dataplane is currently in beta.
-
 Consul Dataplane is a feature introduced in Consul v1.14. Because each version of Consul Dataplane supports one specific version of Envoy, you must use the following versions of Consul, Consul Dataplane, and Envoy together.
 
 | Consul Version      | Consul Dataplane Version | Bundled Envoy Version  |
 | ------------------- | ------------------------ | ---------------------- |
-| 1.14.x              | 1.0.x                    | 1.23.x                 |
+| 1.14.x              | 1.0.x                    | 1.24.x                 |
 
 ## Getting Started
 
@@ -120,21 +118,25 @@ If TLS is enabled on Consul, you will also need to add the following environment
 
 ## Bootstrap Configuration
 
-Envoy requires an initial bootstrap configuration file. The easiest way to
-create this is using the [`consul connect envoy`
-command](/commands/connect/envoy). The command can either output the
-bootstrap configuration directly to stdout, or generate the configuration and issue an `exec` command
-to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
+Envoy requires an initial bootstrap configuration file. You can either create the file manually using the Consul command line or configure Consul Dataplane to generate the file.
 
-Because some Envoy configuration options, such as metrics and tracing sinks, can only be
-specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
-the ability to control some parts of the bootstrap config via proxy configuration options.
+### Generate the bootstrap file on the Consul CLI
 
-Add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
-of a [proxy service
-definition](/docs/connect/registration/service-registration) or
-[`sidecar_service`](/docs/connect/registration/sidecar-service) block.
+Connect to a local Consul client agent and run the [`consul connect envoy` command](/commands/connect/envoy) to create the Envoy bootstrap configuration. The command either outputs the bootstrap configuration directly to stdout or generates the configuration and issues an `exec` command to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
+
+### Generate the bootstrap file from Consul Dataplane
+
+Consul Dataplane automatically configures and manages an Envoy process. Consul Dataplane generates the Envoy bootstrap configuration file prior to starting Envoy. To configure how Consul Dataplane starts Envoy, refer to the [Consul Dataplane CLI reference](/docs/connect/dataplane/consul-dataplane).
+
+### Control bootstrap configuration from proxy configuration
+
+Consul service mesh can control some parts of the bootstrap configuration by specifying Envoy proxy configuration options.
+
+Add the following configuration items to the [global `proxy-defaults` configuration
+entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config`
+field of a [proxy service definition](/docs/connect/registration/service-registration). When
+connected to a Consul client agent, you can place the configuration in the `proxy.config` field of
+the [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
@@ -251,11 +253,12 @@ $ envoy -c bootstrap.json
 
 Consul automatically generates Envoy's dynamic configuration based on its
 knowledge of the cluster. Users may specify default configuration options for
-each service such as which protocol they speak. Consul will use this information
-to configure appropriate proxy settings for that service's proxies and also for
-the upstream listeners of any downstream service.
+a service through the available fields in the [`service-defaults` configuration
+entry](/docs/connect/config-entries/service-defaults). Consul will use this
+information to configure appropriate proxy settings for that service's proxies
+and also for the upstream listeners used by the service.
 
-One example is how users can define a service's protocol in a [`service-defaults` configuration
+One example is how users can define a service's protocol in the `Protocol` field of [`service-defaults` configuration
 entry](/docs/connect/config-entries/service-defaults). Agents with
 [`enable_central_service_config`](/docs/agent/config/config-files#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
@@ -274,7 +277,7 @@ To learn about other options that can be configured centrally see the
 
 ### Proxy Config Options
 
-These fields may also be overridden explicitly in the [proxy service
+These fields may also be overridden explicitly in `proxy.config` of the [proxy service
 definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
 entry](/docs/connect/config-entries/proxy-defaults) to act as
@@ -327,11 +330,19 @@ defaults that are inherited by all services.
   specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
   disable request timeouts.
 
+- `local_idle_timeout_ms` - In milliseconds, the idle timeout for HTTP requests
+  to the local application instance. Applies to HTTP based protocols only. If not
+  specified, inherits the Envoy default for route idle timeouts (15s). A value of 0 
+  disables request timeouts.
+
+- `max_inbound_connections` - The maximum number of concurrent inbound connections
+  to the local application instance. If not specified, inherits the Envoy default (1024).
+
 - `balance_inbound_connections` - The strategy used for balancing inbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the
   following `balance_inbound_connections` values:
 
-  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections. 
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections.
   - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
@@ -382,23 +393,27 @@ definition](/docs/connect/registration/service-registration) or
     since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
-- `passive_health_check` - Passive health checks are used to remove hosts from
-  the upstream cluster which are unreachable or are returning errors.
+- `passive_health_check` - Passive health checks remove hosts from the upstream
+  cluster that are unreachable or that return errors.
 
-  - `interval` - The time between checks. Each check will cause hosts which
-    have exceeded `max_failures` to be removed from the load balancer, and
-    any hosts which have passed their ejection time to be returned to the
-    load balancer.
-  - `max_failures` - The number of consecutive failures which cause a host to be
-    removed from the load balancer.
-  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected
-    when an outlier status is detected through consecutive 5xx.
+  - `interval` - The time in nanosecond between checks. Each check will cause
+    hosts which have exceeded `max_failures` to be removed from the load
+    balancer, and any hosts which have passed their ejection time to be
+    returned to the load balancer. If not specified, it uses the default value.
+    For example, 10s for Envoy proxy.
+  - `max_failures` - The number of consecutive failures that cause a host to be
+    removed from the upstream cluster. If not specified, Consul uses the proxy's
+    default value. For example, `5` for Envoy proxy.
+  -  `enforcing_consecutive_5xx` - A percentage representing the chance that a
+    host will be actually ejected when the proxy detects an outlier status
+    through consecutive errors in the 500 code range. If not specified, Consul
+    uses the proxy's default value. For example, `100` for Envoy proxy.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the
   following `balance_outbound_connections` values:
 
-  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections. 
+  - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance outbound connections.
   - `exact_balance` - Outbound connections from the upstream use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
 
@@ -440,6 +455,26 @@ will continue to be supported.
   This option applies to terminating gateways that route to services
   addressed by a hostname, such as a managed database. It also applies to mesh gateways,
   such as when gateways in other Consul datacenters are behind a load balancer that is addressed by a hostname.
+
+- `envoy_gateway_remote_tcp_enable_keepalive` - Enables TCP keepalive settings on remote
+  upstream connections for mesh and terminating gateways. Defaults to `false`. Must be one
+  of `true` or `false`. Details for this feature are available in the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+
+- `envoy_gateway_remote_tcp_keepalive_time` - The number of seconds a connection needs to
+  be idle before keep-alive probes start being sent. For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to remote upstream connections for mesh and terminating gateways.
+
+- `envoy_gateway_remote_tcp_keepalive_interval` - The number of seconds between keep-alive probes.
+  For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to remote upstream connections for mesh and terminating gateways.
+
+- `envoy_gateway_remote_tcp_keepalive_probes` - Maximum number of keepalive probes to send without
+  response before deciding the connection is dead. For more information, see the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-tcpkeepalive).
+  This option only applies to remote upstream connections for mesh and terminating gateways.
 
 ## Advanced Configuration
 

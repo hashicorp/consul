@@ -104,6 +104,13 @@ type ExposeConfig struct {
 	Paths []ExposePath `json:",omitempty"`
 }
 
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+type EnvoyExtension struct {
+	Name      string
+	Required  bool
+	Arguments map[string]interface{} `bexpr:"-"`
+}
+
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`
@@ -120,6 +127,36 @@ type ExposePath struct {
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
+}
+
+type LogSinkType string
+
+const (
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
+)
+
+// AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
+type AccessLogsConfig struct {
+	// Enabled turns off all access logging
+	Enabled bool `json:",omitempty" alias:"enabled"`
+
+	// DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
+	// have a matching listener filter.
+	DisableListenerLogs bool `json:",omitempty" alias:"disable_listener_logs"`
+
+	// Type selects the output for logs: "file", "stderr". "stdout"
+	Type LogSinkType `json:",omitempty" alias:"type"`
+
+	// Path is the output file to write logs
+	Path string `json:",omitempty" alias:"path"`
+
+	// The presence of one format string or the other implies the access log string encoding.
+	// Defining Both is invalid.
+	JSONFormat string `json:",omitempty" alias:"json_format"`
+	TextFormat string `json:",omitempty" alias:"text_format"`
 }
 
 type UpstreamConfiguration struct {
@@ -243,6 +280,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
 	ModifyIndex               uint64
@@ -266,6 +304,8 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
@@ -273,7 +313,7 @@ type ProxyConfigEntry struct {
 }
 
 func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
-func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetName() string            { return ProxyConfigGlobal }
 func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
 func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
 func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }

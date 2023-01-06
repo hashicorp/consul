@@ -43,7 +43,6 @@ import (
 
 const (
 	testPeerID                = "caf067a6-f112-4907-9101-d45857d2b149"
-	testActiveStreamSecretID  = "e778c518-f0db-473a-9224-24b357da971d"
 	testPendingStreamSecretID = "522c0daf-2ef2-4dab-bc78-5e04e3daf552"
 	testEstablishmentSecretID = "f6569d37-1c5b-4415-aae5-26f4594f7f60"
 )
@@ -126,7 +125,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 
 	// Receive a subscription from a peer. This message arrives while the
 	// server is a leader and should work.
-	testutil.RunStep(t, "send subscription request to leader and consume its four requests", func(t *testing.T) {
+	testutil.RunStep(t, "send subscription request to leader and consume its three requests", func(t *testing.T) {
 		sub := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Open_{
 				Open: &pbpeerstream.ReplicationMessage_Open{
@@ -149,10 +148,6 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		msg3, err := client.Recv()
 		require.NoError(t, err)
 		require.NotEmpty(t, msg3)
-
-		msg4, err := client.Recv()
-		require.NoError(t, err)
-		require.NotEmpty(t, msg4)
 	})
 
 	// The ACK will be a new request but at this point the server is not the
@@ -552,6 +547,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
+	waitUntil := it.FutureNow(6)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -573,8 +569,19 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	var lastSendAck time.Time
+	var lastSendSuccess *time.Time
 
 	client.DrainStream(t)
+
+	// Wait for async workflows to complete.
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, waitUntil, it.FutureNow(1))
+	})
+
+	// Manually grab the last success time from sending the trust bundle or exported services list.
+	status, ok := srv.StreamStatus(testPeerID)
+	require.True(t, ok)
+	lastSendSuccess = status.LastSendSuccess
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
@@ -590,15 +597,16 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		lastSendAck = it.FutureNow(1)
+
 		err := client.Send(ack)
 		require.NoError(t, err)
 
 		expect := Status{
 			Connected:        true,
-			LastAck:          lastSendAck,
+			LastSendSuccess:  lastSendSuccess,
+			LastAck:          &lastSendAck,
 			ExportedServices: []string{},
 		}
-
 		retry.Run(t, func(r *retry.R) {
 			rStatus, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
@@ -632,8 +640,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:        true,
-			LastAck:          lastSendAck,
-			LastNack:         lastNack,
+			LastSendSuccess:  lastSendSuccess,
+			LastAck:          &lastSendAck,
+			LastNack:         &lastNack,
 			LastNackMessage:  lastNackMsg,
 			ExportedServices: []string{},
 		}
@@ -683,10 +692,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastSendSuccess:         lastSendSuccess,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
 			ExportedServices:        []string{},
 		}
 
@@ -738,11 +748,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastSendSuccess:         lastSendSuccess,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
 			ExportedServices:        []string{},
 		}
@@ -767,13 +778,14 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               true,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastSendSuccess:         lastSendSuccess,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -794,14 +806,15 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expect := Status{
 			Connected:               false,
 			DisconnectErrorMessage:  lastRecvErrorMsg,
-			LastAck:                 lastSendAck,
-			LastNack:                lastNack,
+			LastSendSuccess:         lastSendSuccess,
+			LastAck:                 &lastSendAck,
+			LastNack:                &lastNack,
 			LastNackMessage:         lastNackMsg,
-			DisconnectTime:          disconnectTime,
-			LastRecvResourceSuccess: lastRecvResourceSuccess,
-			LastRecvError:           lastRecvError,
+			DisconnectTime:          &disconnectTime,
+			LastRecvResourceSuccess: &lastRecvResourceSuccess,
+			LastRecvError:           &lastRecvError,
 			LastRecvErrorMessage:    lastRecvErrorMsg,
-			LastRecvHeartbeat:       lastRecvHeartbeat,
+			LastRecvHeartbeat:       &lastRecvHeartbeat,
 			ExportedServices:        []string{},
 		}
 
@@ -882,9 +895,6 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
 
 		expectReplEvents(t, client,
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				// Roots tested in TestStreamResources_Server_CARootUpdates
@@ -1094,9 +1104,6 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 	testutil.RunStep(t, "initial CA Roots replication", func(t *testing.T) {
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringServerAddresses, msg.GetRequest().ResourceURL)
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				require.Equal(t, "roots", msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
@@ -1150,6 +1157,58 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 	})
 }
 
+func TestStreamResources_Server_AckNackNonce(t *testing.T) {
+	srv, store := newTestServer(t, func(c *Config) {
+		c.incomingHeartbeatTimeout = 10 * time.Millisecond
+	})
+
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+
+	// Set the initial roots and CA configuration.
+	_, _ = writeInitialRootsAndCA(t, store)
+
+	client := makeClient(t, srv, testPeerID)
+	client.DrainStream(t)
+
+	testutil.RunStep(t, "ack contains nonce from response", func(t *testing.T) {
+		resp := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Response_{
+				Response: &pbpeerstream.ReplicationMessage_Response{
+					ResourceURL: pbpeerstream.TypeURLExportedService,
+					Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+					Nonce:       "1234",
+				},
+			},
+		}
+		require.NoError(t, client.Send(resp))
+
+		msg, err := client.Recv()
+		require.NoError(t, err)
+		require.Equal(t, "1234", msg.GetRequest().ResponseNonce)
+	})
+
+	testutil.RunStep(t, "nack contains nonce from response", func(t *testing.T) {
+		resp := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Response_{
+				Response: &pbpeerstream.ReplicationMessage_Response{
+					ResourceURL: pbpeerstream.TypeURLExportedService,
+					Operation:   pbpeerstream.Operation_OPERATION_UNSPECIFIED, // Unspecified gets NACK
+					Nonce:       "5678",
+				},
+			},
+		}
+		require.NoError(t, client.Send(resp))
+
+		msg, err := client.Recv()
+		require.NoError(t, err)
+		require.Equal(t, "5678", msg.GetRequest().ResponseNonce)
+	})
+	// Add in a sleep to prevent the test from flaking.
+	// The mock client expects certain calls to be made.
+	time.Sleep(50 * time.Millisecond)
+}
+
 // Test that when the client doesn't send a heartbeat in time, the stream is disconnected.
 func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	it := incrementalTime{
@@ -1180,7 +1239,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := it.FutureNow(1)
+		disconnectTime := ptr(it.FutureNow(1))
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
@@ -1249,7 +1308,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	incomingHeartbeatTimeout := 10 * time.Millisecond
+	incomingHeartbeatTimeout := 50 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
@@ -1298,7 +1357,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 				return
 			}
 			select {
-			case <-time.After(incomingHeartbeatTimeout / 2):
+			case <-time.After(incomingHeartbeatTimeout / 10): // Going any slower here triggers flakes when running
 			case <-ctx.Done():
 				close(errCh)
 				return
@@ -1537,17 +1596,20 @@ func Test_processResponse_Validation(t *testing.T) {
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 
 	type testCase struct {
-		name    string
-		in      *pbpeerstream.ReplicationMessage_Response
-		expect  *pbpeerstream.ReplicationMessage
-		wantErr bool
+		name       string
+		in         *pbpeerstream.ReplicationMessage_Response
+		expect     *pbpeerstream.ReplicationMessage
+		extraTests func(t *testing.T, s *state.Store)
+		wantErr    bool
 	}
 
 	srv, store := newTestServer(t, nil)
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
-			ID:   peerID,
-			Name: peerName,
+			Name:                  peerName,
+			ID:                    peerID,
+			ManualServerAddresses: []string{"manual"},
+			PeerServerAddresses:   []string{"one", "two"},
 		},
 	}))
 
@@ -1563,6 +1625,9 @@ func Test_processResponse_Validation(t *testing.T) {
 			require.NoError(t, err)
 		}
 		require.Equal(t, tc.expect, reply)
+		if tc.extraTests != nil {
+			tc.extraTests(t, store)
+		}
 	}
 
 	tt := []testCase{
@@ -1600,6 +1665,28 @@ func Test_processResponse_Validation(t *testing.T) {
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `received response for unknown resource type "nomad.Job"`,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing a nonce",
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLExportedService,
+				ResourceID:  "web",
+				Nonce:       "",
+				Operation:   pbpeerstream.Operation_OPERATION_UNSPECIFIED,
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLExportedService,
+						ResponseNonce: "",
+						Error: &pbstatus.Status{
+							Code:    int32(code.Code_INVALID_ARGUMENT),
+							Message: fmt.Sprintf(`received response without a nonce for: %s:web`, pbpeerstream.TypeURLExportedService),
 						},
 					},
 				},
@@ -1647,6 +1734,32 @@ func Test_processResponse_Validation(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "manual server addresses are not overwritten",
+			in: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+				Nonce:       "1",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource: makeAnyPB(t, &pbpeering.PeeringServerAddresses{
+					Addresses: []string{"three"},
+				}),
+			},
+			expect: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL:   pbpeerstream.TypeURLPeeringServerAddresses,
+						ResponseNonce: "1",
+					},
+				},
+			},
+			extraTests: func(t *testing.T, s *state.Store) {
+				_, peer, err := s.PeeringReadByID(nil, peerID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"manual"}, peer.ManualServerAddresses)
+				require.Equal(t, []string{"three"}, peer.PeerServerAddresses)
+			},
+			wantErr: false,
 		},
 	}
 	for _, tc := range tt {
@@ -1797,8 +1910,15 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 		}
 	})
 
+	nonces := make(map[string]struct{})
 	for i := 0; i < num; i++ {
 		checkFns[i](t, out[i])
+
+		// Ensure every nonce was unique.
+		if resp := out[i].GetResponse(); resp != nil {
+			require.NotContains(t, nonces, resp.Nonce)
+			nonces[resp.Nonce] = struct{}{}
+		}
 	}
 }
 
@@ -1867,6 +1987,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 			resp := &pbpeerstream.ReplicationMessage_Response{
 				ResourceURL: pbpeerstream.TypeURLExportedServiceList,
 				ResourceID:  subExportedServiceList,
+				Nonce:       "2",
 				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
 				Resource:    makeAnyPB(t, &pbpeerstream.ExportedServiceList{Services: tc.exportedServices}),
 			}

@@ -165,6 +165,7 @@ func (c *ConnectCALeaf) fetchDone(rootUpdateCh chan struct{}) {
 	if len(c.rootWatchSubscribers) == 0 && c.rootWatchCancel != nil {
 		// This was the last request. Stop the root watcher.
 		c.rootWatchCancel()
+		c.rootWatchCancel = nil
 	}
 }
 
@@ -261,10 +262,10 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 //
 // Somewhat arbitrarily the current strategy looks like this:
 //
-//          0                              60%             90%
-//   Issued [------------------------------|===============|!!!!!] Expires
-// 72h TTL: 0                             ~43h            ~65h
-//  1h TTL: 0                              36m             54m
+//	         0                              60%             90%
+//	  Issued [------------------------------|===============|!!!!!] Expires
+//	72h TTL: 0                             ~43h            ~65h
+//	 1h TTL: 0                              36m             54m
 //
 // Where |===| is the soft renewal period where we jitter for the first attempt
 // and |!!!| is the danger zone where we just try immediately.
@@ -617,7 +618,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		Datacenter:   req.Datacenter,
 		CSR:          csr,
 	}
-	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "ConnectCA.Sign", &args, &reply); err != nil {
 		if err.Error() == consul.ErrRateLimited.Error() {
 			if result.Value == nil {
 				// This was a first fetch - we have no good value in cache. In this case

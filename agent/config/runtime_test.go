@@ -7,8 +7,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -19,13 +19,16 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
+
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -55,6 +58,8 @@ func (tc testCase) source(format string) []string {
 	}
 	return tc.json
 }
+
+var defaultGrpcTlsAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:8503"))
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
@@ -183,6 +188,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap = true: do not enable unless necessary"},
 	})
@@ -201,6 +208,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"bootstrap_expect > 0: expecting 3 servers"},
 	})
@@ -347,6 +356,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCPort = 8502
 			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -537,8 +548,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsLAN = []string{"a", "b"}
+			rt.RetryJoinLAN = []string{"a", "b"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join", "-retry-join"),
 		},
 	})
 	run(t, testCase{
@@ -549,8 +563,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsWAN = []string{"a", "b"}
+			rt.RetryJoinWAN = []string{"a", "b"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
 		},
 	})
 	run(t, testCase{
@@ -668,6 +685,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -852,6 +871,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -1390,8 +1411,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1400,8 +1424,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
 		hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
 		expected: func(rt *RuntimeConfig) {
-			rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
+			rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecationWarning("start_join_wan", "retry_join_wan"),
 		},
 	})
 	run(t, testCase{
@@ -1499,9 +1526,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
 			rt.PrimaryDatacenter = "b"
-			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
+			rt.RetryJoinLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			// TODO: deduplicate warnings?
+			deprecationWarning("start_join", "retry_join"),
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 	run(t, testCase{
@@ -1558,7 +1590,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeMeta = map[string]string{"a": "c"}
 			rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 			rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
-			rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
+			rt.RetryJoinLAN = []string{"c", "d", "a", "b"}
 			rt.TaggedAddresses = map[string]string{
 				"lan":      "1.1.1.1",
 				"lan_ipv4": "1.1.1.1",
@@ -1566,6 +1598,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"wan_ipv4": "2.2.2.2",
 			}
 			rt.DataDir = dataDir
+		},
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join", "-retry-join"),
+			deprecationWarning("start_join", "retry_join"),
 		},
 	})
 
@@ -1892,6 +1928,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 	})
@@ -1910,6 +1948,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -1931,6 +1971,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -2455,6 +2497,40 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 		},
 	})
+	run(t, testCase{
+		desc: "os_service check no interval",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo" }`,
+		},
+		expectedErr: `Interval must be > 0 for Script, HTTP, H2PING, TCP, UDP or OSService checks`,
+	})
+	run(t, testCase{
+		desc: "os_service check",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "os_service": "foo", "interval": "30s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a", os_service = "foo", interval = "30s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a",
+					OSService:     "foo",
+					Interval:      30 * time.Second,
+					OutputMaxSize: checks.DefaultBufSize,
+				},
+			}
+			rt.DataDir = dataDir
+		}})
 	run(t, testCase{
 		desc: "multiple service files",
 		args: []string{
@@ -3071,6 +3147,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3103,6 +3181,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3132,6 +3212,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3158,6 +3240,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3204,6 +3288,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -3479,7 +3565,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			    enable_mesh_gateway_wan_federation = true
 			  }
 			`},
-		expectedErr: "'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
+		expectedErr: "'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'",
+		expectedWarnings: []string{
+			deprecatedFlagWarning("-join-wan", "-retry-join-wan"),
+		},
 	})
 	run(t, testCase{
 		desc: "connect.enable_mesh_gateway_wan_federation cannot use -retry-join-wan",
@@ -3623,6 +3712,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 
@@ -4042,6 +4133,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									  "namespace"               : "leek",
 									  "prefix_rewrite"          : "/alternate",
 									  "request_timeout"         : "99s",
+									  "idle_timeout"            : "99s",
 									  "num_retries"             : 12345,
 									  "retry_on_connect_failure": true,
 									  "retry_on_status_codes"   : [401, 209]
@@ -4130,6 +4222,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								  namespace             = "leek"
 								  prefix_rewrite         = "/alternate"
 								  request_timeout        = "99s"
+								  idle_timeout           = "99s"
 								  num_retries            = 12345
 								  retry_on_connect_failure = true
 								  retry_on_status_codes    = [401, 209]
@@ -4219,6 +4312,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
+								IdleTimeout:           99 * time.Second,
 								NumRetries:            12345,
 								RetryOnConnectFailure: true,
 								RetryOnStatusCodes:    []uint32{401, 209},
@@ -4543,10 +4637,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// defaults are changed from these values forcing that change to be
 			// intentional.
 			rt.RPCHandshakeTimeout = 5 * time.Second
+			rt.RPCClientTimeout = 60 * time.Second
 			rt.HTTPSHandshakeTimeout = 5 * time.Second
 			rt.HTTPMaxConnsPerClient = 200
 			rt.RPCMaxConnsPerClient = 100
+			rt.RequestLimitsMode = consulrate.ModeDisabled
+			rt.RequestLimitsReadRate = rate.Inf
+			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
+			rt.XDSUpdateRateLimit = 250
 		},
 	})
 
@@ -5045,6 +5144,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SkipLeaveOnInt = true
 			rt.TLS.InternalRPC.CertFile = "foo"
 			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	// UI Config tests
@@ -5854,6 +5955,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
+				OSService:                      "aAjE6m9Z",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
@@ -5883,6 +5985,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
+				OSService:                      "aqq95BhP",
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
@@ -5911,6 +6014,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
+				OSService:                      "aZaCAXww",
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
@@ -5989,13 +6093,13 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxConcurrent":    float64(2),
 		},
 		ConnectMeshGatewayWANFederationEnabled: false,
-		ConnectServerlessPluginEnabled:         true,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",
 			ClientID:     "6WvsDZCP",
 			ClientSecret: "lCSMHOpB",
 			Hostname:     "DH4bh7aC",
 			AuthURL:      "332nCdR2",
+			ScadaAddress: "aoeusth232",
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -6076,6 +6180,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:             tcpAddr("16.99.34.17:3757"),
 		RPCHandshakeTimeout:     1932 * time.Millisecond,
+		RPCClientTimeout:        62 * time.Second,
 		RPCHoldTimeout:          15707 * time.Second,
 		RPCProtocol:             30793,
 		RPCRateLimit:            12029.43,
@@ -6087,13 +6192,16 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftTrailingLogs:        83749,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
+		RequestLimitsMode:       consulrate.ModePermissive,
+		RequestLimitsReadRate:   99.0,
+		RequestLimitsWriteRate:  101.0,
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,
-		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij"},
+		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij", "LR3hGDoG", "MwVpZ4Up"},
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
-		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER", "EbFSc3nA", "kwXTh623"},
 		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentLimit:            123,
 		SerfPortLAN:             8301,
@@ -6133,6 +6241,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
 						H2PingUseTLS:                   false,
+						OSService:                      "amfeO5if",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
@@ -6185,6 +6294,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "MN3oA9D2",
 						H2PING:                         "OV6Q2XEg",
 						H2PingUseTLS:                   false,
+						OSService:                      "GTti9hCA",
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
@@ -6330,6 +6440,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
 						H2PingUseTLS:                   false,
+						OSService:                      "ZA99e9Ka",
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
@@ -6356,6 +6467,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
 						H2PingUseTLS:                   false,
+						OSService:                      "GAaO6Mpr",
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
@@ -6382,6 +6494,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
 						H2PingUseTLS:                   false,
+						OSService:                      "RAa85Dv8",
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
@@ -6402,8 +6515,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfAllowedCIDRsWAN:  []net.IPNet{},
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
-		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6516,6 +6627,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		XDSUpdateRateLimit:               9526.2,
 		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
@@ -6548,6 +6660,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("verify_outgoing", "tls.defaults.verify_outgoing"),
 		deprecationWarning("verify_server_hostname", "tls.internal_rpc.verify_server_hostname"),
 		"The 'tls_prefer_server_cipher_suites' field is deprecated and will be ignored.",
+		deprecationWarning("start_join", "retry_join"),
+		deprecationWarning("start_join_wan", "retry_join_wan"),
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
 
@@ -7109,7 +7223,7 @@ func writeFile(path string, data []byte) {
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		panic(err)
 	}
-	if err := ioutil.WriteFile(path, data, 0640); err != nil {
+	if err := os.WriteFile(path, data, 0640); err != nil {
 		panic(err)
 	}
 }

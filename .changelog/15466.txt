@@ -1,0 +1,3 @@
+```release-note:bug
+cli: Fix issue where `consul connect envoy` incorrectly uses the HTTPS API configuration for xDS connections.
+```

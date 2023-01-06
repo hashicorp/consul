@@ -3,24 +3,61 @@ syntax = "proto3";
 package hashicorp.consul.internal.peering;
 
 import "google/protobuf/timestamp.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
 service PeeringService {
-  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse);
-  rpc Establish(EstablishRequest) returns (EstablishResponse);
-  rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse);
-  rpc PeeringList(PeeringListRequest) returns (PeeringListResponse);
-  rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse);
+  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
+
+  rpc Establish(EstablishRequest) returns (EstablishResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
+
+  rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
+
+  rpc PeeringList(PeeringListRequest) returns (PeeringListResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
+
+  rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 
   // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
-  rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse);
+  rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 
   // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
-  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
+  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 
-  rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse);
+  rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 }
 
 // PeeringState enumerates all the states a peering can be in.
@@ -183,17 +220,10 @@ message Peering {
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
   repeated string PeerServerAddresses = 10;
 
-  // ImportedServiceCount is the count of how many services are imported from this peering.
-  uint64 ImportedServiceCount = 13;
-
-  // ExportedServiceCount is the count of how many services are exported to this peering.
-  uint64 ExportedServiceCount = 14;
-
-  // ImportedServices is the list of services imported from this peering.
-  repeated string ImportedServices = 15;
-
-  // ExportedServices is the list of services exported to this peering.
-  repeated string ExportedServices = 16;
+  // StreamStatus contains information computed on read based on the state of the stream.
+  //
+  // mog: func-to=StreamStatusToAPI func-from=StreamStatusFromAPI
+  StreamStatus StreamStatus = 13;
 
   // CreateIndex is the Raft index at which the Peering was created.
   // @gotags: bexpr:"-"
@@ -202,6 +232,45 @@ message Peering {
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
   // @gotags: bexpr:"-"
   uint64 ModifyIndex = 12;
+
+  // Remote contains metadata about the remote peer.
+  RemoteInfo Remote = 17;
+
+  // ManualServerAddresses provides a list of manually specified server addresses from the
+  // user. If this is defined, then the automatic PeerServerAddresses are ignored.
+  repeated string ManualServerAddresses = 18;
+}
+
+// RemoteInfo contains metadata about the remote peer.
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringRemoteInfo
+// output=peering.gen.go
+// name=API
+message RemoteInfo {
+  // Partition is the remote peer's partition.
+  string Partition = 1;
+  // Datacenter is the remote peer's datacenter.
+  string Datacenter = 2;
+}
+
+// StreamStatus represents information about an active peering stream.
+message StreamStatus {
+  // ImportedServices is the list of services imported from this peering.
+  repeated string ImportedServices = 1;
+
+  // ExportedServices is the list of services exported to this peering.
+  repeated string ExportedServices = 2;
+
+  // LastHeartbeat represents when the last heartbeat message was received.
+  google.protobuf.Timestamp LastHeartbeat = 3;
+
+  // LastReceive represents when any message was last received, regardless of success or error.
+  google.protobuf.Timestamp LastReceive = 4;
+
+  // LastSend represents when any message was last sent, regardless of success or error.
+  google.protobuf.Timestamp LastSend = 5;
 }
 
 // PeeringTrustBundle holds the trust information for validating requests from a peer.
@@ -254,6 +323,7 @@ message PeeringListRequest {
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
+  uint64 Index = 2;
 }
 
 message PeeringWriteRequest {

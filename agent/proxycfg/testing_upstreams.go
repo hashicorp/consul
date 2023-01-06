@@ -25,6 +25,12 @@ func setupTestVariationConfigEntriesAndSnapshot(
 
 	dbChain := setupTestVariationDiscoveryChain(t, variation, additionalEntries...)
 
+	nodes := TestUpstreamNodes(t, "db")
+	if variation == "register-to-terminating-gateway" {
+		for _, node := range nodes {
+			node.Service.Kind = structs.ServiceKindTerminatingGateway
+		}
+	}
 	events := []UpdateEvent{
 		{
 			CorrelationID: "discovery-chain:" + dbUID.String(),
@@ -35,7 +41,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		{
 			CorrelationID: "upstream-target:" + dbChain.ID() + ":" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodes(t, "db"),
+				Nodes: nodes,
 			},
 		},
 	}
@@ -88,7 +94,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodesPeerCluster01(t),
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -106,7 +112,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: TestUpstreamNodesPeerCluster01(t),
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -207,6 +213,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "grpc-router":
 	case "chain-and-router":
 	case "lb-resolver":
+	case "register-to-terminating-gateway":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return nil
@@ -229,6 +236,7 @@ func setupTestVariationDiscoveryChain(
 	switch variation {
 	case "default":
 		// no config entries
+	case "register-to-terminating-gateway":
 	case "simple-with-overrides":
 		compileSetup = func(req *discoverychain.CompileRequest) {
 			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
@@ -684,12 +692,31 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/idle-timeout",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:     "idle-timeout",
+							IdleTimeout: 33 * time.Second,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
 							PathPrefix: "/retry-connect",
 						}),
 						Destination: &structs.ServiceRouteDestination{
 							Service:               "retry-connect",
 							NumRetries:            15,
 							RetryOnConnectFailure: true,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/retry-reset",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:    "retry-reset",
+							NumRetries: 15,
+							RetryOn:    []string{"reset"},
 						},
 					},
 					{
@@ -704,11 +731,12 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-both",
+							PathPrefix: "/retry-all",
 						}),
 						Destination: &structs.ServiceRouteDestination{
-							Service:               "retry-both",
+							Service:               "retry-all",
 							RetryOnConnectFailure: true,
+							RetryOn:               []string{"5xx", "gateway-error", "reset", "connect-failure", "envoy-ratelimited", "retriable-4xx", "refused-stream", "cancelled", "deadline-exceeded", "internal", "resource-exhausted", "unavailable"},
 							RetryOnStatusCodes:    []uint32{401, 409, 451},
 						},
 					},

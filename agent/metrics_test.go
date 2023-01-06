@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -188,7 +188,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
@@ -213,11 +213,11 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
@@ -337,7 +337,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	require.NoError(t, err)
 
 	caPath := filepath.Join(dir, "ca.pem")
-	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+	err = os.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	signer, err := tlsutil.ParseSigner(caPK)
@@ -353,11 +353,11 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	require.NoError(t, err)
 
 	certPath := filepath.Join(dir, "cert.pem")
-	err = ioutil.WriteFile(certPath, []byte(pem), 0600)
+	err = os.WriteFile(certPath, []byte(pem), 0600)
 	require.NoError(t, err)
 
 	keyPath := filepath.Join(dir, "cert.key")
-	err = ioutil.WriteFile(keyPath, []byte(key), 0600)
+	err = os.WriteFile(keyPath, []byte(key), 0600)
 	require.NoError(t, err)
 
 	hcl := fmt.Sprintf(`

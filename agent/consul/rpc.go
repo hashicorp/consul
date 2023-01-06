@@ -14,9 +14,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -992,19 +992,19 @@ type blockingQueryResponseMeta interface {
 //
 // The query function must follow these rules:
 //
-//   1. to access data it must use the passed in state.Store.
-//   2. it must set the responseMeta.Index to an index greater than
-//      opts.GetMinQueryIndex if the results return by the query have changed.
-//   3. any channels added to the memdb.WatchSet must unblock when the results
-//      returned by the query have changed.
+//  1. to access data it must use the passed in state.Store.
+//  2. it must set the responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex if the results return by the query have changed.
+//  3. any channels added to the memdb.WatchSet must unblock when the results
+//     returned by the query have changed.
 //
 // To ensure optimal performance of the query, the query function should make a
 // best-effort attempt to follow these guidelines:
 //
-//   1. only set responseMeta.Index to an index greater than
-//      opts.GetMinQueryIndex when the results returned by the query have changed.
-//   2. any channels added to the memdb.WatchSet should only unblock when the
-//      results returned by the query have changed.
+//  1. only set responseMeta.Index to an index greater than
+//     opts.GetMinQueryIndex when the results returned by the query have changed.
+//  2. any channels added to the memdb.WatchSet should only unblock when the
+//     results returned by the query have changed.
 func (s *Server) blockingQuery(
 	opts blockingQueryOptions,
 	responseMeta blockingQueryResponseMeta,
@@ -1142,7 +1142,7 @@ func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
-		return err //fail fast if leader verification fails
+		return err // fail fast if leader verification fails
 	}
 	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
 	if s.isReadyForConsistentReads() {
@@ -1197,16 +1197,16 @@ func (s *Server) rpcQueryTimeout(queryTimeout time.Duration) time.Duration {
 //
 // Notes:
 //
-//	* The definition of "unauthenticated" here is incomplete, as it doesn't
-//	  account for the fact that operators can modify the anonymous token with
-//	  custom policies, or set namespace default policies. As these scenarios
-//	  are less common and this flag is a best-effort UX improvement, we think
-//	  the trade-off for reduced complexity is acceptable.
+//   - The definition of "unauthenticated" here is incomplete, as it doesn't
+//     account for the fact that operators can modify the anonymous token with
+//     custom policies, or set namespace default policies. As these scenarios
+//     are less common and this flag is a best-effort UX improvement, we think
+//     the trade-off for reduced complexity is acceptable.
 //
-//	* This method assumes that the given token has already been validated (and
-//	  will only check whether it is blank or not). It's a safe assumption because
-//	  ResultsFilteredByACLs is only set to try when applying the already-resolved
-//	  token's policies.
+//   - This method assumes that the given token has already been validated (and
+//     will only check whether it is blank or not). It's a safe assumption because
+//     ResultsFilteredByACLs is only set to try when applying the already-resolved
+//     token's policies.
 func maskResultsFilteredByACLs(token string, meta blockingQueryResponseMeta) {
 	if token == "" {
 		meta.SetResultsFilteredByACLs(false)

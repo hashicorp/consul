@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -142,7 +143,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
 		}
 
 		err := pending.Add(
@@ -254,7 +255,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
 			for chainName, info := range state.connectServices {
-				m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+				m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 			}
 		}
 
@@ -475,7 +476,6 @@ func (m *subscriptionManager) syncNormalServices(
 }
 
 func (m *subscriptionManager) syncDiscoveryChains(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
@@ -488,7 +488,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 		state.connectServices[chainName] = info
 
-		m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -516,7 +516,6 @@ func (m *subscriptionManager) syncDiscoveryChains(
 }
 
 func (m *subscriptionManager) collectPendingEventForDiscoveryChain(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
@@ -665,6 +664,21 @@ func createDiscoChainHealth(
 	}
 }
 
+var statusScores = map[string]int{
+	// 0 is reserved for unknown
+	api.HealthMaint:    1,
+	api.HealthCritical: 2,
+	api.HealthWarning:  3,
+	api.HealthPassing:  4,
+}
+
+func getMostImportantStatus(a, b string) string {
+	if statusScores[a] < statusScores[b] {
+		return a
+	}
+	return b
+}
+
 func flattenChecks(
 	nodeName string,
 	serviceID string,
@@ -676,10 +690,16 @@ func flattenChecks(
 		return nil
 	}
 
+	// Similar logic to (api.HealthChecks).AggregatedStatus()
 	healthStatus := api.HealthPassing
-	for _, chk := range checks {
-		if chk.Status != api.HealthPassing {
-			healthStatus = chk.Status
+	if len(checks) > 0 {
+		for _, chk := range checks {
+			id := chk.CheckID
+			if id == api.NodeMaint || strings.HasPrefix(id, api.ServiceMaintPrefix) {
+				healthStatus = api.HealthMaint
+				break // always wins
+			}
+			healthStatus = getMostImportantStatus(healthStatus, chk.Status)
 		}
 	}
 
@@ -786,7 +806,7 @@ func (m *subscriptionManager) notifyMeshConfigUpdates(ctx context.Context) <-cha
 	const meshConfigWatch = "mesh-config-entry"
 
 	notifyCh := make(chan cache.UpdateEvent, 1)
-	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(ctx_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
+	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		_, rawEntry, err := store.ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get mesh config entry: %w", err)
@@ -836,7 +856,9 @@ func (m *subscriptionManager) ensureServerAddrSubscription(ctx context.Context, 
 		var err error
 
 		idx, err = m.subscribeServerAddrs(ctx, idx, updateCh)
-		if errors.Is(err, stream.ErrSubForceClosed) {
+		if err == nil {
+			waiter.Reset()
+		} else if errors.Is(err, stream.ErrSubForceClosed) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
 
 		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
@@ -907,7 +929,13 @@ func (m *subscriptionManager) subscribeServerAddrs(
 			if srv.ExtGRPCPort == 0 {
 				continue
 			}
-			grpcAddr := srv.Address + ":" + strconv.Itoa(srv.ExtGRPCPort)
+			addr := srv.Address
+
+			// wan address is preferred
+			if v, ok := srv.TaggedAddresses[structs.TaggedAddressWAN]; ok && v != "" {
+				addr = v
+			}
+			grpcAddr := addr + ":" + strconv.Itoa(srv.ExtGRPCPort)
 			serverAddrs = append(serverAddrs, grpcAddr)
 		}
 		if len(serverAddrs) == 0 {

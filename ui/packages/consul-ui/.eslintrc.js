@@ -45,6 +45,7 @@ module.exports = {
     {
       files: [
         '.eslintrc.js',
+        'tailwind.config.js',
         '.docfy-config.js',
         '.prettierrc.js',
         '.template-lintrc.js',

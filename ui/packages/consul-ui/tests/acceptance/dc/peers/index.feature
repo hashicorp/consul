@@ -34,4 +34,21 @@ Feature: dc / peers / index: Peers List
     ---
     And I see 1 peer model
     And I see 1 peer model with the name "a-peer"
-
+  Scenario: Empty state searching peers
+    Then I fill in with yaml
+    ---
+    s: no-match 
+    ---
+    And I see 0 peer model
+    Then I see the text "No peers found" in ".empty-state h2"
+    Then I see the text "No peers were found matching that search, or you may not have the peering:read permissions to access this view." in ".empty-state p"
+    And I see the "[data-test-empty-state-login]" element
+  Scenario: Empty state searching peers with ACLs disabled 
+    And ACLs are disabled
+    Then I fill in with yaml
+    ---
+    s: no-match 
+    ---
+    And I see 0 peer model
+    Then I see the text "No peers found" in ".empty-state h2"
+    Then I see the text "No peers were found matching that search." in ".empty-state p"

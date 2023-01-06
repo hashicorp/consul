@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -26,10 +27,7 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(peer.State == aPeer.State) &&
 			(peer.CreateIndex == aPeer.CreateIndex) &&
 			(peer.ModifyIndex == aPeer.ModifyIndex) &&
-			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
-			(peer.ExportedServiceCount == aPeer.ExportedServiceCount) &&
-			reflect.DeepEqual(peer.ImportedServices, aPeer.ImportedServices) &&
-			reflect.DeepEqual(peer.ExportedServices, aPeer.ExportedServices)
+			(reflect.DeepEqual(peer.StreamStatus, aPeer.StreamStatus))
 
 		if isEqual {
 			return true
@@ -44,7 +42,6 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5300
 	})
 	defer s1.Stop()
 
@@ -52,7 +49,6 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
-		serverConfig.Ports.GRPC = 5301
 		serverConfig.Datacenter = "dc2"
 	})
 	defer s2.Stop()
@@ -256,7 +252,11 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
 	require.NoError(t, err)
 
-	require.Contains(t, string(tokenJSON), externalAddress)
+	// Put the token in an arbitrary map, because the struct isn't available in the api package.
+	token := make(map[string]interface{})
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+	require.Equal(t, []interface{}{s.GRPCTLSAddr}, token["ServerAddresses"])
+	require.Equal(t, []interface{}{externalAddress}, token["ManualServerAddresses"])
 }
 
 // TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:
@@ -265,7 +265,7 @@ func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t) // this is "dc1"
+	c, s := makeClientWithConfig(t, nil, nil) // this is "dc1"
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 

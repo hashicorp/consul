@@ -3,6 +3,7 @@ package pbservice
 import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbconfigentry"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -268,4 +269,14 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	sd := new(ServiceDefinition)
 	ServiceDefinitionFromStructs(t, sd)
 	return sd
+}
+
+// EnvoyExtensionsToStructs converts the protobuf type to structs. This is copied here because it either needs to be in the local package or in structs.
+func EnvoyExtensionsToStructs(args []*pbconfigentry.EnvoyExtension) []structs.EnvoyExtension {
+	return pbconfigentry.EnvoyExtensionsToStructs(args)
+}
+
+// EnvoyExtensionsFromStructs converts the structs type to protobuf type. This is copied here because it either needs to be in the local package or in structs.
+func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*pbconfigentry.EnvoyExtension {
+	return pbconfigentry.EnvoyExtensionsFromStructs(args)
 }

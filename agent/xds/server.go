@@ -37,6 +37,13 @@ var StatsCounters = []prometheus.CounterDefinition{
 	},
 }
 
+var StatsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"xds", "server", "streamStart"},
+		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+	},
+}
+
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
@@ -133,8 +140,7 @@ type Server struct {
 	// ResourceMapMutateFn exclusively exists for testing purposes.
 	ResourceMapMutateFn func(resourceMap *xdscommon.IndexedResources)
 
-	activeStreams           *activeStreamCounters
-	serverlessPluginEnabled bool
+	activeStreams *activeStreamCounters
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
@@ -170,22 +176,20 @@ func (c *activeStreamCounters) Increment(xdsVersion string) func() {
 func NewServer(
 	nodeName string,
 	logger hclog.Logger,
-	serverlessPluginEnabled bool,
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 	limiter SessionLimiter,
 ) *Server {
 	return &Server{
-		NodeName:                nodeName,
-		Logger:                  logger,
-		CfgSrc:                  cfgMgr,
-		ResolveToken:            resolveToken,
-		CfgFetcher:              cfgFetcher,
-		SessionLimiter:          limiter,
-		AuthCheckFrequency:      DefaultAuthCheckFrequency,
-		activeStreams:           &activeStreamCounters{},
-		serverlessPluginEnabled: serverlessPluginEnabled,
+		NodeName:           nodeName,
+		Logger:             logger,
+		CfgSrc:             cfgMgr,
+		ResolveToken:       resolveToken,
+		CfgFetcher:         cfgFetcher,
+		SessionLimiter:     limiter,
+		AuthCheckFrequency: DefaultAuthCheckFrequency,
+		activeStreams:      &activeStreamCounters{},
 	}
 }
 

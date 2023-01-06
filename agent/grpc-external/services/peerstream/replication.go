@@ -54,21 +54,16 @@ func makeExportedServiceListResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedServiceList,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: subExportedServiceList,
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  subExportedServiceList,
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
 // makeServiceResponse handles preparing exported service instance updates to the peer cluster.
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
-func makeServiceResponse(
-	mst *MutableStatus,
-	update cache.UpdateEvent,
-) (*pbpeerstream.ReplicationMessage_Response, error) {
+func makeServiceResponse(update cache.UpdateEvent) (*pbpeerstream.ReplicationMessage_Response, error) {
 	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
 	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
 	if !ok {
@@ -86,11 +81,9 @@ func makeServiceResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedService,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: serviceName,
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  serviceName,
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -104,11 +97,9 @@ func makeCARootsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: "roots",
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  "roots",
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -122,11 +113,9 @@ func makeServerAddrsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
-		// TODO(peering): Nonce management
-		Nonce:      "",
-		ResourceID: "server-addrs",
-		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:   any,
+		ResourceID:  "server-addrs",
+		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:    any,
 	}, nil
 }
 
@@ -155,6 +144,15 @@ func (s *Server) processResponse(
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
+		return makeNACKReply(
+			resp.ResourceURL,
+			resp.Nonce,
+			code.Code_INVALID_ARGUMENT,
+			err.Error(),
+		), err
+	}
+	if resp.Nonce == "" {
+		err := fmt.Errorf("received response without a nonce for: %s:%s", resp.ResourceURL, resp.ResourceID)
 		return makeNACKReply(
 			resp.ResourceURL,
 			resp.Nonce,
@@ -289,7 +287,6 @@ func (s *Server) handleUpsertExportedServiceList(
 	if err != nil {
 		return err
 	}
-
 	for _, sn := range serviceList {
 		if _, ok := exportedServices[sn]; !ok {
 			err := s.handleUpdateService(peerName, partition, sn, nil)
@@ -326,41 +323,74 @@ func (s *Server) handleUpdateService(
 		return fmt.Errorf("failed to read imported services: %w", err)
 	}
 
-	structsNodes, err := export.CheckServiceNodesToStruct()
-	if err != nil {
-		return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
+	structsNodes := []structs.CheckServiceNode{}
+	if export != nil {
+		structsNodes, err = export.CheckServiceNodesToStruct()
+		if err != nil {
+			return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
+		}
 	}
 
 	// Normalize the data into a convenient form for operation.
 	snap := newHealthSnapshot(structsNodes, partition, peerName)
+	storedNodesMap, storedSvcInstMap, storedChecksMap := buildStoredMap(storedInstances)
 
 	for _, nodeSnap := range snap.Nodes {
-		// First register the node
-		req := nodeSnap.Node.ToRegisterRequest()
-		if err := s.Backend.CatalogRegister(&req); err != nil {
-			return fmt.Errorf("failed to register node: %w", err)
+		// First register the node - skip the unchanged ones
+		changed := true
+		if storedNode, ok := storedNodesMap[nodeSnap.Node.ID]; ok {
+			if storedNode.IsSame(nodeSnap.Node) {
+				changed = false
+			}
 		}
 
-		// Then register all services on that node
-		for _, svcSnap := range nodeSnap.Services {
-			req.Service = svcSnap.Service
+		req := nodeSnap.Node.ToRegisterRequest()
+		if changed {
 			if err := s.Backend.CatalogRegister(&req); err != nil {
-				return fmt.Errorf("failed to register service: %w", err)
+				return fmt.Errorf("failed to register node: %w", err)
+			}
+		}
+
+		// Then register all services on that node - skip the unchanged ones
+		for _, svcSnap := range nodeSnap.Services {
+			changed = true
+			if storedSvcInst, ok := storedSvcInstMap[makeNodeSvcInstID(nodeSnap.Node.ID, svcSnap.Service.ID)]; ok {
+				if storedSvcInst.IsSame(svcSnap.Service) {
+					changed = false
+				}
+			}
+
+			if changed {
+				req.Service = svcSnap.Service
+				if err := s.Backend.CatalogRegister(&req); err != nil {
+					return fmt.Errorf("failed to register service: %w", err)
+				}
 			}
 		}
 		req.Service = nil
 
-		// Then register all checks on that node
+		// Then register all checks on that node - skip the unchanged ones
 		var chks structs.HealthChecks
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
-				chks = append(chks, c)
+				changed := true
+				if chk, ok := storedChecksMap[makeNodeCheckID(nodeSnap.Node.ID, svcSnap.Service.ID, c.CheckID)]; ok {
+					if chk.IsSame(c) {
+						changed = false
+					}
+				}
+
+				if changed {
+					chks = append(chks, c)
+				}
 			}
 		}
 
-		req.Checks = chks
-		if err := s.Backend.CatalogRegister(&req); err != nil {
-			return fmt.Errorf("failed to register check: %w", err)
+		if len(chks) > 0 {
+			req.Checks = chks
+			if err := s.Backend.CatalogRegister(&req); err != nil {
+				return fmt.Errorf("failed to register check: %w", err)
+			}
 		}
 	}
 
@@ -587,4 +617,47 @@ func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pb
 			Response: resp,
 		},
 	}
+}
+
+// nodeSvcInstIdentity uniquely identifies an service instance imported from a peering cluster
+type nodeSvcInstIdentity struct {
+	nodeID    string
+	serviceID string
+}
+
+// nodeCheckIdentity uniquely identifies a check imported from a peering cluster
+type nodeCheckIdentity struct {
+	nodeID    string
+	serviceID string
+	checkID   string
+}
+
+func makeNodeSvcInstID(nodeID types.NodeID, serviceID string) nodeSvcInstIdentity {
+	return nodeSvcInstIdentity{
+		nodeID:    string(nodeID),
+		serviceID: serviceID,
+	}
+}
+
+func makeNodeCheckID(nodeID types.NodeID, serviceID string, checkID types.CheckID) nodeCheckIdentity {
+	return nodeCheckIdentity{
+		serviceID: serviceID,
+		checkID:   string(checkID),
+		nodeID:    string(nodeID),
+	}
+}
+
+func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[nodeSvcInstIdentity]*structs.NodeService, map[nodeCheckIdentity]*structs.HealthCheck) {
+	nodesMap := map[types.NodeID]*structs.Node{}
+	svcInstMap := map[nodeSvcInstIdentity]*structs.NodeService{}
+	checksMap := map[nodeCheckIdentity]*structs.HealthCheck{}
+
+	for _, csn := range storedInstances {
+		nodesMap[csn.Node.ID] = csn.Node
+		svcInstMap[makeNodeSvcInstID(csn.Node.ID, csn.Service.ID)] = csn.Service
+		for _, chk := range csn.Checks {
+			checksMap[makeNodeCheckID(csn.Node.ID, csn.Service.ID, chk.CheckID)] = chk
+		}
+	}
+	return nodesMap, svcInstMap, checksMap
 }

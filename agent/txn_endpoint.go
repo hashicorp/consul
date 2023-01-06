@@ -312,6 +312,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							TCP:                            check.Definition.TCP,
 							GRPC:                           check.Definition.GRPC,
 							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
+							OSService:                      check.Definition.OSService,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
@@ -355,7 +356,7 @@ func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interfa
 		}
 
 		var reply structs.TxnReadResponse
-		if err := s.agent.RPC("Txn.Read", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Txn.Read", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -371,7 +372,7 @@ func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interfa
 		s.parseToken(req, &args.Token)
 
 		var reply structs.TxnResponse
-		if err := s.agent.RPC("Txn.Apply", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Txn.Apply", &args, &reply); err != nil {
 			return nil, err
 		}
 		ret, conflict = reply, len(reply.Errors) > 0

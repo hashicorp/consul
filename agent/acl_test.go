@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -51,6 +52,14 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	dataDir := testutil.TempDir(t, "acl-agent")
 
 	logBuffer := testutil.NewLogBuffer(t)
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       name,
+		Level:      testutil.TestLogLevel,
+		Output:     logBuffer,
+		TimeFormat: "04:05.000",
+	})
+
 	loader := func(source config.Source) (config.LoadResult, error) {
 		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
 		opts := config.LoadOpts{
@@ -63,15 +72,9 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logBuffer)
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
 	require.NoError(t, err)
 
-	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:       name,
-		Level:      testutil.TestLogLevel,
-		Output:     logBuffer,
-		TimeFormat: "04:05.000",
-	})
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
 	}
@@ -142,7 +145,7 @@ func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n i
 func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *TestACLAgent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	return fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -27,11 +25,14 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -45,14 +46,20 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+type FlagValuesTarget = decodeTarget
+
 // LoadOpts used by Load to construct and validate a RuntimeConfig.
 type LoadOpts struct {
 	// FlagValues contains the command line arguments that can also be set
 	// in a config file.
-	FlagValues Config
+	FlagValues FlagValuesTarget
 
 	// ConfigFiles is a slice of paths to config files and directories that will
 	// be loaded.
+	//
+	// It is an error for any config files to have an extension other than `hcl`
+	// or `json`, unless ConfigFormat is also set. However, non-HCL/JSON files in
+	// a config directory are merely skipped, with a warning.
 	ConfigFiles []string
 
 	// ConfigFormat forces all config files to be interpreted as this format
@@ -168,12 +175,15 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, DevSource())
 	}
 
+	cfg, warns := applyDeprecatedFlags(&opts.FlagValues)
+	b.Warnings = append(b.Warnings, warns...)
+
 	// Since the merge logic is to overwrite all fields with later
 	// values except slices which are merged by appending later values
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(opts.FlagValues)
+	slices, values := splitSlicesAndValues(cfg)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	if opts.DefaultConfig != nil {
 		b.Head = append(b.Head, opts.DefaultConfig)
@@ -222,8 +232,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 	if !fi.IsDir() {
 		if !shouldParseFile(path, format) {
-			b.warn("skipping file %v, extension must be .hcl or .json, or config format must be set", path)
-			return nil, nil
+			return nil, fmt.Errorf("file %v has unknown extension; must be .hcl or .json, or config format must be set", path)
 		}
 
 		src, err := newSourceFromFile(path, format)
@@ -276,7 +285,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
@@ -435,6 +444,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
+	// default gRPC TLS port for servers is 8503
+	if c.Ports.GRPCTLS == nil && boolVal(c.ServerMode) {
+		grpcTlsPort = 8503
+	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -662,7 +675,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
-	serverlessPluginEnabled := boolVal(c.Connect.EnableServerlessPlugin)
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -965,7 +977,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
-		ConnectServerlessPluginEnabled:         serverlessPluginEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
@@ -1030,6 +1041,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                       rpcBindAddr,
 		RPCHandshakeTimeout:               b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                    b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCClientTimeout:                  b.durationVal("limits.rpc_client_timeout", c.Limits.RPCClientTimeout),
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
@@ -1042,6 +1054,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
+		RequestLimitsReadRate:             limitVal(c.Limits.RequestLimits.ReadRate),
+		RequestLimitsWriteRate:            limitVal(c.Limits.RequestLimits.WriteRate),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -1065,8 +1080,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
-		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TaggedAddresses:                   c.TaggedAddresses,
 		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
 		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
@@ -1075,12 +1088,23 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
+		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 	}
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {
 		return RuntimeConfig{}, err
+	}
+
+	// `ports.grpc` previously supported TLS, but this was changed for Consul 1.14.
+	// This check is done to warn users that a config change is mandatory.
+	if rt.TLS.GRPC.CertFile != "" || (rt.TLS.AutoTLS && rt.TLS.GRPC.UseAutoCert) {
+		// If only `ports.grpc` is enabled, and the gRPC TLS port is not explicitly defined by the user,
+		// check the grpc TLS settings for incompatibilities.
+		if rt.GRPCPort > 0 && c.Ports.GRPCTLS == nil {
+			return RuntimeConfig{}, fmt.Errorf("the `ports.grpc` listener no longer supports TLS. Use `ports.grpc_tls` instead. This message is appearing because GRPC is configured to use TLS, but `ports.grpc_tls` is not defined")
+		}
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
@@ -1242,6 +1266,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
+	case consul.InvalidNodeName.MatchString(rt.NodeName):
+		// todo(kyhavlov): Add stronger validation here for node names.
+		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
+			"(', \", `) cannot be used with auto-config.", rt.NodeName)
 	case len(rt.NodeName) > dns.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
@@ -1326,9 +1354,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires that 'node_name' not contain '/' characters")
 	}
 	if rt.ConnectMeshGatewayWANFederationEnabled {
-		if len(rt.StartJoinAddrsWAN) > 0 {
-			return fmt.Errorf("'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
-		}
 		if len(rt.RetryJoinWAN) > 0 {
 			return fmt.Errorf("'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
 		}
@@ -1562,6 +1587,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
 		Shell:                          stringVal(v.Shell),
@@ -1578,6 +1604,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
 		H2PingUseTLS:                   H2PingUseTLSVal,
+		OSService:                      stringVal(v.OSService),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -1755,6 +1782,19 @@ func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
+	return out
+}
+
+func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
+	var out consulrate.Mode
+
+	mode, ok := consulrate.RequestLimitsModeFromName(v)
+	if !ok {
+		b.err = multierror.Append(b.err, fmt.Errorf("limits.request_limits.mode: invalid mode: %q", v))
+	} else {
+		out = mode
+	}
+
 	return out
 }
 
@@ -1971,6 +2011,15 @@ func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 
 func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
+}
+
+func limitVal(v *float64) rate.Limit {
+	f := float64Val(v)
+	if f < 0 {
+		return rate.Inf
+	}
+
+	return rate.Limit(f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
@@ -2458,6 +2507,7 @@ func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) 
 	val.ClientSecret = stringVal(v.ClientSecret)
 	val.AuthURL = stringVal(v.AuthURL)
 	val.Hostname = stringVal(v.Hostname)
+	val.ScadaAddress = stringVal(v.ScadaAddress)
 
 	return val
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -584,12 +585,16 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 		if req.Peering.State == pbpeering.PeeringState_UNDEFINED {
 			req.Peering.State = existing.State
 		}
-		// TODO(peering): Confirm behavior when /peering/token is called more than once.
-		// We may need to avoid clobbering existing values.
-		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
-		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
-		req.Peering.ImportedServices = existing.ImportedServices
-		req.Peering.ExportedServices = existing.ExportedServices
+
+		// Prevent RemoteInfo from being overwritten with empty data
+		if !existing.Remote.IsEmpty() && req.Peering.Remote.IsEmpty() {
+			req.Peering.Remote = &pbpeering.RemoteInfo{
+				Partition:  existing.Remote.Partition,
+				Datacenter: existing.Remote.Datacenter,
+			}
+		}
+
+		req.Peering.StreamStatus = nil
 		req.Peering.CreateIndex = existing.CreateIndex
 		req.Peering.ModifyIndex = idx
 	} else {
@@ -718,7 +723,7 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string, dc str
 	return exportedServicesForPeerTxn(ws, tx, peering, dc)
 }
 
-func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
+func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -729,7 +734,7 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl
 
 	out := make(map[string]structs.ServiceList)
 	for _, peering := range peerings {
-		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, "")
+		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, dc)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
 		}
@@ -757,6 +762,11 @@ func exportedServicesForPeerTxn(
 	peering *pbpeering.Peering,
 	dc string,
 ) (uint64, *structs.ExportedServiceList, error) {
+	// The DC must be specified in order to compile discovery chains.
+	if dc == "" {
+		return 0, nil, fmt.Errorf("datacenter cannot be empty")
+	}
+
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
@@ -784,6 +794,10 @@ func exportedServicesForPeerTxn(
 	// - use connect native mode
 
 	for _, svc := range conf.Services {
+		// Prevent exporting the "consul" service.
+		if svc.Name == structs.ConsulServiceName {
+			continue
+		}
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -814,6 +828,10 @@ func exportedServicesForPeerTxn(
 				maxIdx = idx
 			}
 			for _, s := range typicalServices {
+				// Prevent exporting the "consul" service.
+				if s.Service.Name == structs.ConsulServiceName {
+					continue
+				}
 				normalSet[s.Service] = struct{}{}
 			}
 
@@ -852,18 +870,24 @@ func exportedServicesForPeerTxn(
 		}
 		info.Protocol = protocol
 
-		if dc != "" && !structs.IsProtocolHTTPLike(protocol) {
-			// We only need to populate the targets for replication purposes for L4 protocols, which
-			// do not ultimately get intercepted by the mesh gateways.
-			idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
-			}
+		idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
 
-			if idx > maxIdx {
-				maxIdx = idx
+		// Prevent the consul service from being exported by a discovery chain.
+		for _, t := range targets {
+			if t.Service == structs.ConsulServiceName {
+				return nil
 			}
+		}
 
+		// We only need to populate the targets for replication purposes for L4 protocols, which
+		// do not ultimately get intercepted by the mesh gateways.
+		if !structs.IsProtocolHTTPLike(protocol) {
 			sort.Slice(targets, func(i, j int) bool {
 				return targets[i].ID < targets[j].ID
 			})
@@ -923,6 +947,7 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
+//nolint:unparam
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,
@@ -1120,12 +1145,56 @@ func peeringTrustBundleReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, 
 	return ptb.ModifyIndex, ptb, nil
 }
 
-// PeeringTrustBundleWrite writes ptb to the state store. If there is an existing trust bundle with the given peer name,
-// it will be overwritten.
+// PeeringTrustBundleWrite writes ptb to the state store.
+// It also updates the corresponding peering object with the new certs.
+// If there is an existing trust bundle with the given peer name, it will be overwritten.
+// If there is no corresponding peering, then an error is returned.
 func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustBundle) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
+	if ptb.PeerName == "" {
+		return errors.New("missing peer name")
+	}
+
+	// Check for the existence of the peering object
+	_, existingPeering, err := peeringReadTxn(tx, nil, Query{
+		Value:          ptb.PeerName,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
+	})
+	if err != nil {
+		return err
+	}
+	if existingPeering == nil {
+		return fmt.Errorf("cannot write peering trust bundle for unknown peering %s", ptb.PeerName)
+	}
+	// Prevent modifications to Peering marked for deletion.
+	// This blocks generating new peering tokens or re-establishing the peering until the peering is done deleting.
+	if existingPeering.State == pbpeering.PeeringState_DELETING {
+		return fmt.Errorf("cannot write to peering that is marked for deletion")
+	}
+	c := proto.Clone(existingPeering)
+	clone, ok := c.(*pbpeering.Peering)
+	if !ok {
+		return fmt.Errorf("invalid type %T, expected *pbpeering.Peering", clone)
+	}
+
+	// Update the certs on the peering
+	rootPEMs := make([]string, 0, len(ptb.RootPEMs))
+	for _, c := range ptb.RootPEMs {
+		rootPEMs = append(rootPEMs, lib.EnsureTrailingNewline(c))
+	}
+	clone.PeerCAPems = rootPEMs
+	clone.ModifyIndex = idx
+
+	if err := tx.Insert(tablePeering, clone); err != nil {
+		return fmt.Errorf("failed inserting peering: %w", err)
+	}
+	if err := updatePeeringTableIndexes(tx, idx, clone.PartitionOrDefault()); err != nil {
+		return err
+	}
+
+	// Check for the existing trust bundle and update
 	q := Query{
 		Value:          ptb.PeerName,
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
@@ -1135,13 +1204,13 @@ func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustB
 		return fmt.Errorf("failed peering trust bundle lookup: %w", err)
 	}
 
-	existing, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
+	existingPTB, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
 	if existingRaw != nil && !ok {
 		return fmt.Errorf("invalid type %T", existingRaw)
 	}
 
-	if existing != nil {
-		ptb.CreateIndex = existing.CreateIndex
+	if existingPTB != nil {
+		ptb.CreateIndex = existingPTB.CreateIndex
 
 	} else {
 		ptb.CreateIndex = idx

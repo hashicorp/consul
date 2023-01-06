@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -42,6 +43,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		ServiceIntentionsToStructs(s.GetServiceIntentions(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindServiceDefaults:
+		var target structs.ServiceConfigEntry
+		target.Name = s.Name
+
+		ServiceDefaultsToStructs(s.GetServiceDefaults(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -92,6 +101,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindServiceIntentions
 		configEntry.Entry = &ConfigEntry_ServiceIntentions{
 			ServiceIntentions: &serviceIntentions,
+		}
+	case *structs.ServiceConfigEntry:
+		var serviceDefaults ServiceDefaults
+		ServiceDefaultsFromStructs(v, &serviceDefaults)
+
+		configEntry.Kind = Kind_KindServiceDefaults
+		configEntry.Entry = &ConfigEntry_ServiceDefaults{
+			ServiceDefaults: &serviceDefaults,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -169,4 +186,132 @@ func intentionSourceTypeFromStructs(structs.IntentionSourceType) IntentionSource
 
 func intentionSourceTypeToStructs(IntentionSourceType) structs.IntentionSourceType {
 	return structs.IntentionSourceConsul
+}
+
+func pointerToIntFromInt32(i32 int32) *int {
+	i := int(i32)
+	return &i
+}
+
+func int32FromPointerToInt(i *int) int32 {
+	if i != nil {
+		return int32(*i)
+	}
+	return 0
+}
+
+func pointerToUint32FromUint32(ui32 uint32) *uint32 {
+	i := ui32
+	return &i
+}
+
+func uint32FromPointerToUint32(i *uint32) uint32 {
+	if i != nil {
+		return *i
+	}
+	return 0
+}
+
+func proxyModeFromStructs(a structs.ProxyMode) ProxyMode {
+	switch a {
+	case structs.ProxyModeDefault:
+		return ProxyMode_ProxyModeDefault
+	case structs.ProxyModeTransparent:
+		return ProxyMode_ProxyModeTransparent
+	case structs.ProxyModeDirect:
+		return ProxyMode_ProxyModeDirect
+	default:
+		return ProxyMode_ProxyModeDefault
+	}
+}
+
+func proxyModeToStructs(a ProxyMode) structs.ProxyMode {
+	switch a {
+	case ProxyMode_ProxyModeDefault:
+		return structs.ProxyModeDefault
+	case ProxyMode_ProxyModeTransparent:
+		return structs.ProxyModeTransparent
+	case ProxyMode_ProxyModeDirect:
+		return structs.ProxyModeDirect
+	default:
+		return structs.ProxyModeDefault
+	}
+}
+
+func meshGatewayModeFromStructs(a structs.MeshGatewayMode) MeshGatewayMode {
+	switch a {
+	case structs.MeshGatewayModeDefault:
+		return MeshGatewayMode_MeshGatewayModeDefault
+	case structs.MeshGatewayModeNone:
+		return MeshGatewayMode_MeshGatewayModeNone
+	case structs.MeshGatewayModeLocal:
+		return MeshGatewayMode_MeshGatewayModeLocal
+	case structs.MeshGatewayModeRemote:
+		return MeshGatewayMode_MeshGatewayModeRemote
+	default:
+		return MeshGatewayMode_MeshGatewayModeDefault
+	}
+}
+
+func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
+	switch a {
+	case MeshGatewayMode_MeshGatewayModeDefault:
+		return structs.MeshGatewayModeDefault
+	case MeshGatewayMode_MeshGatewayModeNone:
+		return structs.MeshGatewayModeNone
+	case MeshGatewayMode_MeshGatewayModeLocal:
+		return structs.MeshGatewayModeLocal
+	case MeshGatewayMode_MeshGatewayModeRemote:
+		return structs.MeshGatewayModeRemote
+	default:
+		return structs.MeshGatewayModeDefault
+	}
+}
+
+func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
+	if args != nil {
+		st := args.GetStructValue()
+		if st != nil {
+			return st.AsMap()
+		}
+	}
+	return nil
+}
+
+func EnvoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
+	if s, err := structpb.NewValue(args); err == nil {
+		return s
+	}
+	return nil
+}
+
+func EnvoyExtensionsToStructs(args []*EnvoyExtension) []structs.EnvoyExtension {
+	o := make([]structs.EnvoyExtension, len(args))
+	for i := range args {
+		var e structs.EnvoyExtension
+		if args[i] != nil {
+			e = structs.EnvoyExtension{
+				Name:      args[i].Name,
+				Required:  args[i].Required,
+				Arguments: EnvoyExtensionArgumentsToStructs(args[i].Arguments),
+			}
+		}
+
+		o[i] = e
+	}
+
+	return o
+}
+
+func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension {
+	o := make([]*EnvoyExtension, len(args))
+	for i, e := range args {
+		o[i] = &EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: EnvoyExtensionArgumentsFromStructs(e.Arguments),
+		}
+	}
+
+	return o
 }

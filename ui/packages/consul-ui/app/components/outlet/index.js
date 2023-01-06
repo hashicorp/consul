@@ -79,10 +79,14 @@ export default class Outlet extends Component {
       this.previousState = this.state;
       this.state = new State('loading');
       this.endTransition = this.routlet.transition();
-      // if we have no transition-duration set immediately end the transition
-      const duration = window
-        .getComputedStyle(this.element)
-        .getPropertyValue('transition-duration');
+      let duration;
+      if (this.element) {
+        // if we have no transition-duration set immediately end the transition
+        duration = window.getComputedStyle(this.element).getPropertyValue('transition-duration');
+      } else {
+        duration = 0;
+      }
+
       if (parseFloat(duration) === 0) {
         this.endTransition();
       }

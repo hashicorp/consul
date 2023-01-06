@@ -1,9 +1,9 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -778,7 +778,7 @@ func testApplyConfigEntries(t *testing.T, a *TestAgent, entries ...structs.Confi
 			Entry:      entry,
 		}
 		var out bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", args, &out))
 	}
 }
 
@@ -802,7 +802,7 @@ func expectJSONFile(t *testing.T, file string, expect interface{}, fixupContentB
 	expected, err := json.Marshal(expect)
 	require.NoError(t, err)
 
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	require.NoError(t, err)
 
 	if fixupContentBeforeCompareFn != nil {

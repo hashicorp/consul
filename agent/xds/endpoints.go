@@ -92,7 +92,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		_, skip := getUpstream(uid)
+		upstream, skip := getUpstream(uid)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -107,7 +107,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		clusterName := generatePeeredClusterName(uid, tbs)
 
-		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid)
+		mgwMode := structs.MeshGatewayModeDefault
+		if upstream != nil {
+			mgwMode = upstream.MeshGateway.Mode
+		}
+		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid, mgwMode)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +199,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	keys := cfgSnap.MeshGateway.GatewayKeys()
-	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
+
+	// Allocation count (this is a lower bound - all subset specific clusters will be appended):
+	// 1 cluster per remote dc/partition
+	// 1 cluster per local service
+	// 1 cluster per unique peer server (control plane traffic)
+	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups)+len(cfgSnap.MeshGateway.PeerServers))
 
 	for _, key := range keys {
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
@@ -248,7 +257,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
@@ -289,7 +298,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	if cfg := cfgSnap.MeshConfig(); cfg.PeerThroughMeshGateways() {
 		var serverEndpoints []*envoy_endpoint_v3.LbEndpoint
 
-		servers, _ := cfgSnap.MeshGateway.WatchedConsulServers.Get(structs.ConsulServiceName)
+		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			if isReplica := srv.Service.Meta["read_replica"]; isReplica == "true" {
 				// Peering control-plane traffic can only ever be handled by the local leader.
@@ -319,13 +328,14 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				},
 			})
 		}
-
-		resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
-			ClusterName: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
-			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
-				LbEndpoints: serverEndpoints,
-			}},
-		})
+		if len(serverEndpoints) > 0 {
+			resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
+				ClusterName: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: serverEndpoints,
+				}},
+			})
+		}
 	}
 
 	// Generate the endpoints for each service and its subsets
@@ -337,6 +347,20 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 	// Generate the endpoints for exported discovery chain targets.
 	e, err = s.makeExportedUpstreamEndpointsForMeshGateway(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, e...)
+
+	// generate the outgoing endpoints for imported peer services.
+	e, err = s.makeEndpointsForOutgoingPeeredServices(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, e...)
+
+	// Generate the endpoints for peer server control planes.
+	e, err = s.makePeerServerEndpointsForMeshGateway(cfgSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -398,6 +422,72 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 	return resources, nil
 }
 
+func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
+	cfgSnap *proxycfg.ConfigSnapshot,
+) ([]proto.Message, error) {
+	var resources []proto.Message
+
+	// generate the endpoints for the linked service groups
+	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
+		for sn, serviceGroup := range serviceGroups {
+			if serviceGroup.UseCDS || len(serviceGroup.Nodes) == 0 {
+				continue
+			}
+
+			node := serviceGroup.Nodes[0]
+			if node.Service == nil {
+				return nil, fmt.Errorf("couldn't get SNI for peered service %s", sn.String())
+			}
+			// This uses the SNI in the accepting cluster peer so the remote mesh
+			// gateway can distinguish between an exported service as opposed to the
+			// usual mesh gateway route for a service.
+			clusterName := node.Service.Connect.PeerMeta.PrimarySNI()
+
+			groups := []loadAssignmentEndpointGroup{{Endpoints: serviceGroup.Nodes, OnlyPassing: false}}
+
+			la := makeLoadAssignment(
+				clusterName,
+				groups,
+				cfgSnap.Locality,
+			)
+			resources = append(resources, la)
+		}
+	}
+
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makePeerServerEndpointsForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.PeerServers))
+
+	// Peer server names are assumed to already be formatted in SNI notation:
+	// server.<datacenter>.peering.<trust-domain>
+	for name, servers := range cfgSnap.MeshGateway.PeerServers {
+		if servers.UseCDS || len(servers.Addresses) == 0 {
+			continue
+		}
+
+		es := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(servers.Addresses))
+
+		for _, address := range servers.Addresses {
+			es = append(es, makeEndpoint(address.Address, address.Port))
+		}
+
+		cla := &envoy_endpoint_v3.ClusterLoadAssignment{
+			ClusterName: name,
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: es,
+				},
+			},
+		}
+
+		resources = append(resources, cla)
+	}
+
+	return resources, nil
+}
+
 func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
@@ -452,7 +542,12 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 	}
 }
 
-func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, uid proxycfg.UpstreamID) (*envoy_endpoint_v3.ClusterLoadAssignment, error) {
+func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	clusterName string,
+	uid proxycfg.UpstreamID,
+	upstreamGatewayMode structs.MeshGatewayMode,
+) (*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	var la *envoy_endpoint_v3.ClusterLoadAssignment
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
@@ -460,10 +555,9 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *pr
 		return la, err
 	}
 
-	upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
-	if upstream != nil && upstream.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+	if upstreamGatewayMode == structs.MeshGatewayModeLocal {
 		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
 		if !ok {
 			// local GW is not ready; return early
@@ -556,6 +650,11 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		}
 	}
 
+	mgwMode := structs.MeshGatewayModeDefault
+	if upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]; upstream != nil {
+		mgwMode = upstream.MeshGateway.Mode
+	}
+
 	// Find all resolver nodes.
 	for _, node := range chain.Nodes {
 		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
@@ -564,10 +663,6 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		primaryTargetID := node.Resolver.Target
 		failover := node.Resolver.Failover
 
-		type targetLoadAssignmentOption struct {
-			targetID    string
-			clusterName string
-		}
 		var targetsClustersData []targetClusterData
 
 		var numFailoverTargets int
@@ -599,7 +694,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			s.Logger.Debug("generating endpoints for", "cluster", targetOpt.clusterName)
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetOpt.targetID)
 			if targetUID.Peer != "" {
-				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID)
+				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID, mgwMode)
 				if err != nil {
 					return nil, err
 				}

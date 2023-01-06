@@ -29,5 +29,13 @@ export default function (scenario, pages, set, reset) {
         // do I absolutely definitely need that all the time?
         return set(pages[name]).visit(data);
       }
+    )
+    .when(
+      ['I $method the $name page for yaml\n$yaml', 'I $method the $name page for json\n$json'],
+      function (method, name, data) {
+        reset();
+
+        return set(pages[name])[method](data);
+      }
     );
 }

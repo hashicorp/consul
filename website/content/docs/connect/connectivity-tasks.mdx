@@ -19,13 +19,15 @@ in different clouds or runtime environments where general interconnectivity betw
 isn't feasible. One scenario where this is useful is when connecting networks with overlapping IP address space.
 
 These gateways operate by sniffing the SNI header out of the mTLS connection and then routing the connection to the
-appropriate destination based on the server name requested. The data within the mTLS session is not decrypted by
-the Gateway.
+appropriate destination based on the server name requested. 
 
 As of Consul 1.8.0, mesh gateways can also forward gossip and RPC traffic between Consul servers.
 This is enabled by [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
-For more information about mesh gateways, review the [complete documentation](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters)
+As of Consul 1.14.0, mesh gateways can route both data-plane (service-to-service) and control-plane (consul-to-consul) traffic for peered clusters. 
+See [Mesh Gateways for Peering Control Plane Traffic](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
+
+For more information about mesh gateways, review the [complete documentation](/docs/connect/gateways/mesh-gateway)
 and the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways).
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)

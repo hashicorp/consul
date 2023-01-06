@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -133,6 +134,64 @@ func TestACL_Bootstrap(t *testing.T) {
 					t.Fatalf("bad: %T", out)
 				}
 				if len(wrap.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") {
+					t.Fatalf("bad: %v", wrap)
+				}
+				if wrap.ID != wrap.SecretID {
+					t.Fatalf("bad: %v", wrap)
+				}
+			} else {
+				if out != nil {
+					t.Fatalf("bad: %T", out)
+				}
+			}
+		})
+	}
+}
+
+func TestACL_BootstrapWithToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+		}
+	`)
+	defer a.Shutdown()
+
+	tests := []struct {
+		name   string
+		method string
+		code   int
+		token  bool
+	}{
+		{"bootstrap", "PUT", http.StatusOK, true},
+		{"not again", "PUT", http.StatusForbidden, false},
+	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bootstrapSecret struct {
+				BootstrapSecret string
+			}
+			bootstrapSecret.BootstrapSecret = "2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", jsonBody(bootstrapSecret))
+			out, err := a.srv.ACLBootstrap(resp, req)
+			if tt.token && err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if tt.token {
+				wrap, ok := out.(*aclBootstrapResponse)
+				if !ok {
+					t.Fatalf("bad: %T", out)
+				}
+				if wrap.ID != bootstrapSecret.BootstrapSecret {
 					t.Fatalf("bad: %v", wrap)
 				}
 				if wrap.ID != wrap.SecretID {
@@ -1905,7 +1964,7 @@ func TestACL_Authorize(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	var policy structs.ACLPolicy
-	require.NoError(t, a1.RPC("ACL.PolicySet", &policyReq, &policy))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.PolicySet", &policyReq, &policy))
 
 	tokenReq := structs.ACLTokenSetRequest{
 		ACLToken: structs.ACLToken{
@@ -1920,7 +1979,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var token structs.ACLToken
-	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.TokenSet", &tokenReq, &token))
 
 	// secondary also needs to setup a replication token to pull tokens and policies
 	secondaryParams := DefaultTestACLConfigParams()
@@ -1953,7 +2012,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var localToken structs.ACLToken
-	require.NoError(t, a2.RPC("ACL.TokenSet", &localTokenReq, &localToken))
+	require.NoError(t, a2.RPC(context.Background(), "ACL.TokenSet", &localTokenReq, &localToken))
 
 	t.Run("initial-management-token", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
@@ -2367,7 +2426,7 @@ func TestACL_Authorize(t *testing.T) {
 	})
 }
 
-type rpcFn func(string, interface{}, interface{}) error
+type rpcFn func(context.Context, string, interface{}, interface{}) error
 
 func upsertTestCustomizedAuthMethod(
 	rpc rpcFn, initialManagementToken string, datacenter string,
@@ -2393,7 +2452,7 @@ func upsertTestCustomizedAuthMethod(
 
 	var out structs.ACLAuthMethod
 
-	err = rpc("ACL.AuthMethodSet", &req, &out)
+	err = rpc(context.Background(), "ACL.AuthMethodSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -2414,7 +2473,7 @@ func upsertTestCustomizedBindingRule(rpc rpcFn, initialManagementToken string, d
 
 	var out structs.ACLBindingRule
 
-	err := rpc("ACL.BindingRuleSet", &req, &out)
+	err := rpc(context.Background(), "ACL.BindingRuleSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}

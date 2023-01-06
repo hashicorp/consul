@@ -190,7 +190,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		Name:       name,
 	})
 
-	portsConfig := randomPortsSource(t, a.UseHTTPS, a.UseGRPCTLS)
+	portsConfig := randomPortsSource(t, a.UseHTTPS)
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
@@ -216,10 +216,13 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+			// Lower the maximum backoff period of a cache refresh just for
+			// tests see #14956 for more.
+			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logOutput)
+	bd, err := NewBaseDeps(loader, logOutput, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
@@ -293,7 +296,7 @@ func (a *TestAgent) waitForUp() error {
 					MaxQueryTime:  25 * time.Millisecond,
 				},
 			}
-			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
+			if err := a.RPC(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}
@@ -412,7 +415,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
 	ports := freeport.GetN(t, 8)
 
 	var http, https int
@@ -424,15 +427,6 @@ func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
 		https = -1
 	}
 
-	var grpc, grpcTLS int
-	if useGRPCTLS {
-		grpc = -1
-		grpcTLS = ports[7]
-	} else {
-		grpc = ports[6]
-		grpcTLS = -1
-	}
-
 	return `
 		ports = {
 			dns = ` + strconv.Itoa(ports[0]) + `
@@ -441,8 +435,8 @@ func randomPortsSource(t *testing.T, useHTTPS bool, useGRPCTLS bool) string {
 			serf_lan = ` + strconv.Itoa(ports[3]) + `
 			serf_wan = ` + strconv.Itoa(ports[4]) + `
 			server = ` + strconv.Itoa(ports[5]) + `
-			grpc = ` + strconv.Itoa(grpc) + `
-			grpc_tls = ` + strconv.Itoa(grpcTLS) + `
+			grpc = ` + strconv.Itoa(ports[6]) + `
+			grpc_tls = ` + strconv.Itoa(ports[7]) + `
 		}
 	`
 }

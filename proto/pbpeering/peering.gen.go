@@ -76,12 +76,12 @@ func PeeringToAPI(s *Peering, t *api.Peering) {
 	t.PeerCAPems = s.PeerCAPems
 	t.PeerServerName = s.PeerServerName
 	t.PeerServerAddresses = s.PeerServerAddresses
-	t.ImportedServiceCount = s.ImportedServiceCount
-	t.ExportedServiceCount = s.ExportedServiceCount
-	t.ImportedServices = s.ImportedServices
-	t.ExportedServices = s.ExportedServices
+	t.StreamStatus = StreamStatusToAPI(s.StreamStatus)
 	t.CreateIndex = s.CreateIndex
 	t.ModifyIndex = s.ModifyIndex
+	if s.Remote != nil {
+		RemoteInfoToAPI(s.Remote, &t.Remote)
+	}
 }
 func PeeringFromAPI(t *api.Peering, s *Peering) {
 	if s == nil {
@@ -97,10 +97,26 @@ func PeeringFromAPI(t *api.Peering, s *Peering) {
 	s.PeerCAPems = t.PeerCAPems
 	s.PeerServerName = t.PeerServerName
 	s.PeerServerAddresses = t.PeerServerAddresses
-	s.ImportedServiceCount = t.ImportedServiceCount
-	s.ExportedServiceCount = t.ExportedServiceCount
-	s.ImportedServices = t.ImportedServices
-	s.ExportedServices = t.ExportedServices
+	s.StreamStatus = StreamStatusFromAPI(t.StreamStatus)
 	s.CreateIndex = t.CreateIndex
 	s.ModifyIndex = t.ModifyIndex
+	{
+		var x RemoteInfo
+		RemoteInfoFromAPI(&t.Remote, &x)
+		s.Remote = &x
+	}
+}
+func RemoteInfoToAPI(s *RemoteInfo, t *api.PeeringRemoteInfo) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Datacenter = s.Datacenter
+}
+func RemoteInfoFromAPI(t *api.PeeringRemoteInfo, s *RemoteInfo) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Datacenter = t.Datacenter
 }

@@ -165,3 +165,28 @@ Feature: dc / services / index: List Services
     Then I see 2 service models
     And I don't see associatedServiceCount on the services.0
     And I see associatedServiceCount on the services.1
+  Scenario: Viewing the services index page with no services and ACLs enabled 
+    Given 1 datacenter model with the value "dc-1"
+    And 0 service models
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+    And the title should be "Services - Consul"
+    Then I see 0 service models 
+    And I see the text "There don't seem to be any registered services in this Consul cluster, or you may not have service:read and node:read access to this view. Use Terraform, Kubernetes CRDs, Vault, or the Consul CLI to register Services." in ".empty-state p"
+    And I see the "[data-test-empty-state-login]" element
+  Scenario: Viewing the services index page with no services and ACLs disabled
+    Given ACLs are disabled
+    Given 1 datacenter model with the value "dc-1"
+    And 0 service models
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+    And the title should be "Services - Consul"
+    Then I see 0 service models 
+    And I see the text "There don't seem to be any registered services in this Consul cluster." in ".empty-state p"
+    And I don't see the "[data-test-empty-state-login]" element

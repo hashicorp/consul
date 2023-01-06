@@ -19,6 +19,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 	t.Cleanup(cancel)
 
 	store := state.NewStateStore(nil)
+	require.NoError(t, store.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"}))
 
 	for _, peer := range []string{"peer-1", "peer-2", "peer-3"} {
 		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.PeeringWriteRequest{
@@ -59,7 +60,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 		GetStore:    func() Store { return store },
 		ACLResolver: newStaticResolver(authz),
 	})
-	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{}, "", eventCh))
+	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{Datacenter: "dc1"}, "", eventCh))
 
 	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := getEventResult[*structs.IndexedExportedServiceList](t, eventCh)

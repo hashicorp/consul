@@ -78,6 +78,8 @@
     "BootstrapExpect": 0,
     "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
+        "CacheRefreshBackoffMin": 0,
+        "CacheRefreshMaxWait": "0s",
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
@@ -108,6 +110,7 @@
             "Method": "",
             "Name": "zoo",
             "Notes": "",
+            "OSService": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
             "ServiceID": "",
@@ -129,14 +132,14 @@
         "ClientID": "id",
         "ClientSecret": "hidden",
         "Hostname": "",
-        "ResourceID": "cluster1"
+        "ResourceID": "cluster1",
+        "ScadaAddress": ""
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
-    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -254,6 +257,7 @@
     "PrimaryGatewaysInterval": "0s",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
+    "RPCClientTimeout": "0s",
     "RPCConfig": {
         "EnableStreaming": false
     },
@@ -274,6 +278,9 @@
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
+    "RequestLimitsMode": 0,
+    "RequestLimitsReadRate": 0,
+    "RequestLimitsWriteRate": 0,
     "RetryJoinIntervalLAN": "0s",
     "RetryJoinIntervalWAN": "0s",
     "RetryJoinLAN": [
@@ -326,6 +333,7 @@
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
+                "OSService": "",
                 "OutputMaxSize": 4096,
                 "ProxyGRPC": "",
                 "ProxyHTTP": "",
@@ -362,8 +370,6 @@
     ],
     "SessionTTLMin": "0s",
     "SkipLeaveOnInt": false,
-    "StartJoinAddrsLAN": [],
-    "StartJoinAddrsWAN": [],
     "StaticRuntimeConfig": {
         "EncryptVerifyIncoming": false,
         "EncryptVerifyOutgoing": false
@@ -478,5 +484,6 @@
     "Version": "",
     "VersionMetadata": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSUpdateRateLimit": 0
 }

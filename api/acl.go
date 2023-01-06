@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"time"
 
@@ -499,10 +498,25 @@ func (c *Client) ACL() *ACL {
 	return &ACL{c}
 }
 
+// BootstrapRequest is used for when operators provide an ACL Bootstrap Token
+type BootstrapRequest struct {
+	BootstrapSecret string
+}
+
 // Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
 // to get the first management token.
 func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
+	return a.BootstrapWithToken("")
+}
+
+// BootstrapWithToken is used to get the initial bootstrap token or pass in the one that was provided in the API
+func (a *ACL) BootstrapWithToken(btoken string) (*ACLToken, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
+	if btoken != "" {
+		r.obj = &BootstrapRequest{
+			BootstrapSecret: btoken,
+		}
+	}
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
@@ -1047,7 +1061,7 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
+	ruleBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
 	}
@@ -1074,7 +1088,7 @@ func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
+	ruleBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
 	}

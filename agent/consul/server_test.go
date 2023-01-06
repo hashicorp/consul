@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -16,9 +15,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/mock"
@@ -26,10 +24,15 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/agent/hcp"
+
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -232,7 +235,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		}
 
 		// Apply config to copied fields because many tests only set the old
-		//values.
+		// values.
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -247,17 +250,35 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
-	if srv.config.GRPCPort > 0 {
+	for _, grpcPort := range []int{srv.config.GRPCPort, srv.config.GRPCTLSPort} {
+		if grpcPort == 0 {
+			continue
+		}
+
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
-		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
-		ln, err := net.Listen("tcp", externalGRPCAddr)
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", grpcPort))
 		require.NoError(t, err)
 
-		// Wrap the listener with TLS
-		if deps.TLSConfigurator.GRPCServerUseTLS() {
-			ln = tls.NewListener(ln, deps.TLSConfigurator.IncomingGRPCConfig())
+		protocol := grpcmiddleware.ProtocolPlaintext
+		if grpcPort == srv.config.GRPCTLSPort || deps.TLSConfigurator.GRPCServerUseTLS() {
+			protocol = grpcmiddleware.ProtocolTLS
+			// Set the internally managed server certificate. The cert manager is hooked to the Agent, so we need to bypass that here.
+			if srv.config.PeeringEnabled && srv.config.ConnectEnabled {
+				key, _ := srv.config.CAConfig.Config["PrivateKey"].(string)
+				cert, _ := srv.config.CAConfig.Config["RootCert"].(string)
+				if key != "" && cert != "" {
+					ca := &structs.CARoot{
+						SigningKey: key,
+						RootCert:   cert,
+					}
+					require.NoError(t, deps.TLSConfigurator.UpdateAutoTLSCert(connect.TestServerLeaf(t, srv.config.Datacenter, ca)))
+					deps.TLSConfigurator.UpdateAutoTLSPeeringServerName(connect.PeeringServerSAN("dc1", connect.TestTrustDomain))
+				}
+			}
+
 		}
+		ln = grpcmiddleware.LabelledListener{Listener: ln, Protocol: protocol}
 
 		go func() {
 			_ = srv.externalGRPCServer.Serve(ln)
@@ -289,6 +310,7 @@ func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.C
 	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
 	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	//nolint:staticcheck
 	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	require.NoError(t, err)
 
@@ -311,8 +333,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"))
-	srv, err := NewServer(c, deps, grpcServer)
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler())
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -840,7 +862,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s1.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	// Wait for it to make it into the gateway locator.
@@ -895,7 +917,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s2.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s2.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 	{
 		arg := structs.RegisterRequest{
@@ -912,7 +934,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, s3.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s3.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	// Wait for it to make it into the gateway locator in dc2 and then for
@@ -966,7 +988,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 					Datacenter: dstDC,
 				}
 				var out structs.IndexedNodes
-				require.NoError(t, srv.RPC("Catalog.ListNodes", &arg, &out))
+				require.NoError(t, srv.RPC(context.Background(), "Catalog.ListNodes", &arg, &out))
 				require.Len(t, out.Nodes, 1)
 				node := out.Nodes[0]
 				require.Equal(t, dstDC, node.Datacenter)
@@ -1173,7 +1195,7 @@ func TestServer_RPC(t *testing.T) {
 	defer s1.Shutdown()
 
 	var out struct{}
-	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1219,14 +1241,14 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer())
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		t.Cleanup(func() { s1.Shutdown() })
 
 		var out struct{}
-		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1257,7 +1279,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer())
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1267,7 +1289,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := s2.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s2.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1291,7 +1313,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer())
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1310,7 +1332,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer())
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
@@ -1376,7 +1398,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	// asserts
 	t.Run("test happy path for metrics interceptor", func(t *testing.T) {
 		var out struct{}
-		if err := s.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		if err := s.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -1798,6 +1820,10 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		c.RequestLimitsMode = "permissive"
+		c.RequestLimitsReadRate = 500
+		c.RequestLimitsWriteRate = 500
+		c.RPCClientTimeout = 60 * time.Second
 		// Set one raft param to be non-default in the initial config, others are
 		// default.
 		c.RaftConfig.TrailingLogs = 1234
@@ -1811,7 +1837,15 @@ func TestServer_ReloadConfig(t *testing.T) {
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
+	require.Equal(t, 60*time.Second, s.connPool.RPCClientTimeout())
+
 	rc := ReloadableConfig{
+		RequestLimits: &RequestLimits{
+			Mode:      rpcRate.ModeEnforcing,
+			ReadRate:  1000,
+			WriteRate: 1100,
+		},
+		RPCClientTimeout:     2 * time.Minute,
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
@@ -1824,6 +1858,11 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 		// Leave other raft fields default
 	}
+
+	mockHandler := rpcRate.NewMockRequestLimitsHandler(t)
+	mockHandler.On("UpdateConfig", mock.Anything).Return(func(cfg rpcRate.HandlerConfig) {})
+
+	s.incomingRPCLimiter = mockHandler
 	require.NoError(t, s.ReloadConfig(rc))
 
 	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -1839,6 +1878,22 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check the incoming RPC rate limiter got updated
+	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
+		GlobalMode: rc.RequestLimits.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.ReadRate,
+			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.WriteRate,
+			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	})
+
+	// Check RPC client timeout got updated
+	require.Equal(t, 2*time.Minute, s.connPool.RPCClientTimeout())
 
 	// Check raft config
 	defaults := DefaultConfig()
@@ -1963,7 +2018,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
+		if err := s1.RPC(context.Background(), "Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
 			r.Fatalf("err: %v", err)
 		}
 	})

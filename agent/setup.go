@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 
@@ -21,8 +20,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
+	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -52,7 +54,7 @@ type BaseDeps struct {
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
@@ -62,9 +64,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
-	d.Logger, err = logging.Setup(logConf, logOut)
-	if err != nil {
-		return d, err
+
+	if providedLogger != nil {
+		d.Logger = providedLogger
+	} else {
+		d.Logger, err = logging.Setup(logConf, logOut)
+		if err != nil {
+			return d, err
+		}
 	}
 
 	grpcLogInitOnce.Do(func() {
@@ -105,25 +112,40 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{
+	resolverBuilder := resolver.NewServerResolverBuilder(resolver.Config{
 		// Set the authority to something sufficiently unique so any usage in
 		// tests would be self-isolating in the global resolver map, while also
 		// not incurring a huge penalty for non-test code.
 		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
 	})
-	resolver.Register(builder)
-	d.GRPCConnPool = grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-		Servers:               builder,
+	resolver.Register(resolverBuilder)
+
+	balancerBuilder := balancer.NewBuilder(
+		// Balancer name doesn't really matter, we set it to the resolver authority
+		// to keep it unique for tests.
+		resolverBuilder.Authority(),
+		d.Logger.Named("grpc.balancer"),
+	)
+	balancerBuilder.Register()
+
+	d.GRPCConnPool = grpcInt.NewClientConnPool(grpcInt.ClientConnPoolConfig{
+		Servers:               resolverBuilder,
 		SrcAddr:               d.ConnPool.SrcAddr,
-		TLSWrapper:            grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
-		ALPNWrapper:           grpc.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
+		TLSWrapper:            grpcInt.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
+		ALPNWrapper:           grpcInt.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
 		UseTLSForDC:           d.TLSConfigurator.UseTLS,
 		DialingFromServer:     cfg.ServerMode,
 		DialingFromDatacenter: cfg.Datacenter,
+		BalancerBuilder:       balancerBuilder,
 	})
-	d.LeaderForwarder = builder
+	d.LeaderForwarder = resolverBuilder
 
-	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
+	d.Router = router.NewRouter(
+		d.Logger,
+		cfg.Datacenter,
+		fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter),
+		grpcInt.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	// this needs to happen prior to creating auto-config as some of the dependencies
 	// must also be passed to auto-config
@@ -180,10 +202,11 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
-		Timeout:          config.RPCHoldTimeout,
+		RPCHoldTimeout:   config.RPCHoldTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
+	pool.SetRPCClientTimeout(config.RPCClientTimeout)
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute
 		pool.MaxStreams = 64
@@ -201,7 +224,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 }
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
-//  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
+// all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
 func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
 	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
@@ -228,7 +251,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		cache.Gauges,
 		consul.RPCGauges,
 		consul.SessionGauges,
-		grpc.StatsGauges,
+		grpcWare.StatsGauges,
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
@@ -286,7 +309,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		consul.CatalogCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
-		grpc.StatsCounters,
+		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,
 		raftCounters,
@@ -343,6 +366,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		fsm.CommandsSummaries,
 		fsm.SnapshotSummaries,
 		raftSummaries,
+		xds.StatsSummaries,
 	}
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
