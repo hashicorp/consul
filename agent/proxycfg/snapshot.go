@@ -734,6 +734,10 @@ type ConfigSnapshot struct {
 
 	// ingress-gateway specific
 	IngressGateway configSnapshotIngressGateway
+
+	// api-gateway specific
+	// TODO Consider custom type configSnapshotAPIGateway
+	APIGateway configSnapshotIngressGateway
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.

@@ -198,6 +198,8 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 		handler = &handlerMeshGateway{handlerState: h}
 	case structs.ServiceKindIngressGateway:
 		handler = &handlerIngressGateway{handlerState: h}
+	case structs.ServiceKindAPIGateway:
+		handler = &handlerAPIGateway{handlerState: h}
 	default:
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
