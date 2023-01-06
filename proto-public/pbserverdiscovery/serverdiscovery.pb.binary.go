@@ -4,7 +4,7 @@
 package pbserverdiscovery
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
