@@ -73,7 +73,7 @@ jobs:
           name: ${{ env.ARTIFACT_BASENAME }}.zip
           path: out/${{ env.ARTIFACT_BASENAME }}.zip
           if-no-files-found: error
-      - if: ${{ inputs.create-packages }}
+      - if: ${{ inputs.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
         with:
           name: ${{ github.event.repository.name }}
@@ -91,18 +91,18 @@ jobs:
           postinstall: .release/linux/postinstall
           preremove: .release/linux/preremove
           postremove: .release/linux/postremove
-      - if: ${{ inputs.create-packages }}
+      - if: ${{ inputs.goos == 'linux' }}
         name: Determine package file names
         run: |
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
-      - if: ${{ inputs.create-packages }}
+      - if: ${{ inputs.goos == 'linux' }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
           if-no-files-found: error
-      - if: ${{ inputs.create-packages }}
+      - if: ${{ inputs.goos == 'linux' }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.DEB_PACKAGE }}
