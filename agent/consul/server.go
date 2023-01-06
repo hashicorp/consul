@@ -49,6 +49,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -1846,7 +1847,7 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 	}
 }
 
-func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
 	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
 	limitsConfig := &RequestLimits{
 		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
@@ -1854,14 +1855,15 @@ func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg 
 		WriteRate: consulCfg.RequestLimitsWriteRate,
 	}
 
+	sink := logdrop.NewLogDropSink(ctx, 100, serverLogger.Named("rpc-rate-limit"), func(l logdrop.Log) {
+		metrics.IncrCounter([]string{"rpc", "rate_limit", "log_dropped"}, 1)
+	})
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
+	logger.RegisterSink(sink)
+
 	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
 
-	incomingRPCLimiter := rpcRate.NewHandler(
-		*rateLimiterConfig,
-		serverLogger.Named("rpc-rate-limit"),
-	)
-
-	return incomingRPCLimiter
+	return rpcRate.NewHandler(*rateLimiterConfig, logger)
 }
 
 func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
