@@ -8,7 +8,6 @@ on:
     branches:
       - main
       - release/**
-      - releng-329
 
 env:
   PKG_NAME: consul
@@ -23,6 +22,8 @@ jobs:
       product-date: ${{ steps.get-product-version.outputs.product-date }}
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+      package-name: ${{ env.PKG_NAME }}
     steps:
       - uses: actions/checkout@v3
       - name: set product version
@@ -43,6 +44,11 @@ jobs:
           -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
           -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
           "
+      - name: Get Go Version
+        id: get-go-version
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
   validate-outputs:
     needs: set-product-version
     runs-on: ubuntu-latest
@@ -77,7 +83,6 @@ jobs:
 
   build:
     needs: set-product-version
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
@@ -91,20 +96,22 @@ jobs:
           - {go: "1.19.4", goos: "windows", goarch: "amd64"}
           - {go: "1.19.4", goos: "solaris", goarch: "amd64"}
       fail-fast: true
+
+    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     uses: ./.github/workflows/build-consul-oss.yml
     with:
       create-packages: false
       goarch: ${{ matrix.goarch }}
       goos: ${{ matrix.goos }}
       go-tags: ui
-      go-version: ${{ needs.product-metadata.outputs.go-version }}
-      package-name: ${{ needs.product-metadata.outputs.package-name }}
-      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+      go-version: ${{ needs.set-product-version.outputs.go-version }}
+      package-name: ${{ needs.set-product-version.outputs.package-name }}
+      consul-version: ${{ needs.set-product-version.outputs.product-version }}
     secrets: inherit
 
   build-linux:
     name: Build Consul Linux
-    needs: product-metadata
+    needs: set-product-version
     strategy:
       matrix:
         goos: [linux]
@@ -115,14 +122,13 @@ jobs:
       goarch: ${{ matrix.goarch }}
       goos: ${{ matrix.goos }}
       go-tags: ui
-      go-version: ${{ needs.product-metadata.outputs.go-version }}
-      package-name: ${{ needs.product-metadata.outputs.package-name }}
-      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+      go-version: ${{ needs.set-product-version.outputs.go-version }}
+      package-name: ${{ needs.set-product-version.outputs.package-name }}
+      consul-version: ${{ needs.set-product-version.outputs.product-version }}
     secrets: inherit
 
   build-darwin:
     needs: set-product-version
-    runs-on: macos-latest
     strategy:
       matrix:
         goos: [ darwin ]
@@ -135,9 +141,9 @@ jobs:
       goarch: ${{ matrix.goarch }}
       goos: ${{ matrix.goos }}
       go-tags: ui netcgo
-      go-version: ${{ needs.product-metadata.outputs.go-version }}
-      package-name: ${{ needs.product-metadata.outputs.package-name }}
-      consul-version: ${{ needs.product-metadata.outputs.consul-version }}
+      go-version: ${{ needs.set-product-version.outputs.go-version }}
+      package-name: ${{ needs.set-product-version.outputs.package-name }}
+      consul-version: ${{ needs.set-product-version.outputs.product-version }}
     secrets: inherit
 
   build-docker:

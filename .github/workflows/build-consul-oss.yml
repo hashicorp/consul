@@ -90,7 +90,7 @@ jobs:
           preinstall: .release/linux/preinstall
           postinstall: .release/linux/postinstall
           preremove: .release/linux/preremove
-          postremove: .release/linux/postrm
+          postremove: .release/linux/postremove
       - if: ${{ inputs.create-packages }}
         name: Determine package file names
         run: |

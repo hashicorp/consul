@@ -30,7 +30,7 @@ function version() {
 }
 
 # Get the base version
-function version_base() {
+function version() {
   : "${CONSUL_VERSION:=""}"
 
   if [ -n "$CONSUL_VERSION" ]; then
@@ -38,8 +38,24 @@ function version_base() {
     return
   fi
 
-  : "${VERSION_FILE:=$(repo_root)/version/version.go}"
-  awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < "$VERSION_FILE"
+  : "${VERSION_FILE:=$(repo_root)/version/VERSION}"
+  CONSUL_VERSION=$(cat ${VERSION_FILE})
+  echo "$CONSUL_VERSION"
+}
+
+# Get the version
+function version_base() {
+  : "${CONSUL_BASE_VERSION:=""}"
+
+  if [ -n "$CONSUL_BASE_VERSION" ]; then
+    echo "$CONSUL_BASE_VERSION"
+    return
+  fi
+
+  : "${VERSION_FILE:=$(repo_root)/version/VERSION}"
+  version=$(cat ${VERSION_FILE})
+  CONSUL_BASE_VERSION=${version%-*}
+  echo "$CONSUL_BASE_VERSION"
 }
 
 # Get the version pre-release
@@ -51,21 +67,20 @@ function version_pre() {
     return
   fi
 
-  : "${VERSION_FILE:=$(repo_root)/version/version.go}"
-  awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < "$VERSION_FILE"
+  : "${VERSION_FILE:=$(repo_root)/version/VERSION}"
+    version=$(cat ${VERSION_FILE})
+    CONSUL_PRERELEASE=${version#*-}
+    echo "$CONSUL_PRERELEASE"
 }
 
 # Get the version metadata, which is commonly the edition
 function version_metadata() {
-  : "${CONSUL_METADATA:=""}"
+  : "${METADATA:=""}"
 
-  if [ -n "$CONSUL_METADATA" ]; then
-    echo "$CONSUL_METADATA"
+  if [ -n "$METADATA" ]; then
+    echo "$METADATA"
     return
   fi
-
-  : "${VERSION_FILE:=$(repo_root)/version/version.go}"
-  awk '$1 == "VersionMetadata" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < "$VERSION_FILE"
 }
 
 # Get the build date from the latest commit since it can be used across all
@@ -96,8 +111,9 @@ function artifact_basename() {
   : "${PKG_NAME:="consul"}"
   : "${GOOS:=$(go env GOOS)}"
   : "${GOARCH:=$(go env GOARCH)}"
+  VERSION=$(version)
 
-  echo "${PKG_NAME}_$(version)_${GOOS}_${GOARCH}"
+  echo "${PKG_NAME}_${VERSION}_${GOOS}_${GOARCH}"
 }
 
 # Build the UI
@@ -167,7 +183,7 @@ function build() {
 
 # Bundle the dist directory
 function bundle() {
-  : "${BUNDLE_PATH:=$(repo_root)/vault.zip}"
+  : "${BUNDLE_PATH:=$(repo_root)/consul.zip}"
   echo "--> Bundling dist/* to $BUNDLE_PATH"
   zip -r -j "$BUNDLE_PATH" dist/
 }
