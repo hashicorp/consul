@@ -1334,7 +1334,7 @@ func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*Write
 // UpdateConfigFileRegistrationToken updates the agent's "replication" token. See updateToken
 // for more details
 func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("config_file_registration", token, q)
+	return a.updateToken("config_file_service_registration", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

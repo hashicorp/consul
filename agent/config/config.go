@@ -759,7 +759,7 @@ type Tokens struct {
 	AgentRecovery          *string `mapstructure:"agent_recovery"`
 	Default                *string `mapstructure:"default"`
 	Agent                  *string `mapstructure:"agent"`
-	ConfigFileRegistration *string `mapstructure:"config_file_registration"`
+	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`

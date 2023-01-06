@@ -6221,7 +6221,7 @@ func TestAgent_Token(t *testing.T) {
 				agent = ""
 				agent_recovery = ""
 				replication = ""
-				config_file_registration = ""
+				config_file_service_registration = ""
 			}
 		}
 	`)
@@ -6369,7 +6369,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set registration",
 			method:    "PUT",
-			url:       "config_file_registration?token=root",
+			url:       "config_file_service_registration?token=root",
 			body:      body("G"),
 			code:      http.StatusOK,
 			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
@@ -6459,7 +6459,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear registration",
 			method: "PUT",
-			url:    "config_file_registration?token=root",
+			url:    "config_file_service_registration?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{registration: "G"},

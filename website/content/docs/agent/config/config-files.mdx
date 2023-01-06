@@ -914,19 +914,19 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `agent_master` ((#acl_tokens_agent_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
-    - `config_file_registration` ((#acl_tokens_config_file_registration)) - The ACL token this agent
+    - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - The ACL token this agent
       uses to register services and checks from [service definitions](/docs/discovery/services) and
       [check definitions](/docs/discovery/checks) foudn in configuration files or in configuration
       strings passed to the agent using the `-hcl` flag.
 
       If an inline token is defined in the service or check definition, then the inline token is
-      used to register that service or check instead. If the `config_file_registration` token is not
+      used to register that service or check instead. If the `config_file_service_registration` token is not
       defined and if a service or check has no inline token, then the agent uses the
       [`default`](#acl_tokens_default) token to register the service or check.
 
       This token needs permissions for all services and checks this agent needs to register. For
       example, if there are multiple service definitions in configuration files, then the
-      `config_file_registration` token needs multiple `service:write` permissions in order for
+      `config_file_service_registration` token needs multiple `service:write` permissions in order for
       the agent to register those services.
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to

@@ -73,7 +73,7 @@ type persistedTokens struct {
 	AgentRecovery          string `json:"agent_recovery,omitempty"`
 	Default                string `json:"default,omitempty"`
 	Agent                  string `json:"agent,omitempty"`
-	ConfigFileRegistration string `json:"config_file_registration,omitempty"`
+	ConfigFileRegistration string `json:"config_file_service_registration,omitempty"`
 }
 
 type fileStore struct {
@@ -135,7 +135,7 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		s.UpdateConfigFileRegistrationToken(tokens.ConfigFileRegistration, TokenSourceAPI)
 
 		if cfg.ACLConfigFileRegistrationToken != "" {
-			logger.Warn("\"config_file_registration\" token present in both the configuration and persisted token store, using the persisted token")
+			logger.Warn("\"config_file_service_registration\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		s.UpdateConfigFileRegistrationToken(cfg.ACLConfigFileRegistrationToken, TokenSourceConfig)

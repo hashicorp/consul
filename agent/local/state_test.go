@@ -999,7 +999,7 @@ func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
 		"web": "b85e99b7-8d97-45a3-a175-5f33e167177b",
 	}
 
-	// Configure the agent with the config_file_registration token.
+	// Configure the agent with the config_file_service_registration token.
 	agentConfig := fmt.Sprintf(`
 		primary_datacenter = "dc1"
 
@@ -1008,7 +1008,7 @@ func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
 			default_policy = "deny"
 			tokens {
 				initial_management = "root"
-				config_file_registration = "%s"
+				config_file_service_registration = "%s"
 			}
 		}
 	`, tokens["api"])
@@ -1019,7 +1019,7 @@ func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
 	dbFile := filepath.Join(dir, "db.hcl")
 	webFile := filepath.Join(dir, "web.hcl")
 
-	// The "api" service and checks are able to register because the config_file_registration token
+	// The "api" service and checks are able to register because the config_file_service_registration token
 	// has service:write for the "api" service.
 	require.NoError(t, os.WriteFile(apiFile, []byte(`
 		service {
@@ -1041,7 +1041,7 @@ func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
 		}
 	`), 0600))
 
-	// The "db" service and check is unable to register because the config_file_registration token
+	// The "db" service and check is unable to register because the config_file_service_registration token
 	// does not have service:write for "db" and there are no inline tokens.
 	require.NoError(t, os.WriteFile(dbFile, []byte(`
 		service {
@@ -1058,7 +1058,7 @@ func TestAgentAntiEntropy_ConfigFileRegistrationToken(t *testing.T) {
 	`), 0600))
 
 	// The "web" service is able to register because the inline tokens have service:write for "web".
-	// This tests that inline tokens take precedence over the config_file_registration token.
+	// This tests that inline tokens take precedence over the config_file_service_registration token.
 	require.NoError(t, os.WriteFile(webFile, []byte(fmt.Sprintf(`
 		service {
 			name = "web"

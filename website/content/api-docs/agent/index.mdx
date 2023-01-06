@@ -749,18 +749,18 @@ only if the [`acl.enable_token_persistence`](/docs/agent/config/config-files#acl
 configuration is `true`. When not being persisted, they will need to be reset if the agent
 is restarted.
 
-| Method | Path                                    | Produces           |
-| ------ | -----------------------------           | ------------------ |
-| `PUT`  | `/agent/token/default`                  | `application/json` |
-| `PUT`  | `/agent/token/agent`                    | `application/json` |
-| `PUT`  | `/agent/token/agent_recovery`           | `application/json` |
-| `PUT`  | `/agent/token/config_file_registration` | `application/json` |
-| `PUT`  | `/agent/token/replication`              | `application/json` |
+| Method | Path                                            | Produces           |
+| ------ | -----------------------------                   | ------------------ |
+| `PUT`  | `/agent/token/default`                          | `application/json` |
+| `PUT`  | `/agent/token/agent`                            | `application/json` |
+| `PUT`  | `/agent/token/agent_recovery`                   | `application/json` |
+| `PUT`  | `/agent/token/config_file_service_registration` | `application/json` |
+| `PUT`  | `/agent/token/replication`                      | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
 [`default`](/docs/agent/config/config-files#acl_tokens_default), [`agent`](/docs/agent/config/config-files#acl_tokens_agent),
 [`agent_recovery`](/docs/agent/config/config-files#acl_tokens_agent_recovery),
-[`config_file_registration`](/docs/agent/config/config-files#acl_tokens_config_file_registration),
+[`config_file_service_registration`](/docs/agent/config/config-files#acl_tokens_config_file_service_registration),
 and [`replication`](/docs/agent/config/config-files#acl_tokens_replication).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.11

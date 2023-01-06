@@ -66,7 +66,7 @@ func TestStore_Load(t *testing.T) {
 			"agent_recovery" : "juliett",
 			"default": "kilo",
 			"replication": "lima",
-			"config_file_registration": "mike"
+			"config_file_service_registration": "mike"
 		}`
 
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
@@ -112,7 +112,7 @@ func TestStore_Load(t *testing.T) {
 			"agent_recovery" : "november",
 			"default": "oscar",
 			"replication" : "papa",
-			"config_file_registration" : "lima"
+			"config_file_service_registration" : "lima"
 		}`
 
 		cfg := Config{
