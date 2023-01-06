@@ -9,8 +9,9 @@ import (
 	"reflect"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
 var (
@@ -119,8 +120,6 @@ type Handler struct {
 
 	limiter multilimiter.RateLimiter
 
-	// TODO: replace this with the real logger.
-	// https://github.com/hashicorp/consul/pull/15822
 	logger hclog.Logger
 }
 
@@ -205,8 +204,7 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: metrics.
-		// TODO: is this the correct log-level?
+		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
@@ -217,6 +215,7 @@ func (h *Handler) Allow(op Operation) error {
 		)
 
 		if enforced {
+			// TODO(NET-1382) - use the logger to print rate limiter logs.
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}
