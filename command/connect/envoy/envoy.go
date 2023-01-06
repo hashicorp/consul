@@ -521,8 +521,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	if err := checkDial(xdsAddr, c.dialFunc); err != nil {
-		return nil, fmt.Errorf("error dialing xDS address: %w", err)
+	// Bootstrapping should not attempt to dial the address, since the template
+	// may be generated and passed to another host (Nomad is one example).
+	if !c.bootstrap {
+		if err := checkDial(xdsAddr, c.dialFunc); err != nil {
+			c.UI.Warn("There was an error dialing the xDS address: " + err.Error())
+		}
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
