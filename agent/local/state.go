@@ -295,19 +295,20 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string, isL
 	return nil
 }
 
-// AddServiceWithChecks adds a service entry and its checks to the local state atomically
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string, isLocal bool) error {
+// AddServiceWithChecks adds a service entry and its checks to the local state
+// atomically This entry is persistent and the agent will make a best effort to
+// ensure it is registered. The isLocallyDefined parameter indicates whether
+// the service and checks are sourced from local agent configuration files.
+func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string, isLocallyDefined bool) error {
 	l.Lock()
 	defer l.Unlock()
 
-	if err := l.addServiceLocked(service, token, isLocal); err != nil {
+	if err := l.addServiceLocked(service, token, isLocallyDefined); err != nil {
 		return err
 	}
 
 	for _, check := range checks {
-		if err := l.addCheckLocked(check, token, isLocal); err != nil {
+		if err := l.addCheckLocked(check, token, isLocallyDefined); err != nil {
 			return err
 		}
 	}
@@ -534,14 +535,15 @@ func (l *State) aclTokenForCheckSync(id structs.CheckID, fallbacks ...func() str
 	return ""
 }
 
-// AddCheck is used to add a health check to the local state.
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddCheck(check *structs.HealthCheck, token string, isLocal bool) error {
+// AddCheck is used to add a health check to the local state. This entry is
+// persistent and the agent will make a best effort to ensure it is registered.
+// The isLocallyDefined parameter indicates whether the checks are sourced from
+// local agent configuration files.
+func (l *State) AddCheck(check *structs.HealthCheck, token string, isLocallyDefined bool) error {
 	l.Lock()
 	defer l.Unlock()
 
-	return l.addCheckLocked(check, token, isLocal)
+	return l.addCheckLocked(check, token, isLocallyDefined)
 }
 
 func (l *State) addCheckLocked(check *structs.HealthCheck, token string, isLocal bool) error {

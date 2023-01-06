@@ -59,7 +59,6 @@ func testRegistrationTokenFallback(
 		},
 	}
 	for name, c := range cases {
-		c := c
 		t.Run(prefix+" "+name, func(t *testing.T) {
 			tokens := new(token.Store)
 			tokens.Load(token.Config{

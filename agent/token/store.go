@@ -75,8 +75,8 @@ type Store struct {
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
 
-	// configFileRegistrationToken is used to register services defined
-	// with a service definitions in a config file.
+	// configFileRegistrationToken is used to register services and checks
+	// that are defined in configuration files.
 	configFileRegistrationToken string
 
 	// configFileRegistrationTokenSource indicates where this token originated from
