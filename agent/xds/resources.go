@@ -54,6 +54,8 @@ func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxy
 		return g.clustersFromSnapshot(cfgSnap)
 	case xdscommon.EndpointType:
 		return g.endpointsFromSnapshot(cfgSnap)
+	case xdscommon.SecretType:
+		return g.secretsFromSnapshot(cfgSnap)
 	default:
 		return nil, fmt.Errorf("unknown typeUrl: %s", typeUrl)
 	}

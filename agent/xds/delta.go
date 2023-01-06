@@ -150,6 +150,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
+		xdscommon.SecretType:   newDeltaType(generator, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
