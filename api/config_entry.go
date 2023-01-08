@@ -31,6 +31,7 @@ const (
 const (
 	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
 	BuiltinLuaExtension       string = "builtin/lua"
+	BuiltinRatelimitExtension string = "builtin/ratelimit"
 )
 
 type ConfigEntry interface {

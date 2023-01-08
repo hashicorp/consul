@@ -166,6 +166,8 @@ func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdsc
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
+			} else {
+				filters = append(filters, filter)
 			}
 		}
 		filterChain.Filters = filters
@@ -209,6 +211,8 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
+			} else {
+				filters = append(filters, filter)
 			}
 		}
 		filterChain.Filters = filters
