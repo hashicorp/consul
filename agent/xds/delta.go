@@ -341,7 +341,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Got initial config snapshot")
 
-			// Lets actually process the config we just got or we'll mis responding
+			// Let's actually process the config we just got, or we'll miss responding
 			fallthrough
 		case stateDeltaRunning:
 			// Check ACLs on every Discovery{Request,Response}.
