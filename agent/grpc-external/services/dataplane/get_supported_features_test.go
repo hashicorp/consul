@@ -53,6 +53,25 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	}
 }
 
+func TestSupportedDataplaneFeatures_ACLsDisabled(t *testing.T) {
+	aclResolver := &MockACLResolver{}
+	aclResolver.On("ResolveTokenAndDefaultMeta", "", mock.Anything, mock.Anything).
+		Return(testutils.ACLsDisabled(t), nil)
+
+	options := structs.QueryOptions{Token: ""}
+	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
+	require.NoError(t, err)
+
+	server := NewServer(Config{
+		Logger:      hclog.NewNullLogger(),
+		ACLResolver: aclResolver,
+	})
+	client := testClient(t, server)
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
+	require.NoError(t, err)
+	require.Equal(t, 3, len(resp.SupportedDataplaneFeatures))
+}
+
 func TestSupportedDataplaneFeatures_InvalidACLToken(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}

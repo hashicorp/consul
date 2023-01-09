@@ -1,4 +1,4 @@
-package serverlessplugin
+package lambda
 
 import (
 	"errors"
@@ -14,46 +14,48 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-multierror"
 )
 
-type lambdaPatcher struct {
-	ARN                string `mapstructure:"ARN"`
-	PayloadPassthrough bool   `mapstructure:"PayloadPassthrough"`
-	Region             string `mapstructure:"Region"`
+type lambda struct {
+	ARN                string
+	PayloadPassthrough bool
+	Region             string
 	Kind               api.ServiceKind
-	InvocationMode     string `mapstructure:"InvocationMode"`
+	InvocationMode     string
 }
 
-var _ patcher = (*lambdaPatcher)(nil)
+var _ builtinextensiontemplate.Plugin = (*lambda)(nil)
 
-func makeLambdaPatcher(ext api.EnvoyExtension, upstreamKind api.ServiceKind) (patcher, bool) {
-	var patcher lambdaPatcher
+// MakeLambdaExtension is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
+func MakeLambdaExtension(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
+	var resultErr error
+	var plugin lambda
 
-	if ext.Name != structs.BuiltinAWSLambdaExtension {
-		return nil, false
+	if name := ext.EnvoyExtension.Name; name != api.BuiltinAWSLambdaExtension {
+		return nil, fmt.Errorf("expected extension name 'lambda' but got %q", name)
 	}
 
-	// TODO this blows up if types aren't encode properly. We need to check this earlier in the Validate RPC.
-	err := mapstructure.Decode(ext.Arguments, &patcher)
-	if err != nil {
-		return nil, false
+	if err := mapstructure.Decode(ext.EnvoyExtension.Arguments, &plugin); err != nil {
+		return nil, fmt.Errorf("error decoding extension arguments: %v", err)
 	}
 
-	if patcher.ARN == "" {
-		return nil, false
+	if plugin.ARN == "" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("ARN is required"))
 	}
 
-	if patcher.Region == "" {
-		return nil, false
+	if plugin.Region == "" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("Region is required"))
 	}
 
-	patcher.Kind = upstreamKind
+	plugin.Kind = ext.OutgoingProxyKind()
 
-	return patcher, true
+	return plugin, resultErr
 }
 
 func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
@@ -64,11 +66,11 @@ func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
 	return m
 }
 
-func (p lambdaPatcher) CanPatch(kind api.ServiceKind) bool {
-	return kind == p.Kind
+func (p lambda) CanApply(config xdscommon.ExtensionConfiguration) bool {
+	return config.Kind == p.Kind
 }
 
-func (p lambdaPatcher) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	if p.Kind != api.ServiceKindTerminatingGateway {
 		return route, false, nil
 	}
@@ -90,7 +92,7 @@ func (p lambdaPatcher) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*en
 	return route, true, nil
 }
 
-func (p lambdaPatcher) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
 	})
@@ -144,7 +146,7 @@ func (p lambdaPatcher) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster
 	return cluster, true, nil
 }
 
-func (p lambdaPatcher) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}

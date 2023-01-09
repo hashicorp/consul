@@ -19,17 +19,17 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestServerlessPluginFromSnapshot(t *testing.T) {
+func TestBuiltinExtensionsFromSnapshot(t *testing.T) {
 	// If opposite is true, the returned service defaults config entry will have
 	// payload-passthrough=true and invocation-mode=asynchronous.
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
 	// This is used to test all the permutations.
-	makeServiceDefaults := func(opposite bool) *structs.ServiceConfigEntry {
+	makeLambdaServiceDefaults := func(opposite bool) *structs.ServiceConfigEntry {
 		payloadPassthrough := true
 		if opposite {
 			payloadPassthrough = false
@@ -46,12 +46,38 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 			Protocol: "http",
 			EnvoyExtensions: []structs.EnvoyExtension{
 				{
-					Name: structs.BuiltinAWSLambdaExtension,
+					Name: api.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
 						"ARN":                "lambda-arn",
 						"PayloadPassthrough": payloadPassthrough,
 						"InvocationMode":     invocationMode,
 						"Region":             "us-east-1",
+					},
+				},
+			},
+		}
+	}
+
+	makeLuaServiceDefaults := func(inbound bool) *structs.ServiceConfigEntry {
+		listener := "inbound"
+		if !inbound {
+			listener = "outbound"
+		}
+
+		return &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "db",
+			Protocol: "http",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: api.BuiltinLuaExtension,
+					Arguments: map[string]interface{}{
+						"ProxyType": "connect-proxy",
+						"Listener":  listener,
+						"Script": `
+function envoy_on_request(request_handle)
+  request_handle:headers():add("test", "test")
+end`,
 					},
 				},
 			},
@@ -65,20 +91,20 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 		{
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.
 		{
 			name: "lambda-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
 			name: "lambda-connect-proxy-opposite-meta",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(true))
 			},
 		},
 		{
@@ -90,6 +116,66 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 		{
 			name:   "lambda-terminating-gateway-with-service-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers,
+		},
+		{
+			name: "lua-outbound-applies-to-upstreams",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(false))
+			},
+		},
+		{
+			name: "lua-inbound-doesnt-applies-to-upstreams",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(true))
+			},
+		},
+		{
+			name: "lua-inbound-applies-to-inbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLuaExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType": "connect-proxy",
+								"Listener":  "inbound",
+								"Script": `
+function envoy_on_request(request_handle)
+  request_handle:headers():add("test", "test")
+end`,
+							},
+						},
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "lua-outbound-doesnt-apply-to-inbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLuaExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType": "connect-proxy",
+								"Listener":  "outbound",
+								"Script": `
+function envoy_on_request(request_handle)
+  request_handle:headers():add("test", "test")
+end`,
+							},
+						},
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "lua-connect-proxy-with-terminating-gateway-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
+			},
 		},
 	}
 
@@ -115,15 +201,15 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 					require.NoError(t, err)
 
 					indexedResources := indexResources(g.Logger, res)
-					var newResourceMap *xdscommon.IndexedResources
 					cfgs := xdscommon.GetExtensionConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {
-							switch ext.EnvoyExtension.Name {
-							case structs.BuiltinAWSLambdaExtension:
-								newResourceMap, err = serverlessplugin.Extend(indexedResources, ext)
-								require.NoError(t, err)
-							}
+							builtInExtension, ok := GetBuiltInExtension(ext)
+							require.True(t, ok)
+							err = builtInExtension.Validate(ext)
+							require.NoError(t, err)
+							indexedResources, err = builtInExtension.Extend(indexedResources, ext)
+							require.NoError(t, err)
 						}
 					}
 
@@ -172,7 +258,7 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 
 					for _, entity := range entities {
 						var msgs []proto.Message
-						for _, e := range newResourceMap.Index[entity.key] {
+						for _, e := range indexedResources.Index[entity.key] {
 							msgs = append(msgs, e)
 						}
 
@@ -184,7 +270,7 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 							gotJSON := protoToJSON(t, r)
 
 							require.JSONEq(t, goldenEnvoy(t,
-								filepath.Join("serverless_plugin", entity.name, tt.name),
+								filepath.Join("builtin_extension", entity.name, tt.name),
 								envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
 						})
 					}

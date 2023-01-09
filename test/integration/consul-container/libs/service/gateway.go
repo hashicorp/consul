@@ -8,17 +8,19 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/hashicorp/consul/api"
 	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // gatewayContainer
 type gatewayContainer struct {
-	ctx       context.Context
-	container testcontainers.Container
-	ip        string
-	port      int
-	req       testcontainers.ContainerRequest
+	ctx         context.Context
+	container   testcontainers.Container
+	ip          string
+	port        int
+	req         testcontainers.ContainerRequest
+	serviceName string
 }
 
 func (g gatewayContainer) GetName() string {
@@ -60,6 +62,14 @@ func (c gatewayContainer) Terminate() error {
 	c.container = nil
 
 	return err
+}
+
+func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("gatewayContainer export unimplemented")
+}
+
+func (g gatewayContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent) (Service, error) {
@@ -130,5 +140,5 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 	}
 	node.RegisterTermination(terminate)
 
-	return &gatewayContainer{container: container, ip: ip, port: mappedPort.Int()}, nil
+	return &gatewayContainer{container: container, ip: ip, port: mappedPort.Int(), serviceName: name}, nil
 }

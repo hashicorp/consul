@@ -73,6 +73,8 @@ function proto_tools_install {
     mog_version="$(make --no-print-directory print-MOG_VERSION)"
     protoc_go_inject_tag_version="$(make --no-print-directory print-PROTOC_GO_INJECT_TAG_VERSION)"
     buf_version="$(make --no-print-directory print-BUF_VERSION)"
+    protoc_gen_go_binary_version="$(make --no-print-directory print-PROTOC_GEN_GO_BINARY_VERSION)"
+
 
     # echo "go: ${protoc_gen_go_version}"
     # echo "mog: ${mog_version}"
@@ -102,9 +104,11 @@ function proto_tools_install {
         "${protoc_gen_go_grpc_version}" \
         'google.golang.org/grpc/cmd/protoc-gen-go-grpc'
 
-    install_unversioned_tool \
+    install_versioned_tool \
         protoc-gen-go-binary \
-        'github.com/hashicorp/protoc-gen-go-binary@master'
+        'github.com/hashicorp/protoc-gen-go-binary' \
+        "${protoc_gen_go_binary_version}" \
+        'github.com/hashicorp/protoc-gen-go-binary'
 
     install_versioned_tool \
         'protoc-go-inject-tag' \

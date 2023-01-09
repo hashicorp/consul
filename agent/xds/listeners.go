@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -76,7 +77,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	var err error
 
 	// Configure inbound listener.
-	resources[0], err = s.makeInboundListener(cfgSnap, PublicListenerName)
+	resources[0], err = s.makeInboundListener(cfgSnap, xdscommon.PublicListenerName)
 	if err != nil {
 		return nil, err
 	}
@@ -641,7 +642,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 	// Configure additional listener for exposed check paths
 	for _, path := range paths {
-		clusterName := LocalAppClusterName
+		clusterName := xdscommon.LocalAppClusterName
 		if path.LocalPathPort != cfgSnap.Proxy.LocalServicePort {
 			clusterName = makeExposeClusterName(path.LocalPathPort)
 		}
@@ -1350,7 +1351,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		protocol:         cfg.Protocol,
 		filterName:       name,
 		routeName:        name,
-		cluster:          LocalAppClusterName,
+		cluster:          xdscommon.LocalAppClusterName,
 		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
 		idleTimeoutMs:    cfg.LocalIdleTimeoutMs,
 		tracing:          tracing,
@@ -1358,7 +1359,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
-		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
+		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
 			rbacLocalInfo{
@@ -1371,9 +1372,22 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		if err != nil {
 			return nil, err
 		}
-		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
+
+		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+
+		meshConfig := cfgSnap.MeshConfig()
+		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
+		notGRPC := cfg.Protocol != "grpc"
+		if includeXFCC && notGRPC {
 			filterOpts.forwardClientDetails = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
+
+			addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
+			if err != nil {
+				return nil, err
+			}
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, addMeta)
+
 		}
 	}
 
@@ -1472,16 +1486,16 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
 	filterOpts := listenerFilterOpts{
-		useRDS:          false,
-		protocol:        path.Protocol,
-		filterName:      filterName,
-		routeName:       filterName,
-		cluster:         cluster,
-		statPrefix:      "",
-		routePath:       path.Path,
-		httpAuthzFilter: nil,
-		accessLogs:      &cfgSnap.Proxy.AccessLogs,
-		logger:          s.Logger,
+		useRDS:           false,
+		protocol:         path.Protocol,
+		filterName:       filterName,
+		routeName:        filterName,
+		cluster:          cluster,
+		statPrefix:       "",
+		routePath:        path.Path,
+		httpAuthzFilters: nil,
+		accessLogs:       &cfgSnap.Proxy.AccessLogs,
+		logger:           s.Logger,
 		// in the exposed check listener we don't set the tracing configuration
 	}
 	f, err := makeListenerFilter(filterOpts)
@@ -1761,7 +1775,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 
 	if useHTTPFilter {
 		var err error
-		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
+		rbacFilter, err := makeRBACHTTPFilter(
 			tgtwyOpts.intentions,
 			cfgSnap.IntentionDefaultAllow,
 			rbacLocalInfo{
@@ -1774,6 +1788,8 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		if err != nil {
 			return nil, err
 		}
+
+		opts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
 
 		opts.cluster = ""
 		opts.useRDS = true
@@ -2280,7 +2296,7 @@ type listenerFilterOpts struct {
 	// HTTP listener filter options
 	forwardClientDetails bool
 	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
-	httpAuthzFilter      *envoy_http_v3.HttpFilter
+	httpAuthzFilters     []*envoy_http_v3.HttpFilter
 	idleTimeoutMs        *int
 	requestTimeoutMs     *int
 	routeName            string
@@ -2486,8 +2502,8 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 	// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
 	// chain of a public listener is the authz filter to prevent unauthorized
 	// access and that every filter chain uses our TLS certs.
-	if opts.httpAuthzFilter != nil {
-		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{opts.httpAuthzFilter}, cfg.HttpFilters...)
+	if len(opts.httpAuthzFilters) > 0 {
+		cfg.HttpFilters = append(opts.httpAuthzFilters, cfg.HttpFilters...)
 	}
 
 	if opts.protocol == "grpc" {
