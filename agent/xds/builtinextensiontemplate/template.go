@@ -12,7 +12,6 @@ import (
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
-	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -120,7 +119,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 				if patched {
 					resources.Index[xdscommon.RouteType][nameOrSNI] = newRoute
 				}
-			case	*envoy_endpoint_v3.ClusterLoadAssignment:
+			case *envoy_endpoint_v3.ClusterLoadAssignment:
 				// If the Envoy extension configuration is for an upstream service, the Cluster's
 				// name must match the upstream service's SNI.
 				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
@@ -284,36 +283,39 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 
 func filterChainTProxyMatch(sni string, filterChain *envoy_listener_v3.FilterChain) bool {
 	for _, filter := range filterChain.Filters {
-		if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
-			if config.GetRds() != nil {
-				continue
-			}
-
-			cfg := config.GetRouteConfig()
-
-			match := routeMatchesCluster(sni, cfg)
-
-			if match {
-				return true
-			}
+		if FilterDestinationMatch(sni, filter) {
+			return true
 		}
-
-		if config := GetTCPProxy(filter); config != nil {
-			if config.GetCluster() == sni {
-<<<<<<< HEAD
-				return true, nil
-=======
-				return true
->>>>>>> 2ed2cd1fa2... add cluster load assignment support to built in extension template
-			}
-		}
-
 	}
 
 	return false
 }
 
-func routeMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) bool {
+func FilterDestinationMatch(sni string, filter *envoy_listener_v3.Filter) bool {
+	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+		if config.GetRds() != nil {
+			// TODO Can we just assume the check under the route is right?
+			return true
+		}
+
+		cfg := config.GetRouteConfig()
+
+		match := RouteMatchesCluster(sni, cfg)
+
+		if match {
+			return true
+		}
+	}
+
+	if config := GetTCPProxy(filter); config != nil {
+		if config.GetCluster() == sni {
+			return true
+		}
+	}
+	return false
+}
+
+func RouteMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) bool {
 	if route == nil {
 		return false
 	}
@@ -337,7 +339,7 @@ func routeMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) b
 func GetTCPProxy(filter *envoy_listener_v3.Filter) *envoy_tcp_proxy_v3.TcpProxy {
 	if typedConfig := filter.GetTypedConfig(); typedConfig != nil {
 		config := &envoy_tcp_proxy_v3.TcpProxy{}
-		if err := anypb.UnmarshalTo(typedConfig, config, newproto.UnmarshalOptions{}); err == nil {
+		if err := anypb.UnmarshalTo(typedConfig, config, proto.UnmarshalOptions{}); err == nil {
 			return config
 		}
 	}
