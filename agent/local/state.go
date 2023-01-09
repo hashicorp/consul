@@ -1303,7 +1303,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		accessorID := l.aclAccessorID(st)
 		l.logger.Warn("Service deregistration blocked by ACLs",
 			"service", key.String(),
-			"accessorID", acl.CheckAnonymous(accessorID))
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
 		return nil
 
@@ -1345,7 +1345,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		accessorID := l.aclAccessorID(ct)
 		l.logger.Warn("Check deregistration blocked by ACLs",
 			"check", key.String(),
-			"accessorID", acl.CheckAnonymous(accessorID))
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
@@ -1436,7 +1436,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		accessorID := l.aclAccessorID(st)
 		l.logger.Warn("Service registration blocked by ACLs",
 			"service", key.String(),
-			"accessorID", acl.CheckAnonymous(accessorID))
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
 
@@ -1492,7 +1492,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		accessorID := l.aclAccessorID(ct)
 		l.logger.Warn("Check registration blocked by ACLs",
 			"check", key.String(),
-			"accessorID", acl.CheckAnonymous(accessorID))
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
 
@@ -1532,7 +1532,7 @@ func (l *State) syncNodeInfo() error {
 		accessorID := l.aclAccessorID(at)
 		l.logger.Warn("Node info update blocked by ACLs",
 			"node", l.config.NodeID,
-			"accessorID", acl.CheckAnonymous(accessorID))
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 

@@ -18,7 +18,7 @@ func ACLAnonymous(t *testing.T) resolver.Result {
 	return resolver.Result{
 		Authorizer: acl.DenyAll(),
 		ACLIdentity: &structs.ACLToken{
-			AccessorID: structs.ACLTokenAnonymousID,
+			AccessorID: acl.AnonymousTokenID,
 		},
 	}
 }

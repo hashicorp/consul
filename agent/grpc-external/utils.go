@@ -35,7 +35,7 @@ func RequireAnyValidACLToken(resolver ACLResolver, token string) error {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	if id := authz.ACLIdentity; id == nil || id.ID() == acl.AnonymousTokenID {
+	if id := authz.ACLIdentity; id != nil && id.ID() == acl.AnonymousTokenID {
 		return status.Error(codes.Unauthenticated, "An ACL token must be provided (via the `x-consul-token` metadata field) to call this endpoint")
 	}
 
