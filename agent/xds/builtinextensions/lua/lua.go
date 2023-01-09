@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_lua_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
@@ -86,6 +87,11 @@ func (p lua) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_
 
 // PatchCluster does nothing.
 func (p lua) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+	return c, false, nil
+}
+
+// PatchClusterLoadAssignment does nothing.
+func (p lua) PatchClusterLoadAssignment(c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
 	return c, false, nil
 }
 
