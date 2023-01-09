@@ -15,13 +15,12 @@ import (
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -862,7 +861,7 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 
 	// Specail handling for failover peering service, which has set MaxEjectionPercent
 	if c.OutlierDetection != nil && c.OutlierDetection.MaxEjectionPercent != nil {
-		outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
+		outlierDetection.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: c.OutlierDetection.MaxEjectionPercent.Value}
 	}
 
 	c.OutlierDetection = outlierDetection
@@ -971,7 +970,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	// don't take into account service resolvers, splitters and routers. Setting
 	// MaxEjectionPercent too 100% gives outlier detection the power to eject the
 	// entire cluster.
-	outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: 100}
+	outlierDetection.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: 100}
 
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
@@ -1494,8 +1493,8 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 // from rather than our slight variant in JSON/hcl.
 func makeClusterFromUserConfig(configJSON string) (*envoy_cluster_v3.Cluster, error) {
 	// Type field is present so decode it as a types.Any
-	var any any.Any
-	err := jsonpb.UnmarshalString(configJSON, &any)
+	var any anypb.Any
+	err := protojson.Unmarshal([]byte(configJSON), &any)
 	if err != nil {
 		return nil, err
 	}
@@ -1823,7 +1822,7 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 		if ec.LeastRequestConfig != nil {
 			c.LbConfig = &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 				LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-					ChoiceCount: &wrappers.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
+					ChoiceCount: &wrapperspb.UInt32Value{Value: ec.LeastRequestConfig.ChoiceCount},
 				},
 			}
 		}
@@ -1839,8 +1838,8 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 		if ec.RingHashConfig != nil {
 			c.LbConfig = &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 				RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-					MinimumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
-					MaximumRingSize: &wrappers.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
+					MinimumRingSize: &wrapperspb.UInt64Value{Value: ec.RingHashConfig.MinimumRingSize},
+					MaximumRingSize: &wrapperspb.UInt64Value{Value: ec.RingHashConfig.MaximumRingSize},
 				},
 			}
 		}
