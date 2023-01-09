@@ -2,15 +2,24 @@ package bind
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"golang.org/x/exp/slices"
 )
 
 // ReferenceSet stores an O(1) accessible set of ResourceReference objects.
 type ReferenceSet = map[structs.ResourceReference]any
+
+// BoundRouter indicates a route that has parent gateways which
+// can be accessed by calling the GetParents associated function.
+type BoundRouter interface {
+	structs.ConfigEntry
+	GetParents() []structs.ResourceReference
+}
 
 // BindGateways takes a reference to the state store and a route.
 // It iterates over the parent references for the given route which are gateways the
@@ -74,18 +83,41 @@ func getParentReferences(route BoundRouter) ReferenceSet {
 	return refs
 }
 
+func refEqual(a structs.ResourceReference, b BoundRouter) bool {
+	return a.Kind == b.GetKind() && a.Name == b.GetName() && a.EnterpriseMeta.IsSame(b.GetEnterpriseMeta())
+}
+
 func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.ResourceReference, route BoundRouter) (bool, error) {
 	if reference.Kind != "Gateway" || reference.Name != gateway.Name || !reference.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 		return false, nil
 	}
 
-	return false, nil
+	for _, listener := range gateway.Listeners {
+		if listener.Name == reference.SectionName {
+			// Upsert the route to the listener.
+			for i, listenerRoute := range listener.Routes {
+				if refEqual(listenerRoute, route) {
+					listener.Routes[i] = route
+					return true, nil
+				}
+			}
+			listener.Routes = append(listener.Routes, route)
+			return true, nil
+		}
+	}
+
+	return false, fmt.Errorf("invalid section name: %s", reference.SectionName)
 }
 
 func unbind(gateway *structs.BoundAPIGatewayConfigEntry, route BoundRouter) bool {
-	return false
-}
+	for _, listener := range gateway.Listeners {
+		for i, listenerRoute := range listener.Routes {
+			if refEqual(listenerRoute, route) {
+				listener.Routes = slices.Delete(listener.Routes, i, i+1)
+				return true
+			}
+		}
+	}
 
-func routeReferencesGateway(gateway structs.APIGatewayConfigEntry, route BoundRouter) bool {
 	return false
 }
