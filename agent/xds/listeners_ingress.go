@@ -102,16 +102,16 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			listener := makeListener(listenerOpts)
 
 			filterOpts := listenerFilterOpts{
-				useRDS:          true,
-				protocol:        listenerKey.Protocol,
-				filterName:      listenerKey.RouteName(),
-				routeName:       listenerKey.RouteName(),
-				cluster:         "",
-				statPrefix:      "ingress_upstream_",
-				routePath:       "",
-				httpAuthzFilter: nil,
-				accessLogs:      &cfgSnap.Proxy.AccessLogs,
-				logger:          s.Logger,
+				useRDS:           true,
+				protocol:         listenerKey.Protocol,
+				filterName:       listenerKey.RouteName(),
+				routeName:        listenerKey.RouteName(),
+				cluster:          "",
+				statPrefix:       "ingress_upstream_",
+				routePath:        "",
+				httpAuthzFilters: nil,
+				accessLogs:       &cfgSnap.Proxy.AccessLogs,
+				logger:           s.Logger,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs

@@ -26,6 +26,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -570,9 +571,19 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 		return true
 	}
 
-	// If we are chunking and it doesn't seem to have completed, try again.
-	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
-		return true
+	retryableMessages := []error{
+		// If we are chunking and it doesn't seem to have completed, try again.
+		ErrChunkingResubmit,
+
+		// These rate limit errors are returned before the handler is called, so are
+		// safe to retry.
+		rate.ErrRetryElsewhere,
+		rate.ErrRetryLater,
+	}
+	for _, m := range retryableMessages {
+		if err != nil && strings.Contains(err.Error(), m.Error()) {
+			return true
+		}
 	}
 
 	// Reads are safe to retry for stream errors, such as if a server was

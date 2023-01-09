@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/consul/agent/metrics"
 )
 
 //
@@ -42,12 +43,15 @@ func TestHandler(t *testing.T) {
 		allow bool
 	}
 	testCases := map[string]struct {
-		op         Operation
-		globalMode Mode
-		checks     []limitCheck
-		isLeader   bool
-		expectErr  error
-		expectLog  bool
+		op                Operation
+		globalMode        Mode
+		checks            []limitCheck
+		isLeader          bool
+		expectErr         error
+		expectLog         bool
+		expectMetric      bool
+		expectMetricName  string
+		expectMetricCount float64
 	}{
 		"operation exempt from limiting": {
 			op: Operation{
@@ -55,10 +59,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeEnforcing,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeEnforcing,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit disabled": {
 			op: Operation{
@@ -66,10 +71,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeDisabled,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeDisabled,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit within allowance": {
 			op: Operation{
@@ -81,8 +87,9 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: true},
 			},
-			expectErr: nil,
-			expectLog: false,
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global write limit exceeded (permissive)": {
 			op: Operation{
@@ -94,8 +101,11 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			expectErr: nil,
-			expectLog: true,
+			expectErr:         nil,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=permissive",
+			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, leader)": {
 			op: Operation{
@@ -107,9 +117,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			isLeader:  true,
-			expectErr: ErrRetryLater,
-			expectLog: true,
+			isLeader:          true,
+			expectErr:         ErrRetryLater,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, follower)": {
 			op: Operation{
@@ -121,9 +134,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalWrite, allow: false},
 			},
-			isLeader:  false,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global read limit disabled": {
 			op: Operation{
@@ -131,10 +147,11 @@ func TestHandler(t *testing.T) {
 				Name:       rpcName,
 				SourceAddr: sourceAddr,
 			},
-			globalMode: ModeDisabled,
-			checks:     []limitCheck{},
-			expectErr:  nil,
-			expectLog:  false,
+			globalMode:   ModeDisabled,
+			checks:       []limitCheck{},
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global read limit within allowance": {
 			op: Operation{
@@ -146,8 +163,9 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: true},
 			},
-			expectErr: nil,
-			expectLog: false,
+			expectErr:    nil,
+			expectLog:    false,
+			expectMetric: false,
 		},
 		"global read limit exceeded (permissive)": {
 			op: Operation{
@@ -159,8 +177,11 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			expectErr: nil,
-			expectLog: true,
+			expectErr:         nil,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=permissive",
+			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, leader)": {
 			op: Operation{
@@ -172,9 +193,12 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			isLeader:  true,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          true,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, follower)": {
 			op: Operation{
@@ -186,13 +210,17 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
-			isLeader:  false,
-			expectErr: ErrRetryElsewhere,
-			expectLog: true,
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
 		},
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
+			sink := metrics.TestSetupMetrics(t, "")
 			limiter := newMockLimiter(t)
 			limiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			for _, c := range tc.checks {
@@ -223,6 +251,10 @@ func TestHandler(t *testing.T) {
 				require.Contains(t, output.String(), "RPC exceeded allowed rate limit")
 			} else {
 				require.Zero(t, output.Len(), "expected no logs to be emitted")
+			}
+
+			if tc.expectMetric {
+				metrics.AssertCounter(t, sink, tc.expectMetricName, tc.expectMetricCount)
 			}
 		})
 	}

@@ -48,25 +48,8 @@ var StatsSummaries = []prometheus.SummaryDefinition{
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// PublicListenerName is the name we give the public listener in Envoy config.
-	PublicListenerName = "public_listener"
-
 	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
 	OutboundListenerName = "outbound_listener"
-
-	// LocalAppClusterName is the name we give the local application "cluster" in
-	// Envoy config. Note that all cluster names may collide with service names
-	// since we want cluster names and service names to match to enable nice
-	// metrics correlation without massaging prefixes on cluster names.
-	//
-	// We should probably make this more unlikely to collide however changing it
-	// potentially breaks upgrade compatibility without restarting all Envoy's as
-	// it will no longer match their existing cluster name. Changing this will
-	// affect metrics output so could break dashboards (for local app traffic).
-	//
-	// We should probably just make it configurable if anyone actually has
-	// services named "local_app" in the future.
-	LocalAppClusterName = "local_app"
 
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
 	// Envoy config. Note that all cluster names may collide with service names
