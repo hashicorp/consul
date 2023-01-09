@@ -7,8 +7,12 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
+	newproto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
@@ -182,8 +186,12 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 		envoyID = l.Name[:i]
 	}
 
+	if config.IsUpstream() && envoyID == xdscommon.OutboundListenerName {
+		return envoyExtension.patchTProxyListener(config, l)
+	}
+
 	// If the Envoy extension configuration is for an upstream service, the listener's
-	// name must match the upstream service's EnvoyID.
+	// name must match the upstream service's EnvoyID or be the outbound listener.
 	if config.IsUpstream() && envoyID != config.EnvoyID() {
 		return l, false, nil
 	}
@@ -215,6 +223,99 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 	}
 
 	return l, patched, resultErr
+}
+
+func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+	var resultErr error
+	patched := false
+
+	snis := config.Upstreams[config.ServiceName].SNI
+
+	for _, filterChain := range l.FilterChains {
+		var filters []*envoy_listener_v3.Filter
+
+		for sni := range snis {
+			match, _ := filterChainTProxyMatch(sni, filterChain)
+			if !match {
+				continue
+			}
+
+			for _, filter := range filterChain.Filters {
+				newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+				if err != nil {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+					filters = append(filters, filter)
+				}
+
+				if ok {
+					filters = append(filters, newFilter)
+					patched = true
+				}
+			}
+			filterChain.Filters = filters
+		}
+	}
+
+	return l, patched, resultErr
+}
+
+func filterChainTProxyMatch(sni string, filterChain *envoy_listener_v3.FilterChain) (bool, error) {
+	for _, filter := range filterChain.Filters {
+		if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+			if config.GetRds() != nil {
+				continue
+			}
+
+			cfg := config.GetRouteConfig()
+
+			match, _ := routeMatchesCluster(sni, cfg)
+
+			if match {
+				return true, nil
+			}
+		}
+
+		if config := GetTCPProxy(filter); config != nil {
+			if config.GetCluster() == sni {
+				return true, nil
+			}
+		}
+
+	}
+
+	return false, nil
+}
+
+func routeMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) (bool, error) {
+	if route == nil {
+		return false, nil
+	}
+
+	for _, virtualHost := range route.VirtualHosts {
+		for _, route := range virtualHost.Routes {
+			r := route.GetRoute()
+			if r == nil {
+				continue
+			}
+
+			if r.GetCluster() == sni {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func GetTCPProxy(filter *envoy_listener_v3.Filter) *envoy_tcp_proxy_v3.TcpProxy {
+	if typedConfig := filter.GetTypedConfig(); typedConfig != nil {
+		config := &envoy_tcp_proxy_v3.TcpProxy{}
+		if err := anypb.UnmarshalTo(typedConfig, config, newproto.UnmarshalOptions{}); err == nil {
+			return config
+		}
+	}
+
+	return nil
 }
 
 func getSNI(chain *envoy_listener_v3.FilterChain) string {

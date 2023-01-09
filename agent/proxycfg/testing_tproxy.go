@@ -116,21 +116,23 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 	})
 }
 
-func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
+			// Set default service protocol to HTTP
+	entries := append(additionalEntries, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	})
+
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
 		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
-			// Set default service protocol to HTTP
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
-				Config: map[string]interface{}{
-					"protocol": "http",
-				},
-			},
+			entries...,
 		)
 
 		noEndpoints      = structs.NewServiceName("no-endpoints", nil)

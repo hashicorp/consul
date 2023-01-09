@@ -43,6 +43,9 @@ const (
 	// We should probably just make it configurable if anyone actually has
 	// services named "local_app" in the future.
 	LocalAppClusterName = "local_app"
+
+	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
+	OutboundListenerName = "outbound_listener"
 )
 
 type EnvoyExtension interface {

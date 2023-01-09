@@ -97,7 +97,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		opts := makeListenerOpts{
-			name:       OutboundListenerName,
+			name:       xdscommon.OutboundListenerName,
 			accessLogs: cfgSnap.Proxy.AccessLogs,
 			addr:       "127.0.0.1",
 			port:       port,
