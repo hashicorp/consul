@@ -471,6 +471,8 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 }
 
 var xDSUpdateOrder = []xDSUpdateOperation{
+	// TODO Update comments
+	{TypeUrl: xdscommon.SecretType, Upsert: true},
 	// 1. CDS updates (if any) must always be pushed first.
 	{TypeUrl: xdscommon.ClusterType, Upsert: true},
 	// 2. EDS updates (if any) must arrive after CDS updates for the respective clusters.
@@ -481,9 +483,10 @@ var xDSUpdateOrder = []xDSUpdateOperation{
 	{TypeUrl: xdscommon.RouteType, Upsert: true, Remove: true},
 	// 5. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
 	// {},
-	// 6. Stale CDS clusters and related EDS endpoints (ones no longer being referenced) can then be removed.
+	// 6. Stale CDS clusters, related EDS endpoints (ones no longer being referenced) and SDS secrets can then be removed.
 	{TypeUrl: xdscommon.ClusterType, Remove: true},
 	{TypeUrl: xdscommon.EndpointType, Remove: true},
+	{TypeUrl: xdscommon.SecretType, Remove: true},
 	// xDS updates can be pushed independently if no new
 	// clusters/routes/listeners are added or if it’s acceptable to
 	// temporarily drop traffic during updates. Note that in case of
