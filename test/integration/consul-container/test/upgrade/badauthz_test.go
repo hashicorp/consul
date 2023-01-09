@@ -81,7 +81,7 @@ func TestBadauthz_UpgradeToTarget_fromLatest(t *testing.T) {
 		libassert.HTTPServiceFailTcpConnection(t, "localhost", port)
 
 		// Upgrade the cluster to targetVersion
-		t.Logf("Upgrade to version %s", *libutils.TargetVersion)
+		t.Logf("Upgrade to version %s", tc.targetVersion)
 		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
 		require.NoError(t, err)
 
