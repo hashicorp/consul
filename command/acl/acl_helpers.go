@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
 func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
 	if partialID == "anonymous" {
-		return structs.ACLTokenAnonymousID, nil
+		return acl.AnonymousTokenID, nil
 	}
 
 	// the full UUID string was given
