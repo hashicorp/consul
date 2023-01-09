@@ -149,16 +149,24 @@ The following are valid formats for standard service lookups:
   [<tag>.]<service>.service.<peer>.peer.<domain>
   ```
 
+  The `<peer>` label identifies the cluster peer in which
+  to lookup the specified `<service>`.
+
 - Lookup a service in a WAN federated datacenter:
 
   ```text
   [<tag>.]<service>.service.<datacenter>[.dc].<domain>
   ```
 
-  Use of the optional `.dc` label is recommended for readability.
+  We recommend including the optional `.dc` label to improve readability.
+  The `<datacenter>` label identifies the WAN federated datacenter in which
+  to lookup the specified `<service>`.
 
-In all formats, `tag` is optional.
-If no tag is provided, no filtering is done on tag.
+You can filter the results to only include instances of a service with a given tag
+by specifying `<tag>` at the start of the lookup.
+If you do not specify a tag, the lookup returns all instances of the service.
+Refer to the [service configuration documentation](/consul/docs/discovery/services#service)
+for information about adding tags to your service.
 
 To lookup services directly from a mesh service's application code
 with transparent proxy enabled, refer to 
@@ -210,31 +218,37 @@ foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 
 ### RFC 2782 Lookup
 
-RFC 2782 style lookups have the same behavior as
-[standard service lookups](#standard-lookup),
-but differ in format.
+You can use [RFC 2782](https://tools.ietf.org/html/rfc2782) lookups to query for services
+as an alternative to [standard lookups](#standard-lookup).
 The RFC 2782 lookup format supports the same suffixes as standard lookups
 for optionally specifying a cluster peer or WAN federated datacenter,
 but differs in how service name and optional tag are specified.
 The valid RFC 2782 lookup formats below assume a local service lookup:
 
-- No filtering on service tag:
+- Lookup a local service:
 
    ```text
   _<service>._tcp[.service].<domain>
   ```
 
-- Filtering on service tag specified in the RFC 2782 protocol field:
+- Lookup a local service with filtering on service tag
+  specified in the RFC 2782 protocol field:
 
    ```text
   _<service>._<tag>[.service].<domain>
   ```
 
+We recommend including the optional `.service` label to improve readability.
+
 Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must
-prepend an underscore (`_`) to the `service` and `protocol` values in a query to
-prevent DNS collisions.
-To perform no tag-based filtering, specify `tcp` in the RFC 2782 protocol field.
-To filter results on a service tag, specify the tag in the RFC 2782 protocol field.
+prepend an underscore (`_`) to the RFC 2782 `service` and `protocol` values
+in a query to prevent DNS collisions.
+
+You can filter the results to only include instances of a service with a given tag
+by specifying `<tag>` at the start of the lookup.
+If you do not specify a tag, the lookup returns all instances of the service.
+Refer to the [service configuration documentation](/consul/docs/discovery/services#service)
+for information about adding tags to your service.
 
 The following table shows example lookups for the `api` service
 depending on its location and whether you want to filter for instances
@@ -417,17 +431,20 @@ In each format, all fields in square brackets are optional.
   [<tag>.]<service>.service[.<namespace>.ns][.<peer>.peer][.<partition>.ap].<domain>
   ```
 
-  This format supports `.service` lookup types in Consul 1.14.2 or later
-  and supports `.virtual` lookup types in Consul 1.14.0 or later.
+  This format supports `.service` and `.virtual` service lookup types.
 
-  The `peer` is a cluster peer of the `partition`.
-  If no `peer` is specified, the service lookup applies to the specified `partition`
-  rather than one of its cluster peers.
+  ~> **Compatibility warning:** Consul 1.14.2+ is required for `.service` lookup types.
 
-  For example, assume that an agent in the `default` partition is acting as the
-  DNS server, the `k8s-app-1` partition is in the same datacenter, and
-  the `k8s-app-1` partition has a cluster peer named `billing`.
-  To perform a lookup of non-mesh service `api` in namespace `foo`
+  If `.<peer>.peer` is included, the `<peer>` label identifies a cluster peer
+  of the query's partition in which to lookup the specified `<service>`.
+  If the query does not specify a partition,
+  the query uses the partition of the Consul agent that received the DNS query.
+
+  In the following example,
+  a Consul agent in the `default` partition acts as the DNS server,
+  the `k8s-app-1` partition is in the same datacenter,
+  and the `k8s-app-1` partition has a cluster peer named `billing`.
+  To perform a lookup of service `api` in namespace `foo`
   of that cluster peer, use the query
   `api.service.foo.ns.billing.peer.k8s-app-1.partition.consul`.
 
@@ -437,12 +454,13 @@ In each format, all fields in square brackets are optional.
   [<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc].<domain>
   ```
 
-  This format supports `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types
-  in Consul 1.14.0 or later.
+  This format supports `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
 
-  Cluster peering must be used to connect datacenters containing admin partitions,
-  not WAN federation. Therefore, this format is not applicable to lookup a partition
-  in a different datacenter.
+  This format does not support specifying both a partition and another datacenter.
+  Datacenters containing admin partitions can only be connected using cluster peering,
+  not WAN federation. To lookup a service in a partition of another datacenter,
+  you must establish a cluster peering relationship with that partition and
+  use the cluster peer lookup format.
 
 The following table shows example `.service` lookups for the `api` service
 depending on its location and whether you want to filter for instances
