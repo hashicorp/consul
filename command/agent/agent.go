@@ -116,40 +116,6 @@ func (c *cmd) startupUpdateCheck(config *config.RuntimeConfig) {
 	}()
 }
 
-// startupJoin is invoked to handle any joins specified to take place at start time
-func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
-	if len(cfg.StartJoinAddrsLAN) == 0 {
-		return nil
-	}
-
-	c.logger.Info("Joining cluster")
-	// NOTE: For partitioned servers you are only capable of using start join
-	// to join nodes in the default partition.
-	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
-	if err != nil {
-		return err
-	}
-
-	c.logger.Info("Join completed. Initial agents synced with", "agent_count", n)
-	return nil
-}
-
-// startupJoinWan is invoked to handle any joins -wan specified to take place at start time
-func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) error {
-	if len(cfg.StartJoinAddrsWAN) == 0 {
-		return nil
-	}
-
-	c.logger.Info("Joining wan cluster")
-	n, err := agent.JoinWAN(cfg.StartJoinAddrsWAN)
-	if err != nil {
-		return err
-	}
-
-	c.logger.Info("Join wan completed. Initial agents synced with", "agent_count", n)
-	return nil
-}
-
 func (c *cmd) run(args []string) int {
 	ui := &mcli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -271,16 +237,6 @@ func (c *cmd) run(args []string) int {
 
 	if !config.DisableUpdateCheck && !config.DevMode {
 		c.startupUpdateCheck(config)
-	}
-
-	if err := c.startupJoin(agent, config); err != nil {
-		c.logger.Error(err.Error())
-		return 1
-	}
-
-	if err := c.startupJoinWan(agent, config); err != nil {
-		c.logger.Error(err.Error())
-		return 1
 	}
 
 	// Let the agent know we've finished registration

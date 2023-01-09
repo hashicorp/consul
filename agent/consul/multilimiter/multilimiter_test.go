@@ -85,9 +85,11 @@ func TestRateLimiterCleanup(t *testing.T) {
 		limiters = l
 	})
 
-	l, ok := limiters.Get(key)
-	require.True(t, ok)
-	require.NotNil(t, l)
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
+		v, ok := limiters.Get(key)
+		require.True(r, ok)
+		require.NotNil(t, v)
+	})
 
 	time.Sleep(c.ReconcileCheckInterval)
 	// Wait > ReconcileCheckInterval and check that the key was cleaned up
@@ -95,19 +97,30 @@ func TestRateLimiterCleanup(t *testing.T) {
 		l := m.limiters.Load()
 		require.NotEqual(r, limiters, l)
 		limiters = l
+		v, ok := limiters.Get(key)
+		require.False(r, ok)
+		require.Nil(r, v)
 	})
-	l, ok = limiters.Get(key)
-	require.False(t, ok)
-	require.Nil(t, l)
+
 }
 
 func storeLimiter(m *MultiLimiter) {
 	txn := m.limiters.Load().Txn()
 	mockTicker := mockTicker{tickerCh: make(chan time.Time, 1)}
 	ctx := context.Background()
-	m.runStoreOnce(ctx, &mockTicker, txn)
+	reconcileCheckLimit := m.defaultConfig.Load().ReconcileCheckLimit
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
 	mockTicker.tickerCh <- time.Now()
-	m.runStoreOnce(ctx, &mockTicker, txn)
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
+}
+
+func reconcile(m *MultiLimiter) {
+	txn := m.limiters.Load().Txn()
+	mockTicker := mockTicker{tickerCh: make(chan time.Time, 1)}
+	ctx := context.Background()
+	reconcileCheckLimit := m.defaultConfig.Load().ReconcileCheckLimit
+	mockTicker.tickerCh <- time.Now()
+	m.reconcile(ctx, &mockTicker, txn, reconcileCheckLimit)
 }
 
 func TestRateLimiterStore(t *testing.T) {
@@ -241,7 +254,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		c3 := LimiterConfig{Rate: 2}
 		m.UpdateConfig(c3, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
-		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
+		m.reconcileConfig(m.limiters.Load().Txn())
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
 		l3, ok3 := m.limiters.Load().Get(ip)
@@ -276,7 +289,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		c1 := LimiterConfig{Rate: 1}
 		m.UpdateConfig(c1, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
-		m.reconcileLimitedOnce(time.Now(), 100*time.Millisecond)
+		reconcile(m)
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
 		l, ok := m.limiters.Load().Get(ip)
@@ -284,10 +297,6 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.NotNil(t, l)
 		limiter := l.(*Limiter)
 		require.True(t, c1.isApplied(limiter.limiter))
-		m.reconcileLimitedOnce(time.Now().Add(100*time.Millisecond), 100*time.Millisecond)
-		l, ok = m.limiters.Load().Get(ip)
-		require.False(t, ok)
-		require.Nil(t, l)
 	})
 }
 
@@ -347,7 +356,7 @@ func FuzzUpdateConfig(f *testing.F) {
 			m.UpdateConfig(c, prefix)
 			go m.Allow(Limited{key: f})
 		}
-		m.reconcileLimitedOnce(time.Now(), 1*time.Millisecond)
+		m.reconcileConfig(m.limiters.Load().Txn())
 		checkTree(t, m.limiters.Load().Txn())
 	})
 

@@ -41,7 +41,7 @@ func setupGlobalManagement(t *testing.T, s *Store) {
 
 func setupAnonymous(t *testing.T, s *Store) {
 	token := structs.ACLToken{
-		AccessorID:  structs.ACLTokenAnonymousID,
+		AccessorID:  acl.AnonymousTokenID,
 		SecretID:    "anonymous",
 		Description: "Anonymous Token",
 	}
@@ -979,7 +979,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			role:       "",
 			methodName: "",
 			accessors: []string{
-				structs.ACLTokenAnonymousID,
+				acl.AnonymousTokenID,
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
@@ -1098,7 +1098,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			role:       "",
 			methodName: "",
 			accessors: []string{
-				structs.ACLTokenAnonymousID,
+				acl.AnonymousTokenID,
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
@@ -1476,7 +1476,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
 
-		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
+		require.Error(t, s.ACLTokenDeleteByAccessor(3, acl.AnonymousTokenID, nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {

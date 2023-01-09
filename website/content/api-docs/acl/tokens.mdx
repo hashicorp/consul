@@ -676,7 +676,7 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token list`](/commands/acl/token/list).
 
-## Query Parameters
+### Query Parameters
 
 - `policy` `(string: "")` - Filters the token list to those tokens that are
   linked with this specific policy ID.
@@ -695,7 +695,7 @@ The corresponding CLI command is [`consul acl token list`](/commands/acl/token/l
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-## Sample Request
+### Sample Request
 
 ```shell-session
 $ curl --request GET http://127.0.0.1:8500/v1/acl/tokens

@@ -309,6 +309,30 @@ spec:
      <li>[Consul's built-in proxy](/docs/connect/proxies/built-in#proxy-config-key-reference)</li></ul>`,
     },
     {
+      name: 'EnvoyExtensions',
+      type: 'array<EnvoyExtension>: []',
+      description: `A list of extensions to modify Envoy proxy configuration.`,
+      children: [
+        {
+          name: 'Name',
+          type: `string: ""`,
+          description: `Name of the extension.`,
+        },
+        {
+          name: 'Required',
+          type: `string: ""`,
+          description: `When \`Required\` is true and the extension does not update any Envoy resources, an error is
+          returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally
+          bypassed.`,
+        },
+        {
+          name: 'Arguments',
+          type: 'map<string|Any>: nil',
+          description: `Arguments to pass to the extension executable.`,
+        },
+      ],
+    },
+    {
       name: 'Mode',
       type: `string: ""`,
       description: `One of \`direct\` or \`transparent\`.

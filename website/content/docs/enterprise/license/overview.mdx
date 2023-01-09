@@ -48,9 +48,9 @@ Virtual agents do not need the license to run.
 
 Updating the license for an agent depends on the method you used to apply the license.
 - **If you used the `CONSUL_LICENSE`
-environment variable**: After updating the environment variable, restart the affected agents. 
+environment variable**: After updating the environment variable, restart the affected agents.
 - **If you used the
-`CONSUL_LICENSE_PATH` environment variable**: Update the license file first. Then, restart the affected agents. 
+`CONSUL_LICENSE_PATH` environment variable**: Update the license file first. Then, restart the affected agents.
 - **If you used the `license_path` configuration item**: Update the license file first. Then, run [`consul reload`](/commands/reload) for the affected agents.
 
 #### Client Agent License Retrieval
@@ -58,8 +58,8 @@ environment variable**: After updating the environment variable, restart the aff
 When a client agent starts without a license in its configuration or environment, it will try to retrieve the
 license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
 request but the token doesn't need any particular permissions. As the license is required before the client
-actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/config/config-files#start_join)
-or [`retry_join`](/docs/agent/config/config-files#retry_join) configurations. If those are both unset or no
+actually joins the cluster, where to make those RPC requests to is inferred from the
+[`retry_join`](/docs/agent/config/config-files#retry_join) configuration. If `retry_join` is unset or no
 [`agent` token](/docs/agent/config/config-files#acl_tokens_agent) is set then the client agent will immediately shut itself down.
 
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to

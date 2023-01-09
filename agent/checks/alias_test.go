@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync/atomic"
@@ -550,7 +551,7 @@ func (m *mockRPC) AddReply(method string, reply interface{}) {
 
 }
 
-func (m *mockRPC) RPC(method string, args interface{}, reply interface{}) error {
+func (m *mockRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	atomic.AddUint32(&m.Calls, 1)
 	m.Args.Store(args)
 

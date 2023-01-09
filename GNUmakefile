@@ -13,6 +13,7 @@ BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.3.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
+PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 
 MOCKED_PB_DIRS= pbdns
@@ -176,7 +177,10 @@ remote-docker: check-remote-dev-image-env
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
-	@docker buildx use default && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
+	@if ! docker buildx inspect consul-builder; then \
+		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
+	fi; 
+	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --push \

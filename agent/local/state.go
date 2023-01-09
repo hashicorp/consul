@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -149,7 +150,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 }
 
 type rpc interface {
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 }
 
@@ -1007,7 +1008,7 @@ func (l *State) updateSyncState() error {
 	remoteServices := make(map[structs.ServiceID]*structs.NodeService)
 	var svcNode *structs.Node
 
-	if err := l.Delegate.RPC("Catalog.NodeServiceList", &req, &out1); err == nil {
+	if err := l.Delegate.RPC(context.Background(), "Catalog.NodeServiceList", &req, &out1); err == nil {
 		for _, svc := range out1.NodeServices.Services {
 			remoteServices[svc.CompoundServiceID()] = svc
 		}
@@ -1016,7 +1017,7 @@ func (l *State) updateSyncState() error {
 	} else if errMsg := err.Error(); strings.Contains(errMsg, "rpc: can't find method") {
 		// fallback to the old RPC
 		var out1 structs.IndexedNodeServices
-		if err := l.Delegate.RPC("Catalog.NodeServices", &req, &out1); err != nil {
+		if err := l.Delegate.RPC(context.Background(), "Catalog.NodeServices", &req, &out1); err != nil {
 			return err
 		}
 
@@ -1032,7 +1033,7 @@ func (l *State) updateSyncState() error {
 	}
 
 	var out2 structs.IndexedHealthChecks
-	if err := l.Delegate.RPC("Health.NodeChecks", &req, &out2); err != nil {
+	if err := l.Delegate.RPC(context.Background(), "Health.NodeChecks", &req, &out2); err != nil {
 		return err
 	}
 
@@ -1279,7 +1280,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		WriteRequest:   structs.WriteRequest{Token: st},
 	}
 	var out struct{}
-	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+	err := l.Delegate.RPC(context.Background(), "Catalog.Deregister", &req, &out)
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown service"):
 		delete(l.services, key)
@@ -1300,7 +1301,9 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
 		accessorID := l.aclAccessorID(st)
-		l.logger.Warn("Service deregistration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Service deregistration blocked by ACLs",
+			"service", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
 		return nil
 
@@ -1328,7 +1331,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		WriteRequest:   structs.WriteRequest{Token: ct},
 	}
 	var out struct{}
-	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+	err := l.Delegate.RPC(context.Background(), "Catalog.Deregister", &req, &out)
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown check"):
 		l.pruneCheck(key)
@@ -1340,7 +1343,9 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.aclAccessorID(ct)
-		l.logger.Warn("Check deregistration blocked by ACLs", "check", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Check deregistration blocked by ACLs",
+			"check", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
@@ -1406,7 +1411,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 	}
 
 	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	err := l.Delegate.RPC(context.Background(), "Catalog.Register", &req, &out)
 	switch {
 	case err == nil:
 		l.services[key].InSync = true
@@ -1429,7 +1434,9 @@ func (l *State) syncService(key structs.ServiceID) error {
 			l.checks[checkKey].InSync = true
 		}
 		accessorID := l.aclAccessorID(st)
-		l.logger.Warn("Service registration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Service registration blocked by ACLs",
+			"service", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
 
@@ -1468,7 +1475,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 	}
 
 	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	err := l.Delegate.RPC(context.Background(), "Catalog.Register", &req, &out)
 	switch {
 	case err == nil:
 		l.checks[key].InSync = true
@@ -1483,7 +1490,9 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.aclAccessorID(ct)
-		l.logger.Warn("Check registration blocked by ACLs", "check", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Check registration blocked by ACLs",
+			"check", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
 
@@ -1509,7 +1518,7 @@ func (l *State) syncNodeInfo() error {
 		WriteRequest:    structs.WriteRequest{Token: at},
 	}
 	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	err := l.Delegate.RPC(context.Background(), "Catalog.Register", &req, &out)
 	switch {
 	case err == nil:
 		l.nodeInfoInSync = true
@@ -1521,7 +1530,9 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
 		accessorID := l.aclAccessorID(at)
-		l.logger.Warn("Node info update blocked by ACLs", "node", l.config.NodeID, "accessorID", accessorID)
+		l.logger.Warn("Node info update blocked by ACLs",
+			"node", l.config.NodeID,
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 

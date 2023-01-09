@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	pbacl "github.com/hashicorp/consul/proto/pbacl"
+	"github.com/hashicorp/consul/proto/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot
@@ -839,7 +839,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *ac
 		return nil
 	}
 
-	if token.(*structs.ACLToken).AccessorID == structs.ACLTokenAnonymousID {
+	if token.(*structs.ACLToken).AccessorID == acl.AnonymousTokenID {
 		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 

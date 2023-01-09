@@ -16,7 +16,10 @@
         }
       },
       "connectTimeout": "33s",
-      "lbPolicy": "CLUSTER_PROVIDED"
+      "lbPolicy": "CLUSTER_PROVIDED",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",

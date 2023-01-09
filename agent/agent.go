@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/proto/pboperator"
 	"io"
 	"net"
 	"net/http"
@@ -39,6 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -64,6 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -187,7 +188,8 @@ type delegate interface {
 	// default partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
-	RPC(method string, args interface{}, reply interface{}) error
+	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -562,14 +564,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	// This needs to happen after the initial auto-config is loaded, because TLS
-	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(
-		a.logger.Named("grpc.external"),
-		metrics.Default(),
-		a.tlsConfigurator,
-	)
-
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
 	}
@@ -607,10 +601,26 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
+		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
+
+		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
+			&lib.StopChannelContext{StopCh: a.shutdownCh},
+			serverLogger,
+			consulCfg,
+		)
+
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			incomingRPCLimiter,
+		)
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
+		incomingRPCLimiter.Register(server)
 		a.delegate = server
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
@@ -631,6 +641,13 @@ func (a *Agent) Start(ctx context.Context) error {
 		}
 
 	} else {
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			rpcRate.NullRequestLimitsHandler(),
+		)
+
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
@@ -1471,6 +1488,10 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
 	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
 
+	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
+	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
+	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
@@ -1538,7 +1559,7 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
-func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	a.endpointsLock.RLock()
 	// fast path: only translate if there are overrides
 	if len(a.endpoints) > 0 {
@@ -1548,7 +1569,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 		}
 	}
 	a.endpointsLock.RUnlock()
-	return a.delegate.RPC(method, args, reply)
+	return a.delegate.RPC(ctx, method, args, reply)
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
@@ -1934,12 +1955,10 @@ OUTER:
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
-				// todo(kit) handle acl.ErrNotFound cases here in the future
-				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
+				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}
@@ -4037,6 +4056,7 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 					return err
 				}
 			}
+
 			if revertStaticConfig(f.oldCfg, f.newCfg) {
 				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
@@ -4137,6 +4157,11 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
+		RequestLimits: &consul.RequestLimits{
+			Mode:      newCfg.RequestLimitsMode,
+			ReadRate:  newCfg.RequestLimitsReadRate,
+			WriteRate: newCfg.RequestLimitsWriteRate,
+		},
 		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,

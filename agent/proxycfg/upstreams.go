@@ -98,7 +98,6 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		uidString := strings.TrimPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix)
-
 		uid := UpstreamIDFromString(uidString)
 
 		s.setPeerEndpoints(upstreamsSnapshot, uid, resp.Nodes)
@@ -131,6 +130,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
+		// Skip adding passthroughs unless it's a connect sidecar in tproxy mode.
 		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
 			return nil
 		}
@@ -148,7 +148,17 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+			dialedDirectly := node.Service.Proxy.TransparentProxy.DialedDirectly
+			// We must do a manual merge here on the DialedDirectly field, because the service-defaults
+			// and proxy-defaults are not automatically merged into the CheckServiceNodes when in
+			// agentless mode (because the streaming backend doesn't yet support the MergeCentralConfig field).
+			if chain := snap.ConnectProxy.DiscoveryChain[uid]; chain != nil {
+				if target := chain.Targets[targetID]; target != nil {
+					dialedDirectly = dialedDirectly || target.TransparentProxy.DialedDirectly
+				}
+			}
+			// Skip adding a passthrough for the upstream node if not DialedDirectly.
+			if !dialedDirectly {
 				continue
 			}
 
@@ -179,10 +189,12 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			upstreamsSnapshot.PassthroughIndices[addr] = indexedTarget{idx: csnIdx, upstreamID: uid, targetID: targetID}
 			passthroughs[addr] = struct{}{}
 		}
+		// Always clear out the existing target passthroughs list so that clusters are cleaned up
+		// correctly if no entries are populated.
+		upstreamsSnapshot.PassthroughUpstreams[uid] = make(map[string]map[string]struct{})
 		if len(passthroughs) > 0 {
-			upstreamsSnapshot.PassthroughUpstreams[uid] = map[string]map[string]struct{}{
-				targetID: passthroughs,
-			}
+			// Add the passthroughs to the target if any were found.
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = passthroughs
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
@@ -293,15 +305,9 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			watchedChainEndpoints = true
 		}
 
-		opts := targetWatchOpts{
-			upstreamID: uid,
-			chainID:    target.ID,
-			service:    target.Service,
-			filter:     target.Subset.Filter,
-			datacenter: target.Datacenter,
-			peer:       target.Peer,
-			entMeta:    target.GetEnterpriseMetadata(),
-		}
+		opts := targetWatchOpts{upstreamID: uid}
+		opts.fromChainTarget(chain, target)
+
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
 			return fmt.Errorf("failed to watch target %q for upstream %q", target.ID, uid)
@@ -418,15 +424,38 @@ type targetWatchOpts struct {
 	entMeta    *acl.EnterpriseMeta
 }
 
+func (o *targetWatchOpts) fromChainTarget(c *structs.CompiledDiscoveryChain, t *structs.DiscoveryTarget) {
+	o.chainID = t.ID
+	o.service = t.Service
+	o.filter = t.Subset.Filter
+	o.datacenter = t.Datacenter
+	o.peer = t.Peer
+	o.entMeta = t.GetEnterpriseMetadata()
+
+	// The peer-targets in a discovery chain intentionally clear out
+	// the partition field, since we don't know the remote service's partition.
+	// Therefore, we must query with the chain's local partition / DC, or else
+	// the services will not be found.
+	//
+	// Note that the namespace is not swapped out, because it should
+	// always match the value in the remote datacenter (and shouldn't
+	// have been changed anywhere).
+	if o.peer != "" {
+		o.datacenter = ""
+		// Clone the enterprise meta so it's not modified when we swap the partition.
+		var em acl.EnterpriseMeta
+		em.Merge(o.entMeta)
+		em.OverridePartition(c.Partition)
+		o.entMeta = &em
+	}
+}
+
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
 	s.logger.Trace("initializing watch of target",
 		"upstream", opts.upstreamID,
 		"chain", opts.service,
 		"target", opts.chainID,
 	)
-
-	var finalMeta acl.EnterpriseMeta
-	finalMeta.Merge(opts.entMeta)
 
 	uid := opts.upstreamID
 	correlationID := "upstream-target:" + opts.chainID + ":" + uid.String()
@@ -435,6 +464,10 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 		uid = NewUpstreamIDFromTargetID(opts.chainID)
 		correlationID = upstreamPeerWatchIDPrefix + uid.String()
 	}
+
+	// Perform this merge so that a nil EntMeta isn't possible.
+	var entMeta acl.EnterpriseMeta
+	entMeta.Merge(opts.entMeta)
 
 	ctx, cancel := context.WithCancel(ctx)
 	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
@@ -450,7 +483,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 		// the default and makes metrics and other things much cleaner. It's
 		// simpler for us if we have the type to make things unambiguous.
 		Source:         *s.source,
-		EnterpriseMeta: finalMeta,
+		EnterpriseMeta: entMeta,
 	}, correlationID, s.ch)
 
 	if err != nil {

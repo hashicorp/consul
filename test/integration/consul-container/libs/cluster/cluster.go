@@ -25,13 +25,14 @@ import (
 // These fields are public in the event someone might want to surgically
 // craft a test case.
 type Cluster struct {
-	Agents      []libagent.Agent
-	CACert      string
-	CAKey       string
-	ID          string
-	Index       int
-	Network     testcontainers.Network
-	NetworkName string
+	Agents       []libagent.Agent
+	BuildContext *libagent.BuildContext
+	CACert       string
+	CAKey        string
+	ID           string
+	Index        int
+	Network      testcontainers.Network
+	NetworkName  string
 }
 
 // New creates a Consul cluster. An agent will be started for each of the given
@@ -128,19 +129,22 @@ func (c *Cluster) Remove(n libagent.Agent) error {
 //	https://developer.hashicorp.com/consul/docs/upgrading#standard-upgrades
 //
 // - takes a snapshot
-// - terminate and rejoin the new version of consul
+// - terminate and rejoin the pod of new version of consul
 func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
-	execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
-	if execCode != 0 {
-		return fmt.Errorf("error taking snapshot of the cluster, returned code %d", execCode)
-	}
-	if err != nil {
-		return err
-	}
+	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}, t, func(r *retry.R) {
+		// NOTE: to suppress flakiness
+		execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
+		require.Equal(r, 0, execCode)
+		require.NoError(r, err)
+	})
 
 	// verify only the leader can take a snapshot
 	snapshotCount := 0
 	for _, agent := range c.Agents {
+		if !agent.IsServer() {
+			continue
+		}
+
 		files, err := ioutil.ReadDir(filepath.Join(agent.DataDir(), "raft", "snapshots"))
 		if err != nil {
 			return err
@@ -149,31 +153,49 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			snapshotCount++
 		}
 	}
+	require.Equalf(t, 1, snapshotCount, "only leader agent can have a snapshot file")
 
-	if snapshotCount != 1 {
-		return fmt.Errorf("only leader agent can have a snapshot file, got %d", snapshotCount)
-	}
+	// Upgrade individual agent to the target version in the following order
+	// 1. followers
+	// 2. leader
+	// 3. clients (TODO)
+	leader, err := c.Leader()
+	client := leader.GetClient()
+	require.NoError(t, err)
+	t.Log("Leader name:", leader.GetName())
 
-	// Upgrade individual agent to the target version
-	client := c.Agents[0].GetClient()
-	for _, agent := range c.Agents {
-		agent.Terminate()
-		if len(c.Agents) > 3 {
-			WaitForLeader(t, c, client)
-		} else {
-			time.Sleep(1 * time.Second)
-		}
+	followers, err := c.Followers()
+	require.NoError(t, err)
+	t.Log("The number of followers", len(followers))
+
+	for _, agent := range followers {
+		t.Log("Upgrade follower", agent.GetName())
+
 		config := agent.GetConfig()
 		config.Version = targetVersion
-		err = agent.Upgrade(context.Background(), config, 1)
+		err = agent.Upgrade(context.Background(), config)
 		if err != nil {
 			return err
 		}
 
-		// wait until the agent rejoin
-		WaitForLeader(t, c, client)
 		WaitForMembers(t, client, len(c.Agents))
+		break
 	}
+
+	if len(followers) > 0 {
+		client = followers[0].GetClient()
+	}
+
+	t.Log("Upgrade leader:", leader.GetName())
+	config := leader.GetConfig()
+	config.Version = targetVersion
+	err = leader.Upgrade(context.Background(), config)
+	if err != nil {
+		return err
+	}
+
+	WaitForMembers(t, client, len(c.Agents))
+
 	return nil
 }
 
@@ -215,6 +237,31 @@ func (c *Cluster) Leader() (libagent.Agent, error) {
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
+}
+
+// GetClient returns a consul API client to the node if node is provided.
+// Otherwise, GetClient returns the API client to the first node of either
+// server or client agent.
+func (c *Cluster) GetClient(node libagent.Agent, isServer bool) (*api.Client, error) {
+	var err error
+	if node != nil {
+		return node.GetClient(), err
+	}
+
+	nodes, err := c.Clients()
+	if isServer {
+		nodes, err = c.Servers()
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to get the api client: %s", err)
+	}
+
+	if len(nodes) <= 0 {
+		return nil, fmt.Errorf("not enough node: %d", len(nodes))
+	}
+
+	return nodes[0].GetClient(), err
 }
 
 func getLeader(client *api.Client) (string, error) {
@@ -267,6 +314,31 @@ func (c *Cluster) Clients() ([]libagent.Agent, error) {
 		}
 	}
 	return clients, nil
+}
+
+// PeerWithCluster establishes peering with the acceptor cluster
+func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName string, dialingPeerName string) error {
+	node := c.Agents[0]
+	dialingClient := node.GetClient()
+
+	generateReq := api.PeeringGenerateTokenRequest{
+		PeerName: acceptingPeerName,
+	}
+	generateRes, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	if err != nil {
+		return fmt.Errorf("error generate token: %v", err)
+	}
+
+	establishReq := api.PeeringEstablishRequest{
+		PeerName:     dialingPeerName,
+		PeeringToken: generateRes.PeeringToken,
+	}
+	_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})
+	if err != nil {
+		return fmt.Errorf("error establish peering: %v", err)
+	}
+
+	return nil
 }
 
 const retryTimeout = 90 * time.Second

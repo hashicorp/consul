@@ -201,11 +201,13 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 	dataDir := testutil.TempDir(t, "auto-config")
 
 	opts := config.LoadOpts{
-		FlagValues: config.Config{
-			DataDir:    &dataDir,
-			Datacenter: stringPointer("dc1"),
-			NodeName:   stringPointer("autoconf"),
-			BindAddr:   stringPointer("127.0.0.1"),
+		FlagValues: config.FlagValuesTarget{
+			Config: config.Config{
+				DataDir:    &dataDir,
+				Datacenter: stringPointer("dc1"),
+				NodeName:   stringPointer("autoconf"),
+				BindAddr:   stringPointer("127.0.0.1"),
+			},
 		},
 	}
 	return &configLoader{opts: opts}

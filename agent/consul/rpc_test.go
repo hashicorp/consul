@@ -30,6 +30,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1046,7 +1047,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID: kvPolicy.ID,
@@ -1158,12 +1159,12 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out struct{}
-		require.NoError(t, s1.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &req, &out))
 	})
 
 	var conn *grpc.ClientConn
 	{
-		client, builder := newClientWithGRPCResolver(t, func(c *Config) {
+		client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.RPCConfig.EnableStreaming = true
@@ -1172,9 +1173,10 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		testrpc.WaitForTestAgent(t, client.RPC, "dc2", testrpc.WithToken("root"))
 
 		pool := agent_grpc.NewClientConnPool(agent_grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			DialingFromServer:     false,
 			DialingFromDatacenter: "dc2",
+			BalancerBuilder:       balancerBuilder,
 		})
 
 		conn, err = pool.ClientConn("dc2")
@@ -1223,7 +1225,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{ID: policy.ID},
 				},
@@ -1307,6 +1309,16 @@ func TestCanRetry(t *testing.T) {
 		{
 			name:     "no leader error",
 			err:      fmt.Errorf("some wrapping: %w", structs.ErrNoLeader),
+			expected: true,
+		},
+		{
+			name:     "ErrRetryElsewhere",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryElsewhere),
+			expected: true,
+		},
+		{
+			name:     "ErrRetryLater",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryLater),
 			expected: true,
 		},
 		{
