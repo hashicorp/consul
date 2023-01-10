@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/agent/xds/validateupstream"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -21,9 +22,16 @@ import (
 func TestValidateUpstreams(t *testing.T) {
 	listenerName := "db:127.0.0.1:9191"
 	sni := "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-	// TODO HTTP service
-	// TODO missing routes because db is TCP and isn't using splitters, routers, etc
-	// TODO without EDS
+	httpServiceDefaults := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "db",
+		Protocol: "http",
+	}
+	// TODO HTTP service using RDS with missing route.
+	// TODO Test subsets (this theoretically supports them already).
+	// TODO Determine how this breaks with redirects and failover.
+	// TODO Without EDS (use DNS).
+	// TODO Test tproxy.
 	// TODO explicit upstreams and tproxy for the same service.
 	tests := []struct {
 		name    string
@@ -32,13 +40,13 @@ func TestValidateUpstreams(t *testing.T) {
 		err     string
 	}{
 		{
-			name: "success",
+			name: "tcp-success",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
 			},
 		},
 		{
-			name: "missing-listener",
+			name: "tcp-missing-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
 			},
@@ -49,7 +57,7 @@ func TestValidateUpstreams(t *testing.T) {
 			err: "no listener",
 		},
 		{
-			name: "missing-cluster",
+			name: "tcp-missing-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
 			},
@@ -60,7 +68,7 @@ func TestValidateUpstreams(t *testing.T) {
 			err: "no cluster",
 		},
 		{
-			name: "missing-load-assignment",
+			name: "tcp-missing-load-assignment",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
 			},
@@ -71,7 +79,7 @@ func TestValidateUpstreams(t *testing.T) {
 			err: "no cluster load assignment",
 		},
 		{
-			name: "missing-eds-endpoints",
+			name: "tcp-missing-eds-endpoints",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
 			},
@@ -83,7 +91,13 @@ func TestValidateUpstreams(t *testing.T) {
 				ir.Index[xdscommon.EndpointType][sni] = cla
 				return ir
 			},
-			err: "expected endpoints on load assignment but we didn't get any",
+			err: "zero endpoints",
+		},
+		{
+			name: "http-success",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, httpServiceDefaults)
+			},
 		},
 	}
 
@@ -118,7 +132,7 @@ func TestValidateUpstreams(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
-				require.Equal(t, tt.err, err.Error())
+				require.Contains(t, err.Error(), tt.err)
 			}
 		})
 	}

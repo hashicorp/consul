@@ -1,6 +1,8 @@
 package validateupstream
 
 import (
+	"strings"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -13,8 +15,8 @@ import (
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 
 	// Copied from z_xds_packages
 	_ "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/filters/http/squash/v3"
@@ -349,10 +351,19 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	return bootstrapToIndexedResources(config)
 }
 
+
 func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, datacenter string, trustDomain string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
 	structService := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
-	sni := connect.ServiceSNI(service.Name, "", structService.NamespaceOrDefault(), structService.PartitionOrDefault(), datacenter, trustDomain)
+	mainSNI := connect.ServiceSNI(service.Name, "", structService.NamespaceOrDefault(), structService.PartitionOrDefault(), datacenter, trustDomain)
+
+	snis := map[string]struct{}{mainSNI: {}}
+
+	for s := range indexedResources.Index[xdscommon.ClusterType] {
+		if strings.HasSuffix(s, mainSNI) {
+			snis[s] = struct{}{}
+		}
+	}
 	envoyID := proxycfg.NewUpstreamIDFromServiceName(structService)
 
 	extConfig := xdscommon.ExtensionConfiguration{
@@ -360,7 +371,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		ServiceName:    service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
-				SNI:     map[string]struct{}{sni: {}},
+				SNI:     snis,
 				EnvoyID: envoyID.EnvoyID(),
 			},
 		},
