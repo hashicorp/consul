@@ -13,14 +13,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -118,6 +117,7 @@ type generateConfigTestCase struct {
 	Env               []string
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
+	ProxyDefaults     api.ProxyConfigEntry
 	NamespacesEnabled bool
 	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
@@ -1064,6 +1064,58 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
+		{
+			Name:  "access-logs-enabled",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:       "test-proxy",
+				ProxyID:            "test-proxy",
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+			ProxyDefaults: api.ProxyConfigEntry{
+				AccessLogs: &api.AccessLogsConfig{
+					Enabled: true,
+				},
+			},
+		},
+		{
+			Name:  "access-logs-enabled-custom",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:       "test-proxy",
+				ProxyID:            "test-proxy",
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+			ProxyDefaults: api.ProxyConfigEntry{
+				AccessLogs: &api.AccessLogsConfig{
+					Enabled:             true,
+					DisableListenerLogs: true, // Should have no effect here
+					Type:                api.FileLogSinkType,
+					Path:                "/var/log/consul.log",
+					TextFormat:          "MY START TIME %START_TIME%",
+				},
+			},
+		},
 	}
 
 	cases = append(cases, enterpriseGenerateConfigTestCases()...)
@@ -1262,6 +1314,8 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110)(w, r)
 		case strings.Contains(r.URL.Path, "/catalog/node-services"):
 			testMockCatalogNodeServiceList()(w, r)
+		case strings.Contains(r.URL.Path, "/config/proxy-defaults/global"):
+			testMockConfigProxyDefaults(tc.ProxyDefaults)(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1392,6 +1446,18 @@ func testMockCatalogNodeServiceList() http.HandlerFunc {
 		}
 
 		cfgJSON, err := json.Marshal(nodeSvc)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(cfgJSON)
+	}
+}
+
+func testMockConfigProxyDefaults(entry api.ProxyConfigEntry) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cfgJSON, err := json.Marshal(entry)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(err.Error()))

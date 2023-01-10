@@ -718,7 +718,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 			} else {
 				r.logger.Warn("policy not found for identity",
 					"policy", policyID,
-					"accessorID", accessorID,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID),
 				)
 			}
 
@@ -819,7 +819,7 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 				}
 				r.logger.Warn("role not found for identity",
 					"role", roleID,
-					"accessorID", accessorID,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID),
 				)
 			}
 

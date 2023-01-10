@@ -17,8 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pboperator"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -66,6 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -1956,12 +1955,10 @@ OUTER:
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
-				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}

@@ -30,6 +30,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1046,7 +1047,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID: kvPolicy.ID,
@@ -1224,7 +1225,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{ID: policy.ID},
 				},
@@ -1308,6 +1309,16 @@ func TestCanRetry(t *testing.T) {
 		{
 			name:     "no leader error",
 			err:      fmt.Errorf("some wrapping: %w", structs.ErrNoLeader),
+			expected: true,
+		},
+		{
+			name:     "ErrRetryElsewhere",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryElsewhere),
+			expected: true,
+		},
+		{
+			name:     "ErrRetryLater",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryLater),
 			expected: true,
 		},
 		{
