@@ -7,8 +7,8 @@ description: >-
 
 # Proxy Defaults Configuration Entry
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to configure global defaults for underlying mesh proxies, e.g. Envoy. 
-This contrasts the [`mesh` config entry](/docs/connect/config-entries/mesh), which effects cross-proxy, mesh-wide changes.
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to configure global defaults for Envoy proxies in the service mesh.
+This contrasts the [`mesh` config entry](/docs/connect/config-entries/mesh), which affects cross-proxy, mesh-wide changes.
 Only one global entry is supported. 
 For Consul Enterprise, only the global entry in the `default` partition is recognized.
 
@@ -485,14 +485,14 @@ spec:
         {
           name: 'Enabled',
           type: 'bool: false',
-          description: 'If enabled, access logs are emitted for all proxies in the mesh, including gateways.',
+          description: 'When enabled, access logs are emitted for all proxies in the mesh, including gateways.',
         },
         {
           name: 'DisableListenerLogs',
           type: 'bool: false',
-          description: `If enabled, access logs for traffic rejected at the listener-level will not be emitted.
+          description: `When enabled, access logs for traffic rejected at the listener-level are not emitted.
           This traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services.
-          Setting this option to true if you don't care to log unknown requests that aren't being forwarded by Envoy.`,
+          Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding`,
         },
         {
           name: 'Type',
@@ -506,20 +506,20 @@ spec:
         },
         {
           name: 'JSONFormat',
-          type: 'string: (see default as follows)',
-          description: `A JSON-formated string that represent the format for each emitted access log.
-          This is set by default to [this format string](/docs/connect/observability/access-logs#default-log-format).
-          Envoy [Command Operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted. 
+          type: 'string: "[default access log format](/consul/docs/connect/observability/access-logs#default-log-format)"',
+          description: `A JSON-formatted string that represents the format of each emitted access log.
+          By default, it is set  to the [default access log format](/consul/docs/connect/observability/access-logs#default-log-format).
+          You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. 
           Nesting is supported. 
           Invalid if a custom format is specified with TextFormat.`,
         },
         {
           name: 'TextFormat',
           type: 'string: ""',
-          description: `A formated string that represent the format for each emitted access log.
-          Envoy [Command Operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted. 
-          A new line will automatically be added to the string.
-          Invalid if specified with a custom JSONFormat.`,
+          description: `A formatted string that represents the format of each emitted access log.
+          Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted. 
+          A new line is added to the string automatically.
+          Invalid when a custom JSONFormat is already specified.`,
         }
       ],
     },
@@ -649,8 +649,8 @@ spec:
 
 ### Access Logs
 
-The following example minimally configures access logs for all proxies.
-[Access Logs](/docs/connect/observability/access-logs) details advanced configuration.
+The following example is a minimal configuration for enabling access logs for all proxies.
+Refer to [access logs](/docs/connect/observability/access-logs) for advanced configurations.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
