@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
-type validate struct {
+type Validate struct {
 	snis map[string]struct{}
 
 	listener  bool
@@ -31,9 +31,9 @@ type validate struct {
 	clusterDestinationMakesSense bool
 }
 
-var _ builtinextensiontemplate.Plugin = (*validate)(nil)
+var _ builtinextensiontemplate.Plugin = (*Validate)(nil)
 
-func (v validate) Errors() error {
+func (v *Validate) Errors() error {
 	if !v.listener {
 		return fmt.Errorf("no listener")
 	}
@@ -46,11 +46,11 @@ func (v validate) Errors() error {
 		return fmt.Errorf("no route")
 	}
 
-	if !v.routeDestinationMakesSense {
+	if v.usesRDS && !v.routeDestinationMakesSense {
 		return fmt.Errorf("route destination doesn't make sense")
 	}
 
-	if v.cluster {
+	if !v.cluster {
 		return fmt.Errorf("no cluster")
 	}
 
@@ -59,7 +59,7 @@ func (v validate) Errors() error {
 	}
 
 	if v.usesEDS && !v.loadAssignment {
-		return fmt.Errorf("no cluster")
+		return fmt.Errorf("no cluster load assignment")
 	}
 
 	if !v.usesEDS && v.endpointsOnCluster == 0 {
@@ -76,19 +76,19 @@ func (v validate) Errors() error {
 // MakeValidate is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
 func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
 	var resultErr error
-	var plugin validate
+	var plugin Validate
 
 	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
 
-	return plugin, resultErr
+	return &plugin, resultErr
 }
 
 // CanApply determines if the extension can apply to the given extension configuration.
-func (p validate) CanApply(config xdscommon.ExtensionConfiguration) bool {
+func (p *Validate) CanApply(config xdscommon.ExtensionConfiguration) bool {
 	return true
 }
 
-func (p validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	p.route = true
 	if !p.routeDestinationMakesSense {
 		for sni := range p.snis {
@@ -99,7 +99,7 @@ func (p validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_r
 	return route, false, nil
 }
 
-func (p validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	p.cluster = true
 	if c.EdsClusterConfig != nil {
 		p.usesEDS = true
@@ -115,7 +115,7 @@ func (p validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.C
 	return c, false, nil
 }
 
-func (p validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	// TODO If a single filter exists for a listener we say it exists.
 	p.listener = true
 
@@ -136,7 +136,8 @@ func (p validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener
 	return filter, true, nil
 }
 
-func (p validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+func (p *Validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+	p.loadAssignment = true
 	p.endpointsOnLoadAssignment = len(la.Endpoints) + len(la.NamedEndpoints)
 	return la, false, nil
 }

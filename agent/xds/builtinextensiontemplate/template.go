@@ -20,7 +20,7 @@ import (
 
 type EnvoyExtension struct {
 	Constructor PluginConstructor
-	plugin      Plugin
+	Plugin      Plugin
 	ready       bool
 }
 
@@ -31,7 +31,7 @@ var _ xdscommon.EnvoyExtension = (*EnvoyExtension)(nil)
 func (envoyExtension *EnvoyExtension) Validate(config xdscommon.ExtensionConfiguration) error {
 	plugin, err := envoyExtension.Constructor(config)
 
-	envoyExtension.plugin = plugin
+	envoyExtension.Plugin = plugin
 	envoyExtension.ready = err == nil
 
 	return err
@@ -55,7 +55,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 		return resources, nil
 	}
 
-	if !envoyExtension.plugin.CanApply(config) {
+	if !envoyExtension.Plugin.CanApply(config) {
 		return resources, nil
 	}
 
@@ -80,7 +80,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newCluster, patched, err := envoyExtension.plugin.PatchCluster(resource)
+				newCluster, patched, err := envoyExtension.Plugin.PatchCluster(resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -111,7 +111,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newRoute, patched, err := envoyExtension.plugin.PatchRoute(resource)
+				newRoute, patched, err := envoyExtension.Plugin.PatchRoute(resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -132,7 +132,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newCluster, patched, err := envoyExtension.plugin.PatchClusterLoadAssignment(resource)
+				newCluster, patched, err := envoyExtension.Plugin.PatchClusterLoadAssignment(resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -183,7 +183,7 @@ func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdsc
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -230,7 +230,7 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -263,7 +263,7 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 			}
 
 			for _, filter := range filterChain.Filters {
-				newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+				newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 					filters = append(filters, filter)

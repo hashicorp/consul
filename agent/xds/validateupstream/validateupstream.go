@@ -14,6 +14,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 
 	// Copied from z_xds_packages
 	_ "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/filters/http/squash/v3"
@@ -334,7 +335,7 @@ const (
 	endpoints string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
 )
 
-func DoIt(rawConfig []byte, service api.CompoundServiceName) error {
+func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	config := &envoy_admin_v3.ConfigDump{}
 
 	unmarshal := &protojson.UnmarshalOptions{
@@ -342,19 +343,13 @@ func DoIt(rawConfig []byte, service api.CompoundServiceName) error {
 	}
 	err := unmarshal.Unmarshal(rawConfig, config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	indexedResources, err := bootstrapToIndexedResources(config)
-	if err != nil {
-		return err
-	}
+	return bootstrapToIndexedResources(config)
+}
 
-	// TODO how do we get datacenter? This is hard coded.
-	datacenter := "primary"
-	// TODO how do we get trust domain? This is hard coded.
-	trustDomain := "5d6c08dd-44c7-5051-6abc-c6432c5399bf.consul"
-
+func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, datacenter string, trustDomain string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
 	structService := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
 	sni := connect.ServiceSNI(service.Name, "", structService.NamespaceOrDefault(), structService.PartitionOrDefault(), datacenter, trustDomain)
@@ -373,17 +368,22 @@ func DoIt(rawConfig []byte, service api.CompoundServiceName) error {
 	}
 
 	extension := builtinextensiontemplate.EnvoyExtension{Constructor: validate.MakeValidate}
-	err = extension.Validate(extConfig)
+	err := extension.Validate(extConfig)
 	if err != nil {
 		return err
 	}
 
 	_, err = extension.Extend(indexedResources, extConfig)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
-	return err
+	v, ok := extension.Plugin.(*validate.Validate)
+	if !ok {
+		panic("shouldn't happen")
+	}
+
+	return v.Errors()
 }
 
 func bootstrapToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
@@ -409,7 +409,18 @@ func bootstrapToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.
 				if r == nil {
 					r = make(map[string]proto.Message)
 				}
-				r[listener.Name] = listener.GetActiveState()
+				as := listener.GetActiveState()
+				if as == nil {
+					continue
+				}
+
+				l := &envoy_listener_v3.Listener{}
+				proto.Unmarshal(as.Listener.GetValue(), l)
+				if err != nil {
+					return indexedResources, err
+				}
+
+				r[listener.Name] = l
 				indexedResources.Index[xdscommon.ListenerType] = r
 			}
 		case clusters:
