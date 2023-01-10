@@ -1,0 +1,3 @@
+```release-note:bug
+agent/hcp: HCP Management Plane is expecting the json representation of a durationpb, instead of a Go Duration string
+```
