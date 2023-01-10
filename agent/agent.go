@@ -2435,7 +2435,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, req.token)
+	err := a.State.AddServiceWithChecks(service, checks, req.token, req.Source == ConfigSourceLocal)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
@@ -2771,7 +2771,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	}
 
 	// Add to the local state for anti-entropy
-	err = a.State.AddCheck(check, token)
+	err = a.State.AddCheck(check, token, source == ConfigSourceLocal)
 	if err != nil {
 		return err
 	}

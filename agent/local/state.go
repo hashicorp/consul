@@ -80,6 +80,10 @@ type ServiceState struct {
 	// but has not been removed on the server yet.
 	Deleted bool
 
+	// IsLocallyDefined indicates whether the service was defined locally in config
+	// as opposed to being registered through the Agent API.
+	IsLocallyDefined bool
+
 	// WatchCh is closed when the service state changes. Suitable for use in a
 	// memdb.WatchSet when watching agent local changes with hash-based blocking.
 	WatchCh chan struct{}
@@ -124,6 +128,10 @@ type CheckState struct {
 	// Deleted is true when the health check record has been marked as
 	// deleted but has not been removed on the server yet.
 	Deleted bool
+
+	// IsLocallyDefined indicates whether the check was defined locally in config
+	// as opposed to being registered through the Agent API.
+	IsLocallyDefined bool
 }
 
 // Clone returns a shallow copy of the object.
@@ -246,14 +254,19 @@ func (l *State) ServiceToken(id structs.ServiceID) string {
 // aclTokenForServiceSync returns an ACL token associated with a service. If there is
 // no ACL token associated with the service, fallback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallback func() string) string {
+func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallbacks ...func() string) string {
 	if s := l.services[id]; s != nil && s.Token != "" {
 		return s.Token
 	}
-	return fallback()
+	for _, fb := range fallbacks {
+		if tok := fb(); tok != "" {
+			return tok
+		}
+	}
+	return ""
 }
 
-func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
+func (l *State) addServiceLocked(service *structs.NodeService, token string, isLocal bool) error {
 	if service == nil {
 		return fmt.Errorf("no service")
 	}
@@ -275,25 +288,27 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	}
 
 	l.setServiceStateLocked(&ServiceState{
-		Service: service,
-		Token:   token,
+		Service:          service,
+		Token:            token,
+		IsLocallyDefined: isLocal,
 	})
 	return nil
 }
 
-// AddServiceWithChecks adds a service entry and its checks to the local state atomically
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string) error {
+// AddServiceWithChecks adds a service entry and its checks to the local state
+// atomically This entry is persistent and the agent will make a best effort to
+// ensure it is registered. The isLocallyDefined parameter indicates whether
+// the service and checks are sourced from local agent configuration files.
+func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string, isLocallyDefined bool) error {
 	l.Lock()
 	defer l.Unlock()
 
-	if err := l.addServiceLocked(service, token); err != nil {
+	if err := l.addServiceLocked(service, token, isLocallyDefined); err != nil {
 		return err
 	}
 
 	for _, check := range checks {
-		if err := l.addCheckLocked(check, token); err != nil {
+		if err := l.addCheckLocked(check, token, isLocallyDefined); err != nil {
 			return err
 		}
 	}
@@ -508,24 +523,30 @@ func (l *State) CheckToken(id structs.CheckID) string {
 // aclTokenForCheckSync returns an ACL token associated with a check. If there is
 // no ACL token associated with the check, the callback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) aclTokenForCheckSync(id structs.CheckID, fallback func() string) string {
+func (l *State) aclTokenForCheckSync(id structs.CheckID, fallbacks ...func() string) string {
 	if c := l.checks[id]; c != nil && c.Token != "" {
 		return c.Token
 	}
-	return fallback()
+	for _, fb := range fallbacks {
+		if tok := fb(); tok != "" {
+			return tok
+		}
+	}
+	return ""
 }
 
-// AddCheck is used to add a health check to the local state.
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
+// AddCheck is used to add a health check to the local state. This entry is
+// persistent and the agent will make a best effort to ensure it is registered.
+// The isLocallyDefined parameter indicates whether the checks are sourced from
+// local agent configuration files.
+func (l *State) AddCheck(check *structs.HealthCheck, token string, isLocallyDefined bool) error {
 	l.Lock()
 	defer l.Unlock()
 
-	return l.addCheckLocked(check, token)
+	return l.addCheckLocked(check, token, isLocallyDefined)
 }
 
-func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
+func (l *State) addCheckLocked(check *structs.HealthCheck, token string, isLocal bool) error {
 	if check == nil {
 		return fmt.Errorf("no check")
 	}
@@ -555,8 +576,9 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	}
 
 	l.setCheckStateLocked(&CheckState{
-		Check: check,
-		Token: token,
+		Check:            check,
+		Token:            token,
+		IsLocallyDefined: isLocal,
 	})
 	return nil
 }
@@ -1366,9 +1388,32 @@ func (l *State) pruneCheck(id structs.CheckID) {
 	delete(l.checks, id)
 }
 
+// serviceRegistrationTokenFallback returns a fallback function to be used when
+// determining the token to use for service sync.
+//
+// The fallback function will return the config file registration token if the
+// given service was sourced from a service definition in a config file.
+func (l *State) serviceRegistrationTokenFallback(key structs.ServiceID) func() string {
+	return func() string {
+		if s := l.services[key]; s != nil && s.IsLocallyDefined {
+			return l.tokens.ConfigFileRegistrationToken()
+		}
+		return ""
+	}
+}
+
+func (l *State) checkRegistrationTokenFallback(key structs.CheckID) func() string {
+	return func() string {
+		if s := l.checks[key]; s != nil && s.IsLocallyDefined {
+			return l.tokens.ConfigFileRegistrationToken()
+		}
+		return ""
+	}
+}
+
 // syncService is used to sync a service to the server
 func (l *State) syncService(key structs.ServiceID) error {
-	st := l.aclTokenForServiceSync(key, l.tokens.UserToken)
+	st := l.aclTokenForServiceSync(key, l.serviceRegistrationTokenFallback(key), l.tokens.UserToken)
 
 	// If the service has associated checks that are out of sync,
 	// piggyback them on the service sync so they are part of the
@@ -1384,7 +1429,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		if !key.Matches(c.Check.CompoundServiceID()) {
 			continue
 		}
-		if st != l.aclTokenForCheckSync(checkKey, l.tokens.UserToken) {
+		if st != l.aclTokenForCheckSync(checkKey, l.checkRegistrationTokenFallback(checkKey), l.tokens.UserToken) {
 			continue
 		}
 		checks = append(checks, c.Check)
@@ -1452,7 +1497,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(key structs.CheckID) error {
 	c := l.checks[key]
-	ct := l.aclTokenForCheckSync(key, l.tokens.UserToken)
+	ct := l.aclTokenForCheckSync(key, l.checkRegistrationTokenFallback(key), l.tokens.UserToken)
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
 		ID:              l.config.NodeID,

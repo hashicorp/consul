@@ -914,6 +914,28 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `agent_master` ((#acl_tokens_agent_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
+    - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - The ACL
+      token this agent uses to register services and checks from [service
+      definitions](/docs/discovery/services) and [check definitions](/docs/discovery/checks) found
+      in configuration files or in configuration fragments passed to the agent using the `-hcl`
+      flag.
+
+      If the `token` field is defined in the service or check definition, then that token is used to
+      register the service or check instead. If the `config_file_service_registration` token is not
+      defined and if the `token` field is not defined in the service or check definition, then the
+      agent uses the [`default`](#acl_tokens_default) token to register the service or check.
+
+      This token needs write permission to register all services and checks defined in this agent's
+      configuration. For example, if there are two service definitions in the agent's configuration
+      files for services "A" and "B", then the token needs `service:write` permissions for both
+      services "A" and "B" in order to successfully register both services. If the token is missing
+      `service:write` permissions for service "B", the agent will successfully register service "A"
+      and fail to register service "B". Failed registration requests are eventually retried as part
+      of [anti-entropy enforcement](/docs/architecture/anti-entropy). If a registration request is
+      failing due to missing permissions, the the token for this agent can be updated with
+      additional policy rules or the `config_file_service_registration` token can be replaced using
+      the [Set Agent Token](/commands/acl/set-agent-token) CLI command.
+
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
       operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
