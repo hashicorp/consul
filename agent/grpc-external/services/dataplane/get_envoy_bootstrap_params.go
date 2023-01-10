@@ -79,19 +79,19 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	// This is non-essential, and don't want to return an error unless there is a more serious issue
 	var accessLogs []string
 	if ns != nil && ns.Proxy.AccessLogs.Enabled {
-		envoyLogs, err := accesslogs.MakeAccessLogs(&ns.Proxy.AccessLogs, false)
+		envoyLoggers, err := accesslogs.MakeAccessLogs(&ns.Proxy.AccessLogs, false)
 		if err != nil {
 			logger.Warn("Error creating the envoy access log config", "error", err)
 		}
 
-		accessLogs = make([]string, 0, len(envoyLogs))
+		accessLogs = make([]string, 0, len(envoyLoggers))
 
-		for _, msg := range envoyLogs {
-			config, err := protojson.Marshal(msg)
+		for _, msg := range envoyLoggers {
+			logConfig, err := protojson.Marshal(msg)
 			if err != nil {
 				logger.Warn("Error marshaling the envoy access log config", "error", err)
 			}
-			accessLogs = append(accessLogs, string(config))
+			accessLogs = append(accessLogs, string(logConfig))
 		}
 	}
 

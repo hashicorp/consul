@@ -722,7 +722,7 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 		}
 
 		if proxyDefaults.AccessLogs != nil {
-			logConfig := &structs.AccessLogsConfig{
+			AccessLogsConfig := &structs.AccessLogsConfig{
 				Enabled:             proxyDefaults.AccessLogs.Enabled,
 				DisableListenerLogs: false,
 				Type:                structs.LogSinkType(proxyDefaults.AccessLogs.Type),
@@ -730,20 +730,20 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 				TextFormat:          proxyDefaults.AccessLogs.TextFormat,
 				Path:                proxyDefaults.AccessLogs.Path,
 			}
-			envoyLogs, err := accesslogs.MakeAccessLogs(logConfig, false)
+			envoyLoggers, err := accesslogs.MakeAccessLogs(AccessLogsConfig, false)
 			if err != nil {
 				return fmt.Errorf("failure generating Envoy access log configuration: %w", err)
 			}
 
 			// Convert individual proto messages to JSON here
-			args.AdminAccessLogConfig = make([]string, 0, len(envoyLogs))
+			args.AdminAccessLogConfig = make([]string, 0, len(envoyLoggers))
 
-			for _, msg := range envoyLogs {
-				config, err := protojson.Marshal(msg)
+			for _, msg := range envoyLoggers {
+				logConfig, err := protojson.Marshal(msg)
 				if err != nil {
 					return fmt.Errorf("could not marshal Envoy access log configuration: %w", err)
 				}
-				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, string(config))
+				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, string(logConfig))
 			}
 		}
 
