@@ -185,7 +185,7 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 			pd, ok := tc.proxyDefaults.(*structs.ProxyConfigEntry)
 			require.True(t, ok, "Invalid Proxy Defaults")
 			if pd.AccessLogs.Enabled {
-				require.Equal(t, resp.AccessLogs, []string{"{\"name\":\"Consul Listener Filter Log\", \"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog\", \"logFormat\":{\"jsonFormat\":{\"custom_field\":\"%START_TIME%\"}}}}"})
+				require.JSONEq(t, "{\"name\":\"Consul Listener Filter Log\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog\",\"logFormat\":{\"jsonFormat\":{\"custom_field\":\"%START_TIME%\"}}}}", resp.AccessLogs[0])
 			}
 		}
 
