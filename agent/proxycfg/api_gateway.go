@@ -9,16 +9,20 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-// handlerAPIGateway generates a new ConfigSnapshot in response to
+// handlerBoundAPIGateway generates a new ConfigSnapshot in response to
 // changes related to an API gateway.
 //
 // It is currently identical to handlerIngressGateway but subscribes
 // to the api-gateway config entry kind on initialize instead.
-type handlerAPIGateway struct {
+type handlerBoundAPIGateway struct {
 	handlerState
 }
 
-func (s *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
+// initialize sets up the initial watches needed based on the bound-api-gateway registration
+//
+// TODO Subscribe to BoundAPIGateway changes, retrieve APIGateway and any
+// attached routes or certificates. Generate snapshot from aggregated set.
+func (s *handlerBoundAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -54,7 +58,7 @@ func (s *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	// Watch the api-gateway's list of upstreams
+	// Watch the bound-api-gateway's list of upstreams
 	err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
@@ -78,35 +82,38 @@ func (s *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	return snap, nil
 }
 
-func (s *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
+// handleUpdate responds to changes in the BoundAPIGateway
+func (s *handlerBoundAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
 	switch {
 	case u.CorrelationID == rootsWatchID:
+		// Handle change in the CA roots
 		roots, ok := u.Result.(*structs.IndexedCARoots)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
 	case u.CorrelationID == gatewayConfigWatchID:
+		// Handle change in the bound-api-gateway config entry
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-		if resp.Entry == nil {
+		} else if resp.Entry == nil {
 			return nil
 		}
-		gatewayConf, ok := resp.Entry.(*structs.IngressGatewayConfigEntry)
+
+		gatewayConf, ok := resp.Entry.(*structs.BoundAPIGatewayConfigEntry)
 		if !ok {
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		snap.IngressGateway.GatewayConfigLoaded = true
-		snap.IngressGateway.TLSConfig = gatewayConf.TLS
+		snap.APIGateway.GatewayConfigLoaded = true
+		snap.APIGateway.TLSConfig = gatewayConf.TLS
 		if gatewayConf.Defaults != nil {
-			snap.IngressGateway.Defaults = *gatewayConf.Defaults
+			snap.APIGateway.Defaults = *gatewayConf.Defaults
 		}
 
 		// Load each listener's config from the config entry so we don't have to
@@ -121,6 +128,7 @@ func (s *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		}
 
 	case u.CorrelationID == gatewayServicesWatchID:
+		// Handle change in the upstream services for the bound-api-gateway
 		services, ok := u.Result.(*structs.IndexedGatewayServices)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -156,27 +164,27 @@ func (s *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 			upstreamsMap[id] = append(upstreamsMap[id], u)
 		}
 
-		snap.IngressGateway.Upstreams = upstreamsMap
-		snap.IngressGateway.UpstreamsSet = watchedSvcs
-		snap.IngressGateway.Hosts = hosts
-		snap.IngressGateway.HostsSet = true
+		snap.APIGateway.Upstreams = upstreamsMap
+		snap.APIGateway.UpstreamsSet = watchedSvcs
+		snap.APIGateway.Hosts = hosts
+		snap.APIGateway.HostsSet = true
 
-		for uid, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
+		for uid, cancelFn := range snap.APIGateway.WatchedDiscoveryChains {
 			if _, ok := watchedSvcs[uid]; !ok {
-				for targetID, cancelUpstreamFn := range snap.IngressGateway.WatchedUpstreams[uid] {
-					delete(snap.IngressGateway.WatchedUpstreams[uid], targetID)
-					delete(snap.IngressGateway.WatchedUpstreamEndpoints[uid], targetID)
+				for targetID, cancelUpstreamFn := range snap.APIGateway.WatchedUpstreams[uid] {
+					delete(snap.APIGateway.WatchedUpstreams[uid], targetID)
+					delete(snap.APIGateway.WatchedUpstreamEndpoints[uid], targetID)
 					cancelUpstreamFn()
 
 					targetUID := NewUpstreamIDFromTargetID(targetID)
 					if targetUID.Peer != "" {
-						snap.IngressGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
-						snap.IngressGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+						snap.APIGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
+						snap.APIGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
 					}
 				}
 
 				cancelFn()
-				delete(snap.IngressGateway.WatchedDiscoveryChains, uid)
+				delete(snap.APIGateway.WatchedDiscoveryChains, uid)
 			}
 		}
 
