@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # The crt-builder is used to detemine build metadata and create Consul builds.
-# We use it in build-consul.yml for building release artifacts with CRT. 
+# We use it in build-consul.yml for building release artifacts with CRT.
 
 set -euo pipefail
 
@@ -75,13 +75,18 @@ function version_pre() {
 
 # Get the version metadata, which is commonly the edition
 function version_metadata() {
-  : "${METADATA:=""}"
+  : "${CONSUL_METADATA:=""}"
 
   if [ -n "$METADATA" ]; then
-    echo "$METADATA"
+    CONSUL_METADATA=$METADATA
+  fi
+
+  if [ -n "$CONSUL_METADATA" ]; then
+    echo "$CONSUL_METADATA"
     return
   fi
 }
+
 
 # Get the build date from the latest commit since it can be used across all
 # builds
@@ -166,7 +171,7 @@ function build() {
   fi
 
   if [ -n "$metadata" ]; then
-    msg="${msg}, metadata ${CONSUL_METADATA}"
+    msg="${msg}, metadata ${metadata}"
     ldflags="${ldflags} -X github.com/hashicorp/consul/version.VersionMetadata=$metadata"
   fi
 
@@ -183,7 +188,7 @@ function build() {
 
 # Bundle the dist directory
 function bundle() {
-  : "${BUNDLE_PATH:=$(repo_root)/consul.zip}"
+  : "${BUNDLE_PATH:=$(repo_root)/vault.zip}"
   echo "--> Bundling dist/* to $BUNDLE_PATH"
   zip -r -j "$BUNDLE_PATH" dist/
 }

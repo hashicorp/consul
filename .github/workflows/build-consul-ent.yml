@@ -1,0 +1,128 @@
+---
+name: build_consul
+
+# This workflow is intended to be called by the build workflow for each Consul
+# binary that needs to be built and packaged. The crt make targets that are
+# utilized automatically determine build metadata and handle building and
+# packing consul.
+
+env:
+  METADATA: ent
+
+on:
+  workflow_call:
+    inputs:
+      bundle-path:
+        required: false
+        type: string
+      cgo-enabled:
+        type: string
+        default: 0
+      create-packages:
+        type: boolean
+        default: true
+      goos:
+        required: true
+        type: string
+      goarch:
+        required: true
+        type: string
+      go-tags:
+        type: string
+      go-version:
+        type: string
+      package-name:
+        type: string
+        default: consul
+      consul-version:
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Consul ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.consul-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+
+      - name: Set up node and yarn
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+          cache: yarn
+          cache-dependency-path: ui/yarn.lock
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ inputs.consul-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          make crt-build-ui
+          rm -rf agent/uiserver/dist
+          mv ui/packages/consul-ui/dist agent/uiserver/
+      - name: Build
+        env:
+          GOOS: ${{ inputs.goos }}
+          GOARCH: ${{ inputs.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          [ "${{ inputs.goarch }}" == "arm" ] && export GOARM=5
+          make crt-build
+
+          curl -o dist/EULA.txt https://eula.hashicorp.com/EULA.txt
+          curl -o dist/TermsOfEvaluation.txt https://eula.hashicorp.com/TermsOfEvaluation.txt
+          mkdir -p .release/linux/package/usr/share/doc/${{ inputs.package-name }}
+          cp dist/EULA.txt .release/linux/package/usr/share/doc/${{ inputs.package-name }}/EULA.txt
+          cp dist/TermsOfEvaluation.txt .release/linux/package/usr/share/doc/${{ inputs.package-nameE }}/TermsOfEvaluation.txt
+
+          zip -r -j out/${{ inputs.package-name }}_${{ inputs.consul-version }}+${{ env.METADATA }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.package-name }}_${{inputs.consul-version}}+${{ env.METADATA }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip
+          path: out/${{ inputs.package-name }}_${{ inputs.consul-version }}+${{ env.METADATA }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip
+
+      - name: Package
+        if: ${{ inputs.goos == 'linux' }}
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: ${{ github.event.repository.name }}
+          description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
+          arch: ${{ inputs.goarch }}
+          version: ${{ inputs.consul-version }}+${{ env.METADATA }}
+          maintainer: "HashiCorp"
+          homepage: "https://github.com/hashicorp/consul"
+          license: "MPL-2.0"
+          binary: "dist/${{ inputs.package-name }}"
+          deb_depends: "openssl"
+          rpm_depends: "openssl"
+          config_dir: ".release/linux/package"
+          preinstall: ".release/linux/preinstall"
+          postinstall: ".release/linux/postinstall"
+          postremove: ".release/linux/postremove"
+
+      - name: Set Package Names
+        if: ${{ inputs.goos == 'linux' }}
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ inputs.goos == 'linux' }}
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ inputs.goos == 'linux' }}
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}

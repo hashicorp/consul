@@ -5,9 +5,12 @@ on:
   workflow_dispatch:
   pull_request:
   push:
+    # Sequence of patterns matched against refs/heads
     branches:
+      # Push events on the main branch
       - main
       - release/**
+      - releng-329
 
 env:
   PKG_NAME: consul
@@ -21,7 +24,6 @@ jobs:
       base-product-version: ${{ steps.set-product-version.outputs.base-product-version }}
       product-date: ${{ steps.get-product-version.outputs.product-date }}
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
-      shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
       go-version: ${{ steps.get-go-version.outputs.go-version }}
       package-name: ${{ env.PKG_NAME }}
     steps:
@@ -35,20 +37,12 @@ jobs:
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
           echo "::set-output name=product-date::${CONSUL_DATE}"
-
-      - name: Set shared -ldflags
-        id: shared-ldflags
-        run: |
-          T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
-          -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
-          -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
-          "
       - name: Get Go Version
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
           echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
+
   validate-outputs:
     needs: set-product-version
     runs-on: ubuntu-latest
@@ -57,7 +51,6 @@ jobs:
         run: |
           echo "Product Version: ${{ needs.set-product-version.outputs.product-version }}"
           echo "Base Product Version: ${{ needs.set-product-version.outputs.base-product-version }}"
-          echo "Product Metadata: ${{ env.METADATA }}"
           echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
           echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
           echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
@@ -117,6 +110,8 @@ jobs:
         goarch: [ "amd64", "arm64" ]
         go: [ "1.19.4" ]
       fail-fast: true
+
+    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     uses: ./.github/workflows/build-consul-oss.yml
     with:
       create-packages: false
@@ -129,7 +124,7 @@ jobs:
     secrets: inherit
 
   build-docker:
-    name: Build Consul Docker
+    name: Docker ${{ matrix.arch }} build
     needs:
       - set-product-version
       - build
@@ -138,8 +133,8 @@ jobs:
       matrix:
         arch: ["386", "amd64", "arm", "arm64"]
     env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.set-product-version.outputs.product-version}}
+      repo: ${{ github.event.repository.name }}
+      version: ${{ needs.set-product-version.outputs.product-version }}
 
     steps:
       - uses: actions/checkout@v3
