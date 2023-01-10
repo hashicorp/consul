@@ -231,6 +231,14 @@ go-mod-tidy:
 	@cd sdk && go mod tidy
 	@cd api && go mod tidy
 	@go mod tidy
+	@cd test/integration/consul-container && go mod tidy
+	@cd test/integration/connect/envoy/test-sds-server && go mod tidy
+	@cd proto-public && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue/e2e && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue/e2e/consul && go mod tidy
+	@cd internal/tools/protoc-gen-consul-rate-limit && go mod tidy
+
 
 test-internal:
 	@echo "--> Running go test"
