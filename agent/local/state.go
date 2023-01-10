@@ -1301,7 +1301,9 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
 		accessorID := l.aclAccessorID(st)
-		l.logger.Warn("Service deregistration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Service deregistration blocked by ACLs",
+			"service", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
 		return nil
 
@@ -1341,7 +1343,9 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.aclAccessorID(ct)
-		l.logger.Warn("Check deregistration blocked by ACLs", "check", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Check deregistration blocked by ACLs",
+			"check", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
@@ -1430,7 +1434,9 @@ func (l *State) syncService(key structs.ServiceID) error {
 			l.checks[checkKey].InSync = true
 		}
 		accessorID := l.aclAccessorID(st)
-		l.logger.Warn("Service registration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Service registration blocked by ACLs",
+			"service", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
 
@@ -1484,7 +1490,9 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.aclAccessorID(ct)
-		l.logger.Warn("Check registration blocked by ACLs", "check", key.String(), "accessorID", accessorID)
+		l.logger.Warn("Check registration blocked by ACLs",
+			"check", key.String(),
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
 
@@ -1522,7 +1530,9 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
 		accessorID := l.aclAccessorID(at)
-		l.logger.Warn("Node info update blocked by ACLs", "node", l.config.NodeID, "accessorID", accessorID)
+		l.logger.Warn("Node info update blocked by ACLs",
+			"node", l.config.NodeID,
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 

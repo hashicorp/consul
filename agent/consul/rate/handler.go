@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sync/atomic"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/go-hclog"
 )
@@ -18,14 +19,14 @@ var (
 	// rate limit was exhausted, but may succeed on a different server.
 	//
 	// Results in a RESOURCE_EXHAUSTED or "429 Too Many Requests" response.
-	ErrRetryElsewhere = errors.New("rate limit exceeded, try a different server")
+	ErrRetryElsewhere = errors.New("rate limit exceeded, try again later or against a different server")
 
 	// ErrRetryLater indicates that the operation was not allowed because the rate
 	// limit was exhausted, and trying a different server won't help (e.g. because
 	// the operation can only be performed on the leader).
 	//
 	// Results in an UNAVAILABLE or "503 Service Unavailable" response.
-	ErrRetryLater = errors.New("rate limit exceeded, try again later")
+	ErrRetryLater = errors.New("rate limit exceeded for operation that can only be performed by the leader, try again later")
 )
 
 // Mode determines the action that will be taken when a rate limit has been
@@ -119,8 +120,6 @@ type Handler struct {
 
 	limiter multilimiter.RateLimiter
 
-	// TODO: replace this with the real logger.
-	// https://github.com/hashicorp/consul/pull/15822
 	logger hclog.Logger
 }
 
@@ -205,18 +204,33 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: metrics.
-		// TODO: is this the correct log-level?
+		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
 		h.logger.Trace("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
-			"source_addr", op.SourceAddr.String(),
+			"source_addr", op.SourceAddr,
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
 
+		metrics.IncrCounterWithLabels([]string{"consul", "rate_limit"}, 1, []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		})
+
 		if enforced {
+			// TODO(NET-1382) - use the logger to print rate limiter logs.
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}

@@ -58,6 +58,7 @@ var AllConfigEntryKinds = []string{
 
 const (
 	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -314,6 +315,7 @@ func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {
 func builtInExtension(name string) bool {
 	extensions := map[string]struct{}{
 		BuiltinAWSLambdaExtension: {},
+		BuiltinLuaExtension:       {},
 	}
 
 	_, ok := extensions[name]

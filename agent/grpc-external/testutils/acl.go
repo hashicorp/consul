@@ -18,17 +18,16 @@ func ACLAnonymous(t *testing.T) resolver.Result {
 	return resolver.Result{
 		Authorizer: acl.DenyAll(),
 		ACLIdentity: &structs.ACLToken{
-			AccessorID: structs.ACLTokenAnonymousID,
+			AccessorID: acl.AnonymousTokenID,
 		},
 	}
 }
 
-func ACLAllowAll(t *testing.T) resolver.Result {
+func ACLsDisabled(t *testing.T) resolver.Result {
 	t.Helper()
 
 	return resolver.Result{
-		Authorizer:  acl.AllowAll(),
-		ACLIdentity: randomACLIdentity(t),
+		Authorizer: acl.ManageAll(),
 	}
 }
 

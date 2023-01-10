@@ -25,7 +25,6 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
 )
@@ -251,17 +250,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			cfgs := xdscommon.GetExtensionConfigurations(cfgSnap)
-			for _, extensions := range cfgs {
-				for _, ext := range extensions {
-					switch ext.EnvoyExtension.Name {
-					case structs.BuiltinAWSLambdaExtension:
-						newResourceMap, err = serverlessplugin.Extend(newResourceMap, ext)
-						if err != nil && ext.EnvoyExtension.Required {
-							return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
-						}
-					}
-				}
+			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap); err != nil {
+				// err is already the result of calling status.Errorf
+				return err
 			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {
@@ -399,6 +390,60 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 		}
 	}
+}
+
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot) error {
+	var err error
+	cfgs := xdscommon.GetExtensionConfigurations(cfgSnap)
+
+	for _, extensions := range cfgs {
+		for _, ext := range extensions {
+			logFn := s.Logger.Warn
+			if ext.EnvoyExtension.Required {
+				logFn = s.Logger.Error
+			}
+			extensionContext := []interface{}{
+				"extension", ext.EnvoyExtension.Name,
+				"service", ext.ServiceName.Name,
+				"namespace", ext.ServiceName.Namespace,
+				"partition", ext.ServiceName.Partition,
+			}
+
+			extension, ok := GetBuiltInExtension(ext)
+			if !ok {
+				logFn("failed to find extension", extensionContext...)
+
+				if ext.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to find extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			err = extension.Validate(ext)
+			if err != nil {
+				extensionContext = append(extensionContext, "error", err)
+				logFn("failed to validate extension arguments", extensionContext...)
+				if ext.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			resources, err = extension.Extend(resources, ext)
+			if err == nil {
+				continue
+			}
+
+			logFn("failed to apply envoy extension", extensionContext...)
+			if ext.EnvoyExtension.Required {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q plugin: %v", ext.EnvoyExtension.Name, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 var xDSUpdateOrder = []xDSUpdateOperation{

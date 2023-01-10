@@ -574,7 +574,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
 	}
 
-	if args.TokenID == structs.ACLTokenAnonymousID {
+	if args.TokenID == acl.AnonymousTokenID {
 		return fmt.Errorf("Delete operation not permitted on the anonymous token")
 	}
 
