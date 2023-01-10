@@ -48,7 +48,7 @@ func (s *handlerBoundAPIGateway) initialize(ctx context.Context) (ConfigSnapshot
 
 	// Watch the api-gateway's config entry
 	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
-		Kind:           structs.APIGateway,
+		Kind:           structs.BoundAPIGateway,
 		Name:           s.service,
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
