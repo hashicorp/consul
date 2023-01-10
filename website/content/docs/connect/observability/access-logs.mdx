@@ -205,5 +205,51 @@ spec:
 ## Kubernetes
 
 As part of its normal operation, the Envoy debugging logs for the `consul-dataplane`, `envoy`, or `envoy-sidecar` containers are written to `stderr`.
-The log sink [`Type`](http://localhost:3000/consul/docs/connect/config-entries/proxy-defaults#type) is set to `stdout` by default for access logs when enabled.
+The access log [`Type`](/docs/connect/config-entries/proxy-defaults#type) is set to `stdout` by default for access logs when enabled.
 Use a log aggregating solution to separate the machine-readable access logs from the Envoy process debug logs.
+
+## Write to a file
+
+You can write access logs to a file on the host where Envoy runs.
+The is most relevant when running Envoy on a VM.
+
+~> **operations warning:** Envoy does not rotate log files. 
+Have a log rotation solution, such as [logrotate](https://www.redhat.com/sysadmin/setting-logrotate), in place to prevent the host's disk space from being consumed by access logs when writing to a file. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+  Type = "file"
+  Path = "/var/log/envoy/access-logs.txt" 
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+    type: file
+    path: "/var/log/envoy/access-logs.txt" 
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true,
+    "Type": "file",
+    "Path": "/var/log/envoy/access-logs.txt"
+  }
+}
+```
+
+</CodeTabs>

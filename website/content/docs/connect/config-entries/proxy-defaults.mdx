@@ -7,8 +7,10 @@ description: >-
 
 # Proxy Defaults Configuration Entry
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to configure global defaults for Envoy proxies in the service mesh.
-This contrasts the [`mesh` config entry](/docs/connect/config-entries/mesh), which affects cross-proxy, mesh-wide changes.
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the mesh.
+Proxies are included in sidecars and gateways.
+This contrasts the [`mesh` config entry](/docs/connect/config-entries/mesh), which configures higher-level Consul features, that also configure Consul servers.
+
 Only one global entry is supported. 
 For Consul Enterprise, only the global entry in the `default` partition is recognized.
 
@@ -492,7 +494,7 @@ spec:
           type: 'bool: false',
           description: `When enabled, access logs for traffic rejected at the listener-level are not emitted.
           This traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services.
-          Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding`,
+          Set this option to \`true\` if you do not want to log unknown requests that Envoy is not forwarding`,
         },
         {
           name: 'Type',
@@ -506,7 +508,7 @@ spec:
         },
         {
           name: 'JSONFormat',
-          type: 'string: "[default access log format](/consul/docs/connect/observability/access-logs#default-log-format)"',
+          type: 'string: (default as follows)',
           description: `A JSON-formatted string that represents the format of each emitted access log.
           By default, it is set  to the [default access log format](/consul/docs/connect/observability/access-logs#default-log-format).
           You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. 
