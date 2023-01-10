@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
@@ -738,13 +738,12 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 			// Convert individual proto messages to JSON here
 			args.AdminAccessLogConfig = make([]string, 0, len(envoyLogs))
 
-			marshaler := jsonpb.Marshaler{}
 			for _, msg := range envoyLogs {
-				config, err := marshaler.MarshalToString(msg)
+				config, err := protojson.Marshal(msg)
 				if err != nil {
 					return fmt.Errorf("could not marshal Envoy access log configuration: %w", err)
 				}
-				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, config)
+				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, string(config))
 			}
 		}
 
