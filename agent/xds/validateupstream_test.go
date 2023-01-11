@@ -272,7 +272,8 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 			peer := tt.peer
 
-			err = validateupstream.Validate(indexedResources, *serviceName, peer)
+			// TODO don't hardcode VIP, it'll be included in the test case.
+			err = validateupstream.Validate(indexedResources, *serviceName, peer, "240.0.0.1")
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)

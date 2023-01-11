@@ -13,7 +13,7 @@ import (
 
 func TestValidate(t *testing.T) {
 	indexedResources := getConfig(t)
-	err := Validate(indexedResources, service, "dc1", "", "1234.consul")
+	err := Validate(indexedResources, service, "", "240.0.0.1")
 	require.NoError(t, err)
 }
 

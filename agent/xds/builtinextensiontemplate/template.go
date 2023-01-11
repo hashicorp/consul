@@ -252,42 +252,45 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 	var resultErr error
 	patched := false
 
-	snis := config.Upstreams[config.ServiceName].SNI
+	vip := config.Upstreams[config.ServiceName].VIP
 
 	for _, filterChain := range l.FilterChains {
 		var filters []*envoy_listener_v3.Filter
 
-		for sni := range snis {
-			match := filterChainTProxyMatch(sni, filterChain)
-			if !match {
-				continue
-			}
-
-			for _, filter := range filterChain.Filters {
-				newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
-				if err != nil {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
-					filters = append(filters, filter)
-				}
-
-				if ok {
-					filters = append(filters, newFilter)
-					patched = true
-				}
-			}
-			filterChain.Filters = filters
+		match := filterChainTProxyMatch(vip, filterChain)
+		if !match {
+			continue
 		}
+
+		for _, filter := range filterChain.Filters {
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+				filters = append(filters, filter)
+			}
+
+			if ok {
+				filters = append(filters, newFilter)
+				patched = true
+			}
+		}
+		filterChain.Filters = filters
 	}
 
 	return l, patched, resultErr
 }
 
-func filterChainTProxyMatch(sni string, filterChain *envoy_listener_v3.FilterChain) bool {
-	for _, filter := range filterChain.Filters {
-		// TODO this is wrong in the case of redirects I believe
-		if FilterDestinationMatch(sni, filter) {
-			return true
-		}
+func filterChainTProxyMatch(vip string, filterChain *envoy_listener_v3.FilterChain) bool {
+	// TODO I don't think we need to match based on SNIs at all anymore but make sure that's the case.
+	//for _, filter := range filterChain.Filters {
+	//	// TODO this is wrong in the case of redirects I believe
+	//	if FilterDestinationMatch(sni, filter) {
+	//		return true
+	//	}
+	//}
+	for _, prefixRange := range filterChain.FilterChainMatch.PrefixRanges {
+		strings.Contains(vip, prefixRange.AddressPrefix)
+		return true
 	}
 
 	return false

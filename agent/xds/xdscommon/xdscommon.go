@@ -109,6 +109,8 @@ type ExtensionConfiguration struct {
 // UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
 // is used to choose which Envoy resources to patch.
 type UpstreamData struct {
+	// VIP is the tproxy virtual IP used to reach an upstream service.
+	VIP string
 	// SNI is the SNI header used to reach an upstream service.
 	SNI map[string]struct{}
 	// EnvoyID is the envoy ID of an upstream service, structured <service> or <partition>/<ns>/<service> when using a

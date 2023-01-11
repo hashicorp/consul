@@ -348,7 +348,7 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	return bootstrapToIndexedResources(config)
 }
 
-func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string) error {
+func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
 	var envoyID string
 	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
@@ -380,6 +380,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		ServiceName: service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
+				VIP: vip,
 				// This is hacky. This runs the extension on only listeners for this service and everything else.
 				SNI:     snis,
 				EnvoyID: envoyID,
