@@ -65,9 +65,7 @@ func TestValidateUpstreams(t *testing.T) {
 		create      func(t testinf.T) *proxycfg.ConfigSnapshot
 		patcher     func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
 		err         string
-		dc          string
 		peer        string
-		trustDomain string
 		serviceName *api.CompoundServiceName
 	}{
 		{
@@ -223,14 +221,12 @@ func TestValidateUpstreams(t *testing.T) {
 			create:      proxycfg.TestConfigSnapshotPeering,
 			serviceName: &api.CompoundServiceName{Name: "payments"},
 			peer:        "cloud",
-			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
 		},
 		{
 			name:        "non-eds-missing-endpoints",
 			create:      proxycfg.TestConfigSnapshotPeering,
 			serviceName: &api.CompoundServiceName{Name: "payments"},
 			peer:        "cloud",
-			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				sni := "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
 				msg := ir.Index[xdscommon.ClusterType][sni]
@@ -268,10 +264,6 @@ func TestValidateUpstreams(t *testing.T) {
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}
-			trustDomain := tt.trustDomain
-			if trustDomain == "" {
-				trustDomain = "dc1"
-			}
 			serviceName := tt.serviceName
 			if serviceName == nil {
 				serviceName = &api.CompoundServiceName{
@@ -280,12 +272,7 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 			peer := tt.peer
 
-			dc := tt.dc
-			if dc == "" && peer == "" {
-				dc = "dc1"
-			}
-
-			err = validateupstream.Validate(indexedResources, *serviceName, dc, peer, trustDomain)
+			err = validateupstream.Validate(indexedResources, *serviceName, peer)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
