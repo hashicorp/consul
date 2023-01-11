@@ -221,6 +221,10 @@ jobs:
           name: lint sdk
           working_directory: sdk
           command: *lintcmd
+      - run:
+          name: lint container tests
+          working_directory: test/integration/consul-container
+          command: *lintcmd
       - run: *notify-slack-failure
 
   check-go-mod:
@@ -864,7 +868,9 @@ jobs:
               -- \
               -timeout=30m \
               ./... \
+              --target-image consul \
               --target-version local \
+              --latest-image consul \
               --latest-version latest
             ls -lrt
           environment:
@@ -874,9 +880,6 @@ jobs:
             COMPOSE_INTERACTIVE_NO_CLI: 1
             # tput complains if this isn't set to something.
             TERM: ansi
-      - store_artifacts:
-          path: ./test/integration/consul-container/test/upgrade/workdir/logs
-          destination: container-logs
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
