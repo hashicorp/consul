@@ -74,7 +74,7 @@ func BasicPeeringTwoClustersSetup(t *testing.T, consulVersion string) (*libclust
 	clientNodes, err = acceptingCluster.Clients()
 	require.NoError(t, err)
 	require.True(t, len(clientNodes) > 0)
-	staticServerSvc, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNodes[0])
+	staticServerSvc, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNodes[0], false)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, acceptingClient, "static-server")
 	libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")

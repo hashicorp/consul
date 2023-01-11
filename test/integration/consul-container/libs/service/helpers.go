@@ -9,25 +9,41 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, error) {
+// grpc, if true, will configure and advertise the GRPC port (8079) instead of the HTTP port
+func CreateAndRegisterStaticServerAndSidecar(node Agent, grpc bool) (Service, Service, error) {
 	// Create a service and proxy instance
 	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8079, node) // bindPort not used
+	port := 8080
+	if grpc {
+		port = 8079
+	}
+
+	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", port, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
 
 	serverServiceIP, _ := serverService.GetAddr()
 	serverConnectProxyIP, _ := serverConnectProxy.GetAddr()
+	agentCheck := api.AgentServiceCheck{
+		Name:     "Static Server Listening",
+		HTTP:     fmt.Sprintf("%s:%d", serverServiceIP, port),
+		Interval: "10s",
+		Status:   api.HealthPassing,
+	}
+	if grpc {
+		agentCheck.HTTP = ""
+		agentCheck.GRPC = fmt.Sprintf("%s:%d", serverServiceIP, 8079)
+	}
 
 	// Register the static-server service and sidecar
 	req := &api.AgentServiceRegistration{
 		Name:    "static-server",
-		Port:    8079,
+		Port:    port,
 		Address: serverServiceIP,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
@@ -51,16 +67,11 @@ func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, erro
 				Proxy: &api.AgentServiceConnectProxyConfig{
 					DestinationServiceName: "static-server",
 					LocalServiceAddress:    serverServiceIP,
-					LocalServicePort:       8079,
+					LocalServicePort:       port,
 				},
 			},
 		},
-		Check: &api.AgentServiceCheck{
-			Name:     "Static Server Listening",
-			GRPC:     fmt.Sprintf("%s:%d", serverServiceIP, 8079),
-			Interval: "10s",
-			Status:   api.HealthPassing,
-		},
+		Check: &agentCheck,
 	}
 
 	err = node.GetClient().Agent().ServiceRegister(req)

@@ -54,7 +54,7 @@ func TestBadauthz_UpgradeToTarget_fromLatest(t *testing.T) {
 		clientNodes, err := cluster.Clients()
 		require.NoError(t, err)
 		require.True(t, len(clientNodes) > 0)
-		_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNodes[0])
+		_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNodes[0], false)
 		require.NoError(t, err)
 		client := clientNodes[0].GetClient()
 		libassert.CatalogServiceExists(t, client, "static-server")
