@@ -103,7 +103,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 				// If the Envoy extension configuration is for an upstream service, the route's
 				// name must match the upstream service's Envoy ID.
 				matchesEnvoyID := config.EnvoyID() == nameOrSNI
-				if config.IsUpstream() && !matchesEnvoyID {
+				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) && !matchesEnvoyID {
 					continue
 				}
 
@@ -284,6 +284,7 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 
 func filterChainTProxyMatch(sni string, filterChain *envoy_listener_v3.FilterChain) bool {
 	for _, filter := range filterChain.Filters {
+		// TODO this is wrong in the case of redirects I believe
 		if FilterDestinationMatch(sni, filter) {
 			return true
 		}
@@ -292,34 +293,41 @@ func filterChainTProxyMatch(sni string, filterChain *envoy_listener_v3.FilterCha
 	return false
 }
 
-func FilterDestinationMatch(sni string, filter *envoy_listener_v3.Filter) bool {
+func FilterClusterNames(filter *envoy_listener_v3.Filter) map[string]struct{} {
+	clusterNames := make(map[string]struct{})
+	if filter == nil {
+		return clusterNames
+	}
+
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
 		if config.GetRds() != nil {
-			// TODO Can we just assume the check under the route is right?
-			return true
+			return clusterNames
 		}
 
 		cfg := config.GetRouteConfig()
 
-		match := RouteMatchesCluster(sni, cfg)
-
-		if match {
-			return true
-		}
+		clusterNames = RouteClusterNames(cfg)
 	}
 
 	if config := GetTCPProxy(filter); config != nil {
-		if config.GetCluster() == sni {
-			return true
-		}
+		clusterNames[config.GetCluster()] = struct{}{}
 	}
-	return false
+
+	return clusterNames
 }
 
-func RouteMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) bool {
+func FilterDestinationMatch(sni string, filter *envoy_listener_v3.Filter) bool {
+	clusterNames := FilterClusterNames(filter)
+	_, ok := clusterNames[sni]
+	return ok
+}
+
+func RouteClusterNames(route *envoy_route_v3.RouteConfiguration) map[string]struct{} {
 	if route == nil {
-		return false
+		return nil
 	}
+
+	clusterNames := make(map[string]struct{})
 
 	for _, virtualHost := range route.VirtualHosts {
 		for _, route := range virtualHost.Routes {
@@ -327,14 +335,26 @@ func RouteMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) b
 			if r == nil {
 				continue
 			}
+			if c := r.GetCluster(); c != "" {
+				clusterNames[r.GetCluster()] = struct{}{}
+			}
 
-			if r.GetCluster() == sni {
-				return true
+			if wc := r.GetWeightedClusters(); wc != nil {
+				for _, c := range wc.GetClusters() {
+					if c.Name != "" {
+						clusterNames[c.Name] = struct{}{}
+					}
+				}
 			}
 		}
 	}
+	return clusterNames
+}
 
-	return false
+func RouteMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) bool {
+	clusterNames := RouteClusterNames(route)
+	_, ok := clusterNames[sni]
+	return ok
 }
 
 func GetTCPProxy(filter *envoy_listener_v3.Filter) *envoy_tcp_proxy_v3.TcpProxy {

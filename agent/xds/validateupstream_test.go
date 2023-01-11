@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -55,10 +56,8 @@ func TestValidateUpstreams(t *testing.T) {
 	})
 	nodes := proxycfg.TestUpstreamNodes(t, "db")
 
-	// TODO HTTP service using RDS with missing route.
-	// TODO Test subsets (this theoretically supports them already).
-	// TODO Determine how this breaks with redirects and failover.
-	// TODO Without EDS (use DNS).
+	// TODO failover. This is strange because we need to first find
+	// the aggregate cluster and use that to find and validate the other clusters.
 	// TODO Test tproxy.
 	// TODO explicit upstreams and tproxy for the same service.
 	tests := []struct {
@@ -66,6 +65,10 @@ func TestValidateUpstreams(t *testing.T) {
 		create  func(t testinf.T) *proxycfg.ConfigSnapshot
 		patcher func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
 		err     string
+		dc string
+		peer string
+		trustDomain string
+		serviceName *api.CompoundServiceName
 	}{
 		{
 			name: "tcp-success",
@@ -93,7 +96,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster",
+			err: "unexpected route/listener destination cluster",
 		},
 		{
 			name: "tcp-missing-load-assignment",
@@ -152,6 +155,71 @@ func TestValidateUpstreams(t *testing.T) {
 				return ir
 			},
 		},
+		{
+			name: "http-rds-missing-route",
+			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
+			// need to use the test snapshot and add L7 config entries.
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+					// The events ensure there are endpoints for the v1 and v2 subsets.
+					{
+						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: nodes,
+						},
+					},
+					{
+						CorrelationID: "upstream-target:v2.db.default.default.dc1:" + dbUID.String(),
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: nodes,
+						},
+					},
+				}, httpServiceDefaults, resolver, splitter)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				delete(ir.Index[xdscommon.RouteType], "db")
+				return ir
+			},
+			err: "no route",
+		},
+		{
+			name: "redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+			},
+		},
+		// TODO tproxy is actually broken because the list of SNIs matches all service and tproxy uses SNIs on the filter chain.
+		// This case is EXTREMELY complicated.
+		{
+			name: "tproxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
+		},
+		{
+			name: "non-eds",
+			create: proxycfg.TestConfigSnapshotPeering,
+			serviceName: &api.CompoundServiceName{Name: "payments"},
+			peer: "cloud",
+			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
+		},
+		{
+			name: "non-eds-missing-endpoints",
+			create: proxycfg.TestConfigSnapshotPeering,
+			serviceName: &api.CompoundServiceName{Name: "payments"},
+			peer: "cloud",
+			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				sni := "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+				msg := ir.Index[xdscommon.ClusterType][sni]
+				c, ok := msg.(*envoy_cluster_v3.Cluster)
+				require.True(t, ok)
+				c.LoadAssignment = nil
+				ir.Index[xdscommon.ClusterType][sni] = c
+				return ir
+			},
+			err: "zero endpoints",
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -178,9 +246,24 @@ func TestValidateUpstreams(t *testing.T) {
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}
-			err = validateupstream.Validate(indexedResources, api.CompoundServiceName{
-				Name: "db",
-			}, "dc1", "11111111-2222-3333-4444-555555555555.consul")
+			trustDomain := tt.trustDomain
+			if trustDomain == "" {
+				trustDomain = "dc1"
+			}
+			serviceName := tt.serviceName
+			if serviceName == nil {
+				serviceName = &api.CompoundServiceName{
+					Name: "db",
+				}
+			}
+			peer := tt.peer
+
+			dc := tt.dc
+			if dc == "" && peer == "" {
+				dc = "dc1"
+			}
+
+			err = validateupstream.Validate(indexedResources, *serviceName, dc, peer, trustDomain)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)

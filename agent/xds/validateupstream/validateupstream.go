@@ -1,7 +1,7 @@
 package validateupstream
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -351,29 +351,46 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	return bootstrapToIndexedResources(config)
 }
 
-func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, datacenter string, trustDomain string) error {
+func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, datacenter string, peer string, trustDomain string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
-	structService := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
-	mainSNI := connect.ServiceSNI(service.Name, "", structService.NamespaceOrDefault(), structService.PartitionOrDefault(), datacenter, trustDomain)
+	var mainSNI string
+	var envoyID string
+	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
+	if datacenter == "" {
+		psn := structs.PeeredServiceName{
+			ServiceName: svc,
+			Peer: peer,
+		}
+		mainSNI = connect.PeeredServiceSNI(service.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), peer, trustDomain)
+		uid := proxycfg.NewUpstreamIDFromPeeredServiceName(psn)
+		envoyID = uid.EnvoyID()
+	}	else {
+		mainSNI = connect.ServiceSNI(service.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), datacenter, trustDomain)
+		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
+		envoyID = uid.EnvoyID()
+		fmt.Println("HERE", mainSNI, envoyID)
 
-	snis := map[string]struct{}{}
+	}
+
+	snis := map[string]struct{}{mainSNI: {}}
 
 	// TODO remove printing after finishing.
 	//spew.Dump(indexedResources)
 	for s := range indexedResources.Index[xdscommon.ClusterType] {
-		if strings.HasSuffix(s, mainSNI) {
-			snis[s] = struct{}{}
-		}
+		snis[s] = struct{}{}
 	}
-	envoyID := proxycfg.NewUpstreamIDFromServiceName(structService)
-
 	extConfig := xdscommon.ExtensionConfiguration{
-		EnvoyExtension: api.EnvoyExtension{},
+		EnvoyExtension: api.EnvoyExtension{
+			Arguments: map[string]interface{}{
+				"envoyID": envoyID,
+			},
+		},
 		ServiceName:    service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
+				// This is hacky. This runs the extension on only listeners for this service and everything else.
 				SNI:     snis,
-				EnvoyID: envoyID.EnvoyID(),
+				EnvoyID: envoyID,
 			},
 		},
 		Kind: api.ServiceKindConnectProxy,

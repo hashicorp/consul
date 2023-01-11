@@ -15,6 +15,7 @@ import (
 )
 
 type Validate struct {
+	envoyID string
 	snis map[string]struct{}
 
 	// listener specifies if the service's listener has been seen.
@@ -56,8 +57,6 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
-	// TODO remove printing
-	//fmt.Println(v.expectedResources)
 	for sni, expectedResource := range v.expectedResources {
 		_, ok := v.snis[sni]
 		if !ok {
@@ -86,6 +85,12 @@ func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplat
 	var resultErr error
 	var plugin Validate
 
+	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
+	mainEnvoyID, _ := envoyID.(string)
+	if len(mainEnvoyID) == 0 {
+		return nil, fmt.Errorf("envoyID is required")
+	}
+	plugin.envoyID = mainEnvoyID
 	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
 	plugin.expectedResources = make(map[string]*expectedResource)
 
@@ -98,15 +103,15 @@ func (p *Validate) CanApply(config xdscommon.ExtensionConfiguration) bool {
 }
 
 func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	if route.Name != p.envoyID {
+		return route, false, nil
+	}
 	p.route = true
-	for sni := range p.snis {
+	for sni := range builtinextensiontemplate.RouteClusterNames(route) {
 		if _, ok := p.expectedResources[sni]; ok {
 			continue
 		}
-
-		if builtinextensiontemplate.RouteMatchesCluster(sni, route) {
-			p.expectedResources[sni] = &expectedResource{}
-		}
+		p.expectedResources[sni] = &expectedResource{}
 	}
 	return route, false, nil
 }
@@ -137,18 +142,16 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
 		if config.GetRds() != nil {
 			p.usesRDS = true
-			// No listener destination. Us RDS.
+			return filter, true, nil
 		}
 	}
 
-	for sni := range p.snis {
+	for sni := range builtinextensiontemplate.FilterClusterNames(filter) {
 		if _, ok := p.expectedResources[sni]; ok {
 			continue
 		}
 
-		if builtinextensiontemplate.FilterDestinationMatch(sni, filter) {
-			p.expectedResources[sni] = &expectedResource{}
-		}
+		p.expectedResources[sni] = &expectedResource{}
 	}
 
 	return filter, true, nil
