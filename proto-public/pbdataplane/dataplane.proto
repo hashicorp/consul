@@ -80,6 +80,7 @@ message GetEnvoyBootstrapParamsResponse {
   google.protobuf.Struct config = 6;
   string node_id = 7;
   string node_name = 8;
+  repeated string access_logs = 9;
 }
 
 service DataplaneService {
