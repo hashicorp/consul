@@ -7,9 +7,8 @@ description: >-
 
 # Proxy Defaults Configuration Entry
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the mesh.
-Proxies are included in sidecars and gateways.
-This contrasts the [`mesh` config entry](/docs/connect/config-entries/mesh), which configures higher-level Consul features, that also configure Consul servers.
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the service mesh, including both sidecars and gateways.
+It is different from the [`mesh` configuration entry](/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
 
 Only one global entry is supported. 
 For Consul Enterprise, only the global entry in the `default` partition is recognized.
