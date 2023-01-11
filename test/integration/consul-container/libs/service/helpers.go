@@ -16,7 +16,7 @@ func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, erro
 		return nil, nil, err
 	}
 
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8079, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,7 +27,7 @@ func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, erro
 	// Register the static-server service and sidecar
 	req := &api.AgentServiceRegistration{
 		Name:    "static-server",
-		Port:    8080,
+		Port:    8079,
 		Address: serverServiceIP,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
@@ -51,13 +51,13 @@ func CreateAndRegisterStaticServerAndSidecar(node Agent) (Service, Service, erro
 				Proxy: &api.AgentServiceConnectProxyConfig{
 					DestinationServiceName: "static-server",
 					LocalServiceAddress:    serverServiceIP,
-					LocalServicePort:       8080,
+					LocalServicePort:       8079,
 				},
 			},
 		},
 		Check: &api.AgentServiceCheck{
 			Name:     "Static Server Listening",
-			TCP:      fmt.Sprintf("%s:%d", serverServiceIP, 8080),
+			GRPC:     fmt.Sprintf("%s:%d", serverServiceIP, 8079),
 			Interval: "10s",
 			Status:   api.HealthPassing,
 		},
