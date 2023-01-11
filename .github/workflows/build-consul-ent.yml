@@ -73,6 +73,7 @@ jobs:
           GOOS: ${{ inputs.goos }}
           GOARCH: ${{ inputs.goarch }}
           CGO_ENABLED: 0
+          CONSUL_METADATA: ${{ env.METADATA }}
         run: |
           [ "${{ inputs.goarch }}" == "arm" ] && export GOARM=5
           make crt-build

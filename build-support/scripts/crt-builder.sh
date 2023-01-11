@@ -77,10 +77,6 @@ function version_pre() {
 function version_metadata() {
   : "${CONSUL_METADATA:=""}"
 
-  if [ -n "$METADATA" ]; then
-    CONSUL_METADATA=$METADATA
-  fi
-
   if [ -n "$CONSUL_METADATA" ]; then
     echo "$CONSUL_METADATA"
     return
