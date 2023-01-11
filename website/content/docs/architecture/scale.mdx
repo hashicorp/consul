@@ -120,13 +120,11 @@ Consul offers different [consistency modes](/consul/api-docs/features/consistenc
 
 #### DNS
 
-We strongly recommend utilizing the recommendations in the [DNS Caching tutorial](/consul/tutorials/networking/dns-caching) for stale consistency. Consul uses [stale consistency mode](/consul/api-docs/features/consistency#stale) to optimize for performance over consistency in DNS API responses.
-
-If you need to improve consistency at the expense of an increased workload, you can set `dns_config.allow_stale` to `default`. In addition, you can configure TTLs for services and nodes to improve DNS resolving at the client and avoid server round trips.
+We strongly recommend using [stale consistency mode for DNS lookups](/consul/api-docs/features/consistency#consul-dns-queries) to optimize for performance over consistency when operating at scale. It is enabled by default and configured with `dns_config.allow_stale`.
 
 We also recommend that you do not configure [`dns_config.max_stale` to limit the staleness of DNS responses](/consul/api-docs/features/consistency#limiting-staleness-advanced-usage), as it may result in a prolonged outage if your Consul servers become overloaded. If bounded result consistency is required by a service, consider modifying the service to use consistent service discovery HTTP API queries instead of DNS lookups.
 
-Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. The agent cache allocates memory for each requested route and each allocation can live up to 3 days, resulting in severe memory issues.
+Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/tutorials/networking/dns-caching#ttl) to enable the DNS client to cache responses from Consul.
 
 #### HTTP API
 
