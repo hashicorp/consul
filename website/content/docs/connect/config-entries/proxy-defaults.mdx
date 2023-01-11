@@ -2,20 +2,20 @@
 layout: docs
 page_title: Proxy Defaults - Configuration Entry Reference
 description: >-
-  The proxy defaults configuration entry kind defines default behaviors for sidecar proxies in the service mesh. Use the reference guide to learn about `""proxy-defaults""` config entry parameters and how to expose HTTP paths through Envoy.
+  The proxy defaults configuration entry kind defines default behaviors for proxies in the service mesh. Use the reference guide to learn about `""proxy-defaults""` config entry parameters.
 ---
 
 # Proxy Defaults Configuration Entry
 
-The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you
-to configure global defaults across all services for Connect proxy
-configurations. Only one global entry is supported.
+The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the service mesh, including both sidecars and gateways.
+It is different from the [`mesh` configuration entry](/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
+
+Only one global entry is supported. 
+For Consul Enterprise, only the global entry in the `default` partition is recognized.
 
 ## Introduction
 
-You can customize some service registration settings for service mesh sidecar
-proxies centrally using the `proxy-defaults` configuration entry in the `kind`
-field.
+You can customize some service registration settings for service mesh proxies centrally using the `proxy-defaults` configuration entry in the `kind` field.
 
 You can still override this centralized configuration for specific services
 with the [`service-defaults`](/docs/connect/config-entries/service-defaults)
@@ -74,6 +74,14 @@ Expose {
     }
   ]
 }
+AccessLogs {
+  Enabled              = < true | false >
+  DisableListenerLogs  = < true | false , disables listener access logs for unrecognized traffic>
+  Type                 = "< file | stdout | stdout, the destination for access logs >"
+  Path                 = "< set the output path for 'file' based access logs >"
+  JSONFormat           = "< json representation of access log format >"
+  TextFormat           = "< text representation of access log format >"
+}
 ```
 
 ```yaml
@@ -99,6 +107,13 @@ spec:
         localPathPort: <port where the local service is listening for connections to the path>
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
+  accessLogs:
+    enabled: < true | false >
+    disableListenerLogs:  < true | false , disables listener access logs for unrecognized traffic>
+    type: < file | stdout | stdout, the destination for access logs >
+    path: < set the output path for 'file' based access logs >
+    jsonFormat: < json representation of access log format >
+    textFormat: < text representation of access log format >
 ```
 
 ```json
@@ -129,6 +144,14 @@ spec:
         "Protocol": "<protocol of the listener>"
       }
     ]
+  },
+  "AccessLogs": {
+    "Enabled": < true | false >,
+    "DisableListenerLogs": < true | false , disables listener access logs for unrecognized traffic>,
+    "Type": "< file | stdout | stdout, the destination for access logs >",
+    "Path": "< set the output path for 'file' based access logs >",
+    "JSONFormat": "< json representation of access log format >",
+    "TextFormat": "< text representation of access log format >"
   }
 }
 ```
@@ -173,6 +196,14 @@ Expose {
     }
   ]
 }
+AccessLogs {
+  Enabled              = < true | false >
+  DisableListenerLogs  = < true | false , disables listener access logs for unrecognized traffic>
+  Type                 = "< file | stdout | stdout, the destination for access logs >"
+  Path                 = "< set the output path for 'file' based access logs >"
+  JSONFormat           = "< json representation of access log format >"
+  TextFormat           = "< text representation of access log format >"
+}
 ```
 
 ```yaml
@@ -199,6 +230,13 @@ spec:
         localPathPort: <port where the local service is listening for connections to the path>
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
+  accessLogs:
+    enabled: < true | false >
+    disableListenerLogs:  < true | false , disables listener access logs for unrecognized traffic>
+    type: < file | stdout | stdout, the destination for access logs >
+    path: < set the output path for 'file' based access logs >
+    jsonFormat: < json representation of access log format >
+    textFormat: < text representation of access log format >
 ```
 
 ```json
@@ -230,6 +268,14 @@ spec:
         "Protocol": "<protocol of the listener>"
       }
     ]
+  },
+  "AccessLogs": {
+    "Enabled": < true | false >,
+    "DisableListenerLogs": < true | false , disables listener access logs for unrecognized traffic>,
+    "Type": "< file | stdout | stdout, the destination for access logs >",
+    "Path": "< set the output path for 'file' based access logs >",
+    "JSONFormat": "< json representation of access log format >",
+    "TextFormat": "< text representation of access log format >"
   }
 }
 ```
@@ -431,6 +477,53 @@ spec:
         },
       ],
     },
+    {
+      name: 'AccessLogs',
+      type: 'AccessLogsConfig: <optional>',
+      description: `Controls the configuration of [Envoy's access logging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs) 
+                      for all proxies in the mesh, including gateways. It also configures access logs on [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs).`,
+      children: [
+        {
+          name: 'Enabled',
+          type: 'bool: false',
+          description: 'When enabled, access logs are emitted for all proxies in the mesh, including gateways.',
+        },
+        {
+          name: 'DisableListenerLogs',
+          type: 'bool: false',
+          description: `When enabled, access logs for traffic rejected at the listener-level are not emitted.
+          This traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services.
+          Set this option to \`true\` if you do not want to log unknown requests that Envoy is not forwarding`,
+        },
+        {
+          name: 'Type',
+          type: 'string: "stdout"',
+          description: 'The destination for access logs.  One of \`stdout\`, \`stderr\`, or \`file\`.',
+        },
+        {
+          name: 'Path',
+          type: 'string: ""',
+          description: 'The destination file for access logs. Only valid with \`Type\` set to \`file\`.',
+        },
+        {
+          name: 'JSONFormat',
+          type: 'string: (default as follows)',
+          description: `A JSON-formatted string that represents the format of each emitted access log.
+          By default, it is set  to the [default access log format](/consul/docs/connect/observability/access-logs#default-log-format).
+          You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. 
+          Nesting is supported. 
+          Invalid if a custom format is specified with TextFormat.`,
+        },
+        {
+          name: 'TextFormat',
+          type: 'string: ""',
+          description: `A formatted string that represents the format of each emitted access log.
+          Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted. 
+          A new line is added to the string automatically.
+          Invalid when a custom JSONFormat is already specified.`,
+        }
+      ],
+    },
   ]}
 />
 
@@ -438,7 +531,7 @@ spec:
 
 ### Default protocol
 
-The following example configures the default protocol for all sidecar proxies.
+The following example configures the default protocol for all proxies.
 
 <Tabs>
 <Tab heading="Consul OSS">
@@ -521,7 +614,7 @@ spec:
 
 ### Prometheus
 
-The following example configures all sidecar proxies to expose Prometheus metrics.
+The following example configures all proxies to expose Prometheus metrics.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -555,9 +648,46 @@ spec:
 
 </CodeTabs>
 
+### Access Logs
+
+The following example is a minimal configuration for enabling access logs for all proxies.
+Refer to [access logs](/docs/connect/observability/access-logs) for advanced configurations.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true
+  }
+}
+```
+
+</CodeTabs>
+
 ### Proxy-specific defaults
 
-The following example configures some custom default values for all sidecar proxies.
+The following example configures some custom default values for all proxies.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
