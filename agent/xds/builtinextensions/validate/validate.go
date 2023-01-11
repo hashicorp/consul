@@ -7,8 +7,11 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/hashicorp/go-multierror"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -16,7 +19,7 @@ import (
 
 type Validate struct {
 	envoyID string
-	snis map[string]struct{}
+	snis    map[string]struct{}
 
 	// listener specifies if the service's listener has been seen.
 	listener bool
@@ -27,13 +30,16 @@ type Validate struct {
 	// listener specifies if the service's route has been seen.
 	route bool
 
-	// expectedResources is a mapping from SNI to the expected resources
+	// resources is a mapping from SNI to the expected resources
 	// for that SNI. It is populated based on the cluster names on routes
 	// (whether they are specified on listener filters or routes).
-	expectedResources map[string]*expectedResource
+	resources map[string]*resource
 }
 
-type expectedResource struct {
+type resource struct {
+	// required determines if the resource is required for the given upstream.
+	required bool
+
 	// cluster specifies if the cluster has been seen.
 	cluster bool
 	// cluster specifies if the load assignment has been seen.
@@ -57,22 +63,26 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
-	for sni, expectedResource := range v.expectedResources {
+	for sni, resource := range v.resources {
+		if !resource.required {
+			continue
+		}
+
 		_, ok := v.snis[sni]
 		if !ok {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected route/listener destination cluster %s", sni))
 			continue
 		}
 
-		if !expectedResource.cluster {
+		if !resource.cluster {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster for sni %s", sni))
 		}
 
-		if expectedResource.usesEDS && !expectedResource.loadAssignment {
+		if resource.usesEDS && !resource.loadAssignment {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment %s", sni))
 		}
 
-		if expectedResource.endpoints == 0 {
+		if resource.endpoints == 0 {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("zero endpoints sni %s", sni))
 		}
 	}
@@ -92,7 +102,7 @@ func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplat
 	}
 	plugin.envoyID = mainEnvoyID
 	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
-	plugin.expectedResources = make(map[string]*expectedResource)
+	plugin.resources = make(map[string]*resource)
 
 	return &plugin, resultErr
 }
@@ -108,20 +118,51 @@ func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_
 	}
 	p.route = true
 	for sni := range builtinextensiontemplate.RouteClusterNames(route) {
-		if _, ok := p.expectedResources[sni]; ok {
+		if _, ok := p.resources[sni]; ok {
 			continue
 		}
-		p.expectedResources[sni] = &expectedResource{}
+		p.resources[sni] = &resource{required: true}
 	}
 	return route, false, nil
 }
 
 func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	v, ok := p.expectedResources[c.Name]
+	v, ok := p.resources[c.Name]
 	if !ok {
-		return c, false, nil
+		v = &resource{}
+		p.resources[c.Name] = v
 	}
 	v.cluster = true
+
+	cdt, ok := c.ClusterDiscoveryType.(*envoy_cluster_v3.Cluster_ClusterType)
+
+	if ok {
+		cct := cdt.ClusterType.TypedConfig
+		if cct == nil {
+			// TODO what to do here.
+			return c, false, nil
+		}
+		aggregateCluster := &envoy_aggregate_cluster_v3.ClusterConfig{}
+		err := anypb.UnmarshalTo(cct, aggregateCluster, proto.UnmarshalOptions{})
+		if err != nil {
+			// TODO what to do here.
+			return c, false, nil
+		}
+		for _, clusterName := range aggregateCluster.Clusters {
+			r, ok := p.resources[clusterName]
+			if !ok {
+				r = &resource{}
+				p.resources[clusterName] = r
+			}
+			r.required = true
+		}
+		// If there is more than one aggregate cluster, defer to the endpoints theere.
+		v.endpoints = len(aggregateCluster.Clusters)
+
+		return c, false, nil
+	}
+
+	// TODO if aggregate cluster make the failover targets required.
 
 	if c.EdsClusterConfig != nil {
 		v.usesEDS = true
@@ -147,18 +188,18 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	}
 
 	for sni := range builtinextensiontemplate.FilterClusterNames(filter) {
-		if _, ok := p.expectedResources[sni]; ok {
+		if _, ok := p.resources[sni]; ok {
 			continue
 		}
 
-		p.expectedResources[sni] = &expectedResource{}
+		p.resources[sni] = &resource{required: true}
 	}
 
 	return filter, true, nil
 }
 
 func (p *Validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
-	v, ok := p.expectedResources[la.ClusterName]
+	v, ok := p.resources[la.ClusterName]
 	if ok {
 		v.loadAssignment = true
 		v.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)

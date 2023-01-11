@@ -1,7 +1,7 @@
 package validateupstream
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -13,14 +13,14 @@ import (
 
 func TestValidate(t *testing.T) {
 	indexedResources := getConfig(t)
-	err := Validate(indexedResources, service)
+	err := Validate(indexedResources, service, "dc1", "", "1234.consul")
 	require.NoError(t, err)
 }
 
 func getConfig(t *testing.T) *xdscommon.IndexedResources {
 	file, err := os.Open("testdata/config.json")
 	require.NoError(t, err)
-	jsonBytes, err := ioutil.ReadAll(file)
+	jsonBytes, err := io.ReadAll(file)
 	require.NoError(t, err)
 	indexedResources, err := ParseConfig(jsonBytes)
 	require.NoError(t, err)
@@ -28,5 +28,5 @@ func getConfig(t *testing.T) *xdscommon.IndexedResources {
 }
 
 var service = api.CompoundServiceName{
-		Name: "s2",
-	}
+	Name: "s2",
+}

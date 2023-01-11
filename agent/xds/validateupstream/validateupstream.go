@@ -1,8 +1,6 @@
 package validateupstream
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -359,17 +357,15 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 	if datacenter == "" {
 		psn := structs.PeeredServiceName{
 			ServiceName: svc,
-			Peer: peer,
+			Peer:        peer,
 		}
 		mainSNI = connect.PeeredServiceSNI(service.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), peer, trustDomain)
 		uid := proxycfg.NewUpstreamIDFromPeeredServiceName(psn)
 		envoyID = uid.EnvoyID()
-	}	else {
+	} else {
 		mainSNI = connect.ServiceSNI(service.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), datacenter, trustDomain)
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
 		envoyID = uid.EnvoyID()
-		fmt.Println("HERE", mainSNI, envoyID)
-
 	}
 
 	snis := map[string]struct{}{mainSNI: {}}
@@ -385,7 +381,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 				"envoyID": envoyID,
 			},
 		},
-		ServiceName:    service,
+		ServiceName: service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
 				// This is hacky. This runs the extension on only listeners for this service and everything else.

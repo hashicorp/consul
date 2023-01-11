@@ -3,8 +3,8 @@ package xds
 import (
 	"testing"
 
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -61,12 +61,12 @@ func TestValidateUpstreams(t *testing.T) {
 	// TODO Test tproxy.
 	// TODO explicit upstreams and tproxy for the same service.
 	tests := []struct {
-		name    string
-		create  func(t testinf.T) *proxycfg.ConfigSnapshot
-		patcher func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
-		err     string
-		dc string
-		peer string
+		name        string
+		create      func(t testinf.T) *proxycfg.ConfigSnapshot
+		patcher     func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
+		err         string
+		dc          string
+		peer        string
 		trustDomain string
 		serviceName *api.CompoundServiceName
 	}{
@@ -188,6 +188,28 @@ func TestValidateUpstreams(t *testing.T) {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
 			},
 		},
+		{
+			name: "failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+		},
+		{
+			name: "failover-missing-endpoints",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				failoverSNI := "failover-target~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+				msg := ir.Index[xdscommon.EndpointType][failoverSNI]
+				cla, ok := msg.(*envoy_endpoint_v3.ClusterLoadAssignment)
+				require.True(t, ok)
+				cla.Endpoints = nil
+				ir.Index[xdscommon.EndpointType][failoverSNI] = cla
+				return ir
+			},
+			err: "zero endpoints",
+		},
 		// TODO tproxy is actually broken because the list of SNIs matches all service and tproxy uses SNIs on the filter chain.
 		// This case is EXTREMELY complicated.
 		{
@@ -197,17 +219,17 @@ func TestValidateUpstreams(t *testing.T) {
 			},
 		},
 		{
-			name: "non-eds",
-			create: proxycfg.TestConfigSnapshotPeering,
+			name:        "non-eds",
+			create:      proxycfg.TestConfigSnapshotPeering,
 			serviceName: &api.CompoundServiceName{Name: "payments"},
-			peer: "cloud",
+			peer:        "cloud",
 			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
 		},
 		{
-			name: "non-eds-missing-endpoints",
-			create: proxycfg.TestConfigSnapshotPeering,
+			name:        "non-eds-missing-endpoints",
+			create:      proxycfg.TestConfigSnapshotPeering,
 			serviceName: &api.CompoundServiceName{Name: "payments"},
-			peer: "cloud",
+			peer:        "cloud",
 			trustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				sni := "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"

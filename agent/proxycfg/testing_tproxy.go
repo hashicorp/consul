@@ -117,7 +117,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 }
 
 func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-			// Set default service protocol to HTTP
+	// Set default service protocol to HTTP
 	entries := append(additionalEntries, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
