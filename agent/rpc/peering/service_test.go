@@ -28,6 +28,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1692,6 +1693,9 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
+	balancerBuilder := balancer.NewBuilder(t.Name(), testutil.Logger(t))
+	balancerBuilder.Register()
+
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -1705,6 +1709,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
+			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          builder,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),

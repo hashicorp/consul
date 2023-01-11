@@ -32,6 +32,11 @@ const (
 	HTTPRoute         string = "http-route"
 )
 
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
+)
+
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string

@@ -66,10 +66,12 @@ In Consul v1.15 and higher:
 ### Service Mesh Compatibility
 Prior to Consul 1.14, cluster peering or Consul connect were disabled by default.
 A breaking change was made in Consul 1.14 that:
-- [Cluster Peering is enabled by default.](/docs/connect/cluster-peering) To disable, set
-[`peering.enabled`](/docs/agent/config/config-files#peering_enabled) to `false`.
-- [Consul Connect is enabled by default.](/docs/connect) To disable, set
-[`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
+- [Cluster Peering is enabled by default.](/docs/connect/cluster-peering)
+  Cluster peering and WAN federation can coexist,
+  so there is no need to disable cluster peering to upgrade existing WAN federated datacenters.
+  To disable cluster peering nonetheless, set [`peering.enabled`](/docs/agent/config/config-files#peering_enabled) to `false`.
+- [Consul Connect is enabled by default.](/docs/connect)
+  To disable, set [`connect.enabled`](/docs/agent/config/config-files#connect_enabled) to `false`.
 
 The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and
 earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until

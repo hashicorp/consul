@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -151,14 +150,14 @@ func enterpriseMetaFromStructs(m acl.EnterpriseMeta) *pbcommon.EnterpriseMeta {
 	return pbcommon.NewEnterpriseMetaFromStructs(m)
 }
 
-func timeFromStructs(t *time.Time) *timestamp.Timestamp {
+func timeFromStructs(t *time.Time) *timestamppb.Timestamp {
 	if t == nil {
 		return nil
 	}
 	return timestamppb.New(*t)
 }
 
-func timeToStructs(ts *timestamp.Timestamp) *time.Time {
+func timeToStructs(ts *timestamppb.Timestamp) *time.Time {
 	if ts == nil {
 		return nil
 	}
