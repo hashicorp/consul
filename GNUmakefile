@@ -34,6 +34,8 @@ DATE_FORMAT="%Y-%m-%dT%H:%M:%SZ" # it's tricky to do an RFC3339 format in a cros
 GIT_DATE=$(shell $(CURDIR)/build-support/scripts/build-date.sh) # we're using this for build date because it's stable across platform builds
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).BuildDate=$(GIT_DATE)
 
+GOTESTSUM_PATH?=$(shell command -v gotestsum)
+
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
 else
@@ -45,6 +47,12 @@ ifeq (${DOCKER_BUILD_QUIET},1)
 QUIET=-q
 else
 QUIET=
+endif
+
+ifeq ("$(GOTAGS)","")
+CONSUL_COMPAT_TEST_IMAGE=consul
+else
+CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul-enterprise
 endif
 
 CONSUL_DEV_IMAGE?=consul-dev
@@ -311,6 +319,8 @@ lint: lint-tools
 	@golangci-lint run --build-tags '$(GOTAGS)' && \
 		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
+	@echo "--> Running golangci-lint (container tests)"
+	cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
 	@echo "--> Running lint-consul-retry"
 	@lint-consul-retry
 	@echo "--> Running enumcover"
@@ -391,25 +401,48 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
 .PHONY: test-compat-integ
-test-compat-integ: dev-docker
-ifeq ("$(GOTAGS)","")
-	@docker tag consul-dev:latest consul:local
-	@docker run --rm -t consul:local consul version
+test-compat-integ: test-compat-integ-setup
+ifeq ("$(GOTESTSUM_PATH)","")
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./... --target-version local --latest-version latest
+	go test \
+		-v \
+		-timeout=30m \
+		./... \
+		--tags $(GOTAGS) \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 else
-	@docker tag consul-dev:latest hashicorp/consul-enterprise:local
-	@docker run --rm -t hashicorp/consul-enterprise:local consul version
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./... --tags $(GOTAGS) --target-version local --latest-version latest
+	gotestsum \
+		--format=short-verbose \
+		--debug \
+		--rerun-fails=3 \
+		--packages="./..." \
+		-- \
+		--tags $(GOTAGS) \
+		-timeout=30m \
+		./... \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 endif
 
+.PHONY: test-compat-integ-setup
+test-compat-integ-setup: dev-docker
+	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
+	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+
 .PHONY: test-metrics-integ
-test-metrics-integ: dev-docker
-	@docker tag consul-dev:latest consul:local
-	@docker run --rm -t consul:local consul version
+test-metrics-integ: test-compat-integ-setup
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=7m ./metrics --target-version local
+		go test -v -timeout=7m ./test/metrics \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")

@@ -1,8 +1,6 @@
 package service
 
-import (
-	"github.com/hashicorp/consul/api"
-)
+import "github.com/hashicorp/consul/api"
 
 // Service represents a process that will be registered with the
 // Consul catalog, including Consul components such as sidecars and gateways
