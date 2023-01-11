@@ -18,16 +18,16 @@ type Validate struct {
 	snis map[string]struct{}
 
 	// listener specifies if the service's listener has been seen.
-	listener                  bool
+	listener bool
 
 	// usesRDS determines if the listener's outgoing filter uses RDS.
-	usesRDS                   bool
+	usesRDS bool
 
 	// listener specifies if the service's route has been seen.
-	route                     bool
+	route bool
 
-	// expectedResources is a mapping from SNI to the expected resources 
-	// for that SNI. It is populated based on the cluster names on routes 
+	// expectedResources is a mapping from SNI to the expected resources
+	// for that SNI. It is populated based on the cluster names on routes
 	// (whether they are specified on listener filters or routes).
 	expectedResources map[string]*expectedResource
 }
@@ -56,13 +56,15 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
+	// TODO remove printing
+	//fmt.Println(v.expectedResources)
 	for sni, expectedResource := range v.expectedResources {
 		_, ok := v.snis[sni]
 		if !ok {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("unexpted route/listener destination cluster %s", sni))
+			resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected route/listener destination cluster %s", sni))
 			continue
 		}
-		
+
 		if !expectedResource.cluster {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster for sni %s", sni))
 		}
@@ -102,7 +104,6 @@ func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_
 			continue
 		}
 
-			
 		if builtinextensiontemplate.RouteMatchesCluster(sni, route) {
 			p.expectedResources[sni] = &expectedResource{}
 		}

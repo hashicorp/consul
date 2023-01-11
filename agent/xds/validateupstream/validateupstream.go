@@ -351,14 +351,15 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	return bootstrapToIndexedResources(config)
 }
 
-
 func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, datacenter string, trustDomain string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
 	structService := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
 	mainSNI := connect.ServiceSNI(service.Name, "", structService.NamespaceOrDefault(), structService.PartitionOrDefault(), datacenter, trustDomain)
 
-	snis := map[string]struct{}{mainSNI: {}}
+	snis := map[string]struct{}{}
 
+	// TODO remove printing after finishing.
+	//spew.Dump(indexedResources)
 	for s := range indexedResources.Index[xdscommon.ClusterType] {
 		if strings.HasSuffix(s, mainSNI) {
 			snis[s] = struct{}{}

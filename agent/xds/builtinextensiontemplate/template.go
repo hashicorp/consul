@@ -101,8 +101,9 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 
 			case *envoy_route_v3.RouteConfiguration:
 				// If the Envoy extension configuration is for an upstream service, the route's
-				// name must match the upstream service's SNI.
-				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
+				// name must match the upstream service's Envoy ID.
+				matchesEnvoyID := config.EnvoyID() == nameOrSNI
+				if config.IsUpstream() && !matchesEnvoyID {
 					continue
 				}
 

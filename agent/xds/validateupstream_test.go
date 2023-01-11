@@ -1,12 +1,10 @@
-//go:build !consulent
-// +build !consulent
-
 package xds
 
 import (
 	"testing"
 
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -14,19 +12,49 @@ import (
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/agent/xds/validateupstream"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestValidateUpstreams(t *testing.T) {
-	listenerName := "db:127.0.0.1:9191"
 	sni := "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+	listenerName := "db:127.0.0.1:9191"
 	httpServiceDefaults := &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "db",
 		Protocol: "http",
 	}
+
+	splitter := &structs.ServiceSplitterConfigEntry{
+		Kind: structs.ServiceSplitter,
+		Name: "db",
+		Splits: []structs.ServiceSplit{
+			{
+				Weight:        50,
+				Service:       "db",
+				ServiceSubset: "v1",
+			},
+			{
+				Weight:        50,
+				Service:       "db",
+				ServiceSubset: "v2",
+			},
+		},
+	}
+	resolver := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "db",
+		Subsets: map[string]structs.ServiceResolverSubset{
+			"v1": {Filter: "Service.Meta.version == v1"},
+			"v2": {Filter: "Service.Meta.version == v2"},
+		},
+	}
+	dbUID := proxycfg.NewUpstreamID(&structs.Upstream{
+		DestinationName: "db",
+		LocalBindPort:   9191,
+	})
+	nodes := proxycfg.TestUpstreamNodes(t, "db")
+
 	// TODO HTTP service using RDS with missing route.
 	// TODO Test subsets (this theoretically supports them already).
 	// TODO Determine how this breaks with redirects and failover.
@@ -99,6 +127,31 @@ func TestValidateUpstreams(t *testing.T) {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, httpServiceDefaults)
 			},
 		},
+		{
+			name: "http-rds-success",
+			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
+			// need to use the test snapshot and add L7 config entries.
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+					// The events ensure there are endpoints for the v1 and v2 subsets.
+					{
+						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: nodes,
+						},
+					},
+					{
+						CorrelationID: "upstream-target:v2.db.default.default.dc1:" + dbUID.String(),
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: nodes,
+						},
+					},
+				}, httpServiceDefaults, resolver, splitter)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				return ir
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -121,6 +174,7 @@ func TestValidateUpstreams(t *testing.T) {
 			require.NoError(t, err)
 
 			indexedResources := indexResources(g.Logger, res)
+			//fmt.Println(indexedResources)
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}
