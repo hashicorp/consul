@@ -13,8 +13,8 @@ import (
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/mitchellh/mapstructure"
+	pstruct "google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"

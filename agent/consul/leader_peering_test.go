@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -138,7 +139,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 		Name:                "my-peer-acceptor",
 		State:               pbpeering.PeeringState_DELETING,
 		PeerServerAddresses: p.Peering.PeerServerAddresses,
-		DeletedAt:           structs.TimeToProto(time.Now()),
+		DeletedAt:           timestamppb.New(time.Now()),
 	}
 	require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
 	dialer.logger.Trace("deleted peering for my-peer-acceptor")
@@ -448,7 +449,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		ID:        p.Peering.PeerID,
 		Name:      "my-peer-dialer",
 		State:     pbpeering.PeeringState_DELETING,
-		DeletedAt: structs.TimeToProto(time.Now()),
+		DeletedAt: timestamppb.New(time.Now()),
 	}
 
 	require.NoError(t, acceptor.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
@@ -622,7 +623,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 			ID:        peerID,
 			Name:      peerName,
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now()),
+			DeletedAt: timestamppb.New(time.Now()),
 		},
 	}))
 
@@ -1501,7 +1502,7 @@ func TestLeader_Peering_NoDeletionWhenPeeringDisabled(t *testing.T) {
 			ID:        peerID,
 			Name:      peerName,
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now()),
+			DeletedAt: timestamppb.New(time.Now()),
 		},
 	}))
 
