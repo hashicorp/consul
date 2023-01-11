@@ -42,7 +42,7 @@ func BindGateways(store *state.Store, route BoundRouter) ([]*structs.BoundAPIGat
 	}
 	for _, entry := range entries {
 		gateway := entry.(*structs.BoundAPIGatewayConfigEntry)
-		key := configentry.NewKindNameForEntry(gateway)
+		key := configentry.NewKindNameForEntry(gateway) // TODO rename to kindName
 		for reference := range parentRefs {
 			didBind, err := bind(gateway, reference, route)
 			if err != nil {
@@ -83,36 +83,53 @@ func getParentReferences(route BoundRouter) ReferenceSet {
 	return refs
 }
 
-func refEqual(a structs.ResourceReference, b BoundRouter) bool {
-	return a.Kind == b.GetKind() && a.Name == b.GetName() && a.EnterpriseMeta.IsSame(b.GetEnterpriseMeta())
+func refEqual(a, b structs.ResourceReference) bool {
+	return a.Kind == b.Kind && a.Name == b.Name && a.EnterpriseMeta.IsSame(&b.EnterpriseMeta)
+}
+
+func toResourceReference(router BoundRouter) structs.ResourceReference {
+	return structs.ResourceReference{
+		Kind: router.GetKind(),
+		Name: router.GetName(),
+	}
 }
 
 func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.ResourceReference, route BoundRouter) (bool, error) {
-	if reference.Kind != "Gateway" || reference.Name != gateway.Name || !reference.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+	if reference.Kind != structs.APIGateway || reference.Name != gateway.Name || !reference.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 		return false, nil
 	}
 
+	if len(gateway.Listeners) == 0 {
+		return false, fmt.Errorf("route cannot bind because gateway has no listeners")
+	}
+
+	didBind := false
 	for _, listener := range gateway.Listeners {
-		if listener.Name == reference.SectionName {
+		if listener.Name == reference.SectionName || reference.SectionName == "" {
 			// Upsert the route to the listener.
 			for i, listenerRoute := range listener.Routes {
-				if refEqual(listenerRoute, route) {
-					listener.Routes[i] = route
-					return true, nil
+				routeRef := toResourceReference(route)
+				if refEqual(listenerRoute, routeRef) {
+					listener.Routes[i] = routeRef
+					didBind = true
 				}
 			}
-			listener.Routes = append(listener.Routes, route)
-			return true, nil
+			listener.Routes = append(listener.Routes, toResourceReference(route))
+			didBind = true
 		}
 	}
 
-	return false, fmt.Errorf("invalid section name: %s", reference.SectionName)
+	if !didBind {
+		return false, fmt.Errorf("invalid section name: %s", reference.SectionName)
+	}
+
+	return true, nil
 }
 
 func unbind(gateway *structs.BoundAPIGatewayConfigEntry, route BoundRouter) bool {
 	for _, listener := range gateway.Listeners {
 		for i, listenerRoute := range listener.Routes {
-			if refEqual(listenerRoute, route) {
+			if refEqual(listenerRoute, toResourceReference(route)) {
 				listener.Routes = slices.Delete(listener.Routes, i, i+1)
 				return true
 			}
