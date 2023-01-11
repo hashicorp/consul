@@ -1,4 +1,4 @@
-package bind
+package gateways
 
 import (
 	"testing"
@@ -21,14 +21,46 @@ func TestBindGateways(t *testing.T) {
 		"TCP Route binds to gateway": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
 				{
-					Name:      "Test API Gateway",
-					Listeners: []structs.BoundAPIGatewayListener{},
+					Kind: structs.BoundAPIGateway,
+					Name: "Test Bound API Gateway",
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name:   "Test Listener",
+							Routes: []structs.ResourceReference{},
+						},
+					},
 				},
 			},
-			route:                    &structs.TCPRouteConfigEntry{},
-			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{},
-			expectedReferenceErrors:  map[structs.ResourceReference]error{},
-			expectedError:            nil,
+			route: &structs.TCPRouteConfigEntry{
+				Kind: structs.TCPRoute,
+				Name: "Test TCP Route",
+				Parents: []structs.ResourceReference{
+					{
+						Kind:        structs.BoundAPIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
+				{
+					Kind: structs.BoundAPIGateway,
+					Name: "Test Bound API Gateway",
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name: "Test Listener",
+							Routes: []structs.ResourceReference{
+								{
+									Kind: structs.TCPRoute,
+									Name: "Test TCP Route",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedReferenceErrors: map[structs.ResourceReference]error{},
+			expectedError:           nil,
 		},
 	}
 
@@ -40,11 +72,11 @@ func TestBindGateways(t *testing.T) {
 				require.NoError(t, store.EnsureConfigEntry(uint64(i), gateway))
 			}
 
-			actualBoundAPIGateways, actualReferenceErrors, actualError := BindGateways(store, tc.route)
+			actualBoundAPIGateways, actualReferenceErrors, actualError := BindRouteToGateways(store, tc.route)
 
-			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
-			require.Equal(t, tc.expectedReferenceErrors, actualReferenceErrors)
-			require.Equal(t, tc.expectedError, actualError)
+			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways, "BoundAPIGateways should match")
+			require.Equal(t, tc.expectedReferenceErrors, actualReferenceErrors, "ReferenceErrors should match")
+			require.Equal(t, tc.expectedError, actualError, "Error should match")
 		})
 	}
 }
