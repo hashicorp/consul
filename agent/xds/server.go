@@ -23,26 +23,30 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
-var StatsGauges = []prometheus.GaugeDefinition{
-	{
-		Name: []string{"xds", "server", "streams"},
-		Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
-	},
-}
-
-var StatsCounters = []prometheus.CounterDefinition{
-	{
-		Name: []string{"xds", "server", "streamDrained"},
-		Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
-	},
-}
-
-var StatsSummaries = []prometheus.SummaryDefinition{
-	{
-		Name: []string{"xds", "server", "streamStart"},
-		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
-	},
-}
+var (
+	StatsGauges = []prometheus.GaugeDefinition{
+		{
+			Name: []string{"xds", "server", "streams"},
+			Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
+		},
+	}
+	StatsCounters = []prometheus.CounterDefinition{
+		{
+			Name: []string{"xds", "server", "streamDrained"},
+			Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
+		},
+		{
+			Name: []string{"xds", "server", "unauthenticated"},
+			Help: "Counts the number of xDS streams that are unauthenticated because ACLs are not enabled or ACL tokens were missing.",
+		},
+	}
+	StatsSummaries = []prometheus.SummaryDefinition{
+		{
+			Name: []string{"xds", "server", "streamStart"},
+			Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+		},
+	}
+)
 
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
@@ -194,6 +198,9 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 	options, err := external.QueryOptionsFromContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
+	}
+	if options.Token == "" {
+		metrics.IncrCounter([]string{"xds", "server", "unauthenticated"}, 1)
 	}
 
 	authz, err := s.ResolveToken(options.Token)

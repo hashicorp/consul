@@ -1447,7 +1447,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.Len(t, data, 1)
 
 		item := data[0]
-		require.Len(t, item.Counters, 1)
+		require.Len(t, item.Counters, 2)
 
 		val, ok := item.Counters["consul.xds.test.xds.server.streamDrained"]
 		require.True(t, ok)
@@ -1459,13 +1459,24 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.Len(t, data, 1)
 
 		item := data[0]
-		require.Len(t, item.Counters, 1)
+		require.Len(t, item.Samples, 1)
 
 		val, ok := item.Samples["consul.xds.test.xds.server.streamStart"]
 		require.True(t, ok)
 		require.Equal(t, 1, val.Count)
 	})
 
+	testutil.RunStep(t, "check unauthenticated metric recorded", func(t *testing.T) {
+		data := scenario.sink.Data()
+		require.Len(t, data, 1)
+
+		item := data[0]
+		require.Len(t, item.Counters, 2)
+
+		val, ok := item.Counters["consul.xds.test.xds.server.unauthenticated"]
+		require.True(t, ok)
+		require.Equal(t, 2, val.Count)
+	})
 }
 
 type testLimiter struct {
