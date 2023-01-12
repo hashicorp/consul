@@ -3,14 +3,17 @@ package service
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strconv"
 	"time"
 
-	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
+	"github.com/hashicorp/consul/api"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -23,6 +26,8 @@ type ConnectContainer struct {
 	adminPort   int
 	serviceName string
 }
+
+var _ Service = (*ConnectContainer)(nil)
 
 func (g ConnectContainer) GetName() string {
 	name, err := g.container.Name(g.ctx)
@@ -47,26 +52,8 @@ func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
-// Terminate attempts to terminate the container. On failure, an error will be
-// returned and the reaper process (RYUK) will handle cleanup.
 func (c ConnectContainer) Terminate() error {
-	if c.container == nil {
-		return nil
-	}
-
-	var err error
-	if *utils.FollowLog {
-		err := c.container.StopLogProducer()
-		if err1 := c.container.Terminate(c.ctx); err == nil {
-			err = err1
-		}
-	} else {
-		err = c.container.Terminate(c.ctx)
-	}
-
-	c.container = nil
-
-	return err
+	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
@@ -79,10 +66,15 @@ func (g ConnectContainer) GetServiceName() string {
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
 // "consul connect envoy", for service name (serviceName) on the specified
-// node. The container exposes port serviceBindPort and envoy admin port (19000)
-// by mapping them onto host ports. The container's name has a prefix
+// node. The container exposes port serviceBindPort and envoy admin port
+// (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+	nodeConfig := node.GetConfig()
+	if nodeConfig.ScratchDir == "" {
+		return nil, fmt.Errorf("node ScratchDir is required")
+	}
+
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -97,7 +89,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	nodeIP, _ := node.GetAddr()
+	adminPort := node.ClaimAdminPort()
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -107,61 +99,61 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceName,
-			"-admin-bind", "0.0.0.0:19000",
-			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
-			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
+			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 			"--",
-			"--log-level", envoyLogLevel},
-		ExposedPorts: []string{
-			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
-			"19000/tcp",                            // Envoy Admin Port
+			"--log-level", envoyLogLevel,
 		},
-	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, err
+		Env: make(map[string]string),
 	}
 
-	ip, err := container.ContainerIP(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	mappedAppPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", serviceBindPort)))
-	if err != nil {
-		return nil, err
-	}
-	mappedAdminPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", 19000)))
-	if err != nil {
-		return nil, err
-	}
-
-	if *utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, err
-		}
-		container.FollowOutput(&LogConsumer{
-			Prefix: containerName,
+	nodeInfo := node.GetInfo()
+	if nodeInfo.UseTLSForAPI || nodeInfo.UseTLSForGRPC {
+		req.Mounts = append(req.Mounts, testcontainers.ContainerMount{
+			Source: testcontainers.DockerBindMountSource{
+				// See cluster.NewConsulContainer for this info
+				HostPath: filepath.Join(nodeConfig.ScratchDir, "ca.pem"),
+			},
+			Target:   "/ca.pem",
+			ReadOnly: true,
 		})
 	}
 
-	// Register the termination function the agent so the containers can stop together
-	terminate := func() error {
-		return container.Terminate(context.Background())
+	if nodeInfo.UseTLSForAPI {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8501)
+		req.Env["CONSUL_HTTP_SSL"] = "1"
+		req.Env["CONSUL_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8500)
 	}
-	node.RegisterTermination(terminate)
+
+	if nodeInfo.UseTLSForGRPC {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8503)
+		req.Env["CONSUL_GRPC_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8502)
+	}
+
+	var (
+		appPortStr   = strconv.Itoa(serviceBindPort)
+		adminPortStr = strconv.Itoa(adminPort)
+	)
+
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
+	if err != nil {
+		return nil, err
+	}
+
+	out := &ConnectContainer{
+		ctx:         ctx,
+		container:   info.Container,
+		ip:          info.IP,
+		appPort:     info.MappedPorts[appPortStr].Int(),
+		adminPort:   info.MappedPorts[adminPortStr].Int(),
+		serviceName: name,
+	}
 
 	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
-		serviceName, mappedAppPort.Int(), serviceBindPort)
+		serviceName, out.appPort, serviceBindPort)
 
-	return &ConnectContainer{
-		container:   container,
-		ip:          ip,
-		appPort:     mappedAppPort.Int(),
-		adminPort:   mappedAdminPort.Int(),
-		serviceName: name,
-	}, nil
+	return out, nil
 }

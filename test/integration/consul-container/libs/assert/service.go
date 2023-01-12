@@ -3,13 +3,13 @@ package assert
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (
@@ -20,12 +20,13 @@ const (
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body
 func HTTPServiceEchoes(t *testing.T, ip string, port int) {
-	phrase := "hello"
+	const phrase = "hello"
+
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}
 	}
 
-	client := http.DefaultClient
+	client := cleanhttp.DefaultClient()
 	url := fmt.Sprintf("http://%s:%d", ip, port)
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
