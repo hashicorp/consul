@@ -1023,5 +1023,16 @@ func (l *BoundAPIGatewayListener) UpsertRoute(route BoundRouter) bool {
 }
 
 func (l *BoundAPIGatewayListener) RemoveRoute(route BoundRouter) bool {
+	if l == nil {
+		return false
+	}
+
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == route.GetKind() && listenerRoute.Name == route.GetName() && listenerRoute.EnterpriseMeta.IsSame(route.GetEnterpriseMeta()) {
+			l.Routes = append(l.Routes[:i], l.Routes[i+1:]...)
+			return true
+		}
+	}
+
 	return false
 }

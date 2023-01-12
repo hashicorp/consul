@@ -1449,3 +1449,65 @@ func TestListenerUpsertRoute(t *testing.T) {
 		})
 	}
 }
+
+func TestListenerRemoveRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener          BoundAPIGatewayListener
+		route             BoundRouter
+		expectedListener  BoundAPIGatewayListener
+		expectedDidUnbind bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener:  BoundAPIGatewayListener{},
+			expectedDidUnbind: false,
+		},
+		"Listener to remove existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidUnbind := tc.listener.RemoveRoute(tc.route)
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
