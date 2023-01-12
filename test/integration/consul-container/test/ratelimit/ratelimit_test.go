@@ -130,6 +130,8 @@ func TestRateLimit(t *testing.T) {
 
 			client, err := cluster.GetClient(nil, true)
 			require.NoError(t, err)
+
+			// validate returned errors to client
 			for _, op := range tc.operations {
 				if op.expectLog {
 					urlsExpectingLogging = append(urlsExpectingLogging, op.action.httpAction)
@@ -155,6 +157,7 @@ func TestRateLimit(t *testing.T) {
 				require.True(t, found, fmt.Sprintf("Log not found for: %s", httpRequest))
 			}
 
+			// validate metrics
 			metricInfo, err := client.Agent().Metrics()
 			// TODO(NET-1978): currently returns NaN error
 			//			require.NoError(t, err)
