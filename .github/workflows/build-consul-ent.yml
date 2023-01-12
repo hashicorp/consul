@@ -47,10 +47,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ inputs.go-version }}
-
-      - name: Setup Git
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-
       - name: Set up node and yarn
         uses: actions/setup-node@v3
         with:
@@ -78,8 +74,8 @@ jobs:
           [ "${{ inputs.goarch }}" == "arm" ] && export GOARM=5
           make crt-build
 
-          curl -o dist/EULA.txt https://eula.hashicorp.com/EULA.txt
-          curl -o dist/TermsOfEvaluation.txt https://eula.hashicorp.com/TermsOfEvaluation.txt
+          curl -f -o dist/EULA.txt https://eula.hashicorp.com/EULA.txt
+          curl -f -o dist/TermsOfEvaluation.txt https://eula.hashicorp.com/TermsOfEvaluation.txt
           mkdir -p .release/linux/package/usr/share/doc/${{ inputs.package-name }}
           cp dist/EULA.txt .release/linux/package/usr/share/doc/${{ inputs.package-name }}/EULA.txt
           cp dist/TermsOfEvaluation.txt .release/linux/package/usr/share/doc/${{ inputs.package-nameE }}/TermsOfEvaluation.txt
