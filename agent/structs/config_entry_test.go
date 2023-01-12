@@ -409,6 +409,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								max_failures = 3
 								enforcing_consecutive_5xx = 4
 								max_ejection_percent = 5
+								base_ejection_time = "6s"
 							}
 						},
 						{
@@ -454,6 +455,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								Interval = "2s"
 								EnforcingConsecutive5xx = 4
 								MaxEjectionPercent = 5
+								BaseEjectionTime = "6s"
 							}
 						},
 						{
@@ -499,6 +501,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								Interval:                2 * time.Second,
 								EnforcingConsecutive5xx: uintPointer(4),
 								MaxEjectionPercent:      uintPointer(5),
+								BaseEjectionTime:        durationPointer(6 * time.Second),
 							},
 						},
 						{
@@ -2270,6 +2273,17 @@ func TestPassiveHealthCheck_Validate(t *testing.T) {
 			wantErr: true,
 			wantMsg: "must be a percentage",
 		},
+		{
+			name:    "valid base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(0 * time.Second)},
+			wantErr: false,
+		},
+		{
+			name:    "negative base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(-1 * time.Second)},
+			wantErr: true,
+			wantMsg: "cannot be negative",
+		},
 	}
 
 	for _, tc := range tt {
@@ -2794,6 +2808,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxFailures:             3,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2814,6 +2829,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxFailures:             3,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2836,6 +2852,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxFailures:             3,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2855,6 +2872,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					Interval:                14 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(15),
 					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2874,6 +2892,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxFailures:             3,
 					EnforcingConsecutive5xx: uintPointer(4),
 					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2897,6 +2916,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					Interval:                14 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(15),
 					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2916,6 +2936,7 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					Interval:                14 * time.Second,
 					EnforcingConsecutive5xx: uintPointer(15),
 					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -3054,6 +3075,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					"max_failures":              7,
 					"enforcing_consecutive_5xx": 8,
 					"max_ejection_percent":      9,
+					"base_ejection_time":        "10s",
 				},
 			},
 			want: UpstreamConfig{
@@ -3063,6 +3085,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxFailures:             7,
 					EnforcingConsecutive5xx: uintPointer(8),
 					MaxEjectionPercent:      uintPointer(9),
+					BaseEjectionTime:        durationPointer(10 * time.Second),
 				},
 				Protocol: "tcp",
 			},
@@ -3270,4 +3293,8 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 
 func uintPointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }
