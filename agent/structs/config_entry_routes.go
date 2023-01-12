@@ -17,9 +17,9 @@ type BoundRoute interface {
 =======
 >>>>>>> 674005f97c (APIGateway TCPRoute validation (#15855))
 
-// BoundRouter indicates a route that has parent gateways which
+// BoundRoute indicates a route that has parent gateways which
 // can be accessed by calling the GetParents associated function.
-type BoundRouter interface {
+type BoundRoute interface {
 	ConfigEntry
 	GetParents() []ResourceReference
 }
