@@ -230,7 +230,13 @@ func (h *Handler) Allow(op Operation) error {
 		})
 
 		if enforced {
-			// TODO(NET-1382) - use the logger to print rate limiter logs.
+			h.logger.Warn("RPC blocked due to exceeded allowed rate limit",
+				"rpc", op.Name,
+				"source_addr", op.SourceAddr,
+				"limit_type", l.desc,
+				"limit_enforced", enforced,
+			)
+
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}

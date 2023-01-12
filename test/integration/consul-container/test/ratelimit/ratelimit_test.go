@@ -29,15 +29,15 @@ const (
 func TestRateLimit(t *testing.T) {
 	type action struct {
 		function           func(client *api.Client) error
-		httpAction         string
 		rateLimitOperation string
 		rateLimitType      string // will become an array of strings
 	}
 	type operation struct {
-		action           action
-		expectedErrorMsg string
-		expectLog        bool
-		expectMetric     bool
+		action            action
+		expectedErrorMsg  string
+		expectExceededLog bool
+		expectBlockedLog  bool
+		expectMetric      bool
 	}
 	type testCase struct {
 		description string
@@ -50,8 +50,7 @@ func TestRateLimit(t *testing.T) {
 			_, _, err := client.KV().Get("foo", &api.QueryOptions{})
 			return err
 		},
-		httpAction:         "method=GET url=/v1/kv/foo",
-		rateLimitOperation: "KV.Get",
+		rateLimitOperation: "KVS.Get",
 		rateLimitType:      "global/read",
 	}
 	putKV := action{
@@ -59,8 +58,7 @@ func TestRateLimit(t *testing.T) {
 			_, err := client.KV().Put(&api.KVPair{Key: "foo", Value: []byte("bar")}, &api.WriteOptions{})
 			return err
 		},
-		httpAction:         "method=PUT url=/v1/kv/foo",
-		rateLimitOperation: "KV.Put",
+		rateLimitOperation: "KVS.Apply",
 		rateLimitType:      "global/write",
 	}
 
@@ -71,16 +69,18 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putKV,
-					expectedErrorMsg: "",
-					expectLog:        false,
-					expectMetric:     false,
+					action:            putKV,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectBlockedLog:  false,
+					expectMetric:      false,
 				},
 				{
-					action:           getKV,
-					expectedErrorMsg: "",
-					expectLog:        false,
-					expectMetric:     false,
+					action:            getKV,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectBlockedLog:  false,
+					expectMetric:      false,
 				},
 			},
 		},
@@ -89,16 +89,18 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putKV,
-					expectedErrorMsg: "",
-					expectLog:        false,
-					expectMetric:     false,
+					action:            putKV,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectBlockedLog:  false,
+					expectMetric:      false,
 				},
 				{
-					action:           getKV,
-					expectedErrorMsg: "",
-					expectLog:        false,
-					expectMetric:     false,
+					action:            getKV,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectBlockedLog:  false,
+					expectMetric:      false,
 				},
 			},
 		},
@@ -107,36 +109,35 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putKV,
-					expectedErrorMsg: nonRetryableErrorMsg,
-					expectLog:        true,
-					expectMetric:     true,
+					action:            putKV,
+					expectedErrorMsg:  nonRetryableErrorMsg,
+					expectExceededLog: true,
+					expectBlockedLog:  true,
+					expectMetric:      true,
 				},
 				{
-					action:           getKV,
-					expectedErrorMsg: retryableErrorMsg,
-					expectLog:        true,
-					expectMetric:     true,
+					action:            getKV,
+					expectedErrorMsg:  retryableErrorMsg,
+					expectExceededLog: true,
+					expectBlockedLog:  true,
+					expectMetric:      true,
 				},
 			},
 		}}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			urlsExpectingLogging := []string{}
 			logConsumer := &TestLogConsumer{}
-			cluster := createCluster(t, tc.cmd, logConsumer)
+			//using trace to be able to assert that rate exceeded messages appear.
+			const logLvl = "TRACE"
+			cluster := createCluster(t, tc.cmd, logConsumer, logLvl)
 			defer terminate(t, cluster)
 
 			client, err := cluster.GetClient(nil, true)
 			require.NoError(t, err)
 
-			// validate returned errors to client
+			// perform actions and validate returned errors to client
 			for _, op := range tc.operations {
-				if op.expectLog {
-					urlsExpectingLogging = append(urlsExpectingLogging, op.action.httpAction)
-				}
-
 				err = op.action.function(client)
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
@@ -146,49 +147,66 @@ func TestRateLimit(t *testing.T) {
 				}
 			}
 
-			// validate metrics
-			metricInfo, err := client.Agent().Metrics()
-			// TODO(NET-1978): currently returns NaN error
-			//			require.NoError(t, err)
-			if metricInfo != nil && err == nil {
-				for _, op := range tc.operations {
+			// validate logs and metrics
+			// doing this in a separate loop so we can perform actions, allow metrics
+			// and logs to collect and then assert on each.
+			for _, op := range tc.operations {
+				// validate metrics
+				metricsInfo, err := client.Agent().Metrics()
+				// TODO(NET-1978): currently returns NaN error
+				//			require.NoError(t, err)
+				if metricsInfo != nil && err == nil {
 					if op.expectMetric {
-						for _, counter := range metricInfo.Counters {
-							if counter.Name == "consul.rate.limit" {
-								operation, ok := counter.Labels["op"]
-								require.True(t, ok)
-
-								limitType, ok := counter.Labels["limit_type"]
-								require.True(t, ok)
-
-								mode, ok := counter.Labels["mode"]
-								require.True(t, ok)
-
-								if operation == op.action.rateLimitOperation {
-									require.Equal(t, 2, counter.Count)
-									require.Equal(t, op.action.rateLimitType, limitType)
-									require.Equal(t, "disabled", mode)
-								}
-							}
-						}
+						checkForMetric(t, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType)
 					}
 				}
-			}
 
-			// validate logs
-			// putting this last as there are cases where logs
-			// were not present in consumer when assertion was made.
-			for _, httpRequest := range urlsExpectingLogging {
-				found := false
-				for _, msg := range logConsumer.Msgs {
-					if strings.Contains(msg, httpRequest) && strings.Contains(msg, "error=\"rate limit exceeded") {
-						found = true
-					}
+				// validate logs
+				// putting this last as there are cases where logs
+				// were not present in consumer when assertion was made.
+				if op.expectExceededLog {
+					checkLogsForMessage(t, logConsumer.Msgs, fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+						op.action.rateLimitOperation, "exceeded")
 				}
-				require.True(t, found, fmt.Sprintf("Log not found for: %s", httpRequest))
+				if op.expectBlockedLog {
+					checkLogsForMessage(t, logConsumer.Msgs, fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+						op.action.rateLimitOperation, "blocked")
+				}
 			}
 		})
 	}
+}
+
+func checkForMetric(t *testing.T, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string) {
+	for _, counter := range metricsInfo.Counters {
+		if counter.Name == "consul.rate.limit" {
+			operation, ok := counter.Labels["op"]
+			require.True(t, ok)
+
+			limitType, ok := counter.Labels["limit_type"]
+			require.True(t, ok)
+
+			mode, ok := counter.Labels["mode"]
+			require.True(t, ok)
+
+			if operation == operationName {
+				require.Equal(t, 2, counter.Count)
+				require.Equal(t, expectedLimitType, limitType)
+				require.Equal(t, "disabled", mode)
+			}
+		}
+	}
+
+}
+
+func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string) {
+	found := false
+	for _, log := range logs {
+		if strings.Contains(log, msg) {
+			found = true
+		}
+	}
+	require.True(t, found, fmt.Sprintf("%s log not found for: %s", logType, operationName))
 }
 
 func terminate(t *testing.T, cluster *libcluster.Cluster) {
@@ -205,7 +223,7 @@ func (g *TestLogConsumer) Accept(l testcontainers.Log) {
 }
 
 // createCluster
-func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer) *libcluster.Cluster {
+func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer, logLevel string) *libcluster.Cluster {
 	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
@@ -221,6 +239,10 @@ func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer) *libc
 
 	cfgs := []libcluster.Config{}
 	for _, cfg := range parsedConfigs {
+		// add command and turn on tracing for the rate limit exceeded check
+		if len(logLevel) > 0 {
+			cfg.Cmd = append(cfg.Cmd, fmt.Sprintf("-hcl=log_level=\"%s\"", logLevel))
+		}
 		cfg.Cmd = append(cfg.Cmd, cmd)
 		cfgs = append(cfgs, cfg)
 	}
