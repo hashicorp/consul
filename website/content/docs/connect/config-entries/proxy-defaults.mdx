@@ -10,7 +10,7 @@ description: >-
 The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the service mesh, including both sidecars and gateways.
 It is different from the [`mesh` configuration entry](/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
 
-Only one global entry is supported. 
+Only one global entry is supported.
 For Consul Enterprise, only the global entry in the `default` partition is recognized.
 
 ## Introduction
@@ -21,12 +21,6 @@ You can still override this centralized configuration for specific services
 with the [`service-defaults`](/docs/connect/config-entries/service-defaults)
 configuration entry `kind` or for individual proxy instances in their [sidecar
 service definitions](/docs/connect/registration/sidecar-service).
-
-## Requirements
-
-The following Consul binaries are supported:
-* Consul 1.8.4+ on Kubernetes.
-* Consul 1.5.0+ on other platforms.
 
 ## Usage
 
@@ -480,7 +474,7 @@ spec:
     {
       name: 'AccessLogs',
       type: 'AccessLogsConfig: <optional>',
-      description: `Controls the configuration of [Envoy's access logging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs) 
+      description: `Controls the configuration of [Envoy's access logging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs)
                       for all proxies in the mesh, including gateways. It also configures access logs on [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs).`,
       children: [
         {
@@ -510,15 +504,15 @@ spec:
           type: 'string: (default as follows)',
           description: `A JSON-formatted string that represents the format of each emitted access log.
           By default, it is set  to the [default access log format](/consul/docs/connect/observability/access-logs#default-log-format).
-          You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. 
-          Nesting is supported. 
+          You can use Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data.
+          Nesting is supported.
           Invalid if a custom format is specified with TextFormat.`,
         },
         {
           name: 'TextFormat',
           type: 'string: ""',
           description: `A formatted string that represents the format of each emitted access log.
-          Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted. 
+          Envoy [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) can be used to customize the data emitted.
           A new line is added to the string automatically.
           Invalid when a custom JSONFormat is already specified.`,
         }
