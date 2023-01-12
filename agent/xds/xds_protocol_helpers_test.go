@@ -25,13 +25,12 @@ import (
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -272,7 +271,7 @@ func xdsNewTransportSocket(
 
 	var tlsContext proto.Message
 	if downstream {
-		var requireClientCertPB *wrappers.BoolValue
+		var requireClientCertPB *wrapperspb.BoolValue
 		if requireClientCert {
 			requireClientCertPB = makeBoolValue(true)
 		}
@@ -288,7 +287,7 @@ func xdsNewTransportSocket(
 		}
 	}
 
-	any, err := ptypes.MarshalAny(tlsContext)
+	any, err := anypb.New(tlsContext)
 	require.NoError(t, err)
 
 	return &envoy_core_v3.TransportSocket{
@@ -347,7 +346,7 @@ func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resourc
 		}
 	case proto.Message:
 
-		any, err := ptypes.MarshalAny(res)
+		any, err := anypb.New(res)
 		require.NoError(t, err)
 
 		return &envoy_discovery_v3.Resource{
@@ -468,7 +467,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 				},
 			},
 		}
-		typedExtensionProtocolOptionsEncoded, err := ptypes.MarshalAny(typedExtensionProtocolOptions)
+		typedExtensionProtocolOptionsEncoded, err := anypb.New(typedExtensionProtocolOptions)
 		require.NoError(t, err)
 		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
 			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": typedExtensionProtocolOptionsEncoded,

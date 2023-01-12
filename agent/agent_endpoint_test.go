@@ -92,7 +92,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	// Add another service
 	srv2 := &structs.NodeService{
@@ -139,7 +139,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 1234,
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
 	resp := httptest.NewRecorder()
@@ -187,7 +187,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 			Upstreams:              structs.TestUpstreams(t),
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -231,7 +231,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -280,7 +280,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -324,7 +324,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, "", false))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -369,7 +369,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, s := range services {
-		a.State.AddServiceWithChecks(s, nil, "")
+		a.State.AddServiceWithChecks(s, nil, "", false)
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -762,7 +762,7 @@ func TestAgent_Checks(t *testing.T) {
 		Timeout:  "5s",
 		Status:   api.HealthPassing,
 	}
-	a.State.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
 	resp := httptest.NewRecorder()
@@ -807,7 +807,7 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 		Name:    "mysql",
 		Status:  api.HealthPassing,
 	}
-	a.State.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "", false)
 
 	chk2 := &structs.HealthCheck{
 		Node:    a.Config.NodeName,
@@ -815,7 +815,7 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 		Name:    "redis",
 		Status:  api.HealthPassing,
 	}
-	a.State.AddCheck(chk2, "")
+	a.State.AddCheck(chk2, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape("Name == `redis`"), nil)
 	resp := httptest.NewRecorder()
@@ -877,7 +877,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql",
 		Status:    api.HealthPassing,
 	}
-	err := a.State.AddCheck(chk1, "")
+	err := a.State.AddCheck(chk1, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -889,7 +889,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql",
 		Status:    api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk2, "")
+	err = a.State.AddCheck(chk2, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -901,7 +901,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql2",
 		Status:    api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk3, "")
+	err = a.State.AddCheck(chk3, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -913,7 +913,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql2",
 		Status:    api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk4, "")
+	err = a.State.AddCheck(chk4, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -925,7 +925,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql3",
 		Status:    api.HealthMaint,
 	}
-	err = a.State.AddCheck(chk5, "")
+	err = a.State.AddCheck(chk5, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -937,7 +937,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ServiceID: "mysql3",
 		Status:    api.HealthCritical,
 	}
-	err = a.State.AddCheck(chk6, "")
+	err = a.State.AddCheck(chk6, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -996,7 +996,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		Name:    "diskCheck",
 		Status:  api.HealthCritical,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -1015,7 +1015,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		Name:    "_node_maintenance",
 		Status:  api.HealthMaint,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1091,7 +1091,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthPassing,
 	}
-	err := a.State.AddCheck(chk1, "")
+	err := a.State.AddCheck(chk1, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1104,7 +1104,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk2, "")
+	err = a.State.AddCheck(chk2, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1117,7 +1117,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk3, "")
+	err = a.State.AddCheck(chk3, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1130,7 +1130,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-r",
 		Status:      api.HealthCritical,
 	}
-	err = a.State.AddCheck(chk4, "")
+	err = a.State.AddCheck(chk4, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1143,7 +1143,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-rw",
 		Status:      api.HealthWarning,
 	}
-	err = a.State.AddCheck(chk5, "")
+	err = a.State.AddCheck(chk5, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1156,7 +1156,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "mysql-pool-rw",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk6, "")
+	err = a.State.AddCheck(chk6, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1169,7 +1169,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "httpd",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk7, "")
+	err = a.State.AddCheck(chk7, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1182,7 +1182,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ServiceName: "httpd",
 		Status:      api.HealthPassing,
 	}
-	err = a.State.AddCheck(chk8, "")
+	err = a.State.AddCheck(chk8, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1248,7 +1248,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		Name:    "diskCheck",
 		Status:  api.HealthCritical,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 
 	if err != nil {
 		t.Fatalf("Err: %v", err)
@@ -1267,7 +1267,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		Name:    "_node_maintenance",
 		Status:  api.HealthMaint,
 	}
-	err = a.State.AddCheck(nodeCheck, "")
+	err = a.State.AddCheck(nodeCheck, "", false)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1366,7 +1366,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, c := range checks {
-		a.State.AddCheck(c, "")
+		a.State.AddCheck(c, "", false)
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -6221,6 +6221,7 @@ func TestAgent_Token(t *testing.T) {
 				agent = ""
 				agent_recovery = ""
 				replication = ""
+				config_file_service_registration = ""
 			}
 		}
 	`)
@@ -6236,6 +6237,8 @@ func TestAgent_Token(t *testing.T) {
 		agentRecoverySource tokenStore.TokenSource
 		repl                string
 		replSource          tokenStore.TokenSource
+		registration        string
+		registrationSource  tokenStore.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
@@ -6243,6 +6246,7 @@ func TestAgent_Token(t *testing.T) {
 		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
 		a.tokens.UpdateAgentRecoveryToken(init.agentRecovery, init.agentRecoverySource)
 		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
+		a.tokens.UpdateConfigFileRegistrationToken(init.registration, init.registrationSource)
 	}
 
 	body := func(token string) io.Reader {
@@ -6363,6 +6367,15 @@ func TestAgent_Token(t *testing.T) {
 			effective: tokens{repl: "R"},
 		},
 		{
+			name:      "set registration",
+			method:    "PUT",
+			url:       "config_file_service_registration?token=root",
+			body:      body("G"),
+			code:      http.StatusOK,
+			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
+			effective: tokens{registration: "G"},
+		},
+		{
 			name:   "clear user legacy",
 			method: "PUT",
 			url:    "acl_token?token=root",
@@ -6443,6 +6456,15 @@ func TestAgent_Token(t *testing.T) {
 			init:   tokens{repl: "R"},
 			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
 		},
+		{
+			name:   "clear registration",
+			method: "PUT",
+			url:    "config_file_service_registration?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{registration: "G"},
+			raw:    tokens{registrationSource: tokenStore.TokenSourceAPI},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6461,6 +6483,7 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
 			require.Equal(t, tt.effective.agentRecovery, a.tokens.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
+			require.Equal(t, tt.effective.registration, a.tokens.ConfigFileRegistrationToken())
 
 			tok, src := a.tokens.UserTokenAndSource()
 			require.Equal(t, tt.raw.user, tok)
@@ -6477,6 +6500,10 @@ func TestAgent_Token(t *testing.T) {
 			tok, src = a.tokens.ReplicationTokenAndSource()
 			require.Equal(t, tt.raw.repl, tok)
 			require.Equal(t, tt.raw.replSource, src)
+
+			tok, src = a.tokens.ConfigFileRegistrationTokenAndSource()
+			require.Equal(t, tt.raw.registration, tok)
+			require.Equal(t, tt.raw.registrationSource, src)
 		})
 	}
 
@@ -8009,7 +8036,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddServiceWithChecks(srv1, nil, "")
+	a.State.AddServiceWithChecks(srv1, nil, "", false)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()

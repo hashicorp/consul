@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -23,7 +22,6 @@ import (
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
 	cluster := createCluster(t)
-	defer terminate(t, cluster)
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
@@ -31,31 +29,27 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.HTTPServiceEchoes(t, "localhost", port)
 }
 
-func terminate(t *testing.T, cluster *libcluster.Cluster) {
-	err := cluster.Terminate()
-	require.NoError(t, err)
-}
-
-// createCluster
 func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libagent.BuildOptions{
+	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
+		// TODO: fix the test to not need the service/envoy stack to use :8500
+		AllowHTTPAnyway: true,
 	}
-	ctx, err := libagent.NewBuildContext(opts)
-	require.NoError(t, err)
+	ctx := libcluster.NewBuildContext(t, opts)
 
-	conf, err := libagent.NewConfigBuilder(ctx).ToAgentConfig()
-	require.NoError(t, err)
+	conf := libcluster.NewConfigBuilder(ctx).
+		ToAgentConfig(t)
 	t.Logf("Cluster config:\n%s", conf.JSON)
 
-	configs := []libagent.Config{*conf}
+	configs := []libcluster.Config{*conf}
 
-	cluster, err := libcluster.New(configs)
+	cluster, err := libcluster.New(t, configs)
 	require.NoError(t, err)
 
-	client, err := cluster.GetClient(nil, true)
-	require.NoError(t, err)
+	node := cluster.Agents[0]
+	client := node.GetClient()
+
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
 

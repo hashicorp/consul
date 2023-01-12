@@ -7,9 +7,9 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -174,7 +174,7 @@ func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.Config
 
 		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
-			RequireClientCertificate: &wrappers.BoolValue{Value: false},
+			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
 		}
 	}
 
@@ -356,7 +356,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         commonTlsContext,
-			RequireClientCertificate: &wrappers.BoolValue{Value: false},
+			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
 		}
 
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -414,7 +414,7 @@ func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfi
 										ClusterName: sdsCfg.ClusterName,
 									},
 								},
-								Timeout: &duration.Duration{Seconds: 5},
+								Timeout: &durationpb.Duration{Seconds: 5},
 							},
 						},
 					},

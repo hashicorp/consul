@@ -16,11 +16,11 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -898,7 +898,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown name for type url %q: %s", t.typeURL, name)
 			}
-			any, err := ptypes.MarshalAny(res)
+			any, err := anypb.New(res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1016,15 +1016,13 @@ func hashResourceMap(resources map[string]proto.Message) (map[string]string, err
 // hashResource will take a resource and create a SHA256 hash sum out of the marshaled bytes
 func hashResource(res proto.Message) (string, error) {
 	h := sha256.New()
-	buffer := proto.NewBuffer(nil)
-	buffer.SetDeterministic(true)
+	marshaller := proto.MarshalOptions{Deterministic: true}
 
-	err := buffer.Marshal(res)
+	data, err := marshaller.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(buffer.Bytes())
-	buffer.Reset()
+	h.Write(data)
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
