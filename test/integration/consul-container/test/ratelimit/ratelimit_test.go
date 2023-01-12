@@ -65,7 +65,7 @@ func TestRateLimit(t *testing.T) {
 	testCases := []testCase{
 		// HTTP & net/RPC
 		{
-			description: "HTTP & net/RPC / Mode: disabled - errors: no / logs: no / metrics: no",
+			description: "HTTP & net/RPC / Mode: disabled - errors: no / exceeded logs: no / blocked logs: no / metrics: no",
 			cmd:         "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
@@ -85,7 +85,7 @@ func TestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "HTTP & net/RPC / Mode: permissive - errors: no / logs: no / metrics: yes",
+			description: "HTTP & net/RPC / Mode: permissive - errors: no / exceeded logs: yes / blocked logs: no / metrics: yes",
 			cmd:         "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
@@ -105,7 +105,7 @@ func TestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "HTTP & net/RPC / Mode: enforcing - errors: yes / logs: yes / metrics: yes",
+			description: "HTTP & net/RPC / Mode: enforcing - errors: yes / exceeded logs: yes / blocked logs: yes / metrics: yes",
 			cmd:         "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
