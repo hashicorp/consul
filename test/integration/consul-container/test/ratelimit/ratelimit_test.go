@@ -71,13 +71,13 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           getNodes,
+					action:           putConfig,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
 				},
 				{
-					action:           putConfig,
+					action:           getNodes,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
@@ -89,13 +89,13 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           getNodes,
+					action:           putConfig,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
 				},
 				{
-					action:           putConfig,
+					action:           getNodes,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
@@ -107,14 +107,14 @@ func TestRateLimit(t *testing.T) {
 			cmd:         "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           getNodes,
-					expectedErrorMsg: retryableErrorMsg,
+					action:           putConfig,
+					expectedErrorMsg: nonRetryableErrorMsg,
 					expectLog:        true,
 					expectMetric:     true,
 				},
 				{
-					action:           putConfig,
-					expectedErrorMsg: nonRetryableErrorMsg,
+					action:           getNodes,
+					expectedErrorMsg: retryableErrorMsg,
 					expectLog:        true,
 					expectMetric:     true,
 				},
@@ -150,7 +150,7 @@ func TestRateLimit(t *testing.T) {
 			for _, httpRequest := range urlsExpectingLogging {
 				found := false
 				for _, msg := range logConsumer.Msgs {
-					if strings.Contains(msg, httpRequest) {
+					if strings.Contains(msg, httpRequest) && strings.Contains(msg, "error=\"rate limit exceeded") {
 						found = true
 					}
 				}
