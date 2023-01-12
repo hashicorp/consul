@@ -1,9 +1,12 @@
 package ratelimit
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -25,88 +28,114 @@ const (
 //     - logs for exceeding
 
 func TestRateLimit(t *testing.T) {
-	type testOperation struct {
-		action           func(client *api.Client) error
+	type action struct {
+		function           func(client *api.Client) error
+		httpAction         string
+		rateLimitOperation string
+		rateLimitType      string // will become an array of strings
+	}
+	type operation struct {
+		action           action
 		expectedErrorMsg string
+		expectLog        bool
+		expectMetric     bool
 	}
 	type testCase struct {
-		dsc        string
-		cmd        string
-		operations []testOperation
+		description string
+		cmd         string
+		operations  []operation
+	}
+
+	getNodes := action{
+		function: func(client *api.Client) error {
+			_, _, err := client.Catalog().Nodes(&api.QueryOptions{})
+			return err
+		},
+		httpAction:         "method=GET url=/v1/catalog/nodes",
+		rateLimitOperation: "Catalog.ListNodes",
+		rateLimitType:      "global/read",
+	}
+	putConfig := action{
+		function: func(client *api.Client) error {
+			_, err := utils.ApplyDefaultProxySettings(client)
+			return err
+		},
+		httpAction:         "method=PUT url=/v1/config",
+		rateLimitOperation: "ConfigEntry.Apply",
+		rateLimitType:      "global/write",
 	}
 
 	testCases := []testCase{
 		{
-			dsc: "Mode: disabled - does not return errors / does not emit metrics",
-			cmd: "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
-			operations: []testOperation{
+			description: "Mode: disabled - errors: no / logs: no / metrics: no",
+			cmd:         "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
+			operations: []operation{
 				{
-					action: func(client *api.Client) error {
-						_, _, err := client.Catalog().Nodes(&api.QueryOptions{})
-						return err
-					},
+					action:           getNodes,
 					expectedErrorMsg: "",
+					expectLog:        false,
+					expectMetric:     false,
 				},
 				{
-					action: func(client *api.Client) error {
-						_, err := utils.ApplyDefaultProxySettings(client)
-						return err
-					},
+					action:           putConfig,
 					expectedErrorMsg: "",
+					expectLog:        false,
+					expectMetric:     false,
 				},
 			},
 		},
 		{
-			dsc: "Mode: permissive - does not return error / emits metrics",
-			cmd: "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
-			operations: []testOperation{
+			description: "Mode: permissive - errors: no / logs: no / metrics: yes",
+			cmd:         "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
+			operations: []operation{
 				{
-					action: func(client *api.Client) error {
-						_, _, err := client.Catalog().Nodes(&api.QueryOptions{})
-						return err
-					},
+					action:           getNodes,
 					expectedErrorMsg: "",
+					expectLog:        false,
+					expectMetric:     false,
 				},
 				{
-					action: func(client *api.Client) error {
-						_, err := utils.ApplyDefaultProxySettings(client)
-						return err
-					},
+					action:           putConfig,
 					expectedErrorMsg: "",
+					expectLog:        false,
+					expectMetric:     false,
 				},
 			},
 		},
 		{
-			dsc: "Mode: enforcing - returns errors / emits metrics",
-			cmd: "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
-			operations: []testOperation{
+			description: "Mode: enforcing - errors: yes / logs: yes / metrics: yes",
+			cmd:         "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
+			operations: []operation{
 				{
-					action: func(client *api.Client) error {
-						_, _, err := client.Catalog().Nodes(&api.QueryOptions{})
-						return err
-					},
+					action:           getNodes,
 					expectedErrorMsg: retryableErrorMsg,
+					expectLog:        true,
+					expectMetric:     true,
 				},
 				{
-					action: func(client *api.Client) error {
-						_, err := utils.ApplyDefaultProxySettings(client)
-						return err
-					},
+					action:           putConfig,
 					expectedErrorMsg: nonRetryableErrorMsg,
+					expectLog:        true,
+					expectMetric:     true,
 				},
 			},
-		},
-	}
+		}}
 
 	for _, tc := range testCases {
-		t.Run(tc.dsc, func(t *testing.T) {
-			cluster := createCluster(t, tc.cmd)
+		t.Run(tc.description, func(t *testing.T) {
+			urlsExpectingLogging := []string{}
+			logConsumer := &TestLogConsumer{}
+			cluster := createCluster(t, tc.cmd, logConsumer)
 			defer terminate(t, cluster)
 
 			client, err := cluster.GetClient(nil, true)
 			require.NoError(t, err)
 			for _, op := range tc.operations {
-				err = op.action(client)
+				if op.expectLog {
+					urlsExpectingLogging = append(urlsExpectingLogging, op.action.httpAction)
+				}
+
+				err = op.action.function(client)
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
 					require.Equal(t, op.expectedErrorMsg, err.Error())
@@ -115,12 +144,44 @@ func TestRateLimit(t *testing.T) {
 				}
 			}
 
-			// currently returns NaN error
-			//			metrics, err := client.Agent().Metrics()
+			// validate logs
+			for _, httpRequest := range urlsExpectingLogging {
+				found := false
+				for _, msg := range logConsumer.Msgs {
+					if strings.Contains(msg, httpRequest) {
+						found = true
+					}
+				}
+				require.True(t, found, fmt.Sprintf("Log not found for: %s", httpRequest))
+			}
+
+			metricInfo, err := client.Agent().Metrics()
+			// TODO(NET-1978): currently returns NaN error
 			//			require.NoError(t, err)
-			//			for counter := range metrics.Counters {
-			//				t.Logf("Counter: %+v", counter)
-			//			}
+			if metricInfo != nil {
+				for _, op := range tc.operations {
+					if op.expectMetric {
+						for _, counter := range metricInfo.Counters {
+							if counter.Name == "consul.rate.limit" {
+								operation, ok := counter.Labels["op"]
+								require.True(t, ok)
+
+								limitType, ok := counter.Labels["limit_type"]
+								require.True(t, ok)
+
+								mode, ok := counter.Labels["mode"]
+								require.True(t, ok)
+
+								if operation == op.action.rateLimitOperation {
+									require.Equal(t, 2, counter.Count)
+									require.Equal(t, op.action.rateLimitType, limitType)
+									require.Equal(t, "disabled", mode)
+								}
+							}
+						}
+					}
+				}
+			}
 		})
 	}
 }
@@ -130,8 +191,16 @@ func terminate(t *testing.T, cluster *libcluster.Cluster) {
 	require.NoError(t, err)
 }
 
+type TestLogConsumer struct {
+	Msgs []string
+}
+
+func (g *TestLogConsumer) Accept(l testcontainers.Log) {
+	g.Msgs = append(g.Msgs, string(l.Content))
+}
+
 // createCluster
-func createCluster(t *testing.T, cmd string) *libcluster.Cluster {
+func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer) *libcluster.Cluster {
 	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
@@ -139,6 +208,7 @@ func createCluster(t *testing.T, cmd string) *libcluster.Cluster {
 	ctx := libcluster.NewBuildContext(t, opts)
 
 	conf := libcluster.NewConfigBuilder(ctx).ToAgentConfig(t)
+	conf.LogConsumer = logConsumer
 
 	t.Logf("Cluster config:\n%s", conf.JSON)
 
