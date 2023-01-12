@@ -1233,7 +1233,7 @@ func TestGenerateConfig(t *testing.T) {
 				return
 			} else if tc.WantWarn != "" {
 				require.Equal(t, 0, code, ui.ErrorWriter.String())
-				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantWarn)
 			} else {
 				require.Equal(t, 0, code, ui.ErrorWriter.String())
 				require.Empty(t, ui.ErrorWriter.String())
