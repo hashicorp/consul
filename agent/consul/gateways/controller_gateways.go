@@ -2,21 +2,21 @@ package gateways
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/gateways/updater"
+	"github.com/hashicorp/consul/agent/consul/gateways/datastore"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/consul/agent/structs"
-	"errors"
+	"github.com/hashicorp/go-hclog"
 )
 
 type apiGatewayReconciler struct {
-	fsm    *fsm.FSM
-	logger hclog.Logger
-	updater updater.Updater
+	fsm     *fsm.FSM
+	logger  hclog.Logger
+	updater datastore.DataStore
 }
 
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
@@ -74,20 +74,18 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 				routeBoundRouter = (routeEntry).(*structs.TCPRouteConfigEntry)
 			case structs.HTTPRoute:
 				fmt.Println("not implemented")
-			 default:
+			default:
 				return errors.New("route type doesn't exist")
 			}
-			gateways, routesWithNoGateways, err := BindRouteToGateways(store, routeBoundRouter)
+			_, _, err = BindRouteToGateways(store, routeBoundRouter)
 			if err != nil {
 				return err
 			}
+			//TODO insert thomases BindRoutesToGateways method instead
 		}
 	}
 
-
-
-
-}
+	return nil
 }
 
 func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
