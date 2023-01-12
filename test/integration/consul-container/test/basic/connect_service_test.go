@@ -42,7 +42,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 	client := node.GetClient()
 
 	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, false)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")

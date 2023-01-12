@@ -90,7 +90,7 @@ func CatalogServiceHealthy(t *testing.T, c *api.Client, svc string) {
 	retry.Run(t, func(r *retry.R) {
 		services, _, err := c.Health().Service(svc, "", true, nil)
 		if err != nil {
-			r.Fatalf("client call: %w", err)
+			r.Fatalf("client call: %s", err)
 		}
 		if len(services) == 0 {
 			r.Fatalf("did not find catalog entry for %s", svc)

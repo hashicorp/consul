@@ -85,6 +85,10 @@ func TestBadauthz_UpgradeToTarget_fromLatest(t *testing.T) {
 		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
 		require.NoError(t, err)
 
+		// Ensure deny still in effect after
+		_, port = staticClientSvcSidecar.GetAddr()
+		libassert.HTTPServiceFailTcpConnection(t, "localhost", port)
+
 		// Verify intentions work after upgrade
 		err = cluster.ConfigEntryWrite(`
 	Kind = "service-intentions"
