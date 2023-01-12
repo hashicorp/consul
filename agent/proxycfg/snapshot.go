@@ -817,6 +817,13 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.IngressGateway.WatchedDiscoveryChains = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
+	case structs.ServiceKindAPIGateway:
+		// common with connect-proxy and api-gateway
+		snap.APIGateway.WatchedUpstreams = nil
+		snap.APIGateway.WatchedGateways = nil
+		snap.APIGateway.WatchedDiscoveryChains = nil
+		// only api-gateway
+		snap.APIGateway.LeafCertWatchCancel = nil
 	}
 
 	return snap
@@ -828,6 +835,8 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.ConnectProxy.Leaf
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.Leaf
+	case structs.ServiceKindAPIGateway:
+		return s.APIGateway.Leaf
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.Leaf
 	default:
@@ -861,6 +870,8 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.ConnectProxy.MeshConfig
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.MeshConfig
+	case structs.ServiceKindAPIGateway:
+		return s.APIGateway.MeshConfig
 	case structs.ServiceKindTerminatingGateway:
 		return s.TerminatingGateway.MeshConfig
 	case structs.ServiceKindMeshGateway:
