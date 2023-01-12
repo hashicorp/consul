@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
+
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
@@ -30,35 +29,28 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		// },
 		{
 			oldversion:    "1.14",
-			targetVersion: *utils.TargetVersion,
+			targetVersion: utils.TargetVersion,
 		},
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		acceptingCluster, dialingCluster, _, staticClientSvcSidecar := topology.BasicPeeringTwoClustersSetup(t, tc.oldversion)
-		// move to teardown
-		defer func() {
-			err := acceptingCluster.Terminate()
-			require.NoErrorf(t, err, "termining accepting cluster")
-			dialingCluster.Terminate()
-			require.NoErrorf(t, err, "termining dialing cluster")
-		}()
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion)
+		var (
+			acceptingCluster = accepting.Cluster
+			dialingCluster   = dialing.Cluster
+		)
 
 		dialingClient, err := dialingCluster.GetClient(nil, false)
 		require.NoError(t, err)
-		_, port := staticClientSvcSidecar.GetAddr()
 
-		// Upgrade the dialingCluster cluster and assert peering is still ACTIVE
-		err = dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+		acceptingClient, err := acceptingCluster.GetClient(nil, false)
 		require.NoError(t, err)
-		libassert.PeeringStatus(t, dialingClient, topology.DialingPeerName, api.PeeringStateActive)
-		libassert.HTTPServiceEchoes(t, "localhost", port)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
-		err = acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
-		require.NoError(t, err)
+		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
 
-		libassert.PeeringStatus(t, dialingClient, topology.DialingPeerName, api.PeeringStateActive)
+		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 	}
 
 	for _, tc := range tcs {
@@ -66,6 +58,6 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			func(t *testing.T) {
 				run(t, tc)
 			})
-		time.Sleep(3 * time.Second)
+		// time.Sleep(3 * time.Second)
 	}
 }

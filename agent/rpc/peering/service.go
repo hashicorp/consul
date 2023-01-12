@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/lib/retry"
 
@@ -879,7 +880,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			State:                 pbpeering.PeeringState_DELETING,
 			ManualServerAddresses: existing.ManualServerAddresses,
 			PeerServerAddresses:   existing.PeerServerAddresses,
-			DeletedAt:             structs.TimeToProto(time.Now().UTC()),
+			DeletedAt:             timestamppb.New(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

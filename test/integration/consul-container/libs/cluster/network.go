@@ -7,7 +7,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-func createNetwork(name string) (testcontainers.Network, error) {
+func createNetwork(t TestingT, name string) (testcontainers.Network, error) {
 	req := testcontainers.GenericNetworkRequest{
 		NetworkRequest: testcontainers.NetworkRequest{
 			Name:           name,
@@ -19,5 +19,8 @@ func createNetwork(name string) (testcontainers.Network, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create network")
 	}
+	t.Cleanup(func() {
+		_ = network.Remove(context.Background())
+	})
 	return network, nil
 }

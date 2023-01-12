@@ -26,7 +26,6 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-openapi/runtime v0.24.1
 	github.com/go-openapi/strfmt v0.21.3
-	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.8
 	github.com/google/gofuzz v1.2.0
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1
@@ -41,12 +40,12 @@ require (
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
-	github.com/hashicorp/go-discover v0.0.0-20220411141802-20db45f7f0f9
+	github.com/hashicorp/go-discover v0.0.0-20220714221025-1c234a67149a
 	github.com/hashicorp/go-hclog v1.2.1
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-raftchunking v0.6.2
+	github.com/hashicorp/go-raftchunking v0.7.0
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -70,13 +69,13 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/miekg/dns v1.1.41
 	github.com/mitchellh/cli v1.1.0
-	github.com/mitchellh/copystructure v1.0.0
+	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/pointerstructure v1.2.1
-	github.com/mitchellh/reflectwalk v1.0.1
+	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.0
@@ -148,6 +147,7 @@ require (
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect

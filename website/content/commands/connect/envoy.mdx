@@ -161,7 +161,9 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
-- `-admin-access-log-path` The path to write the access log for the administration
+- `-admin-access-log-path` - 
+  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/docs/connect/config-entries/proxy-defaults#accesslogs).**
+  The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 

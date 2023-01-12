@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -765,12 +765,15 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		pbToLog = clone
 	}
 
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pbToLog)
+	out := ""
+	outBytes, err := m.Marshal(pbToLog)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
+	} else {
+		out = string(outBytes)
 	}
 
 	logger.Trace("replication message", "direction", dir, "protobuf", out)
