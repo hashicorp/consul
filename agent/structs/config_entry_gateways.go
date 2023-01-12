@@ -987,3 +987,41 @@ type BoundAPIGatewayListener struct {
 	Routes       []ResourceReference
 	Certificates []ResourceReference
 }
+
+// UpsertRoute is used to create or update a route on the listener.
+// It returns true if the route was able to be bound to the listener.
+func (l *BoundAPIGatewayListener) UpsertRoute(route BoundRouter) bool {
+	if l == nil {
+		return false
+	}
+
+	// Convert the route abstract route interface to a ResourceReference.
+	ref := ResourceReference{
+		Kind:           route.GetKind(),
+		Name:           route.GetName(),
+		EnterpriseMeta: *route.GetEnterpriseMeta(),
+	}
+
+	// If the listener has no routes, create a new slice of routes with the given route.
+	if l.Routes == nil {
+		l.Routes = []ResourceReference{ref}
+		return true
+	}
+
+	// If the route matches an existing listener, update it and return.
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == ref.Kind && listenerRoute.Name == ref.Name && listenerRoute.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
+			l.Routes[i] = ref
+			return true
+		}
+	}
+
+	// If the route is new to the listener, append it.
+	l.Routes = append(l.Routes, ref)
+
+	return true
+}
+
+func (l *BoundAPIGatewayListener) RemoveRoute(route BoundRouter) bool {
+	return false
+}

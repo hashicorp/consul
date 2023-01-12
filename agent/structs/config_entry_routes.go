@@ -6,6 +6,13 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+// BoundRouter indicates a route that has parent gateways which
+// can be accessed by calling the GetParents associated function.
+type BoundRouter interface {
+	ConfigEntry
+	GetParents() []ResourceReference
+}
+
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
 // with the given name.
 type HTTPRouteConfigEntry struct {

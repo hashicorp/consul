@@ -1341,3 +1341,111 @@ func TestBoundAPIGateway(t *testing.T) {
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
+
+func TestListenerUpsertRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener         BoundAPIGatewayListener
+		route            BoundRouter
+		expectedListener BoundAPIGatewayListener
+		expectedDidBind  bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener to update existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener appends new route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 3",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidBind := tc.listener.UpsertRoute(tc.route)
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}

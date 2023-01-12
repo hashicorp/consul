@@ -14,20 +14,13 @@ import (
 // referenceSet stores an O(1) accessible set of ResourceReference objects.
 type referenceSet = map[structs.ResourceReference]any
 
-// BoundRouter indicates a route that has parent gateways which
-// can be accessed by calling the GetParents associated function.
-type BoundRouter interface {
-	structs.ConfigEntry
-	GetParents() []structs.ResourceReference
-}
-
 // BindRouteToGateways takes a reference to the state store and a route.
 // It iterates over the parent references for the given route which are gateways the
 // route should be bound to and updates those BoundAPIGatewayConfigEntry objects accordingly.
 // The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
 // a map of resource references to errors that occurred when they were attempted to be
 // bound to a gateway, and an error if the overall process was unsucessful.
-func BindRouteToGateways(store *state.Store, route BoundRouter) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error, error) {
+func BindRouteToGateways(store *state.Store, route structs.BoundRouter) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error, error) {
 	parentRefs := getParentReferences(route)
 
 	modifiedState := make(map[configentry.KindName]*structs.BoundAPIGatewayConfigEntry)
@@ -73,7 +66,7 @@ func BindRouteToGateways(store *state.Store, route BoundRouter) ([]*structs.Boun
 	return modified, errored, nil
 }
 
-func getParentReferences(route BoundRouter) referenceSet {
+func getParentReferences(route structs.BoundRouter) referenceSet {
 	refs := make(map[structs.ResourceReference]any)
 
 	for _, ref := range route.GetParents() {
@@ -87,7 +80,7 @@ func refEqual(a, b structs.ResourceReference) bool {
 	return a.Kind == b.Kind && a.Name == b.Name && a.EnterpriseMeta.IsSame(&b.EnterpriseMeta)
 }
 
-func toResourceReference(router BoundRouter) structs.ResourceReference {
+func toResourceReference(router structs.BoundRouter) structs.ResourceReference {
 	return structs.ResourceReference{
 		Kind:           router.GetKind(),
 		Name:           router.GetName(),
@@ -95,7 +88,7 @@ func toResourceReference(router BoundRouter) structs.ResourceReference {
 	}
 }
 
-func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.ResourceReference, route BoundRouter) (bool, error) {
+func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.ResourceReference, route structs.BoundRouter) (bool, error) {
 	if reference.Kind != structs.BoundAPIGateway || reference.Name != gateway.Name || !reference.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 		return false, nil
 	}
@@ -108,15 +101,7 @@ func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.Resourc
 	for _, listener := range gateway.Listeners {
 		if listener.Name == reference.SectionName || reference.SectionName == "" {
 			// Upsert the route to the listener.
-			for i, listenerRoute := range listener.Routes {
-				routeRef := toResourceReference(route)
-				if refEqual(listenerRoute, routeRef) {
-					listener.Routes[i] = routeRef
-					didBind = true
-				}
-			}
-			listener.Routes = append(listener.Routes, toResourceReference(route))
-			didBind = true
+			didBind = listener.UpsertRoute(route)
 		}
 	}
 
@@ -127,7 +112,7 @@ func bind(gateway *structs.BoundAPIGatewayConfigEntry, reference structs.Resourc
 	return true, nil
 }
 
-func unbind(gateway *structs.BoundAPIGatewayConfigEntry, route BoundRouter) bool {
+func unbind(gateway *structs.BoundAPIGatewayConfigEntry, route structs.BoundRouter) bool {
 	for _, listener := range gateway.Listeners {
 		for i, listenerRoute := range listener.Routes {
 			if refEqual(listenerRoute, toResourceReference(route)) {
