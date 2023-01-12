@@ -1061,6 +1061,10 @@ type PassiveHealthCheck struct {
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
 	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+
+	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
+	// Defaults to 10% but will eject at least one host regardless of the value.
+	MaxEjectionPercent *uint32 `json:",omitempty" alias:"max_ejection_percent"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
@@ -1080,6 +1084,13 @@ func (chk PassiveHealthCheck) Validate() error {
 	if chk.Interval < 0*time.Second {
 		return fmt.Errorf("passive health check interval cannot be negative")
 	}
+	if chk.EnforcingConsecutive5xx != nil && *chk.EnforcingConsecutive5xx > 100 {
+		return fmt.Errorf("passive health check enforcing_consecutive_5xx must be a percentage between 0 and 100")
+	}
+	if chk.MaxEjectionPercent != nil && *chk.MaxEjectionPercent > 100 {
+		return fmt.Errorf("passive health check max_ejection_percent must be a percentage between 0 and 100")
+	}
+
 	return nil
 }
 
