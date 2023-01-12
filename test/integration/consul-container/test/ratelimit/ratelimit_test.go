@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -46,38 +45,39 @@ func TestRateLimit(t *testing.T) {
 		operations  []operation
 	}
 
-	getNodes := action{
+	getKV := action{
 		function: func(client *api.Client) error {
-			_, _, err := client.Catalog().Nodes(&api.QueryOptions{})
+			_, _, err := client.KV().Get("foo", &api.QueryOptions{})
 			return err
 		},
-		httpAction:         "method=GET url=/v1/catalog/nodes",
-		rateLimitOperation: "Catalog.ListNodes",
+		httpAction:         "method=GET url=/v1/kv/foo",
+		rateLimitOperation: "KV.Get",
 		rateLimitType:      "global/read",
 	}
-	putConfig := action{
+	putKV := action{
 		function: func(client *api.Client) error {
-			_, err := utils.ApplyDefaultProxySettings(client)
+			_, err := client.KV().Put(&api.KVPair{Key: "foo", Value: []byte("bar")}, &api.WriteOptions{})
 			return err
 		},
-		httpAction:         "method=PUT url=/v1/config",
-		rateLimitOperation: "ConfigEntry.Apply",
+		httpAction:         "method=PUT url=/v1/kv/foo",
+		rateLimitOperation: "KV.Put",
 		rateLimitType:      "global/write",
 	}
 
 	testCases := []testCase{
+		// HTTP & net/RPC
 		{
-			description: "Mode: disabled - errors: no / logs: no / metrics: no",
+			description: "HTTP & net/RPC / Mode: disabled - errors: no / logs: no / metrics: no",
 			cmd:         "-hcl=limits { request_limits { mode = \"disabled\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putConfig,
+					action:           putKV,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
 				},
 				{
-					action:           getNodes,
+					action:           getKV,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
@@ -85,17 +85,17 @@ func TestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "Mode: permissive - errors: no / logs: no / metrics: yes",
+			description: "HTTP & net/RPC / Mode: permissive - errors: no / logs: no / metrics: yes",
 			cmd:         "-hcl=limits { request_limits { mode = \"permissive\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putConfig,
+					action:           putKV,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
 				},
 				{
-					action:           getNodes,
+					action:           getKV,
 					expectedErrorMsg: "",
 					expectLog:        false,
 					expectMetric:     false,
@@ -103,17 +103,17 @@ func TestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "Mode: enforcing - errors: yes / logs: yes / metrics: yes",
+			description: "HTTP & net/RPC / Mode: enforcing - errors: yes / logs: yes / metrics: yes",
 			cmd:         "-hcl=limits { request_limits { mode = \"enforcing\" read_rate = 0 write_rate = 0 }}",
 			operations: []operation{
 				{
-					action:           putConfig,
+					action:           putKV,
 					expectedErrorMsg: nonRetryableErrorMsg,
 					expectLog:        true,
 					expectMetric:     true,
 				},
 				{
-					action:           getNodes,
+					action:           getKV,
 					expectedErrorMsg: retryableErrorMsg,
 					expectLog:        true,
 					expectMetric:     true,
@@ -146,17 +146,6 @@ func TestRateLimit(t *testing.T) {
 				}
 			}
 
-			// validate logs
-			for _, httpRequest := range urlsExpectingLogging {
-				found := false
-				for _, msg := range logConsumer.Msgs {
-					if strings.Contains(msg, httpRequest) && strings.Contains(msg, "error=\"rate limit exceeded") {
-						found = true
-					}
-				}
-				require.True(t, found, fmt.Sprintf("Log not found for: %s", httpRequest))
-			}
-
 			// validate metrics
 			metricInfo, err := client.Agent().Metrics()
 			// TODO(NET-1978): currently returns NaN error
@@ -184,6 +173,19 @@ func TestRateLimit(t *testing.T) {
 						}
 					}
 				}
+			}
+
+			// validate logs
+			// putting this last as there are cases where logs
+			// were not present in consumer when assertion was made.
+			for _, httpRequest := range urlsExpectingLogging {
+				found := false
+				for _, msg := range logConsumer.Msgs {
+					if strings.Contains(msg, httpRequest) && strings.Contains(msg, "error=\"rate limit exceeded") {
+						found = true
+					}
+				}
+				require.True(t, found, fmt.Sprintf("Log not found for: %s", httpRequest))
 			}
 		})
 	}
