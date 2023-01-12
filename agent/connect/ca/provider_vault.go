@@ -959,13 +959,12 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 }
 
 func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*vaultapi.Secret, error) {
-	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
-	loginPath, err := configureVaultAuthMethod(authMethod)
+	vaultAuth, err := configureVaultAuthMethod(authMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.Logical().Write(loginPath, authMethod.Params)
+	resp, err := vaultAuth.Login(context.Background(), client)
 	if err != nil {
 		return nil, err
 	}
@@ -976,57 +975,60 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
-func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath string, err error) {
+func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
 	}
 
+	loginPath := ""
 	switch authMethod.Type {
+	case VaultAuthMethodTypeAWS:
+		return NewAWSAuthClient(authMethod), nil
+	case VaultAuthMethodTypeGCP:
+		return NewGCPAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
 		// For the Kubernetes Auth method, we will try to read the JWT token
 		// from the default service account file location if jwt was not provided.
 		if jwt, ok := authMethod.Params["jwt"]; !ok || jwt == "" {
 			serviceAccountToken, err := os.ReadFile(defaultK8SServiceAccountTokenPath)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 
 			authMethod.Params["jwt"] = string(serviceAccountToken)
 		}
-		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// These auth methods require a username for the login API path.
 	case VaultAuthMethodTypeLDAP, VaultAuthMethodTypeUserpass, VaultAuthMethodTypeOkta, VaultAuthMethodTypeRadius:
 		// Get username from the params.
 		if username, ok := authMethod.Params["username"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, username)
 		} else {
-			return "", fmt.Errorf("failed to get 'username' from auth method params")
+			return nil, fmt.Errorf("failed to get 'username' from auth method params")
 		}
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// This auth method requires a role for the login API path.
 	case VaultAuthMethodTypeOCI:
 		if role, ok := authMethod.Params["role"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, role)
 		} else {
-			return "", fmt.Errorf("failed to get 'role' from auth method params")
+			return nil, fmt.Errorf("failed to get 'role' from auth method params")
 		}
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	case VaultAuthMethodTypeToken:
-		return "", fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
+		return nil, fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
 	case VaultAuthMethodTypeAliCloud,
 		VaultAuthMethodTypeAppRole,
-		VaultAuthMethodTypeAWS,
 		VaultAuthMethodTypeAzure,
 		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
-		VaultAuthMethodTypeGCP,
 		VaultAuthMethodTypeJWT,
 		VaultAuthMethodTypeKerberos,
 		VaultAuthMethodTypeTLS:
-		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	default:
-		return "", fmt.Errorf("auth method %q is not supported", authMethod.Type)
+		return nil, fmt.Errorf("auth method %q is not supported", authMethod.Type)
 	}
-
-	return
 }
