@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/test/integration/consul-container/test/topology"
 )
 
 // TestPeering_RotateServerAndCAThenFail_
@@ -46,48 +46,55 @@ import (
 //   - Terminate the server nodes in the exporting cluster
 //   - Make sure there is still service connectivity from the importing cluster
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
-	acceptingCluster, dialingCluster, _, staticClientSvcSidecar := topology.BasicPeeringTwoClustersSetup(t, *utils.TargetVersion)
-	defer func() {
-		err := acceptingCluster.Terminate()
-		require.NoErrorf(t, err, "termining accepting cluster")
-		dialingCluster.Terminate()
-		require.NoErrorf(t, err, "termining dialing cluster")
-	}()
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion)
+	var (
+		acceptingCluster     = accepting.Cluster
+		dialingCluster       = dialing.Cluster
+		acceptingCtx         = accepting.Context
+		clientSidecarService = dialing.Container
+	)
 
 	dialingClient, err := dialingCluster.GetClient(nil, false)
 	require.NoError(t, err)
-	_, port := staticClientSvcSidecar.GetAddr()
 
 	acceptingClient, err := acceptingCluster.GetClient(nil, false)
 	require.NoError(t, err)
 
-	t.Run("test rotating servers", func(t *testing.T) {
+	t.Logf("test rotating servers")
+	{
+		var (
+			peerName = libtopology.AcceptingPeerName
+			cluster  = acceptingCluster
+			client   = acceptingClient
+			ctx      = acceptingCtx
+		)
 
 		// Start by replacing the Followers
-		leader, err := acceptingCluster.Leader()
+		leader, err := cluster.Leader()
 		require.NoError(t, err)
 
-		followers, err := acceptingCluster.Followers()
+		followers, err := cluster.Followers()
 		require.NoError(t, err)
 		require.Len(t, followers, 2)
 
 		for idx, follower := range followers {
 			t.Log("Removing follower", idx)
-			rotateServer(t, acceptingCluster, acceptingClient, acceptingCluster.BuildContext, follower)
+			rotateServer(t, cluster, client, ctx, follower)
 		}
 
 		t.Log("Removing leader")
-		rotateServer(t, acceptingCluster, acceptingClient, acceptingCluster.BuildContext, leader)
+		rotateServer(t, cluster, client, ctx, leader)
 
-		libassert.PeeringStatus(t, acceptingClient, topology.AcceptingPeerName, api.PeeringStateActive)
-		libassert.PeeringExports(t, acceptingClient, topology.AcceptingPeerName, 1)
+		libassert.PeeringStatus(t, client, peerName, api.PeeringStateActive)
+		libassert.PeeringExports(t, client, peerName, 1)
 
+		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port)
-	})
+	}
 
-	t.Run("rotate exporting cluster's root CA", func(t *testing.T) {
+	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
 		// we will verify that the peering on the dialing side persists the updates CAs
-		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{})
+		peeringBefore, peerMeta, err := dialingClient.Peerings().Read(context.Background(), libtopology.DialingPeerName, &api.QueryOptions{})
 		require.NoError(t, err)
 
 		_, caMeta, err := acceptingClient.Connect().CAGetConfig(&api.QueryOptions{})
@@ -116,7 +123,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.NoError(t, err)
 
 		// The peering object should reflect the update
-		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), topology.DialingPeerName, &api.QueryOptions{
+		peeringAfter, _, err := dialingClient.Peerings().Read(context.Background(), libtopology.DialingPeerName, &api.QueryOptions{
 			WaitIndex: peerMeta.LastIndex,
 			WaitTime:  30 * time.Second,
 		})
@@ -130,19 +137,17 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		require.Len(t, rootList.Roots, 2)
 
 		// Connectivity should still be contained
-		_, port := staticClientSvcSidecar.GetAddr()
+		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 
-		verifySidecarHasTwoRootCAs(t, staticClientSvcSidecar)
+		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
 
-	t.Run("terminate exporting clusters servers and ensure imported services are still reachable", func(t *testing.T) {
+	testutil.RunStep(t, "terminate exporting clusters servers and ensure imported services are still reachable", func(t *testing.T) {
 		// Keep this list for later
-		newNodes, err := acceptingCluster.Clients()
-		require.NoError(t, err)
+		newNodes := acceptingCluster.Clients()
 
-		serverNodes, err := acceptingCluster.Servers()
-		require.NoError(t, err)
+		serverNodes := acceptingCluster.Servers()
 		for _, node := range serverNodes {
 			require.NoError(t, node.Terminate())
 		}
@@ -153,26 +158,20 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		// ensure any transitory actions like replication cleanup would not affect the next verifications
 		time.Sleep(30 * time.Second)
 
-		_, port := staticClientSvcSidecar.GetAddr()
+		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port)
 	})
 }
 
-func terminate(t *testing.T, cluster *libcluster.Cluster) {
-	err := cluster.Terminate()
-	require.NoError(t, err)
-}
-
 // rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
-func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libagent.BuildContext, node libagent.Agent) {
-	conf, err := libagent.NewConfigBuilder(cluster.BuildContext).
+func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libcluster.BuildContext, node libcluster.Agent) {
+	conf := libcluster.NewConfigBuilder(ctx).
 		Bootstrap(0).
 		Peering(true).
 		RetryJoin("agent-3"). // Always use the client agent since it never leaves the cluster
-		ToAgentConfig()
-	require.NoError(t, err)
+		ToAgentConfig(t)
 
-	err = cluster.Add([]libagent.Config{*conf})
+	err := cluster.AddN(*conf, 1, false)
 	require.NoError(t, err, "could not start new node")
 
 	libcluster.WaitForMembers(t, client, 5)
@@ -185,6 +184,7 @@ func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client,
 func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 	connectContainer, ok := sidecar.(*libservice.ConnectContainer)
 	require.True(t, ok)
+
 	_, adminPort := connectContainer.GetAdminAddr()
 
 	failer := func() *retry.Timer {
@@ -193,19 +193,13 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		dump, err := libservice.GetEnvoyConfigDump(adminPort)
-		if err != nil {
-			r.Fatal("could not curl envoy configuration")
-		}
+		require.NoError(r, err, "could not curl envoy configuration")
 
 		// Make sure there are two certs in the sidecar
 		filter := `.configs[] | select(.["@type"] | contains("type.googleapis.com/envoy.admin.v3.ClustersConfigDump")).dynamic_active_clusters[] | select(.cluster.name | contains("static-server.default.dialing-to-acceptor.external")).cluster.transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_string`
 		results, err := utils.JQFilter(dump, filter)
-		if err != nil {
-			r.Fatal("could not parse envoy configuration")
-		}
-		if len(results) != 1 {
-			r.Fatal("could not find certificates in cluster TLS context")
-		}
+		require.NoError(r, err, "could not parse envoy configuration")
+		require.Len(r, results, 1, "could not find certificates in cluster TLS context")
 
 		rest := []byte(results[0])
 		var count int
@@ -218,8 +212,6 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 			count++
 		}
 
-		if count != 2 {
-			r.Fatalf("expected 2 TLS certificates and %d present", count)
-		}
+		require.Equal(r, 2, count, "expected 2 TLS certificates and %d present", count)
 	})
 }
