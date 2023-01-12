@@ -388,6 +388,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
+	//spew.Dump(extConfig)
 
 	extension := builtinextensiontemplate.EnvoyExtension{Constructor: validate.MakeValidate}
 	err := extension.Validate(extConfig)

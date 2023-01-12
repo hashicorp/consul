@@ -58,8 +58,9 @@ func TestValidateUpstreams(t *testing.T) {
 
 	// TODO failover. This is strange because we need to first find
 	// the aggregate cluster and use that to find and validate the other clusters.
-	// TODO Test tproxy.
+	// TODO Test tproxy with failover, redirect, splitter.
 	// TODO explicit upstreams and tproxy for the same service.
+	// TODO Investigate if we can make the missing cluster error cases have a different error, to help make it less confusing.
 	tests := []struct {
 		name        string
 		create      func(t testinf.T) *proxycfg.ConfigSnapshot
@@ -67,6 +68,7 @@ func TestValidateUpstreams(t *testing.T) {
 		err         string
 		peer        string
 		serviceName *api.CompoundServiceName
+		vip         string
 	}{
 		{
 			name: "tcp-success",
@@ -208,14 +210,6 @@ func TestValidateUpstreams(t *testing.T) {
 			},
 			err: "zero endpoints",
 		},
-		// TODO tproxy is actually broken because the list of SNIs matches all service and tproxy uses SNIs on the filter chain.
-		// This case is EXTREMELY complicated.
-		{
-			name: "tproxy",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
-			},
-		},
 		{
 			name:        "non-eds",
 			create:      proxycfg.TestConfigSnapshotPeering,
@@ -234,6 +228,36 @@ func TestValidateUpstreams(t *testing.T) {
 				require.True(t, ok)
 				c.LoadAssignment = nil
 				ir.Index[xdscommon.ClusterType][sni] = c
+				return ir
+			},
+			err: "zero endpoints",
+		},
+		{
+			name: "tproxy-http-missing-cluster",
+			vip:  "240.0.0.1",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				sni := "google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+				delete(ir.Index[xdscommon.ClusterType], sni)
+				return ir
+			},
+			err: "unexpected route/listener destination cluster", // TODO can we make this a better error
+		},
+		{
+			name: "tproxy-http-missing-endpoints",
+			vip:  "240.0.0.1",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				sni := "google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+				msg := ir.Index[xdscommon.EndpointType][sni]
+				cla, ok := msg.(*envoy_endpoint_v3.ClusterLoadAssignment)
+				require.True(t, ok)
+				cla.Endpoints = nil
+				ir.Index[xdscommon.EndpointType][sni] = cla
 				return ir
 			},
 			err: "zero endpoints",
@@ -272,8 +296,7 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 			peer := tt.peer
 
-			// TODO don't hardcode VIP, it'll be included in the test case.
-			err = validateupstream.Validate(indexedResources, *serviceName, peer, "240.0.0.1")
+			err = validateupstream.Validate(indexedResources, *serviceName, peer, tt.vip)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)

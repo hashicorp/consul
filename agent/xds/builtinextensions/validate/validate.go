@@ -63,6 +63,7 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
+	//spew.Dump(v.resources)
 	for sni, resource := range v.resources {
 		if !resource.required {
 			continue
