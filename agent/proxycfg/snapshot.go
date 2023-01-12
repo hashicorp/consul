@@ -777,6 +777,13 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.IngressGateway.GatewayConfigLoaded &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
+
+	case structs.ServiceKindAPIGateway:
+		// TODO Is this the proper set of things to validate?
+		return s.Roots != nil &&
+			s.APIGateway.GatewayConfigLoaded &&
+			s.APIGateway.HostsSet &&
+			s.APIGateway.MeshConfigSet
 	default:
 		return false
 	}
