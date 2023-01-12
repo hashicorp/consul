@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -1342,10 +1343,293 @@ func TestBoundAPIGateway(t *testing.T) {
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
-func TestListenerUpsertRoute(t *testing.T) {
+func TestBoundAPIGatewayBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		gateway         BoundAPIGatewayConfigEntry
+		route           BoundRoute
+		expectedGateway BoundAPIGatewayConfigEntry
+		expectedDidBind bool
+		expectedErr     error
+	}{
+		"Bind TCP Route to Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Bind TCP Route with wildcard section name to all listeners on Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener 1",
+						Routes: []ResourceReference{},
+					},
+					{
+						Name:   "Test Listener 2",
+						Routes: []ResourceReference{},
+					},
+					{
+						Name:   "Test Listener 3",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind: BoundAPIGateway,
+						Name: "Test Bound API Gateway",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener 1",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+					{
+						Name: "Test Listener 2",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+					{
+						Name: "Test Listener 3",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"TCP Route cannot bind to Gateway because the parent reference kind is not BoundAPIGateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind"),
+		},
+		"TCP Route cannot bind to Gateway because the parent reference name does not match": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Other Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind"),
+		},
+		"TCP Route cannot bind to Gateway because it lacks listeners": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
+		},
+		"TCP Route cannot bind to Gateway because it has an invalid section name": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Other Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ref := tc.route.GetParents()[0]
+
+			actualDidBind, actualErr := tc.gateway.BindRoute(ref, tc.route)
+
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedErr, actualErr)
+			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.Listeners)
+		})
+	}
+}
+
+func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		gateway           BoundAPIGatewayConfigEntry
+		route             BoundRoute
+		expectedGateway   BoundAPIGatewayConfigEntry
+		expectedDidUnbind bool
+	}{
+		"TCP Route unbinds from Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Other Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidUnbind := tc.gateway.UnbindRoute(tc.route)
+
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.Listeners)
+		})
+	}
+}
+
+func TestListenerBindRoute(t *testing.T) {
 	cases := map[string]struct {
 		listener         BoundAPIGatewayListener
-		route            BoundRouter
+		route            BoundRoute
 		expectedListener BoundAPIGatewayListener
 		expectedDidBind  bool
 	}{
@@ -1443,17 +1727,17 @@ func TestListenerUpsertRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidBind := tc.listener.UpsertRoute(tc.route)
+			actualDidBind := tc.listener.BindRoute(tc.route)
 			require.Equal(t, tc.expectedDidBind, actualDidBind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
 	}
 }
 
-func TestListenerRemoveRoute(t *testing.T) {
+func TestListenerUnbindRoute(t *testing.T) {
 	cases := map[string]struct {
 		listener          BoundAPIGatewayListener
-		route             BoundRouter
+		route             BoundRoute
 		expectedListener  BoundAPIGatewayListener
 		expectedDidUnbind bool
 	}{
@@ -1505,7 +1789,7 @@ func TestListenerRemoveRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidUnbind := tc.listener.RemoveRoute(tc.route)
+			actualDidUnbind := tc.listener.UnbindRoute(tc.route)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
