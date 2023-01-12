@@ -161,7 +161,7 @@ func TestRateLimit(t *testing.T) {
 			metricInfo, err := client.Agent().Metrics()
 			// TODO(NET-1978): currently returns NaN error
 			//			require.NoError(t, err)
-			if metricInfo != nil {
+			if metricInfo != nil && err == nil {
 				for _, op := range tc.operations {
 					if op.expectMetric {
 						for _, counter := range metricInfo.Counters {
