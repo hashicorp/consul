@@ -442,6 +442,10 @@
             "path": "connect/observability"
           },
           {
+            "title": "Access Logs",
+            "path": "connect/observability/access-logs"
+          },
+          {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
           }
