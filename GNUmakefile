@@ -521,6 +521,11 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
+# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+.PHONY: docs
+docs:
+	make -C website
+
 .PHONY: help
 help:
 	$(info available make targets)
