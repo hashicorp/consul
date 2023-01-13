@@ -130,32 +130,34 @@ type Server struct {
 	activeStreams *activeStreamCounters
 }
 
-// activeStreamCounters simply encapsulates two counters accessed atomically to
-// ensure alignment is correct. This further requires that activeStreamCounters
-// be a pointer field.
-// TODO(eculver): refactor to remove xDSv2 refs
+// activeStreamCounters tracks various stream-related metrics.
+// Requires that activeStreamCounters be a pointer field.
 type activeStreamCounters struct {
-	xDSv3 uint64
-	xDSv2 uint64
+	xDSv3           atomic.Uint64
+	unauthenticated atomic.Uint64
 }
 
-func (c *activeStreamCounters) Increment(xdsVersion string) func() {
-	var counter *uint64
-	switch xdsVersion {
-	case "v3":
-		counter = &c.xDSv3
-	case "v2":
-		counter = &c.xDSv2
-	default:
-		return func() {}
+func (c *activeStreamCounters) Increment(ctx context.Context) func() {
+	// If no ACL token is found, increase the gauge.
+	token := external.TokenFromContext(ctx)
+	if token == "" {
+		unauthn := c.unauthenticated.Add(1)
+		metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
 	}
 
-	labels := []metrics.Label{{Name: "version", Value: xdsVersion}}
-
-	count := atomic.AddUint64(counter, 1)
+	// Historically there had been a "v2" version.
+	labels := []metrics.Label{{Name: "version", Value: "v3"}}
+	count := c.xDSv3.Add(1)
 	metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
+
+	// This closure should be called in a defer to decrement the gauges after the stream is closed.
 	return func() {
-		count := atomic.AddUint64(counter, ^uint64(0))
+		if token == "" {
+			unauthn := c.unauthenticated.Add(^uint64(0))
+			metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
+		}
+
+		count := c.xDSv3.Add(^uint64(0))
 		metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
 	}
 }
@@ -195,15 +197,7 @@ func (s *Server) Register(srv *grpc.Server) {
 }
 
 func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
-	options, err := external.QueryOptionsFromContext(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
-	}
-	if options.Token == "" {
-		metrics.IncrCounter([]string{"xds", "server", "unauthenticated"}, 1)
-	}
-
-	authz, err := s.ResolveToken(options.Token)
+	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

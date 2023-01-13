@@ -4,10 +4,27 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
+
+const metadataKeyToken = "x-consul-token"
+
+// TokenFromContext returns the ACL token in the gRPC metadata attached to the
+// given context.
+func TokenFromContext(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	toks, ok := md[metadataKeyToken]
+	if ok && len(toks) > 0 {
+		return toks[0]
+	}
+	return ""
+}
 
 // QueryOptionsFromContext returns the query options in the gRPC metadata attached to the
 // given context.

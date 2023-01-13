@@ -45,7 +45,7 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
-	defer s.activeStreams.Increment("v3")()
+	defer s.activeStreams.Increment(stream.Context())()
 
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DeltaDiscoveryRequest)
@@ -288,12 +288,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Start watching config for that proxy
 			var err error
-			options, err := external.QueryOptionsFromContext(stream.Context())
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
-			}
-
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
