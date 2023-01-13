@@ -165,11 +165,13 @@ func TestRateLimit(t *testing.T) {
 				// putting this last as there are cases where logs
 				// were not present in consumer when assertion was made.
 				if op.expectExceededLog {
-					checkLogsForMessage(t, logConsumer.Msgs, fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+					checkLogsForMessage(t, logConsumer.Msgs,
+						fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "exceeded")
 				}
 				if op.expectBlockedLog {
-					checkLogsForMessage(t, logConsumer.Msgs, fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+					checkLogsForMessage(t, logConsumer.Msgs,
+						fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "blocked")
 				}
 			}
