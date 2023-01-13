@@ -126,6 +126,9 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
   always specifies `--config-file` and `--v2-config-only` and by default passes
   `--disable-hot-restart` see [hot restart](#envoy-hot-restart).
 
+- `-enable-config-gen-logging` - If present, debug log messages will be enabled for
+  generation of the Envoy bootstrap config.
+
 #### Envoy Sidecar Proxy Options
 
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
