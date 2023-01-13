@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -203,7 +202,7 @@ func (s *Server) GenerateToken(
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 
@@ -351,7 +350,7 @@ func (s *Server) Establish(
 	}
 
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 	tok, err := s.Backend.DecodeToken([]byte(req.PeeringToken))
