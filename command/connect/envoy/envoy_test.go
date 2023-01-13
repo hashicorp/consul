@@ -1124,7 +1124,7 @@ func TestGenerateConfig(t *testing.T) {
 			Name:       "acl-enabled-but-no-token",
 			Flags:      []string{"-proxy-id", "test-proxy"},
 			ACLEnabled: true,
-			WantWarn:   "ACL is enabled but no token was found.",
+			WantWarn:   "No ACL token was provided to Envoy.",
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
