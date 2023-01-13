@@ -110,13 +110,8 @@ func TestBindGateways(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			// Create a store for the BoundAPIGateways and put them in it.
-			store := state.NewStateStore(nil)
-			for i, gateway := range tc.gateways {
-				require.NoError(t, store.EnsureConfigEntry(uint64(i), gateway))
-			}
 
-			actualBoundAPIGateways, actualReferenceErrors, actualError := BindRouteToGateways(store, tc.route)
+			actualBoundAPIGateways, actualReferenceErrors, actualError := BindRouteToGateways(tc.gateways, tc.route)
 
 			for i, gateway := range tc.expectedBoundAPIGateways {
 				require.ElementsMatch(t, gateway.Listeners, actualBoundAPIGateways[i].Listeners)

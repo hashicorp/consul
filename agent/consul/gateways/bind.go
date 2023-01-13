@@ -3,9 +3,7 @@ package gateways
 import (
 	"errors"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -21,23 +19,20 @@ type referenceSet = map[structs.ResourceReference]any
 // The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
 // a map of resource references to errors that occurred when they were attempted to be
 // bound to a gateway, and an error if the overall process was unsucessful.
-func BindRouteToGateways(store *state.Store, route structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error, error) {
-	parentRefs := getParentReferences(route)
-
+func BindRouteToGateways(gateways []*structs.BoundAPIGatewayConfigEntry, route structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error, error) {
+	// modifiedState stores the state of the gateways that were modified.
 	modifiedState := make(map[configentry.KindName]*structs.BoundAPIGatewayConfigEntry)
 
 	// errored stores the errors from events where a resource reference failed to bind to a gateway.
 	errored := make(map[structs.ResourceReference]error)
 
+	parentRefs := getParentReferences(route)
+
 	// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
-	_, entries, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, entry := range entries {
-		gateway := entry.(*structs.BoundAPIGatewayConfigEntry)
+	for _, gateway := range gateways {
 		kindName := configentry.NewKindNameForEntry(gateway)
 
+		// Try to bind each parent reference to the gateway.
 		for reference := range parentRefs {
 			didBind, err := gateway.BindRoute(reference, route)
 			if err != nil {
@@ -72,8 +67,7 @@ func BindRouteToGateways(store *state.Store, route structs.BoundRoute) ([]*struc
 }
 
 func getParentReferences(route structs.BoundRoute) referenceSet {
-	refs := make(map[structs.ResourceReference]any)
-
+	refs := make(referenceSet)
 	for _, ref := range route.GetParents() {
 		refs[ref] = struct{}{}
 	}
