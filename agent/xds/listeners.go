@@ -849,7 +849,9 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
-			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap.APIGateway.ToIngress())
+			// TODO Find a cleaner solution, can't currently pass unexported property types
+			cfgSnap.IngressGateway = cfgSnap.APIGateway.ToIngress()
+			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}

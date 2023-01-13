@@ -639,6 +639,54 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 		!c.PeeringTrustBundlesSet
 }
 
+type configSnapshotAPIGateway struct {
+	ConfigSnapshotUpstreams
+
+	TLSConfig structs.GatewayTLSConfig
+
+	// GatewayConfigLoaded is used to determine if we have received the initial
+	// api-gateway config entry yet.
+	GatewayConfigLoaded bool
+
+	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
+	Hosts    []string
+	HostsSet bool
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
+
+	// Upstreams is a list of upstreams this ingress gateway should serve traffic
+	// to. This is constructed from the ingress-gateway config entry, and uses
+	// the GatewayServices RPC to retrieve them.
+	Upstreams map[IngressListenerKey]structs.Upstreams
+
+	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
+	UpstreamsSet map[UpstreamID]struct{}
+
+	// Listeners is the original listener config from the api-gateway config
+	// entry to save us trying to pass fields through Upstreams
+	// TODO Does this need to be a map instead of a list?
+	Listeners map[APIGatewayListenerKey]structs.APIGatewayListener
+
+	// Defaults is the default configuration for upstream service instances
+	//Defaults structs.IngressServiceConfig
+}
+
+// ToIngress converts a configSnapshotAPIGateway to a configSnapshotIngressGateway.
+// This is temporary, for the sake of re-using existing codepaths when integrating
+// Consul API Gateway into Consul core.
+//
+// FUTURE: Remove when API gateways have custom snapshot generation
+func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
+	// TODO
+	return configSnapshotIngressGateway{
+		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
+		// TODO Consider adding to api-gateway config entry
+		Defaults: structs.IngressServiceConfig{},
+	}
+}
+
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -686,6 +734,8 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		len(c.WatchedUpstreamEndpoints) == 0 &&
 		!c.MeshConfigSet
 }
+
+type APIGatewayListenerKey = IngressListenerKey
 
 type IngressListenerKey struct {
 	Protocol string
@@ -737,7 +787,7 @@ type ConfigSnapshot struct {
 
 	// api-gateway specific
 	// TODO Consider custom type configSnapshotAPIGateway
-	APIGateway configSnapshotIngressGateway
+	APIGateway configSnapshotAPIGateway
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.

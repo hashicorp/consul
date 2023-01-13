@@ -704,6 +704,7 @@ type APIGatewayConfigEntry struct {
 	// Listeners is the set of listener configuration to which an API Gateway
 	// might bind.
 	Listeners []APIGatewayListener
+
 	// Status is the asynchronous status which an APIGateway propagates to the user.
 	Status Status
 
@@ -862,16 +863,16 @@ const (
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
 	// Name is the optional name of the listener in a given gateway. This is
-	// optional, however, it must be unique. Therefore, if a gateway has more
-	// than a single listener, all but one must specify a Name.
+	// optional but must be unique within a gateway; therefore, if a gateway
+	// has more than a single listener, all but one must specify a Name.
 	Name string
-	// Hostname is the host name that a listener should be bound to, if
+	// Hostname is the host name that a listener should be bound to. If
 	// unspecified, the listener accepts requests for all hostnames.
 	Hostname string
 	// Port is the port at which this listener should bind.
 	Port int
-	// Protocol is the protocol that a listener should use, it must
-	// either be http or tcp
+	// Protocol is the protocol that a listener should use. It must
+	// either be http or tcp.
 	Protocol APIGatewayListenerProtocol
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
