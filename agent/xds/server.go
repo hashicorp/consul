@@ -29,15 +29,15 @@ var (
 			Name: []string{"xds", "server", "streams"},
 			Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
 		},
+		{
+			Name: []string{"xds", "server", "streamsUnauthenticated"},
+			Help: "Counts the number of active xDS streams handled by the server that are unauthenticated because ACLs are not enabled or ACL tokens were missing.",
+		},
 	}
 	StatsCounters = []prometheus.CounterDefinition{
 		{
 			Name: []string{"xds", "server", "streamDrained"},
 			Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
-		},
-		{
-			Name: []string{"xds", "server", "unauthenticated"},
-			Help: "Counts the number of xDS streams that are unauthenticated because ACLs are not enabled or ACL tokens were missing.",
 		},
 	}
 	StatsSummaries = []prometheus.SummaryDefinition{
