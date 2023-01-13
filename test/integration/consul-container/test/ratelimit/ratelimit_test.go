@@ -164,16 +164,12 @@ func TestServerRequestRateLimit(t *testing.T) {
 				// validate logs
 				// putting this last as there are cases where logs
 				// were not present in consumer when assertion was made.
-				if op.expectExceededLog {
-					checkLogsForMessage(t, logConsumer.Msgs,
-						fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
-						op.action.rateLimitOperation, "exceeded")
-				}
-				if op.expectBlockedLog {
-					checkLogsForMessage(t, logConsumer.Msgs,
-						fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
-						op.action.rateLimitOperation, "blocked")
-				}
+				checkLogsForMessage(t, logConsumer.Msgs,
+					fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+					op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
+				checkLogsForMessage(t, logConsumer.Msgs,
+					fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+					op.action.rateLimitOperation, "blocked", op.expectBlockedLog)
 			}
 		})
 	}
@@ -201,14 +197,14 @@ func checkForMetric(t *testing.T, metricsInfo *api.MetricsInfo, operationName st
 
 }
 
-func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string) {
+func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	found := false
 	for _, log := range logs {
 		if strings.Contains(log, msg) {
 			found = true
 		}
 	}
-	require.True(t, found, fmt.Sprintf("%s log not found for: %s", logType, operationName))
+	require.Equal(t, logShouldExist, found, fmt.Sprintf("%s log check failed for: %s. Log expected: %t", logType, operationName, logShouldExist))
 }
 
 func terminate(t *testing.T, cluster *libcluster.Cluster) {
