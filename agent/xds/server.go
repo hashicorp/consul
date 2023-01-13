@@ -139,8 +139,8 @@ type activeStreamCounters struct {
 
 func (c *activeStreamCounters) Increment(ctx context.Context) func() {
 	// If no ACL token is found, increase the gauge.
-	token := external.TokenFromContext(ctx)
-	if token == "" {
+	o, _ := external.QueryOptionsFromContext(ctx)
+	if o.Token == "" {
 		unauthn := c.unauthenticated.Add(1)
 		metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
 	}
@@ -152,7 +152,7 @@ func (c *activeStreamCounters) Increment(ctx context.Context) func() {
 
 	// This closure should be called in a defer to decrement the gauges after the stream is closed.
 	return func() {
-		if token == "" {
+		if o.Token == "" {
 			unauthn := c.unauthenticated.Add(^uint64(0))
 			metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
 		}
@@ -197,7 +197,15 @@ func (s *Server) Register(srv *grpc.Server) {
 }
 
 func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
-	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
+	}
+	if options.Token == "" {
+		metrics.IncrCounter([]string{"xds", "server", "unauthenticated"}, 1)
+	}
+
+	authz, err := s.ResolveToken(options.Token)
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
