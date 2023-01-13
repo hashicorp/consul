@@ -26,7 +26,7 @@ const (
 //     - fires metrics forexceeding
 //     - logs for exceeding
 
-func TestRateLimit(t *testing.T) {
+func TestServerRequestRateLimit(t *testing.T) {
 	type action struct {
 		function           func(client *api.Client) error
 		rateLimitOperation string
