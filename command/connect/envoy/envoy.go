@@ -619,7 +619,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		&api.QueryOptions{Token: args.Token},
 	); acl.IsErrNotFound(err) {
 		if args.Token == "" {
-			c.UI.Warn("ACL is enabled but no token was provided.")
+			c.UI.Warn("No ACL token was provided to Envoy. Because the ACL system is enabled, pass a suitable ACL token for this service to Envoy to avoid potential communication failure.")
 		}
 	}
 
