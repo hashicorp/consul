@@ -58,7 +58,7 @@ func TestGRPC_UpgradeToTarget_fromLatest(t *testing.T) {
 		libassert.CatalogServiceExists(t, client, "static-server")
 		libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
 
-		// Register an static-client service
+		// Register static-client service
 		serverNodes, err := cluster.Servers()
 		require.NoError(t, err)
 		require.True(t, len(serverNodes) > 0)
