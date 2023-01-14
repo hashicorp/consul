@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 )
 
@@ -151,31 +153,35 @@ func TestServerRequestRateLimit(t *testing.T) {
 			// doing this in a separate loop so we can perform actions, allow metrics
 			// and logs to collect and then assert on each.
 			for _, op := range tc.operations {
-				// validate metrics
-				metricsInfo, err := client.Agent().Metrics()
-				// TODO(NET-1978): currently returns NaN error
-				//			require.NoError(t, err)
-				if metricsInfo != nil && err == nil {
-					if op.expectMetric {
-						checkForMetric(t, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType)
+				timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+				retry.RunWith(timer, t, func(r *retry.R) {
+					// validate metrics
+					metricsInfo, err := client.Agent().Metrics()
+					// TODO(NET-1978): currently returns NaN error
+					//			require.NoError(t, err)
+					if metricsInfo != nil && err == nil {
+						if op.expectMetric {
+							checkForMetric(r, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType)
+						}
 					}
-				}
 
-				// validate logs
-				// putting this last as there are cases where logs
-				// were not present in consumer when assertion was made.
-				checkLogsForMessage(t, logConsumer.Msgs,
-					fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
-					op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
-				checkLogsForMessage(t, logConsumer.Msgs,
-					fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
-					op.action.rateLimitOperation, "blocked", op.expectBlockedLog)
+					// validate logs
+					// putting this last as there are cases where logs
+					// were not present in consumer when assertion was made.
+					checkLogsForMessage(r, logConsumer.Msgs,
+						fmt.Sprintf("[TRACE] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+						op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
+
+					checkLogsForMessage(r, logConsumer.Msgs,
+						fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC blocked due to exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+						op.action.rateLimitOperation, "blocked", op.expectBlockedLog)
+				})
 			}
 		})
 	}
 }
 
-func checkForMetric(t *testing.T, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string) {
+func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string) {
 	for _, counter := range metricsInfo.Counters {
 		if counter.Name == "consul.rate.limit" {
 			operation, ok := counter.Labels["op"]
@@ -197,7 +203,7 @@ func checkForMetric(t *testing.T, metricsInfo *api.MetricsInfo, operationName st
 
 }
 
-func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+func checkLogsForMessage(t *retry.R, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	found := false
 	for _, log := range logs {
 		if strings.Contains(log, msg) {
