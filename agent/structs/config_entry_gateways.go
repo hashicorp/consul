@@ -981,8 +981,8 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (e *BoundAPIGatewayConfigEntry) BindRoute(ref ResourceReference, route BoundRoute) (bool, error) {
-	if ref.Kind != BoundAPIGateway || e.Name != ref.Name || !e.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
-		return false, fmt.Errorf("route cannot bind")
+	if ref.Kind != APIGateway || e.Name != ref.Name || !e.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
+		return false, nil
 	}
 
 	if len(e.Listeners) == 0 {
@@ -1033,7 +1033,7 @@ func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 		return false
 	}
 
-	// Convert the route abstract route interface to a ResourceReference.
+	// Convert the abstract route interface to a ResourceReference.
 	routeRef := ResourceReference{
 		Kind:           route.GetKind(),
 		Name:           route.GetName(),

@@ -3,14 +3,13 @@ package gateways
 import (
 	"errors"
 
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // referenceSet stores an O(1) accessible set of ResourceReference objects.
 type referenceSet = map[structs.ResourceReference]any
 
-// BindRouteToGateways takes a reference to the state store and a route.
+// BindRouteToGateways takes a slice of bound API gateways and a route.
 // It iterates over the parent references for the given route. These parents are gateways the
 // route should be bound to. If the parent matches a bound gateway in the state store,
 // the route is bound to the gateway. Otherwise, the route is unbound from the gateway if it
@@ -20,8 +19,7 @@ type referenceSet = map[structs.ResourceReference]any
 // a map of resource references to errors that occurred when they were attempted to be
 // bound to a gateway, and an error if the overall process was unsucessful.
 func BindRouteToGateways(gateways []*structs.BoundAPIGatewayConfigEntry, route structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error, error) {
-	// modifiedState stores the state of the gateways that were modified.
-	modifiedState := make(map[configentry.KindName]*structs.BoundAPIGatewayConfigEntry)
+	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
 
 	// errored stores the errors from events where a resource reference failed to bind to a gateway.
 	errored := make(map[structs.ResourceReference]error)
@@ -30,37 +28,29 @@ func BindRouteToGateways(gateways []*structs.BoundAPIGatewayConfigEntry, route s
 
 	// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
 	for _, gateway := range gateways {
-		kindName := configentry.NewKindNameForEntry(gateway)
-
-		// Try to bind each parent reference to the gateway.
-		for reference := range parentRefs {
-			didBind, err := gateway.BindRoute(reference, route)
-			if err != nil {
-				errored[reference] = err
-				delete(parentRefs, reference)
-				continue
+		if shouldBind(gateway, parentRefs) {
+			for reference := range parentRefs {
+				didBind, err := gateway.BindRoute(reference, route)
+				if err != nil {
+					delete(parentRefs, reference)
+					errored[reference] = err
+					continue
+				}
+				if didBind {
+					delete(parentRefs, reference)
+					modified = append(modified, gateway)
+				}
 			}
-			if didBind {
-				delete(parentRefs, reference)
-				modifiedState[kindName] = gateway
+		} else {
+			if gateway.UnbindRoute(route) {
+				modified = append(modified, gateway)
 			}
 		}
-
-		/* TODO When should we unbind? Stale references?
-		if _, ok := modifiedState[kindName]; ok && gateway.UnbindRoute(route) {
-			modifiedState[kindName] = gateway
-		}
-		*/
 	}
 
 	// Add all references that aren't bound at this point to the error set.
 	for reference := range parentRefs {
 		errored[reference] = errors.New("invalid reference to missing parent")
-	}
-
-	modified := []*structs.BoundAPIGatewayConfigEntry{}
-	for _, gateway := range modifiedState {
-		modified = append(modified, gateway)
 	}
 
 	return modified, errored, nil
@@ -73,4 +63,13 @@ func getParentReferences(route structs.BoundRoute) referenceSet {
 	}
 
 	return refs
+}
+
+func shouldBind(gateway *structs.BoundAPIGatewayConfigEntry, parentRefs referenceSet) bool {
+	for reference := range parentRefs {
+		if reference.Kind == structs.APIGateway && gateway.Name == reference.Name && gateway.IsSame(&reference.EnterpriseMeta) {
+			return true
+		}
+	}
+	return false
 }
