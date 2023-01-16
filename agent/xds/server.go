@@ -201,9 +201,6 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
 	}
-	if options.Token == "" {
-		metrics.IncrCounter([]string{"xds", "server", "unauthenticated"}, 1)
-	}
 
 	authz, err := s.ResolveToken(options.Token)
 	if acl.IsErrNotFound(err) {
