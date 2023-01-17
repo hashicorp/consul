@@ -14,22 +14,20 @@ import (
 )
 
 type apiGatewayReconciler struct {
-	fsm     *fsm.FSM
-	logger  hclog.Logger
-	updater datastore.DataStore
+	fsm    *fsm.FSM
+	logger hclog.Logger
+	store  datastore.DataStore
 }
 
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
-	store := r.fsm.State()
-
-	_, entry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
+	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, *req.Meta)
 	if err != nil {
-		return err
+		return er
 	}
 
 	if entry == nil {
 		r.logger.Error("cleaning up deleted gateway object", "request", req)
-		if err := r.updater.Delete(&structs.BoundAPIGatewayConfigEntry{
+		if err := r.store.Delete(&structs.BoundAPIGatewayConfigEntry{
 			Kind:           structs.BoundAPIGateway,
 			Name:           req.Name,
 			EnterpriseMeta: *req.Meta,
@@ -59,6 +57,7 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 
 	r.logger.Debug("started reconciling gateway")
 	for _, listener := range state.Listeners {
+		//TODO swap over to Thomases method
 		for _, route := range listener.Routes {
 			fmt.Println(route)
 			//routes that didn't have a gateway that exists
@@ -81,7 +80,26 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 			if err != nil {
 				return err
 			}
-			//TODO insert thomases BindRoutesToGateways method instead
+
+			// now update the gateway state
+			r.logger.Debug("persisting gateway state", "state", state)
+			if err := r.store.Update(state); err != nil {
+				r.logger.Error("error persisting state", "error", err)
+				return err
+			}
+
+			// then update the gateway status
+			r.logger.Debug("persisting gateway status", "gateway", gateway)
+			if err := r.store.UpdateStatus(gateway); err != nil {
+				return err
+			}
+
+			//// and update the route statuses ?
+			//r.logger.Debug("persisting route status", "route", route)
+			//if err := r.store.UpdateStatus(route); err != nil {
+			//	return err
+			//}
+
 		}
 	}
 

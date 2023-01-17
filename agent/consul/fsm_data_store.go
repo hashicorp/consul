@@ -1,9 +1,25 @@
 package consul
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
+//implementation of consul/gateways/datastore
 type FSMDataStore struct {
-	s *Server
+	s   *Server
+	fsm *fsm.FSM
+}
+
+func (f FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (*structs.ConfigEntry, error) {
+	store := f.fsm.State()
+
+	_, entry, err := store.ConfigEntry(nil, kind, name, meta)
+	if err != nil {
+		return nil, err
+	}
+	return &entry, nil
 }
 
 func (f FSMDataStore) UpdateStatus(entry structs.ConfigEntry) error {
