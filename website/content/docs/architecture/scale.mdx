@@ -29,7 +29,7 @@ To make service-to-service communication resilient against outages and failures,
 - Spread service instances across _multiple runtime platform instances_, such as multiple Kubernetes clusters.
 - Spread service instances across _multiple Consul datacenters_.
 
-In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single admin partition or datacenter.
+In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/enterprise/admin-partitions) or datacenter.
 
 Service failover across Consul datacenters must be configured in the datacenters before you can use it. Use one of the following methods to configure failover across datacenters:
 
