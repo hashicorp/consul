@@ -331,12 +331,6 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           description:
             'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
-        {
-          name: 'partition',
-          enterprise: true,
-          description:
-            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
-        },
       ],
       hcl: false,
     },
@@ -419,6 +413,12 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               type: 'string: ""',
               description:
                 'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Partition',
+              enterprise: true,
+              description:
+               'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
             },
             {
               name: 'Protocol',
@@ -559,6 +559,24 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           type: 'UpstreamConfig: <optional>',
           description: `Default configuration that applies to all upstreams of this service.`,
           children: [
+            {
+              name: 'Name',
+              type: 'string: ""',
+              description:
+                'The upstream name to apply the configuration to. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Namespace',
+              type: 'string: ""',
+              description:
+                'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Partition',
+              enterprise: true,
+              description:
+               'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
+            },
             {
               name: 'Protocol',
               type: 'string: ""',
