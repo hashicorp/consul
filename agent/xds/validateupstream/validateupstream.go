@@ -345,13 +345,17 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 		return nil, err
 	}
 
-	return bootstrapToIndexedResources(config)
+	return proxyConfigDumpToIndexedResources(config)
 }
 
+// Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
+// should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
 func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
-	var envoyID string
 	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
+
+	// The envoyID is used to identify which listener and filter matches the upstream service.
+	var envoyID string
 	if peer != "" {
 		psn := structs.PeeredServiceName{
 			ServiceName: svc,
@@ -364,13 +368,21 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		envoyID = uid.EnvoyID()
 	}
 
-	snis := map[string]struct{}{}
-
-	// TODO remove printing after finishing.
+	// TODO remove printing
 	//spew.Dump(indexedResources)
+
+	// Get all SNIs from the clusters in the configuration. Not all SNIs will need to be validated, but this ensures we
+	// capture SNIs which aren't directly identical to the upstream service name, but are still used for the upstream
+	// service. For example, in the case of having a splitter/redirect or another L7 config entry, the upstream service
+	// name could be "db" but due to a redirect SNI would be something like
+	// "redis.default.dc1.internal.<trustdomain>.consul". The envoyID will be used to limit which SNIs we actually
+	// validate.
+	snis := map[string]struct{}{}
 	for s := range indexedResources.Index[xdscommon.ClusterType] {
 		snis[s] = struct{}{}
 	}
+
+	// Build an ExtensionConfiguration for Validate plugin.
 	extConfig := xdscommon.ExtensionConfiguration{
 		EnvoyExtension: api.EnvoyExtension{
 			Arguments: map[string]interface{}{
@@ -380,14 +392,14 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		ServiceName: service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
-				VIP: vip,
-				// This is hacky. This runs the extension on only listeners for this service and everything else.
+				VIP:     vip,
 				SNI:     snis,
 				EnvoyID: envoyID,
 			},
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
+	// TODO remove printing
 	//spew.Dump(extConfig)
 
 	extension := builtinextensiontemplate.EnvoyExtension{Constructor: validate.MakeValidate}
@@ -403,13 +415,13 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 
 	v, ok := extension.Plugin.(*validate.Validate)
 	if !ok {
-		panic("shouldn't happen")
+		panic("validate plugin was not correctly created")
 	}
 
 	return v.Errors()
 }
 
-func bootstrapToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
+func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
 	indexedResources := xdscommon.EmptyIndexedResources()
 
 	for _, cfg := range config.Configs {

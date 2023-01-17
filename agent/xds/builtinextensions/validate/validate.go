@@ -18,8 +18,11 @@ import (
 )
 
 type Validate struct {
+	// envoyID is an argument to the Validate plugin identifies which listener to begin the validation with.
 	envoyID string
-	snis    map[string]struct{}
+
+	// snis is all of the upstream SNIs for this proxy. It is set via ExtensionConfiguration
+	snis map[string]struct{}
 
 	// listener specifies if the service's listener has been seen.
 	listener bool
@@ -39,7 +42,6 @@ type Validate struct {
 type resource struct {
 	// required determines if the resource is required for the given upstream.
 	required bool
-
 	// cluster specifies if the cluster has been seen.
 	cluster bool
 	// cluster specifies if the load assignment has been seen.
@@ -63,6 +65,7 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
+	// TODO remove printing.
 	//spew.Dump(v.resources)
 	for sni, resource := range v.resources {
 		if !resource.required {
@@ -141,12 +144,14 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 		cct := cdt.ClusterType.TypedConfig
 		if cct == nil {
 			// TODO what to do here.
+			// Its not an aggregate cluster, go to bottom of ok block
 			return c, false, nil
 		}
 		aggregateCluster := &envoy_aggregate_cluster_v3.ClusterConfig{}
 		err := anypb.UnmarshalTo(cct, aggregateCluster, proto.UnmarshalOptions{})
 		if err != nil {
 			// TODO what to do here.
+			// Its not an aggregate cluster, go to bottom of ok block
 			return c, false, nil
 		}
 		for _, clusterName := range aggregateCluster.Clusters {
@@ -157,13 +162,11 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 			}
 			r.required = true
 		}
-		// If there is more than one aggregate cluster, defer to the endpoints theere.
+		// If there is more than one aggregate cluster, defer to the endpoints there.
 		v.endpoints = len(aggregateCluster.Clusters)
 
 		return c, false, nil
 	}
-
-	// TODO if aggregate cluster make the failover targets required.
 
 	if c.EdsClusterConfig != nil {
 		v.usesEDS = true

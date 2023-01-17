@@ -56,10 +56,16 @@ func TestValidateUpstreams(t *testing.T) {
 	})
 	nodes := proxycfg.TestUpstreamNodes(t, "db")
 
-	// TODO failover. This is strange because we need to first find
-	// the aggregate cluster and use that to find and validate the other clusters.
-	// TODO Test tproxy with failover, redirect, splitter.
-	// TODO explicit upstreams and tproxy for the same service.
+	redirectGoogle := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "google",
+		Redirect: &structs.ServiceResolverRedirect{
+			Service: "google-v2",
+		},
+	}
+
+	// TODO Test tproxy with failover, redirect, splitter. -- tested with redirect, probably sufficient
+	// TODO explicit upstreams and tproxy for the same service.-- can determine this based on VIP being passed in, so we will probably handle this fine
 	// TODO Investigate if we can make the missing cluster error cases have a different error, to help make it less confusing.
 	tests := []struct {
 		name        string
@@ -233,6 +239,16 @@ func TestValidateUpstreams(t *testing.T) {
 			err: "zero endpoints",
 		},
 		{
+			name: "tproxy-success",
+			vip:  "240.0.0.1",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				return ir
+			},
+		},
+		{
 			name: "tproxy-http-missing-cluster",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -262,6 +278,19 @@ func TestValidateUpstreams(t *testing.T) {
 			},
 			err: "zero endpoints",
 		},
+		{
+			name: "tproxy-http-redirect-success",
+			vip:  "240.0.0.1",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, httpServiceDefaults, redirectGoogle)
+			},
+			serviceName: &api.CompoundServiceName{
+				Name: "google",
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				return ir
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -284,7 +313,6 @@ func TestValidateUpstreams(t *testing.T) {
 			require.NoError(t, err)
 
 			indexedResources := indexResources(g.Logger, res)
-			//fmt.Println(indexedResources)
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}

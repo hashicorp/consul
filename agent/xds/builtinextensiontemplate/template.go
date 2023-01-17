@@ -40,7 +40,7 @@ func (envoyExtension *EnvoyExtension) Validate(config xdscommon.ExtensionConfigu
 // Extend updates indexed xDS structures to include patches for
 // built-in extensions. It is responsible for applying Plugins to
 // the the appropriate xDS resources. If any portion of this function fails,
-// it will attempt continue and return an error. The caller can then determine
+// it will attempt to continue and return an error. The caller can then determine
 // if it is better to use a partially applied extension or error out.
 func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResources, config xdscommon.ExtensionConfiguration) (*xdscommon.IndexedResources, error) {
 	if !envoyExtension.ready {
