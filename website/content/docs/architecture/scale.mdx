@@ -65,7 +65,7 @@ In Kubernetes, even though it is possible to deploy Consul agents inside pods al
 
 In Consul v1.14 and higher, Consul on Kubernetes does not need to run client agents on every node in a cluster for service discovery and service mesh. This deployment configuration lowers Consul’s resource usage in the data plane, but requires additional resources in the control plane to process [xDS resources](/consul/docs/agent/config/config-files#xds-server-parameters). To learn more, refer to [simplified service mesh with Consul Dataplane](/consul/docs/connect/dataplane).
 
-**If you use Kubernetes and Consul as a backend for Vault**: Use Vault’s integrated storage backend instead of Consul. A runtime dependency conflict prevents Consul dataplanes from being compatible with Vault. If you need to use Consul v1.14 and over as a backend for Vault in your Kubernetes deployment, create a separate Consul datacenter that is not federated or peered to your other Consul servers. You can size this datacenter according to your needs and use it exclusively for backend storage for Vault.
+**If you use Kubernetes and Consul as a backend for Vault**: Use Vault’s integrated storage backend instead of Consul. A runtime dependency conflict prevents Consul dataplanes from being compatible with Vault. If you need to use Consul v1.14 and higher as a backend for Vault in your Kubernetes deployment, create a separate Consul datacenter that is not federated or peered to your other Consul servers. You can size this datacenter according to your needs and use it exclusively for backend storage for Vault.
 
 ## Consul server deployment recommendations
 
