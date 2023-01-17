@@ -150,7 +150,12 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
-	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
+	defaultErr := acl.ErrNotFound
+	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
+	if canBootstrap {
+		defaultErr = fmt.Errorf("ACL system must be bootstrapped: %w", defaultErr)
+	}
+	return s.InPrimaryDatacenter() || index > 0, nil, defaultErr
 }
 
 func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {

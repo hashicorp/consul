@@ -95,10 +95,9 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) er
 	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{}); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
-	// SKP: debug
-	/*	if err := tx.Insert(tableIndex, &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
 		return fmt.Errorf("failed to mark ACL bootstrapping as complete: %v", err)
-	}*/
+	}
 	return tx.Commit()
 }
 

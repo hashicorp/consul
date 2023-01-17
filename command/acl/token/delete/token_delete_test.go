@@ -70,5 +70,5 @@ func TestTokenDeleteCommand(t *testing.T) {
 		token.AccessorID,
 		&api.QueryOptions{Token: "root"},
 	)
-	assert.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
+	assert.EqualError(t, err, "Unexpected response code: 403 (token does not exist: ACL not found)")
 }

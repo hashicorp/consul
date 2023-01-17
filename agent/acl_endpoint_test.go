@@ -2010,7 +2010,8 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.Equal(t, acl.ErrNotFound, err)
+				require.ErrorIs(t, err, acl.ErrNotFound)
+				require.ErrorContains(t, err, "token does not exist")
 			})
 		})
 	}
