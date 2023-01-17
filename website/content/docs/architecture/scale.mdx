@@ -55,7 +55,9 @@ To mitigate these risks, we recommend a maximum of 5,000 Consul client agents in
 
 If appropriate for your use case, we recommend breaking up a single Consul datacenter into multiple smaller datacenters. Running multiple datacenters reduces your network’s blast radius more than applying network segments.
 
-Be aware that the number 5,000 is a heuristic for deployments. The number of agents you deploy per datacenter is limited by performance, not Consul itself. Because gossip stability risk is determined by _the rate of agent churn_ rather than _the number of nodes_, a gossip pool with mostly static nodes may be able to operate effectively with more than 5,000 agents. Meanwhile, a gossip pool with highly dynamic agents, such as spot fleet instances and serverless functions where 10% of agents are replaced each day, may need to be smaller than 5,000 agents. 
+Be aware that the number 5,000 is a heuristic for deployments. The number of agents you deploy per datacenter is limited by performance, not Consul itself. Because gossip stability risk is determined by _the rate of agent churn_ rather than _the number of nodes_, a gossip pool with mostly static nodes may be able to operate effectively with more than 5,000 agents. Meanwhile, a gossip pool with highly dynamic agents, such as spot fleet instances and serverless functions where 10% of agents are replaced each day, may need to be smaller than 5,000 agents.
+
+For additional information about the specifc tests we conducted on Consul deployments at scale in order to generate these recommendations, refer to [Consul Scale Test Report to Observe Gossip Stability](https://www.hashicorp.com/blog/consul-scale-test-report-to-observe-gossip-stability) on the HashiCorp blog.
 
 For most use cases, a limit of 5,000 agents is appropriate. When the `consul.serf.queue.Intent` metric is consistently high, it is an indication that the gossip pool cannot keep up with the sustained level of churn. In this situation, reduce the churn by lowering the number agents per datacenter.
 
@@ -69,7 +71,7 @@ In Consul v1.14 and higher, Consul on Kubernetes does not need to run client age
 
 ## Consul server deployment recommendations
 
-Consul server agents are an important part of Consul’s architecture. This section summarizes the differences between running managed and self-managed servers, as well as recommendations on the number of servers to run, how to deploy servers across redundancy zones, hardware requirements, and cloud provider integrations. 
+Consul server agents are an important part of Consul’s architecture. This section summarizes the differences between running managed and self-managed servers, as well as recommendations on the number of servers to run, how to deploy servers across redundancy zones, hardware requirements, and cloud provider integrations.
 
 ### Consul server runtimes
 
