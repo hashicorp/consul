@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -113,6 +114,7 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 type generateConfigTestCase struct {
 	Name              string
 	TLSServer         bool
+	ACLEnabled        bool
 	Flags             []string
 	Env               []string
 	Files             map[string]string
@@ -123,6 +125,7 @@ type generateConfigTestCase struct {
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
 	WantArgs          BootstrapTplArgs
 	WantErr           string
+	WantWarn          string
 }
 
 // This tests the args we use to generate the template directly because they
@@ -553,8 +556,9 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "access-log-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
+			Name:     "access-log-path",
+			Flags:    []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
+			WantWarn: "-admin-access-log-path is deprecated",
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -1116,6 +1120,52 @@ func TestGenerateConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:       "acl-enabled-but-no-token",
+			Flags:      []string{"-proxy-id", "test-proxy"},
+			ACLEnabled: true,
+			WantWarn:   "No ACL token was provided to Envoy.",
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:       "acl-enabled-and-token",
+			Flags:      []string{"-proxy-id", "test-proxy", "-token", "foo"},
+			ACLEnabled: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				Token:                 "foo",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
 	}
 
 	cases = append(cases, enterpriseGenerateConfigTestCases()...)
@@ -1177,12 +1227,16 @@ func TestGenerateConfig(t *testing.T) {
 
 			require.NoError(t, c.flags.Parse(args))
 			code := c.run(c.flags.Args())
-			if tc.WantErr == "" {
-				require.Equal(t, 0, code, ui.ErrorWriter.String())
-			} else {
+			if tc.WantErr != "" {
 				require.Equal(t, 1, code, ui.ErrorWriter.String())
 				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
 				return
+			} else if tc.WantWarn != "" {
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantWarn)
+			} else {
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
+				require.Empty(t, ui.ErrorWriter.String())
 			}
 
 			// Verify we handled the env and flags right first to get correct template
@@ -1316,6 +1370,8 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 			testMockCatalogNodeServiceList()(w, r)
 		case strings.Contains(r.URL.Path, "/config/proxy-defaults/global"):
 			testMockConfigProxyDefaults(tc.ProxyDefaults)(w, r)
+		case strings.Contains(r.URL.Path, "/acl/token/self"):
+			testMockTokenReadSelf(tc.ACLEnabled, tc.Flags)(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1467,6 +1523,21 @@ func testMockConfigProxyDefaults(entry api.ProxyConfigEntry) http.HandlerFunc {
 	}
 }
 
+func testMockTokenReadSelf(aclEnabled bool, flags []string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if aclEnabled {
+			for _, f := range flags {
+				if f == "-token" {
+					w.WriteHeader(200)
+					return
+				}
+			}
+			w.WriteHeader(403)
+			w.Write([]byte(acl.ErrNotFound.Error()))
+			return
+		}
+	}
+}
 func TestEnvoyCommand_canBindInternal(t *testing.T) {
 	t.Parallel()
 	type testCheck struct {

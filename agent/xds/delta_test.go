@@ -8,7 +8,6 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -1075,6 +1074,17 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			// includes the token in the ext rbac filter so lets us test more stuff.
 			envoy.SendDeltaReq(t, xdscommon.ListenerType, nil)
 
+			// If there is no token, check that we increment the gauge
+			if tt.token == "" {
+				data := scenario.sink.Data()
+				require.Len(t, data, 1)
+
+				item := data[0]
+				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+				require.True(t, ok)
+				require.Equal(t, float32(1), val.Value)
+			}
+
 			if !tt.wantDenied {
 				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 					TypeUrl: xdscommon.ListenerType,
@@ -1105,6 +1115,17 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 				}
 			case <-time.After(50 * time.Millisecond):
 				t.Fatalf("timed out waiting for handler to finish")
+			}
+
+			// If there is no token, check that we decrement the gauge
+			if tt.token == "" {
+				data := scenario.sink.Data()
+				require.Len(t, data, 1)
+
+				item := data[0]
+				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+				require.True(t, ok)
+				require.Equal(t, float32(0), val.Value)
 			}
 		})
 	}
@@ -1459,13 +1480,12 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.Len(t, data, 1)
 
 		item := data[0]
-		require.Len(t, item.Counters, 1)
+		require.Len(t, item.Samples, 1)
 
 		val, ok := item.Samples["consul.xds.test.xds.server.streamStart"]
 		require.True(t, ok)
 		require.Equal(t, 1, val.Count)
 	})
-
 }
 
 type testLimiter struct {

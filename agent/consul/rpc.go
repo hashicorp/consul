@@ -418,13 +418,21 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.rpcLogger().Error("RPC error",
-					"conn", logConn(conn),
-					"error", err,
-				)
-				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+			//EOF or closed are not considered as errors.
+			if err == io.EOF || strings.Contains(err.Error(), "closed") {
+				return
 			}
+
+			metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+			// When a rate-limiting error is returned, it's already logged, so skip logging.
+			if errors.Is(err, rate.ErrRetryLater) || errors.Is(err, rate.ErrRetryElsewhere) {
+				return
+			}
+
+			s.rpcLogger().Error("RPC error",
+				"conn", logConn(conn),
+				"error", err,
+			)
 			return
 		}
 		metrics.IncrCounter([]string{"rpc", "request"}, 1)
