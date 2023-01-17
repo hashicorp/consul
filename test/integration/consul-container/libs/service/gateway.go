@@ -74,8 +74,10 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
+	agentConfig := node.GetConfig()
 	buildargs := map[string]*string{
 		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
+		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
 	}
 
 	dockerfileCtx, err := getDevContainerDockerfile()
