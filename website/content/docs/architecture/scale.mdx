@@ -38,7 +38,7 @@ Service failover across Consul datacenters must be configured in the datacenters
 
 ### Control plane resiliency
 
-Because the control plane’s larger size can slow network performance as deployments grow, it is important to manage the size of your datacenters. To make the control plane more resilient, limit its size by spreading deployments across availability zones, runtimes, and datacenters.
+When a large number services are deployed to a single datacenter, the Consul servers may experience slower network performance. To make the control plane more resilient against slowdowns and outages, limit the size of individual datacenters by spreading deployments across availability zones, runtimes, and datacenters.
 
 #### Datacenter size
 
