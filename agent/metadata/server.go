@@ -33,6 +33,7 @@ type Server struct {
 	SegmentPorts        map[string]int
 	WanJoinPort         int
 	LanJoinPort         int
+	ExternalGRPCAddr    net.Addr
 	ExternalGRPCPort    int
 	ExternalGRPCTLSPort int
 	Bootstrap           bool
@@ -188,6 +189,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		SegmentPorts:        segmentPorts,
 		WanJoinPort:         wanJoinPort,
 		LanJoinPort:         int(m.Port),
+		ExternalGRPCAddr:    &net.TCPAddr{IP: m.Addr, Port: externalGRPCPort},
 		ExternalGRPCPort:    externalGRPCPort,
 		ExternalGRPCTLSPort: externalGRPCTLSPort,
 		Bootstrap:           bootstrap,

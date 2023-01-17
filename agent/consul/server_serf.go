@@ -476,7 +476,7 @@ func (s *Server) maybeBootstrap() {
 	var addrs []string
 
 	for _, server := range servers {
-		addr := server.Addr.String()
+		addr := server.ExternalGRPCAddr.String()
 		addrs = append(addrs, addr)
 		id := raft.ServerID(server.ID)
 

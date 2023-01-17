@@ -471,17 +471,18 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 }
 
 func (s *Server) handleRaftRPC(conn net.Conn) {
-	if tlsConn, ok := conn.(*tls.Conn); ok {
-		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
-		if err != nil {
-			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft RPC")
-			conn.Close()
-			return
-		}
-	}
+	panic("raft RPC not supported")
+	// if tlsConn, ok := conn.(*tls.Conn); ok {
+	// 	err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+	// 	if err != nil {
+	// 		s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft RPC")
+	// 		conn.Close()
+	// 		return
+	// 	}
+	// }
 
-	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-	s.raftLayer.Handoff(conn)
+	// metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+	// s.raftLayer.Handoff(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {

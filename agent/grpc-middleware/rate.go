@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
@@ -29,6 +30,13 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 
 		// Do not rate-limit the xDS service, it handles its own limiting.
 		if info.FullMethodName == "/envoy.service.discovery.v3.AggregatedDiscoveryService/DeltaAggregatedResources" {
+			return ctx, nil
+		}
+
+		// TODO figure out how/if we should rate limit raft RPCs
+		// possible to set an unlimited rate for servers
+		// and deny all traffic for others
+		if strings.HasPrefix(info.FullMethodName, "/hashicorp.raft.transport.v1.RaftTransportService/") {
 			return ctx, nil
 		}
 

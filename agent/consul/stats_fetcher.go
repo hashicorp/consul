@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"net"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -26,15 +25,17 @@ type StatsFetcher struct {
 	datacenter   string
 	inflight     map[raft.ServerID]struct{}
 	inflightLock sync.Mutex
+	serverLookup *ServerLookup
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string, serverLookup *ServerLookup) *StatsFetcher {
 	return &StatsFetcher{
-		logger:     logger,
-		pool:       pool,
-		datacenter: datacenter,
-		inflight:   make(map[raft.ServerID]struct{}),
+		logger:       logger,
+		pool:         pool,
+		datacenter:   datacenter,
+		inflight:     make(map[raft.ServerID]struct{}),
+		serverLookup: serverLookup,
 	}
 }
 
@@ -54,15 +55,21 @@ func (f *StatsFetcher) fetch(server *autopilot.Server, replyCh chan *autopilot.S
 		f.inflightLock.Unlock()
 	}()
 
-	addr, err := net.ResolveTCPAddr("tcp", string(server.Address))
-	if err != nil {
-		f.logger.Warn("error resolving TCP address for server",
-			"address", server.Address,
-			"error", err)
+	meta := f.serverLookup.Server(server.Address)
+	if meta == nil {
+		f.logger.Warn("server address not known yet", "address", server.Address, "id", server.ID)
 		return
 	}
 
-	err = f.pool.RPC(f.datacenter, server.Name, addr, "Status.RaftStats", &args, &reply)
+	// addr, err := net.ResolveTCPAddr("tcp", string(server.Address))
+	// if err != nil {
+	// 	f.logger.Warn("error resolving TCP address for server",
+	// 		"address", server.Address,
+	// 		"error", err)
+	// 	return
+	// }
+
+	err := f.pool.RPC(f.datacenter, server.Name, meta.Addr, "Status.RaftStats", &args, &reply)
 	if err != nil {
 		f.logger.Warn("error getting server health from server",
 			"server", server.Name,

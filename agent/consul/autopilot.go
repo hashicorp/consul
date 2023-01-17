@@ -128,7 +128,7 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	server := &autopilot.Server{
 		Name:        srv.ShortName,
 		ID:          raft.ServerID(srv.ID),
-		Address:     raft.ServerAddress(srv.Addr.String()),
+		Address:     raft.ServerAddress(srv.ExternalGRPCAddr.String()),
 		Version:     srv.Build.String(),
 		RaftVersion: srv.RaftVersion,
 		Ext:         s.autopilotServerExt(srv),

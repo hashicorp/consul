@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	grpctrans "github.com/hashicorp/raft/transports/grpc"
 	"github.com/hashicorp/serf/serf"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
@@ -226,10 +227,10 @@ type Server struct {
 	// The raft instance is used among Consul nodes within the DC to protect
 	// operations that require strong consistency.
 	// the state directly.
-	raft          *raft.Raft
-	raftLayer     *RaftLayer
+	raft *raft.Raft
+	// raftLayer     *RaftLayer
 	raftStore     *raftboltdb.BoltStore
-	raftTransport *raft.NetworkTransport
+	raftTransport *grpctrans.GRPCTransport
 	raftInmem     *raft.InmemStore
 
 	// raftNotifyCh is set up by setupRaft() and ensures that we get reliable leader
@@ -559,7 +560,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	// Initialize the stats fetcher that autopilot will use.
-	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
+	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter, s.serverLookup)
 
 	partitionInfo := serverPartitionInfo(s)
 	s.aclConfig = newACLConfig(partitionInfo, logger)
@@ -595,6 +596,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
+	s.raftTransport.RegisterRaftRPCServices(externalGRPCServer)
 
 	s.caManager = NewCAManager(&caDelegateWithState{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
@@ -927,15 +929,24 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer.
-	transConfig := &raft.NetworkTransportConfig{
-		Stream:                s.raftLayer,
-		MaxPool:               3,
-		Timeout:               10 * time.Second,
+	// transConfig := &raft.NetworkTransportConfig{
+	// 	Stream:                s.raftLayer,
+	// 	MaxPool:               3,
+	// 	Timeout:               10 * time.Second,
+	// 	ServerAddressProvider: serverAddressProvider,
+	// 	Logger:                s.loggers.Named(logging.Raft),
+	// }
+
+	grpcServerAddr := *s.config.RPCAddr
+	grpcServerAddr.Port = s.config.GRPCPort
+	transportConfig := grpctrans.GRPCTransportConfig{
 		ServerAddressProvider: serverAddressProvider,
-		Logger:                s.loggers.Named(logging.Raft),
+		Logger:                s.logger.Named(logging.Raft),
+		LocalAddr:             raft.ServerAddress(grpcServerAddr.String()),
 	}
 
-	trans := raft.NewNetworkTransportWithConfig(transConfig)
+	// trans := raft.NewNetworkTransportWithConfig(transConfig)
+	trans := grpctrans.New(transportConfig)
 	s.raftTransport = trans
 	s.config.RaftConfig.Logger = s.loggers.Named(logging.Raft)
 
@@ -1153,14 +1164,14 @@ func (s *Server) setupRPC() error {
 
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
-	wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
+	// wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
 
-	// Define a callback for determining whether to wrap a connection with TLS
-	tlsFunc := func(address raft.ServerAddress) bool {
-		// raft only talks to its own datacenter
-		return s.tlsConfigurator.UseTLS(s.config.Datacenter)
-	}
-	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
+	// // Define a callback for determining whether to wrap a connection with TLS
+	// tlsFunc := func(address raft.ServerAddress) bool {
+	// 	// raft only talks to its own datacenter
+	// 	return s.tlsConfigurator.UseTLS(s.config.Datacenter)
+	// }
+	// s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
 }
 
@@ -1196,7 +1207,7 @@ func (s *Server) Shutdown() error {
 
 	if s.raft != nil {
 		s.raftTransport.Close()
-		s.raftLayer.Close()
+		// s.raftLayer.Close()
 		future := s.raft.Shutdown()
 		if err := future.Error(); err != nil {
 			s.logger.Warn("error shutting down raft", "error", err)

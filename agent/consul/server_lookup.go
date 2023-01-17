@@ -25,14 +25,14 @@ func NewServerLookup() *ServerLookup {
 func (sl *ServerLookup) AddServer(server *metadata.Server) {
 	sl.lock.Lock()
 	defer sl.lock.Unlock()
-	sl.addressToServer[raft.ServerAddress(server.Addr.String())] = server
+	sl.addressToServer[raft.ServerAddress(server.ExternalGRPCAddr.String())] = server
 	sl.idToServer[raft.ServerID(server.ID)] = server
 }
 
 func (sl *ServerLookup) RemoveServer(server *metadata.Server) {
 	sl.lock.Lock()
 	defer sl.lock.Unlock()
-	delete(sl.addressToServer, raft.ServerAddress(server.Addr.String()))
+	delete(sl.addressToServer, raft.ServerAddress(server.ExternalGRPCAddr.String()))
 	delete(sl.idToServer, raft.ServerID(server.ID))
 }
 
@@ -44,7 +44,8 @@ func (sl *ServerLookup) ServerAddr(id raft.ServerID) (raft.ServerAddress, error)
 	if !ok {
 		return "", fmt.Errorf("Could not find address for server id %v", id)
 	}
-	return raft.ServerAddress(svr.Addr.String()), nil
+
+	return raft.ServerAddress(svr.ExternalGRPCAddr.String()), nil
 }
 
 // Server looks up the server by address, returns a boolean if not found

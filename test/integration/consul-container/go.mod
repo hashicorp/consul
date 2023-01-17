@@ -92,7 +92,7 @@ require (
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038 // indirect
 	github.com/hashicorp/memberlist v0.5.0 // indirect
 	github.com/hashicorp/net-rpc-msgpackrpc/v2 v2.0.0 // indirect
-	github.com/hashicorp/raft v1.3.11 // indirect
+	github.com/hashicorp/raft v1.3.12-0.20230117143717-4b9a6aabbb4e // indirect
 	github.com/hashicorp/raft-autopilot v0.1.6 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086 // indirect
@@ -157,7 +157,7 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737 // indirect
-	google.golang.org/grpc v1.49.0 // indirect
+	google.golang.org/grpc v1.51.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
