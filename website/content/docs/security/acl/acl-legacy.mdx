@@ -663,12 +663,13 @@ Here's a sample request using the HCL form:
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <management token>" \
     --data \
 '{
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
-}' http://127.0.0.1:8500/v1/acl/create?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/create
 ```
 
 Here's an equivalent request using the JSON form:
@@ -676,12 +677,13 @@ Here's an equivalent request using the JSON form:
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <management token>" \
     --data \
 '{
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
-}' http://127.0.0.1:8500/v1/acl/create?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/create
 ```
 
 On success, the token ID is returned:
