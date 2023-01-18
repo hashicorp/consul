@@ -192,8 +192,8 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, err := libservice.GetEnvoyConfigDump(adminPort)
-		require.NoError(r, err, "could not curl envoy configuration")
+		dump, err := libservice.GetEnvoyConfigDump(adminPort, "include_eds")
+		require.NoError(r, err, "could not fetch envoy configuration")
 
 		// Make sure there are two certs in the sidecar
 		filter := `.configs[] | select(.["@type"] | contains("type.googleapis.com/envoy.admin.v3.ClustersConfigDump")).dynamic_active_clusters[] | select(.cluster.name | contains("static-server.default.dialing-to-acceptor.external")).cluster.transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_string`

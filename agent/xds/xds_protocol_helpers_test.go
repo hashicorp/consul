@@ -66,14 +66,16 @@ func newTestSnapshot(
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	chans   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
-	cancels chan structs.ServiceID
+	stateChans map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
+	drainChans map[structs.ServiceID]chan struct{}
+	cancels    chan structs.ServiceID
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		chans:   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
-		cancels: make(chan structs.ServiceID, 10),
+		stateChans: map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
+		drainChans: map[structs.ServiceID]chan struct{}{},
+		cancels:    make(chan structs.ServiceID, 10),
 	}
 }
 
@@ -81,7 +83,8 @@ func newTestManager(t *testing.T) *testManager {
 func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
-	m.chans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
+	m.stateChans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
+	m.drainChans[proxyID] = make(chan struct{})
 }
 
 // Deliver simulates a proxy registration
@@ -90,18 +93,42 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg
 	m.Lock()
 	defer m.Unlock()
 	select {
-	case m.chans[proxyID] <- cfg:
+	case m.stateChans[proxyID] <- cfg:
 	case <-time.After(10 * time.Millisecond):
 		t.Fatalf("took too long to deliver config")
 	}
 }
 
-// Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
+// DrainStreams drains any open streams for the given proxyID. If there aren't
+// any open streams, it'll create a marker so that future attempts to watch the
+// given proxyID will return limiter.ErrCapacityReached.
+func (m *testManager) DrainStreams(proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
+
+	ch, ok := m.drainChans[proxyID]
+	if !ok {
+		ch = make(chan struct{})
+		m.drainChans[proxyID] = ch
+	}
+	close(ch)
+}
+
+// Watch implements ConfigManager
+func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	// If the drain chan has already been closed, return limiter.ErrCapacityReached.
+	drainCh := m.drainChans[proxyID]
+	select {
+	case <-drainCh:
+		return nil, nil, nil, limiter.ErrCapacityReached
+	default:
+	}
+
 	// ch might be nil but then it will just block forever
-	return m.chans[proxyID], func() {
+	return m.stateChans[proxyID], drainCh, func() {
 		m.cancels <- proxyID
 	}, nil
 }
@@ -135,7 +162,6 @@ func newTestServerDeltaScenario(
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
-	sessionLimiter SessionLimiter,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
@@ -154,17 +180,12 @@ func newTestServerDeltaScenario(
 		metrics.NewGlobal(cfg, sink)
 	})
 
-	if sessionLimiter == nil {
-		sessionLimiter = limiter.NewSessionLimiter()
-	}
-
 	s := NewServer(
 		"node-123",
 		testutil.Logger(t),
 		mgr,
 		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
-		sessionLimiter,
 	)
 	if authCheckFrequency > 0 {
 		s.AuthCheckFrequency = authCheckFrequency
