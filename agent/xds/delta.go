@@ -45,7 +45,7 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
-	defer s.activeStreams.Increment("v3")()
+	defer s.activeStreams.Increment(stream.Context())()
 
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DeltaDiscoveryRequest)

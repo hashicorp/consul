@@ -810,7 +810,7 @@ func requireProtocolVersionGauge(
 	require.Len(t, data, 1)
 
 	item := data[0]
-	require.Len(t, item.Gauges, 1)
+	require.Len(t, item.Gauges, 2)
 
 	val, ok := item.Gauges["consul.xds.test.xds.server.streams;version="+xdsVersion]
 	require.True(t, ok)
