@@ -7,9 +7,10 @@ description: >-
 
 # Cluster Peering on Kubernetes
 
-To establish a cluster peering connection on Kubernetes, you need to enable several pre-requisite values in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
+To establish a cluster peering connection on Kubernetes, you need to enable several values in the Helm chart and create custom resource definitions (CRDs) for each side of the peering.
 
-The following Helm values are mandatory for cluster peering:
+All peering connection traffic, including both data plane and control plane traffic, is routed through mesh gateways. As a result, the following Helm values for mesh gateways are mandatory for cluster peering:
+
 - [`global.tls.enabled = true`](/docs/k8s/helm#v-global-tls-enabled)
 - [`meshGateway.enabled = true`](/docs/k8s/helm#v-meshgateway-enabled)
 
@@ -18,18 +19,15 @@ The following CRDs are used to create and manage a peering connection:
 - `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
 - `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
 
-Peering connections, including both data plane and control plane traffic, is routed through mesh gateways.
-As of Consul v1.14, you can also [implement service failovers and redirects to control traffic](/consul/docs/connect/l7-traffic) between peers.
-
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
 
 ## Prerequisites
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
 
-- Consul v1.14.0 or later
+- Consul v1.14 or higher
 - At least two Kubernetes clusters
-- The installation must be running on Consul on Kubernetes version 1.0.0 or later
+- The installation must be running on Consul on Kubernetes v1.0.0 or later
 
 ### Prepare for installation
 
@@ -97,6 +95,7 @@ the servers for that cluster. The servers for `cluster-02` will use that informa
 `cluster-01`. Complete the following steps to create the peer connection.
 
 ### Using mesh gateways for the peering connection
+
 If the servers in `cluster-01` are not directly routable from the dialing cluster `cluster-02`, then you'll need to set up peering through mesh gateways.
 
 1. In `cluster-01` apply the `Mesh` custom resource so the generated token will have the mesh gateway addresses which will be routable from the other cluster.
