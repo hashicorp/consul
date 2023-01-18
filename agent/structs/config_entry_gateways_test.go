@@ -1367,7 +1367,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Test Route",
 				Parents: []ResourceReference{
 					{
-						Kind:        BoundAPIGateway,
+						Kind:        APIGateway,
 						Name:        "Test Bound API Gateway",
 						SectionName: "Test Listener",
 					},
@@ -1414,7 +1414,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Test Route",
 				Parents: []ResourceReference{
 					{
-						Kind: BoundAPIGateway,
+						Kind: APIGateway,
 						Name: "Test Bound API Gateway",
 					},
 				},
@@ -1454,7 +1454,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			},
 			expectedDidBind: true,
 		},
-		"TCP Route cannot bind to Gateway because the parent reference kind is not BoundAPIGateway": {
+		"TCP Route cannot bind to Gateway because the parent reference kind is not APIGateway": {
 			gateway: BoundAPIGatewayConfigEntry{
 				Kind:      BoundAPIGateway,
 				Name:      "Test Bound API Gateway",
@@ -1471,12 +1471,12 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				},
 			},
 			expectedGateway: BoundAPIGatewayConfigEntry{
-				Kind:      BoundAPIGateway,
+				Kind:      TerminatingGateway,
 				Name:      "Test Bound API Gateway",
 				Listeners: []BoundAPIGatewayListener{},
 			},
 			expectedDidBind: false,
-			expectedErr:     fmt.Errorf("route cannot bind"),
+			expectedErr:     nil,
 		},
 		"TCP Route cannot bind to Gateway because the parent reference name does not match": {
 			gateway: BoundAPIGatewayConfigEntry{
@@ -1489,7 +1489,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Test Route",
 				Parents: []ResourceReference{
 					{
-						Kind:        BoundAPIGateway,
+						Kind:        APIGateway,
 						Name:        "Other Test Bound API Gateway",
 						SectionName: "Test Listener",
 					},
@@ -1501,7 +1501,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Listeners: []BoundAPIGatewayListener{},
 			},
 			expectedDidBind: false,
-			expectedErr:     fmt.Errorf("route cannot bind"),
+			expectedErr:     nil,
 		},
 		"TCP Route cannot bind to Gateway because it lacks listeners": {
 			gateway: BoundAPIGatewayConfigEntry{
@@ -1514,7 +1514,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Test Route",
 				Parents: []ResourceReference{
 					{
-						Kind:        BoundAPIGateway,
+						Kind:        APIGateway,
 						Name:        "Test Bound API Gateway",
 						SectionName: "Test Listener",
 					},
@@ -1539,7 +1539,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Test Route",
 				Parents: []ResourceReference{
 					{
-						Kind:        BoundAPIGateway,
+						Kind:        APIGateway,
 						Name:        "Test Bound API Gateway",
 						SectionName: "Other Test Listener",
 					},

@@ -980,6 +980,39 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
+func (e *BoundAPIGatewayConfigEntry) UpdateRouteBinding(refs []ResourceReference, route BoundRoute) (bool, map[ResourceReference]error) {
+	didUpdate := false
+	errors := make(map[ResourceReference]error)
+
+	if len(e.Listeners) == 0 {
+		for _, ref := range refs {
+			errors[ref] = fmt.Errorf("route cannot bind because gateway has no listeners")
+		}
+		return false, errors
+	}
+
+	for i, listener := range e.Listeners {
+		// Unbind to handle any stale route references.
+		didUnbind := listener.UnbindRoute(route)
+		if didUnbind {
+			didUpdate = true
+		}
+		e.Listeners[i] = listener
+
+		for _, ref := range refs {
+			didBind, err := e.BindRoute(ref, route)
+			if err != nil {
+				errors[ref] = err
+			}
+			if didBind {
+				didUpdate = true
+			}
+		}
+	}
+
+	return didUpdate, errors
+}
+
 func (e *BoundAPIGatewayConfigEntry) BindRoute(ref ResourceReference, route BoundRoute) (bool, error) {
 	if ref.Kind != APIGateway || e.Name != ref.Name || !e.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
 		return false, nil

@@ -7,7 +7,62 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBindGateways(t *testing.T) {
+func TestBindRoutesToGateways(t *testing.T) {
+	type testCase struct {
+		gateways                 []*structs.BoundAPIGatewayConfigEntry
+		routes                   []structs.BoundRoute
+		expectedBoundAPIGateways []*structs.BoundAPIGatewayConfigEntry
+		expectedReferenceErrors  map[structs.ResourceReference]error
+		expectedError            error
+	}
+
+	cases := map[string]testCase{
+		"TCP Routes bind to each gateway": {
+			gateways: []*structs.BoundAPIGatewayConfigEntry{
+				makeGateway("Test Bound API Gateway", []structs.BoundAPIGatewayListener{
+					makeListener("Test Listener", []structs.ResourceReference{}),
+				}),
+				makeGateway("Other Test Bound API Gateway", []structs.BoundAPIGatewayListener{
+					makeListener("Other Test Listener", []structs.ResourceReference{}),
+				}),
+			},
+			routes: []structs.BoundRoute{
+				makeRoute(structs.TCPRoute, "Test TCP Route", []structs.ResourceReference{
+					makeRef(structs.APIGateway, "Test Bound API Gateway", "Test Listener"),
+				}),
+				makeRoute(structs.TCPRoute, "Other Test TCP Route", []structs.ResourceReference{
+					makeRef(structs.APIGateway, "Other Test Bound API Gateway", "Other Test Listener"),
+				}),
+			},
+			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
+				makeGateway("Test Bound API Gateway", []structs.BoundAPIGatewayListener{
+					makeListener("Test Listener", []structs.ResourceReference{
+						makeRef(structs.TCPRoute, "Test TCP Route", ""),
+					}),
+				}),
+				makeGateway("Other Test Bound API Gateway", []structs.BoundAPIGatewayListener{
+					makeListener("Other Test Listener", []structs.ResourceReference{
+						makeRef(structs.TCPRoute, "Other Test TCP Route", ""),
+					}),
+				}),
+			},
+			expectedReferenceErrors: map[structs.ResourceReference]error{},
+			expectedError:           nil,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualBoundAPIGateways, referenceErrors, err := BindRoutesToGateways(tc.gateways, tc.routes)
+
+			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
+			require.Equal(t, tc.expectedReferenceErrors, referenceErrors)
+			require.Equal(t, tc.expectedError, err)
+		})
+	}
+}
+
+func TestBindRouteToGateways(t *testing.T) {
 	type testCase struct {
 		gateways                 []*structs.BoundAPIGatewayConfigEntry
 		route                    structs.BoundRoute
@@ -148,6 +203,7 @@ func TestBindGateways(t *testing.T) {
 			},
 			route: makeRoute(structs.TCPRoute, "Test TCP Route", []structs.ResourceReference{
 				makeRef(structs.APIGateway, "Test Bound API Gateway", "Test Listener"),
+				makeRef(structs.APIGateway, "Test Bound API Gateway", "Other Test Listener"),
 			}),
 			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
 				makeGateway("Test Bound API Gateway", []structs.BoundAPIGatewayListener{
@@ -223,7 +279,7 @@ func TestBindGateways(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			actualBoundAPIGateways, actualReferenceErrors, actualError := BindRouteToGateways(tc.gateways, tc.route)
 
-			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
+			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways, "Modified Bound API Gateways should match")
 			require.Equal(t, tc.expectedReferenceErrors, actualReferenceErrors, "ReferenceErrors should match")
 			require.Equal(t, tc.expectedError, actualError, "Error should match")
 		})
