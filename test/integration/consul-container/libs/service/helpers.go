@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
+
+	"github.com/hashicorp/consul/api"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+)
+
+const (
+	StaticServerServiceName = "static-server"
+	StaticClientServiceName = "static-client"
 )
 
 func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Service, error) {
@@ -19,7 +25,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 	defer deferClean.Execute()
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
+	serverService, err := NewExampleService(context.Background(), StaticServerServiceName, 8080, 8079, node)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,7 +33,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 		_ = serverService.Terminate()
 	})
 
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), StaticServerServiceName, 8080, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,10 +43,11 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 
 	// Register the static-server service and sidecar
 	req := &api.AgentServiceRegistration{
-		Name: "static-server",
+		Name: StaticServerServiceName,
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
+				Port:  serverConnectProxy.publicPort,
 				Proxy: &api.AgentServiceConnectProxyConfig{},
 			},
 		},
@@ -74,7 +81,7 @@ func CreateAndRegisterStaticClientSidecar(
 	defer deferClean.Execute()
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, 5000, node)
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +96,14 @@ func CreateAndRegisterStaticClientSidecar(
 
 	// Register the static-client service and sidecar
 	req := &api.AgentServiceRegistration{
-		Name: "static-client",
+		Name: StaticClientServiceName,
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
+				Port: clientConnectProxy.publicPort,
 				Proxy: &api.AgentServiceConnectProxyConfig{
 					Upstreams: []api.Upstream{{
-						DestinationName:  "static-server",
+						DestinationName:  StaticServerServiceName,
 						DestinationPeer:  peerName,
 						LocalBindAddress: "0.0.0.0",
 						LocalBindPort:    5000,

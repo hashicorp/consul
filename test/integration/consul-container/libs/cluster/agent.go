@@ -3,8 +3,9 @@ package cluster
 import (
 	"context"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -16,6 +17,7 @@ type Agent interface {
 	GetName() string
 	GetPod() testcontainers.Container
 	ClaimAdminPort() int
+	ClaimConnectPort() int
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string

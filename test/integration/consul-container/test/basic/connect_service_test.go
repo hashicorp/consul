@@ -27,7 +27,7 @@ func TestBasicConnectService(t *testing.T) {
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 }
 

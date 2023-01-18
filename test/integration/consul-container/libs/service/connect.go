@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -19,15 +20,39 @@ import (
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx         context.Context
-	container   testcontainers.Container
-	ip          string
-	appPort     int
-	adminPort   int
-	serviceName string
+	ctx              context.Context
+	container        testcontainers.Container
+	ip               string
+	appPort          int
+	adminPort        int
+	publicPort       int
+	mappedPublicPort int
+	serviceName      string
 }
 
 var _ Service = (*ConnectContainer)(nil)
+
+func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("ConnectContainer export unimplemented")
+}
+
+func (g ConnectContainer) GetAddr() (string, int) {
+	return g.ip, g.appPort
+}
+
+func (g ConnectContainer) GetLogs() (string, error) {
+	rc, err := g.container.Logs(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("could not get logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	defer rc.Close()
+
+	out, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("could not read from logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	return string(out), nil
+}
 
 func (g ConnectContainer) GetName() string {
 	name, err := g.container.Name(g.ctx)
@@ -37,8 +62,8 @@ func (g ConnectContainer) GetName() string {
 	return name
 }
 
-func (g ConnectContainer) GetAddr() (string, int) {
-	return g.ip, g.appPort
+func (g ConnectContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func (g ConnectContainer) Start() error {
@@ -48,20 +73,12 @@ func (g ConnectContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
-func (g ConnectContainer) GetAdminAddr() (string, int) {
-	return "localhost", g.adminPort
-}
-
 func (c ConnectContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
 
-func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
-	return fmt.Errorf("ConnectContainer export unimplemented")
-}
-
-func (g ConnectContainer) GetServiceName() string {
-	return g.serviceName
+func (g ConnectContainer) GetAdminAddr() (string, int) {
+	return "localhost", g.adminPort
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -92,6 +109,7 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	dockerfileCtx.BuildArgs = buildargs
 
 	adminPort := node.ClaimAdminPort()
+	publicPort := node.ClaimConnectPort()
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -136,26 +154,29 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 
 	var (
-		appPortStr   = strconv.Itoa(serviceBindPort)
-		adminPortStr = strconv.Itoa(adminPort)
+		appPortStr    = strconv.Itoa(serviceBindPort)
+		adminPortStr  = strconv.Itoa(adminPort)
+		publicPortStr = strconv.Itoa(publicPort)
 	)
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr, publicPortStr})
 	if err != nil {
 		return nil, err
 	}
 
 	out := &ConnectContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		appPort:     info.MappedPorts[appPortStr].Int(),
-		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: name,
+		ctx:              ctx,
+		container:        info.Container,
+		ip:               info.IP,
+		appPort:          info.MappedPorts[appPortStr].Int(),
+		adminPort:        info.MappedPorts[adminPortStr].Int(),
+		publicPort:       publicPort,
+		mappedPublicPort: info.MappedPorts[publicPortStr].Int(),
+		serviceName:      name,
 	}
 
-	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
-		serviceName, out.appPort, serviceBindPort)
+	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d, public listener port %d\\n\"",
+		serviceName, out.appPort, serviceBindPort, publicPort)
 
 	return out, nil
 }
