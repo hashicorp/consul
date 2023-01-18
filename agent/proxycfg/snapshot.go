@@ -189,6 +189,20 @@ func (c *configSnapshotConnectProxy) IsImplicitUpstream(uid UpstreamID) bool {
 	return intentionImplicit || peeringImplicit
 }
 
+func (c *configSnapshotConnectProxy) GetUpstream(uid UpstreamID, entMeta *acl.EnterpriseMeta) (*structs.Upstream, bool) {
+	upstream, found := c.UpstreamConfig[uid]
+	// We should fallback to the wildcard defaults generated from service-defaults + proxy-defaults
+	// whenever we don't find the upstream config.
+	if !found {
+		wildcardUID := NewWildcardUID(entMeta)
+		upstream = c.UpstreamConfig[wildcardUID]
+	}
+
+	explicit := upstream != nil && upstream.HasLocalPortOrSocket()
+	implicit := c.IsImplicitUpstream(uid)
+	return upstream, !implicit && !explicit
+}
+
 type configSnapshotTerminatingGateway struct {
 	MeshConfig    *structs.MeshConfigEntry
 	MeshConfigSet bool

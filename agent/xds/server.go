@@ -23,26 +23,30 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
-var StatsGauges = []prometheus.GaugeDefinition{
-	{
-		Name: []string{"xds", "server", "streams"},
-		Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
-	},
-}
-
-var StatsCounters = []prometheus.CounterDefinition{
-	{
-		Name: []string{"xds", "server", "streamDrained"},
-		Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
-	},
-}
-
-var StatsSummaries = []prometheus.SummaryDefinition{
-	{
-		Name: []string{"xds", "server", "streamStart"},
-		Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
-	},
-}
+var (
+	StatsGauges = []prometheus.GaugeDefinition{
+		{
+			Name: []string{"xds", "server", "streams"},
+			Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
+		},
+		{
+			Name: []string{"xds", "server", "streamsUnauthenticated"},
+			Help: "Counts the number of active xDS streams handled by the server that are unauthenticated because ACLs are not enabled or ACL tokens were missing.",
+		},
+	}
+	StatsCounters = []prometheus.CounterDefinition{
+		{
+			Name: []string{"xds", "server", "streamDrained"},
+			Help: "Counts the number of xDS streams that are drained when rebalancing the load between servers.",
+		},
+	}
+	StatsSummaries = []prometheus.SummaryDefinition{
+		{
+			Name: []string{"xds", "server", "streamStart"},
+			Help: "Measures the time in milliseconds after an xDS stream is opened until xDS resources are first generated for the stream.",
+		},
+	}
+)
 
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
@@ -92,13 +96,7 @@ type ConfigFetcher interface {
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
 type ProxyConfigSource interface {
-	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
-}
-
-// SessionLimiter is the interface exposed by limiter.SessionLimiter. We depend
-// on an interface rather than the concrete type so we can mock it in tests.
-type SessionLimiter interface {
-	BeginSession() (limiter.Session, error)
+	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
@@ -107,12 +105,11 @@ type SessionLimiter interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName       string
-	Logger         hclog.Logger
-	CfgSrc         ProxyConfigSource
-	ResolveToken   ACLResolverFunc
-	CfgFetcher     ConfigFetcher
-	SessionLimiter SessionLimiter
+	NodeName     string
+	Logger       hclog.Logger
+	CfgSrc       ProxyConfigSource
+	ResolveToken ACLResolverFunc
+	CfgFetcher   ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -126,32 +123,34 @@ type Server struct {
 	activeStreams *activeStreamCounters
 }
 
-// activeStreamCounters simply encapsulates two counters accessed atomically to
-// ensure alignment is correct. This further requires that activeStreamCounters
-// be a pointer field.
-// TODO(eculver): refactor to remove xDSv2 refs
+// activeStreamCounters tracks various stream-related metrics.
+// Requires that activeStreamCounters be a pointer field.
 type activeStreamCounters struct {
-	xDSv3 uint64
-	xDSv2 uint64
+	xDSv3           atomic.Uint64
+	unauthenticated atomic.Uint64
 }
 
-func (c *activeStreamCounters) Increment(xdsVersion string) func() {
-	var counter *uint64
-	switch xdsVersion {
-	case "v3":
-		counter = &c.xDSv3
-	case "v2":
-		counter = &c.xDSv2
-	default:
-		return func() {}
+func (c *activeStreamCounters) Increment(ctx context.Context) func() {
+	// If no ACL token is found, increase the gauge.
+	o, _ := external.QueryOptionsFromContext(ctx)
+	if o.Token == "" {
+		unauthn := c.unauthenticated.Add(1)
+		metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
 	}
 
-	labels := []metrics.Label{{Name: "version", Value: xdsVersion}}
-
-	count := atomic.AddUint64(counter, 1)
+	// Historically there had been a "v2" version.
+	labels := []metrics.Label{{Name: "version", Value: "v3"}}
+	count := c.xDSv3.Add(1)
 	metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
+
+	// This closure should be called in a defer to decrement the gauges after the stream is closed.
 	return func() {
-		count := atomic.AddUint64(counter, ^uint64(0))
+		if o.Token == "" {
+			unauthn := c.unauthenticated.Add(^uint64(0))
+			metrics.SetGauge([]string{"xds", "server", "streamsUnauthenticated"}, float32(unauthn))
+		}
+
+		count := c.xDSv3.Add(^uint64(0))
 		metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
 	}
 }
@@ -162,7 +161,6 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
-	limiter SessionLimiter,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
@@ -170,7 +168,6 @@ func NewServer(
 		CfgSrc:             cfgMgr,
 		ResolveToken:       resolveToken,
 		CfgFetcher:         cfgFetcher,
-		SessionLimiter:     limiter,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
 	}

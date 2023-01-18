@@ -134,17 +134,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		return nil, err
 	}
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg, skip := getUpstream(uid)
-
+		upstreamCfg, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -355,8 +346,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// Looping over explicit and implicit upstreams is only needed for cross-peer
 	// because they do not have discovery chains.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstreamCfg, skip := getUpstream(uid)
-
+		upstreamCfg, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -2260,10 +2250,9 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 		s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
 	}
 
-	protocol := cfg.Protocol
-	if protocol == "" {
-		protocol = peerMeta.Protocol
-	}
+	// Ignore the configured protocol for peer upstreams, since it is defined by the remote
+	// cluster, which we cannot control.
+	protocol := peerMeta.Protocol
 	if protocol == "" {
 		protocol = "tcp"
 	}
