@@ -119,9 +119,9 @@ func CreateAndRegisterStaticClientSidecar(
 	return clientConnectProxy, nil
 }
 
-func GetEnvoyConfigDump(port int) (string, error) {
+func GetEnvoyConfigDump(port int, filter string) (string, error) {
 	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://localhost:%d/config_dump?include_eds", port)
+	url := fmt.Sprintf("http://localhost:%d/config_dump?%s", port, filter)
 
 	res, err := client.Get(url)
 	if err != nil {

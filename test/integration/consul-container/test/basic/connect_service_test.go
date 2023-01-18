@@ -25,8 +25,10 @@ func TestBasicConnectService(t *testing.T) {
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
+	_, adminPort := clientService.GetAdminAddr()
 
 	libassert.HTTPServiceEchoes(t, "localhost", port)
+	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {
