@@ -369,8 +369,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 
 		cert, err := tc.certFunc(provider)
 		require.NoError(t, err)
-		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
-		resp, err := client.RawRequest(req)
+		resp, err := client.Logical().ReadRaw(tc.backendPath + "ca/pem")
 		require.NoError(t, err)
 		bytes, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
