@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api/auth/gcp"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/stretchr/testify/require"
 
@@ -101,14 +102,15 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		expLoginPath string
 		params       map[string]interface{}
 		expError     string
+		hasLDG       bool
 	}{
 		"alicloud":    {expLoginPath: "auth/alicloud/login"},
 		"approle":     {expLoginPath: "auth/approle/login"},
-		"aws":         {expLoginPath: "auth/aws/login"},
+		"aws":         {expLoginPath: "auth/aws/login", params: map[string]interface{}{"type": "iam"}, hasLDG: true},
 		"azure":       {expLoginPath: "auth/azure/login"},
 		"cf":          {expLoginPath: "auth/cf/login"},
 		"github":      {expLoginPath: "auth/github/login"},
-		"gcp":         {expLoginPath: "auth/gcp/login"},
+		"gcp":         {expLoginPath: "auth/gcp/login", params: map[string]interface{}{"type": "iam", "role": "test-role"}},
 		"jwt":         {expLoginPath: "auth/jwt/login"},
 		"kerberos":    {expLoginPath: "auth/kerberos/login"},
 		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
@@ -124,15 +126,26 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 
 	for authMethodType, c := range cases {
 		t.Run(authMethodType, func(t *testing.T) {
-			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
+			authMethod := &structs.VaultAuthMethod{
 				Type:   authMethodType,
 				Params: c.params,
-			})
-			if c.expError == "" {
-				require.NoError(t, err)
-				require.Equal(t, c.expLoginPath, loginPath)
-			} else {
+			}
+			authIF, err := configureVaultAuthMethod(authMethod)
+			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, authIF)
+
+			switch authMethodType {
+			case VaultAuthMethodTypeGCP:
+				_ = authIF.(*gcp.GCPAuth)
+			default:
+				auth := authIF.(*VaultAuthClient)
+				require.Equal(t, authMethod, auth.AuthMethod)
+				require.Equal(t, c.expLoginPath, auth.LoginPath)
+				require.Equal(t, c.hasLDG, auth.LoginDataGen != nil)
 			}
 		})
 	}
@@ -356,8 +369,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 
 		cert, err := tc.certFunc(provider)
 		require.NoError(t, err)
-		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
-		resp, err := client.RawRequest(req)
+		resp, err := client.Logical().ReadRaw(tc.backendPath + "ca/pem")
 		require.NoError(t, err)
 		bytes, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
