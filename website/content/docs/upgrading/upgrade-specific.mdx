@@ -20,6 +20,26 @@ upgrade flow.
 
 The `connect.enable_serverless_plugin` configuration option was removed. Lambda integration is now enabled by default.
 
+#### Deprecating authentication via token query parameter
+
+When authenticating API requests, the use of the `token` query parameter is deprecated. The Consul token should be provided to API requests using the `X-Consul-Token` header or with the
+Bearer scheme in the authorization header.
+
+Before Consul v1.15: 
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/agent/members?token=<consul token>
+```
+
+In Consul v1.15 and higher:
+
+```shell-session
+$ curl \
+    --header "X-Consul-Token: <consul token>" \
+    http://127.0.0.1:8500/v1/agent/members
+```
+
 #### Lambda Configuration
 
 Instead of configuring Lambda functions in the `Meta` field of `service-defaults` configuration entries, configure them with the `EnvoyExtensions` field.
