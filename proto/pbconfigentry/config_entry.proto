@@ -14,6 +14,11 @@ enum Kind {
   KindIngressGateway = 3;
   KindServiceIntentions = 4;
   KindServiceDefaults = 5;
+  KindInlineCertificate = 6;
+  KindAPIGateway = 7;
+  KindBoundAPIGateway = 8;
+  KindHTTPRoute = 9;
+  KindTCPRoute = 10;
 }
 
 message ConfigEntry {
@@ -574,4 +579,157 @@ message DestinationConfig {
   repeated string Addresses = 1;
   // mog: func-to=int func-from=int32
   int32 Port = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message APIGateway {
+  map<string, string> Meta = 1;
+  repeated APIGatewayListener Listeners = 2;
+  Status Status = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Status
+// output=config_entry.gen.go
+// name=Structs
+message Status {
+  repeated Condition Conditions = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Condition
+// output=config_entry.gen.go
+// name=Structs
+message Condition {
+  string Status = 1;
+  string Reason = 2;
+  string Message = 3;
+  ResourceReference Resource = 4;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LastTransitionTime = 5;
+}
+
+enum APIGatewayListenerProtocol {
+  ListenerProtocolHTTP = 0;
+  ListenerProtocolTCP = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayListener
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayListener {
+  string Name = 1;
+  string Hostname = 2;
+  // mog: func-to=int func-from=int32
+  int32 Port = 3;
+  // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
+  APIGatewayListenerProtocol Protocol = 4;
+  APIGatewayTLSConfiguration TLS = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.APIGatewayTLSConfiguration
+// output=config_entry.gen.go
+// name=Structs
+message APIGatewayTLSConfiguration {
+  repeated ResourceReference Certificates = 1;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string MinVersion = 2;
+  // mog: func-from=tlsVersionFromStructs func-to=tlsVersionToStructs
+  string MaxVersion = 3;
+  // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
+  repeated string CipherSuites = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ResourceReference
+// output=config_entry.gen.go
+// name=Structs
+message ResourceReference {
+  string Kind = 1;
+  string Name = 2;
+  string SectionName = 3;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message BoundAPIGateway {
+  map<string, string> Meta = 1;
+  repeated BoundAPIGatewayListener Listeners = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.BoundAPIGatewayListener
+// output=config_entry.gen.go
+// name=Structs
+message BoundAPIGatewayListener {
+  string Name = 1;
+  repeated ResourceReference Certificates = 2;
+  repeated ResourceReference Routes = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message InlineCertificate {
+  map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message HTTPRoute {
+  map<string, string> Meta = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TCPRouteConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message TCPRoute {
+  map<string, string> Meta = 1;
+  repeated ResourceReference Parents = 2;
+  repeated TCPService Services = 3;
+  Status Status = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TCPService
+// output=config_entry.gen.go
+// name=Structs
+message TCPService {
+  string Name = 1;
+  // mog: func-to=int func-from=int32
+  int32 Weight = 2;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
 }
