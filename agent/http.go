@@ -367,6 +367,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 					continue
 				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
+				httpLogger.Warn("This request is using a token query parameter "+
+					"which is deprecated and will be removed in future Consul versions.",
+					"logUrl", logURL)
 			}
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
