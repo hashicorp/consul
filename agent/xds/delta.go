@@ -3,6 +3,7 @@ package xds
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -23,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -88,17 +90,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		return err
 	}
 
-	session, err := s.SessionLimiter.BeginSession()
-	if err != nil {
-		return errOverwhelmed
-	}
-	defer session.End()
-
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
 		node        *envoy_config_core_v3.Node
 		stateCh     <-chan *proxycfg.ConfigSnapshot
+		drainCh     limiter.SessionTerminatedChan
 		watchCancel func()
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
@@ -176,7 +173,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
-		case <-session.Terminated():
+		case <-drainCh:
 			generator.Logger.Debug("draining stream to rebalance load")
 			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
 			return errOverwhelmed
@@ -293,8 +290,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
-			if err != nil {
+			stateCh, drainCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			switch {
+			case errors.Is(err, limiter.ErrCapacityReached):
+				return errOverwhelmed
+			case err != nil:
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 			// Note that in this case we _intend_ the defer to only be triggered when

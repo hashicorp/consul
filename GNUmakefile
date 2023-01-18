@@ -8,7 +8,7 @@ SHELL = bash
 # or the string @DEV to imply use what is currently installed locally.
 ###
 GOLANGCI_LINT_VERSION='v1.50.1'
-MOCKERY_VERSION='v2.12.2'
+MOCKERY_VERSION='v2.15.0'
 BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.3.0'

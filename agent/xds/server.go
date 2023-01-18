@@ -96,13 +96,7 @@ type ConfigFetcher interface {
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
 type ProxyConfigSource interface {
-	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error)
-}
-
-// SessionLimiter is the interface exposed by limiter.SessionLimiter. We depend
-// on an interface rather than the concrete type so we can mock it in tests.
-type SessionLimiter interface {
-	BeginSession() (limiter.Session, error)
+	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
@@ -111,12 +105,11 @@ type SessionLimiter interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName       string
-	Logger         hclog.Logger
-	CfgSrc         ProxyConfigSource
-	ResolveToken   ACLResolverFunc
-	CfgFetcher     ConfigFetcher
-	SessionLimiter SessionLimiter
+	NodeName     string
+	Logger       hclog.Logger
+	CfgSrc       ProxyConfigSource
+	ResolveToken ACLResolverFunc
+	CfgFetcher   ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -168,7 +161,6 @@ func NewServer(
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
-	limiter SessionLimiter,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
@@ -176,7 +168,6 @@ func NewServer(
 		CfgSrc:             cfgMgr,
 		ResolveToken:       resolveToken,
 		CfgFetcher:         cfgFetcher,
-		SessionLimiter:     limiter,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
 	}
