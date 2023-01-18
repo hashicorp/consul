@@ -87,18 +87,10 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
@@ -123,7 +115,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// upstream in endpoints.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
