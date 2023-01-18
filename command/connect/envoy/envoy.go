@@ -235,6 +235,12 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
+
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -279,12 +285,6 @@ func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
-
-	opts := hclog.LoggerOptions{Level: hclog.Off}
-	if c.enableLogging {
-		opts.Level = hclog.Debug
-	}
-	c.logger = hclog.New(&opts)
 
 	// Setup Consul client
 	var err error
