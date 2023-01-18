@@ -135,12 +135,14 @@ func TestVaultCAProvider_AWSAuthClient(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
+			if c.authMethod.MountPath == "" {
+				c.authMethod.MountPath = c.authMethod.Type
+			}
 			auth := NewAWSAuthClient(c.authMethod)
 			require.Equal(t, c.authMethod, auth.AuthMethod)
 			require.Equal(t, c.expLoginPath, auth.LoginPath)
 			if c.hasLDG {
 				require.NotNil(t, auth.LoginDataGen)
-				_ = auth.LoginDataGen.(*AWSLoginDataGenerator)
 			} else {
 				require.Nil(t, auth.LoginDataGen)
 			}
@@ -148,7 +150,7 @@ func TestVaultCAProvider_AWSAuthClient(t *testing.T) {
 	}
 }
 
-func TestVaultCAProvider_NewCredentialsConfig(t *testing.T) {
+func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 	cases := map[string]struct {
 		params    map[string]interface{}
 		envVars   map[string]string
@@ -232,7 +234,7 @@ func TestVaultCAProvider_NewCredentialsConfig(t *testing.T) {
 					}
 				})
 			}
-			creds, headerValue, err := NewCredentialsConfig(c.params)
+			creds, headerValue, err := newAWSCredentialsConfig(c.params)
 			if c.expErr != nil {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expErr.Error())

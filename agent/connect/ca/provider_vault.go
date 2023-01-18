@@ -538,8 +538,7 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	req := v.client.NewRequest("GET", "/v1/"+path+"/ca/pem")
-	resp, err := v.client.RawRequest(req)
+	resp, err := v.client.Logical().ReadRaw(path + "/ca/pem")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -567,8 +566,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
-	resp, err := v.client.RawRequest(req)
+	resp, err := v.client.Logical().ReadRaw(path + "/ca_chain")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -839,48 +837,17 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
-	if err := r.SetJSONBody(mountInfo); err != nil {
-		return err
-	}
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
+	return v.client.Sys().Mount(path, mountInfo)
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s/tune", path))
-	if err := r.SetJSONBody(mountConfig); err != nil {
-		return err
-	}
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
+	return v.client.Sys().TuneMount(path, *mountConfig)
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("DELETE", fmt.Sprintf("/v1/sys/mounts/%s", path))
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
-}
-
-func makePathHelper(namespace, path string) string {
-	var fullPath string
-	if namespace != "" {
-		fullPath = fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, path)
-	} else {
-		fullPath = fmt.Sprintf("/v1/sys/mounts/%s", path)
-	}
-	return fullPath
+	return v.client.Sys().Unmount(path)
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
