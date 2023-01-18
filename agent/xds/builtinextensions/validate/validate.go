@@ -18,10 +18,10 @@ import (
 )
 
 type Validate struct {
-	// envoyID is an argument to the Validate plugin identifies which listener to begin the validation with.
+	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
 
-	// snis is all of the upstream SNIs for this proxy. It is set via ExtensionConfiguration
+	// snis is all of the upstream SNIs for this proxy. It is set via ExtensionConfiguration.
 	snis map[string]struct{}
 
 	// listener specifies if the service's listener has been seen.
@@ -138,22 +138,9 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 	}
 	v.cluster = true
 
-	cdt, ok := c.ClusterDiscoveryType.(*envoy_cluster_v3.Cluster_ClusterType)
-
+	// If it's an aggregate cluster, add all of them to p.resources.
+	aggregateCluster, ok := isAggregateCluster(c)
 	if ok {
-		cct := cdt.ClusterType.TypedConfig
-		if cct == nil {
-			// TODO what to do here.
-			// Its not an aggregate cluster, go to bottom of ok block
-			return c, false, nil
-		}
-		aggregateCluster := &envoy_aggregate_cluster_v3.ClusterConfig{}
-		err := anypb.UnmarshalTo(cct, aggregateCluster, proto.UnmarshalOptions{})
-		if err != nil {
-			// TODO what to do here.
-			// Its not an aggregate cluster, go to bottom of ok block
-			return c, false, nil
-		}
 		for _, clusterName := range aggregateCluster.Clusters {
 			r, ok := p.resources[clusterName]
 			if !ok {
@@ -164,7 +151,6 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 		}
 		// If there is more than one aggregate cluster, defer to the endpoints there.
 		v.endpoints = len(aggregateCluster.Clusters)
-
 		return c, false, nil
 	}
 
@@ -181,7 +167,7 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 }
 
 func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
-	// TODO If a single filter exists for a listener we say it exists.
+	// If a single filter exists for a listener we say it exists.
 	p.listener = true
 
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
@@ -211,4 +197,20 @@ func (p *Validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadA
 		return la, false, nil
 	}
 	return la, false, nil
+}
+
+func isAggregateCluster(c *envoy_cluster_v3.Cluster) (*envoy_aggregate_cluster_v3.ClusterConfig, bool) {
+	aggregateCluster := &envoy_aggregate_cluster_v3.ClusterConfig{}
+	cdt, ok := c.ClusterDiscoveryType.(*envoy_cluster_v3.Cluster_ClusterType)
+	if ok {
+		cct := cdt.ClusterType.TypedConfig
+		if cct != nil {
+			err := anypb.UnmarshalTo(cct, aggregateCluster, proto.UnmarshalOptions{})
+			if err == nil {
+				return aggregateCluster, true
+			}
+		}
+	}
+	return nil, false
+
 }

@@ -14,7 +14,7 @@ import (
 func TestValidate(t *testing.T) {
 	indexedResources := getConfig(t)
 	// TODO might be passing in some wrong info here.
-	err := Validate(indexedResources, service, "", "240.0.0.1")
+	err := Validate(indexedResources, service, "", "")
 	require.NoError(t, err)
 }
 

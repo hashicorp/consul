@@ -65,6 +65,7 @@ func TestValidateUpstreams(t *testing.T) {
 	}
 
 	// TODO Test tproxy with failover, redirect, splitter. -- tested with redirect, probably sufficient
+	// peering and failover
 	// TODO explicit upstreams and tproxy for the same service.-- can determine this based on VIP being passed in, so we will probably handle this fine
 	// TODO Investigate if we can make the missing cluster error cases have a different error, to help make it less confusing.
 	tests := []struct {
@@ -198,6 +199,12 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "failover",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+			},
+		},
+		{
+			name: "failover-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
 			},
 		},
 		{
