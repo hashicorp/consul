@@ -207,7 +207,7 @@ func (h *Handler) Allow(op Operation) error {
 		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
-		h.logger.Trace("RPC exceeded allowed rate limit",
+		h.logger.Warn("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
 			"source_addr", op.SourceAddr,
 			"limit_type", l.desc,
@@ -230,13 +230,6 @@ func (h *Handler) Allow(op Operation) error {
 		})
 
 		if enforced {
-			h.logger.Warn("RPC blocked due to exceeded allowed rate limit",
-				"rpc", op.Name,
-				"source_addr", op.SourceAddr,
-				"limit_type", l.desc,
-				"limit_enforced", enforced,
-			)
-
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 				return ErrRetryLater
 			}
