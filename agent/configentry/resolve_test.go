@@ -121,8 +121,67 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 				MeshGateway: remoteMeshGW,
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeRemote,
+							},
+						},
+					},
+					{
 						Upstream: uid,
 						Config: map[string]interface{}{
+							"mesh_gateway": remoteMeshGW,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "proxy inherits kitchen sink from proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							Config: map[string]interface{}{
+								"foo": "bar",
+							},
+							Expose: structs.ExposeConfig{
+								Checks: true,
+								Paths:  []structs.ExposePath{},
+							},
+							Mode:        structs.ProxyModeTransparent,
+							MeshGateway: remoteMeshGW,
+							TransparentProxy: structs.TransparentProxyConfig{
+								OutboundListenerPort: 6666,
+								DialedDirectly:       true,
+							},
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"foo": "bar",
+				},
+				Expose: structs.ExposeConfig{
+					Checks: true,
+					Paths:  []structs.ExposePath{},
+				},
+				Mode:        structs.ProxyModeTransparent,
+				MeshGateway: remoteMeshGW,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 6666,
+					DialedDirectly:       true,
+				},
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"foo":          "bar",
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
@@ -153,6 +212,12 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			want: &structs.ServiceConfigResponse{
 				MeshGateway: noneMeshGW, // service-defaults has a higher precedence.
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": noneMeshGW,
+						},
+					},
 					{
 						Upstream: uid,
 						Config: map[string]interface{}{
