@@ -54,7 +54,7 @@ func TestWatchRoots_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
+		Return(testutils.ACLNoPermissions(t), nil)
 
 	options := structs.QueryOptions{Token: testACLToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -144,7 +144,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// first two times it is called (initial connect and first re-auth).
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
+		Return(testutils.ACLNoPermissions(t), nil).Twice()
 
 	options := structs.QueryOptions{Token: testACLToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -184,9 +184,9 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// Expect the stream to remain open and to receive the new roots.
 	mustGetRoots(t, rspCh)
 
-	// Simulate removing the `service:write` permission.
+	// Simulate deleting the ACL token.
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerDenyAll(t), nil)
+		Return(resolver.Result{}, acl.ErrNotFound)
 
 	// Update the ACL token to cause the subscription to be force-closed.
 	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{
@@ -197,7 +197,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Expect the stream to be terminated.
 	err = mustGetError(t, rspCh)
-	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.Equal(t, codes.Unauthenticated.String(), status.Code(err).String())
 }
 
 func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
@@ -214,7 +214,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
+		Return(testutils.ACLNoPermissions(t), nil)
 
 	options := structs.QueryOptions{Token: testACLToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)

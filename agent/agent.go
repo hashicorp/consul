@@ -17,8 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pboperator"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -66,6 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -565,22 +564,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	// gRPC calls are only rate-limited on server, not client agents.
-	var grpcRateLimiter rpcRate.RequestLimitsHandler
-	grpcRateLimiter = rpcRate.NullRequestLimitsHandler()
-	if s, ok := a.delegate.(*consul.Server); ok {
-		grpcRateLimiter = s.IncomingRPCLimiter()
-	}
-
-	// This needs to happen after the initial auto-config is loaded, because TLS
-	// can only be configured on the gRPC server at the point of creation.
-	a.externalGRPCServer = external.NewServer(
-		a.logger.Named("grpc.external"),
-		metrics.Default(),
-		a.tlsConfigurator,
-		grpcRateLimiter,
-	)
-
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
 	}
@@ -618,10 +601,26 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
+		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
+
+		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
+			&lib.StopChannelContext{StopCh: a.shutdownCh},
+			serverLogger,
+			consulCfg,
+		)
+
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			incomingRPCLimiter,
+		)
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
+		incomingRPCLimiter.Register(server)
 		a.delegate = server
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
@@ -642,6 +641,13 @@ func (a *Agent) Start(ctx context.Context) error {
 		}
 
 	} else {
+		a.externalGRPCServer = external.NewServer(
+			a.logger.Named("grpc.external"),
+			metrics.Default(),
+			a.tlsConfigurator,
+			rpcRate.NullRequestLimitsHandler(),
+		)
+
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
@@ -849,6 +855,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			Manager:           a.proxyConfig,
 			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
 			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
 		})
 		go func() {
 			<-a.shutdownCh
@@ -864,7 +871,6 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a.baseDeps.XDSStreamLimiter,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 
@@ -1949,12 +1955,10 @@ OUTER:
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
-				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}
@@ -2431,7 +2435,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, req.token)
+	err := a.State.AddServiceWithChecks(service, checks, req.token, req.Source == ConfigSourceLocal)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
@@ -2767,7 +2771,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	}
 
 	// Add to the local state for anti-entropy
-	err = a.State.AddCheck(check, token)
+	err = a.State.AddCheck(check, token, source == ConfigSourceLocal)
 	if err != nil {
 		return err
 	}

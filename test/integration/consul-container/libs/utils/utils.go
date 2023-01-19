@@ -10,6 +10,9 @@ import (
 
 func RandName(name string) string {
 	shortID, err := shortid.New(1, shortid.DefaultABC, 6666)
+	if err != nil {
+		return ""
+	}
 	id, err := shortID.Generate()
 	if err != nil {
 		return ""

@@ -9,9 +9,9 @@ import (
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -927,8 +927,8 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
 				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
-						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+						MinimumRingSize: &wrapperspb.UInt64Value{Value: 3},
+						MaximumRingSize: &wrapperspb.UInt64Value{Value: 7},
 					},
 				},
 			},
@@ -945,7 +945,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
 				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+						ChoiceCount: &wrapperspb.UInt32Value{Value: 3},
 					},
 				},
 			},

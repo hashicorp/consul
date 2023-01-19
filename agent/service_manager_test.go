@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -419,7 +421,13 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"protocol": "http",
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-				structs.OpaqueUpstreamConfig{
+				{
+					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
+					Config: map[string]interface{}{
+						"foo": int64(1),
+					},
+				},
+				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -429,7 +437,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
+	expectJSONFile(t, configFile, pcfg, fixPersistedServiceConfigForTest)
 
 	// Verify in memory state.
 	{
@@ -467,7 +475,13 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"protocol": "http",
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-				structs.OpaqueUpstreamConfig{
+				{
+					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
+					Config: map[string]interface{}{
+						"foo": int64(1),
+					},
+				},
+				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -477,7 +491,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
+	expectJSONFile(t, configFile, pcfg, fixPersistedServiceConfigForTest)
 
 	// Verify in memory state.
 	expectState.Proxy.LocalServicePort = 8001
@@ -646,7 +660,13 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"protocol": "http",
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-				structs.OpaqueUpstreamConfig{
+				{
+					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
+					Config: map[string]interface{}{
+						"foo": int64(1),
+					},
+				},
+				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -655,7 +675,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	}, resetDefaultsQueryMeta)
+	}, fixPersistedServiceConfigForTest)
 
 	// Verify in memory state.
 	{
@@ -811,6 +831,23 @@ func expectJSONFile(t *testing.T, file string, expect interface{}, fixupContentB
 	}
 
 	require.JSONEq(t, string(expected), string(content))
+}
+
+func fixPersistedServiceConfigForTest(content []byte) ([]byte, error) {
+	var parsed persistedServiceConfig
+	if err := json.Unmarshal(content, &parsed); err != nil {
+		return nil, err
+	}
+	// Sort the output, since it's randomized and causes flaky tests otherwise.
+	sort.Slice(parsed.Defaults.UpstreamIDConfigs, func(i, j int) bool {
+		return parsed.Defaults.UpstreamIDConfigs[i].Upstream.ID < parsed.Defaults.UpstreamIDConfigs[j].Upstream.ID
+	})
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return nil, err
+	}
+	// Clean the query meta
+	return resetDefaultsQueryMeta(out)
 }
 
 // resetDefaultsQueryMeta will reset the embedded fields from structs.QueryMeta

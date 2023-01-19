@@ -410,6 +410,636 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			},
 		},
 		{
+			name:  "api-gateway",
+			entry: &APIGatewayConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name:  "inline-certificate",
+			entry: &InlineCertificateConfigEntry{Name: "test", Certificate: validCertificate, PrivateKey: validPrivateKey},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name:  "http-route",
+			entry: &HTTPRouteConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name:  "tcp-route",
+			entry: &TCPRouteConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name:  "bound-api-gateway",
+			entry: &BoundAPIGatewayConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   false,
+				},
+			},
+		},
+		{
 			name:  "terminating-gateway",
 			entry: &TerminatingGatewayConfigEntry{Name: "test"},
 			expectACLs: []testACL{

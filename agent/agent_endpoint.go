@@ -1496,6 +1496,9 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
 
+		case "config_file_service_registration":
+			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
+
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}

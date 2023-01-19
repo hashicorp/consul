@@ -538,8 +538,7 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	req := v.client.NewRequest("GET", "/v1/"+path+"/ca/pem")
-	resp, err := v.client.RawRequest(req)
+	resp, err := v.client.Logical().ReadRaw(path + "/ca/pem")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -567,8 +566,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
-	resp, err := v.client.RawRequest(req)
+	resp, err := v.client.Logical().ReadRaw(path + "/ca_chain")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -839,48 +837,17 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
-	if err := r.SetJSONBody(mountInfo); err != nil {
-		return err
-	}
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
+	return v.client.Sys().Mount(path, mountInfo)
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s/tune", path))
-	if err := r.SetJSONBody(mountConfig); err != nil {
-		return err
-	}
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
+	return v.client.Sys().TuneMount(path, *mountConfig)
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
 	defer v.setNamespace(namespace)()
-	r := v.client.NewRequest("DELETE", fmt.Sprintf("/v1/sys/mounts/%s", path))
-	resp, err := v.client.RawRequest(r)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	return err
-}
-
-func makePathHelper(namespace, path string) string {
-	var fullPath string
-	if namespace != "" {
-		fullPath = fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, path)
-	} else {
-		fullPath = fmt.Sprintf("/v1/sys/mounts/%s", path)
-	}
-	return fullPath
+	return v.client.Sys().Unmount(path)
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
@@ -959,13 +926,12 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 }
 
 func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*vaultapi.Secret, error) {
-	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
-	loginPath, err := configureVaultAuthMethod(authMethod)
+	vaultAuth, err := configureVaultAuthMethod(authMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.Logical().Write(loginPath, authMethod.Params)
+	resp, err := vaultAuth.Login(context.Background(), client)
 	if err != nil {
 		return nil, err
 	}
@@ -976,57 +942,60 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
-func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath string, err error) {
+func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
 	}
 
+	loginPath := ""
 	switch authMethod.Type {
+	case VaultAuthMethodTypeAWS:
+		return NewAWSAuthClient(authMethod), nil
+	case VaultAuthMethodTypeGCP:
+		return NewGCPAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
 		// For the Kubernetes Auth method, we will try to read the JWT token
 		// from the default service account file location if jwt was not provided.
 		if jwt, ok := authMethod.Params["jwt"]; !ok || jwt == "" {
 			serviceAccountToken, err := os.ReadFile(defaultK8SServiceAccountTokenPath)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 
 			authMethod.Params["jwt"] = string(serviceAccountToken)
 		}
-		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// These auth methods require a username for the login API path.
 	case VaultAuthMethodTypeLDAP, VaultAuthMethodTypeUserpass, VaultAuthMethodTypeOkta, VaultAuthMethodTypeRadius:
 		// Get username from the params.
 		if username, ok := authMethod.Params["username"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, username)
 		} else {
-			return "", fmt.Errorf("failed to get 'username' from auth method params")
+			return nil, fmt.Errorf("failed to get 'username' from auth method params")
 		}
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// This auth method requires a role for the login API path.
 	case VaultAuthMethodTypeOCI:
 		if role, ok := authMethod.Params["role"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, role)
 		} else {
-			return "", fmt.Errorf("failed to get 'role' from auth method params")
+			return nil, fmt.Errorf("failed to get 'role' from auth method params")
 		}
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	case VaultAuthMethodTypeToken:
-		return "", fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
+		return nil, fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
 	case VaultAuthMethodTypeAliCloud,
 		VaultAuthMethodTypeAppRole,
-		VaultAuthMethodTypeAWS,
 		VaultAuthMethodTypeAzure,
 		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
-		VaultAuthMethodTypeGCP,
 		VaultAuthMethodTypeJWT,
 		VaultAuthMethodTypeKerberos,
 		VaultAuthMethodTypeTLS:
-		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	default:
-		return "", fmt.Errorf("auth method %q is not supported", authMethod.Type)
+		return nil, fmt.Errorf("auth method %q is not supported", authMethod.Type)
 	}
-
-	return
 }
