@@ -75,6 +75,18 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   In cases where either assumption is violated this flag will prevent the
   command attempting to resolve config from the local agent.
 
+- `-envoy-ready-bind-address` - By default the proxy does not have a readiness probe
+  configured on it. This flag in conjunction with the `envoy-ready-bind-port` flag
+  configures where the envoy readiness probe is configured on the proxy. A `/ready` HTTP
+  endpoint will be instantiated at the specified address and port. When configured, Consul
+  uses `/ready` HTTP endpoints to check proxy health.
+
+- `-envoy-ready-bind-port` - By default the proxy does not have a readiness probe
+  configured on it. This flag in conjunction with the `envoy-ready-bind-address` flag
+  configures where the envoy readiness probe is configured on the proxy. A `/ready` HTTP
+  endpoint will be instantiated at the specified address and port. When configured, Consul
+  uses `/ready` HTTP endpoints to check proxy health.
+
 - `-prometheus-backend-port` - Sets the backend port for the "prometheus_backend"
   cluster that `envoy_prometheus_bind_addr` will point to. Without this flag,
   `envoy_prometheus_bind_addr` would point to the "self_admin" cluster where Envoy metrics
@@ -161,7 +173,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
-- `-admin-access-log-path` - 
+- `-admin-access-log-path` -
   **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/docs/connect/config-entries/proxy-defaults#accesslogs).**
   The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
