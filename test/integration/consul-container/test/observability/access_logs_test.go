@@ -101,6 +101,7 @@ func TestAccessLogs(t *testing.T) {
 	set, _, err = cluster.Agents[0].GetClient().ConfigEntries().Set(proxyDefault, nil)
 	require.NoError(t, err)
 	require.True(t, set)
+	time.Sleep(5 * time.Second) // time for xDS to propagate
 
 	// Validate Custom Text
 	_, port = clientService.GetAddr()
@@ -109,7 +110,7 @@ func TestAccessLogs(t *testing.T) {
 		client := libassert.ServiceLogContains(t, clientService, "Orange you glad I didn't say banana: /orange, -")
 		server := libassert.ServiceLogContains(t, serverService, "Orange you glad I didn't say banana: /orange, -")
 		return client && server
-	}, 30*time.Second, 1*time.Second)
+	}, 60*time.Second, 500*time.Millisecond) // For some reason it takes a long time for the server sidecar to update
 
 	// TODO: add a test to check that connections without a matching filter chain are NOT logged
 
@@ -125,6 +126,7 @@ func TestAccessLogs(t *testing.T) {
 	set, _, err = cluster.Agents[0].GetClient().ConfigEntries().Set(proxyDefault, nil)
 	require.NoError(t, err)
 	require.True(t, set)
+	time.Sleep(5 * time.Second) // time for xDS to propagate
 
 	_, port = clientService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "mango")
