@@ -198,9 +198,13 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 			_ = consulContainer.StopLogProducer()
 		})
 
-		consulContainer.FollowOutput(&LogConsumer{
-			Prefix: opts.name,
-		})
+		if config.LogConsumer != nil {
+			consulContainer.FollowOutput(config.LogConsumer)
+		} else {
+			consulContainer.FollowOutput(&LogConsumer{
+				Prefix: opts.name,
+			})
+		}
 	}
 
 	node := &consulContainerNode{
