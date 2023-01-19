@@ -196,6 +196,7 @@ func checkLogsForMessage(t *retry.R, logs []string, msg string, operationName st
 	for _, log := range logs {
 		if strings.Contains(log, msg) {
 			found = true
+			break
 		}
 	}
 	require.Equal(t, logShouldExist, found, fmt.Sprintf("%s log check failed for: %s. Log expected: %t", logType, operationName, logShouldExist))
