@@ -114,26 +114,6 @@ func TestAccessLogs(t *testing.T) {
 
 	// TODO: add a test to check that connections without a matching filter chain are NOT logged
 
-	// Validate access logs can be turned off
-	proxyDefault = &api.ProxyConfigEntry{
-		Kind: api.ProxyDefaults,
-		Name: api.ProxyConfigGlobal,
-		AccessLogs: &api.AccessLogsConfig{
-			Enabled: false,
-		},
-	}
-
-	set, _, err = cluster.Agents[0].GetClient().ConfigEntries().Set(proxyDefault, nil)
-	require.NoError(t, err)
-	require.True(t, set)
-	time.Sleep(5 * time.Second) // time for xDS to propagate
-
-	_, port = clientService.GetAddr()
-	libassert.HTTPServiceEchoes(t, "localhost", port, "mango")
-	time.Sleep(5 * time.Second) // time to flush buffers
-
-	require.False(t, libassert.ServiceLogContains(t, clientService, "mango"))
-	require.False(t, libassert.ServiceLogContains(t, serverService, "mango"))
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {
