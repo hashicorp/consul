@@ -139,7 +139,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 		noEndpointsUID   = NewUpstreamIDFromServiceName(noEndpoints)
 		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
-		db = structs.NewServiceName("db", nil)
+		db    = structs.NewServiceName("db", nil)
 		nodes = []structs.CheckServiceNode{
 			{
 				Node: &structs.Node{
@@ -156,7 +156,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 					},
 				},
 			},
-		},
+		}
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
