@@ -32,15 +32,13 @@ func TestBasicConnectService(t *testing.T) {
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
-		// TODO: fix the test to not need the service/envoy stack to use :8500
-		AllowHTTPAnyway: true,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	conf := libcluster.NewConfigBuilder(ctx).
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		ToAgentConfig(t)
 	t.Logf("Cluster config:\n%s", conf.JSON)
 

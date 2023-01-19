@@ -20,9 +20,9 @@ const (
 	ConsulCACertKey = "consul-agent-ca-key.pem"
 )
 
-// BuildContext provides a reusable object meant to share common configuration settings
+// ClusterContext provides a reusable object meant to share common configuration settings
 // between agent configuration builders.
-type BuildContext struct {
+type ClusterContext struct {
 	datacenter      string
 	consulImageName string
 	consulVersion   string
@@ -33,21 +33,19 @@ type BuildContext struct {
 	injectCerts          bool // initializes the built-in CA and distributes client certificates to agents
 	injectAutoEncryption bool // initialize the built-in CA and set up agents to use auto-encrpt
 	allowHTTPAnyway      bool
-	useAPIWithTLS        bool
-	useGRPCWithTLS       bool
 
 	certVolume   string
 	caCert       string
 	tlsCertIndex int // keeps track of the certificates issued for naming purposes
 }
 
-func (c *BuildContext) DockerImage() string {
+func (c *ClusterContext) DockerImage() string {
 	return utils.DockerImage(c.consulImageName, c.consulVersion)
 }
 
-// BuildOptions define the desired automated test setup overrides that are
+// ClusterOptions define the desired automated test setup overrides that are
 // applied across agents in the cluster
-type BuildOptions struct {
+type ClusterOptions struct {
 	// Datacenter is the override datacenter for agents.
 	Datacenter string
 
@@ -74,20 +72,15 @@ type BuildOptions struct {
 	InjectAutoEncryption bool
 
 	// AllowHTTPAnyway ensures that the HTTP API is enabled even when
-	// InjectCerts or InjectAutoEncryption are enabled.
+	// InjectCerts or InjectAutoEncryption are enabled. When enabled, services
+	// will default to using plaintext to talk to the agent, regardless of other options.
 	AllowHTTPAnyway bool
-
-	// UseAPIWithTLS ensures that any accesses for the JSON API use the https
-	// port. By default it will not.
-	UseAPIWithTLS bool
-
-	// UseGRPCWithTLS ensures that any accesses for external gRPC use the
-	// grpc_tls port. By default it will not.
-	UseGRPCWithTLS bool
 }
 
-func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
-	ctx := &BuildContext{
+// NewClusterContext generates a cluster context object to be shared with an AgentConfigFactory.
+// It also provides some validation that high-level cluster features don't conflict with each other.
+func NewClusterContext(t *testing.T, opts ClusterOptions) *ClusterContext {
+	ctx := &ClusterContext{
 		datacenter:             opts.Datacenter,
 		consulImageName:        opts.ConsulImageName,
 		consulVersion:          opts.ConsulVersion,
@@ -95,8 +88,6 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 		injectCerts:            opts.InjectCerts,
 		injectAutoEncryption:   opts.InjectAutoEncryption,
 		allowHTTPAnyway:        opts.AllowHTTPAnyway,
-		useAPIWithTLS:          opts.UseAPIWithTLS,
-		useGRPCWithTLS:         opts.UseGRPCWithTLS,
 	}
 
 	if ctx.consulImageName == "" {
@@ -112,47 +103,30 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 		ctx.encryptKey = serfKey
 	}
 
-	if opts.InjectAutoEncryption {
-		if opts.UseAPIWithTLS {
-			// TODO: we should improve this
-			t.Fatalf("Cannot use TLS with the API in conjunction with Auto Encrypt because you would need to use the Connect CA Cert for verification")
-		}
-		if opts.UseGRPCWithTLS {
-			// TODO: we should improve this
-			t.Fatalf("Cannot use TLS with gRPC in conjunction with Auto Encrypt because you would need to use the Connect CA Cert for verification")
-		}
-	}
-
 	if opts.InjectAutoEncryption || opts.InjectCerts {
 		ctx.createTLSCAFiles(t)
-	} else {
-		if opts.UseAPIWithTLS {
-			t.Fatalf("UseAPIWithTLS requires one of InjectAutoEncryption or InjectCerts to be set")
-		}
-		if opts.UseGRPCWithTLS {
-			t.Fatalf("UseGRPCWithTLS requires one of InjectAutoEncryption or InjectCerts to be set")
-		}
 	}
+
 	return ctx
 }
 
-type Builder struct {
-	context *BuildContext // this is non-nil
+type AgentConfigFactory struct {
+	context *ClusterContext // this is non-nil
 	conf    *ConfigBuilder
 }
 
-// NewConfigBuilder instantiates a builder object with sensible defaults for a single consul instance
+// NewAgentConfigFactory instantiates a factory object with sensible defaults for a single consul instance
 // This includes the following:
 // * default ports with no plaintext options
 // * debug logging
 // * single server with bootstrap
 // * bind to all interfaces, advertise on 'eth0'
 // * connect enabled
-func NewConfigBuilder(ctx *BuildContext) *Builder {
+func NewAgentConfigFactory(ctx *ClusterContext) *AgentConfigFactory {
 	if ctx == nil {
-		panic("BuildContext is a required argument")
+		panic("ClusterContext is a required argument")
 	}
-	b := &Builder{
+	b := &AgentConfigFactory{
 		conf:    &ConfigBuilder{},
 		context: ctx,
 	}
@@ -194,14 +168,14 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 }
 
 // Advanced lets you directly manipulate specific config settings.
-func (b *Builder) Advanced(fn func(*ConfigBuilder)) *Builder {
+func (b *AgentConfigFactory) Advanced(fn func(*ConfigBuilder)) *AgentConfigFactory {
 	if fn != nil {
 		fn(b.conf)
 	}
 	return b
 }
 
-func (b *Builder) Bootstrap(servers int) *Builder {
+func (b *AgentConfigFactory) Bootstrap(servers int) *AgentConfigFactory {
 	if servers < 1 {
 		b.conf.Unset("bootstrap")
 		b.conf.Unset("bootstrap_expect")
@@ -215,7 +189,7 @@ func (b *Builder) Bootstrap(servers int) *Builder {
 	return b
 }
 
-func (b *Builder) Client() *Builder {
+func (b *AgentConfigFactory) Client() *AgentConfigFactory {
 	b.conf.Unset("ports.server")
 	b.conf.Unset("server")
 	b.conf.Unset("bootstrap")
@@ -223,29 +197,29 @@ func (b *Builder) Client() *Builder {
 	return b
 }
 
-func (b *Builder) Datacenter(name string) *Builder {
+func (b *AgentConfigFactory) Datacenter(name string) *AgentConfigFactory {
 	b.conf.Set("datacenter", name)
 	return b
 }
 
-func (b *Builder) Peering(enable bool) *Builder {
+func (b *AgentConfigFactory) Peering(enable bool) *AgentConfigFactory {
 	b.conf.Set("peering.enabled", enable)
 	return b
 }
 
-func (b *Builder) RetryJoin(names ...string) *Builder {
+func (b *AgentConfigFactory) RetryJoin(names ...string) *AgentConfigFactory {
 	b.conf.Set("retry_join", names)
 	return b
 }
 
-func (b *Builder) Telemetry(statSite string) *Builder {
+func (b *AgentConfigFactory) Telemetry(statSite string) *AgentConfigFactory {
 	b.conf.Set("telemetry.statsite_address", statSite)
 	return b
 }
 
 // ToAgentConfig renders the builders configuration into a string
 // representation of the json config file for agents.
-func (b *Builder) ToAgentConfig(t *testing.T) *Config {
+func (b *AgentConfigFactory) ToAgentConfig(t *testing.T) *Config {
 	b.injectContextOptions(t)
 
 	out, err := json.MarshalIndent(b.conf, "", "  ")
@@ -253,6 +227,12 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 
 	confCopy, err := b.conf.Clone()
 	require.NoError(t, err)
+
+	// Set the preferences for services communicating with this node
+	var useTLS bool
+	if (b.context.injectCerts || b.context.injectAutoEncryption) && !b.context.allowHTTPAnyway {
+		useTLS = true
+	}
 
 	return &Config{
 		JSON:          string(out),
@@ -266,12 +246,12 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 		CertVolume: b.context.certVolume,
 		CACert:     b.context.caCert,
 
-		UseAPIWithTLS:  b.context.useAPIWithTLS,
-		UseGRPCWithTLS: b.context.useGRPCWithTLS,
+		UseAPIWithTLS:  useTLS,
+		UseGRPCWithTLS: useTLS,
 	}
 }
 
-func (b *Builder) injectContextOptions(t *testing.T) {
+func (b *AgentConfigFactory) injectContextOptions(t *testing.T) {
 	var dc string
 	if b.context.datacenter != "" {
 		b.conf.Set("datacenter", b.context.datacenter)

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -21,7 +22,7 @@ const (
 
 type BuiltCluster struct {
 	Cluster   *libcluster.Cluster
-	Context   *libcluster.BuildContext
+	Context   *libcluster.ClusterContext
 	Service   libservice.Service
 	Container *libservice.ConnectContainer
 }
@@ -106,16 +107,15 @@ func NewDialingCluster(
 	t.Helper()
 	t.Logf("creating the dialing cluster")
 
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		Datacenter:             "dc2",
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
-		AllowHTTPAnyway:        true,
 		ConsulVersion:          version,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	conf := libcluster.NewConfigBuilder(ctx).
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		Peering(true).
 		ToAgentConfig(t)
 	t.Logf("dc2 server config: \n%s", conf.JSON)
@@ -154,20 +154,19 @@ func NewPeeringCluster(
 	datacenter string,
 	numServers int,
 	version string,
-) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
+) (*libcluster.Cluster, *libcluster.ClusterContext, *api.Client) {
 	require.NotEmpty(t, datacenter)
 	require.True(t, numServers > 0)
 
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		Datacenter:             datacenter,
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
-		AllowHTTPAnyway:        true,
 		ConsulVersion:          version,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	serverConf := libcluster.NewConfigBuilder(ctx).
+	serverConf := libcluster.NewAgentConfigFactory(ctx).
 		Bootstrap(numServers).
 		Peering(true).
 		ToAgentConfig(t)
@@ -182,7 +181,7 @@ func NewPeeringCluster(
 	}
 
 	// Add a stable client to register the service
-	clientConf := libcluster.NewConfigBuilder(ctx).
+	clientConf := libcluster.NewAgentConfigFactory(ctx).
 		Client().
 		Peering(true).
 		RetryJoin(retryJoin...).

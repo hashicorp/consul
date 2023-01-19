@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 )
@@ -13,13 +14,13 @@ import (
 func serversCluster(t *testing.T, numServers int, image, version string) *libcluster.Cluster {
 	t.Helper()
 
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		ConsulImageName: image,
 		ConsulVersion:   version,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	conf := libcluster.NewConfigBuilder(ctx).
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		Bootstrap(numServers).
 		ToAgentConfig(t)
 	t.Logf("Cluster server config:\n%s", conf.JSON)
@@ -36,13 +37,13 @@ func serversCluster(t *testing.T, numServers int, image, version string) *libclu
 func clientsCreate(t *testing.T, numClients int, image, version string, cluster *libcluster.Cluster) {
 	t.Helper()
 
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		ConsulImageName: image,
 		ConsulVersion:   version,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	conf := libcluster.NewConfigBuilder(ctx).
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		Client().
 		ToAgentConfig(t)
 	t.Logf("Cluster client config:\n%s", conf.JSON)

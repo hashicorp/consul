@@ -36,7 +36,7 @@ func newSerfEncryptionKey() (string, error) {
 	return base64.StdEncoding.EncodeToString(key), nil
 }
 
-func (c *BuildContext) createTLSCAFiles(t *testing.T) {
+func (c *ClusterContext) createTLSCAFiles(t *testing.T) {
 	id, err := uuid.GenerateUUID()
 	require.NoError(t, err, "could not create cert volume UUID")
 
@@ -93,7 +93,7 @@ func (c *BuildContext) createTLSCAFiles(t *testing.T) {
 	c.caCert = w.String()
 }
 
-func (c *BuildContext) createTLSCertFiles(t *testing.T, dc string) (keyFileName, certFileName string) {
+func (c *ClusterContext) createTLSCertFiles(t *testing.T, dc string) (keyFileName, certFileName string) {
 	require.NotEmpty(t, "the CA has not been initialized yet")
 
 	err := utils.DockerExec([]string{"run",

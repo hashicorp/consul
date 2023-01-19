@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -61,17 +62,17 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 // Test health check GRPC call using Mixed (majority conditional) Servers and Latest GA Clients
 func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	var (
-		latestOpts = libcluster.BuildOptions{
+		latestOpts = libcluster.ClusterOptions{
 			ConsulImageName: utils.LatestImageName,
 			ConsulVersion:   utils.LatestVersion,
 		}
-		targetOpts = libcluster.BuildOptions{
+		targetOpts = libcluster.ClusterOptions{
 			ConsulImageName: utils.TargetImageName,
 			ConsulVersion:   utils.TargetVersion,
 		}
 
-		majorityOpts libcluster.BuildOptions
-		minorityOpts libcluster.BuildOptions
+		majorityOpts libcluster.ClusterOptions
+		minorityOpts libcluster.ClusterOptions
 	)
 
 	if majorityIsTarget {
@@ -89,9 +90,9 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 
 	var configs []libcluster.Config
 	{
-		ctx := libcluster.NewBuildContext(t, minorityOpts)
+		ctx := libcluster.NewClusterContext(t, minorityOpts)
 
-		conf := libcluster.NewConfigBuilder(ctx).
+		conf := libcluster.NewAgentConfigFactory(ctx).
 			ToAgentConfig(t)
 		t.Logf("Cluster server (leader) config:\n%s", conf.JSON)
 
@@ -99,9 +100,9 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	}
 
 	{
-		ctx := libcluster.NewBuildContext(t, majorityOpts)
+		ctx := libcluster.NewClusterContext(t, majorityOpts)
 
-		conf := libcluster.NewConfigBuilder(ctx).
+		conf := libcluster.NewAgentConfigFactory(ctx).
 			Bootstrap(numServers).
 			ToAgentConfig(t)
 		t.Logf("Cluster server config:\n%s", conf.JSON)

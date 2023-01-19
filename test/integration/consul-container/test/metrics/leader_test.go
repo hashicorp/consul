@@ -4,30 +4,31 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 )
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
 func TestLeadershipMetrics(t *testing.T) {
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
 	var configs []libcluster.Config
 
-	statsConf := libcluster.NewConfigBuilder(ctx).
+	statsConf := libcluster.NewAgentConfigFactory(ctx).
 		Telemetry("127.0.0.0:2180").
 		ToAgentConfig(t)
 
 	configs = append(configs, *statsConf)
 
-	conf := libcluster.NewConfigBuilder(ctx).
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		Bootstrap(3).
 		ToAgentConfig(t)
 

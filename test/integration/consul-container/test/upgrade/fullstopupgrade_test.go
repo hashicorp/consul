@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -40,7 +41,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
+		configCtx := libcluster.NewClusterContext(t, libcluster.ClusterOptions{
 			ConsulImageName: utils.TargetImageName,
 			ConsulVersion:   tc.oldversion,
 		})
@@ -49,7 +50,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			numServers = 1
 		)
 
-		serverConf := libcluster.NewConfigBuilder(configCtx).
+		serverConf := libcluster.NewAgentConfigFactory(configCtx).
 			Bootstrap(numServers).
 			ToAgentConfig(t)
 		t.Logf("Cluster config:\n%s", serverConf.JSON)

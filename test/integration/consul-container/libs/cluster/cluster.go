@@ -12,12 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -26,7 +27,7 @@ import (
 // craft a test case.
 type Cluster struct {
 	Agents []Agent
-	// BuildContext *BuildContext // TODO
+	// ClusterContext *ClusterContext // TODO
 	CACert      string
 	CAKey       string
 	ID          string

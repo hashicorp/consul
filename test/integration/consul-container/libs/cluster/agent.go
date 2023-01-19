@@ -3,9 +3,9 @@ package cluster
 import (
 	"context"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -30,7 +30,7 @@ type Agent interface {
 
 // Config is a set of configurations required to create a Agent
 //
-// Constructed by (Builder).ToAgentConfig()
+// Constructed by (AgentConfigFactory).ToAgentConfig()
 type Config struct {
 	ScratchDir    string
 	CertVolume    string
@@ -42,8 +42,8 @@ type Config struct {
 	Cmd           []string
 	LogConsumer   testcontainers.LogConsumer
 
-	// service defaults
-	UseAPIWithTLS  bool // TODO
+	// Preferences inherited by services
+	UseAPIWithTLS  bool
 	UseGRPCWithTLS bool
 }
 

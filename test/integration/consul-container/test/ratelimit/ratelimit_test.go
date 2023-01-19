@@ -217,13 +217,13 @@ func (g *TestLogConsumer) Accept(l testcontainers.Log) {
 
 // createCluster
 func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
+	opts := libcluster.ClusterOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
 	}
-	ctx := libcluster.NewBuildContext(t, opts)
+	ctx := libcluster.NewClusterContext(t, opts)
 
-	conf := libcluster.NewConfigBuilder(ctx).ToAgentConfig(t)
+	conf := libcluster.NewAgentConfigFactory(ctx).ToAgentConfig(t)
 	conf.LogConsumer = logConsumer
 
 	t.Logf("Cluster config:\n%s", conf.JSON)

@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -164,8 +165,8 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 }
 
 // rotateServer add a new server agent to the cluster, then forces the prior agent to leave.
-func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libcluster.BuildContext, node libcluster.Agent) {
-	conf := libcluster.NewConfigBuilder(ctx).
+func rotateServer(t *testing.T, cluster *libcluster.Cluster, client *api.Client, ctx *libcluster.ClusterContext, node libcluster.Agent) {
+	conf := libcluster.NewAgentConfigFactory(ctx).
 		Bootstrap(0).
 		Peering(true).
 		RetryJoin("agent-3"). // Always use the client agent since it never leaves the cluster
