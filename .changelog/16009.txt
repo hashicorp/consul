@@ -1,0 +1,3 @@
+```release-note:improvement
+Authentication: Warn when query token parameter is used for authentication.
+```
