@@ -34,6 +34,11 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	APIGateway         string = "api-gateway"
+	BoundAPIGateway    string = "bound-api-gateway"
+	InlineCertificate  string = "inline-certificate"
+	HTTPRoute          string = "http-route"
+	TCPRoute           string = "tcp-route"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -54,6 +59,11 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	APIGateway,
+	BoundAPIGateway,
+	HTTPRoute,
+	TCPRoute,
+	InlineCertificate,
 }
 
 const (
@@ -698,6 +708,16 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Name: name}, nil
+	case BoundAPIGateway:
+		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

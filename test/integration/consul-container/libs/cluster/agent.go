@@ -40,6 +40,7 @@ type Config struct {
 	Image         string
 	Version       string
 	Cmd           []string
+	LogConsumer   testcontainers.LogConsumer
 
 	// service defaults
 	UseAPIWithTLS  bool // TODO

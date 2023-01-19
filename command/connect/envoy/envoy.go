@@ -16,6 +16,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
@@ -612,6 +613,16 @@ func (c *cmd) generateConfig() ([]byte, error) {
 
 	var bsCfg BootstrapConfig
 
+	// Make a call to an arbitrary ACL endpoint. If we get back an ErrNotFound
+	// (meaning ACLs are enabled) check that the token is not empty.
+	if _, _, err := c.client.ACL().TokenReadSelf(
+		&api.QueryOptions{Token: args.Token},
+	); acl.IsErrNotFound(err) {
+		if args.Token == "" {
+			c.UI.Warn("No ACL token was provided to Envoy. Because the ACL system is enabled, pass a suitable ACL token for this service to Envoy to avoid potential communication failure.")
+		}
+	}
+
 	// Fetch any customization from the registration
 	var svcProxyConfig *api.AgentServiceConnectProxyConfig
 	var serviceName, ns, partition, datacenter string
@@ -754,7 +765,6 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 	return nil
 }
 
-// TODO: make method a function
 func (c *cmd) xdsAddress() (GRPC, error) {
 	g := GRPC{}
 

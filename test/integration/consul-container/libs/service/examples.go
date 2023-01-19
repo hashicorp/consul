@@ -117,3 +117,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 
 	return out, nil
 }
+
+func (g exampleContainer) GetAdminAddr() (string, int) {
+	return "localhost", 0
+}
