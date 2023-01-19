@@ -1342,6 +1342,7 @@ func TestBoundAPIGateway(t *testing.T) {
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
+<<<<<<< HEAD
 
 func TestBoundAPIGatewayBindRoute(t *testing.T) {
 	cases := map[string]struct {
@@ -1795,3 +1796,5 @@ func TestListenerUnbindRoute(t *testing.T) {
 		})
 	}
 }
+=======
+>>>>>>> @{-1}

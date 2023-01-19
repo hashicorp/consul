@@ -14,7 +14,7 @@ service, such as its protocol.
 ### Default protocol
 
 -> **NOTE**: The default protocol can also be configured globally for all proxies
-using the [proxy defaults](/docs/connect/config-entries/proxy-defaults#default-protocol)
+using the [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#default-protocol)
 config entry. However, if the protocol value is specified in a service defaults
 config entry for a given service, that value will take precedence over the
 globally configured value from proxy defaults.
@@ -309,7 +309,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for additional information.',
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -329,13 +329,13 @@ represents a location outside the Consul cluster. They can be dialed directly wh
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
         {
           name: 'partition',
           enterprise: true,
           description:
-            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
+            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
         },
       ],
       hcl: false,
@@ -345,10 +345,10 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       type: `string: "tcp"`,
       description: `Sets the protocol of the service. This is used
                       by Connect proxies for things like observability features and to unlock usage
-                      of the [\`service-splitter\`](/docs/connect/config-entries/service-splitter) and
-                      [\`service-router\`](/docs/connect/config-entries/service-router) config entries
+                      of the [\`service-splitter\`](/consul/docs/connect/config-entries/service-splitter) and
+                      [\`service-router\`](/consul/docs/connect/config-entries/service-router) config entries
                       for a service. It also unlocks the ability to define L7 intentions via
-                      [\`service-intentions\`](/docs/connect/config-entries/service-intentions).
+                      [\`service-intentions\`](/consul/docs/connect/config-entries/service-intentions).
                       Supported values are one of \`tcp\`, \`http\`, \`http2\`, or \`grpc\`.`,
     },
     {
@@ -425,12 +425,12 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               type: 'string: ""',
               description: `The protocol for the upstream listener.<br><br>
                   NOTE: The protocol of a service should ideally be configured via the
-                    [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                    [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
                     field of a
-                    [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
+                    [\`service-defaults\`](/consul/docs/connect/config-entries/service-defaults)
                     config entry for the upstream destination service. Configuring it in a
                     proxy upstream config will not fully enable some
-                    [L7 features](/docs/connect/l7-traffic).
+                    [L7 features](/consul/docs/connect/l7-traffic).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                   `,
             },
@@ -440,22 +440,22 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               description: {
                 hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
-                      [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      [\`connect_timeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
-                      [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
+                      [\`service-resolver\`](/consul/docs/connect/config-entries/service-resolver)
                       config entry for the upstream destination service.
                       Configuring it in a proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
                 yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
-                      [\`connectTimeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      [\`connectTimeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
-                      [\`ServiceResolver\`](/docs/connect/config-entries/service-resolver)
+                      [\`ServiceResolver\`](/consul/docs/connect/config-entries/service-resolver)
                       CRD for the upstream destination service.
                       Configuring it in a proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                 `,
               },
@@ -464,7 +464,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               name: 'MeshGateway',
               type: 'MeshGatewayConfig: <optional>',
               description: `Controls the default
-                [mesh gateway configuration](/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+                [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
                 for this upstream.`,
               children: [
                 {
@@ -565,22 +565,22 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               description: {
                 hcl: `The protocol for the upstream listener.<br><br>
                     NOTE: The protocol of a service should ideally be configured via the
-                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                      [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
                       field of a
-                      [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
+                      [\`service-defaults\`](/consul/docs/connect/config-entries/service-defaults)
                       config entry for the upstream destination service. Configuring it in a
                       proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
                 yaml: `The protocol for the upstream listener.<br><br>
                     NOTE: The protocol of a service should ideally be configured via the
-                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                      [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
                       field of a
-                      [\`ServiceDefaults\`](/docs/connect/config-entries/service-defaults)
+                      [\`ServiceDefaults\`](/consul/docs/connect/config-entries/service-defaults)
                       CRD for the upstream destination service. Configuring it in a
                       proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
               },
@@ -591,22 +591,22 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               description: {
                 hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
-                      [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      [\`connect_timeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
-                      [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
+                      [\`service-resolver\`](/consul/docs/connect/config-entries/service-resolver)
                       config entry for the upstream destination service.
                       Configuring it in a proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
                 yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
                     NOTE: The connect timeout of a service should ideally be configured via the
-                      [\`connectTimeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      [\`connectTimeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
                       field of a
-                      [\`ServiceResolver\`](/docs/connect/config-entries/service-resolver)
+                      [\`ServiceResolver\`](/consul/docs/connect/config-entries/service-resolver)
                       CRD for the upstream destination service.
                       Configuring it in a proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic).
+                      [L7 features](/consul/docs/connect/l7-traffic).
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                     `,
               },
@@ -615,7 +615,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
               name: 'MeshGateway',
               type: 'MeshGatewayConfig: <optional>',
               description: `Controls the default
-                  [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
+                  [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
                   for this upstream.`,
               children: [
                 {
@@ -773,7 +773,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
-      [mesh gateway configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
+      [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
       for this service. Added in v1.6.0.`,
       children: [
         {
@@ -795,7 +795,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
       name: 'Expose',
       type: 'ExposeConfig: <optional>',
       description: `Controls the default
-                      [expose path configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+                      [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
                       for Envoy. Added in v1.6.2.<br><br>
                       Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
                       non-Connect-enabled applications to contact an HTTP endpoint.
@@ -806,7 +806,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
           type: 'bool: false',
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-        [advertise address](/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+        [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
         [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
         Consul on Kubernetes, and Consul agents run in their own pods.`,
@@ -850,7 +850,7 @@ represents a location outside the Consul cluster. They can be dialed directly wh
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-defaults` config entry requires `service:read` on the resource.
 
