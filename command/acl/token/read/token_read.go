@@ -25,11 +25,11 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID  string
-	self     bool
-	showMeta bool
-	format   string
-	expanded bool
+	tokenAccessorID string
+	self            bool
+	showMeta        bool
+	format          string
+	expanded        bool
 }
 
 func (c *cmd) init() {
@@ -37,10 +37,10 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and Raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.self, "self", false, "Indicates that the current HTTP token "+
-		"should be read by secret ID instead of expecting a -id option")
+		"should be read by secret ID instead of expecting a -accessor-id option")
 	c.flags.BoolVar(&c.expanded, "expanded", false, "Indicates that the contents of the "+
 		" policies and roles affecting the token should also be shown.")
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
+	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(
@@ -61,8 +61,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenID == "" && !c.self {
-		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
+	if c.tokenAccessorID == "" && !c.self {
+		c.UI.Error(fmt.Sprintf("Must specify the -accesor-id parameter"))
 		return 1
 	}
 
@@ -75,27 +75,27 @@ func (c *cmd) Run(args []string) int {
 	var t *api.ACLToken
 	var expanded *api.ACLTokenExpanded
 	if !c.self {
-		tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
+		tokenAccessorID, err := acl.GetTokenAccessorIDFromPartial(client, c.tokenAccessorID)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 			return 1
 		}
 
 		if !c.expanded {
-			t, _, err = client.ACL().TokenRead(tokenID, nil)
+			t, _, err = client.ACL().TokenRead(tokenAccessorID, nil)
 		} else {
-			expanded, _, err = client.ACL().TokenReadExpanded(tokenID, nil)
+			expanded, _, err = client.ACL().TokenReadExpanded(tokenAccessorID, nil)
 		}
 
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
+			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenAccessorID, err))
 			return 1
 		}
 	} else {
 		// TODO: consider updating this CLI command and underlying HTTP API endpoint
 		// to support expanded read of a "self" token, which is a much better user workflow.
 		if c.expanded {
-			c.UI.Error("Cannot use both -expanded and -self. Instead, use -expanded and -id=<accessor id>.")
+			c.UI.Error("Cannot use both -expanded and -self. Instead, use -expanded and -accessor-id=<accessor id>.")
 			return 1
 		}
 
@@ -139,17 +139,17 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Read an ACL token"
 	help     = `
-Usage: consul acl token read [options] -id TOKENID
+Usage: consul acl token read [options] -accessor-id TOKENID
 
   This command will retrieve and print out the details of
   a single token.
 
   Using a partial ID:
 
-          $ consul acl token read -id 4be56c77-82
+          $ consul acl token read -accessor-id 4be56c77-82
 
   Using the full ID:
 
-          $ consul acl token read -id 4be56c77-8244-4c7d-b08c-667b8c71baed
+          $ consul acl token read -accessor-id 4be56c77-8244-4c7d-b08c-667b8c71baed
 `
 )

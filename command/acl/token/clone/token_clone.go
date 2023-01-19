@@ -24,14 +24,14 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID     string
-	description string
-	format      string
+	tokenAccessorID string
+	description     string
+	format          string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to clone. "+
+	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to clone. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs. The special value of 'anonymous' may "+
 		"be provided instead of the anonymous tokens accessor ID")
@@ -54,8 +54,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenID == "" {
-		c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -id parameter"))
+	if c.tokenAccessorID == "" {
+		c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -accessor-id parameter"))
 		return 1
 	}
 
@@ -65,13 +65,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
+	tokenAccessorID, err := acl.GetTokenAccessorIDFromPartial(client, c.tokenAccessorID)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
+		c.UI.Error(fmt.Sprintf("Error determining token Accessor ID: %v", err))
 		return 1
 	}
 
-	t, _, err := client.ACL().TokenClone(tokenID, c.description, nil)
+	t, _, err := client.ACL().TokenClone(tokenAccessorID, c.description, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error cloning token: %v", err))
 		return 1
@@ -112,6 +112,6 @@ Usage: consul acl token clone [options]
 
     Example:
 
-        $ consul acl token clone -id abcd -description "replication"
+        $ consul acl token clone -accessor-id abcd -description "replication"
 `
 )

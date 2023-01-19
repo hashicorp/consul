@@ -100,7 +100,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 		}
@@ -136,7 +136,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 		}
 

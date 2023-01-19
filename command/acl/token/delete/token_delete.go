@@ -22,12 +22,12 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID string
+	tokenAccessorID string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to delete. "+
+	c.flags.StringVar(&c.tokenAccessorID, "id", "", "The Accessor ID of the token to delete. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.http = &flags.HTTPFlags{}
@@ -43,8 +43,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
+	if c.tokenAccessorID == "" {
+		c.UI.Error(fmt.Sprintf("Must specify the -accessor-id parameter"))
 		return 1
 	}
 
@@ -54,18 +54,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
+	tokenAccessorID, err := acl.GetTokenAccessorIDFromPartial(client, c.tokenAccessorID)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 		return 1
 	}
 
-	if _, err := client.ACL().TokenDelete(tokenID, nil); err != nil {
-		c.UI.Error(fmt.Sprintf("Error deleting token %q: %v", tokenID, err))
+	if _, err := client.ACL().TokenDelete(tokenAccessorID, nil); err != nil {
+		c.UI.Error(fmt.Sprintf("Error deleting token %q: %v", tokenAccessorID, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Token %q deleted successfully", tokenID))
+	c.UI.Info(fmt.Sprintf("Token %q deleted successfully", tokenAccessorID))
 	return 0
 }
 
@@ -80,16 +80,16 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Delete an ACL token"
 	help     = `
-Usage: consul acl token delete [options] -id TOKEN
+Usage: consul acl token delete [options] -accessor-id TOKEN
 
   Deletes an ACL token by providing either the ID or a unique ID prefix.
 
       Delete by prefix:
 
-          $ consul acl token delete -id b6b85
+          $ consul acl token delete -accessor-id b6b85
 
       Delete by full ID:
 
-          $ consul acl token delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
+          $ consul acl token delete -accessor-id b6b856da-5193-4e78-845a-7d61ca8371ba
 `
 )
