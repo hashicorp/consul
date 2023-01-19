@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
+const builtinValidateExtension = "builtin/proxy/validate"
+
 type Validate struct {
 	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
@@ -98,6 +100,10 @@ func (v *Validate) Errors() error {
 func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
 	var resultErr error
 	var plugin Validate
+
+	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
+		return nil, fmt.Errorf("expected extension name '/builtin/proxy/validate' but got %q", name)
+	}
 
 	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
 	mainEnvoyID, _ := envoyID.(string)

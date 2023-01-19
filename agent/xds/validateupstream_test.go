@@ -26,43 +26,11 @@ func TestValidateUpstreams(t *testing.T) {
 		Protocol: "http",
 	}
 
-	splitter := &structs.ServiceSplitterConfigEntry{
-		Kind: structs.ServiceSplitter,
-		Name: "db",
-		Splits: []structs.ServiceSplit{
-			{
-				Weight:        50,
-				Service:       "db",
-				ServiceSubset: "v1",
-			},
-			{
-				Weight:        50,
-				Service:       "db",
-				ServiceSubset: "v2",
-			},
-		},
-	}
-	resolver := &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: "db",
-		Subsets: map[string]structs.ServiceResolverSubset{
-			"v1": {Filter: "Service.Meta.version == v1"},
-			"v2": {Filter: "Service.Meta.version == v2"},
-		},
-	}
 	dbUID := proxycfg.NewUpstreamID(&structs.Upstream{
 		DestinationName: "db",
 		LocalBindPort:   9191,
 	})
 	nodes := proxycfg.TestUpstreamNodes(t, "db")
-
-	redirectGoogle := &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: "google",
-		Redirect: &structs.ServiceResolverRedirect{
-			Service: "google-v2",
-		},
-	}
 
 	// TODO Test tproxy with failover, redirect, splitter. -- tested with redirect, probably sufficient
 	// peering and failover
@@ -156,7 +124,7 @@ func TestValidateUpstreams(t *testing.T) {
 							Nodes: nodes,
 						},
 					},
-				}, httpServiceDefaults, resolver, splitter)
+				}, configEntriesForDBSplits()...)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir
@@ -181,7 +149,7 @@ func TestValidateUpstreams(t *testing.T) {
 							Nodes: nodes,
 						},
 					},
-				}, httpServiceDefaults, resolver, splitter)
+				}, configEntriesForDBSplits()...)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				delete(ir.Index[xdscommon.RouteType], "db")
@@ -289,7 +257,20 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "tproxy-http-redirect-success",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, httpServiceDefaults, redirectGoogle)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleRedirect()...)
+			},
+			serviceName: &api.CompoundServiceName{
+				Name: "google",
+			},
+			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
+				return ir
+			},
+		},
+		{
+			name: "tproxy-http-split-success",
+			vip:  "240.0.0.1",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleSplits()...)
 			},
 			serviceName: &api.CompoundServiceName{
 				Name: "google",
@@ -341,4 +322,77 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 		})
 	}
+}
+
+func configEntriesForDBSplits() []structs.ConfigEntry {
+	httpServiceDefaults := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "db",
+		Protocol: "http",
+	}
+
+	splitter := &structs.ServiceSplitterConfigEntry{
+		Kind: structs.ServiceSplitter,
+		Name: "db",
+		Splits: []structs.ServiceSplit{
+			{
+				Weight:        50,
+				Service:       "db",
+				ServiceSubset: "v1",
+			},
+			{
+				Weight:        50,
+				Service:       "db",
+				ServiceSubset: "v2",
+			},
+		},
+	}
+	resolver := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "db",
+		Subsets: map[string]structs.ServiceResolverSubset{
+			"v1": {Filter: "Service.Meta.version == v1"},
+			"v2": {Filter: "Service.Meta.version == v2"},
+		},
+	}
+	return []structs.ConfigEntry{httpServiceDefaults, splitter, resolver}
+}
+
+func configEntriesForGoogleSplits() []structs.ConfigEntry {
+	splitter := &structs.ServiceSplitterConfigEntry{
+		Kind: structs.ServiceSplitter,
+		Name: "google",
+		Splits: []structs.ServiceSplit{
+			{
+				Weight:        50,
+				Service:       "google",
+				ServiceSubset: "v1",
+			},
+			{
+				Weight:        50,
+				Service:       "google",
+				ServiceSubset: "v2",
+			},
+		},
+	}
+	resolver := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "google",
+		Subsets: map[string]structs.ServiceResolverSubset{
+			"v1": {Filter: "Service.Meta.version == v1"},
+			"v2": {Filter: "Service.Meta.version == v2"},
+		},
+	}
+	return []structs.ConfigEntry{splitter, resolver}
+}
+
+func configEntriesForGoogleRedirect() []structs.ConfigEntry {
+	redirectGoogle := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "google",
+		Redirect: &structs.ServiceResolverRedirect{
+			Service: "google-v2",
+		},
+	}
+	return []structs.ConfigEntry{redirectGoogle}
 }

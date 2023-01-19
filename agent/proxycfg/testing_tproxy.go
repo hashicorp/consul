@@ -140,6 +140,23 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 		db = structs.NewServiceName("db", nil)
+		nodes = []structs.CheckServiceNode{
+			{
+				Node: &structs.Node{
+					Address:    "8.8.8.8",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "google",
+					Address: "9.9.9.9",
+					Port:    9090,
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"virtual":                      {Address: "10.0.0.1"},
+						structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+					},
+				},
+			},
+		},
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -177,25 +194,21 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 			},
 		},
 		{
+			CorrelationID: "upstream-target:v1.google.default.default.dc1:" + googleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: nodes,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:v2.google.default.default.dc1:" + googleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: nodes,
+			},
+		},
+		{
 			CorrelationID: "upstream-target:google.default.default.dc1:" + googleUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: []structs.CheckServiceNode{
-					{
-						Node: &structs.Node{
-							Address:    "8.8.8.8",
-							Datacenter: "dc1",
-						},
-						Service: &structs.NodeService{
-							Service: "google",
-							Address: "9.9.9.9",
-							Port:    9090,
-							TaggedAddresses: map[string]structs.ServiceAddress{
-								"virtual":                      {Address: "10.0.0.1"},
-								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
-							},
-						},
-					},
-				},
+				Nodes: nodes,
 			},
 		},
 		{

@@ -385,6 +385,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 	// Build an ExtensionConfiguration for Validate plugin.
 	extConfig := xdscommon.ExtensionConfiguration{
 		EnvoyExtension: api.EnvoyExtension{
+			Name: "builtin/proxy/validate",
 			Arguments: map[string]interface{}{
 				"envoyID": envoyID,
 			},
