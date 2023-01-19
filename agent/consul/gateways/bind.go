@@ -43,7 +43,7 @@ func BindRoutesToGateways(gateways []*structs.BoundAPIGatewayConfigEntry, routes
 // BindRouteToGateways takes a slice of bound API gateways and a route.
 // It iterates over the parent references for the given route. These parents are gateways the
 // route should be bound to. If the parent matches a bound gateway, the route is bound to the
-// gateway. Otherwise, the route is unbound from the gateway if it was bound.
+// gateway. Otherwise, the route is unbound from the gateway if it was previously bound.
 //
 // The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
 // a map of resource references to errors that occurred when they were attempted to be
@@ -57,7 +57,8 @@ func BindRouteToGateways(gateways []*structs.BoundAPIGatewayConfigEntry, route s
 	// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
 	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
 	for _, gateway := range gateways {
-		if references, routeReferencesGateway := gatewayRefs[configentry.NewKindNameForEntry(gateway)]; routeReferencesGateway {
+		references, routeReferencesGateway := gatewayRefs[configentry.NewKindNameForEntry(gateway)]
+		if routeReferencesGateway {
 			didUpdate, errors := gateway.UpdateRouteBinding(references, route)
 			if didUpdate {
 				modified = append(modified, gateway)
