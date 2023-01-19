@@ -377,6 +377,7 @@ ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 
+# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
