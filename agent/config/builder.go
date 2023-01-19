@@ -864,12 +864,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:               dataDir,
-			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
-			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
-			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
+			DataDir:                        dataDir,
+			EnablePersistence:              boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:                stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:                  stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
+			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
 		},
 
 		// Autopilot

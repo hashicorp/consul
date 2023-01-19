@@ -2,22 +2,22 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -25,75 +25,158 @@ import (
 // These fields are public in the event someone might want to surgically
 // craft a test case.
 type Cluster struct {
-	Agents       []libagent.Agent
-	BuildContext *libagent.BuildContext
-	CACert       string
-	CAKey        string
-	ID           string
-	Index        int
-	Network      testcontainers.Network
-	NetworkName  string
+	Agents []Agent
+	// BuildContext *BuildContext // TODO
+	CACert      string
+	CAKey       string
+	ID          string
+	Index       int
+	Network     testcontainers.Network
+	NetworkName string
+	ScratchDir  string
+}
+
+type TestingT interface {
+	Cleanup(f func())
+}
+
+func NewN(t TestingT, conf Config, count int) (*Cluster, error) {
+	var configs []Config
+	for i := 0; i < count; i++ {
+		configs = append(configs, conf)
+	}
+
+	return New(t, configs)
 }
 
 // New creates a Consul cluster. An agent will be started for each of the given
 // configs and joined to the cluster.
 //
-// A cluster has its own docker network for DNS connectivity, but is also joined
-func New(configs []libagent.Config) (*Cluster, error) {
+// A cluster has its own docker network for DNS connectivity, but is also
+// joined
+//
+// The provided TestingT is used to register a cleanup function to terminate
+// the cluster.
+func New(t TestingT, configs []Config) (*Cluster, error) {
 	id, err := shortid.Generate()
 	if err != nil {
-		return nil, errors.Wrap(err, "could not cluster id")
+		return nil, fmt.Errorf("could not cluster id: %w", err)
 	}
 
 	name := fmt.Sprintf("consul-int-cluster-%s", id)
-	network, err := createNetwork(name)
+	network, err := createNetwork(t, name)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not create cluster container network")
+		return nil, fmt.Errorf("could not create cluster container network: %w", err)
 	}
 
-	cluster := Cluster{
+	// Rig up one scratch dir for the cluster with auto-cleanup on test exit.
+	scratchDir, err := os.MkdirTemp("", name)
+	if err != nil {
+		return nil, err
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(scratchDir)
+	})
+	err = os.Chmod(scratchDir, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &Cluster{
 		ID:          id,
 		Network:     network,
 		NetworkName: name,
+		ScratchDir:  scratchDir,
+	}
+	t.Cleanup(func() {
+		_ = cluster.Terminate()
+	})
+
+	if err := cluster.Add(configs, true); err != nil {
+		return nil, fmt.Errorf("could not start or join all agents: %w", err)
 	}
 
-	if err := cluster.Add(configs); err != nil {
-		return nil, errors.Wrap(err, "could not start or join all agents")
+	return cluster, nil
+}
+
+func (c *Cluster) AddN(conf Config, count int, join bool) error {
+	var configs []Config
+	for i := 0; i < count; i++ {
+		configs = append(configs, conf)
 	}
-	return &cluster, nil
+	return c.Add(configs, join)
 }
 
 // Add starts an agent with the given configuration and joins it with the existing cluster
-func (c *Cluster) Add(configs []libagent.Config) error {
+func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
+	if c.Index == 0 && !serfJoin {
+		return fmt.Errorf("The first call to Cluster.Add must have serfJoin=true")
+	}
 
-	agents := make([]libagent.Agent, len(configs))
+	var agents []Agent
 	for idx, conf := range configs {
-		n, err := libagent.NewConsulContainer(context.Background(), conf, c.NetworkName, c.Index)
-		if err != nil {
-			return errors.Wrapf(err, "could not add container index %d", idx)
+		// Each agent gets it's own area in the cluster scratch.
+		conf.ScratchDir = filepath.Join(c.ScratchDir, strconv.Itoa(c.Index))
+		if err := os.MkdirAll(conf.ScratchDir, 0777); err != nil {
+			return err
 		}
-		agents[idx] = n
+		if err := os.Chmod(conf.ScratchDir, 0777); err != nil {
+			return err
+		}
+
+		n, err := NewConsulContainer(
+			context.Background(),
+			conf,
+			c.NetworkName,
+			c.Index,
+		)
+		if err != nil {
+			return fmt.Errorf("could not add container index %d: %w", idx, err)
+		}
+		agents = append(agents, n)
 		c.Index++
 	}
-	if err := c.Join(agents); err != nil {
-		return errors.Wrapf(err, "could not join agent")
+
+	if serfJoin {
+		if err := c.Join(agents); err != nil {
+			return fmt.Errorf("could not join agents to cluster: %w", err)
+		}
+	} else {
+		if err := c.JoinExternally(agents); err != nil {
+			return fmt.Errorf("could not join agents to cluster: %w", err)
+		}
 	}
+
 	return nil
 }
 
 // Join joins the given agent to the cluster.
-func (c *Cluster) Join(agents []libagent.Agent) error {
-	var joinAddr string
-	if len(c.Agents) >= 1 {
-		joinAddr, _ = c.Agents[0].GetAddr()
-	} else if len(agents) >= 1 {
-		joinAddr, _ = agents[0].GetAddr()
+func (c *Cluster) Join(agents []Agent) error {
+	return c.join(agents, false)
+}
+func (c *Cluster) JoinExternally(agents []Agent) error {
+	return c.join(agents, true)
+}
+func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
+	if len(agents) == 0 {
+		return nil // no change
 	}
 
+	if len(c.Agents) == 0 {
+		// Join the rest to the first.
+		c.Agents = append(c.Agents, agents[0])
+		return c.join(agents[1:], skipSerfJoin)
+	}
+
+	// Always join to the original server.
+	joinAddr := c.Agents[0].GetIP()
+
 	for _, n := range agents {
-		err := n.GetClient().Agent().Join(joinAddr, false)
-		if err != nil {
-			return errors.Wrapf(err, "could not join agent %s to %s", n.GetName(), joinAddr)
+		if !skipSerfJoin {
+			err := n.GetClient().Agent().Join(joinAddr, false)
+			if err != nil {
+				return fmt.Errorf("could not join agent %s to %s: %w", n.GetName(), joinAddr, err)
+			}
 		}
 		c.Agents = append(c.Agents, n)
 	}
@@ -102,10 +185,10 @@ func (c *Cluster) Join(agents []libagent.Agent) error {
 
 // Remove instructs the agent to leave the cluster then removes it
 // from the cluster Agent list.
-func (c *Cluster) Remove(n libagent.Agent) error {
+func (c *Cluster) Remove(n Agent) error {
 	err := n.GetClient().Agent().Leave()
 	if err != nil {
-		return errors.Wrapf(err, "could not remove agent %s", n.GetName())
+		return fmt.Errorf("could not remove agent %s: %w", n.GetName(), err)
 	}
 
 	foundIdx := -1
@@ -128,73 +211,99 @@ func (c *Cluster) Remove(n libagent.Agent) error {
 //
 //	https://developer.hashicorp.com/consul/docs/upgrading#standard-upgrades
 //
-// - takes a snapshot
-// - terminate and rejoin the pod of new version of consul
+// - takes a snapshot (which is discarded)
+// - terminate and rejoin the pod of a new version of consul
+//
+// NOTE: we pass in a *testing.T but this method also returns an error. JUST
+// within this method when in doubt return an error. A testing assertion should
+// be saved only for using t.Cleanup or in a few of the retry-until-working
+// helpers below.
+//
+// This lets us have tests that assert that an upgrade will fail.
 func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
-	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}, t, func(r *retry.R) {
-		// NOTE: to suppress flakiness
-		execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
-		require.Equal(r, 0, execCode)
-		require.NoError(r, err)
-	})
-
-	// verify only the leader can take a snapshot
-	snapshotCount := 0
-	for _, agent := range c.Agents {
-		if !agent.IsServer() {
-			continue
-		}
-
-		files, err := ioutil.ReadDir(filepath.Join(agent.DataDir(), "raft", "snapshots"))
-		if err != nil {
-			return err
-		}
-		if len(files) >= 1 {
-			snapshotCount++
-		}
+	// We take a snapshot, but note that we currently do nothing with it.
+	execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
+	if execCode != 0 {
+		return fmt.Errorf("error taking snapshot of the cluster, returned code %d", execCode)
 	}
-	require.Equalf(t, 1, snapshotCount, "only leader agent can have a snapshot file")
+	if err != nil {
+		return err
+	}
 
 	// Upgrade individual agent to the target version in the following order
 	// 1. followers
 	// 2. leader
 	// 3. clients (TODO)
+
+	// Grab a client connected to the leader, which we will upgrade last so our
+	// connection remains ok.
 	leader, err := c.Leader()
-	client := leader.GetClient()
-	require.NoError(t, err)
-	t.Log("Leader name:", leader.GetName())
+	if err != nil {
+		return err
+	}
+	t.Logf("Leader name: %s", leader.GetName())
 
 	followers, err := c.Followers()
-	require.NoError(t, err)
-	t.Log("The number of followers", len(followers))
+	if err != nil {
+		return err
+	}
+	t.Logf("The number of followers = %d", len(followers))
 
-	for _, agent := range followers {
-		t.Log("Upgrade follower", agent.GetName())
-
+	upgradeFn := func(agent Agent, clientFactory func() *api.Client) error {
 		config := agent.GetConfig()
 		config.Version = targetVersion
+
+		if agent.IsServer() {
+			// You only ever need bootstrap settings the FIRST time, so we do not need
+			// them again.
+			config.ConfigBuilder.Unset("bootstrap")
+		} else {
+			// If we upgrade the clients fast enough
+			// membership might not be gossiped to all of
+			// the clients to persist into their serf
+			// snapshot, so force them to rejoin the
+			// normal way on restart.
+			config.ConfigBuilder.Set("retry_join", []string{"agent-0"})
+		}
+
+		newJSON, err := json.MarshalIndent(config.ConfigBuilder, "", "  ")
+		if err != nil {
+			return fmt.Errorf("could not re-generate json config: %w", err)
+		}
+		config.JSON = string(newJSON)
+		t.Logf("Upgraded cluster config for %q:\n%s", agent.GetName(), config.JSON)
+
 		err = agent.Upgrade(context.Background(), config)
 		if err != nil {
 			return err
 		}
 
+		client := clientFactory()
+
+		// wait until the agent rejoin
 		WaitForMembers(t, client, len(c.Agents))
-		break
+
+		return nil
 	}
 
-	if len(followers) > 0 {
-		client = followers[0].GetClient()
+	for _, agent := range followers {
+		t.Logf("Upgrade follower: %s", agent.GetName())
+
+		if err := upgradeFn(agent, leader.GetClient); err != nil {
+			return fmt.Errorf("error upgrading follower %q: %w", agent.GetName(), err)
+		}
 	}
 
-	t.Log("Upgrade leader:", leader.GetName())
-	config := leader.GetConfig()
-	config.Version = targetVersion
-	err = leader.Upgrade(context.Background(), config)
+	t.Logf("Upgrade leader: %s", leader.GetName())
+	err = upgradeFn(leader, func() *api.Client {
+		if len(followers) > 0 {
+			return followers[0].GetClient()
+		}
+		return c.APIClient(0)
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error upgrading leader %q: %w", leader.GetName(), err)
 	}
-
-	WaitForMembers(t, client, len(c.Agents))
 
 	return nil
 }
@@ -211,15 +320,15 @@ func (c *Cluster) Terminate() error {
 
 	// Testcontainers seems to clean this the network.
 	// Trigger it now will throw an error while the containers are still shutting down
-	//if err := c.Network.Remove(context.Background()); err != nil {
-	//	return errors.Wrapf(err, "could not terminate cluster network %s", c.ID)
-	//}
+	// if err := c.Network.Remove(context.Background()); err != nil {
+	// 	return fmt.Errorf("could not terminate cluster network %s: %w", c.ID, err)
+	// }
 	return nil
 }
 
 // Leader returns the cluster leader agent, or an error if no leader is
 // available.
-func (c *Cluster) Leader() (libagent.Agent, error) {
+func (c *Cluster) Leader() (Agent, error) {
 	if len(c.Agents) < 1 {
 		return nil, fmt.Errorf("no agent available")
 	}
@@ -231,7 +340,7 @@ func (c *Cluster) Leader() (libagent.Agent, error) {
 	}
 
 	for _, n := range c.Agents {
-		addr, _ := n.GetAddr()
+		addr := n.GetIP()
 		if strings.Contains(leaderAdd, addr) {
 			return n, nil
 		}
@@ -239,35 +348,10 @@ func (c *Cluster) Leader() (libagent.Agent, error) {
 	return nil, fmt.Errorf("leader not found")
 }
 
-// GetClient returns a consul API client to the node if node is provided.
-// Otherwise, GetClient returns the API client to the first node of either
-// server or client agent.
-func (c *Cluster) GetClient(node libagent.Agent, isServer bool) (*api.Client, error) {
-	var err error
-	if node != nil {
-		return node.GetClient(), err
-	}
-
-	nodes, err := c.Clients()
-	if isServer {
-		nodes, err = c.Servers()
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to get the api client: %s", err)
-	}
-
-	if len(nodes) <= 0 {
-		return nil, fmt.Errorf("not enough node: %d", len(nodes))
-	}
-
-	return nodes[0].GetClient(), err
-}
-
 func getLeader(client *api.Client) (string, error) {
 	leaderAdd, err := client.Status().Leader()
 	if err != nil {
-		return "", errors.Wrap(err, "could not query leader")
+		return "", fmt.Errorf("could not query leader: %w", err)
 	}
 	if leaderAdd == "" {
 		return "", errors.New("no leader available")
@@ -276,8 +360,8 @@ func getLeader(client *api.Client) (string, error) {
 }
 
 // Followers returns the cluster following servers.
-func (c *Cluster) Followers() ([]libagent.Agent, error) {
-	var followers []libagent.Agent
+func (c *Cluster) Followers() ([]Agent, error) {
+	var followers []Agent
 
 	leader, err := c.Leader()
 	if err != nil {
@@ -293,40 +377,72 @@ func (c *Cluster) Followers() ([]libagent.Agent, error) {
 }
 
 // Servers returns the handle to server agents
-func (c *Cluster) Servers() ([]libagent.Agent, error) {
-	var servers []libagent.Agent
+func (c *Cluster) Servers() []Agent {
+	var servers []Agent
 
 	for _, n := range c.Agents {
 		if n.IsServer() {
 			servers = append(servers, n)
 		}
 	}
-	return servers, nil
+	return servers
 }
 
 // Clients returns the handle to client agents
-func (c *Cluster) Clients() ([]libagent.Agent, error) {
-	var clients []libagent.Agent
+func (c *Cluster) Clients() []Agent {
+	var clients []Agent
 
 	for _, n := range c.Agents {
 		if !n.IsServer() {
 			clients = append(clients, n)
 		}
 	}
-	return clients, nil
+	return clients
+}
+
+func (c *Cluster) APIClient(index int) *api.Client {
+	nodes := c.Clients()
+	if len(nodes) == 0 {
+		nodes = c.Servers()
+		if len(nodes) == 0 {
+			return nil
+		}
+	}
+	return nodes[0].GetClient()
+}
+
+// GetClient returns a consul API client to the node if node is provided.
+// Otherwise, GetClient returns the API client to the first node of either
+// server or client agent.
+//
+// TODO: see about switching to just APIClient() calls instead?
+func (c *Cluster) GetClient(node Agent, isServer bool) (*api.Client, error) {
+	if node != nil {
+		return node.GetClient(), nil
+	}
+
+	nodes := c.Clients()
+	if isServer {
+		nodes = c.Servers()
+	}
+
+	if len(nodes) <= 0 {
+		return nil, errors.New("no nodes")
+	}
+
+	return nodes[0].GetClient(), nil
 }
 
 // PeerWithCluster establishes peering with the acceptor cluster
 func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName string, dialingPeerName string) error {
-	node := c.Agents[0]
-	dialingClient := node.GetClient()
+	dialingClient := c.APIClient(0)
 
 	generateReq := api.PeeringGenerateTokenRequest{
 		PeerName: acceptingPeerName,
 	}
 	generateRes, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	if err != nil {
-		return fmt.Errorf("error generate token: %v", err)
+		return fmt.Errorf("error generate token: %w", err)
 	}
 
 	establishReq := api.PeeringEstablishRequest{
@@ -335,7 +451,7 @@ func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName
 	}
 	_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})
 	if err != nil {
-		return fmt.Errorf("error establish peering: %v", err)
+		return fmt.Errorf("error establish peering: %w", err)
 	}
 
 	return nil

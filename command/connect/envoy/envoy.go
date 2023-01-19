@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
@@ -73,6 +74,9 @@ type cmd struct {
 	bindAddresses      ServiceAddressMapValue
 	exposeServers      bool
 	omitDeprecatedTags bool
+
+	envoyReadyBindAddress string
+	envoyReadyBindPort    int
 
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
@@ -159,6 +163,11 @@ func (c *cmd) init() {
 
 	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the gateway service registration")
+
+	c.flags.StringVar(&c.envoyReadyBindAddress, "envoy-ready-bind-address", "",
+		"The address on which Envoy's readiness probe is available.")
+	c.flags.IntVar(&c.envoyReadyBindPort, "envoy-ready-bind-port", 0,
+		"The port on which Envoy's readiness probe is available.")
 
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
@@ -612,6 +621,16 @@ func (c *cmd) generateConfig() ([]byte, error) {
 
 	var bsCfg BootstrapConfig
 
+	// Make a call to an arbitrary ACL endpoint. If we get back an ErrNotFound
+	// (meaning ACLs are enabled) check that the token is not empty.
+	if _, _, err := c.client.ACL().TokenReadSelf(
+		&api.QueryOptions{Token: args.Token},
+	); acl.IsErrNotFound(err) {
+		if args.Token == "" {
+			c.UI.Warn("No ACL token was provided to Envoy. Because the ACL system is enabled, pass a suitable ACL token for this service to Envoy to avoid potential communication failure.")
+		}
+	}
+
 	// Fetch any customization from the registration
 	var svcProxyConfig *api.AgentServiceConnectProxyConfig
 	var serviceName, ns, partition, datacenter string
@@ -693,6 +712,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		bsCfg.ReadyBindAddr = lanAddr
 	}
 
+	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
+		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
+	}
+
 	if !c.disableCentralConfig {
 		// Parse the bootstrap config
 		if err := mapstructure.WeakDecode(svcProxyConfig.Config, &bsCfg); err != nil {
@@ -722,7 +745,7 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 		}
 
 		if proxyDefaults.AccessLogs != nil {
-			logConfig := &structs.AccessLogsConfig{
+			AccessLogsConfig := &structs.AccessLogsConfig{
 				Enabled:             proxyDefaults.AccessLogs.Enabled,
 				DisableListenerLogs: false,
 				Type:                structs.LogSinkType(proxyDefaults.AccessLogs.Type),
@@ -730,21 +753,20 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 				TextFormat:          proxyDefaults.AccessLogs.TextFormat,
 				Path:                proxyDefaults.AccessLogs.Path,
 			}
-			envoyLogs, err := accesslogs.MakeAccessLogs(logConfig, false)
+			envoyLoggers, err := accesslogs.MakeAccessLogs(AccessLogsConfig, false)
 			if err != nil {
 				return fmt.Errorf("failure generating Envoy access log configuration: %w", err)
 			}
 
 			// Convert individual proto messages to JSON here
-			args.AdminAccessLogConfig = make([]string, 0, len(envoyLogs))
+			args.AdminAccessLogConfig = make([]string, 0, len(envoyLoggers))
 
-			marshaler := jsonpb.Marshaler{}
-			for _, msg := range envoyLogs {
-				config, err := marshaler.MarshalToString(msg)
+			for _, msg := range envoyLoggers {
+				logConfig, err := protojson.Marshal(msg)
 				if err != nil {
 					return fmt.Errorf("could not marshal Envoy access log configuration: %w", err)
 				}
-				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, config)
+				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, string(logConfig))
 			}
 		}
 
@@ -755,7 +777,6 @@ func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
 	return nil
 }
 
-// TODO: make method a function
 func (c *cmd) xdsAddress() (GRPC, error) {
 	g := GRPC{}
 

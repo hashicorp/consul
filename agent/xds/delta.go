@@ -3,6 +3,7 @@ package xds
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -16,13 +17,14 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -45,7 +47,7 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
-	defer s.activeStreams.Increment("v3")()
+	defer s.activeStreams.Increment(stream.Context())()
 
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DeltaDiscoveryRequest)
@@ -88,17 +90,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		return err
 	}
 
-	session, err := s.SessionLimiter.BeginSession()
-	if err != nil {
-		return errOverwhelmed
-	}
-	defer session.End()
-
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
 		node        *envoy_config_core_v3.Node
 		stateCh     <-chan *proxycfg.ConfigSnapshot
+		drainCh     limiter.SessionTerminatedChan
 		watchCancel func()
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
@@ -176,7 +173,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
-		case <-session.Terminated():
+		case <-drainCh:
 			generator.Logger.Debug("draining stream to rebalance load")
 			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
 			return errOverwhelmed
@@ -293,8 +290,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
-			if err != nil {
+			stateCh, drainCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			switch {
+			case errors.Is(err, limiter.ErrCapacityReached):
+				return errOverwhelmed
+			case err != nil:
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 			// Note that in this case we _intend_ the defer to only be triggered when
@@ -898,7 +898,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown name for type url %q: %s", t.typeURL, name)
 			}
-			any, err := ptypes.MarshalAny(res)
+			any, err := anypb.New(res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1016,15 +1016,13 @@ func hashResourceMap(resources map[string]proto.Message) (map[string]string, err
 // hashResource will take a resource and create a SHA256 hash sum out of the marshaled bytes
 func hashResource(res proto.Message) (string, error) {
 	h := sha256.New()
-	buffer := proto.NewBuffer(nil)
-	buffer.SetDeterministic(true)
+	marshaller := proto.MarshalOptions{Deterministic: true}
 
-	err := buffer.Marshal(res)
+	data, err := marshaller.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(buffer.Bytes())
-	buffer.Reset()
+	h.Write(data)
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
