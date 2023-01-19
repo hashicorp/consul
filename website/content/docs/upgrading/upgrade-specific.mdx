@@ -22,17 +22,23 @@ The `connect.enable_serverless_plugin` configuration option was removed. Lambda 
 
 #### Deprecating authentication via token query parameter
 
-When authenticating API requests, the use of the `token` query parameter is deprecated. The Consul token should be provided to API requests using the `X-Consul-Token` header or with the
-Bearer scheme in the authorization header.
+Providing a Consul ACL token in API requests using the `token` query parameter is deprecated and will be removed in Consul 1.17.
+Instead, the token should be provided using the `X-Consul-Token` header or with the Bearer scheme in the authorization header as described in the [API authentication documentation](/consul/api-docs/api-structure#authentication).
+	
+To check whether the `token` query parameter is in use, search your Consul agent logs for the message:
 
-Before Consul v1.15: 
+```shell-session
+$ This request is using a token query parameter which is deprecated and will be removed in Consul 1.17
+```
+
+Deprecated authentication using the `token` query parameter: 
 
 ```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/agent/members?token=<consul token>
 ```
 
-In Consul v1.15 and higher:
+Recommended authentication method:
 
 ```shell-session
 $ curl \
