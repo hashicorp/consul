@@ -1,13 +1,16 @@
 package middleware
 
 import (
+	"net"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -265,4 +268,24 @@ func TestRequestRecorder(t *testing.T) {
 
 		})
 	}
+}
+
+func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
+	limiter := rate.NewMockRequestLimitsHandler(t)
+
+	logger := hclog.NewNullLogger()
+	var rateLimitInterceptor = GetNetRPCRateLimitingInterceptor(limiter, NewPanicHandler(logger))
+
+	listener, _ := net.Listen("tcp", "127.0.0.1:0")
+
+	t.Run("Allow panics", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Panic("uh oh").
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+
+		require.Error(t, err)
+		require.Equal(t, "rpc: panic serving request", err.Error())
+	})
 }
