@@ -42,7 +42,8 @@ function main {
         esac
     done
 
-    for mod in $(find . -name 'buf.gen.yaml' -exec dirname {} \; | sort)
+    local mods=$(find . -name 'buf.gen.yaml' -exec dirname {} \; | sort)
+    for mod in $mods
     do
         (
             # This looks special and it is. First of all this is not just `buf generate`
@@ -75,6 +76,10 @@ function main {
 
     status "Generated all mog Go files"
 
+    generate_rate_limit_mappings $mods
+
+    status "Generated gRPC rate limit mapping file"
+
     return 0
 }
 
@@ -86,6 +91,7 @@ function postprocess_protobuf_code {
     fi
 
     local proto_go_path="${proto_path%%.proto}.pb.go"
+    local proto_go_grpc_path="${proto_path%%.proto}_grpc.pb.go"
     local proto_go_bin_path="${proto_path%%.proto}.pb.binary.go"
     local proto_go_rpcglue_path="${proto_path%%.proto}.rpcglue.pb.go"
 
@@ -99,10 +105,11 @@ function postprocess_protobuf_code {
     local build_tags
     build_tags="$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build' || true)"
     if test -n "${build_tags}"; then
-       for file in "${proto_go_bin_path}" "${proto_go_grpc_path}"
+       for file in "${proto_go_path}" "${proto_go_bin_path}" "${proto_go_grpc_path}"
        do
             if test -f "${file}"
             then
+                echo "Adding build tags to ${file}"
                 echo -e "${build_tags}\n" >> "${file}.new"
                 cat "${file}" >> "${file}.new"
                 mv "${file}.new" "${file}"
@@ -123,7 +130,7 @@ function postprocess_protobuf_code {
 function generate_mog_code {
     local mog_order
 
-    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
+    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto/")"
 
     for FULL_PKG in ${mog_order}; do
         PKG="${FULL_PKG/#github.com\/hashicorp\/consul\/}"
@@ -137,6 +144,20 @@ function generate_mog_code {
     done
 
     return 0
+}
+
+function generate_rate_limit_mappings {
+    local flags=(
+      "-output ${SOURCE_DIR}/agent/grpc-middleware/rate_limit_mappings.gen.go"
+    )
+    for path in $@; do
+      flags+=("-input $path")
+    done
+
+    print_run go run ${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit/postprocess/main.go ${flags[@]} || {
+        err "Failed to generate gRPC rate limit mappings"
+        return 1
+    }
 }
 
 main "$@"

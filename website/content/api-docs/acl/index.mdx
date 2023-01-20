@@ -18,8 +18,8 @@ the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-s
 This endpoint does a special one-time bootstrap of the ACL system, making the first
 management token if the [`acl.tokens.initial_management`](/docs/agent/config/config-files#acl_tokens_initial_management)
 configuration entry is not specified in the Consul server configuration and if the
-cluster has not been bootstrapped previously. This is available in Consul 0.9.1 and later,
-and requires all Consul servers to be upgraded in order to operate.
+cluster has not been bootstrapped previously. An operator created token can be provided in the body of the request to
+bootstrap the cluster if required. The provided token should be presented in a UUID format.
 
 This provides a mechanism to bootstrap ACLs without having any secrets present in Consul's
 configuration files.
@@ -72,6 +72,23 @@ applications should ignore the `ID` field as it may be removed in a future major
   "ModifyIndex": 12
 }
 ```
+
+### Sample Request with provided token
+
+
+```json
+{
+  "BootstrapSecret": "2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"
+}
+```
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @root-token.json \
+    http://127.0.0.1:8500/v1/acl/bootstrap
+```
+
 
 You can detect if something has interfered with the ACL bootstrapping process by
 checking the response code. A 200 response means that the bootstrap was a success, and

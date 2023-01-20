@@ -679,7 +679,8 @@ spec:
           name: 'SNI',
           type: 'string: ""',
           description:
-            'An optional hostname or domain name to specify during the TLS handshake.',
+          `An optional hostname or domain name to specify during the TLS handshake. This option will also configure [strict SAN matching](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-certificatevalidationcontext-match-typed-subject-alt-names), which requires
+            the external services to have certificates with SANs, not having which will result in \`CERTIFICATE_VERIFY_FAILED\` error.`,
         },
       ],
     },

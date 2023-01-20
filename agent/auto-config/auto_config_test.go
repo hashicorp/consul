@@ -308,9 +308,9 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		Certificate:         mustTranslateIssuedCertToProtobuf(t, cert),
 		ExtraCACertificates: extraCACerts,
 	}
-	data, err := pbMarshaler.MarshalToString(response)
+	data, err := pbMarshaler.Marshal(response)
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(persistedFile, []byte(data), 0600))
+	require.NoError(t, os.WriteFile(persistedFile, data, 0600))
 
 	// recording the initial configuration even when restoring is going to update
 	// the agent token in the token store

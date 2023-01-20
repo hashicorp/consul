@@ -280,7 +280,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
-	}, nil, "")
+	}, nil, "", false)
 	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
@@ -310,7 +310,7 @@ func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	err = vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
@@ -367,12 +367,12 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "other",
-	}, "")
+	}, "", false)
 	err = vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
@@ -384,7 +384,7 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 	// Try to register over a node check without write privs to the node.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
-	}, "")
+	}, "", false)
 	err = vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-node-check"),
 		ServiceID:   "my-service",
@@ -416,12 +416,12 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
-	}, "")
+	}, "", false)
 	err = vetCheckUpdate(serviceRWSecret, structs.NewCheckID("my-service-check", nil))
 	require.NoError(t, err)
 
@@ -433,7 +433,7 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	// Update node check with write privs.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
-	}, "")
+	}, "", false)
 	err = vetCheckUpdate(nodeRWSecret, structs.NewCheckID("my-node-check", nil))
 	require.NoError(t, err)
 

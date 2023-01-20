@@ -3,8 +3,8 @@ package xds
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"

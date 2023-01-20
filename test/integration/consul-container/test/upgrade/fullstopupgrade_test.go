@@ -6,12 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
-
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -33,62 +31,48 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		},
 		{
 			oldversion:    "1.13",
-			targetVersion: *utils.TargetVersion,
+			targetVersion: utils.TargetVersion,
 		},
 		{
 			oldversion:    "1.14",
-			targetVersion: *utils.TargetVersion,
+			targetVersion: utils.TargetVersion,
 		},
 	}
 
 	run := func(t *testing.T, tc testcase) {
-
-		var configs []libagent.Config
-
-		configCtx, err := libagent.NewBuildContext(libagent.BuildOptions{
-			ConsulVersion: tc.oldversion,
+		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
+			ConsulImageName: utils.TargetImageName,
+			ConsulVersion:   tc.oldversion,
 		})
-		require.NoError(t, err)
-		numServers := 1
-		leaderConf, err := libagent.NewConfigBuilder(configCtx).
+
+		const (
+			numServers = 1
+		)
+
+		serverConf := libcluster.NewConfigBuilder(configCtx).
 			Bootstrap(numServers).
-			ToAgentConfig()
-		require.NoError(t, err)
-		t.Logf("Cluster config:\n%s", leaderConf.JSON)
-		leaderConf.Version = tc.oldversion
-		for i := 0; i < numServers; i++ {
-			configs = append(configs, *leaderConf)
-		}
+			ToAgentConfig(t)
+		t.Logf("Cluster config:\n%s", serverConf.JSON)
+		require.Equal(t, tc.oldversion, serverConf.Version) // TODO: remove
 
-		cluster, err := libcluster.New(configs)
+		cluster, err := libcluster.NewN(t, *serverConf, numServers)
 		require.NoError(t, err)
-		defer terminate(t, cluster)
 
-		server := cluster.Agents[0]
-		client := server.GetClient()
+		client := cluster.APIClient(0)
+
 		libcluster.WaitForLeader(t, cluster, client)
 		libcluster.WaitForMembers(t, client, numServers)
 
 		// Create a service to be stored in the snapshot
-		serviceName := "api"
+		const serviceName = "api"
 		index := serviceCreate(t, client, serviceName)
-		ch := make(chan []*api.ServiceEntry)
-		errCh := make(chan error)
-		go func() {
-			service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
-			if err == nil && q.QueryBackend != api.QueryBackendStreaming {
-				err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
-			}
-			if err != nil {
-				errCh <- err
-			} else {
-				ch <- service
-			}
-		}()
+
+		ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
 		require.NoError(t, client.Agent().ServiceRegister(
 			&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 		))
-		timer := time.NewTimer(1 * time.Second)
+
+		timer := time.NewTimer(3 * time.Second)
 		select {
 		case err := <-errCh:
 			require.NoError(t, err)
@@ -101,6 +85,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		}
 
 		// upgrade the cluster to the Target version
+		t.Logf("initiating standard upgrade to version=%q", tc.targetVersion)
 		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
 		if !tc.expectErr {
 			require.NoError(t, err)
@@ -124,6 +109,6 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			func(t *testing.T) {
 				run(t, tc)
 			})
-		time.Sleep(5 * time.Second)
+		// time.Sleep(5 * time.Second)
 	}
 }

@@ -18,8 +18,6 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
-
-- A 1.11.0+ Consul Enterprise binary or a 1.13.0+ Consul OSS binary.
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
 
 ## Usage
@@ -661,7 +659,7 @@ The following example queries the `finance` peer for the imported `payments` ser
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service.
 - `service:read` and `node:read` for all services and nodes, respectively.
 
@@ -695,7 +693,7 @@ node_prefix "" {
   }
 }
 
-## OR 
+## OR
 
 {
   "service_prefix": {
@@ -724,7 +722,7 @@ The following example queries the `finance` partition for the imported `payments
 $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 ```
 
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service in the partition where the query is made.
 - `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
 
@@ -775,7 +773,7 @@ partition "frontend" {
   }
 }
 
-## OR 
+## OR
 
 {
   "partition": {
@@ -812,7 +810,7 @@ The following example queries the `finance` peer for the imported `payments` ser
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
 
-An ACL token with either of the following permissions is required in the cluster where the query is made: 
+An ACL token with either of the following permissions is required in the cluster where the query is made:
 - `service:write` permissions for any service in the partition where the query is made.
 - `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
 
@@ -863,7 +861,7 @@ partition "frontend" {
   }
 }
 
-## OR 
+## OR
 
 {
   "partition": {
