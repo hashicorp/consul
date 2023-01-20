@@ -26,6 +26,15 @@ const (
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
+	APIGateway        string = "api-gateway"
+	TCPRoute          string = "tcp-route"
+	InlineCertificate string = "inline-certificate"
+	HTTPRoute         string = "http-route"
+)
+
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 type ConfigEntry interface {
@@ -108,7 +117,7 @@ type ExposeConfig struct {
 type EnvoyExtension struct {
 	Name      string
 	Required  bool
-	Arguments map[string]interface{}
+	Arguments map[string]interface{} `bexpr:"-"`
 }
 
 type ExposePath struct {
@@ -132,9 +141,10 @@ type ExposePath struct {
 type LogSinkType string
 
 const (
-	FileLogSinkType   LogSinkType = "file"
-	StdErrLogSinkType LogSinkType = "stderr"
-	StdOutLogSinkType LogSinkType = "stdout"
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
 )
 
 // AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
@@ -303,7 +313,7 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig       `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
 	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
@@ -341,6 +351,14 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

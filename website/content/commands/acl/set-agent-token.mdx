@@ -46,6 +46,13 @@ The token types are:
   operations. This token will need to be configured with read access to
   whatever data is being replicated.
 
+- `config_file_service_registration` - This is the token that the agent uses to
+  register services and checks defined in config files. This token needs to be
+  configured with write permissions for the services or checks being registered.
+  If not set, the `default` token is used. If a service or check definition
+  contains a `token` field, then that token is used to register that service or
+  check instead of the `config_file_service_registration` token.
+
 ### API Options
 
 @include 'http_api_options_client.mdx'

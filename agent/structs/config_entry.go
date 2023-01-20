@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -35,6 +34,11 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	APIGateway         string = "api-gateway"
+	BoundAPIGateway    string = "bound-api-gateway"
+	InlineCertificate  string = "inline-certificate"
+	HTTPRoute          string = "http-route"
+	TCPRoute           string = "tcp-route"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -55,10 +59,16 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	APIGateway,
+	BoundAPIGateway,
+	HTTPRoute,
+	TCPRoute,
+	InlineCertificate,
 }
 
 const (
 	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -296,7 +306,7 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 type EnvoyExtension struct {
 	Name      string
 	Required  bool
-	Arguments map[string]interface{}
+	Arguments map[string]interface{} `bexpr:"-"`
 }
 type EnvoyExtensions []EnvoyExtension
 
@@ -315,6 +325,7 @@ func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {
 func builtInExtension(name string) bool {
 	extensions := map[string]struct{}{
 		BuiltinAWSLambdaExtension: {},
+		BuiltinLuaExtension:       {},
 	}
 
 	_, ok := extensions[name]
@@ -453,30 +464,8 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
 	}
 
-	switch e.AccessLogs.Type {
-	case "", StdErrLogSinkType, StdOutLogSinkType:
-		// OK
-	case FileLogSinkType:
-		if e.AccessLogs.Path == "" {
-			return errors.New("path must be specified when using file type access logs")
-		}
-	default:
-		return fmt.Errorf("invalid access log type: %s", e.AccessLogs.Type)
-	}
-
-	if e.AccessLogs.JSONFormat != "" && e.AccessLogs.TextFormat != "" {
-		return errors.New("cannot specify both access log JSONFormat and TextFormat")
-	}
-
-	if e.AccessLogs.Type != FileLogSinkType && e.AccessLogs.Path != "" {
-		return errors.New("path is only valid for file type access logs")
-	}
-
-	if e.AccessLogs.JSONFormat != "" {
-		msg := json.RawMessage{}
-		if err := json.Unmarshal([]byte(e.AccessLogs.JSONFormat), &msg); err != nil {
-			return fmt.Errorf("invalid access log json for JSON format: %w", err)
-		}
+	if err := e.AccessLogs.Validate(); err != nil {
+		return err
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
@@ -719,6 +708,16 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Name: name}, nil
+	case BoundAPIGateway:
+		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -1186,6 +1185,7 @@ type ServiceConfigResponse struct {
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
 	Destination       DestinationConfig      `json:",omitempty"`
+	AccessLogs        AccessLogsConfig       `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
 	QueryMeta

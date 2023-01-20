@@ -1123,3 +1123,221 @@ func TestGatewayService_Addresses(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIGateway_Listeners(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"listener name conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port: 80,
+						Name: "foo",
+					},
+					{
+						Port: 80,
+						Name: "foo",
+					},
+				},
+			},
+			validateErr: "multiple listeners with the name",
+		},
+		"merged listener protocol conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-two",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"merged listener hostname conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-three",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Hostname: "host.two",
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"invalid protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-four",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("UDP"),
+					},
+				},
+			},
+			validateErr: "unsupported listener protocol",
+		},
+		"hostname in unsupported protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-five",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "hostname specification is not supported",
+		},
+		"invalid port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-six",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     -1,
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "not in the range 1-65535",
+		},
+		"invalid hostname": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-seven",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "*.*.host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "only allowed as the left-most label",
+		},
+		"unsupported certificate kind": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-eight",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: APIGateway,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"unnamed certificate": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-nine",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: InlineCertificate,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestBoundAPIGateway(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"invalid certificate, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-one",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Kind: InlineCertificate,
+						}},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+		"invalid certificate, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-two",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"invalid route, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-three",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Kind: TCPRoute,
+						}},
+					},
+				},
+			},
+			validateErr: "route reference must have a name",
+		},
+		"invalid route, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-four",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported route kind",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}

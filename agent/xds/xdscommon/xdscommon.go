@@ -1,7 +1,7 @@
 package xdscommon
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -26,7 +26,29 @@ const (
 
 	// ListenerType is the TypeURL for Listener discovery responses.
 	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+
+	// PublicListenerName is the name we give the public listener in Envoy config.
+	PublicListenerName = "public_listener"
+
+	// LocalAppClusterName is the name we give the local application "cluster" in
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collide however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
+	LocalAppClusterName = "local_app"
 )
+
+type EnvoyExtension interface {
+	Extend(*IndexedResources, ExtensionConfiguration) (*IndexedResources, error)
+	Validate(ExtensionConfiguration) error
+}
 
 type IndexedResources struct {
 	// Index is a map of typeURL => resourceName => resource
@@ -119,6 +141,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 	extensionsMap := make(map[api.CompoundServiceName][]api.EnvoyExtension)
 	upstreamMap := make(map[api.CompoundServiceName]UpstreamData)
 	var kind api.ServiceKind
+	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
 
 	trustDomain := ""
 	if cfgSnap.Roots != nil {
@@ -169,6 +192,26 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				OutgoingProxyKind: outgoingKind,
 			}
 		}
+		// Adds extensions configured for the local service to the ExtensionConfiguration. This only applies to
+		// connect-proxies because extensions are either global or tied to a specific service, so the terminating
+		// gateway's Envoy resources for the local service (i.e not to upstreams) would never need to be modified.
+		localSvc := api.CompoundServiceName{
+			Name:      cfgSnap.Proxy.DestinationServiceName,
+			Namespace: cfgSnap.ProxyID.NamespaceOrDefault(),
+			Partition: cfgSnap.ProxyID.PartitionOrEmpty(),
+		}
+		extensionConfigurationsMap[localSvc] = []ExtensionConfiguration{}
+		cfgSnapExts := convertEnvoyExtensions(cfgSnap.Proxy.EnvoyExtensions)
+		for _, ext := range cfgSnapExts {
+			extCfg := ExtensionConfiguration{
+				EnvoyExtension: ext,
+				ServiceName:    localSvc,
+				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
+				Upstreams: nil,
+				Kind:      kind,
+			}
+			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
+		}
 	case structs.ServiceKindTerminatingGateway:
 		kind = api.ServiceKindTerminatingGateway
 		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
@@ -197,7 +240,6 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 		}
 	}
 
-	extensionConfigurationsMap := make(map[api.CompoundServiceName][]ExtensionConfiguration)
 	for svc, exts := range extensionsMap {
 		extensionConfigurationsMap[svc] = []ExtensionConfiguration{}
 		for _, ext := range exts {

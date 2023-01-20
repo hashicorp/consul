@@ -1,0 +1,3 @@
+```release-note:breaking-change
+peering: Newly created peering connections must use only lowercase characters in the `name` field. Existing peerings with uppercase characters will not be modified, but they may encounter issues in various circumstances. To maintain forward compatibility and avoid issues, it is recommended to destroy and re-create any invalid peering connections so that they do not have a name containing uppercase characters.
+```

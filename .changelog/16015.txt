@@ -1,0 +1,3 @@
+```release-note:feature
+connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind.
+```
