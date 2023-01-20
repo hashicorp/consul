@@ -5,13 +5,11 @@ description: >-
   Cluster peering establishes communication between independent clusters in Consul, allowing services to interact across datacenters. Learn about the cluster peering process, differences with WAN federation for multi-datacenter deployments, and technical constraints.  
 ---
 
-# Overview
+# Cluster Peering Overview
 
-You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can communicate. Cluster peering enables connections between different clouds or runtime environments when general interconnectivity between all services in all clusters is not feasible.
+This topic provides an overview of cluster peering, which creates a connection between two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
 
-## Introduction
-
-Cluster peering is a process that allows Consul clusters to communicate with each other. The cluster peering process consists of the following steps:
+Cluster peering enables connections between different clouds or runtime environments when general interconnectivity between all services in all clusters is not feasible. The process to establish a cluster peering connection consists of the following steps:
 
 1. Create a peering token in one cluster.
 1. Use the peering token to establish peering with a second cluster.
@@ -33,7 +31,7 @@ You can find specific cluster peering configuration and usage information in the
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws).
 
-## Cluster Peering and WAN Federation Comparison
+## Cluster peering and WAN federation comparison
 
 WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
