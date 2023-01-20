@@ -980,7 +980,6 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-<<<<<<< HEAD
 func (e *BoundAPIGatewayConfigEntry) UpdateRouteBinding(refs []ResourceReference, route BoundRoute) (bool, map[ResourceReference]error) {
 	didUpdate := false
 	errors := make(map[ResourceReference]error)
@@ -1052,8 +1051,6 @@ func (e *BoundAPIGatewayConfigEntry) UnbindRoute(route BoundRoute) bool {
 	return didUnbind
 }
 
-=======
->>>>>>> @{-1}
 // BoundAPIGatewayListener is an API gateway listener with information
 // about the routes and certificates that have successfully bound to it.
 type BoundAPIGatewayListener struct {
@@ -1061,7 +1058,6 @@ type BoundAPIGatewayListener struct {
 	Routes       []ResourceReference
 	Certificates []ResourceReference
 }
-<<<<<<< HEAD
 
 // BindRoute is used to create or update a route on the listener.
 // It returns true if the route was able to be bound to the listener.
@@ -1111,5 +1107,3 @@ func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
 
 	return false
 }
-=======
->>>>>>> @{-1}
