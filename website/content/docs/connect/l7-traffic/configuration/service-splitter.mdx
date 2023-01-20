@@ -33,14 +33,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`Namespace`](#namespace): string | optional | <EnterpriseAlert inline /> 
 - [`Partition`](#partition): string | optional | <EnterpriseAlert inline /> 
 - [`Meta`](#meta): object | optional
-- [`Splits`](#splits): array of objects | optional
-  - [`Namespace`](#splits-namespace): string | optional | <EnterpriseAlert inline /> 
-  - [`Partition`](#splits-partition): string | optional | <EnterpriseAlert inline /> 
-  - [`RequestHeaders`](#splits-requestheaders): object | optional
-  - [`ResponseHeaders`](#splits-responseheaders): object | optional
-  - [`Service`](#splits-service): string | optional
-  - [`ServiceSubset`](#splits-service-subset): string | optional
-  - [`Weight`](#splits-weight): float32 | optional
+- [`Splits`](#splits): array of [`ServiceSplit`](#servicesplit) | optional
 
 </Tab>
 <Tab heading="Kubernetes YAML" group="yaml">
@@ -48,14 +41,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`metadata`](): string | required
   - [`name`](#name): string | required
   - [`namespace`](#namespace): string | optional | <EnterpriseAlert inline /> 
-- [`splits`](#splits): array of objects | optional
-  - [`namespace`](#splits-namespace): string | optional | <EnterpriseAlert inline /> 
-  - [`partition`](#splits-partition): string | optional | <EnterpriseAlert inline /> 
-  - [`requestHeaders`](#splits-requestheaders): object | optional
-  - [`responseHeaders`](#splits-responseheaders): object | optional
-  - [`service`](#splits-service): string | optional
-  - [`serviceSubset`](#splits-service-subset): string | optional
-  - [`weight`](#splits-weight): float32 | optional
+- [`splits`](#splits): array of [`ServiceSplit`](#servicesplit) | optional
 
 </Tab>
 </Tabs>
@@ -135,7 +121,7 @@ This value does not exist for Kubernetes.
 
 Defines how the configuration entry splits traffic. 
 
-- Type: array of objects
+- Type: array of `ServiceSplit`
 - Required: optional
 
 The Kubernetes equivalent is `splits` and is defined in the `spec` field.
@@ -146,7 +132,9 @@ spec:
     ## ...
 ```
 
-### Splits.Namespace <EnterpriseAlert inline />
+### ServiceSplit
+
+#### Splits.Namespace <EnterpriseAlert inline />
 
 Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resolving the service. By default, the `service-splitter` uses the [namespace specified in the top-level configuration entry](#namespace).
 
@@ -155,7 +143,7 @@ Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resol
 
 The Kubernetes equivalent is `namespace`.
 
-### Splits.Partition <EnterpriseAlert inline />
+#### Splits.Partition <EnterpriseAlert inline />
 
 Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use for resolving the service. By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
 
@@ -164,7 +152,7 @@ Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to u
 
 The Kubernetes equivalent is `partition`.
 
-### Splits.RequestHeaders
+#### Splits.RequestHeaders
 
 The `RequestHeaders` object contains a set of HTTP-specific header modification rules that are applied to requests routed through the split.
 
@@ -176,7 +164,7 @@ The following table describes the modification rules you can define in the `Requ
 
 Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
-### Splits.ResponseHeaders
+#### Splits.ResponseHeaders
 
 The `ResponseHeaders` object contains a set of HTTP-specific header modification rules that are applied to responses routed through the split.
 
@@ -188,7 +176,7 @@ The following table describes the modification rules you can define in the `Resp
 
 Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
-### splits.Service
+#### splits.Service
 
 Specifies the name of the service to resolve. If undefined, this value defaults to the service with the same name as the configuration entry.
 
@@ -199,7 +187,7 @@ The Kubernetes equivalent is `service`.
 
 Refer to [Two subsets of same service](#two-subsets-of-same-service) for an example configuration. 
 
-### splits.ServiceSubset
+#### splits.ServiceSubset
 
 Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. If empty, the `split` will use the default subset.
 
@@ -208,7 +196,7 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 
 The Kubernetes equivalent is `serviceSubset`.
 
-### splits.Weight
+#### splits.Weight
 
 Specifies what percentage of the traffic is sent to the set of service instances specified in the [`splits.Service`](#splits-service) field. The field is the same for Kubernetes and virtual machines. 
 
