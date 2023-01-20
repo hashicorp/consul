@@ -2024,7 +2024,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	testrpc.WaitForLeader(t, b.RPC, "dc1")
 
 	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d", b.Config.SerfPortLAN)
-	req, _ := http.NewRequest("PUT", joinPath, nil)
+	req := httptest.NewRequest("PUT", joinPath, nil)
 	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
