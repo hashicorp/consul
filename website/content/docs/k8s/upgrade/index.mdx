@@ -175,7 +175,7 @@ that can be used.
 Initiate the server upgrade:
 
 1. Change the `global.image` value to the desired Consul version.
-1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`. In addition, apply extraConfig to the servers so that Consul server pods leave properly when they are terminating during a rolling restart. 
+1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`. In addition, apply the `leave_on_terminate: true` agent configuration using the `extraConfig` stanza, so that Consul server pods leave the LAN pool properly when they are terminating during a rolling restart. 
 1. Set the `updateStrategy` for clients to `OnDelete`.
 
   <CodeBlockConfig filename="values.yaml">
