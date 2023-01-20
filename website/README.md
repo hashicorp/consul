@@ -91,7 +91,6 @@ This file can be standard Markdown and also supports [YAML frontmatter](https://
 title: 'My Title'
 description: "A thorough, yet succinct description of the page's contents"
 ---
-
 ```
 
 The significant keys in the YAML frontmatter are:
