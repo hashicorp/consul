@@ -13,7 +13,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 		routes                   []structs.BoundRoute
 		expectedBoundAPIGateways []*structs.BoundAPIGatewayConfigEntry
 		expectedReferenceErrors  map[structs.ResourceReference]error
-		expectedError            error
 	}
 
 	cases := map[string]testCase{
@@ -36,7 +35,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route unbinds from gateway": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -67,7 +65,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route binds to multiple gateways": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -97,7 +94,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route binds to gateway with multiple listeners": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -120,7 +116,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route binds to all listeners on a gateway": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -145,7 +140,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route binds to gateway with multiple listeners, one of which is already bound": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -173,7 +167,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route binds to a listener on multiple gateways": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -207,7 +200,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Route swaps from one listener to another on a gateway": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -232,7 +224,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 		"TCP Routes bind to each gateway": {
 			gateways: []*structs.BoundAPIGatewayConfigEntry{
@@ -264,17 +255,15 @@ func TestBindRoutesToGateways(t *testing.T) {
 				}),
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
-			expectedError:           nil,
 		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualBoundAPIGateways, referenceErrors, err := BindRoutesToGateways(tc.gateways, tc.routes...)
+			actualBoundAPIGateways, referenceErrors := BindRoutesToGateways(tc.gateways, tc.routes...)
 
 			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
 			require.Equal(t, tc.expectedReferenceErrors, referenceErrors)
-			require.Equal(t, tc.expectedError, err)
 		})
 	}
 }
