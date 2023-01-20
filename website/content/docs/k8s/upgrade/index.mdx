@@ -185,6 +185,10 @@ Initiate the server upgrade:
     image: 'consul:123.456'
   server:
     updatePartition: 3
+    extraConfig: |
+      {
+        "leave_on_terminate": "true"
+      }
   ```
 
   </CodeBlockConfig>
