@@ -1025,8 +1025,9 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	// Create a dummy proxy/service config in the state store to look up.
 	state := s1.fsm.State()
 	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
-		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
+		Kind:        structs.ProxyDefaults,
+		Name:        structs.ProxyConfigGlobal,
+		MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
 		Config: map[string]interface{}{
 			"foo": 1,
 		},
@@ -1056,12 +1057,25 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 			"foo":      int64(1),
 			"protocol": "http",
 		},
+		MeshGateway: structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeLocal,
+		},
 		UpstreamConfigs: map[string]map[string]interface{}{
 			"*": {
-				"foo": int64(1),
+				"mesh_gateway": map[string]interface{}{
+					"Mode": "local",
+				},
 			},
 			"bar": {
 				"protocol": "grpc",
+				"mesh_gateway": map[string]interface{}{
+					"Mode": "local",
+				},
+			},
+			"baz": {
+				"mesh_gateway": map[string]interface{}{
+					"Mode": "local",
+				},
 			},
 		},
 		Meta: map[string]string{"foo": "bar"},

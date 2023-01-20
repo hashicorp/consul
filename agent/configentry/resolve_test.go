@@ -141,8 +141,10 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			name: "proxy inherits kitchen sink from proxy-defaults",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
-					Name: "sid",
+					Name:        "sid",
+					UpstreamIDs: uids,
 				},
+				upstreamIDs: uids,
 				entries: &ResolvedServiceConfigSet{
 					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
 						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
@@ -181,7 +183,12 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 					{
 						Upstream: wildcard,
 						Config: map[string]interface{}{
-							"foo":          "bar",
+							"mesh_gateway": remoteMeshGW,
+						},
+					},
+					{
+						Upstream: uid,
+						Config: map[string]interface{}{
 							"mesh_gateway": remoteMeshGW,
 						},
 					},
