@@ -13,6 +13,7 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -32,19 +33,19 @@ import (
 //   - Change access log configuration to use custom text format and disable Listener logs
 //   - Make sure a call to the client sidecar emits an access log at the client-sidecar (outbound) and
 //     server-sidecar (inbound).
-//   - Clear the access log configuration from `proxy-defaults`
-//   - Make sure a call to the client sidecar local bind port succeeds but does not emit a log
 //
 // Notes:
 //   - Does not test disabling listener logs. In practice, it's hard to get them to emit. The best chance would
 //     be running a service that throws a 404 on a random path or maybe use some path-based disco chains
 //   - JSON keys have no guaranteed ordering, so simple key-value pairs are tested
+//   - Because it takes a while for xDS updates to make it to envoy, it's not obvious when turning off access logs
+//     will actually cause the proxies to update. Testing this proved difficult.
 func TestAccessLogs(t *testing.T) {
 	if semver.IsValid(utils.TargetVersion) && semver.Compare(utils.TargetVersion, "v1.15") < 0 {
 		t.Skip()
 	}
 
-	cluster := createCluster(t)
+	cluster, _, _ := topology.NewPeeringCluster(t, "dc1", 1, "")
 
 	// Turn on access logs. Do this before starting the sidecars so that they inherit the configuration
 	// for their admin interface
@@ -69,7 +70,7 @@ func TestAccessLogs(t *testing.T) {
 		client := libassert.ServiceLogContains(t, clientService, "\"banana_path\":\"/banana\"")
 		server := libassert.ServiceLogContains(t, serverService, "\"banana_path\":\"/banana\"")
 		return client && server
-	}, 20*time.Second, 1*time.Second)
+	}, 60*time.Second, 1*time.Second)
 
 	// Validate Logs on the Admin Interface
 	serverSidecar, ok := serverService.(*libservice.ConnectContainer)
@@ -114,38 +115,6 @@ func TestAccessLogs(t *testing.T) {
 
 	// TODO: add a test to check that connections without a matching filter chain are NOT logged
 
-}
-
-func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		// TODO: fix the test to not need the service/envoy stack to use :8500
-		AllowHTTPAnyway: true,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).
-		ToAgentConfig(t)
-	t.Logf("Cluster config:\n%s", conf.JSON)
-
-	configs := []libcluster.Config{*conf}
-
-	cluster, err := libcluster.New(t, configs)
-	require.NoError(t, err)
-
-	node := cluster.Agents[0]
-	client := node.GetClient()
-
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	return cluster
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {

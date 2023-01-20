@@ -17,7 +17,6 @@ type Agent interface {
 	GetName() string
 	GetPod() testcontainers.Container
 	ClaimAdminPort() int
-	ClaimConnectPort() int
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string

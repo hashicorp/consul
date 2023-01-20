@@ -25,7 +25,6 @@ type ConnectContainer struct {
 	ip               string
 	appPort          int
 	adminPort        int
-	publicPort       int
 	mappedPublicPort int
 	serviceName      string
 }
@@ -109,7 +108,6 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	dockerfileCtx.BuildArgs = buildargs
 
 	adminPort := node.ClaimAdminPort()
-	publicPort := node.ClaimConnectPort()
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -154,29 +152,26 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 
 	var (
-		appPortStr    = strconv.Itoa(serviceBindPort)
-		adminPortStr  = strconv.Itoa(adminPort)
-		publicPortStr = strconv.Itoa(publicPort)
+		appPortStr   = strconv.Itoa(serviceBindPort)
+		adminPortStr = strconv.Itoa(adminPort)
 	)
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr, publicPortStr})
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
 	if err != nil {
 		return nil, err
 	}
 
 	out := &ConnectContainer{
-		ctx:              ctx,
-		container:        info.Container,
-		ip:               info.IP,
-		appPort:          info.MappedPorts[appPortStr].Int(),
-		adminPort:        info.MappedPorts[adminPortStr].Int(),
-		publicPort:       publicPort,
-		mappedPublicPort: info.MappedPorts[publicPortStr].Int(),
-		serviceName:      name,
+		ctx:         ctx,
+		container:   info.Container,
+		ip:          info.IP,
+		appPort:     info.MappedPorts[appPortStr].Int(),
+		adminPort:   info.MappedPorts[adminPortStr].Int(),
+		serviceName: name,
 	}
 
-	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d, public listener port %d\\n\"",
-		serviceName, out.appPort, serviceBindPort, publicPort)
+	fmt.Printf("NewConnectService: name %s, bind port %d, public listener port %d\\n\"",
+		serviceName, out.appPort, serviceBindPort)
 
 	return out, nil
 }

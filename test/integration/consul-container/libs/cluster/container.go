@@ -61,12 +61,6 @@ func (c *consulContainerNode) ClaimAdminPort() int {
 	return p
 }
 
-func (c *consulContainerNode) ClaimConnectPort() int {
-	p := 21000 + c.nextConnectPortOffset
-	c.nextConnectPortOffset++
-	return p
-}
-
 // NewConsulContainer starts a Consul agent in a container with the given config.
 func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
 	if config.ScratchDir == "" {
@@ -452,13 +446,6 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 			"19007/tcp", // Envoy Admin Port
 			"19008/tcp", // Envoy Admin Port
 			"19009/tcp", // Envoy Admin Port
-
-			"21000/tcp", // Envoy Connect Listener
-			"21001/tcp", // Envoy Connect Listener
-			"21002/tcp", // Envoy Connect Listener
-			"21003/tcp", // Envoy Connect Listener
-			"21004/tcp", // Envoy Connect Listener
-			"21005/tcp", // Envoy Connect Listener
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,
