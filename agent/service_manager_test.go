@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -422,12 +421,6 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
-					},
-				},
-				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -475,12 +468,6 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"protocol": "http",
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
-					},
-				},
 				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
@@ -660,12 +647,6 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"protocol": "http",
 			},
 			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
-				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
-					},
-				},
 				{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
