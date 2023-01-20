@@ -33,7 +33,6 @@ func ComputeResolvedServiceConfig(
 	// blocking query, this function will be rerun and these state store lookups will both be current.
 	// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
 
-	var proxyConfGlobalProtocol string
 	proxyConf := entries.GetProxyDefaults(args.PartitionOrDefault())
 	if proxyConf != nil {
 		// Apply the proxy defaults to the sidecar's proxy config
@@ -50,20 +49,18 @@ func ComputeResolvedServiceConfig(
 		thisReply.EnvoyExtensions = proxyConf.EnvoyExtensions
 		thisReply.AccessLogs = proxyConf.AccessLogs
 
-		parsed, err := structs.ParseUpstreamConfigNoDefaults(mapCopy.(map[string]interface{}))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config map for proxy-defaults: %v", err)
-		}
-		proxyConfGlobalProtocol = parsed.Protocol
-
+		// Only MeshGateway and Protocol should affect upstreams.
 		// MeshGateway is strange. It's marshaled into UpstreamConfigs via the arbitrary map, but it
 		// uses concrete fields everywhere else. We always take the explicit definition here for
 		// wildcard upstreams and discard the user setting it via arbitrary map in proxy-defaults.
-		if err := mergo.MergeWithOverwrite(&wildcardUpstreamDefaults, mapCopy); err != nil {
-			return nil, fmt.Errorf("failed to merge upstream config map for proxy-defaults: %v", err)
+		if mgw, ok := thisReply.ProxyConfig["mesh_gateway"]; ok {
+			wildcardUpstreamDefaults["mesh_gateway"] = mgw
 		}
 		if !proxyConf.MeshGateway.IsZero() {
 			wildcardUpstreamDefaults["mesh_gateway"] = proxyConf.MeshGateway
+		}
+		if protocol, ok := thisReply.ProxyConfig["protocol"]; ok {
+			wildcardUpstreamDefaults["protocol"] = protocol
 		}
 	}
 
@@ -149,9 +146,7 @@ func ComputeResolvedServiceConfig(
 
 	// First store all upstreams that were provided in the request
 	for _, sid := range upstreamIDs {
-		if _, ok := seenUpstreams[sid]; !ok {
-			seenUpstreams[sid] = struct{}{}
-		}
+		seenUpstreams[sid] = struct{}{}
 	}
 
 	// Then store upstreams inferred from service-defaults and mapify the overrides.
@@ -204,19 +199,17 @@ func ComputeResolvedServiceConfig(
 		// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
 		// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
 		// 	  (how the downstream wants to address it)
-		protocol := proxyConfGlobalProtocol
+		if err := mergo.MergeWithOverwrite(&resolvedCfg, wildcardUpstreamDefaults); err != nil {
+			return nil, fmt.Errorf("failed to merge wildcard defaults into upstream: %v", err)
+		}
 
 		upstreamSvcDefaults := entries.GetServiceDefaults(
 			structs.NewServiceID(upstream.ID, &upstream.EnterpriseMeta),
 		)
 		if upstreamSvcDefaults != nil {
 			if upstreamSvcDefaults.Protocol != "" {
-				protocol = upstreamSvcDefaults.Protocol
+				resolvedCfg["protocol"] = upstreamSvcDefaults.Protocol
 			}
-		}
-
-		if protocol != "" {
-			resolvedCfg["protocol"] = protocol
 		}
 
 		// When dialing an upstream, the goal is to flatten the mesh gateway mode in this order
