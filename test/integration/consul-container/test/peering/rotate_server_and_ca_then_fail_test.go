@@ -47,6 +47,8 @@ import (
 //   - Terminate the server nodes in the exporting cluster
 //   - Make sure there is still service connectivity from the importing cluster
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
+	t.Parallel()
+
 	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion)
 	var (
 		acceptingCluster     = accepting.Cluster

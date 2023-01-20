@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -16,6 +16,8 @@ import (
 // TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
 // and accepting cluster upgrade
 func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
+	t.Parallel()
+
 	type testcase struct {
 		oldversion    string
 		targetVersion string

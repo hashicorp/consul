@@ -49,7 +49,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 1.6.4
+      GOTESTSUM_RELEASE: 1.9.0
     command: |
       ARCH=`uname -m`
       if [[ "$ARCH" == "aarch64" ]]; then
@@ -869,12 +869,16 @@ jobs:
             cd ./test/integration/consul-container
             docker run --rm consul:local consul version
             gotestsum \
+              --raw-command \
               --format=short-verbose \
               --debug \
               --rerun-fails=3 \
               --packages="./..." \
               -- \
+              go test \
+              -p=4 \
               -timeout=30m \
+              -json \
               ./... \
               --target-image consul \
               --target-version local \
