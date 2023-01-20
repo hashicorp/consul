@@ -434,6 +434,52 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     See the [configuration entry docs](/docs/agent/config-entries) for more
     details about the contents of each entry.
 
+  <CodeTabs>
+
+  ```hcl
+  config_entries {
+    bootstrap {
+      kind = "proxy-defaults"
+      name = "global"
+      config {
+         envoy_dogstatsd_url = "udp://127.0.0.1:9125"
+      }
+    }
+    bootstrap {
+      kind = "service-defaults"
+      name = "dashboard"
+      protocol = "http"
+    }
+  }
+  ```
+
+  ```json
+  {
+    "config_entries": [
+      {
+        "bootstrap": [
+          {
+            "kind": "proxy-defaults",
+            "name": "global",
+            "config": [
+              {
+                "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
+              }
+            ]
+          },
+          {
+            "kind": "service-defaults",
+            "name": "dashboard",
+            "protocol": "http"
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+  </CodeTabs>
+
 - `datacenter` Equivalent to the [`-datacenter` command-line flag](/docs/agent/config/cli-flags#_datacenter).
 
 - `data_dir` Equivalent to the [`-data-dir` command-line flag](/docs/agent/config/cli-flags#_data_dir).
