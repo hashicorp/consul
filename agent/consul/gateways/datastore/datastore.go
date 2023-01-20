@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+//go:generate mockery --name MockDataStore --inpackage
 type DataStore interface {
 	GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (structs.ConfigEntry, error)
 	UpdateStatus(entry structs.ConfigEntry) error

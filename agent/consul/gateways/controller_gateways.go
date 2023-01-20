@@ -20,9 +20,9 @@ type apiGatewayReconciler struct {
 }
 
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
-	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, *req.Meta)
+	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
 	if err != nil {
-		return er
+		return err
 	}
 
 	if entry == nil {
@@ -41,7 +41,7 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	// TODO: do initial distributed validation here, if we're invalid, then set the status
 
 	var state *structs.BoundAPIGatewayConfigEntry
-	_, boundEntry, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	boundEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 		for _, route := range listener.Routes {
 			fmt.Println(route)
 			//routes that didn't have a gateway that exists
-			_, routeEntry, err := store.ConfigEntry(nil, route.Kind, route.Name, &route.EnterpriseMeta)
+			routeEntry, err := r.store.GetConfigEntry(route.Kind, route.Name, &route.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
