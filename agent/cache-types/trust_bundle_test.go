@@ -59,6 +59,7 @@ func TestTrustBundle_badReqType(t *testing.T) {
 
 // This test asserts that we can continuously poll this cache type, given that it doesn't support blocking.
 func TestTrustBundle_MultipleUpdates(t *testing.T) {
+	t.Parallel()
 	c := cache.New(cache.Options{})
 
 	client := NewMockTrustBundleReader(t)
@@ -82,7 +83,7 @@ func TestTrustBundle_MultipleUpdates(t *testing.T) {
 	c.RegisterType(TrustBundleReadName, &TrustBundle{Client: client})
 
 	ch := make(chan cache.UpdateEvent)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	t.Cleanup(cancel)
 
 	err := c.Notify(ctx, TrustBundleReadName, &TrustBundleReadRequest{
