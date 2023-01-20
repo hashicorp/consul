@@ -51,9 +51,12 @@ required ports and their default settings.
 
 ## Reloadable Configuration
 
-Reloading configuration does not reload all configuration items. The
-items which are reloaded include:
+Some agent configuration options are reloadable at runtime.
+You can run the [`consul reload` command](/commands/reload) to manually reload supported options from configuration files in the configuration directory.
+To configure the agent to automatically reload configuration files updated on disk,
+set the [`auto_reload_config` configuration option](/consul/docs/agent/config/config-files#auto_reload_config) parameter to `true`.
 
+The following agent configuration options are reloadable at runtime: 
 - ACL Tokens
 - [Configuration Entry Bootstrap](/docs/agent/config/config-files#config_entries_bootstrap)
 - Checks
