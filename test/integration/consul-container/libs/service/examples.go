@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
@@ -28,29 +29,6 @@ type exampleContainer struct {
 
 var _ Service = (*exampleContainer)(nil)
 
-func (g exampleContainer) GetName() string {
-	name, err := g.container.Name(g.ctx)
-	if err != nil {
-		return ""
-	}
-	return name
-}
-
-func (g exampleContainer) GetAddr() (string, int) {
-	return g.ip, g.httpPort
-}
-
-func (g exampleContainer) Start() error {
-	if g.container == nil {
-		return fmt.Errorf("container has not been initialized")
-	}
-	return g.container.Start(context.Background())
-}
-
-func (c exampleContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
-}
-
 func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
 	config := &api.ExportedServicesConfigEntry{
 		Name: partition,
@@ -67,8 +45,45 @@ func (g exampleContainer) Export(partition, peerName string, client *api.Client)
 	return err
 }
 
+func (g exampleContainer) GetAddr() (string, int) {
+	return g.ip, g.httpPort
+}
+
+func (g exampleContainer) GetLogs() (string, error) {
+	rc, err := g.container.Logs(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("could not get logs for example service %s: %w", g.GetServiceName(), err)
+	}
+	defer rc.Close()
+
+	out, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("could not read from logs for example service %s: %w", g.GetServiceName(), err)
+	}
+	return string(out), nil
+}
+
+func (g exampleContainer) GetName() string {
+	name, err := g.container.Name(g.ctx)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
 func (g exampleContainer) GetServiceName() string {
 	return g.serviceName
+}
+
+func (g exampleContainer) Start() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Start(context.Background())
+}
+
+func (c exampleContainer) Terminate() error {
+	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent) (Service, error) {
