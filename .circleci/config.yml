@@ -190,6 +190,14 @@ jobs:
       - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
       - run: *notify-slack-failure
 
+  lint-container-test-deps:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: make lint-container-test-deps
+      - run: *notify-slack-failure
+
   lint:
     description: "Run golangci-lint"
     parameters:
@@ -1076,6 +1084,7 @@ workflows:
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - check-generated-deep-copy: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
+      - lint-container-test-deps: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
       - lint:

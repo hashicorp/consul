@@ -314,17 +314,31 @@ other-consul:
 		exit 1 ; \
 	fi
 
-lint: lint-tools
+lint: -lint-main lint-container-test-deps
+
+.PHONY: -lint-main
+-lint-main: lint-tools
 	@echo "--> Running golangci-lint"
 	@golangci-lint run --build-tags '$(GOTAGS)' && \
 		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
 	@echo "--> Running golangci-lint (container tests)"
-	cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
+	@cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
 	@echo "--> Running lint-consul-retry"
 	@lint-consul-retry
 	@echo "--> Running enumcover"
 	@enumcover ./...
+
+.PHONY: lint-container-test-deps
+lint-container-test-deps:
+	@echo "--> Checking container tests for bad dependencies"
+	@cd test/integration/consul-container && ( \
+		found="$$(go list -m all | grep -c '^github.com/hashicorp/consul ')" ; \
+		if [[ "$$found" != "0" ]]; then \
+			echo "test/integration/consul-container: This project should not depend on the root consul module" >&2 ; \
+			exit 1 ; \
+		fi \
+	)
 
 # Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker
