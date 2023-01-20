@@ -94,8 +94,8 @@ responsibility for correctly configuring Envoy and ensuring version support etc.
 
 ## Intention Enforcement
 
-[Intentions] are enforced using Envoy's RBAC filters. Depending on the
-configured [protocol] of the proxied service, intentions are either enforced
+[Intentions](/consul/docs/connect/intentions) are enforced using Envoy's RBAC filters. Depending on the
+configured [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) of the proxied service, intentions are either enforced
 per-connection (L4) using a network filter, or per-request (L7) using an HTTP
 filter.
 
@@ -597,7 +597,7 @@ override them directly in the `proxy.config` field of a [proxy service
 definition](/consul/docs/connect/registration/service-registration) or
 [`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block.
 
-- `envoy_extra_static_clusters_json` - Specifies one or more [Envoy clusters][pb-cluster]
+- `envoy_extra_static_clusters_json` - Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto)
   that will be appended to the array of [static
   clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters)
   in the bootstrap config. This enables you to add custom clusters for tracing sinks,
@@ -635,7 +635,7 @@ definition](/consul/docs/connect/registration/service-registration) or
   </CodeBlockConfig>
 
 - `envoy_extra_static_listeners_json` - Similar to
-  `envoy_extra_static_clusters_json` but appends one or more [Envoy listeners][pb-listener] to the array of [static
+  `envoy_extra_static_clusters_json` but appends one or more [Envoy listeners](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto) to the array of [static
   listener](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-listeners) definitions.
   Can be used to setup limited access that bypasses Connect mTLS or
   authorization for health checks or metrics.
@@ -789,7 +789,7 @@ definition](/consul/docs/connect/registration/service-registration) or
   deviations from the default template may break Consul's ability to correctly
   manage the proxy or enforce its security model.
 
-- `envoy_public_listener_json` - Specifies a complete [Envoy listener][pb-listener]
+- `envoy_public_listener_json` - Specifies a complete [Envoy listener](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto)
   to be delivered in place of the main public listener that the proxy used to
   accept inbound connections. This will be used verbatim with the following
   exceptions:
@@ -925,7 +925,7 @@ definition](/consul/docs/connect/registration/service-registration) or
 
   </CodeBlockConfig>
 
-- `envoy_local_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
+- `envoy_local_cluster_json` - Specifies a complete [Envoy cluster](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto)
   to be delivered in place of the local application cluster. This allows
   customization of timeouts, rate limits, load balancing strategy etc.
 
@@ -982,7 +982,7 @@ definition](/consul/docs/connect/registration/service-registration) or
 entry exists for a service the below escape hatches are ignored and will log a
 warning.
 
-- `envoy_listener_json` - Specifies a complete [Listener][pb-listener]
+- `envoy_listener_json` - Specifies a complete [Listener](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto)
   to be delivered in place of the upstream listener that the proxy exposes to
   the application for outbound connections. This will be used verbatim with the
   following exceptions:
@@ -1066,7 +1066,7 @@ warning.
   ```
   </CodeTabs>
 
-- `envoy_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
+- `envoy_cluster_json` - Specifies a complete [Envoy cluster](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto)
   to be delivered in place of the discovered upstream cluster. This allows
   customization of timeouts, circuit breaking, rate limits, load balancing
   strategy etc.
@@ -1099,9 +1099,3 @@ warning.
   }
   ```
   </CodeTabs>
-
-[protocol]: /consul/docs/connect/config-entries/service-defaults#protocol
-[intentions]: /consul/docs/connect/intentions
-[intentions]: /consul/docs/connect/intentions
-[pb-cluster]: https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto
-[pb-listener]: https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto
