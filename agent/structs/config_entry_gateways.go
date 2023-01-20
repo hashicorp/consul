@@ -1066,6 +1066,8 @@ func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 		return false
 	}
 
+	// TODO (t-eckert): Add a check that the listener has the same `protocol` as the route. Fail to bind if the protocols do not match.
+
 	// Convert the abstract route interface to a ResourceReference.
 	routeRef := ResourceReference{
 		Kind:           route.GetKind(),
