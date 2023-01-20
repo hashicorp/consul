@@ -175,7 +175,7 @@ that can be used.
 Initiate the server upgrade:
 
 1. Change the `global.image` value to the desired Consul version.
-1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`.
+1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`. In addition, apply extraConfig to the servers so that Consul server pods leave properly when they are terminating during a rolling restart. 
 1. Set the `updateStrategy` for clients to `OnDelete`.
 
   <CodeBlockConfig filename="values.yaml">
@@ -193,6 +193,8 @@ Initiate the server upgrade:
   cluster are updated. Only instances with an index _greater than_ the
   `updatePartition` value are updated (zero-indexed). Therefore, by setting
   it equal to replicas, updates should not occur immediately.
+  
+  Note that any config changes applied through Helm on the servers are applied through a rolling update, unless the config value can be updated using a [`consul reload`'](/consul/commands/reload) command or via the Consul API. See [reloadable config](/docs/agent/config) for more information. 
 
 1. Next, perform the upgrade:
 
