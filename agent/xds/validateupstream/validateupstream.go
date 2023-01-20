@@ -351,7 +351,7 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 // Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
 func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string) error {
-	em := acl.NewEnterpriseMetaWithPartition(service.Namespace, service.Partition)
+	em := acl.NewEnterpriseMetaWithPartition(service.Partition, service.Namespace)
 	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
 
 	// The envoyID is used to identify which listener and filter matches the upstream service.
@@ -368,11 +368,8 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		envoyID = uid.EnvoyID()
 	}
 
-	// TODO remove printing
-	//spew.Dump(indexedResources)
-
 	// Get all SNIs from the clusters in the configuration. Not all SNIs will need to be validated, but this ensures we
-	// capture SNIs which aren't directly identical to the upstream service name, but are still used for the upstream
+	// capture SNIs which aren't directly identical to the upstream service name, but are still used for that upstream
 	// service. For example, in the case of having a splitter/redirect or another L7 config entry, the upstream service
 	// name could be "db" but due to a redirect SNI would be something like
 	// "redis.default.dc1.internal.<trustdomain>.consul". The envoyID will be used to limit which SNIs we actually
@@ -400,8 +397,6 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
-	// TODO remove printing
-	//spew.Dump(extConfig)
 
 	extension := builtinextensiontemplate.EnvoyExtension{Constructor: validate.MakeValidate}
 	err := extension.Validate(extConfig)

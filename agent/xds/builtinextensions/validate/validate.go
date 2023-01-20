@@ -67,21 +67,17 @@ func (v *Validate) Errors() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
-	// TODO remove printing.
-	//spew.Dump(v.resources)
+	// Resources will be marked as required in PatchFilter or PatchRoute because the listener or route will determine
+	// which clusters/endpoints to validate.
 	for sni, resource := range v.resources {
 		if !resource.required {
 			continue
 		}
 
 		_, ok := v.snis[sni]
-		if !ok {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected route/listener destination cluster %s", sni))
-			continue
-		}
-
-		if !resource.cluster {
+		if !ok || !resource.cluster {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster for sni %s", sni))
+			continue
 		}
 
 		if resource.usesEDS && !resource.loadAssignment {

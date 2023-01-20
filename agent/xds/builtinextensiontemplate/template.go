@@ -281,13 +281,6 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 }
 
 func filterChainTProxyMatch(vip string, filterChain *envoy_listener_v3.FilterChain) bool {
-	// TODO I don't think we need to match based on SNIs at all anymore but make sure that's the case.
-	//for _, filter := range filterChain.Filters {
-	//	// TODO this is wrong in the case of redirects I believe
-	//	if FilterDestinationMatch(sni, filter) {
-	//		return true
-	//	}
-	//}
 	for _, prefixRange := range filterChain.FilterChainMatch.PrefixRanges {
 		strings.Contains(vip, prefixRange.AddressPrefix)
 		return true
@@ -319,12 +312,6 @@ func FilterClusterNames(filter *envoy_listener_v3.Filter) map[string]struct{} {
 	return clusterNames
 }
 
-func FilterDestinationMatch(sni string, filter *envoy_listener_v3.Filter) bool {
-	clusterNames := FilterClusterNames(filter)
-	_, ok := clusterNames[sni]
-	return ok
-}
-
 func RouteClusterNames(route *envoy_route_v3.RouteConfiguration) map[string]struct{} {
 	if route == nil {
 		return nil
@@ -352,12 +339,6 @@ func RouteClusterNames(route *envoy_route_v3.RouteConfiguration) map[string]stru
 		}
 	}
 	return clusterNames
-}
-
-func RouteMatchesCluster(sni string, route *envoy_route_v3.RouteConfiguration) bool {
-	clusterNames := RouteClusterNames(route)
-	_, ok := clusterNames[sni]
-	return ok
 }
 
 func GetTCPProxy(filter *envoy_listener_v3.Filter) *envoy_tcp_proxy_v3.TcpProxy {

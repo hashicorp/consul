@@ -32,10 +32,6 @@ func TestValidateUpstreams(t *testing.T) {
 	})
 	nodes := proxycfg.TestUpstreamNodes(t, "db")
 
-	// TODO Test tproxy with failover, redirect, splitter. -- tested with redirect, probably sufficient
-	// peering and failover
-	// TODO explicit upstreams and tproxy for the same service.-- can determine this based on VIP being passed in, so we will probably handle this fine
-	// TODO Investigate if we can make the missing cluster error cases have a different error, to help make it less confusing.
 	tests := []struct {
 		name        string
 		create      func(t testinf.T) *proxycfg.ConfigSnapshot
@@ -71,7 +67,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "unexpected route/listener destination cluster",
+			err: "no cluster",
 		},
 		{
 			name: "tcp-missing-load-assignment",
@@ -234,7 +230,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "unexpected route/listener destination cluster", // TODO can we make this a better error
+			err: "no cluster",
 		},
 		{
 			name: "tproxy-http-missing-endpoints",
