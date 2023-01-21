@@ -1653,7 +1653,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	} else {
 		meta = v.Meta
 	}
-	serviceWeights := &structs.Weights{Passing: 1, Warning: 1}
+	serviceWeights := structs.DefaultServiceWeights()
 	if v.Weights != nil {
 		if v.Weights.Passing != nil {
 			serviceWeights.Passing = *v.Weights.Passing
