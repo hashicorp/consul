@@ -296,7 +296,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/docs/enterprise/admin-partitions) for additional information.',
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -317,7 +317,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for additional information.',
+            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
@@ -326,7 +326,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'TransparentProxy',
       type: 'TransparentProxyConfig: <optional>',
       description:
-        'Controls configuration specific to proxies in `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
+        'Controls configuration specific to proxies in `transparent` [mode](/consul/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
       children: [
         {
           name: 'MeshDestinationsOnly',
@@ -443,7 +443,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'Peering',
       type: 'PeeringMeshConfig: <optional>',
       description:
-        'Controls configuration specific to [peering connections](/docs/connect/cluster-peering).',
+        'Controls configuration specific to [peering connections](/consul/docs/connect/cluster-peering).',
       children: [
         {
           name: 'PeerThroughMeshGateways',
