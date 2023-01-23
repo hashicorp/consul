@@ -35,7 +35,7 @@ func (r *PeeringListRequest) CacheInfo() cache.RequestInfo {
 
 		// OPTIMIZE(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
 		//        	          Using an exponential backoff when the result hasn't changed may be preferable.
-		MaxAge: 10 * time.Second,
+		MaxAge: 5 * time.Second,
 	}
 
 	v, err := hashstructure.Hash([]interface{}{

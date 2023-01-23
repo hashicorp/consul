@@ -105,7 +105,7 @@ func TestPeerings_MultipleUpdates(t *testing.T) {
 	c.RegisterType(PeeringListName, &Peerings{Client: client})
 
 	ch := make(chan cache.UpdateEvent)
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	t.Cleanup(cancel)
 
 	require.NoError(t, c.Notify(ctx, PeeringListName, &PeeringListRequest{

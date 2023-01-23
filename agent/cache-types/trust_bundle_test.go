@@ -83,7 +83,7 @@ func TestTrustBundle_MultipleUpdates(t *testing.T) {
 	c.RegisterType(TrustBundleReadName, &TrustBundle{Client: client})
 
 	ch := make(chan cache.UpdateEvent)
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	t.Cleanup(cancel)
 
 	err := c.Notify(ctx, TrustBundleReadName, &TrustBundleReadRequest{
