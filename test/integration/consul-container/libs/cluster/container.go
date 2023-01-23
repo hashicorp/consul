@@ -10,11 +10,12 @@ import (
 	"time"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -44,7 +45,8 @@ type consulContainerNode struct {
 	clientCACertFile string
 	ip               string
 
-	nextAdminPortOffset int
+	nextAdminPortOffset   int
+	nextConnectPortOffset int
 
 	info AgentInfo
 }
@@ -428,11 +430,11 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"5000/tcp", // Envoy Connect Listener
-			"8079/tcp", // Envoy Connect Listener
-			"8080/tcp", // Envoy Connect Listener
-			"9998/tcp", // Envoy Connect Listener
-			"9999/tcp", // Envoy Connect Listener
+			"5000/tcp", // Envoy App Listener
+			"8079/tcp", // Envoy App Listener
+			"8080/tcp", // Envoy App Listener
+			"9998/tcp", // Envoy App Listener
+			"9999/tcp", // Envoy App Listener
 
 			"19000/tcp", // Envoy Admin Port
 			"19001/tcp", // Envoy Admin Port

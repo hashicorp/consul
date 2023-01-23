@@ -429,7 +429,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -531,7 +531,7 @@ spec:
           type: 'string: ""',
           description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this redirect target service as an upstream. When
                   the peer name is specified, Consul uses Envoy's outlier detection to determine
                   the health of the redirect target based on whether communication attempts to the
@@ -640,7 +640,7 @@ spec:
               type: 'string: ""',
               description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this failover target service as an upstream.
                   When the peer name is specified, Consul uses Envoy's outlier detection
                   to determine the health of the failover target based on

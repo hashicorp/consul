@@ -6,6 +6,13 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+// BoundRoute indicates a route that has parent gateways which
+// can be accessed by calling the GetParents associated function.
+type BoundRoute interface {
+	ConfigEntry
+	GetParents() []ResourceReference
+}
+
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
 // with the given name.
 type HTTPRouteConfigEntry struct {
@@ -85,6 +92,7 @@ type TCPRouteConfigEntry struct {
 
 	// Parents is a list of gateways that this route should be bound to
 	Parents []ResourceReference
+
 	// Services is a list of TCP-based services that this should route to.
 	// Currently, this must specify at maximum one service.
 	Services []TCPService
@@ -150,6 +158,13 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+}
+
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	return e.Parents
 }
 
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {

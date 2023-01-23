@@ -284,7 +284,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -333,14 +333,14 @@ spec:
         {
           name: 'RequestHeaders',
           type: 'HTTPHeaderModifiers: <optional>',
-          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
           that will be applied to requests routed to this split.
           This cannot be used with a \`tcp\` listener.`,
         },
         {
           name: 'ResponseHeaders',
           type: 'HTTPHeaderModifiers: <optional>',
-          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
           that will be applied to responses from this split.
           This cannot be used with a \`tcp\` listener.`,
         },

@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
+
+	"github.com/hashicorp/consul/api"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+)
+
+const (
+	StaticServerServiceName = "static-server"
+	StaticClientServiceName = "static-client"
 )
 
 func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Service, error) {
@@ -18,26 +24,10 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
-	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), "static-server", 8080, 8079, node)
-	if err != nil {
-		return nil, nil, err
-	}
-	deferClean.Add(func() {
-		_ = serverService.Terminate()
-	})
-
-	serverConnectProxy, err := NewConnectService(context.Background(), "static-server-sidecar", "static-server", 8080, node) // bindPort not used
-	if err != nil {
-		return nil, nil, err
-	}
-	deferClean.Add(func() {
-		_ = serverConnectProxy.Terminate()
-	})
-
-	// Register the static-server service and sidecar
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
 	req := &api.AgentServiceRegistration{
-		Name: "static-server",
+		Name: StaticServerServiceName,
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
@@ -52,10 +42,26 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 		},
 	}
 
-	err = node.GetClient().Agent().ServiceRegister(req)
-	if err != nil {
-		return serverService, serverConnectProxy, err
+	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
+		return nil, nil, err
 	}
+
+	// Create a service and proxy instance
+	serverService, err := NewExampleService(context.Background(), StaticServerServiceName, 8080, 8079, node)
+	if err != nil {
+		return nil, nil, err
+	}
+	deferClean.Add(func() {
+		_ = serverService.Terminate()
+	})
+
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), StaticServerServiceName, 8080, node) // bindPort not used
+	if err != nil {
+		return nil, nil, err
+	}
+	deferClean.Add(func() {
+		_ = serverConnectProxy.Terminate()
+	})
 
 	// disable cleanup functions now that we have an object with a Terminate() function
 	deferClean.Reset()
@@ -73,29 +79,21 @@ func CreateAndRegisterStaticClientSidecar(
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
-	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), "static-client-sidecar", "static-client", 5000, node)
-	if err != nil {
-		return nil, err
-	}
-	deferClean.Add(func() {
-		_ = clientConnectProxy.Terminate()
-	})
-
 	mgwMode := api.MeshGatewayModeRemote
 	if localMeshGateway {
 		mgwMode = api.MeshGatewayModeLocal
 	}
 
-	// Register the static-client service and sidecar
+	// Register the static-client service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
 	req := &api.AgentServiceRegistration{
-		Name: "static-client",
+		Name: StaticClientServiceName,
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
 				Proxy: &api.AgentServiceConnectProxyConfig{
 					Upstreams: []api.Upstream{{
-						DestinationName:  "static-server",
+						DestinationName:  StaticServerServiceName,
 						DestinationPeer:  peerName,
 						LocalBindAddress: "0.0.0.0",
 						LocalBindPort:    5000,
@@ -108,10 +106,18 @@ func CreateAndRegisterStaticClientSidecar(
 		},
 	}
 
-	err = node.GetClient().Agent().ServiceRegister(req)
-	if err != nil {
-		return clientConnectProxy, err
+	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
+		return nil, err
 	}
+
+	// Create a service and proxy instance
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, 5000, node)
+	if err != nil {
+		return nil, err
+	}
+	deferClean.Add(func() {
+		_ = clientConnectProxy.Terminate()
+	})
 
 	// disable cleanup functions now that we have an object with a Terminate() function
 	deferClean.Reset()

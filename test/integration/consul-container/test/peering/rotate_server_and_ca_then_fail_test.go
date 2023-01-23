@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -89,7 +90,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		libassert.PeeringExports(t, client, peerName, 1)
 
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	}
 
 	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
@@ -138,7 +139,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		// Connectivity should still be contained
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 
 		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
@@ -159,7 +160,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		time.Sleep(30 * time.Second)
 
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	})
 }
 

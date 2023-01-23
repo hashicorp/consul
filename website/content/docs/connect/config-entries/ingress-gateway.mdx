@@ -936,7 +936,7 @@ You can specify the following parameters to configure ingress gateway configurat
       enterprise: true,
       description:
         'Specifies the namespace in which the configuration entry will apply. The value must match the namespace in which the gateway is registered.' +
-        ' If omitted, the namespace will be inherited from the `ns` request parameter (refer to the [`config` API endpoint documentation](/api-docs/config#ns)).' +
+        ' If omitted, the namespace will be inherited from the `ns` request parameter (refer to the [`config` API endpoint documentation](/consul/api-docs/config#ns)).' +
         ' or will default to the `default` namespace.',
       yaml: false,
     },
@@ -953,8 +953,8 @@ You can specify the following parameters to configure ingress gateway configurat
       enterprise: true,
       description:
         'Specifies the admin partition in which the configuration will apply. The value must match the partition in which the gateway is registered.' +
-        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/api-docs/config)).' +
-        ' See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.',
+        ' If omitted, the partition will be inherited from the request (refer to the [`config` API endpoint documentation](/consul/api-docs/config)).' +
+        ' See [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -968,7 +968,7 @@ You can specify the following parameters to configure ingress gateway configurat
           name: 'namespace',
           enterprise: true,
           description:
-            'Refer to the [Kubernetes Namespaces documentation for Consul Enterprise](/docs/k8s/crds#consul-enterprise). The `namespace` parameter is not supported in Consul OSS (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)).',
+            'Refer to the [Kubernetes Namespaces documentation for Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise). The `namespace` parameter is not supported in Consul OSS (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)).',
         },
       ],
       hcl: false,
@@ -1023,13 +1023,13 @@ You can specify the following parameters to configure ingress gateway configurat
           name: 'SDS',
           type: 'SDSConfig: <optional>',
           description:
-            'Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.',
+            'Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/consul/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.',
           children: [
             {
               name: 'ClusterName',
               type: 'string',
               description:
-                "Specifies the name of the SDS cluster from which Consul should retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+                "Specifies the name of the SDS cluster from which Consul should retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/consul/docs/connect/gateways/ingress-gateway#sds).",
             },
             {
               name: 'CertResource',
@@ -1110,7 +1110,7 @@ You can specify the following parameters to configure ingress gateway configurat
           type: 'int: 0',
           description: `The port on which the ingress listener should receive
                         traffic. The port will be bound to the IP address that
-                        was specified in the [\`-address\`](/commands/connect/envoy#address)
+                        was specified in the [\`-address\`](/consul/commands/connect/envoy#address)
                         flag when starting the gateway.
                         <b>Note:</b> The ingress listener port must not conflict
                         with the health check port specified in the \`-address\`
@@ -1135,7 +1135,7 @@ You can specify the following parameters to configure ingress gateway configurat
               type: 'string: ""',
               description: `The name of the service that should be exposed
                                   through this listener. This can be either a service registered in the
-                                  catalog, or a service defined only by [other config entries](/docs/connect/l7-traffic). If the wildcard specifier,
+                                  catalog, or a service defined only by [other config entries](/consul/docs/connect/l7-traffic). If the wildcard specifier,
                                   \`*\`, is provided, then ALL services will be exposed through the listener.
                                   This is not supported for listeners with protocol \`tcp\`.`,
             },
@@ -1174,14 +1174,14 @@ You can specify the following parameters to configure ingress gateway configurat
             {
               name: 'RequestHeaders',
               type: 'HTTPHeaderModifiers: <optional>',
-              description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+              description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
               that will be applied to requests routed to this service.
               This cannot be used with a \`tcp\` listener.`,
             },
             {
               name: 'ResponseHeaders',
               type: 'HTTPHeaderModifiers: <optional>',
-              description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+              description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
               that will be applied to responses from this service.
               This cannot be used with a \`tcp\` listener.`,
             },
@@ -1202,7 +1202,7 @@ You can specify the following parameters to configure ingress gateway configurat
                       name: 'ClusterName',
                       type: 'string',
                       description:
-                        "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+                        "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/consul/docs/connect/gateways/ingress-gateway#sds).",
                     },
                     {
                       name: 'CertResource',
@@ -1295,13 +1295,13 @@ You can specify the following parameters to configure ingress gateway configurat
               name: 'SDS',
               type: 'SDSConfig: <optional>',
               description:
-                'Defines a set of parameters that configures the listener to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.',
+                'Defines a set of parameters that configures the listener to load TLS certificates from an external SDS service. See [SDS](/consul/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.',
               children: [
                 {
                   name: 'ClusterName',
                   type: 'string',
                   description:
-                    "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+                    "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/consul/docs/connect/gateways/ingress-gateway#sds).",
                 },
                 {
                   name: 'CertResource',
