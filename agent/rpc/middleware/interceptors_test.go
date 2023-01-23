@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"sync"
@@ -278,7 +279,26 @@ func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
 
 	listener, _ := net.Listen("tcp", "127.0.0.1:0")
 
-	t.Run("Allow panics", func(t *testing.T) {
+	t.Run("allow operation", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Return(nil).
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+		require.NoError(t, err)
+	})
+
+	t.Run("allow returns error", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Return(errors.New("uh oh")).
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+		require.Error(t, err)
+		require.Equal(t, "uh oh", err.Error())
+	})
+
+	t.Run("allow panics", func(t *testing.T) {
 		limiter.On("Allow", mock.Anything).
 			Panic("uh oh").
 			Once()
