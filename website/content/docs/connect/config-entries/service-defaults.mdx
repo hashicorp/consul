@@ -60,14 +60,14 @@ spec:
 <Tab heading="Consul OSS">
 
 Set default connection limits and mesh gateway mode across all upstreams
-of "counting", and also override the mesh gateway mode used when dialing
-the "dashboard" service.
+of "dashboard", and also override the mesh gateway mode used when dialing
+its upstream "counting" service.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
-Name = "counting"
+Name = "dashboard"
 
 UpstreamConfig = {
   Defaults = {
@@ -83,7 +83,7 @@ UpstreamConfig = {
 
   Overrides = [
     {
-      Name = "dashboard"
+      Name = "counting"
       MeshGateway = {
         Mode = "remote"
       }
@@ -96,7 +96,7 @@ UpstreamConfig = {
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: counting
+  name: dashboard
 spec:
   upstreamConfig:
     defaults:
@@ -107,7 +107,7 @@ spec:
         maxPendingRequests: 512
         maxConcurrentRequests: 512
     overrides:
-      - name: dashboard
+      - name: counting
         meshGateway:
           mode: remote
 ```
@@ -115,7 +115,7 @@ spec:
 ```json
 {
   "Kind": "service-defaults",
-  "Name": "counting",
+  "Name": "dashboard",
   "UpstreamConfig": {
     "Defaults": {
       "MeshGateway": {
@@ -129,7 +129,7 @@ spec:
     },
     "Overrides": [
       {
-        "Name": "dashboard",
+        "Name": "counting",
         "MeshGateway": {
           "Mode": "remote"
         }
@@ -145,14 +145,15 @@ spec:
 <Tab heading="Consul Enterprise">
 
 Set default connection limits and mesh gateway mode across all upstreams
-of "counting" and also override the mesh gateway mode used when dialing
-the "dashboard" service in the "frontend" namespace.
+of "dashboard" in the "product" namespace,
+and also override the mesh gateway mode used when dialing
+its upstream "counting" service in the "backend" namespace.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
-Name = "counting"
+Name = "dashboard"
 Namespace = "product"
 
 UpstreamConfig = {
@@ -169,8 +170,8 @@ UpstreamConfig = {
 
   Overrides = [
     {
-      Name = "dashboard"
-      Namespace = "frontend"
+      Name = "counting"
+      Namespace = "backend"
       MeshGateway = {
         Mode = "remote"
       }
@@ -183,7 +184,7 @@ UpstreamConfig = {
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: counting
+  name: dashboard
   namespace: product
 spec:
   upstreamConfig:
@@ -195,8 +196,8 @@ spec:
         maxPendingRequests: 512
         maxConcurrentRequests: 512
     overrides:
-      - name: dashboard
-        namespace: frontend
+      - name: counting
+        namespace: backend
         meshGateway:
           mode: remote
 ```
@@ -204,7 +205,7 @@ spec:
 ```json
 {
   "Kind": "service-defaults",
-  "Name": "counting",
+  "Name": "dashboard",
   "Namespace": "product",
   "UpstreamConfig": {
     "Defaults": {
@@ -219,8 +220,8 @@ spec:
     },
     "Overrides": [
       {
-        "Name": "dashboard",
-        "Namespace": "frontend",
+        "Name": "counting",
+        "Namespace": "backend",
         "MeshGateway": {
           "Mode": "remote"
         }
