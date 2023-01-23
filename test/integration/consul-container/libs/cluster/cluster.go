@@ -37,6 +37,7 @@ type Cluster struct {
 }
 
 type TestingT interface {
+	Logf(format string, args ...any)
 	Cleanup(f func())
 }
 
