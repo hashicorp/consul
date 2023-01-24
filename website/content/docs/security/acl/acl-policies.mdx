@@ -286,11 +286,12 @@ The following example adds a set of rules to a policy called `my-app-policy`. Th
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <token with ACL 'write' access>" \
     --data \
 '{
   "Name": "my-app-policy",
   "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
-}' http://127.0.0.1:8500/v1/acl/policy?token=<token with ACL "write" access>
+}' http://127.0.0.1:8500/v1/acl/policy
 ```
 
 The following call performs the same operation as the previous example using JSON:
@@ -298,11 +299,12 @@ The following call performs the same operation as the previous example using JSO
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <management token>" \
     --data \
 '{
   "Name": "my-app-policy",
   "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
-}' http://127.0.0.1:8500/v1/acl/policy?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/policy
 ```
 
 The policy configuration is returned when the call is successfully performed:
