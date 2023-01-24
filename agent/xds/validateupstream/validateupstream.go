@@ -402,7 +402,11 @@ func Validate(indexedResources *xdscommon.IndexedResources, clusters *envoy_admi
 		ServiceName: service,
 		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
 			service: {
-				VIP:     vip,
+				VIP: vip,
+				// Even though snis are under the upstream service name we're validating, it actually contains all
+				// the cluster SNIs configured on this proxy, not just the upstream being validated. This means the
+				// PatchCluster function in the Validate plugin will be run on all clusters, but errors will only
+				// surface for clusters related to the upstream being validated.
 				SNI:     snis,
 				EnvoyID: envoyID,
 			},
