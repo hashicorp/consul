@@ -454,7 +454,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	if opts.FromReplication && token.Local {
 		return fmt.Errorf("Cannot replicate local tokens")
 	}
-	
+
 	// Check for an existing ACL
 	_, existing, err := aclTokenGetFromIndex(tx, token.AccessorID, indexAccessor, nil)
 	if err != nil {

@@ -3588,7 +3588,7 @@ service "gateway" {
 
 func TestVetRegisterWithACL(t *testing.T) {
 	appendAuthz := func(t *testing.T, defaultAuthz acl.Authorizer, rules string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(defaultAuthz, []*acl.Policy{policy}, nil)
@@ -3878,8 +3878,11 @@ func TestVetDeregisterWithACL(t *testing.T) {
 	policy, err := acl.NewPolicyFromSource(`
 node "node" {
   policy = "write"
+},
+node_prefix "node" {
+  policy = "write"
 }
-`, acl.SyntaxLegacy, nil, nil)
+`, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3892,7 +3895,7 @@ node "node" {
 	service "my-service" {
 	  policy = "write"
 	}
-	`, acl.SyntaxLegacy, nil, nil)
+	`, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}

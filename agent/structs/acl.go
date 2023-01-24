@@ -160,7 +160,6 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPo
 	sn := NewServiceName(s.ServiceName, entMeta)
 	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
 	policy.Rules = rules
-	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
@@ -232,7 +231,6 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolic
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
 	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
 	policy.Rules = rules
-	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
@@ -596,9 +594,6 @@ type ACLPolicy struct {
 	// The rule set (using the updated rule syntax)
 	Rules string
 
-	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLs
-	Syntax acl.SyntaxVersion `json:"-"`
-
 	// Datacenters that the policy is valid within.
 	//   - No wildcards allowed
 	//   - If empty then the policy is valid within all datacenters
@@ -759,7 +754,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
+		p, err := acl.NewPolicyFromSource(policy.Rules, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}

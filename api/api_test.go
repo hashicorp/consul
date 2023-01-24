@@ -913,9 +913,8 @@ func TestAPI_Headers(t *testing.T) {
 	  policy = "read"
 	}
 	`))
-	// ACL support is disabled
+	// Legacy ACL support is deprecated.
 	require.Error(t, err)
-	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 
 	_, _, err = c.Event().Fire(&UserEvent{
 		Name:    "test",
