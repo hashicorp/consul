@@ -46,7 +46,9 @@ type resource struct {
 	required bool
 	// cluster specifies if the cluster has been seen.
 	cluster bool
-	// cluster specifies if the load assignment has been seen.
+	// aggregateClusters is the list of aggregate cluster SNIs. It'll be empty if this is not an aggregate cluster.
+	aggregateCluster bool
+	// loadAssignment specifies if the load assignment has been seen.
 	loadAssignment bool
 	// usesEDS specifies if the cluster has EDS configured.
 	usesEDS bool
@@ -84,7 +86,8 @@ func (v *Validate) Errors() error {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment %s", sni))
 		}
 
-		if resource.endpoints == 0 {
+		// Anything that's required and not an aggregate cluster should have endpoints.
+		if !resource.aggregateCluster && resource.endpoints == 0 {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("zero endpoints sni %s", sni))
 		}
 	}
@@ -140,19 +143,20 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 	}
 	v.cluster = true
 
-	// If it's an aggregate cluster, add all of them to p.resources.
+	// If it's an aggregate cluster, add the child clusters to p.resources if they are not already there.
 	aggregateCluster, ok := isAggregateCluster(c)
 	if ok {
+		// Mark this as an aggregate cluster, so we know we do not need to validate its endpoints directly.
+		v.aggregateCluster = true
 		for _, clusterName := range aggregateCluster.Clusters {
 			r, ok := p.resources[clusterName]
 			if !ok {
 				r = &resource{}
 				p.resources[clusterName] = r
 			}
-			r.required = true
+			// The child clusters of an aggregate cluster will be required if the parent cluster is.
+			r.required = v.required
 		}
-		// If there is more than one aggregate cluster, defer to the endpoints there.
-		v.endpoints = len(aggregateCluster.Clusters)
 		return c, false, nil
 	}
 
@@ -173,6 +177,8 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	p.listener = true
 
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+		// If it uses RDS, then the clusters we need to validate exist in the route, and there's nothing else we need to
+		// do with the filter.
 		if config.GetRds() != nil {
 			p.usesRDS = true
 			return filter, true, nil
@@ -180,11 +186,12 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	}
 
 	for sni := range builtinextensiontemplate.FilterClusterNames(filter) {
-		if _, ok := p.resources[sni]; ok {
-			continue
+		// Mark any clusters we see as required resources.
+		if r, ok := p.resources[sni]; ok {
+			r.required = true
+		} else {
+			p.resources[sni] = &resource{required: true}
 		}
-
-		p.resources[sni] = &resource{required: true}
 	}
 
 	return filter, true, nil
