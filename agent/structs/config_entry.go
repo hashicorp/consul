@@ -1084,6 +1084,7 @@ type PassiveHealthCheck struct {
 
 	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
 	// Defaults to 10% but will eject at least one host regardless of the value.
+	// TODO: remove me
 	MaxEjectionPercent *uint32 `json:",omitempty" alias:"max_ejection_percent"`
 
 	// The base time that a host is ejected for. The real time is equal to the base time
