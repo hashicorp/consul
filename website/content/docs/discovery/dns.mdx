@@ -133,20 +133,55 @@ it is recommended to use the HTTP API to retrieve the list of nodes.
 
 ### Standard Lookup
 
-The format of a standard service lookup is:
+The following are valid formats for standard service lookups:
 
-```text
-[<tag>.]<service>.service[.<datacenter>].<domain>
-```
+- Lookup a local service:
 
-The `tag` is optional, and, as with node lookups, the `datacenter` is as
-well. If no tag is provided, no filtering is done on tag. If no
-datacenter is provided, the datacenter of this Consul agent is assumed.
+  ```text
+  [<tag>.]<service>.service.<domain>
+  ```
 
-If we want to find any redis service providers in our local datacenter,
-we could query `redis.service.consul.` If we want to find the PostgreSQL
-primary in a particular datacenter, we could query
-`primary.postgresql.service.dc2.consul.`
+  The lookup uses the datacenter of the Consul agent acting as the DNS server.
+
+- Lookup a service in a cluster peer:
+
+  ```text
+  [<tag>.]<service>.service.<peer>.peer.<domain>
+  ```
+
+  The `<peer>` label identifies the cluster peer in which
+  to lookup the specified `<service>`.
+
+- Lookup a service in a WAN federated datacenter:
+
+  ```text
+  [<tag>.]<service>.service.<datacenter>[.dc].<domain>
+  ```
+
+  We recommend including the optional `.dc` label to improve readability.
+  The `<datacenter>` label identifies the WAN federated datacenter in which
+  to lookup the specified `<service>`.
+
+You can filter the results to only include instances of a service with a given tag
+by specifying `<tag>` at the start of the lookup.
+If you do not specify a tag, the lookup returns all instances of the service.
+Refer to the [service configuration documentation](/consul/docs/discovery/services#service)
+for information about adding tags to your service.
+
+To lookup services directly from a mesh service's application code
+with transparent proxy enabled, refer to 
+[service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups) instead.
+
+The following table shows example lookups for the `api` service
+depending on its location and whether you want to filter for instances
+of the service by tag. All queries assume the `domain` is `consul`.
+
+| Tag | Location | Query |
+| --- | -------- | ----- |
+| None | Local   | `api.service.consul` |
+| `v2` | Local   | `v2.api.service.consul` |
+| None | Peer `us-east`   | `api.service.us-east.peer.consul` |
+| None | WAN federated datacenter `dc3` | `api.service.dc3.dc.consul` |
 
 The DNS query system makes use of health check information to prevent routing
 to unhealthy nodes. When a service query is made, any services failing their health
@@ -183,29 +218,48 @@ foobar.node.dc1.consul. 0 IN  A 10.1.10.12
 
 ### RFC 2782 Lookup
 
-Valid formats for RFC 2782 SRV lookups depend on
-whether you want to filter results based on a service tag:
+You can use [RFC 2782](https://tools.ietf.org/html/rfc2782) lookups to query for services
+as an alternative to [standard lookups](#standard-lookup).
+The RFC 2782 lookup format supports the same suffixes as standard lookups
+for optionally specifying a cluster peer or WAN federated datacenter,
+but differs in how service name and optional tag are specified.
+The valid RFC 2782 lookup formats below assume a local service lookup:
 
-- No filtering on service tag:
-
-   ```text
-  _<service>._tcp[.service][.<datacenter>].<domain>
-  ```
-
-- Filtering on service tag specified in the RFC 2782 protocol field:
+- Lookup a local service:
 
    ```text
-  _<service>._<tag>[.service][.<datacenter>].<domain>
+  _<service>._tcp[.service].<domain>
   ```
+
+- Lookup a local service with filtering on service tag
+  specified in the RFC 2782 protocol field:
+
+   ```text
+  _<service>._<tag>[.service].<domain>
+  ```
+
+We recommend including the optional `.service` label to improve readability.
 
 Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must
-prepend an underscore (`_`) to the `service` and `protocol` values in a query to
-prevent DNS collisions.
-To perform no tag-based filtering, specify `tcp` in the RFC 2782 protocol field.
-To filter results on a service tag, specify the tag in the RFC 2782 protocol field.
+prepend an underscore (`_`) to the RFC 2782 `service` and `protocol` values
+in a query to prevent DNS collisions.
 
-Other than the query format and default `tcp` protocol/tag value, the behavior
-of the RFC style lookup is the same as the standard style of lookup.
+You can filter the results to only include instances of a service with a given tag
+by specifying `<tag>` at the start of the lookup.
+If you do not specify a tag, the lookup returns all instances of the service.
+Refer to the [service configuration documentation](/consul/docs/discovery/services#service)
+for information about adding tags to your service.
+
+The following table shows example lookups for the `api` service
+depending on its location and whether you want to filter for instances
+of the service by tag. All queries assume the `domain` is `consul`.
+
+| Tag | Location | Query |
+| --- | -------- | ----- |
+| None | Local   | `_api._tcp.service.consul` |
+| `v2` | Local   | `_api._v2.service.consul` |
+| None | Peer `us-east`   | `_api._tcp.service.us-east.peer.consul` |
+| None | WAN federated datacenter `dc3` | `_api._tcp.service.dc3.dc.consul` |
 
 If you registered the service `rabbitmq` on port 5672 and tagged it with `amqp`,
 you could make an RFC 2782 query for its SRV record as `_rabbitmq._amqp.service.consul`:
@@ -353,7 +407,7 @@ $ echo -n "20010db800010002cafe000000001337" | perl -ne 'printf join(":", unpack
 
 By default, all service lookups use the `default` namespace
 within the partition and datacenter of the Consul agent that received the DNS query.
-To lookup services in another namespace, partition, and/or datacenter,
+To lookup services in another namespace, partition, datacenter, or cluster peer,
 use the [canonical format](#canonical-format).
 
 Consul server agents are in the `default` partition.
@@ -361,24 +415,73 @@ If DNS queries are addressed to Consul server agents,
 service lookups to non-`default` partitions must explicitly specify
 the partition of the target service.
 
-To lookup services imported from a cluster peer,
-refer to [service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
+To lookup services directly from a mesh service's application code
+with transparent proxy enabled, refer to 
+[service virtual IP lookups for Consul Enterprise](#service-virtual-ip-lookups-for-consul-enterprise) instead.
 
 #### Canonical format
 
-Use the following query format to specify namespace, partition, and/or datacenter
-for `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
-All three fields (`namespace`, `partition`, `datacenter`) are optional.
-```text
-[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>
-```
+Use the following query formats to specify namespace, partition,
+WAN federated datacenter, or cluster peer in service lookups.
+In each format, all fields in square brackets are optional.
+
+- Lookup a service, optionally in a cluster peer:
+
+  ```text
+  [<tag>.]<service>.service[.<namespace>.ns][.<peer>.peer][.<partition>.ap].<domain>
+  ```
+
+  This format supports `.service` and `.virtual` service lookup types.
+
+  ~> **Compatibility warning:** Consul 1.14.2+ is required for `.service` lookup types.
+
+  If `.<peer>.peer` is included, the `<peer>` label identifies a cluster peer
+  of the query's partition in which to lookup the specified `<service>`.
+  If the query does not specify a partition,
+  the query uses the partition of the Consul agent that received the DNS query.
+
+  In the following example,
+  a Consul agent in the `default` partition acts as the DNS server,
+  the `k8s-app-1` partition is in the same datacenter,
+  and the `k8s-app-1` partition has a cluster peer named `billing`.
+  To perform a lookup of service `api` in namespace `foo`
+  of that cluster peer, use the query
+  `api.service.foo.ns.billing.peer.k8s-app-1.partition.consul`.
+
+- Lookup a service, optionally in a WAN federated datacenter:
+
+  ```text
+  [<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc].<domain>
+  ```
+
+  This format supports `.service`, `.connect`, `.virtual`, and `.ingress` service lookup types.
+
+  This format does not support specifying both a partition and another datacenter.
+  Datacenters containing admin partitions can only be connected using cluster peering,
+  not WAN federation. To lookup a service in a partition of another datacenter,
+  you must establish a cluster peering relationship with that partition and
+  use the cluster peer lookup format.
+
+The following table shows example `.service` lookups for the `api` service
+depending on its location and whether you want to filter for instances
+of the service by tag. All queries assume the `domain` is `consul` and the
+DNS server is a Consul server agent in the `default` partition.
+
+| Location | Query |
+| -------- | ----- |
+| The `default` namespace of the local `billing` partition | `api.service.billing.ap.consul` |
+| The `app-1` namespace of cluster peer `us-east` of the local `billing` partition  | `api.service.app-1.ns.us-east.peer.billing.partition.consul` |
+| The `app-1` namespace of WAN federated datacenter `dc3` | `api.service.app-1.ns.dc3.dc.consul` |
+
+For an enterprise service lookup, an RFC 2782 style prefix (`_<service>._tcp`)
+can be used instead of a standard lookup prefix (`<service>`).
 
 #### Alternative formats for specifying namespace
 
 Though the [canonical format](#canonical-format) is recommended for readability,
 you can use the following query formats specify namespace but not partition:
 
-- Specify both namespace and datacenter:
+- Specify both namespace and WAN federated datacenter:
 
   ```text
   [<tag>.]<service>.service.<namespace>.<datacenter>.<domain>
@@ -393,6 +496,9 @@ you can use the following query formats specify namespace but not partition:
    ```text
   [<tag>.]<service>.service.<namespace>.<domain>
   ```
+
+To lookup a namespaced service in a cluster peer,
+the [canonical format](#canonical-format) must be used instead.
 
 ### Prepared Query Lookups
 
@@ -452,34 +558,53 @@ If you need more complex behavior, please use the
 
 ### Service Virtual IP Lookups
 
-To find the unique virtual IP allocated for a service:
+Service virtual IP lookups are only applicable when performed from a downstream
+service in the mesh with [transparent proxy](/docs/connect/transparent-proxy) enabled.
+Such a downstream service's application code can directly reference its upstream with
+a service virtual IP lookup, rather than referencing a `localhost:port` combination
+that maps to an [explicit upstream](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams).
+To use this Consul DNS lookup format in Consul on Kubernetes,
+set [`dns.enableRedirection`](/consul/docs/k8s/helm#v-dns-enableredirection) to `true`.
+
+A service virtual IP lookup returns a unique virtual IP allocated for a
+[Connect-capable](/docs/connect) service. This virtual IP is also included in the
+service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
+under the `consul-virtual` tag.
+
+Use the following query format to lookup a service, optionally in a cluster peer:
 
 ```text
 <service>.virtual[.<peer>].<domain>
 ```
 
-This will return the unique virtual IP for any [Connect-capable](/docs/connect)
-service. Each Connect service has a virtual IP assigned to it by Consul - this is used
-by sidecar proxies for the [Transparent Proxy](/docs/connect/transparent-proxy) feature.
-The peer name is an optional part of the FQDN, and it is used to query for the virtual IP
-of a service imported from that peer.
+To lookup services outside the context of a mesh service's application code
+with transparent proxy enabled, refer to non-virtual
+[service lookups](#service-lookups) instead.
 
-The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
-under the `consul-virtual` tag.
- 
 #### Service Virtual IP Lookups for Consul Enterprise <EnterpriseAlert inline />
 
 By default, a service virtual IP lookup uses the `default` namespace
 within the partition and datacenter of the Consul agent that received the DNS query.
 
-To lookup services imported from a cluster peered partition or open-source datacenter,
-specify the namespace and peer name in the lookup:
-```text
-<service>.virtual[.<namespace>].<peer>.<domain>
-```
+Use the following query formats to perform a service virtual IP lookup
+on namespaced or partitioned services:
 
-To lookup services not imported from a cluster peer,
-refer to [service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
+- Use the [canonical format](#canonical-format) to optionally specify
+  namespace, peer, and/or partition:
+
+  ```text
+  <service>.virtual[.<namespace>.ns][.<peer>.peer][.<partition>.ap].<domain>
+  ```
+
+- Specify cluster peer and optional namespace in the lookup:
+
+  ```text
+  <service>.virtual[.<namespace>].<peer>.<domain>
+  ```
+
+To lookup services outside the context of mesh service's application code
+with transparent proxy enabled, refer to non-virtual
+[service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) instead.
  
 ### Ingress Service Lookups
 
