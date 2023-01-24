@@ -4,11 +4,51 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
+func TestGetGatewayMeta(t *testing.T) {
+	name := "Gateway"
+
+	bound := &structs.BoundAPIGatewayConfigEntry{
+		Kind: structs.BoundAPIGateway,
+		Name: name,
+		Listeners: []structs.BoundAPIGatewayListener{
+			{
+				Name:   "Listener",
+				Routes: []structs.ResourceReference{},
+			},
+		},
+	}
+	gateway := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: name,
+		Listeners: []structs.APIGatewayListener{
+			{
+				Name:     "Listener",
+				Protocol: structs.ListenerProtocolHTTP,
+			},
+		},
+	}
+
+	store := state.NewStateStore(nil)
+	err := store.EnsureConfigEntry(0, bound)
+	require.NoError(t, err)
+	err = store.EnsureConfigEntry(1, gateway)
+	require.NoError(t, err)
+
+	gatewayMeta, err := GetGatewayMeta(store, name, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, bound, gatewayMeta.Bound)
+	require.Equal(t, gateway, gatewayMeta.Gateway)
+}
+
 func TestBoundAPIGatewayBindRoute(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]struct {
 		gateway              GatewayMeta
 		route                structs.BoundRoute

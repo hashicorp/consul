@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"

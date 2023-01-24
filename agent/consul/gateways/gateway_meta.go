@@ -3,6 +3,7 @@ package gateways
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -15,12 +16,35 @@ type GatewayMeta struct {
 	Gateway *structs.APIGatewayConfigEntry
 }
 
-func GetGatewayMeta(store *state.Store) (GatewayMeta, error) {
-	return GatewayMeta{}, nil
+// GetGatewayMeta queries the state store for an API Gateway and a Bound API
+// Gateway matching the given name and enterprise meta and returns a GatewayMeta
+// struct containing both.
+func GetGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta) (*GatewayMeta, error) {
+	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, name, entMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	_, gateway, err := store.ConfigEntry(nil, structs.APIGateway, name, entMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GatewayMeta{
+		Bound:   bound.(*structs.BoundAPIGatewayConfigEntry),
+		Gateway: gateway.(*structs.APIGatewayConfigEntry),
+	}, nil
 }
 
+// UpdateGatewayMeta takes a parent resource reference and a BoundRoute and
+// modifies the listeners on the BoundAPIGateway config entry in GatewayMeta
+// to reflect the binding of the route to the gateway.
+//
+// If the reference is not valid or the route's protocol does not match the
+// targeted listener's protocol, a mapping of parent references to associated
+// errors is returned.
 func (g *GatewayMeta) UpdateRouteBinding(refs []structs.ResourceReference, route structs.BoundRoute) (bool, map[structs.ResourceReference]error) {
-	if g.Bound == nil {
+	if g.Bound == nil || g.Gateway == nil {
 		return false, nil
 	}
 
