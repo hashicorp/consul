@@ -51,7 +51,7 @@ type Controller interface {
 	// implementation. This is most useful for testing. This should only ever be called
 	// prior to running Run.
 	WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue) Controller
-	// AddTrigger allows for triggering a reconciliation request every time that the
+	// AddTrigger allows for triggering a reconciliation request when a
 	// triggering function returns, when the passed in context is canceled
 	// the trigger must return
 	AddTrigger(request Request, trigger func(ctx context.Context) error)
