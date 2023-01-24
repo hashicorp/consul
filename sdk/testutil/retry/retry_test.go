@@ -108,6 +108,21 @@ func TestRunWith(t *testing.T) {
 		require.Contains(t, ft.out[0], "do not proceed\n")
 	})
 
+	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
+		gotPanic := false
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					gotPanic = true
+				}
+			}()
+			Run(t, func(r *R) {
+				panic(struct{}{})
+			})
+		}()
+
+		assert.True(t, gotPanic)
+	})
 }
 
 type fakeT struct {
