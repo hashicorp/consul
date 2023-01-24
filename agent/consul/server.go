@@ -122,6 +122,7 @@ const (
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"
+	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
