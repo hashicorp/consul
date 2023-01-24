@@ -230,7 +230,7 @@ func (w *TokenWriter) Delete(secretID string, fromLogout bool) error {
 	}
 
 	if _, err := w.RaftApply(structs.ACLTokenDeleteRequestType, &structs.ACLTokenBatchDeleteRequest{
-		TokenIDs: []string{token.AccessorID},
+		TokenAccessorIDs: []string{token.AccessorID},
 	}); err != nil {
 		return fmt.Errorf("Failed to apply token delete request: %w", err)
 	}

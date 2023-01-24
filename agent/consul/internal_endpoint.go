@@ -780,7 +780,7 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
+	authz, err := m.srv.ACLResolver.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}

@@ -389,7 +389,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, aclfilter.RedactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
-				TokenIDs: []string{token.AccessorID},
+				TokenAccessorIDs: []string{token.AccessorID},
 			}
 
 			_, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)

@@ -1324,7 +1324,7 @@ type ACLTokenBatchSetRequest struct {
 // This is particularly useful during token replication when
 // multiple tokens need to be removed from the local DCs state.
 type ACLTokenBatchDeleteRequest struct {
-	TokenIDs []string // Tokens to delete
+	TokenAccessorIDs []string // Tokens to delete
 }
 
 type ACLInitialTokenBootstrapRequest struct {

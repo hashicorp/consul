@@ -750,7 +750,7 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 // of an existing token.
 func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
 	if tokenID == "" {
-		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
+		return nil, nil, fmt.Errorf("Must specify a token AccessorID for Token Cloning")
 	}
 
 	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")

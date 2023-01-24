@@ -92,12 +92,12 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		if token.Local != local {
 			return 0, fmt.Errorf("expired index for local=%v returned a mismatched token with local=%v: %s", local, token.Local, token.AccessorID)
 		}
-		req.TokenIDs = append(req.TokenIDs, token.AccessorID)
+		req.TokenAccessorIDs = append(req.TokenAccessorIDs, token.AccessorID)
 		secretIDs = append(secretIDs, token.SecretID)
 	}
 
 	s.logger.Info("deleting expired ACL tokens",
-		"amount", len(req.TokenIDs),
+		"amount", len(req.TokenAccessorIDs),
 		"locality", locality,
 	)
 
@@ -111,7 +111,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		s.ACLResolver.cache.RemoveIdentityWithSecretToken(secretID)
 	}
 
-	return len(req.TokenIDs), nil
+	return len(req.TokenAccessorIDs), nil
 }
 
 func localityName(local bool) string {
