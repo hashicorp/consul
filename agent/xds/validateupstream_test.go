@@ -1,15 +1,17 @@
 package xds
 
 import (
+	"io"
+	"os"
 	"testing"
 
+	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/validateupstream"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -235,7 +237,7 @@ func TestValidateUpstreams(t *testing.T) {
 
 			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
 			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
-			err = validateupstream.Validate(indexedResources, nil, *serviceName, peer, tt.vip)
+			err = Validate(indexedResources, nil, *serviceName, peer, tt.vip)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
@@ -245,6 +247,38 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TODO make config.json and clusters.json use an http upstream with L7 config entries for more confidence.
+func TestValidate(t *testing.T) {
+	indexedResources := getConfig(t)
+	clusters := getClusters(t)
+	err := Validate(indexedResources, clusters, service, "", "")
+	require.NoError(t, err)
+}
+
+func getConfig(t *testing.T) *xdscommon.IndexedResources {
+	file, err := os.Open("testdata/config.json")
+	require.NoError(t, err)
+	jsonBytes, err := io.ReadAll(file)
+	require.NoError(t, err)
+	indexedResources, err := ParseConfigDump(jsonBytes)
+	require.NoError(t, err)
+	return indexedResources
+}
+
+func getClusters(t *testing.T) *envoy_admin_v3.Clusters {
+	file, err := os.Open("testdata/clusters.json")
+	require.NoError(t, err)
+	jsonBytes, err := io.ReadAll(file)
+	require.NoError(t, err)
+	clusters, err := ParseClusters(jsonBytes)
+	require.NoError(t, err)
+	return clusters
+}
+
+var service = api.CompoundServiceName{
+	Name: "backend",
 }
 
 func configEntriesForDBSplits() []structs.ConfigEntry {

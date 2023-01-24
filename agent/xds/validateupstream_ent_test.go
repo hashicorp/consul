@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/validateupstream"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -82,7 +81,7 @@ func TestValidateUpstreams_Enterprise(t *testing.T) {
 
 			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
 			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
-			err = validateupstream.Validate(indexedResources, nil, *serviceName, peer, tt.vip)
+			err = Validate(indexedResources, nil, *serviceName, peer, tt.vip)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
