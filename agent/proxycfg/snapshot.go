@@ -642,6 +642,10 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 type configSnapshotAPIGateway struct {
 	ConfigSnapshotUpstreams
 
+	HTTPRoutes watch.Map[structs.ServiceName, *structs.HTTPRouteConfigEntry]
+	TCPRoutes  watch.Map[structs.ServiceName, *structs.TCPRouteConfigEntry]
+	Certicates watch.Map[structs.ServiceName, *structs.InlineCertificateConfigEntry]
+
 	TLSConfig structs.GatewayTLSConfig
 
 	// GatewayConfigLoaded is used to determine if we have received the initial

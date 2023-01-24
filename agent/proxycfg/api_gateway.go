@@ -65,6 +65,10 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
+	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ServiceName, *structs.HTTPRouteConfigEntry]()
+	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ServiceName, *structs.TCPRouteConfigEntry]()
+	snap.APIGateway.Certicates = watch.NewMap[structs.ServiceName, *structs.InlineCertificateConfigEntry]()
+
 	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
 	snap.APIGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
