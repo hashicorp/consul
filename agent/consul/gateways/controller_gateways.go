@@ -18,7 +18,35 @@ type apiGatewayReconciler struct {
 	store  datastore.DataStore
 }
 
+func (r apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute, error) {
+	tcpRoutes, err := r.store.GetConfigEntriesByKind(structs.TCPRoute)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO not implemented
+	//httpRoutes, err := r.store.GetConfigEntriesByKind(structs.HTTPRoute)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	routes := []structs.BoundRoute{}
+	for _, r := range tcpRoutes {
+		if r == nil {
+			continue
+		}
+		routes = append(routes, r.(*structs.TCPRouteConfigEntry))
+	}
+	//TODO not implemented
+	//for _, r := range httpRoutes {
+	//	routes = append(routes, r.(*structs.HTTPRouteConfigEntry))
+	//}
+	fmt.Println(routes)
+	return routes, nil
+}
+
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
+	//TODO thomases wrapper function
 	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
 	if err != nil {
 		return err
@@ -36,99 +64,88 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 		return nil
 	}
 
-	gateway := entry.(*structs.BoundAPIGatewayConfigEntry)
+	gatewayEntry := entry.(*structs.APIGatewayConfigEntry)
 	//TODO is this what needs to happen for the validation step
-	err = gateway.Validate()
+	err = gatewayEntry.Validate()
 	if err != nil {
+		r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
+		if err := r.store.UpdateStatus(gatewayEntry); err != nil {
+			return err
+		}
 		return err
 	}
 
-	var state *structs.BoundAPIGatewayConfigEntry
+	var boundGatewayEntry *structs.BoundAPIGatewayConfigEntry
 	boundEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
 		return err
 	}
 	if boundEntry == nil {
-		state = &structs.BoundAPIGatewayConfigEntry{
+		boundGatewayEntry = &structs.BoundAPIGatewayConfigEntry{
 			Kind:           structs.BoundAPIGateway,
-			Name:           gateway.Name,
-			EnterpriseMeta: gateway.EnterpriseMeta,
+			Name:           gatewayEntry.Name,
+			EnterpriseMeta: gatewayEntry.EnterpriseMeta,
 		}
 	} else {
-		state = boundEntry.(*structs.BoundAPIGatewayConfigEntry)
+		boundGatewayEntry = boundEntry.(*structs.BoundAPIGatewayConfigEntry)
 	}
 
 	r.logger.Debug("started reconciling gateway")
-	routes := []structs.BoundRoute{}
-	for _, listener := range state.Listeners {
+
+	routes, err := r.retrieveAllRoutesFromStore()
+
+	if err != nil {
+		return err
+	}
+	boundGateways, routeErrors := BindRoutesToGateways(wrapGatewaysInSlice(boundGatewayEntry), routes...)
+
+	if len(boundGateways) > 1 {
+		r.logger.Warn("imlpementation error, state should be impossible in gateway reconciler")
+		return errors.New("incorrect number of gateways bound")
+	} else if len(boundGateways) == 0 && len(routeErrors) == 0 {
+		r.logger.Debug("gateway had no updates to make ")
+		return nil
+	}
+
+	boundGateway := boundGateways[0]
+	fmt.Println(boundGateway)
+	fmt.Println(boundGatewayEntry)
+	fmt.Println("hellp")
+
+	// now update the gateway state
+	r.logger.Debug("persisting gateway state", "state", boundGateway)
+	if err := r.store.Update(boundGateway); err != nil {
+		r.logger.Error("error persisting state", "error", err)
+		return err
+	}
+
+	// then update the gateway status
+	r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
+	if err := r.store.UpdateStatus(gatewayEntry); err != nil {
+		return err
+	}
+
+	//// and update the route statuses
+	for _, listener := range boundGateway.Listeners {
 		for _, route := range listener.Routes {
-			routeEntry, err := r.store.GetConfigEntry(route.Kind, route.Name, &route.EnterpriseMeta)
-			if err != nil {
+			routeErr, ok := routeErrors[route]
+			if ok {
+				r.logger.Error("route error", routeErr)
+				//TODO does anything special need to be done in this situaion?
+			}
+			//TODO find out if parents are needed for status updates
+			configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
+			if err := r.store.UpdateStatus(configEntry); err != nil {
 				return err
 			}
 
-			var routeBoundRouter structs.BoundRoute
-			switch routeEntry.GetKind() {
-			case structs.TCPRoute:
-				fmt.Println("tcp")
-				routeBoundRouter = (routeEntry).(*structs.TCPRouteConfigEntry)
-				routes = append(routes, routeBoundRouter)
-			case structs.HTTPRoute:
-				fmt.Println("not implemented")
-			default:
-				return errors.New("route type doesn't exist")
-			}
 		}
-
-		boundGateways, routeErrors, err := BindRoutesToGateways(wrapGatewaysInSlice(gateway), routes)
-		if err != nil {
-			r.logger.Error("error binding route", "error", err)
-			return err
-		}
-
-		if len(boundGateways) > 1 {
-			r.logger.Warn("imlpementation error in bind routes, state should be impossible")
-			return errors.New("multiple gateways bound")
-		}
-
-		boundGateway := boundGateways[0]
-
-		// now update the gateway state
-		r.logger.Debug("persisting gateway state", "state", state)
-		if err := r.store.Update(boundGateway); err != nil {
-			r.logger.Error("error persisting state", "error", err)
-			return err
-		}
-
-		// then update the gateway status
-		r.logger.Debug("persisting gateway status", "gateway", gateway)
-		if err := r.store.UpdateStatus(gateway); err != nil {
-			return err
-		}
-
-		//// and update the route statuses
-		for _, listener := range boundGateway.Listeners {
-			for _, route := range listener.Routes {
-				routeErr, ok := routeErrors[route]
-				if ok {
-					r.logger.Error("route error", routeErr)
-					//TODO does anything special need to be done in this situaion?
-				}
-				//TODO find out if parents are needed for status updates
-				configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
-				if err := r.store.UpdateStatus(configEntry); err != nil {
-					return err
-				}
-
-			}
-		}
-
 	}
 
 	return nil
 }
 
-//convenience wrapper
+// convenience wrapper
 func wrapGatewaysInSlice(gateways ...*structs.BoundAPIGatewayConfigEntry) []*structs.BoundAPIGatewayConfigEntry {
 	return gateways
 }

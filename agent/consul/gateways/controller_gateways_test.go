@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"context"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/gateways/datastore"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,13 +29,15 @@ func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 		{
 			name: "happy path - update available",
 			fields: fields{
-				store: datastoreWithUpdate(t),
+				store:  datastoreWithUpdate(t),
+				logger: hclog.Default(),
 			},
 			args: args{
 				ctx: context.Background(),
 				req: controller.Request{
 					Kind: structs.APIGateway,
-					Name: "test-request",
+					Name: "test-gateway",
+					Meta: acl.DefaultEnterpriseMeta(),
 				},
 			},
 			wantErr: false,
@@ -42,13 +45,15 @@ func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 		{
 			name: "delete happy path",
 			fields: fields{
-				store: datastoreWithDelete(t),
+				store:  datastoreWithDelete(t),
+				logger: hclog.Default(),
 			},
 			args: args{
 				ctx: context.Background(),
 				req: controller.Request{
 					Kind: structs.APIGateway,
-					Name: "test-request",
+					Name: "test-gateway",
+					Meta: acl.DefaultEnterpriseMeta(),
 				},
 			},
 			wantErr: false,
@@ -69,20 +74,35 @@ func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 
 func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
 	ds := datastore.NewMockDataStore(t)
-	ds.On("GetConfigEntry", mock.Anything, mock.Anything, mock.Anything).Return(structs.APIGatewayConfigEntry{
+	ds.On("GetConfigEntry", structs.APIGateway, mock.Anything, mock.Anything).Return(&structs.APIGatewayConfigEntry{
 		Kind: structs.APIGateway,
-		Name: "test",
+		Name: "test-gateway",
 		Listeners: []structs.APIGatewayListener{
 			{
-				Name: "test-listener",
+				Name:     "test-listener",
+				Protocol: "tcp",
+				Port:     8080,
 			},
 		},
-	})
+	}, nil)
+	ds.On("GetConfigEntry", structs.BoundAPIGateway, mock.Anything, mock.Anything).Return(
+		makeGateway("test-gateway", []structs.BoundAPIGatewayListener{
+			makeListener("test-listener", []structs.ResourceReference{}),
+		}), nil)
+
+	ds.On("GetConfigEntriesByKind", structs.TCPRoute).Return([]structs.ConfigEntry{
+		makeRoute(structs.TCPRoute, "test-route", []structs.ResourceReference{
+			makeRef(structs.APIGateway, "test-gateway", "test-listener"),
+		})}, nil)
+
+	ds.On("Update", mock.Anything).Return(nil)
+	ds.On("UpdateStatus", mock.Anything).Return(nil)
 	return ds
 }
 
 func datastoreWithDelete(t *testing.T) *datastore.MockDataStore {
 	ds := datastore.NewMockDataStore(t)
-	ds.On("GetConfigEntry", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	ds.On("GetConfigEntry", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	ds.On("Delete", mock.Anything).Return(nil)
 	return ds
 }

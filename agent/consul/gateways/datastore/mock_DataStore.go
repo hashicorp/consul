@@ -30,6 +30,29 @@ func (_m *MockDataStore) Delete(entry structs.ConfigEntry) error {
 	return r0
 }
 
+// GetConfigEntriesByKind provides a mock function with given fields: kind
+func (_m *MockDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry, error) {
+	ret := _m.Called(kind)
+
+	var r0 []structs.ConfigEntry
+	if rf, ok := ret.Get(0).(func(string) []structs.ConfigEntry); ok {
+		r0 = rf(kind)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]structs.ConfigEntry)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(kind)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetConfigEntry provides a mock function with given fields: kind, name, meta
 func (_m *MockDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (structs.ConfigEntry, error) {
 	ret := _m.Called(kind, name, meta)

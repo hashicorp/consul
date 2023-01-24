@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-//implementation of consul/gateways/datastore
+// implementation of consul/gateways/datastore
 type FSMDataStore struct {
 	s   *Server
 	fsm *fsm.FSM
@@ -20,6 +20,16 @@ func (f FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.Enterpr
 		return nil, err
 	}
 	return &entry, nil
+}
+
+func (f FSMDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry, error) {
+	store := f.fsm.State()
+
+	_, entries, err := store.ConfigEntriesByKind(nil, kind, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
 }
 
 func (f FSMDataStore) UpdateStatus(entry structs.ConfigEntry) error {

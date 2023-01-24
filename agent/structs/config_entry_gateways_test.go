@@ -1450,17 +1450,10 @@ func TestListenerBindRoute(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
 func TestListenerUnbindRoute(t *testing.T) {
 	cases := map[string]struct {
 		listener          BoundAPIGatewayListener
 		route             BoundRoute
-=======
-func TestListenerRemoveRoute(t *testing.T) {
-	cases := map[string]struct {
-		listener          BoundAPIGatewayListener
-		route             BoundRouter
->>>>>>> 04d3ada3ef (Add RemoveRoute to listener)
 		expectedListener  BoundAPIGatewayListener
 		expectedDidUnbind bool
 	}{
@@ -1512,11 +1505,7 @@ func TestListenerRemoveRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-<<<<<<< HEAD
 			actualDidUnbind := tc.listener.UnbindRoute(tc.route)
-=======
-			actualDidUnbind := tc.listener.RemoveRoute(tc.route)
->>>>>>> 04d3ada3ef (Add RemoveRoute to listener)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})

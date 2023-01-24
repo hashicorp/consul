@@ -1039,11 +1039,7 @@ func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 	return true
 }
 
-<<<<<<< HEAD
 func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
-=======
-func (l *BoundAPIGatewayListener) RemoveRoute(route BoundRouter) bool {
->>>>>>> 04d3ada3ef (Add RemoveRoute to listener)
 	if l == nil {
 		return false
 	}
