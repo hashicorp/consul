@@ -39,6 +39,20 @@ func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "delete happy path",
+			fields: fields{
+				store: datastoreWithDelete(t),
+			},
+			args: args{
+				ctx: context.Background(),
+				req: controller.Request{
+					Kind: structs.APIGateway,
+					Name: "test-request",
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -67,7 +81,7 @@ func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
 	return ds
 }
 
-func datastoreForDeleted(t *testing.T) *datastore.MockDataStore {
+func datastoreWithDelete(t *testing.T) *datastore.MockDataStore {
 	ds := datastore.NewMockDataStore(t)
 	ds.On("GetConfigEntry", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return ds
