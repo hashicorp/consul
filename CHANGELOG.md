@@ -1,3 +1,20 @@
+## 1.13.6 (January 24, 2023)
+
+FEATURES:
+
+* connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind. [[GH-16015](https://github.com/hashicorp/consul/issues/16015)]
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+* partitiion: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
 ## 1.13.5 (December 13, 2022)
 
 SECURITY:
