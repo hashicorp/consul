@@ -35,15 +35,15 @@ func TestValidateUpstreams_Enterprise(t *testing.T) {
 			},
 		},
 		{
-			name: "partition-namespace-missing-endpoints",
+			name: "partition-namespace-missing-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot_Partitions(t, false, nil, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				delete(ir.Index[xdscommon.EndpointType], sni)
+				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster load assignment",
+			err: "no cluster",
 		},
 	}
 
@@ -80,7 +80,9 @@ func TestValidateUpstreams_Enterprise(t *testing.T) {
 			}
 			peer := tt.peer
 
-			err = validateupstream.Validate(indexedResources, *serviceName, peer, tt.vip)
+			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
+			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
+			err = validateupstream.Validate(indexedResources, nil, *serviceName, peer, tt.vip)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
