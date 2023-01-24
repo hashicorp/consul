@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"net"
+	"net/netip"
 	"strings"
 	"sync"
 	"testing"
@@ -275,16 +276,16 @@ func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
 	limiter := rate.NewMockRequestLimitsHandler(t)
 
 	logger := hclog.NewNullLogger()
-	var rateLimitInterceptor = GetNetRPCRateLimitingInterceptor(limiter, NewPanicHandler(logger))
+	rateLimitInterceptor := GetNetRPCRateLimitingInterceptor(limiter, NewPanicHandler(logger))
 
-	listener, _ := net.Listen("tcp", "127.0.0.1:0")
+	addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:5678"))
 
 	t.Run("allow operation", func(t *testing.T) {
 		limiter.On("Allow", mock.Anything).
 			Return(nil).
 			Once()
 
-		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+		err := rateLimitInterceptor("Status.Leader", addr)
 		require.NoError(t, err)
 	})
 
@@ -293,7 +294,7 @@ func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
 			Return(errors.New("uh oh")).
 			Once()
 
-		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+		err := rateLimitInterceptor("Status.Leader", addr)
 		require.Error(t, err)
 		require.Equal(t, "uh oh", err.Error())
 	})
@@ -303,7 +304,7 @@ func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
 			Panic("uh oh").
 			Once()
 
-		err := rateLimitInterceptor("Status.Leader", listener.Addr())
+		err := rateLimitInterceptor("Status.Leader", addr)
 
 		require.Error(t, err)
 		require.Equal(t, "rpc: panic serving request", err.Error())
