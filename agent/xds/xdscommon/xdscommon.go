@@ -157,6 +157,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 	case structs.ServiceKindConnectProxy:
 		kind = api.ServiceKindConnectProxy
 		outgoingKindByService := make(map[api.CompoundServiceName]api.ServiceKind)
+		vipForService := make(map[api.CompoundServiceName]string)
 		for uid, upstreamData := range cfgSnap.ConnectProxy.WatchedUpstreamEndpoints {
 			sn := upstreamIDToCompoundServiceName(uid)
 
@@ -164,6 +165,12 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				for _, serviceNode := range serviceNodes {
 					if serviceNode.Service == nil {
 						continue
+					}
+					vip := serviceNode.Service.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+					if vip != "" {
+						if _, ok := vipForService[sn]; !ok {
+							vipForService[sn] = vip
+						}
 					}
 					// Store the upstream's kind, and for ServiceKindTypical we don't do anything because we'll default
 					// any unset upstreams to ServiceKindConnectProxy below.
@@ -193,6 +200,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 
 			upstreamMap[compoundServiceName] = UpstreamData{
 				SNI:               map[string]struct{}{sni: {}},
+				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
 			}
