@@ -14,7 +14,6 @@ import (
 )
 
 type apiGatewayReconciler struct {
-	fsm    *fsm.FSM
 	logger hclog.Logger
 	store  datastore.DataStore
 }
@@ -38,7 +37,11 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	}
 
 	gateway := entry.(*structs.BoundAPIGatewayConfigEntry)
-	// TODO: validation?
+	//TODO is this what needs to happen for the validation step
+	err = gateway.Validate()
+	if err != nil {
+		return err
+	}
 
 	var state *structs.BoundAPIGatewayConfigEntry
 	boundEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
@@ -75,14 +78,24 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 			default:
 				return errors.New("route type doesn't exist")
 			}
-
 		}
 
-		boundGateway, routeErrors, err := BindRoutesToGateways(structs.gateway, routes)
+		boundGateways, routeErrors, err := BindRoutesToGateways(wrapGatewaysInSlice(gateway), routes)
+		if err != nil {
+			r.logger.Error("error binding route", "error", err)
+			return err
+		}
+
+		if len(boundGateways) > 1 {
+			r.logger.Warn("imlpementation error in bind routes, state should be impossible")
+			return errors.New("multiple gateways bound")
+		}
+
+		boundGateway := boundGateways[0]
 
 		// now update the gateway state
 		r.logger.Debug("persisting gateway state", "state", state)
-		if err := r.store.Update(&boundGateway); err != nil {
+		if err := r.store.Update(boundGateway); err != nil {
 			r.logger.Error("error persisting state", "error", err)
 			return err
 		}
@@ -94,10 +107,19 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 		}
 
 		//// and update the route statuses
-		for route, err := range routeErrors {
-			r.logger.Debug("persisting route status", "route", route)
-			if err := r.store.UpdateStatus(route); err != nil {
-				return err
+		for _, listener := range boundGateway.Listeners {
+			for _, route := range listener.Routes {
+				routeErr, ok := routeErrors[route]
+				if ok {
+					r.logger.Error("route error", routeErr)
+					//TODO does anything special need to be done in this situaion?
+				}
+				//TODO find out if parents are needed for status updates
+				configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
+				if err := r.store.UpdateStatus(configEntry); err != nil {
+					return err
+				}
+
 			}
 		}
 
@@ -106,9 +128,23 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	return nil
 }
 
+//convenience wrapper
+func wrapGatewaysInSlice(gateways ...*structs.BoundAPIGatewayConfigEntry) []*structs.BoundAPIGatewayConfigEntry {
+	return gateways
+}
+
+func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []structs.ResourceReference) structs.ConfigEntry {
+	//TODO handle other types
+	return &structs.TCPRouteConfigEntry{
+		Kind:    ref.Kind,
+		Name:    ref.Name,
+		Parents: parents,
+	}
+
+}
+
 func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
 	reconciler := apiGatewayReconciler{
-		fsm:    fsm,
 		logger: logger,
 	}
 	return controller.New(publisher, reconciler).Subscribe(
