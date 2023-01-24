@@ -2,7 +2,6 @@ package builtinextensiontemplate
 
 import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 
@@ -27,10 +26,6 @@ type Plugin interface {
 	// PatchFilter patches an Envoy filter to include the custom Envoy
 	// configuration required to integrate with the built in extension template.
 	PatchFilter(*envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error)
-
-	// PatchClusterLoadAssignment patches an Envoy load assignment to include the custom Envoy
-	// configuration required to integrate with the built in extension template.
-	PatchClusterLoadAssignment(*envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error)
 }
 
 // PluginConstructor is used to construct a plugin based on

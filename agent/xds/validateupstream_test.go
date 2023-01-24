@@ -3,8 +3,6 @@ package xds
 import (
 	"testing"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -17,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
+// TestValidateUpstreams only tests validation for listeners, routes, and clusters. Endpoints validation is done in a
+// top level test that can parse the output of the /clusters endpoint.
 func TestValidateUpstreams(t *testing.T) {
 	sni := "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
 	listenerName := "db:127.0.0.1:9191"
@@ -68,32 +68,6 @@ func TestValidateUpstreams(t *testing.T) {
 				return ir
 			},
 			err: "no cluster",
-		},
-		{
-			name: "tcp-missing-load-assignment",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
-			},
-			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				delete(ir.Index[xdscommon.EndpointType], sni)
-				return ir
-			},
-			err: "no cluster load assignment",
-		},
-		{
-			name: "tcp-missing-eds-endpoints",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
-			},
-			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				msg := ir.Index[xdscommon.EndpointType][sni]
-				cla, ok := msg.(*envoy_endpoint_v3.ClusterLoadAssignment)
-				require.True(t, ok)
-				cla.Endpoints = nil
-				ir.Index[xdscommon.EndpointType][sni] = cla
-				return ir
-			},
-			err: "zero endpoints",
 		},
 		{
 			name: "http-success",
@@ -172,42 +146,10 @@ func TestValidateUpstreams(t *testing.T) {
 			},
 		},
 		{
-			name: "failover-missing-endpoints",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
-			},
-			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				failoverSNI := "failover-target~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-				msg := ir.Index[xdscommon.EndpointType][failoverSNI]
-				cla, ok := msg.(*envoy_endpoint_v3.ClusterLoadAssignment)
-				require.True(t, ok)
-				cla.Endpoints = nil
-				ir.Index[xdscommon.EndpointType][failoverSNI] = cla
-				return ir
-			},
-			err: "zero endpoints",
-		},
-		{
 			name:        "non-eds",
 			create:      proxycfg.TestConfigSnapshotPeering,
 			serviceName: &api.CompoundServiceName{Name: "payments"},
 			peer:        "cloud",
-		},
-		{
-			name:        "non-eds-missing-endpoints",
-			create:      proxycfg.TestConfigSnapshotPeering,
-			serviceName: &api.CompoundServiceName{Name: "payments"},
-			peer:        "cloud",
-			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				sni := "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
-				msg := ir.Index[xdscommon.ClusterType][sni]
-				c, ok := msg.(*envoy_cluster_v3.Cluster)
-				require.True(t, ok)
-				c.LoadAssignment = nil
-				ir.Index[xdscommon.ClusterType][sni] = c
-				return ir
-			},
-			err: "zero endpoints",
 		},
 		{
 			name: "tproxy-success",
@@ -231,23 +173,6 @@ func TestValidateUpstreams(t *testing.T) {
 				return ir
 			},
 			err: "no cluster",
-		},
-		{
-			name: "tproxy-http-missing-endpoints",
-			vip:  "240.0.0.1",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
-			},
-			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
-				sni := "google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-				msg := ir.Index[xdscommon.EndpointType][sni]
-				cla, ok := msg.(*envoy_endpoint_v3.ClusterLoadAssignment)
-				require.True(t, ok)
-				cla.Endpoints = nil
-				ir.Index[xdscommon.EndpointType][sni] = cla
-				return ir
-			},
-			err: "zero endpoints",
 		},
 		{
 			name: "tproxy-http-redirect-success",
@@ -308,7 +233,9 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 			peer := tt.peer
 
-			err = validateupstream.Validate(indexedResources, *serviceName, peer, tt.vip)
+			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
+			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
+			err = validateupstream.Validate(indexedResources, nil, *serviceName, peer, tt.vip)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)

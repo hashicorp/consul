@@ -1,0 +1,204 @@
+{
+  "cluster_statuses": [
+    {
+      "name": "consul-dataplane",
+      "host_statuses": [
+        {
+          "address": {
+            "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 46627
+            }
+          },
+          "stats": [
+            {
+              "name": "cx_connect_fail"
+            },
+            {
+              "value": "1",
+              "name": "cx_total"
+            },
+            {
+              "name": "rq_error"
+            },
+            {
+              "name": "rq_success"
+            },
+            {
+              "name": "rq_timeout"
+            },
+            {
+              "value": "1",
+              "name": "rq_total"
+            },
+            {
+              "type": "GAUGE",
+              "value": "1",
+              "name": "cx_active"
+            },
+            {
+              "type": "GAUGE",
+              "value": "1",
+              "name": "rq_active"
+            }
+          ],
+          "health_status": {
+            "eds_health_status": "HEALTHY"
+          },
+          "weight": 1,
+          "locality": {}
+        }
+      ],
+      "circuit_breakers": {
+        "thresholds": [
+          {
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          },
+          {
+            "priority": "HIGH",
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          }
+        ]
+      },
+      "observability_name": "consul-dataplane"
+    },
+    {
+      "name": "local_app",
+      "added_via_api": true,
+      "host_statuses": [
+        {
+          "address": {
+            "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 9090
+            }
+          },
+          "stats": [
+            {
+              "name": "cx_connect_fail"
+            },
+            {
+              "value": "84615",
+              "name": "cx_total"
+            },
+            {
+              "name": "rq_error"
+            },
+            {
+              "name": "rq_success"
+            },
+            {
+              "name": "rq_timeout"
+            },
+            {
+              "value": "39068",
+              "name": "rq_total"
+            },
+            {
+              "type": "GAUGE",
+              "name": "cx_active"
+            },
+            {
+              "type": "GAUGE",
+              "name": "rq_active"
+            }
+          ],
+          "health_status": {
+            "eds_health_status": "HEALTHY"
+          },
+          "weight": 1,
+          "locality": {}
+        }
+      ],
+      "circuit_breakers": {
+        "thresholds": [
+          {
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          },
+          {
+            "priority": "HIGH",
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          }
+        ]
+      },
+      "observability_name": "local_app"
+    },
+    {
+      "name": "backend.default.dc1.internal.28732075-edb7-d989-37b6-ccd90fcd19af.consul",
+      "added_via_api": true,
+      "host_statuses": [
+        {
+          "address": {
+            "socket_address": {
+              "address": "10.0.2.8",
+              "port_value": 20000
+            }
+          },
+          "stats": [
+            {
+              "name": "cx_connect_fail"
+            },
+            {
+              "name": "cx_total"
+            },
+            {
+              "name": "rq_error"
+            },
+            {
+              "name": "rq_success"
+            },
+            {
+              "name": "rq_timeout"
+            },
+            {
+              "name": "rq_total"
+            },
+            {
+              "type": "GAUGE",
+              "name": "cx_active"
+            },
+            {
+              "type": "GAUGE",
+              "name": "rq_active"
+            }
+          ],
+          "health_status": {
+            "eds_health_status": "HEALTHY"
+          },
+          "weight": 1,
+          "locality": {}
+        }
+      ],
+      "circuit_breakers": {
+        "thresholds": [
+          {
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          },
+          {
+            "priority": "HIGH",
+            "max_connections": 1024,
+            "max_pending_requests": 1024,
+            "max_requests": 1024,
+            "max_retries": 3
+          }
+        ]
+      },
+      "observability_name": "backend.default.dc1.internal.28732075-edb7-d989-37b6-ccd90fcd19af.consul"
+    }
+  ]
+}

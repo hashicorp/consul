@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -63,7 +62,6 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 		xdscommon.ListenerType,
 		xdscommon.RouteType,
 		xdscommon.ClusterType,
-		xdscommon.EndpointType,
 	} {
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
@@ -120,28 +118,6 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 				if patched {
 					resources.Index[xdscommon.RouteType][nameOrSNI] = newRoute
 				}
-			case *envoy_endpoint_v3.ClusterLoadAssignment:
-				// If the Envoy extension configuration is for an upstream service, the Cluster's
-				// name must match the upstream service's SNI.
-				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
-					continue
-				}
-
-				// If the extension's config is for an an inbound listener, the Cluster's name
-				// must be xdscommon.LocalAppClusterName.
-				if !config.IsUpstream() && nameOrSNI == xdscommon.LocalAppClusterName {
-					continue
-				}
-
-				newCluster, patched, err := envoyExtension.Plugin.PatchClusterLoadAssignment(resource)
-				if err != nil {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
-					continue
-				}
-				if patched {
-					resources.Index[xdscommon.ClusterType][nameOrSNI] = newCluster
-				}
-
 			default:
 				resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped: %T", resource))
 			}

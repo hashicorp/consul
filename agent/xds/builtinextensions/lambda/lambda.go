@@ -211,8 +211,3 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 
 	return newFilter, true, nil
 }
-
-// PatchClusterLoadAssignment does nothing.
-func (p lambda) PatchClusterLoadAssignment(c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
-	return c, false, nil
-}

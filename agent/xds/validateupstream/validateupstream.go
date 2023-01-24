@@ -328,13 +328,13 @@ import (
 )
 
 const (
-	listeners string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
-	clusters  string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
-	routes    string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
-	endpoints string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
+	listenersType string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
+	clustersType  string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
+	routesType    string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
+	endpointsType string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
 )
 
-func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
+func ParseConfigDump(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	config := &envoy_admin_v3.ConfigDump{}
 
 	unmarshal := &protojson.UnmarshalOptions{
@@ -348,9 +348,21 @@ func ParseConfig(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 	return proxyConfigDumpToIndexedResources(config)
 }
 
+func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
+	clusters := &envoy_admin_v3.Clusters{}
+	unmarshal := &protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
+	err := unmarshal.Unmarshal(rawClusters, clusters)
+	if err != nil {
+		return nil, err
+	}
+	return clusters, nil
+}
+
 // Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
-func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string) error {
+func Validate(indexedResources *xdscommon.IndexedResources, clusters *envoy_admin_v3.Clusters, service api.CompoundServiceName, peer string, vip string) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Partition, service.Namespace)
 	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
 
@@ -414,7 +426,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		panic("validate plugin was not correctly created")
 	}
 
-	return v.Errors()
+	return v.Errors(clusters)
 }
 
 func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
@@ -422,7 +434,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 
 	for _, cfg := range config.Configs {
 		switch cfg.TypeUrl {
-		case listeners:
+		case listenersType:
 			lcd := &envoy_admin_v3.ListenersConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), lcd)
@@ -454,7 +466,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				r[listener.Name] = l
 				indexedResources.Index[xdscommon.ListenerType] = r
 			}
-		case clusters:
+		case clustersType:
 			ccd := &envoy_admin_v3.ClustersConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), ccd)
@@ -478,7 +490,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				r[c.Name] = c
 				indexedResources.Index[xdscommon.ClusterType] = r
 			}
-		case routes:
+		case routesType:
 			rcd := &envoy_admin_v3.RoutesConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), rcd)
@@ -501,7 +513,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				r[rc.Name] = rc
 				indexedResources.Index[xdscommon.RouteType] = r
 			}
-		case endpoints:
+		case endpointsType:
 			ecd := &envoy_admin_v3.EndpointsConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), ecd)

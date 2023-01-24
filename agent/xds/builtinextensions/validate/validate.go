@@ -3,8 +3,9 @@ package validate
 import (
 	"fmt"
 
+	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
@@ -59,7 +60,7 @@ type resource struct {
 var _ builtinextensiontemplate.Plugin = (*Validate)(nil)
 
 // Errors returns the error based only on Validate's state.
-func (v *Validate) Errors() error {
+func (v *Validate) Errors(clusters *envoy_admin_v3.Clusters) error {
 	var resultErr error
 	if !v.listener {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no listener"))
@@ -82,17 +83,55 @@ func (v *Validate) Errors() error {
 			continue
 		}
 
-		if resource.usesEDS && !resource.loadAssignment {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment %s", sni))
-		}
+		if clusters != nil {
+			if resource.usesEDS {
+				updateEndpointsForResource(resource, sni, clusters)
+			}
 
-		// Anything that's required and not an aggregate cluster should have endpoints.
-		if !resource.aggregateCluster && resource.endpoints == 0 {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("zero endpoints sni %s", sni))
+			if resource.usesEDS && !resource.loadAssignment {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment %s", sni))
+			}
+
+			// Any resource that's required and not an aggregate cluster should have endpoints.
+			if !resource.aggregateCluster && resource.endpoints == 0 {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("zero endpoints sni %s", sni))
+			}
 		}
 	}
 
 	return resultErr
+}
+
+func updateEndpointsForResource(r *resource, sni string, clusters *envoy_admin_v3.Clusters) {
+	clusterStatuses := clusters.GetClusterStatuses()
+	if clusterStatuses == nil {
+		return
+	}
+	status := &envoy_admin_v3.ClusterStatus{}
+	r.loadAssignment = false
+	for _, s := range clusterStatuses {
+		if s.Name == sni {
+			status = s
+			r.loadAssignment = true
+			break
+		}
+	}
+
+	healthyEndpoints := 0
+	hostStatuses := status.GetHostStatuses()
+
+	if r.loadAssignment && hostStatuses != nil {
+		for _, h := range hostStatuses {
+			health := h.GetHealthStatus()
+			if health != nil {
+				if health.EdsHealthStatus == envoy_core_v3.HealthStatus_HEALTHY && health.FailedOutlierCheck == false {
+					healthyEndpoints += 1
+				}
+			}
+		}
+	}
+	r.endpoints = healthyEndpoints
+
 }
 
 // MakeValidate is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
@@ -198,15 +237,6 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	}
 
 	return filter, true, nil
-}
-
-func (p *Validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
-	v, ok := p.resources[la.ClusterName]
-	if ok {
-		v.loadAssignment = true
-		v.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
-	}
-	return la, false, nil
 }
 
 func isAggregateCluster(c *envoy_cluster_v3.Cluster) (*envoy_aggregate_cluster_v3.ClusterConfig, bool) {
