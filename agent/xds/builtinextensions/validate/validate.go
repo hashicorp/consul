@@ -122,6 +122,8 @@ func (p *Validate) CanApply(config xdscommon.ExtensionConfiguration) bool {
 }
 
 func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	// Route name on connect proxies will be the envoy ID. We are only validating routes for the specific upstream with
+	// the envoyID configured.
 	if route.Name != p.envoyID {
 		return route, false, nil
 	}
@@ -177,14 +179,15 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	p.listener = true
 
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
-		// If it uses RDS, then the clusters we need to validate exist in the route, and there's nothing else we need to
-		// do with the filter.
+		// If the http filter uses RDS, then the clusters we need to validate exist in the route, and there's nothing
+		// else we need to do with the filter.
 		if config.GetRds() != nil {
 			p.usesRDS = true
 			return filter, true, nil
 		}
 	}
 
+	// FilterClusterNames handles the filter being an http or tcp filter.
 	for sni := range builtinextensiontemplate.FilterClusterNames(filter) {
 		// Mark any clusters we see as required resources.
 		if r, ok := p.resources[sni]; ok {
