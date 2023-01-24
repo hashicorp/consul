@@ -205,8 +205,6 @@ func (p *Validate) PatchClusterLoadAssignment(la *envoy_endpoint_v3.ClusterLoadA
 	if ok {
 		v.loadAssignment = true
 		v.endpoints = len(la.Endpoints) + len(la.NamedEndpoints)
-	} else {
-		return la, false, nil
 	}
 	return la, false, nil
 }
