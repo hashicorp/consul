@@ -42,7 +42,7 @@ func TestRetryer(t *testing.T) {
 	}
 }
 
-func TestBasic(t *testing.T) {
+func TestBasics(t *testing.T) {
 	t.Run("Error allows retry", func(t *testing.T) {
 		i := 0
 		Run(t, func(r *R) {
@@ -73,6 +73,22 @@ func TestBasic(t *testing.T) {
 		assert.Equal(t, i, 2)
 		// surprisingly, r.FailNow() *does not* trigger ft.FailNow()!
 		assert.Equal(t, ft.fails, 0)
+	})
+
+	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
+		gotPanic := false
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					gotPanic = true
+				}
+			}()
+			Run(t, func(r *R) {
+				panic(struct{}{})
+			})
+		}()
+
+		assert.True(t, gotPanic)
 	})
 }
 
@@ -106,22 +122,6 @@ func TestRunWith(t *testing.T) {
 		require.Len(t, ft.out, 1)
 		require.Contains(t, ft.out[0], "not yet\n")
 		require.Contains(t, ft.out[0], "do not proceed\n")
-	})
-
-	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
-		gotPanic := false
-		func() {
-			defer func() {
-				if p := recover(); p != nil {
-					gotPanic = true
-				}
-			}()
-			Run(t, func(r *R) {
-				panic(struct{}{})
-			})
-		}()
-
-		assert.True(t, gotPanic)
 	})
 }
 

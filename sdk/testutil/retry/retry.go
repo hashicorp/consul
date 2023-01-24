@@ -60,10 +60,7 @@ func (r *R) Helper() {}
 
 // runFailed is a sentinel value to indicate that the func itself
 // didn't panic, rather that `FailNow` was called.
-//
-// TODO: this value isn't a unique sentinel value; it compares equal to
-// any other `struct{}{}`.
-var runFailed = struct{}{}
+type runFailed struct{}
 
 // FailNow stops run execution. It is roughly equivalent to:
 //
@@ -73,7 +70,7 @@ var runFailed = struct{}{}
 // inside the function being run.
 func (r *R) FailNow() {
 	r.fail = true
-	panic(runFailed)
+	panic(runFailed{})
 }
 
 // Fatal is equivalent to r.Logf(args) followed by r.FailNow(), i.e. the run
@@ -187,7 +184,7 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		// FailNow was called.
 		func() {
 			defer func() {
-				if p := recover(); p != nil && p != runFailed {
+				if p := recover(); p != nil && p != (runFailed{}) {
 					panic(p)
 				}
 			}()
