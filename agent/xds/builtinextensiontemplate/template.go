@@ -282,8 +282,11 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 
 func filterChainTProxyMatch(vip string, filterChain *envoy_listener_v3.FilterChain) bool {
 	for _, prefixRange := range filterChain.FilterChainMatch.PrefixRanges {
-		strings.Contains(vip, prefixRange.AddressPrefix)
-		return true
+		// Since we always set the address prefix as the full VIP (rather than a prefix), we can just check if they are
+		// equal to find the matching filter chain.
+		if vip == prefixRange.AddressPrefix {
+			return true
+		}
 	}
 
 	return false
@@ -296,6 +299,8 @@ func FilterClusterNames(filter *envoy_listener_v3.Filter) map[string]struct{} {
 	}
 
 	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+		// If it's using RDS, the cluster names will be in the route, rather than in the http filter's route config, so
+		// we don't return any cluster names in this case. They can be gathered from the route.
 		if config.GetRds() != nil {
 			return clusterNames
 		}
