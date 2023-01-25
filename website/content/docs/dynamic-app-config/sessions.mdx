@@ -48,7 +48,7 @@ deleted by Consul.
 
 While this is a simple design, it enables a multitude of usage
 patterns. By default, the
-[gossip based failure detector](/docs/architecture/gossip)
+[gossip based failure detector](/consul/docs/architecture/gossip)
 is used as the associated health check. This failure detector allows
 Consul to detect when a node that is holding a lock has failed and
 to automatically release the lock. This ability provides **liveness** to
@@ -136,7 +136,7 @@ the goal of Consul to protect against misbehaving clients.
 
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
-These are covered in more detail in the [Leader Election guide](https://learn.hashicorp.com/tutorials/consul/application-leader-elections).
+These are covered in more detail in the [Leader Election guide](/consul/tutorials/developer-configuration/application-leader-elections).
 
 ## Prepared Query Integration
 
