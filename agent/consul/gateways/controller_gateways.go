@@ -100,10 +100,13 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	boundGateways, routeErrors := BindRoutesToGateways(wrapGatewaysInSlice(boundGatewayEntry), routes...)
 
 	if len(boundGateways) > 1 {
-		r.logger.Warn("imlpementation error, state should be impossible in gateway reconciler")
-		return errors.New("incorrect number of gateways bound")
-	} else if len(boundGateways) == 0 && len(routeErrors) == 0 {
-		r.logger.Debug("gateway had no updates to make ")
+	    err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
+	    r.logger.Errorf("API Gateway Reconciler failed to reconcile: %v", err)
+		return err
+	} 
+	
+	if len(boundGateways) == 0 && len(routeErrors) == 0 {
+		r.logger.Debugf("API Gateway Reconciler: gateway %s reconciled without updates.")
 		return nil
 	}
 
