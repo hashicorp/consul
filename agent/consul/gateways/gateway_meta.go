@@ -110,25 +110,27 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 	didBind := false
 	for _, listener := range g.Gateway.Listeners {
 		// A route with a section name of "" is bound to all listeners on the gateway.
-		if listener.Name == ref.SectionName || ref.SectionName == "" {
-			if listener.Protocol == route.GetProtocol() {
-				i, boundListener := g.boundListenerByName(listener.Name)
-				if boundListener != nil && boundListener.BindRoute(route) {
-					didBind = true
-					g.BoundGateway.Listeners[i] = *boundListener
-				}
-			} else if ref.SectionName != "" {
-				// Failure to bind to a specific listener is an error
-				return false, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
+		if listener.Name != ref.SectionName && ref.SectionName != "" {
+			continue
+		}
+
+		if listener.Protocol == route.GetProtocol() {
+			i, boundListener := g.boundListenerByName(listener.Name)
+			if boundListener != nil && boundListener.BindRoute(route) {
+				didBind = true
+				g.BoundGateway.Listeners[i] = *boundListener
 			}
+		} else if ref.SectionName != "" {
+			// Failure to bind to a specific listener is an error
+			return false, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
 		}
 	}
 
 	if !didBind {
-		return false, fmt.Errorf("failed to bind route %s to gateway %s: no valid listener has name '%s' and uses %s protocol", route.GetName(), g.Gateway.Name, ref.SectionName, route.GetProtocol())
+		return didBind, fmt.Errorf("failed to bind route %s to gateway %s: no valid listener has name '%s' and uses %s protocol", route.GetName(), g.Gateway.Name, ref.SectionName, route.GetProtocol())
 	}
 
-	return true, nil
+	return didBind, nil
 }
 
 // unbindRoute takes a route and unbinds it from all of the listeners on a gateway.
