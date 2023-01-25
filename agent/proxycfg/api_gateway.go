@@ -152,9 +152,26 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 	switch gwConf := resp.Entry.(type) {
 	case *structs.BoundAPIGatewayConfigEntry:
+		activeHTTPRoutes := make(map[structs.ServiceName]any)
+		activeTCPRoutes := make(map[structs.ServiceName]any)
+		activeCerts := make(map[structs.ServiceName]any)
 		for _, listener := range gwConf.Listeners {
 			// Subscribe to changes in each attached x-route config entry
 			for _, ref := range listener.Routes {
+				sn := structs.NewServiceName(ref.Name, &ref.EnterpriseMeta)
+
+				ctx, cancel := context.WithCancel(ctx)
+				switch ref.Kind {
+				case structs.HTTPRoute:
+					activeHTTPRoutes[sn] = struct{}{}
+					snap.APIGateway.HTTPRoutes.InitWatch(sn, cancel)
+				case structs.TCPRoute:
+					activeTCPRoutes[sn] = struct{}{}
+					snap.APIGateway.TCPRoutes.InitWatch(sn, cancel)
+				default:
+					return fmt.Errorf("unexpected route kind on gateway: %s", ref.Kind)
+				}
+
 				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, routeConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
@@ -164,6 +181,12 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 			// Subscribe to changes in each attached inline-certificate config entry
 			for _, ref := range listener.Certificates {
+				sn := structs.NewServiceName(ref.Name, &ref.EnterpriseMeta)
+
+				ctx, cancel := context.WithCancel(ctx)
+				activeCerts[sn] = struct{}{}
+				snap.APIGateway.Certicates.InitWatch(sn, cancel)
+
 				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
@@ -172,7 +195,27 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 			}
 		}
 
-		// TODO Unsubscribe from any config entries that are no longer attached
+		// Unsubscribe from any config entries that are no longer attached
+		snap.APIGateway.HTTPRoutes.ForEachKey(func(sn structs.ServiceName) bool {
+			if _, ok := activeHTTPRoutes[sn]; !ok {
+				snap.APIGateway.HTTPRoutes.CancelWatch(sn)
+			}
+			return true
+		})
+
+		snap.APIGateway.TCPRoutes.ForEachKey(func(sn structs.ServiceName) bool {
+			if _, ok := activeTCPRoutes[sn]; !ok {
+				snap.APIGateway.TCPRoutes.CancelWatch(sn)
+			}
+			return true
+		})
+
+		snap.APIGateway.Certicates.ForEachKey(func(sn structs.ServiceName) bool {
+			if _, ok := activeCerts[sn]; !ok {
+				snap.APIGateway.Certicates.CancelWatch(sn)
+			}
+			return true
+		})
 
 		// TODO
 		break
