@@ -10,8 +10,8 @@ import (
 
 // gatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
 type gatewayMeta struct {
-	// Bound is the bound-api-gateway config entry for a given gateway.
-	Bound *structs.BoundAPIGatewayConfigEntry
+	// BoundGateway is the bound-api-gateway config entry for a given gateway.
+	BoundGateway *structs.BoundAPIGatewayConfigEntry
 	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
 }
@@ -31,8 +31,8 @@ func getGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta
 	}
 
 	return &gatewayMeta{
-		Bound:   bound.(*structs.BoundAPIGatewayConfigEntry),
-		Gateway: gateway.(*structs.APIGatewayConfigEntry),
+		BoundGateway: bound.(*structs.BoundAPIGatewayConfigEntry),
+		Gateway:      gateway.(*structs.APIGatewayConfigEntry),
 	}, nil
 }
 
@@ -44,27 +44,27 @@ func getGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta
 // targeted listener's protocol, a mapping of parent references to associated
 // errors is returned.
 func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route structs.BoundRoute) (bool, map[structs.ResourceReference]error) {
-	if g.Bound == nil || g.Gateway == nil {
+	if g.BoundGateway == nil || g.Gateway == nil {
 		return false, nil
 	}
 
 	didUpdate := false
 	errors := make(map[structs.ResourceReference]error)
 
-	if len(g.Bound.Listeners) == 0 {
+	if len(g.BoundGateway.Listeners) == 0 {
 		for _, ref := range refs {
 			errors[ref] = fmt.Errorf("route cannot bind because gateway has no listeners")
 		}
 		return false, errors
 	}
 
-	for i, listener := range g.Bound.Listeners {
+	for i, listener := range g.BoundGateway.Listeners {
 		// Unbind to handle any stale route references.
 		didUnbind := listener.UnbindRoute(route)
 		if didUnbind {
 			didUpdate = true
 		}
-		g.Bound.Listeners[i] = listener
+		g.BoundGateway.Listeners[i] = listener
 
 		for _, ref := range refs {
 			didBind, err := g.bindRoute(ref, route)
@@ -81,7 +81,7 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 }
 
 func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
-	if g.Bound == nil || g.Gateway == nil {
+	if g.BoundGateway == nil || g.Gateway == nil {
 		return false, fmt.Errorf("gateway cannot be found")
 	}
 
@@ -89,7 +89,7 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 		return false, nil
 	}
 
-	if len(g.Bound.Listeners) == 0 {
+	if len(g.BoundGateway.Listeners) == 0 {
 		return false, fmt.Errorf("route cannot bind because gateway has no listeners")
 	}
 
@@ -101,7 +101,7 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 				i, boundListener := g.boundListenerByName(listener.Name)
 				if boundListener != nil && boundListener.BindRoute(route) {
 					didBind = true
-					g.Bound.Listeners[i] = *boundListener
+					g.BoundGateway.Listeners[i] = *boundListener
 				}
 			} else if ref.SectionName != "" {
 				// Failure to bind to a specific listener is an error
@@ -118,15 +118,15 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 }
 
 func (g *gatewayMeta) unbindRoute(route structs.BoundRoute) bool {
-	if g.Bound == nil {
+	if g.BoundGateway == nil {
 		return false
 	}
 
 	didUnbind := false
-	for i, listener := range g.Bound.Listeners {
+	for i, listener := range g.BoundGateway.Listeners {
 		if listener.UnbindRoute(route) {
 			didUnbind = true
-			g.Bound.Listeners[i] = listener
+			g.BoundGateway.Listeners[i] = listener
 		}
 	}
 
@@ -134,7 +134,7 @@ func (g *gatewayMeta) unbindRoute(route structs.BoundRoute) bool {
 }
 
 func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGatewayListener) {
-	for i, listener := range g.Bound.Listeners {
+	for i, listener := range g.BoundGateway.Listeners {
 		if listener.Name == name {
 			return i, &listener
 		}
