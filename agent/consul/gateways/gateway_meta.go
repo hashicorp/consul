@@ -89,11 +89,11 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 //
 // Binding logic binds a route to one or more listeners on the Bound gateway.
 // For a route to successfully bind it must:
-//     - have a parent reference to the gateway
-//     - have a parent reference with a section name matching the name of a listener
-//       on the gateway. If the section name is `""`, the route will be bound to all
-//       listeners on the gateway whose protocol matches the route's protocol.
-//     - have a protocol that matches the protocol of the listener it is being bound to.
+//   - have a parent reference to the gateway
+//   - have a parent reference with a section name matching the name of a listener
+//     on the gateway. If the section name is `""`, the route will be bound to all
+//     listeners on the gateway whose protocol matches the route's protocol.
+//   - have a protocol that matches the protocol of the listener it is being bound to.
 func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
 	if g.BoundGateway == nil || g.Gateway == nil {
 		return false, fmt.Errorf("gateway cannot be found")
