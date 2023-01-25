@@ -16,26 +16,26 @@ service of the same name.
 
 ## Requirements
 
-- Consul [service mesh connect](/docs/connect/configuration) enabled services
+- Consul [service mesh connect](/consul/docs/connect/configuration) enabled services
 - Service to service communication over the protocol `http`
 
 ## Interaction with other Config Entries
 
 - Service router config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic).
+  Management](/consul/docs/connect/l7-traffic).
 
 - Service router config entries are restricted to only services that define
   their protocol as HTTP-based via a corresponding
-  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
+  [`service-defaults`](/consul/docs/connect/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+  [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) .
 
 - Any route destination that omits the `ServiceSubset` field is eligible for
   splitting via a
-  [`service-splitter`](/docs/connect/config-entries/service-splitter) should
+  [`service-splitter`](/consul/docs/connect/config-entries/service-splitter) should
   one be configured for that service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/connect/config-entries/service-resolver).
+  [`service-resolver`](/consul/docs/connect/config-entries/service-resolver).
 
 ## UI
 
@@ -778,7 +778,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-router` config entry requires `service:read` on the resource.
 
@@ -793,7 +793,7 @@ name in these fields:
 The actual syntax of the regular expression fields described here is entirely
 proxy-specific.
 
-When using [Envoy](/docs/connect/proxies/envoy) as a proxy (the only supported proxy in Kubernetes),
+When using [Envoy](/consul/docs/connect/proxies/envoy) as a proxy (the only supported proxy in Kubernetes),
 the syntax for these fields is version specific:
 
 | Envoy Version   | Syntax                                                              |

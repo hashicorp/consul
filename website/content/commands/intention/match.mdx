@@ -7,17 +7,17 @@ page_title: 'Commands: Intention Match'
 
 Command: `consul intention match`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions/match](/api-docs/connect/intentions#list-matching-intentions)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions/match](/consul/api-docs/connect/intentions#list-matching-intentions)
 
 The `intention match` command shows the list of intentions that match
 a given source or destination. The list of intentions is listed in evaluation
 order: the first intention that matches a request would be evaluated.
 
-The [check](/commands/intention/check) command can be used to
+The [check](/consul/commands/intention/check) command can be used to
 check whether an L4 connection would be authorized between any two services.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required                  |
@@ -37,7 +37,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul intention match [options] SRC_OR_DST`
 
-`SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
+`SRC` and `DST` can both take [several forms](/consul/commands/intention#source-and-destination-naming).
 
 #### Command Options
 
