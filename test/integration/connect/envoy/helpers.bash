@@ -784,7 +784,7 @@ function setup_upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_long docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+  retry_default docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
     -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
 
