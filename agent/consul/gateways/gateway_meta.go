@@ -8,18 +8,18 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// GatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
-type GatewayMeta struct {
+// gatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
+type gatewayMeta struct {
 	// Bound is the bound-api-gateway config entry for a given gateway.
 	Bound *structs.BoundAPIGatewayConfigEntry
 	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
 }
 
-// GetGatewayMeta queries the state store for an API Gateway and a Bound API
+// getGatewayMeta queries the state store for an API Gateway and a Bound API
 // Gateway matching the given name and enterprise meta and returns a GatewayMeta
 // struct containing both.
-func GetGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta) (*GatewayMeta, error) {
+func getGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta) (*gatewayMeta, error) {
 	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, name, entMeta)
 	if err != nil {
 		return nil, err
@@ -30,20 +30,20 @@ func GetGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta
 		return nil, err
 	}
 
-	return &GatewayMeta{
+	return &gatewayMeta{
 		Bound:   bound.(*structs.BoundAPIGatewayConfigEntry),
 		Gateway: gateway.(*structs.APIGatewayConfigEntry),
 	}, nil
 }
 
-// UpdateRouteBinding takes a parent resource reference and a BoundRoute and
+// updateRouteBinding takes a parent resource reference and a BoundRoute and
 // modifies the listeners on the BoundAPIGateway config entry in GatewayMeta
 // to reflect the binding of the route to the gateway.
 //
 // If the reference is not valid or the route's protocol does not match the
 // targeted listener's protocol, a mapping of parent references to associated
 // errors is returned.
-func (g *GatewayMeta) UpdateRouteBinding(refs []structs.ResourceReference, route structs.BoundRoute) (bool, map[structs.ResourceReference]error) {
+func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route structs.BoundRoute) (bool, map[structs.ResourceReference]error) {
 	if g.Bound == nil || g.Gateway == nil {
 		return false, nil
 	}
@@ -67,7 +67,7 @@ func (g *GatewayMeta) UpdateRouteBinding(refs []structs.ResourceReference, route
 		g.Bound.Listeners[i] = listener
 
 		for _, ref := range refs {
-			didBind, err := g.BindRoute(ref, route)
+			didBind, err := g.bindRoute(ref, route)
 			if err != nil {
 				errors[ref] = err
 			}
@@ -80,7 +80,7 @@ func (g *GatewayMeta) UpdateRouteBinding(refs []structs.ResourceReference, route
 	return didUpdate, errors
 }
 
-func (g *GatewayMeta) BindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
+func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
 	if g.Bound == nil || g.Gateway == nil {
 		return false, fmt.Errorf("gateway cannot be found")
 	}
@@ -117,7 +117,7 @@ func (g *GatewayMeta) BindRoute(ref structs.ResourceReference, route structs.Bou
 	return true, nil
 }
 
-func (g *GatewayMeta) UnbindRoute(route structs.BoundRoute) bool {
+func (g *gatewayMeta) unbindRoute(route structs.BoundRoute) bool {
 	if g.Bound == nil {
 		return false
 	}
@@ -133,7 +133,7 @@ func (g *GatewayMeta) UnbindRoute(route structs.BoundRoute) bool {
 	return didUnbind
 }
 
-func (g *GatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGatewayListener) {
+func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGatewayListener) {
 	for i, listener := range g.Bound.Listeners {
 		if listener.Name == name {
 			return i, &listener

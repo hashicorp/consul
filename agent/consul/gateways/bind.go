@@ -21,7 +21,7 @@ type gatewayRefs = map[configentry.KindName][]structs.ResourceReference
 // The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
 // a map of resource references to errors that occurred when they were attempted to be
 // bound to a gateway.
-func BindRoutesToGateways(gateways []*GatewayMeta, routes ...structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error) {
+func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, map[structs.ResourceReference]error) {
 	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
 
 	// errored stores the errors from events where a resource reference failed to bind to a gateway.
@@ -34,7 +34,7 @@ func BindRoutesToGateways(gateways []*GatewayMeta, routes ...structs.BoundRoute)
 		for _, gateway := range gateways {
 			references, routeReferencesGateway := gatewayRefs[configentry.NewKindNameForEntry(gateway.Bound)]
 			if routeReferencesGateway {
-				didUpdate, errors := gateway.UpdateRouteBinding(references, route)
+				didUpdate, errors := gateway.updateRouteBinding(references, route)
 				if didUpdate {
 					modified = append(modified, gateway.Bound)
 				}
@@ -45,7 +45,7 @@ func BindRoutesToGateways(gateways []*GatewayMeta, routes ...structs.BoundRoute)
 					delete(parentRefs, ref)
 				}
 			} else {
-				if gateway.UnbindRoute(route) {
+				if gateway.unbindRoute(route) {
 					modified = append(modified, gateway.Bound)
 				}
 			}

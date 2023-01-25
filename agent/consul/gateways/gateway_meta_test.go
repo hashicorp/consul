@@ -39,7 +39,7 @@ func TestGetGatewayMeta(t *testing.T) {
 	err = store.EnsureConfigEntry(1, gateway)
 	require.NoError(t, err)
 
-	gatewayMeta, err := GetGatewayMeta(store, name, nil)
+	gatewayMeta, err := getGatewayMeta(store, name, nil)
 
 	require.NoError(t, err)
 	require.Equal(t, bound, gatewayMeta.Bound)
@@ -50,14 +50,14 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
-		gateway              GatewayMeta
+		gateway              gatewayMeta
 		route                structs.BoundRoute
 		expectedBoundGateway structs.BoundAPIGatewayConfigEntry
 		expectedDidBind      bool
 		expectedErr          error
 	}{
 		"Bind TCP Route to Gateway": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind: structs.BoundAPIGateway,
 					Name: "Gateway",
@@ -108,7 +108,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			expectedDidBind: true,
 		},
 		"Bind TCP Route with wildcard section name to all listeners on Gateway": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind: structs.BoundAPIGateway,
 					Name: "Gateway",
@@ -192,7 +192,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			expectedDidBind: true,
 		},
 		"TCP Route cannot bind to Gateway because the parent reference kind is not APIGateway": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind:      structs.BoundAPIGateway,
 					Name:      "Gateway",
@@ -223,7 +223,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			expectedErr:     nil,
 		},
 		"TCP Route cannot bind to Gateway because the parent reference name does not match": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind:      structs.BoundAPIGateway,
 					Name:      "Gateway",
@@ -255,7 +255,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			expectedErr:     nil,
 		},
 		"TCP Route cannot bind to Gateway because it lacks listeners": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind:      structs.BoundAPIGateway,
 					Name:      "Gateway",
@@ -287,7 +287,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
 		},
 		"TCP Route cannot bind to Gateway because it has an invalid section name": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind: structs.BoundAPIGateway,
 					Name: "Gateway",
@@ -339,7 +339,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ref := tc.route.GetParents()[0]
 
-			actualDidBind, actualErr := tc.gateway.BindRoute(ref, tc.route)
+			actualDidBind, actualErr := tc.gateway.bindRoute(ref, tc.route)
 
 			require.Equal(t, tc.expectedDidBind, actualDidBind)
 			require.Equal(t, tc.expectedErr, actualErr)
@@ -350,13 +350,13 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 
 func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
 	cases := map[string]struct {
-		gateway           GatewayMeta
+		gateway           gatewayMeta
 		route             structs.BoundRoute
 		expectedGateway   structs.BoundAPIGatewayConfigEntry
 		expectedDidUnbind bool
 	}{
 		"TCP Route unbinds from Gateway": {
-			gateway: GatewayMeta{
+			gateway: gatewayMeta{
 				Bound: &structs.BoundAPIGatewayConfigEntry{
 					Kind: structs.BoundAPIGateway,
 					Name: "Gateway",
@@ -400,7 +400,7 @@ func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidUnbind := tc.gateway.UnbindRoute(tc.route)
+			actualDidUnbind := tc.gateway.unbindRoute(tc.route)
 
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.Bound.Listeners)

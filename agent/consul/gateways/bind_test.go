@@ -10,7 +10,7 @@ import (
 
 func TestBindRoutesToGateways(t *testing.T) {
 	type testCase struct {
-		gateways                 []*GatewayMeta
+		gateways                 []*gatewayMeta
 		routes                   []structs.BoundRoute
 		expectedBoundAPIGateways []*structs.BoundAPIGatewayConfigEntry
 		expectedReferenceErrors  map[structs.ResourceReference]error
@@ -18,7 +18,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 
 	cases := map[string]testCase{
 		"TCP Route binds to gateway": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -72,7 +72,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route unbinds from gateway": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -121,7 +121,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route binds to multiple gateways": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway 1",
@@ -216,7 +216,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route binds to a single listener on a gateway with multiple listeners": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -283,7 +283,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route binds to all listeners on a gateway": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -356,7 +356,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route binds to gateway with multiple listeners, one of which is already bound": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -435,7 +435,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route binds to a listener on multiple gateways": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway 1",
@@ -554,7 +554,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route swaps from one listener to another on a gateway": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -627,7 +627,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"Multiple TCP Routes bind to different gateways": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway 1",
@@ -728,7 +728,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route cannot be bound to a listener with an HTTP protocol": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -773,7 +773,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			},
 		},
 		"If a route/listener protocol mismatch occurs with the wildcard, but a bind to another listener was possible, no error is returned": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
@@ -841,7 +841,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
 		"TCP Route references a listener that does not exist": {
-			gateways: []*GatewayMeta{
+			gateways: []*gatewayMeta{
 				{
 					Bound: &structs.BoundAPIGatewayConfigEntry{
 						Name: "Gateway",
