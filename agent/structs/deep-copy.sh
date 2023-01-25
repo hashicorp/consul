@@ -21,10 +21,12 @@ deep-copy \
   -type GatewayService \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \
+  -type HTTPRouteConfigEntry \
   -type HashPolicy \
   -type HealthCheck \
   -type IndexedCARoots \
   -type IngressListener \
+  -type InlineCertificateConfigEntry \
   -type Intention \
   -type IntentionPermission \
   -type LoadBalancer \
@@ -43,6 +45,7 @@ deep-copy \
   -type ServiceRoute \
   -type ServiceRouteDestination \
   -type ServiceRouteMatch \
+  -type TCPRouteConfigEntry \
   -type Upstream \
   -type UpstreamConfiguration \
   ./
