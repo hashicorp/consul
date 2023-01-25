@@ -60,17 +60,12 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 
 	// The envoyID is used to identify which listener and filter matches the upstream service.
 	var envoyID string
-	if peer != "" {
-		psn := structs.PeeredServiceName{
-			ServiceName: svc,
-			Peer:        peer,
-		}
-		uid := proxycfg.NewUpstreamIDFromPeeredServiceName(psn)
-		envoyID = uid.EnvoyID()
-	} else {
-		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
-		envoyID = uid.EnvoyID()
+	psn := structs.PeeredServiceName{
+		ServiceName: svc,
+		Peer:        peer,
 	}
+	uid := proxycfg.NewUpstreamIDFromPeeredServiceName(psn)
+	envoyID = uid.EnvoyID()
 
 	// Get all SNIs from the clusters in the configuration. Not all SNIs will need to be validated, but this ensures we
 	// capture SNIs which aren't directly identical to the upstream service name, but are still used for that upstream
