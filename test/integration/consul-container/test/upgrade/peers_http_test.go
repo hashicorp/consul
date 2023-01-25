@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -50,9 +51,22 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
 		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
-
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
+
+		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
+		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
+
+		// POST upgrade validation
+		//  - Register a new static-client service in dialing cluster and
+		//  - set upstream to static-server service in peered cluster
+		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
+		require.NoError(t, err)
+		_, port := clientSidecarService.GetAddr()
+		_, adminPort := clientSidecarService.GetAdminAddr()
+		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	}
 
 	for _, tc := range tcs {
