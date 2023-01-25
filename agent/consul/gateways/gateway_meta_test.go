@@ -10,6 +10,8 @@ import (
 )
 
 func TestGetGatewayMeta(t *testing.T) {
+	t.Parallel()
+
 	name := "Gateway"
 
 	bound := &structs.BoundAPIGatewayConfigEntry{
@@ -349,6 +351,8 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 }
 
 func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]struct {
 		gateway           gatewayMeta
 		route             structs.BoundRoute

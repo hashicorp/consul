@@ -9,6 +9,8 @@ import (
 )
 
 func TestBindRoutesToGateways(t *testing.T) {
+	t.Parallel()
+
 	type testCase struct {
 		gateways                 []*gatewayMeta
 		routes                   []structs.BoundRoute

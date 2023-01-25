@@ -44,10 +44,8 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 				for _, ref := range references {
 					delete(parentRefs, ref)
 				}
-			} else {
-				if gateway.unbindRoute(route) {
-					modified = append(modified, gateway.BoundGateway)
-				}
+			} else if gateway.unbindRoute(route) {
+				modified = append(modified, gateway.BoundGateway)
 			}
 		}
 
