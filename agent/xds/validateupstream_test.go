@@ -237,7 +237,7 @@ func TestValidateUpstreams(t *testing.T) {
 
 			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
 			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
-			err = Validate(indexedResources, nil, *serviceName, peer, tt.vip)
+			err = Validate(indexedResources, *serviceName, peer, tt.vip, false, nil)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
@@ -253,7 +253,7 @@ func TestValidateUpstreams(t *testing.T) {
 func TestValidate(t *testing.T) {
 	indexedResources := getConfig(t)
 	clusters := getClusters(t)
-	err := Validate(indexedResources, clusters, service, "", "")
+	err := Validate(indexedResources, service, "", "", true, clusters)
 	require.NoError(t, err)
 }
 

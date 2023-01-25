@@ -47,8 +47,13 @@ type resource struct {
 	required bool
 	// cluster specifies if the cluster has been seen.
 	cluster bool
-	// aggregateClusters is the list of aggregate cluster SNIs. It'll be empty if this is not an aggregate cluster.
+	// aggregateCluster determines if the resource is an aggregate cluster.
 	aggregateCluster bool
+	// aggregateClusterChildren is a list of SNIs to identify the child clusters of this aggregate cluster.
+	aggregateClusterChildren []string
+	// parentCluster is empty if this is a top level cluster, and has a value if this is a child of an aggregate
+	// cluster.
+	parentCluster string
 	// loadAssignment specifies if the load assignment has been seen.
 	loadAssignment bool
 	// usesEDS specifies if the cluster has EDS configured.
@@ -59,8 +64,32 @@ type resource struct {
 
 var _ builtinextensiontemplate.Plugin = (*Validate)(nil)
 
+// EndpointValidator allows us to inject a different function for tests.
+type EndpointValidator func(*resource, string, *envoy_admin_v3.Clusters)
+
+// MakeValidate is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
+func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
+	var resultErr error
+	var plugin Validate
+
+	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
+		return nil, fmt.Errorf("expected extension name '/builtin/proxy/validate' but got %q", name)
+	}
+
+	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
+	mainEnvoyID, _ := envoyID.(string)
+	if len(mainEnvoyID) == 0 {
+		return nil, fmt.Errorf("envoyID is required")
+	}
+	plugin.envoyID = mainEnvoyID
+	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
+	plugin.resources = make(map[string]*resource)
+
+	return &plugin, resultErr
+}
+
 // Errors returns the error based only on Validate's state.
-func (v *Validate) Errors(clusters *envoy_admin_v3.Clusters) error {
+func (v *Validate) Errors(validateEndpoints bool, endpointValidator EndpointValidator, clusters *envoy_admin_v3.Clusters) error {
 	var resultErr error
 	if !v.listener {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no listener"))
@@ -70,12 +99,14 @@ func (v *Validate) Errors(clusters *envoy_admin_v3.Clusters) error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
 	}
 
+	numRequiredResources := 0
 	// Resources will be marked as required in PatchFilter or PatchRoute because the listener or route will determine
 	// which clusters/endpoints to validate.
 	for sni, resource := range v.resources {
 		if !resource.required {
 			continue
 		}
+		numRequiredResources += 1
 
 		_, ok := v.snis[sni]
 		if !ok || !resource.cluster {
@@ -83,26 +114,48 @@ func (v *Validate) Errors(clusters *envoy_admin_v3.Clusters) error {
 			continue
 		}
 
-		if clusters != nil {
-			if resource.usesEDS {
-				updateEndpointsForResource(resource, sni, clusters)
-			}
-
-			if resource.usesEDS && !resource.loadAssignment {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment %s", sni))
-			}
-
-			// Any resource that's required and not an aggregate cluster should have endpoints.
-			if !resource.aggregateCluster && resource.endpoints == 0 {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("zero endpoints sni %s", sni))
+		if validateEndpoints {
+			// If resource is a top-level cluster (any cluster that is an aggregate cluster or not a child of an aggregate
+			// cluster), it will have an empty parent. If resource is a child cluster, it will have a nonempty parent.
+			if resource.parentCluster == "" && resource.aggregateCluster {
+				// Aggregate cluster case: do endpoint verification by checking each child cluster. We need at least one
+				// child cluster to have healthy endpoints.
+				oneClusterHasEndpoints := false
+				for _, childCluster := range resource.aggregateClusterChildren {
+					endpointValidator(v.resources[childCluster], childCluster, clusters)
+					if v.resources[childCluster].endpoints > 0 {
+						oneClusterHasEndpoints = true
+					}
+				}
+				if !oneClusterHasEndpoints {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("zero healthy endpoints for aggregate cluster %s", sni))
+				}
+			} else if resource.parentCluster == "" {
+				// Top-level non-aggregate cluster case: check for load assignment and healthy endpoints.
+				endpointValidator(resource, sni, clusters)
+				if resource.usesEDS && !resource.loadAssignment {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment for cluster %s", sni))
+				}
+				if resource.endpoints == 0 {
+					resultErr = multierror.Append(resultErr, fmt.Errorf("zero healthy endpoints for cluster %s", sni))
+				}
+			} else {
+				// Child cluster case: skip, since it'll be verified by the parent aggregate cluster.
+				continue
 			}
 		}
+
+	}
+
+	if numRequiredResources == 0 {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("no clusters found on route or listener"))
 	}
 
 	return resultErr
 }
 
-func updateEndpointsForResource(r *resource, sni string, clusters *envoy_admin_v3.Clusters) {
+// DoEndpointValidation implements the EndpointVerifier function type.
+func DoEndpointValidation(r *resource, sni string, clusters *envoy_admin_v3.Clusters) {
 	clusterStatuses := clusters.GetClusterStatuses()
 	if clusterStatuses == nil {
 		return
@@ -131,28 +184,6 @@ func updateEndpointsForResource(r *resource, sni string, clusters *envoy_admin_v
 		}
 	}
 	r.endpoints = healthyEndpoints
-
-}
-
-// MakeValidate is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
-func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
-	var resultErr error
-	var plugin Validate
-
-	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
-		return nil, fmt.Errorf("expected extension name '/builtin/proxy/validate' but got %q", name)
-	}
-
-	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
-	mainEnvoyID, _ := envoyID.(string)
-	if len(mainEnvoyID) == 0 {
-		return nil, fmt.Errorf("envoyID is required")
-	}
-	plugin.envoyID = mainEnvoyID
-	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
-	plugin.resources = make(map[string]*resource)
-
-	return &plugin, resultErr
 }
 
 // CanApply determines if the extension can apply to the given extension configuration.
@@ -195,6 +226,13 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 				r = &resource{}
 				p.resources[clusterName] = r
 			}
+			if v.aggregateClusterChildren == nil {
+				v.aggregateClusterChildren = []string{}
+			}
+			// On the parent cluster, add the children.
+			v.aggregateClusterChildren = append(v.aggregateClusterChildren, clusterName)
+			// On the child cluster, set the parent.
+			r.parentCluster = c.Name
 			// The child clusters of an aggregate cluster will be required if the parent cluster is.
 			r.required = v.required
 		}

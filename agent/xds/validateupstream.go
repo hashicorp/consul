@@ -54,7 +54,7 @@ func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
 
 // Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
-func Validate(indexedResources *xdscommon.IndexedResources, clusters *envoy_admin_v3.Clusters, service api.CompoundServiceName, peer string, vip string) error {
+func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Partition, service.Namespace)
 	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
 
@@ -122,7 +122,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, clusters *envoy_admi
 		panic("validate plugin was not correctly created")
 	}
 
-	return v.Errors(clusters)
+	return v.Errors(validateEndpoints, validate.DoEndpointValidation, clusters)
 }
 
 func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
