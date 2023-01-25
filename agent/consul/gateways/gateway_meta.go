@@ -10,9 +10,9 @@ import (
 
 // GatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
 type GatewayMeta struct {
-	// Bound is the bound config entry for a given gateway.
+	// Bound is the bound-api-gateway config entry for a given gateway.
 	Bound *structs.BoundAPIGatewayConfigEntry
-	// Gateway is the APIGateway config entry for the gateway.
+	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
 }
 
@@ -36,7 +36,7 @@ func GetGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta
 	}, nil
 }
 
-// UpdateGatewayMeta takes a parent resource reference and a BoundRoute and
+// UpdateRouteBinding takes a parent resource reference and a BoundRoute and
 // modifies the listeners on the BoundAPIGateway config entry in GatewayMeta
 // to reflect the binding of the route to the gateway.
 //
