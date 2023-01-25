@@ -8,7 +8,7 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 -> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/consul/api-docs/acl/legacy).
 
-The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/consul/api-docs/acl/tokens) and [policies](/consul/api-docs/acl/policies) with the `/acl` endpoints.
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls) and [check ACL replication status](#check-acl-replication). There are additional pages for managing [tokens](/api-docs/acl/tokens) and [policies](/api-docs/acl/policies) with the `/acl` endpoints.
 
 For more information on how to setup ACLs, please check
 the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
@@ -201,6 +201,7 @@ $ curl \
 - `LastErrorMessage` - The last error message produced at the time of `LastError`.
   An empty string indicates that no sync has resulted in an error.
 
+<<<<<<< HEAD
 ## Translate Rules
 
 -> **Deprecated** - This endpoint was removed in Consul 1.11.0.
@@ -226,6 +227,8 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl translate-rules`](/consul/commands/acl/translate-rules).
 
+=======
+>>>>>>> 9a845f4652 (update docs for additional CLI changes)
 ### Sample Payload
 
 ```hcl
@@ -248,6 +251,7 @@ agent_prefix "" {
 }
 ```
 
+<<<<<<< HEAD
 ## Translate a Legacy Token's Rules
 
 -> **Deprecated** - This endpoint was removed in Consul 1.11.0.
@@ -275,6 +279,8 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl translate-rules`](/consul/commands/acl/translate-rules).
 
+=======
+>>>>>>> 9a845f4652 (update docs for additional CLI changes)
 ### Sample Request
 
 ```shell-session

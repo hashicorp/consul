@@ -11,10 +11,7 @@ Command: `consul acl policy create`
 
 Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/policy](/consul/api-docs/acl/policies#create-a-policy)
 
-The `acl policy create` command creates new policies. The policies rules can either be set explicitly or the
-`-from-token` parameter may be used to load the rules from a legacy ACL token. When loading
-the rules from an existing legacy ACL token, the rules get translated from the legacy syntax
-to the new syntax.
+The `acl policy create` command creates new policies.
 
 Both the `-rules` and `-from-token` parameter values allow loading the value
 from stdin, a file or the raw value. To use stdin pass `-` as the value.
