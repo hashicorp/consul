@@ -160,9 +160,16 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 	}
 }
 
-func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler) rpc.PreBodyInterceptor {
+func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler, panicHandler RecoveryHandlerFunc) rpc.PreBodyInterceptor {
 
-	return func(reqServiceMethod string, sourceAddr net.Addr) error {
+	return func(reqServiceMethod string, sourceAddr net.Addr) (retErr error) {
+
+		defer func() {
+			if r := recover(); r != nil {
+				retErr = panicHandler(r)
+			}
+		}()
+
 		op := rpcRate.Operation{
 			Name:       reqServiceMethod,
 			SourceAddr: sourceAddr,
