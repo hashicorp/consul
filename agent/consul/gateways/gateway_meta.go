@@ -9,6 +9,9 @@ import (
 )
 
 // gatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
+// This is used when binding routes to a gateway to ensure that a route's protocol (e.g. http)
+// matches the protocol of the listener it wants to bind to. The binding modifies the
+// "bound" gateway, but relies on the "gateway" to determine the protocol of the listener.
 type gatewayMeta struct {
 	// BoundGateway is the bound-api-gateway config entry for a given gateway.
 	BoundGateway *structs.BoundAPIGatewayConfigEntry
@@ -80,6 +83,17 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 	return didUpdate, errors
 }
 
+// bindRoute takes a parent reference and a route and attempts to bind the route to the
+// bound gateway in the gatewayMeta struct. It returns true if the route was bound and
+// false if it was not. If the route fails to bind, an error is returned.
+//
+// Binding logic binds a route to one or more listeners on the Bound gateway.
+// For a route to successfully bind it must:
+//     - have a parent reference to the gateway
+//     - have a parent reference with a section name matching the name of a listener
+//       on the gateway. If the section name is `""`, the route will be bound to all
+//       listeners on the gateway whose protocol matches the route's protocol.
+//     - have a protocol that matches the protocol of the listener it is being bound to.
 func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
 	if g.BoundGateway == nil || g.Gateway == nil {
 		return false, fmt.Errorf("gateway cannot be found")
@@ -117,6 +131,8 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 	return true, nil
 }
 
+// unbindRoute takes a route and unbinds it from all of the listeners on a gateway.
+// It returns true if the route was unbound and false if it was not.
 func (g *gatewayMeta) unbindRoute(route structs.BoundRoute) bool {
 	if g.BoundGateway == nil {
 		return false
