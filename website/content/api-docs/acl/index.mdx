@@ -6,9 +6,7 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 # ACL HTTP API
 
--> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/consul/api-docs/acl/legacy).
-
-The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls) and [check ACL replication status](#check-acl-replication). There are additional pages for managing [tokens](/api-docs/acl/tokens) and [policies](/api-docs/acl/policies) with the `/acl` endpoints.
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls) and [check ACL replication status](#check-acl-replication). There are additional pages for managing [tokens](/consul/api-docs/acl/tokens) and [policies](/consul/api-docs/acl/policies) with the `/acl` endpoints.
 
 For more information on how to setup ACLs, please check
 the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
@@ -50,12 +48,8 @@ $ curl \
 
 ### Sample Response
 
--> **Deprecated** - The `ID` field in the response is for legacy compatibility and is a copy of the `SecretID` field. New
-applications should ignore the `ID` field as it may be removed in a future major Consul version.
-
 ```json
 {
-  "ID": "527347d3-9653-07dc-adc0-598b8f2b0f4d",
   "AccessorID": "b5b1a918-50bc-fc46-dec2-d481359da4e3",
   "SecretID": "527347d3-9653-07dc-adc0-598b8f2b0f4d",
   "Description": "Bootstrap Token (Global Management)",
@@ -163,18 +157,13 @@ $ curl \
 
 - `ReplicationType` - The type of replication that is currently in use.
 
-  - `legacy` - (removed in Consul 1.11.0) ACL replication is in legacy mode and is replicating legacy ACL tokens.
-
   - `policies` - ACL replication is only replicating policies as token replication
     is disabled.
 
   - `tokens` - ACL replication is replicating both policies and tokens.
 
 - `ReplicatedIndex` - The last index that was successfully replicated. Which data
-  the replicated index refers to depends on the replication type. For `legacy`
-  replication this can be compared with the value of the `X-Consul-Index` header
-  returned by the [`/v1/acl/list`](/consul/api-docs/acl/legacy#list-acls) endpoint to
-  determine if the replication process has gotten all available ACLs. When in either
+  the replicated index refers to depends on the replication type. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
   `X-Consul-Index` header returned by the [`/v1/acl/policies`](/consul/api-docs/acl/policies#list-policies)
   endpoint to determine if the policy replication process has gotten all available
