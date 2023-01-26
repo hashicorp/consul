@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -1120,6 +1121,677 @@ func TestGatewayService_Addresses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			addresses := tc.input.Addresses(tc.argument)
 			require.ElementsMatch(t, tc.expected, addresses)
+		})
+	}
+}
+
+func TestAPIGateway_Listeners(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"listener name conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port: 80,
+						Name: "foo",
+					},
+					{
+						Port: 80,
+						Name: "foo",
+					},
+				},
+			},
+			validateErr: "multiple listeners with the name",
+		},
+		"merged listener protocol conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-two",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"merged listener hostname conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-three",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Hostname: "host.two",
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"invalid protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-four",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("UDP"),
+					},
+				},
+			},
+			validateErr: "unsupported listener protocol",
+		},
+		"hostname in unsupported protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-five",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "hostname specification is not supported",
+		},
+		"invalid port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-six",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     -1,
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "not in the range 1-65535",
+		},
+		"invalid hostname": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-seven",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "*.*.host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "only allowed as the left-most label",
+		},
+		"unsupported certificate kind": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-eight",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: APIGateway,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"unnamed certificate": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-nine",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: InlineCertificate,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestBoundAPIGateway(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"invalid certificate, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-one",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Kind: InlineCertificate,
+						}},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+		"invalid certificate, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-two",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"invalid route, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-three",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Kind: TCPRoute,
+						}},
+					},
+				},
+			},
+			validateErr: "route reference must have a name",
+		},
+		"invalid route, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-four",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported route kind",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestBoundAPIGatewayBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		gateway         BoundAPIGatewayConfigEntry
+		route           BoundRoute
+		expectedGateway BoundAPIGatewayConfigEntry
+		expectedDidBind bool
+		expectedErr     error
+	}{
+		"Bind TCP Route to Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        APIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Bind TCP Route with wildcard section name to all listeners on Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener 1",
+						Routes: []ResourceReference{},
+					},
+					{
+						Name:   "Test Listener 2",
+						Routes: []ResourceReference{},
+					},
+					{
+						Name:   "Test Listener 3",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind: APIGateway,
+						Name: "Test Bound API Gateway",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener 1",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+					{
+						Name: "Test Listener 2",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+					{
+						Name: "Test Listener 3",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"TCP Route cannot bind to Gateway because the parent reference kind is not APIGateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      TerminatingGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     nil,
+		},
+		"TCP Route cannot bind to Gateway because the parent reference name does not match": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        APIGateway,
+						Name:        "Other Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     nil,
+		},
+		"TCP Route cannot bind to Gateway because it lacks listeners": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        APIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
+		},
+		"TCP Route cannot bind to Gateway because it has an invalid section name": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        APIGateway,
+						Name:        "Test Bound API Gateway",
+						SectionName: "Other Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind:      BoundAPIGateway,
+				Name:      "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{},
+			},
+			expectedDidBind: false,
+			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ref := tc.route.GetParents()[0]
+
+			actualDidBind, actualErr := tc.gateway.BindRoute(ref, tc.route)
+
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedErr, actualErr)
+			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.Listeners)
+		})
+	}
+}
+
+func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		gateway           BoundAPIGatewayConfigEntry
+		route             BoundRoute
+		expectedGateway   BoundAPIGatewayConfigEntry
+		expectedDidUnbind bool
+	}{
+		"TCP Route unbinds from Gateway": {
+			gateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "Test Listener",
+						Routes: []ResourceReference{
+							{
+								Kind: TCPRoute,
+								Name: "Test Route",
+							},
+						},
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+				Parents: []ResourceReference{
+					{
+						Kind:        BoundAPIGateway,
+						Name:        "Other Test Bound API Gateway",
+						SectionName: "Test Listener",
+					},
+				},
+			},
+			expectedGateway: BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "Test Bound API Gateway",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name:   "Test Listener",
+						Routes: []ResourceReference{},
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidUnbind := tc.gateway.UnbindRoute(tc.route)
+
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.Listeners)
+		})
+	}
+}
+
+func TestListenerBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener         BoundAPIGatewayListener
+		route            BoundRoute
+		expectedListener BoundAPIGatewayListener
+		expectedDidBind  bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener to update existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener appends new route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 3",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidBind := tc.listener.BindRoute(tc.route)
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func TestListenerUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener          BoundAPIGatewayListener
+		route             BoundRoute
+		expectedListener  BoundAPIGatewayListener
+		expectedDidUnbind bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener:  BoundAPIGatewayListener{},
+			expectedDidUnbind: false,
+		},
+		"Listener to remove existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actualDidUnbind := tc.listener.UnbindRoute(tc.route)
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
 	}
 }

@@ -16,7 +16,7 @@ As a result, roles can provide a more convenient authentication infrastructure t
 
 Roles are configurations linking several policies to a token. The following procedure describes the workflow for implementing roles.
 
-1. Assemble rules into policies (see [Policies](/docs/security/acl/acl-policies)) and register them in Consul.
+1. Assemble rules into policies (see [Policies](/consul/docs/security/acl/acl-policies)) and register them in Consul.
 1. Define a role and include the policy IDs or names.
 1. Register the role in Consul and link it to a token.
 1. Distribute the tokens to users for implementation.
@@ -41,7 +41,7 @@ Issue the `consul acl role create` command to create roles. In the following exa
 $ consul acl role create -name "crawler" -description "web crawler role" -policy-name "crawler-kv" -policy-name "crawler-key"
 ```
 
-Refer to the [command line documentation](/commands/acl/role) for details.
+Refer to the [command line documentation](/consul/commands/acl/role) for details.
 
 ### API
 
@@ -51,7 +51,7 @@ Make a `PUT` call to the `acl/role` endpoint and specify the role configuration 
 $ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/role
 ```
 
-Refer to the [API documentation](/api-docs/acl/roles) for details.
+Refer to the [API documentation](/consul/api-docs/acl/roles) for details.
 
 ## Role Attributes
 
@@ -63,8 +63,8 @@ Roles may contain the following attributes:
 - `Policies`: Specifies a the list of policies that are applicable for the role. The object can reference the policy `ID` or `Name` attribute.
 - `ServiceIdentities`: Specifies a list of services that are applicable for the role. See [Service Identities](#service-identities) for details.
 - `NodeIdentities`: Specifies a list of nodes that are applicable for the role. See [Node Identities](#node-identities) for details.
-- `Namespace`: <EnterpriseAlert inline /> The namespace that the policy resides in. Roles can only be linked to policies that are defined in the same namespace. See [Namespaces](/docs/enterprise/namespaces) for additional information. Requires Consul Enterprise 1.7.0+
-- `Partition`: <EnterpriseAlert inline/> The admin partition that the policy resides in. Roles can only be linked to policies that are defined in the same admin partition. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information. Requires Consul Enterprise 1.10.0+.
+- `Namespace`: <EnterpriseAlert inline /> The namespace that the policy resides in. Roles can only be linked to policies that are defined in the same namespace. See [Namespaces](/consul/docs/enterprise/namespaces) for additional information. Requires Consul Enterprise 1.7.0+
+- `Partition`: <EnterpriseAlert inline/> The admin partition that the policy resides in. Roles can only be linked to policies that are defined in the same admin partition. See [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information. Requires Consul Enterprise 1.10.0+.
 
 ## Service Identities
 
@@ -72,7 +72,7 @@ Roles may contain the following attributes:
 
 You can specify a service identity when configuring roles or linking tokens to policies. Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
-Service identities are used during the authorization process to automatically generate a policy for the service(s) specified. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh. Refer to the [service mesh](/docs/connect) topic for additional information about Consul service mesh.
+Service identities are used during the authorization process to automatically generate a policy for the service(s) specified. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh. Refer to the [service mesh](/consul/docs/connect) topic for additional information about Consul service mesh.
 
 ### Service Identity Specification
 
@@ -93,7 +93,7 @@ Use the following syntax to define a service identity:
 - `ServiceIdentities.ServiceName`: String value that specifies the name of the service you want to associate with the policy.
 - `ServiceIdentities.Datacenters`: Array that specifies the names of datacenters in which the service identity applies. This field is optional.
 
-Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payload) for additional information and examples.
+Refer to the the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
 
 -> **Scope for Namespace and Admin Partition** - In Consul Enterprise, service identities inherit the namespace or admin partition scope of the corresponding ACL token or role.
 
@@ -117,7 +117,7 @@ node_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
 
 ### Example
 
@@ -209,7 +209,7 @@ node_prefix "" {
 
 You can specify a node identity when configuring roles or linking tokens to policies. _Node_ commonly refers to a Consul agent, but a node can also be a physical server, cloud instance, virtual machine, or container.
 
-Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/config/config-files#acl_tokens_agent) field when configuring the agent.
+Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) field when configuring the agent.
 
 ### Node Identity Specification
 
@@ -230,7 +230,7 @@ Use the following syntax to define a node identity:
 - `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
 - `NodeIdentities.Datacenter`: String value that specifies the name of the datacenter in which the node identity applies.
 
-Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payload) for additional information and examples.
+Refer to the the [API documentation for roles](/consul/api-docs/acl/roles#sample-payload) for additional information and examples.
 
 -> **Consul Enterprise Namespacing** - Node Identities can only be applied to tokens and roles in the `default` namespace. The generated policy rules allow for `service:read` permissions on all services in all namespaces.
 
@@ -250,7 +250,7 @@ service_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
 
 ### Example
 

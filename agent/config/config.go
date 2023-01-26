@@ -754,11 +754,12 @@ type ACL struct {
 }
 
 type Tokens struct {
-	InitialManagement *string `mapstructure:"initial_management"`
-	Replication       *string `mapstructure:"replication"`
-	AgentRecovery     *string `mapstructure:"agent_recovery"`
-	Default           *string `mapstructure:"default"`
-	Agent             *string `mapstructure:"agent"`
+	InitialManagement      *string `mapstructure:"initial_management"`
+	Replication            *string `mapstructure:"replication"`
+	AgentRecovery          *string `mapstructure:"agent_recovery"`
+	Default                *string `mapstructure:"default"`
+	Agent                  *string `mapstructure:"agent"`
+	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`

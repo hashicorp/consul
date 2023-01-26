@@ -17,10 +17,10 @@ For each Kubernetes pod that is connect-injected the following will be configure
 1. A [Consul health check](/consul/api-docs/catalog#register-entity) is registered within Consul catalog.
 The Consul health check's state reflects the pod's readiness status.
 
-1. If the pod is using [transparent proxy mode](/docs/connect/transparent-proxy),
+1. If the pod is using [transparent proxy mode](/consul/docs/connect/transparent-proxy),
 the mutating webhook redirects all `http` based startup, liveness, and readiness probes in the pod through the Envoy proxy.
 This webhook is defined in the
-[`ExposePaths` configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+[`ExposePaths` configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
 for each probe so that kubelet can access the endpoint through the Envoy proxy.
 
 The mutation behavior can be disabled, by setting either the `consul.hashicorp.com/transparent-proxy-overwrite-probes`
@@ -34,6 +34,6 @@ then use the respective service instance for service mesh traffic.
 In the case where no user defined health checks are assigned to a pod, the default behavior is that the Consul health check will
 be marked `passing` until the pod becomes unready.
 
--> It is highly recommended to [enable TLS](/docs/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
+-> It is highly recommended to [enable TLS](/consul/docs/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
 security concerns should the pod network ever be compromised. The controller makes calls across the network to Consul agents on all
 nodes so an attacker could potentially sniff ACL tokens *if those calls are not encrypted* via TLS.

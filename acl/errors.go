@@ -70,7 +70,7 @@ type PermissionDeniedError struct {
 	Accessor string
 	// Resource (e.g. Service)
 	Resource Resource
-	// Access leve (e.g. Read)
+	// Access level (e.g. Read)
 	AccessLevel AccessLevel
 	// e.g. "sidecar-proxy-1"
 	ResourceID ResourceDescriptor
@@ -98,6 +98,8 @@ func (e PermissionDeniedError) Error() string {
 
 	if e.Accessor == "" {
 		message.WriteString(": provided token")
+	} else if e.Accessor == AnonymousTokenID {
+		message.WriteString(": anonymous token")
 	} else {
 		fmt.Fprintf(&message, ": token with AccessorID '%s'", e.Accessor)
 	}
@@ -106,6 +108,10 @@ func (e PermissionDeniedError) Error() string {
 
 	if e.ResourceID.Name != "" {
 		fmt.Fprintf(&message, " on %s", e.ResourceID.ToString())
+	}
+
+	if e.Accessor == AnonymousTokenID {
+		message.WriteString(". The anonymous token is used implicitly when a request does not specify a token.")
 	}
 	return message.String()
 }

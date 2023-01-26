@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/health"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+
+	pbacl "github.com/hashicorp/consul/proto-public/pbacl"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -23,10 +23,11 @@ import (
 func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 	limiter := rate.NewMockRequestLimitsHandler(t)
 
+	logger := hclog.NewNullLogger()
 	server := grpc.NewServer(
-		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter, NewPanicHandler(hclog.NewNullLogger()))),
+		grpc.InTapHandle(ServerRateLimiterMiddleware(limiter, NewPanicHandler(logger), logger)),
 	)
-	server.RegisterService(&healthpb.Health_ServiceDesc, health.NewServer())
+	pbacl.RegisterACLServiceServer(server, mockACLServer{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -48,7 +49,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			t.Logf("failed to close client connection: %v", err)
 		}
 	})
-	client := healthpb.NewHealthClient(conn)
+	client := pbacl.NewACLServiceClient(conn)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -57,7 +58,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 		limiter.On("Allow", mock.Anything).
 			Run(func(args mock.Arguments) {
 				op := args.Get(0).(rate.Operation)
-				require.Equal(t, "/grpc.health.v1.Health/Check", op.Name)
+				require.Equal(t, "/hashicorp.consul.acl.ACLService/Login", op.Name)
 
 				addr := op.SourceAddr.(*net.TCPAddr)
 				require.True(t, addr.IP.IsLoopback())
@@ -65,7 +66,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			Return(rate.ErrRetryElsewhere).
 			Once()
 
-		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		_, err = client.Login(ctx, &pbacl.LoginRequest{})
 		require.Error(t, err)
 		require.Equal(t, codes.ResourceExhausted.String(), status.Code(err).String())
 	})
@@ -75,7 +76,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			Return(rate.ErrRetryLater).
 			Once()
 
-		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		_, err = client.Login(ctx, &pbacl.LoginRequest{})
 		require.Error(t, err)
 		require.Equal(t, codes.Unavailable.String(), status.Code(err).String())
 	})
@@ -85,7 +86,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			Return(errors.New("uh oh")).
 			Once()
 
-		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		_, err = client.Login(ctx, &pbacl.LoginRequest{})
 		require.Error(t, err)
 		require.Equal(t, codes.Internal.String(), status.Code(err).String())
 	})
@@ -95,7 +96,7 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			Return(nil).
 			Once()
 
-		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		_, err = client.Login(ctx, &pbacl.LoginRequest{})
 		require.NoError(t, err)
 	})
 
@@ -104,8 +105,16 @@ func TestServerRateLimiterMiddleware_Integration(t *testing.T) {
 			Panic("uh oh").
 			Once()
 
-		_, err = client.Check(ctx, &healthpb.HealthCheckRequest{})
+		_, err = client.Login(ctx, &pbacl.LoginRequest{})
 		require.Error(t, err)
 		require.Equal(t, codes.Internal.String(), status.Code(err).String())
 	})
+}
+
+type mockACLServer struct {
+	pbacl.ACLServiceServer
+}
+
+func (mockACLServer) Login(context.Context, *pbacl.LoginRequest) (*pbacl.LoginResponse, error) {
+	return &pbacl.LoginResponse{}, nil
 }

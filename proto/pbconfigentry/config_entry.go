@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -151,14 +150,14 @@ func enterpriseMetaFromStructs(m acl.EnterpriseMeta) *pbcommon.EnterpriseMeta {
 	return pbcommon.NewEnterpriseMetaFromStructs(m)
 }
 
-func timeFromStructs(t *time.Time) *timestamp.Timestamp {
+func timeFromStructs(t *time.Time) *timestamppb.Timestamp {
 	if t == nil {
 		return nil
 	}
 	return timestamppb.New(*t)
 }
 
-func timeToStructs(ts *timestamp.Timestamp) *time.Time {
+func timeToStructs(ts *timestamppb.Timestamp) *time.Time {
 	if ts == nil {
 		return nil
 	}
@@ -314,4 +313,26 @@ func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension
 	}
 
 	return o
+}
+
+func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGatewayListenerProtocol {
+	switch a {
+	case structs.ListenerProtocolHTTP:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	case structs.ListenerProtocolTCP:
+		return APIGatewayListenerProtocol_ListenerProtocolTCP
+	default:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	}
+}
+
+func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewayListenerProtocol {
+	switch a {
+	case APIGatewayListenerProtocol_ListenerProtocolHTTP:
+		return structs.ListenerProtocolHTTP
+	case APIGatewayListenerProtocol_ListenerProtocolTCP:
+		return structs.ListenerProtocolTCP
+	default:
+		return structs.ListenerProtocolHTTP
+	}
 }
