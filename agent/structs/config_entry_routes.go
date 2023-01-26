@@ -24,7 +24,7 @@ type HTTPRouteConfigEntry struct {
 	Name string
 
 	Meta map[string]string `json:",omitempty"`
-	// Status is the asynchronous status which an HTTPRoute propagates to the user.
+	// Status is the asynchronous reconciliation status which an HTTPRoute propagates to the user.
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -114,7 +114,7 @@ type TCPRouteConfigEntry struct {
 	Services []TCPService
 
 	Meta map[string]string `json:",omitempty"`
-	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	// Status is the asynchronous reconciliation status which a TCPRoute propagates to the user.
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex

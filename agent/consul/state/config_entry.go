@@ -300,8 +300,8 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	return err == nil, err
 }
 
-// EnsureConfigEntryStatusCAS is called to do a check-and-set upsert of a given config entry status.
-func (s *Store) EnsureConfigEntryStatusCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+// EnsureConfigEntryWithStatusCAS is called to do a check-and-set upsert of a given config entry and its status.
+func (s *Store) EnsureConfigEntryWithStatusCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -311,7 +311,7 @@ func (s *Store) EnsureConfigEntryStatusCAS(idx, cidx uint64, conf structs.Config
 		return false, fmt.Errorf("failed configuration lookup: %s", err)
 	}
 
-	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// Check if we should do the set. A ModifyIndex of 0 means that
 	// we are doing a set-if-not-exists.
 	var existingIdx structs.RaftIndex
 	if existing != nil {

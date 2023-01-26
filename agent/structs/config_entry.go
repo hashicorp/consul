@@ -624,11 +624,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert          ConfigEntryOp = "upsert"
-	ConfigEntryUpsertCAS       ConfigEntryOp = "upsert-cas"
-	ConfigEntryUpsertStatusCAS ConfigEntryOp = "upsert-status-cas"
-	ConfigEntryDelete          ConfigEntryOp = "delete"
-	ConfigEntryDeleteCAS       ConfigEntryOp = "delete-cas"
+	ConfigEntryUpsert              ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS           ConfigEntryOp = "upsert-cas"
+	ConfigEntryUpsertWithStatusCAS ConfigEntryOp = "upsert-with-status-cas"
+	ConfigEntryDelete              ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS           ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.

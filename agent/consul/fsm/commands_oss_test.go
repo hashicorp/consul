@@ -1396,7 +1396,7 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 		}},
 	}
 	req = &structs.ConfigEntryRequest{
-		Op:    structs.ConfigEntryUpsertStatusCAS,
+		Op:    structs.ConfigEntryUpsertWithStatusCAS,
 		Entry: entry,
 	}
 
@@ -1413,14 +1413,13 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
 		require.NoError(t, err)
-		entry.RaftIndex.CreateIndex = 2
 		entry.RaftIndex.ModifyIndex = 2
 		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
 		require.Len(t, conditions, 1)
 		require.Equal(t, "Foo", conditions[0].Status)
 	}
 
-	// do a regular update and make sure the status gets reset
+	// attempt to change the status with a regular update and make sure it's ignored
 	entry.Status = structs.Status{
 		Conditions: []structs.Condition{{
 			Status: "Bar",
@@ -1444,8 +1443,6 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
 		require.NoError(t, err)
-		entry.RaftIndex.CreateIndex = 2
-		entry.RaftIndex.ModifyIndex = 2
 		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
 		require.Len(t, conditions, 1)
 		require.Equal(t, "Foo", conditions[0].Status)
