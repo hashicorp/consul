@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/go-version"
+
+	"github.com/hashicorp/consul/agent/consul/gateways"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-version"
 )
 
 const (
@@ -51,6 +55,7 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, caSigningMetricRoutineName, signingCAExpiryMonitor(s).Monitor)
 	s.leaderRoutineManager.Start(ctx, virtualIPCheckRoutineName, s.runVirtualIPVersionCheck)
+	s.leaderRoutineManager.Start(ctx, configEntryControllersRoutineName, s.runConfigEntryControllers)
 
 	return s.startIntentionConfigEntryMigration(ctx)
 }
@@ -63,6 +68,28 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
 	s.leaderRoutineManager.Stop(virtualIPCheckRoutineName)
+	s.leaderRoutineManager.Stop(configEntryControllersRoutineName)
+}
+
+func (s *Server) runConfigEntryControllers(ctx context.Context) error {
+	group, ctx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		logger := s.logger.Named(logging.APIGatewayController)
+		return gateways.NewAPIGatewayController(s.fsm, s.publisher, logger).Run(ctx)
+	})
+
+	group.Go(func() error {
+		logger := s.logger.Named(logging.HTTPRouteController)
+		return gateways.NewHTTPRouteController(s.fsm, s.publisher, logger).Run(ctx)
+	})
+
+	group.Go(func() error {
+		logger := s.logger.Named(logging.TCPRouteController)
+		return gateways.NewTCPRouteController(s.fsm, s.publisher, logger).Run(ctx)
+	})
+
+	return group.Wait()
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {

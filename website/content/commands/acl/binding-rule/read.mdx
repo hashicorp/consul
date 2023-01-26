@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Binding Rule Read'
+description: |
+  The `consul acl binding-rule read` command outputs the details of an ACL binding rule of a specified ID.
 ---
 
 # Consul ACL Binding Rule Read
 
 Command: `consul acl binding-rule read`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/binding-rule/:id](/api-docs/acl/binding-rules#read-a-binding-rule)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/binding-rule/:id](/consul/api-docs/acl/binding-rules#read-a-binding-rule)
 
 The `acl binding-rule read` command reads and displays a binding rules details.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Role List'
+description: |
+  The `consul acl role list` command outputs details for all ACL roles, including the policy IDs attached to each role.
 ---
 
 # Consul ACL Role List
 
 Command: `consul acl role list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/roles](/api-docs/acl/roles#list-roles)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/roles](/consul/api-docs/acl/roles#list-roles)
 
 The `acl role list` command lists all roles. By default it will not show metadata.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

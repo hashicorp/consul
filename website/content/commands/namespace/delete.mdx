@@ -1,21 +1,23 @@
 ---
 layout: commands
 page_title: 'Commands: Namespace Delete'
+description: |
+  The `consul namespace delete` command deletes a namespace in Consul Enterprise.
 ---
 
 # Consul Namespace Delete
 
 Command: `consul namespace delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/namespace/:name](/api-docs/namespaces#delete-a-namespace)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/namespace/:name](/consul/api-docs/namespaces#delete-a-namespace)
 
 <EnterpriseAlert />
 
 This `namespace delete` command deletes a namespace. This was added in Consul Enterprise 1.7.0. If
 ACLs are enabled then this command will require a token with `operator:write` privileges.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |

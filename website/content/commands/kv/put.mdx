@@ -1,23 +1,25 @@
 ---
 layout: commands
 page_title: 'Commands: KV Put'
+description: >-
+  The `consul kv put` command writes data to Consul's key/value store.
 ---
 
 # Consul KV Put
 
 Command: `consul kv put`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/kv/:key](/api-docs/kv#create-update-key)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/kv/:key](/consul/api-docs/kv#create-update-key)
 
 The `kv put` command writes the data to the given path in the KV store.
 
 -> **Note**: When writing multiple entries at once, consider using
-[`kv import`](/commands/kv/import) instead. Alternatively, the
-[transaction API](/api-docs/txn) provides support for performing up to
+[`kv import`](/consul/commands/kv/import) instead. Alternatively, the
+[transaction API](/consul/api-docs/txn) provides support for performing up to
 64 KV operations atomically.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -132,7 +134,7 @@ Success! Data written to: leaderboard/scores
 ```
 
 ~> **Warning**: For secret and sensitive values, you should consider using a
-secret management solution like **[HashiCorp's Vault](https://learn.hashicorp.com/tutorials/vault/static-secrets?in=vault/secrets-management)**.
+secret management solution like **[HashiCorp's Vault](/vault/tutorials/secrets-management/static-secrets)**.
 While it is possible to encrypt data before writing it to Consul's KV store,
 Consul provides no built-in support for encryption at-rest.
 
@@ -170,7 +172,7 @@ Success! Lock released on: redis/lock/update
 
 ~> **Warning!** If you are trying to build a locking mechanism with these
 low-level primitives, you may want to look at the [<tt>consul
-lock</tt>](/commands/lock) command. It provides higher-level
+lock</tt>](/consul/commands/lock) command. It provides higher-level
 functionality without exposing the internal APIs of Consul.
 
 ### Flags
