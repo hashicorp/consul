@@ -67,9 +67,9 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ServiceName, *structs.HTTPRouteConfigEntry]()
-	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ServiceName, *structs.TCPRouteConfigEntry]()
-	snap.APIGateway.Certicates = watch.NewMap[structs.ServiceName, *structs.InlineCertificateConfigEntry]()
+	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
+	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
+	snap.APIGateway.Certicates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 
 	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
@@ -77,7 +77,8 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.APIGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.APIGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
-	snap.APIGateway.Listeners = make(map[APIGatewayListenerKey]structs.APIGatewayListener)
+	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
+	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
 	snap.APIGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
 	snap.APIGateway.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
@@ -157,22 +158,20 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 	switch gwConf := resp.Entry.(type) {
 	case *structs.BoundAPIGatewayConfigEntry:
-		activeHTTPRoutes := make(map[structs.ServiceName]any)
-		activeTCPRoutes := make(map[structs.ServiceName]any)
-		activeCerts := make(map[structs.ServiceName]any)
+		seenRefs := make(map[structs.ResourceReference]any)
 		for _, listener := range gwConf.Listeners {
+			snap.APIGateway.BoundListeners[listener.Name] = listener
+
 			// Subscribe to changes in each attached x-route config entry
 			for _, ref := range listener.Routes {
-				sn := structs.NewServiceName(ref.Name, &ref.EnterpriseMeta)
+				seenRefs[ref] = struct{}{}
 
 				ctx, cancel := context.WithCancel(ctx)
 				switch ref.Kind {
 				case structs.HTTPRoute:
-					activeHTTPRoutes[sn] = struct{}{}
-					snap.APIGateway.HTTPRoutes.InitWatch(sn, cancel)
+					snap.APIGateway.HTTPRoutes.InitWatch(ref, cancel)
 				case structs.TCPRoute:
-					activeTCPRoutes[sn] = struct{}{}
-					snap.APIGateway.TCPRoutes.InitWatch(sn, cancel)
+					snap.APIGateway.TCPRoutes.InitWatch(ref, cancel)
 				default:
 					return fmt.Errorf("unexpected route kind on gateway: %s", ref.Kind)
 				}
@@ -186,11 +185,9 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 			// Subscribe to changes in each attached inline-certificate config entry
 			for _, ref := range listener.Certificates {
-				sn := structs.NewServiceName(ref.Name, &ref.EnterpriseMeta)
-
 				ctx, cancel := context.WithCancel(ctx)
-				activeCerts[sn] = struct{}{}
-				snap.APIGateway.Certicates.InitWatch(sn, cancel)
+				seenRefs[ref] = struct{}{}
+				snap.APIGateway.Certicates.InitWatch(ref, cancel)
 
 				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
 				if err != nil {
@@ -201,23 +198,23 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		}
 
 		// Unsubscribe from any config entries that are no longer attached
-		snap.APIGateway.HTTPRoutes.ForEachKey(func(sn structs.ServiceName) bool {
-			if _, ok := activeHTTPRoutes[sn]; !ok {
-				snap.APIGateway.HTTPRoutes.CancelWatch(sn)
+		snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.HTTPRoutes.CancelWatch(ref)
 			}
 			return true
 		})
 
-		snap.APIGateway.TCPRoutes.ForEachKey(func(sn structs.ServiceName) bool {
-			if _, ok := activeTCPRoutes[sn]; !ok {
-				snap.APIGateway.TCPRoutes.CancelWatch(sn)
+		snap.APIGateway.TCPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.TCPRoutes.CancelWatch(ref)
 			}
 			return true
 		})
 
-		snap.APIGateway.Certicates.ForEachKey(func(sn structs.ServiceName) bool {
-			if _, ok := activeCerts[sn]; !ok {
-				snap.APIGateway.Certicates.CancelWatch(sn)
+		snap.APIGateway.Certicates.ForEachKey(func(ref structs.ResourceReference) bool {
+			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.Certicates.CancelWatch(ref)
 			}
 			return true
 		})
@@ -225,10 +222,11 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		snap.APIGateway.BoundGatewayConfigLoaded = true
 		break
 	case *structs.APIGatewayConfigEntry:
+		for _, listener := range gwConf.Listeners {
+			snap.APIGateway.Listeners[listener.Name] = listener
+		}
+
 		snap.APIGateway.GatewayConfigLoaded = true
-
-		// TODO Configuration for listeners
-
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
@@ -246,10 +244,18 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 		return nil
 	}
 
-	_, ok = resp.Entry.(*structs.InlineCertificateConfigEntry)
+	cfg, ok := resp.Entry.(*structs.InlineCertificateConfigEntry)
 	if !ok {
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
+
+	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
+	ref := structs.ResourceReference{
+		Kind:           cfg.GetKind(),
+		Name:           cfg.GetName(),
+	}
+
+	snap.APIGateway.Certicates.Set(ref, cfg)
 
 	// TODO
 	return errors.New("implement me")
@@ -264,12 +270,22 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return nil
 	}
 
-	switch resp.Entry.(type) {
+	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
+	ref := structs.ResourceReference{
+		Kind: resp.Entry.GetKind(),
+		Name: resp.Entry.GetName(),
+	}
+
+	switch route := resp.Entry.(type) {
 	case *structs.HTTPRouteConfigEntry:
-		// TODO
+		snap.APIGateway.HTTPRoutes.Set(ref, route)
+
+		// TODO Watch each referenced discovery chain
 		break
 	case *structs.TCPRouteConfigEntry:
-		// TODO
+		snap.APIGateway.TCPRoutes.Set(ref, route)
+
+		// TODO Watch each referenced discovery chain
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)

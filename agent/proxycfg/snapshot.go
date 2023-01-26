@@ -642,10 +642,6 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 type configSnapshotAPIGateway struct {
 	ConfigSnapshotUpstreams
 
-	HTTPRoutes watch.Map[structs.ServiceName, *structs.HTTPRouteConfigEntry]
-	TCPRoutes  watch.Map[structs.ServiceName, *structs.TCPRouteConfigEntry]
-	Certicates watch.Map[structs.ServiceName, *structs.InlineCertificateConfigEntry]
-
 	TLSConfig structs.GatewayTLSConfig
 
 	// GatewayConfigLoaded is used to determine if we have received the initial
@@ -672,10 +668,16 @@ type configSnapshotAPIGateway struct {
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
 	UpstreamsSet map[UpstreamID]struct{}
 
+	HTTPRoutes watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
+	TCPRoutes  watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
+	Certicates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	// TODO Does this need to be a map instead of a list?
-	Listeners map[APIGatewayListenerKey]structs.APIGatewayListener
+	Listeners map[string]structs.APIGatewayListener
+
+	BoundListeners map[string]structs.BoundAPIGatewayListener
 
 	// Defaults is the default configuration for upstream service instances
 	//Defaults structs.IngressServiceConfig
