@@ -163,7 +163,7 @@ func (c *controller) WithWorkers(i int) Controller {
 	return c
 }
 
-// WithLogger set the the internal logger for the controller.
+// WithLogger sets the internal logger for the controller.
 func (c *controller) WithLogger(logger hclog.Logger) Controller {
 	c.ensureNotRunning()
 
