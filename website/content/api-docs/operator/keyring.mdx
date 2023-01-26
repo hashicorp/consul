@@ -9,7 +9,7 @@ description: |-
 # Keyring Operator HTTP API
 
 The `/operator/keyring` endpoints allow for management of the gossip encryption
-keyring. Please see the [Gossip Protocol Guide](/docs/architecture/gossip) for
+keyring. Please see the [Gossip Protocol Guide](/consul/docs/architecture/gossip) for
 more details on the gossip protocol and its use.
 
 ## List Gossip Encryption Keys
@@ -26,16 +26,16 @@ read privileges.
 | `GET`  | `/operator/keyring` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `keyring:read` |
 
-The corresponding CLI command is [`consul keyring -list`](/commands/keyring#list).
+The corresponding CLI command is [`consul keyring -list`](/consul/commands/keyring#list).
 
 ### Query Parameters
 
@@ -113,16 +113,16 @@ This endpoint installs a new gossip encryption key into the cluster.
 | `POST` | `/operator/keyring` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
 
-The corresponding CLI command is [`consul keyring -install`](/commands/keyring#install).
+The corresponding CLI command is [`consul keyring -install`](/consul/commands/keyring#install).
 
 ### Query Parameters
 
@@ -162,16 +162,16 @@ installed before this operation can succeed.
 | `PUT`  | `/operator/keyring` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
 
-The corresponding CLI command is [`consul keyring -use`](/commands/keyring#use).
+The corresponding CLI command is [`consul keyring -use`](/consul/commands/keyring#use).
 
 ### Query Parameters
 
@@ -211,16 +211,16 @@ may only be performed on keys which are not currently the primary key.
 | `DELETE` | `/operator/keyring` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `keyring:write` |
 
-The corresponding CLI command is [`consul keyring -remove`](/commands/keyring#remove).
+The corresponding CLI command is [`consul keyring -remove`](/consul/commands/keyring#remove).
 
 ### Query Parameters
 

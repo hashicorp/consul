@@ -62,7 +62,6 @@ func BasicPeeringTwoClustersSetup(
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
 		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
-
 	}
 
 	// Register an static-client service in dialing cluster and set upstream to static-server service
@@ -78,6 +77,8 @@ func BasicPeeringTwoClustersSetup(
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy")
 	}
 
+	_, adminPort := clientSidecarService.GetAdminAddr()
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 

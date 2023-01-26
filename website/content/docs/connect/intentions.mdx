@@ -9,15 +9,15 @@ description: >-
 
 -> **1.9.0 and later:** This guide only applies in Consul versions 1.9.0 and
 later. The documentation for the legacy intentions system is
-[here](/docs/connect/intentions-legacy).
+[here](/consul/docs/connect/intentions-legacy).
 
 Intentions define access control for services via Connect and are used to
 control which services may establish connections or make requests. Intentions
 can be managed via the API, CLI, or UI.
 
 Intentions are enforced on inbound connections or requests by the
-[proxy](/docs/connect/proxies) or within a [natively integrated
-application](/docs/connect/native).
+[proxy](/consul/docs/connect/proxies) or within a [natively integrated
+application](/consul/docs/connect/native).
 
 Depending upon the [protocol] in use by the destination service, you can define
 intentions to control Connect traffic authorization either at networking layer
@@ -25,7 +25,7 @@ intentions to control Connect traffic authorization either at networking layer
 
 - **Identity-based** - All intentions may enforce access based on identities
   encoded within [TLS
-  certificates](/docs/connect/connect-internals#mutual-transport-layer-security-mtls).
+  certificates](/consul/docs/connect/connect-internals#mutual-transport-layer-security-mtls).
   This allows for coarse all-or-nothing access control between pairs of
   services. These work with for services with any [protocol] as they only
   require awareness of the TLS handshake that wraps the opaque TCP connection.
@@ -33,7 +33,7 @@ intentions to control Connect traffic authorization either at networking layer
 
 - **Application-aware** - Some intentions may additionally enforce access based
   on [L7 request
-  attributes](/docs/connect/config-entries/service-intentions#permissions) in
+  attributes](/consul/docs/connect/config-entries/service-intentions#permissions) in
   addition to connection identity. These may only be defined for services with
   a [protocol] that is HTTP-based. These can also be thought of as **L7
   intentions**.
@@ -42,21 +42,21 @@ At any given point in time, between any pair of services **only one intention
 controls authorization**. This may be either an L4 intention or an L7
 intention, but at any given point in time only one of those applies.
 
-The [intention match API](/api-docs/connect/intentions#list-matching-intentions)
+The [intention match API](/consul/api-docs/connect/intentions#list-matching-intentions)
 should be periodically called to retrieve all relevant intentions for the
 target destination. After verifying the TLS client certificate, the cached
 intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
-The default intention behavior is defined by the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) configuration.
+The default intention behavior is defined by the [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
 If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
 If is set to `deny`, then all connections or requests will be denied by default.
 
 ## Intention Basics
 
-You can define a [`service-intentions`](/docs/connect/config-entries/service-intentions) configuration entry to create and manage intentions, as well as manage intentions through the Consul UI. You can also perform some intention-related tasks using the API and CLI commands. Refer to the [API](/api-docs/connect/intentions) and [CLI](/commands/intention) documentation for details.
+You can define a [`service-intentions`](/consul/docs/connect/config-entries/service-intentions) configuration entry to create and manage intentions, as well as manage intentions through the Consul UI. You can also perform some intention-related tasks using the API and CLI commands. Refer to the [API](/consul/api-docs/connect/intentions) and [CLI](/consul/commands/intention) documentation for details.
 
-The following example shows a `service-intentions` configuration entry that specifies two intentions. Refer to the [`service-intentions`](/docs/connect/config-entries/service-intentions) documentation for the full data model and additional examples.
+The following example shows a `service-intentions` configuration entry that specifies two intentions. Refer to the [`service-intentions`](/consul/docs/connect/config-entries/service-intentions) documentation for the full data model and additional examples.
 
 <CodeTabs>
 
@@ -105,7 +105,7 @@ accepted.
 
 You can use the `*` wildcard to match service names when defining an intention source or destination. The wildcard matches _any_ value, which enables you to set a wide initial scope when configuring intentions.
 
-The wildcard is supported in Consul Enterprise `namespace` fields (see [Namespaces](/docs/enterprise/namespaces) for additional information), but it _is not supported_ in `partition` fields (see [Admin Partitions](/docs/enterprise/admin-partitions) for additional information).
+The wildcard is supported in Consul Enterprise `namespace` fields (see [Namespaces](/consul/docs/enterprise/namespaces) for additional information), but it _is not supported_ in `partition` fields (see [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information).
 
 In the following example, the `web` service cannot connect to _any_ service:
 
@@ -238,7 +238,7 @@ top to bottom, with larger numbers being evaluated first.
 | `*`              | `*`         | `*`                   | `*`              | 1          |
 
 The precedence value can be read from a
-[field](/docs/connect/config-entries/service-intentions#precedence) on the
+[field](/consul/docs/connect/config-entries/service-intentions#precedence) on the
 `service-intentions` configuration entry after it is modified. Precedence cannot be
 manually overridden today.
 
@@ -251,7 +251,7 @@ rows in this table are not applicable.
 
 ## Intention Management Permissions
 
-Intention management can be protected by [ACLs](/docs/security/acl).
+Intention management can be protected by [ACLs](/consul/docs/security/acl).
 Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.
@@ -336,6 +336,6 @@ connection authorization continues to work indefinitely. Changes to intentions
 will not be picked up until the partition heals, but will then automatically
 take effect when connectivity is restored.
 
-[protocol]: /docs/connect/config-entries/service-defaults#protocol
-[proxies]: /docs/connect/proxies
-[envoy]: /docs/connect/proxies/envoy
+[protocol]: /consul/docs/connect/config-entries/service-defaults#protocol
+[proxies]: /consul/docs/connect/proxies
+[envoy]: /consul/docs/connect/proxies/envoy

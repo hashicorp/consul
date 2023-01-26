@@ -22,19 +22,19 @@ resolution stage.
 ## Interaction with other Config Entries
 
 - Service splitter config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic).
+  Management](/consul/docs/connect/l7-traffic).
 
 - Service splitter config entries are restricted to only services that define
   their protocol as http-based via a corresponding
-  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
+  [`service-defaults`](/consul/docs/connect/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+  [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) .
 
 - Any split destination that specifies a different `Service` field and omits
   the `ServiceSubset` field is eligible for further splitting should a splitter
   be configured for that other service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/connect/config-entries/service-resolver).
+  [`service-resolver`](/consul/docs/connect/config-entries/service-resolver).
 
 ## UI
 
@@ -351,7 +351,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-splitter` config entry requires `service:read` on the resource.
 

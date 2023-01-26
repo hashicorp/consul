@@ -13,17 +13,17 @@ This topic provides reference information for the `ingress-gateway` configuratio
 
 You can define an `ingress-gateway` configuration entry to connect the Consul service mesh to a set of external services. The specification for ingress gateways include a `listeners` configuration, which exposes the service mesh to the external services. Use camel case (`IngressGateway`) to declare an ingress gateway configuration entry on Kubernetes.
 
-Refer to the [Kubernetes Ingress Gateway](/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
+Refer to the [Kubernetes Ingress Gateway](/consul/docs/k8s/connect/ingress-gateways) documentation for information about configuring ingress gateways on Kubernetes.
 
-For other platforms, see [Ingress Gateway](/docs/connect/gateways/ingress-gateway).
+For other platforms, see [Ingress Gateway](/consul/docs/connect/gateways/ingress-gateway).
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
 1. Create a file containing the configuration entry settings (see [Configuration](#configuration)).
 1. Apply the configuration settings using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -156,7 +156,7 @@ Refer to the [Available Fields](#available-fields) section for complete informat
 
 ### Scope
 
-[Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/docs/connect/gateways/ingress-gateway) for more information.
+[Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies across the default partition of all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different sets of services within their datacenter then the ingress gateways **must** be registered with different names or partitions. See [Ingress Gateway](/consul/docs/connect/gateways/ingress-gateway) for more information.
 
 ### Wildcard Service Specification
 
@@ -170,18 +170,18 @@ A wildcard specifier provides the following properties for an ingress
 gateway:
 
 - All services with the same
-  [protocol](/docs/connect/config-entries/ingress-gateway#protocol) as the
+  [protocol](/consul/docs/connect/config-entries/ingress-gateway#protocol) as the
   listener will be routable.
 - The ingress gateway will route traffic based on the host/authority header,
   expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
   `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
-  ingress subdomain](/docs/discovery/dns#ingress-service-lookups).
+  ingress subdomain](/consul/docs/discovery/dns#ingress-service-lookups).
 
 A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
 ### ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading an `ingress-gateway` config entry requires `service:read` on the `Name`
 field of the config entry.
@@ -195,7 +195,7 @@ The following examples describe possible use-cases for ingress gateway configura
 
 #### TCP listener
 
-The following example sets up a TCP listener on an ingress gateway named `us-east-ingress` to proxy traffic to the `db` service. The Consul Enterprise version also posits the gateway listener inside the `default` [namespace](/docs/enterprise/namespaces) and the `team-frontend` [admin partition](/docs/enterprise/admin-partitions):
+The following example sets up a TCP listener on an ingress gateway named `us-east-ingress` to proxy traffic to the `db` service. The Consul Enterprise version also posits the gateway listener inside the `default` [namespace](/consul/docs/enterprise/namespaces) and the `team-frontend` [admin partition](/consul/docs/enterprise/admin-partitions):
 
 <Tabs>
 <Tab heading="Consul OSS">
@@ -327,8 +327,8 @@ In the following example, two listeners are configured on an ingress gateway nam
 
 The Consul Enterprise version implements the following additional configurations:
 
-- The ingress gateway is set up in the `default` [namespace](/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
-- The `api` and `web` services are proxied to team-specific [admin partitions](/docs/enterprise/admin-partitions):
+- The ingress gateway is set up in the `default` [namespace](/consul/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
+- The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/enterprise/admin-partitions):
 
 <Tabs>
 <Tab heading="Consul OSS">

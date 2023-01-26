@@ -12,25 +12,25 @@ description: >-
 Ingress gateways enable connectivity within your organizational network from services outside the Consul
 service mesh to services in the mesh. An ingress gateway is
 a type of proxy and must be registered as a service in Consul, with the
-[kind](/api-docs/agent/service#kind) set to "ingress-gateway". They are an
+[kind](/consul/api-docs/agent/service#kind) set to "ingress-gateway". They are an
 entrypoint for outside traffic and allow you to define what services should be
 exposed and on what port. You configure an ingress gateway by defining a set of
-[listeners](/docs/connect/config-entries/ingress-gateway#listeners) that each map
+[listeners](/consul/docs/connect/config-entries/ingress-gateway#listeners) that each map
 to a set of backing
-[services](/docs/connect/config-entries/ingress-gateway#services).
+[services](/consul/docs/connect/config-entries/ingress-gateway#services).
 
 To enable easier service discovery, a new Consul [DNS
-subdomain](/docs/discovery/dns#ingress-service-lookups) is provided, on
+subdomain](/consul/docs/discovery/dns#ingress-service-lookups) is provided, on
 `<service>.ingress.<domain>`.
 
 For listeners with a
-[protocol](/docs/connect/config-entries/ingress-gateway#protocol) other than
+[protocol](/consul/docs/connect/config-entries/ingress-gateway#protocol) other than
 `tcp`, multiple services can be specified for a single listener. In this
 case, the ingress gateway relies on host/authority headers to decide the
 service that should receive the traffic. The host used to match traffic
 defaults to the [Consul DNS ingress
-subdomain](/docs/discovery/dns#ingress-service-lookups), but can be changed using
-the [hosts](/docs/connect/config-entries/ingress-gateway#hosts) field.
+subdomain](/consul/docs/discovery/dns#ingress-service-lookups), but can be changed using
+the [hosts](/consul/docs/connect/config-entries/ingress-gateway#hosts) field.
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 
@@ -39,24 +39,24 @@ the [hosts](/docs/connect/config-entries/ingress-gateway#hosts) field.
 Ingress gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [Connect](/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
-- [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
+- Consul [Connect](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
+- [gRPC](/consul/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress gateway capabilities in Consul.
 
 ## Running and Using an Ingress Gateway
 
 For a complete example of how to allow external traffic inside your Consul service mesh,
-review the [ingress gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-ingress-gateways).
+review the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-ingress-gateways).
 
 ## Ingress Gateway Configuration
 
 Ingress gateways are configured in service definitions and registered with Consul like other services, with two exceptions.
-The first is that the [kind](/api-docs/agent/service#kind) must be "ingress-gateway". Second,
+The first is that the [kind](/consul/api-docs/agent/service#kind) must be "ingress-gateway". Second,
 the ingress gateway service definition may contain a `Proxy.Config` entry just like a
 Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
-For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
-[escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
+For Envoy there are some supported [gateway options](/consul/docs/connect/proxies/envoy#gateway-options) as well as
+[escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides).
 
 -> **Note:** If ACLs are enabled, ingress gateways must be registered with a token granting `service:write` for the ingress gateway's service name,
 `service:read` for all services in the ingress gateway's configuration entry, and `node:read` for all nodes of the services
@@ -64,7 +64,7 @@ in the ingress gateway's configuration entry. These privileges authorize the tok
 If the Consul client agent on the gateway's node is not configured to use the default gRPC port, 8502, then the gateway's token
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
-~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
+~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
 across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
 sets of services within their datacenter, then the ingress gateways **must** be registered with different names.
 
@@ -88,7 +88,7 @@ The following procedure describes how to configure an ingress gateway with TLS c
 ### Configure Static SDS Cluster(s)
 
 Each Envoy proxy that makes up this Ingress Gateway must define one or more additional [static
-clusters](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) when registering. These additional clusters define how Envoy should connect to the required SDS service(s). Defining extra clusters in Envoy's bootstrap configuration requires a manual registration of the Ingress Gateway with Consul proxy.
+clusters](/consul/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) when registering. These additional clusters define how Envoy should connect to the required SDS service(s). Defining extra clusters in Envoy's bootstrap configuration requires a manual registration of the Ingress Gateway with Consul proxy.
 It's not possible to use the `-register` flag with `consul connect envoy -gateway=ingress` to automatically register the proxy in this case.
 
 The cluster(s) must provide connection information and any necessary
@@ -278,4 +278,4 @@ Listeners = [
 
 Separate certificates may be loaded per listener or per-service with hostname
 (SNI) switching. See the [Config Entry
-reference](/docs/connect/config-entries/ingress-gateway) for more details.
+reference](/consul/docs/connect/config-entries/ingress-gateway) for more details.

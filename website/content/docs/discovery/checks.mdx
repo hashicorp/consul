@@ -11,7 +11,7 @@ One of the primary roles of the agent is management of system-level and applicat
 checks. A health check is considered to be application-level if it is associated with a
 service. If not associated with a service, the check monitors the health of the entire node. 
 
-Review the [health checks tutorial](https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks)
+Review the [health checks tutorial](/consul/tutorials/developer-discovery/service-registration-health-checks)
 to get a more complete example on how to leverage health check capabilities in Consul.
 
 A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
@@ -54,12 +54,12 @@ There are severeal types of checks:
 There are three ways to register a service with health checks:
 
 1. Start or reload a Consul agent with a service definition file in the
-   [agent's configuration directory](/docs/agent#configuring-consul-agents).
+   [agent's configuration directory](/consul/docs/agent#configuring-consul-agents).
 1. Call the
-   [`/agent/service/register`](/api-docs/agent/service#register-service)
+   [`/agent/service/register`](/consul/api-docs/agent/service#register-service)
    HTTP API endpoint to register the service.
 1. Use the
-   [`consul services register`](/commands/services/register)
+   [`consul services register`](/consul/commands/services/register)
    CLI command to register the service.
 
 When a service is registered using the HTTP API endpoint or CLI command,
@@ -71,8 +71,8 @@ This section describes the available types of health checks you can use to
 automatically monitor the health of a service instance or node.
 
 -> **To manually mark a service unhealthy:** Use the maintenance mode
-  [CLI command](/commands/maint) or
-  [HTTP API endpoint](/api-docs/agent#enable-maintenance-mode)
+  [CLI command](/consul/commands/maint) or
+  [HTTP API endpoint](/consul/api-docs/agent#enable-maintenance-mode)
   to temporarily remove one or all service instances on a node
   from service discovery DNS and HTTP API query results.
 
@@ -96,10 +96,10 @@ Script checks are not enabled by default.
 To enable a Consul agent to perform script checks,
 use one of the following agent configuration options:
 
-- [`enable_local_script_checks`](/docs/agent/config/cli-flags#_enable_local_script_checks):
+- [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#_enable_local_script_checks):
   Enable script checks defined in local config files.
   Script checks registered using the HTTP API are not allowed.
-- [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks):
+- [`enable_script_checks`](/consul/docs/agent/config/cli-flags#_enable_script_checks):
   Enable script checks no matter how they are registered.
 
   ~> **Security Warning:**
@@ -148,7 +148,7 @@ A check script's exit code is used to determine the health check status:
 
 Any output of the script is captured and made available in the
 `Output` field of checks included in HTTP API responses,
-as in this example from the [local service health endpoint](/api-docs/agent/service#by-name-json).
+as in this example from the [local service health endpoint](/consul/api-docs/agent/service#by-name-json).
 
 ### HTTP check
 
@@ -355,17 +355,17 @@ This mechanism relies on the application to directly report its health.
 For example, a healthy app can periodically `PUT` a status update to the HTTP endpoint.
 Then, if the app is disrupted and unable to perform this update
 before the TTL expires, the health check enters the `critical` state.
-The endpoints used to update health information for a given check are: [pass](/api-docs/agent/check#ttl-check-pass),
-[warn](/api-docs/agent/check#ttl-check-warn), [fail](/api-docs/agent/check#ttl-check-fail),
-and [update](/api-docs/agent/check#ttl-check-update). TTL checks also persist their
+The endpoints used to update health information for a given check are: [pass](/consul/api-docs/agent/check#ttl-check-pass),
+[warn](/consul/api-docs/agent/check#ttl-check-warn), [fail](/consul/api-docs/agent/check#ttl-check-fail),
+and [update](/consul/api-docs/agent/check#ttl-check-update). TTL checks also persist their
 last known status to disk. This persistence allows the Consul agent to restore the last known
 status of the check across agent restarts. Persisted check status is valid through the
 end of the TTL from the time of the last check.
 
 To manually mark a service unhealthy,
 it is far more convenient to use the maintenance mode
-[CLI command](/commands/maint) or
-[HTTP API endpoint](/api-docs/agent#enable-maintenance-mode)
+[CLI command](/consul/commands/maint) or
+[HTTP API endpoint](/consul/api-docs/agent#enable-maintenance-mode)
 rather than a TTL health check with arbitrarily high `ttl`.
 
 The following service definition file snippet is an example
@@ -413,11 +413,11 @@ Docker checks are not enabled by default.
 To enable a Consul agent to perform Docker checks,
 use one of the following agent configuration options:
 
-- [`enable_local_script_checks`](/docs/agent/config/cli-flags#_enable_local_script_checks):
+- [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#_enable_local_script_checks):
   Enable script checks defined in local config files.
   Script checks registered using the HTTP API are not allowed.
   
-- [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks):
+- [`enable_script_checks`](/consul/docs/agent/config/cli-flags#_enable_script_checks):
   Enable script checks no matter how they are registered.
 
   !> **Security Warning:**
@@ -586,7 +586,7 @@ node or service, the check state is set to `critical`.
 For the blocking query, the check uses the ACL token set on the service or check definition.
 If no ACL token is set in the service or check definition,
 the blocking query uses the agent's default ACL token
-([`acl.tokens.default`](/docs/agent/config/config-files#acl_tokens_default)).
+([`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default)).
 
 ~> **Configuration info**: The alias check configuration expects the alias to be
 registered on the same agent as the one you are aliasing. If the service is
@@ -622,7 +622,7 @@ check = {
 
 This section covers some of the most common options for check definitions.
 For a complete list of all check options, refer to the
-[Register Check HTTP API endpoint documentation](/api-docs/agent/check#json-request-body-schema).
+[Register Check HTTP API endpoint documentation](/consul/api-docs/agent/check#json-request-body-schema).
 
 -> **Casing for check options:**
    The correct casing for an option depends on whether the check is defined in
@@ -687,7 +687,7 @@ For a complete list of all check options, refer to the
 
 - `token` `(string: "")` - Specifies an ACL token used for any interaction
   with the catalog for the check, including
-  [anti-entropy syncs](/docs/architecture/anti-entropy) and deregistration.
+  [anti-entropy syncs](/consul/docs/architecture/anti-entropy) and deregistration.
 
   For alias checks, this token is used if a remote blocking query is necessary to watch the state of the aliased node or service.
 
@@ -821,7 +821,7 @@ provided by the node will remain unchanged.
 
 ## Agent certificates for TLS checks
 
-The [enable_agent_tls_for_checks](/docs/agent/config/config-files#enable_agent_tls_for_checks)
+The [enable_agent_tls_for_checks](/consul/docs/agent/config/config-files#enable_agent_tls_for_checks)
 agent configuration option can be utilized to have HTTP or gRPC health checks
 to use the agent's credentials when configured for TLS.
 
