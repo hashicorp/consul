@@ -11,14 +11,14 @@ description: >-
   Licenses are only required for Consul-Terraform-Sync (CTS) Enterprise
 </EnterpriseAlert>
 
-CTS Enterprise binaries require a [Consul Enterprise license](/docs/enterprise/license/overview) to run. There is no CTS Enterprise specific license. As a result, CTS Enterprise's licensing is very similar to Consul Enterprise.
+CTS Enterprise binaries require a [Consul Enterprise license](/consul/docs/enterprise/license/overview) to run. There is no CTS Enterprise specific license. As a result, CTS Enterprise's licensing is very similar to Consul Enterprise.
 
 All CTS Enterprise features are available with a valid Consul Enterprise license, regardless of your Consul Enterprise packaging or pricing model.
 
-To get a trial license for CTS, you can sign-up for the [trial license for Consul Enterprise](/docs/enterprise/license/faq#q-where-can-users-get-a-trial-license-for-consul-enterprise).
+To get a trial license for CTS, you can sign-up for the [trial license for Consul Enterprise](/consul/docs/enterprise/license/faq#q-where-can-users-get-a-trial-license-for-consul-enterprise).
 
 ## Automatic License Retrieval
-CTS automatically retrieves a license from Consul on startup and then attempts to retrieve a new license once a day. If the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
+CTS automatically retrieves a license from Consul on startup and then attempts to retrieve a new license once a day. If the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
 
 ~> Enabling automatic license retrieval is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
 
@@ -38,7 +38,7 @@ If a license needs to be manually set, choose one of the following methods (in o
    export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
    ```
 
-1. To point to the file containing the license, in the configuration file, configure the [`license`](/docs/nia/configuration#license) path option.
+1. To point to the file containing the license, in the configuration file, configure the [`license`](/consul/docs/nia/configuration#license) path option.
 
    ```hcl
    license {
@@ -46,14 +46,14 @@ If a license needs to be manually set, choose one of the following methods (in o
    }
    ```
 
-1. To point to the file containing the license, in the configuration file, configure the [`license_path`](/docs/nia/configuration#license_path) option i. **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license) instead.**
+1. To point to the file containing the license, in the configuration file, configure the [`license_path`](/consul/docs/nia/configuration#license_path) option i. **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/consul/docs/nia/configuration#license) instead.**
 
    ```hcl
    license_path = "<PATH>/<TO>/<FILE>"
    ```
 
-~> **Note**: the [options to set the license and the order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
-Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+~> **Note**: the [options to set the license and the order of precedence](/consul/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
+Visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
 
 ### Updating the License Manually
 To update the license when it expires or is near the expiration date and automatic license retrieval is disabled:
@@ -80,4 +80,4 @@ When approaching expiration and termination, by default, CTS Enterprise will att
 | At or after expiration (before termination) | License retrieval attempt every 1 minute    | Error-level log every 1 minute    |
 | At or after termination                     | Error-level log and exit                    | Error-level log and exit          |
 
-~> **Note**: Notification frequency and [grace period](/docs/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire) behavior is the same as Consul Enterprise.
+~> **Note**: Notification frequency and [grace period](/consul/docs/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire) behavior is the same as Consul Enterprise.

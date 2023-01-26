@@ -21,7 +21,7 @@ To configure mesh gateways for cluster peering, make sure your Consul environmen
 
 - Consul version 1.14.0 or newer.
 - A local Consul agent is required to manage mesh gateway configuration.
-- Use [Envoy proxies](/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
+- Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
 
 ## Configuration
 
@@ -30,20 +30,20 @@ Configure the following settings to register and use the mesh gateway as a servi
 ### Gateway registration
 
 - Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 
-Alternatively, you can also use the CLI to spin up and register a gateway in Consul. For additional information, refer to the [`consul connect envoy` command](/commands/connect/envoy#mesh-gateways).
+Alternatively, you can also use the CLI to spin up and register a gateway in Consul. For additional information, refer to the [`consul connect envoy` command](/consul/commands/connect/envoy#mesh-gateways).
 
 ### Sidecar registration
 
-- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details.
+- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details.
 - The service `proxy.upstreams.destination_name` is always required.
 - The `proxy.upstreams.destination_peer` must be configured to enable cross-cluster traffic.
 - The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
 
 ### Service exports
 
-- Include the `exported-services` configuration entry to enable Consul to export services contained in a cluster to one or more additional clusters. For additional information, refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services).
+- Include the `exported-services` configuration entry to enable Consul to export services contained in a cluster to one or more additional clusters. For additional information, refer to the [Exported Services documentation](/consul/docs/connect/config-entries/exported-services).
 
 ### ACL configuration
 
@@ -57,4 +57,4 @@ This permission allows a leaf certificate to be issued for mesh gateways to term
 
 Modes are configurable as either `remote` or `local` for mesh gateways that connect peered clusters. 
 The `none` setting is invalid for mesh gateways in peered clusters and will be ignored by the gateway.
-By default, all proxies connecting to peered clusters use mesh gateways in [remote mode](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote).
+By default, all proxies connecting to peered clusters use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote).

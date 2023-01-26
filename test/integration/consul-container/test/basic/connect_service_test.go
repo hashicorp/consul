@@ -21,14 +21,17 @@ import (
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
+	t.Parallel()
 	cluster := createCluster(t)
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
+
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {

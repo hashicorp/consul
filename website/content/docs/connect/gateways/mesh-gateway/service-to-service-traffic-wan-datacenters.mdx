@@ -19,7 +19,7 @@ The following diagram describes the architecture for using mesh gateways for cro
 
 ![Mesh Gateway Architecture](/img/mesh-gateways.png)
 
--> **Mesh Gateway Tutorial**: Follow the [mesh gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways) to learn important concepts associated with using mesh gateways for connecting services across datacenters.
+-> **Mesh Gateway Tutorial**: Follow the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways) to learn important concepts associated with using mesh gateways for connecting services across datacenters.
 
 ## Prerequisites
 
@@ -29,12 +29,12 @@ Ensure that your Consul environment meets the following requirements.
 
 * Consul version 1.6.0 or newer.
 * A local Consul agent is required to manage its configuration.
-* Consul [Connect](/docs/agent/config/config-files#connect) must be enabled in both datacenters.
-* Each [datacenter](/docs/agent/config/config-files#datacenter) must have a unique name.
+* Consul [Connect](/consul/docs/agent/config/config-files#connect) must be enabled in both datacenters.
+* Each [datacenter](/consul/docs/agent/config/config-files#datacenter) must have a unique name.
 * Each datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
-* The [primary datacenter](/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
-* [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled.
-* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+* The [primary datacenter](/consul/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
+* [gRPC](/consul/docs/agent/config/config-files#grpc_port) must be enabled.
+* If you want to [enable gateways globally](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/consul/docs/agent/config/config-files#enable_central_service_config).
 
 ### Network
 
@@ -57,8 +57,8 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
-* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
 ### Modes
@@ -137,7 +137,7 @@ Name: web
 
 ### Enabling Gateways for a Service Instance
 
-The following [Proxy Service Registration](/docs/connect/registration/service-registration)
+The following [Proxy Service Registration](/consul/docs/connect/registration/service-registration)
 definition will enable gateways for the service instance in the `remote` mode.
 
 <CodeTabs heading="Example: Enabling gateways for a service instance.">

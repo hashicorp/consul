@@ -50,6 +50,29 @@ func GetEnvoyListenerTCPFilters(t *testing.T, adminPort int) {
 	require.Contains(t, filteredResult, "envoy.filters.network.tcp_proxy")
 }
 
+// AssertUpstreamEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
+func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, healthStatus string, count int) {
+	var (
+		clusters string
+		err      error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		clusters, err = libservice.GetEnvoyClusters(adminPort)
+		if err != nil {
+			r.Fatal("could not fetch envoy configuration")
+		}
+
+		filter := fmt.Sprintf(`.cluster_statuses[] | select(.name|contains("%s")) | [.host_statuses[].health_status.eds_health_status] | [select(.[] == "%s")] | length`, clusterName, healthStatus)
+		results, err := utils.JQFilter(clusters, filter)
+		require.NoError(r, err, "could not parse envoy configuration")
+		require.Equal(r, count, len(results))
+	})
+}
+
 // GetEnvoyHTTPrbacFilters validates that proxy was configured with an http connection manager
 // this assertion is currently unused current tests use http protocol
 func GetEnvoyHTTPrbacFilters(t *testing.T, port int) {
