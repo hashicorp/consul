@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
+var _ kindHandler = (*handlerAPIGateway)(nil)
+
 // handlerAPIGateway generates a new ConfigSnapshot in response to
 // changes related to an api-gateway.
 type handlerAPIGateway struct {
@@ -131,7 +133,7 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 	return nil
 }
 
-// handleRootCAUpdate responsed to changes in the watched root CA for a gateway
+// handleRootCAUpdate responds to changes in the watched root CA for a gateway
 func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapshot) error {
 	roots, ok := u.Result.(*structs.IndexedCARoots)
 	if !ok {
@@ -141,7 +143,10 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 	return nil
 }
 
-// handleGatewayConfigUpdate responds to changes in the watched config entry for a gateway
+// handleGatewayConfigUpdate responds to changes in the watched config entry for a gateway.
+// In particular, we want to make sure that we're subscribing to any attached resources such
+// as routes and certificates. These additional subscriptions will enable us to update the
+// config snapshot appropriately for any route or certificate changes.
 func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
@@ -217,10 +222,13 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 			return true
 		})
 
-		// TODO
+		snap.APIGateway.BoundGatewayConfigLoaded = true
 		break
 	case *structs.APIGatewayConfigEntry:
 		snap.APIGateway.GatewayConfigLoaded = true
+
+		// TODO Configuration for listeners
+
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
@@ -229,6 +237,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 	return h.watchIngressLeafCert(ctx, snap)
 }
 
+// handleInlineCertConfigUpdate
 func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
@@ -246,6 +255,7 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 	return errors.New("implement me")
 }
 
+// handleRouteConfigUpdate
 func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {

@@ -652,6 +652,10 @@ type configSnapshotAPIGateway struct {
 	// api-gateway config entry yet.
 	GatewayConfigLoaded bool
 
+	// BoundGatewayConfigLoaded is used to determine if we have received the initial
+	// bound-api-gateway config entry yet.
+	BoundGatewayConfigLoaded bool
+
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
 	Hosts    []string
 	HostsSet bool
@@ -836,6 +840,7 @@ func (s *ConfigSnapshot) Valid() bool {
 		// TODO Is this the proper set of things to validate?
 		return s.Roots != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
+			s.APIGateway.BoundGatewayConfigLoaded &&
 			s.APIGateway.HostsSet &&
 			s.APIGateway.MeshConfigSet
 	default:
