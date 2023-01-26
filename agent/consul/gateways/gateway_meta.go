@@ -3,8 +3,6 @@ package gateways
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -17,26 +15,6 @@ type gatewayMeta struct {
 	BoundGateway *structs.BoundAPIGatewayConfigEntry
 	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
-}
-
-// getGatewayMeta queries the state store for an API Gateway and a Bound API
-// Gateway matching the given name and enterprise meta and returns a GatewayMeta
-// struct containing both.
-func getGatewayMeta(store *state.Store, name string, entMeta *acl.EnterpriseMeta) (*gatewayMeta, error) {
-	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, name, entMeta)
-	if err != nil {
-		return nil, err
-	}
-
-	_, gateway, err := store.ConfigEntry(nil, structs.APIGateway, name, entMeta)
-	if err != nil {
-		return nil, err
-	}
-
-	return &gatewayMeta{
-		BoundGateway: bound.(*structs.BoundAPIGatewayConfigEntry),
-		Gateway:      gateway.(*structs.APIGatewayConfigEntry),
-	}, nil
 }
 
 // updateRouteBinding takes a parent resource reference and a BoundRoute and
