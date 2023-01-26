@@ -124,20 +124,24 @@ node_prefix "" {
 <Tab heading="ENT">
 
 ```hcl
-# Allow the service and its sidecar proxy to register into the catalog.
-service "<service name>" {
-    policy = "write"
-}
-service "<service name>-sidecar-proxy" {
-    policy = "write"
-}
+partition "ptn1" {
+  namespace "ns1" {
+    # Allow the service and its sidecar proxy to register into the catalog.
+    service "<service name>" {
+        policy = "write"
+    }
+    service "<service name>-sidecar-proxy" {
+        policy = "write"
+    }
 
-# Allow for any potential upstreams to be resolved.
-service_prefix "" {
-    policy = "read"
-}
-node_prefix "" {
-    policy = "read"
+    # Allow for any potential upstreams to be resolved.
+    service_prefix "" {
+        policy = "read"
+    }
+    node_prefix "" {
+        policy = "read"
+    }
+  }
 }
 ```
 
@@ -264,6 +268,10 @@ Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payloa
 
 The following policy is generated for each node when a node identity is declared:
 
+<Tabs>
+
+<Tab heading="OSS">
+
 ```hcl
 # Allow the agent to register its own node in the Catalog and update its network coordinates
 node "<node name>" {
@@ -277,6 +285,35 @@ service_prefix "" {
   policy = "read"
 }
 ```
+
+</Tab>
+
+<Tab heading="ENT">
+
+```hcl
+partition "<partition>"
+  namespace "default" {
+    # Allow the agent to register its own node in the Catalog and update its network coordinates
+    node "<node name>" {
+      policy = "write"
+    }
+  }
+
+  namespace_prefix "" {
+    # Allows the agent to detect and diff services registered to itself. This is used during
+    # anti-entropy to reconcile difference between the agents knowledge of registered
+    # services and checks in comparison with what is known in the Catalog.
+    service_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
 
 Refer to the [rules reference](/docs/security/acl/acl-rules) for information about the rules in the policy.
 
