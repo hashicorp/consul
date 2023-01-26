@@ -10,6 +10,8 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/hashicorp/consul/api"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
@@ -832,11 +834,11 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
-	// Name is only accepted within a service-defaults config entry.
+	// Name is only accepted within service-defaults.upstreamConfig.overrides .
 	Name string `json:",omitempty"`
-	// EnterpriseMeta is only accepted within a service-defaults config entry.
+	// EnterpriseMeta is only accepted within service-defaults.upstreamConfig.overrides .
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	// Peer is only accepted within a service-defaults config entry.
+	// Peer is only accepted within service-defaults.upstreamConfig.overrides .
 	Peer string
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's

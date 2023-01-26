@@ -154,8 +154,14 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
-	legacyUpstreams := len(defaults.UpstreamIDConfigs) > 0
-	if legacyUpstreams {
+	var hasPeerUpstream bool
+	for _, us := range defaults.UpstreamConfigs {
+		if us.Upstream.Peer != "" {
+			hasPeerUpstream = true
+		}
+	}
+	legacyUpstreams := len(defaults.UpstreamIDConfigs) > 0 || !hasPeerUpstream
+	if len(defaults.UpstreamIDConfigs) > 0 {
 		// Handle legacy upstreams. This should be removed in Consul 1.16.
 		for _, us := range defaults.UpstreamIDConfigs {
 			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
