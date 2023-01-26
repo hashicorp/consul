@@ -231,7 +231,7 @@ Several factors influence Consul performance at scale when used primarily for it
 
 - The overall number of registered service instances
 - The use of [stale reads](/consul/api-docs/features/consistency#consul-dns-queries) for DNS queries
-- Max number of service instances for a given service  - Are there services that are registered in every node or in a large percentage of nodes in the fleet?  
+- The number of entities that are monitoring Consul, such as Consul client agents or dataplane components, for changes in a service's instances including registration and health status. When any service change occurs, all those entities incur a computational cost because they must process the state change and reconcile it with previously known data for the service. In addition, the Consul server agents also incur a computational cost when sending these updates.
 - Number of [watches](/consul/docs/dynamic-app-config/watches) monitoring for changes to a service.
 - Rate of catalog updates, which is affected by the following events:
     - A service instance’s health check status changes
