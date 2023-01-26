@@ -10,11 +10,11 @@ description: >-
 
 -> **The legacy ACL system was deprecated in Consul 1.4.0 and removed in Consul 1.11.0.** It's _strongly_
 recommended you do not build anything using the legacy system and use
-the new ACL [Token](/api-docs/acl/tokens) and [Policy](/api-docs/acl/policies) APIs instead.
+the new ACL [Token](/consul/api-docs/acl/tokens) and [Policy](/consul/api-docs/acl/policies) APIs instead.
 
 The legacy `/acl` endpoints to create, update, destroy, and query legacy ACL tokens in Consul.
 
-For more information about ACLs, please check the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+For more information about ACLs, please check the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
 
 ## Create ACL Token
 
@@ -25,10 +25,10 @@ This endpoint makes a new ACL token.
 | `PUT`  | `/acl/create` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -45,7 +45,7 @@ The table below shows this endpoint's support for
   are: `client` and `management`.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL token. The format of the
-  `Rules` property is detailed in the [ACL Rule documentation](/docs/security/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rule documentation](/consul/docs/security/acl/acl-rules).
 
 ### Sample Payload
 
@@ -84,10 +84,10 @@ generating a new token ID, the `ID` field must be provided.
 | `PUT`  | `/acl/update` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -138,10 +138,10 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -175,10 +175,10 @@ This endpoint reads an ACL token with the given ID.
 | `GET`  | `/acl/info/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -224,10 +224,10 @@ complex rule management.
 | `PUT`  | `/acl/clone/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -263,10 +263,10 @@ This endpoint lists all the active ACL tokens.
 | `GET`  | `/acl/list` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -296,4 +296,4 @@ $ curl \
 
 ## Check ACL Replication
 
-The check ACL replication endpoint has not changed between the legacy system and the new system. Review the [latest documentation](/api-docs/acl#check-acl-replication) to learn more about this endpoint.
+The check ACL replication endpoint has not changed between the legacy system and the new system. Review the [latest documentation](/consul/api-docs/acl#check-acl-replication) to learn more about this endpoint.

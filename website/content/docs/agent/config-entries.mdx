@@ -44,26 +44,26 @@ metadata:
 
 ## Supported Config Entries
 
-See [Service Mesh - Config Entries](/docs/connect/config-entries) for the list
+See [Service Mesh - Config Entries](/consul/docs/connect/config-entries) for the list
 of supported config entries.
 
 ## Managing Configuration Entries In Kubernetes
 
-See [Kubernetes Custom Resource Definitions](/docs/k8s/crds).
+See [Kubernetes Custom Resource Definitions](/consul/docs/k8s/crds).
 
 ## Managing Configuration Entries Outside Of Kubernetes
 
 Configuration entries outside of Kubernetes should be managed with the Consul
-[CLI](/commands/config) or [API](/api-docs/config). Additionally, as a
+[CLI](/consul/commands/config) or [API](/consul/api-docs/config). Additionally, as a
 convenience for initial cluster bootstrapping, configuration entries can be
 specified in all of the Consul servers's
-[configuration files](/docs/agent/config/config-files#config_entries_bootstrap)
+[configuration files](/consul/docs/agent/config/config-files#config_entries_bootstrap)
 
 ### Managing Configuration Entries with the CLI
 
 #### Creating or Updating a Configuration Entry
 
-The [`consul config write`](/commands/config/write) command is used to
+The [`consul config write`](/consul/commands/config/write) command is used to
 create and update configuration entries. This command will load either a JSON or
 HCL file holding the configuration entry definition and then will push this
 configuration to Consul.
@@ -97,7 +97,7 @@ overwriting other unknown modifications.
 
 #### Reading a Configuration Entry
 
-The [`consul config read`](/commands/config/read) command is used to
+The [`consul config read`](/consul/commands/config/read) command is used to
 read the current value of a configuration entry. The configuration entry will be
 displayed in JSON form which is how its transmitted between the CLI client and
 Consul's HTTP API.
@@ -115,7 +115,7 @@ $ consul config read -kind service-defaults -name web
 
 #### Listing Configuration Entries
 
-The [`consul config list`](/commands/config/list) command is used to
+The [`consul config list`](/consul/commands/config/list) command is used to
 list out all the configuration entries for a given kind.
 
 Example:
@@ -129,7 +129,7 @@ db
 
 #### Deleting Configuration Entries
 
-The [`consul config delete`](/commands/config/delete) command is used
+The [`consul config delete`](/consul/commands/config/delete) command is used
 to delete an entry by specifying both its `kind` and `name`.
 
 Example:
@@ -161,7 +161,7 @@ api
 ### Bootstrapping From A Configuration File
 
 Configuration entries can be bootstrapped by adding them [inline to each Consul
-server's configuration file](/docs/agent/config/config-files#config_entries). When a
+server's configuration file](/consul/docs/agent/config/config-files#config_entries). When a
 server gains leadership, it will attempt to initialize the configuration entries.
 If a configuration entry does not already exist outside of the servers
 configuration, then it will create it. If a configuration entry does exist, that

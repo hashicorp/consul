@@ -8,7 +8,7 @@ description: >-
 # Proxy Defaults Configuration Entry
 
 The `proxy-defaults` configuration entry (`ProxyDefaults` on Kubernetes) allows you to globally configure passthrough Envoy settings for proxies in the service mesh, including both sidecars and gateways.
-It is different from the [`mesh` configuration entry](/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
+It is different from the [`mesh` configuration entry](/consul/docs/connect/config-entries/mesh), which sets Consul features for cluster peering, transparent proxy, and TLS behavior that also affect Consul servers.
 
 Only one global entry is supported.
 For Consul Enterprise, only the global entry in the `default` partition is recognized.
@@ -18,17 +18,17 @@ For Consul Enterprise, only the global entry in the `default` partition is recog
 You can customize some service registration settings for service mesh proxies centrally using the `proxy-defaults` configuration entry in the `kind` field.
 
 You can still override this centralized configuration for specific services
-with the [`service-defaults`](/docs/connect/config-entries/service-defaults)
+with the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults)
 configuration entry `kind` or for individual proxy instances in their [sidecar
-service definitions](/docs/connect/registration/sidecar-service).
+service definitions](/consul/docs/connect/registration/sidecar-service).
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
 1. Determine the settings you want to implement (see [Configuration](#configuration)). You can create a file containing the configuration or pass them to the state store directly to apply the configuration.
 1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -645,7 +645,7 @@ spec:
 ### Access Logs
 
 The following example is a minimal configuration for enabling access logs for all proxies.
-Refer to [access logs](/docs/connect/observability/access-logs) for advanced configurations.
+Refer to [access logs](/consul/docs/connect/observability/access-logs) for advanced configurations.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -720,7 +720,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `proxy-defaults` config entry requires no specific privileges.
 

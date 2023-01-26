@@ -15,13 +15,13 @@ Datacenters can reside in different clouds or runtime environments where general
 Mesh gateways can be used with any of the following Consul configrations for managing separate datacenters or partitions.
 
 1. WAN Federation
-  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
-  * [Mesh gateways can be used to route all WAN traffic, including from Consul servers](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+  * [Mesh gateways can be used to route all WAN traffic, including from Consul servers](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
 2. Cluster Peering
-  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers)
-  * [Mesh gateways can be used to route control-plane traffic from Consul servers](/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
+  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers)
+  * [Mesh gateways can be used to route control-plane traffic from Consul servers](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
 3. Admin Partitions
-  * [Mesh gateways can be used to route service-to-service traffic between admin partitions in the same Consul datacenter](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
+  * [Mesh gateways can be used to route service-to-service traffic between admin partitions in the same Consul datacenter](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
 
 ### Consul
 
@@ -48,8 +48,8 @@ Sidecar proxies that do not send upstream traffic through a gateway are not affe
 Configure the following settings to register the mesh gateway as a service in Consul.
 
 * Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
-* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+* Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and datacenter. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.datacenter` must be configured to enable cross-datacenter traffic. The `proxy.upstreams.destination_namespace` configuration is only necessary if the destination service is in a different namespace.
+* Define the `Proxy.Config` settings using opaque parameters compatible with your proxy (i.e., Envoy). For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 * If ACLs are enabled, a token granting `service:write` for the gateway's service name and `service:read` for all services in the datacenter or partition must be added to the gateway's service definition. These permissions authorize the token to route communications for other Consul service mesh services, but does not allow decrypting any of their communications.
 
 ### Modes
@@ -127,7 +127,7 @@ Name: web
 
 ### Enabling Gateways for a Service Instance
 
-The following [Proxy Service Registration](/docs/connect/registration/service-registration)
+The following [Proxy Service Registration](/consul/docs/connect/registration/service-registration)
 definition will enable gateways for the service instance in the `remote` mode.
 
 <CodeTabs heading="Example: Enabling gateways for a service instance.">

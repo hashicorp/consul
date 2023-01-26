@@ -16,14 +16,14 @@ This topic includes example policy configurations for achieving specific use-cas
 <Tab heading="Service Mesh">
 
 For Consul service mesh, we recommend using [Service
-Identities](/docs/security/acl#service-identities) rather than creating a custom policy. The service
+Identities](/consul/docs/security/acl#service-identities) rather than creating a custom policy. The service
 identity grants the `service:write` permissions necessary for the service and its sidecar proxy to
 register into the catalog. It grants the `service:read` and `node:read` permissions necessary
 to discover other services and nodes in the catalog.
 
 When `service:write` permissions are granted, the `intention:read` permission is implicitly granted
 in order for sidecar proxies to read and enforce intentions. Refer to [Intention Management
-Permissions](/docs/connect/intentions#intention-management-permissions) for details.
+Permissions](/consul/docs/connect/intentions#intention-management-permissions) for details.
 
 </Tab>
 
@@ -82,7 +82,7 @@ service_prefix "db-" {
 ## Enable client agent registration into the catalog
 
 Consul client agents register into the catalog as nodes, so a token with `node:write` permission is
-necessary. We recommend using [Node Identities](/docs/security/acl#node-identities) rather than creating
+necessary. We recommend using [Node Identities](/consul/docs/security/acl#node-identities) rather than creating
 custom policies for node registration.
 
 <Tabs>
@@ -92,7 +92,7 @@ custom policies for node registration.
 The node identity grants `node:write` permission for a particular node to register. It grants
 `service:read` for all services so that the client agent can detect differences between its local
 state and the catalog on the Consul servers, as part of
-[anti-entropy](/docs/architecture/anti-entropy).
+[anti-entropy](/consul/docs/architecture/anti-entropy).
 
 </Tab>
 
@@ -260,7 +260,7 @@ tutorial.
 -> **Note**: ACL replication is only supported for WAN-federated datacenters. When using cluster
 peering to connect Consul datacenters, ACL replication is not required. To learn more about cluster
 peering, refer to [Differences between WAN federation and cluster
-peering](/docs/connect/cluster-peering#differences-between-wan-federation-and-cluster-peering).
+peering](/consul/docs/connect/cluster-peering#differences-between-wan-federation-and-cluster-peering).
 
 <Tabs>
 
@@ -457,7 +457,7 @@ service "consul-snapshot" {
 
 ## Enable Vault to Access the Consul Storage Backend
 
-If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
+If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/consul/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
 
 In the following example, the ACL policy enables Vault to register as a service
 and provides access to the `vault/` path in Consul's KV store.
