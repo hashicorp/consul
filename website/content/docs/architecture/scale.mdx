@@ -179,7 +179,7 @@ Raft writes logs to BoltDB, which is designed as a single grow-only file. As a r
 
 If you need to reclaim disk space, use the `bbolt` CLI to copy the data to a new database and repoint to the new database in the process. However, be aware that the `bbolt compact` command requires the database to be offline while being pointed to the new database.
 
-In many cases disk space is not a primary concern because Raft logs rarely grow larger than a small number of GiB, even in large clusters. However, an inflated file with lots of free space significantly degrades write performance overall due to _freelist management_.
+In many cases, including in large clusters, disk space is not a primary concern because Raft logs rarely grow larger than a small number of GiB. However, an inflated file with lots of free space significantly degrades write performance overall due to _freelist management_.
 
 After they are written to disk, Raft logs are eventually captured in a snapshot and log nodes are removed from BoltDB. BoltDB keeps track of the pages for the removed nodes in its freelist. BoltDB also writes this freelist to disk every time there is a Raft write. When the Raft log grows large quickly and then gets truncated, the size of the freelist can become very large. In the worst case reported to us, the freelist was over 10MB. When this large freelist is written to disk on every Raft commit, the result is a large write amplification for what should be a small Raft commit.  
 
