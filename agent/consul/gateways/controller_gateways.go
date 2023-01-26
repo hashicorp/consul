@@ -2,7 +2,6 @@ package gateways
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -41,24 +40,23 @@ func (r apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute
 	//for _, r := range httpRoutes {
 	//	routes = append(routes, r.(*structs.HTTPRouteConfigEntry))
 	//}
-	fmt.Println(routes)
 	return routes, nil
 }
 
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
-	//TODO thomases wrapper function
 	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
 	if err != nil {
 		return err
 	}
 
 	if entry == nil {
-		r.logger.Error("cleaning up deleted gateway object", "request", req)
+		r.logger.Info("cleaning up deleted gateway object", "request", req)
 		if err := r.store.Delete(&structs.BoundAPIGatewayConfigEntry{
 			Kind:           structs.BoundAPIGateway,
 			Name:           req.Name,
 			EnterpriseMeta: *req.Meta,
 		}); err != nil {
+			r.logger.Error("error cleaning up deleted gateway object", err)
 			return err
 		}
 		return nil
@@ -69,8 +67,8 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	err = gatewayEntry.Validate()
 	if err != nil {
 		r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
-		if err := r.store.UpdateStatus(gatewayEntry); err != nil {
-			return err
+		if updateErr := r.store.UpdateStatus(gatewayEntry); err != nil {
+			return fmt.Errorf("%v: %v", err, updateErr)
 		}
 		return err
 	}
@@ -100,13 +98,13 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	boundGateways, routeErrors := BindRoutesToGateways(wrapGatewaysInSlice(boundGatewayEntry), routes...)
 
 	if len(boundGateways) > 1 {
-	    err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
-	    r.logger.Errorf("API Gateway Reconciler failed to reconcile: %v", err)
+		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
+		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
 		return err
-	} 
-	
+	}
+
 	if len(boundGateways) == 0 && len(routeErrors) == 0 {
-		r.logger.Debugf("API Gateway Reconciler: gateway %s reconciled without updates.")
+		r.logger.Debug("API Gateway Reconciler: gateway %s reconciled without updates.")
 		return nil
 	}
 
