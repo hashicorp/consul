@@ -7,14 +7,14 @@ page_title: 'Commands: Config Write'
 
 Command: `consul config write`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/api-docs/config#apply-configuration)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/consul/api-docs/config#apply-configuration)
 
 The `config write` command creates or updates a centralized config entry.
-See the [configuration entries docs](/docs/agent/config-entries) for more
+See the [configuration entries docs](/consul/docs/agent/config-entries) for more
 details about configuration entries.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>                                      |
@@ -71,7 +71,7 @@ From stdin:
 ### Config Entry examples
 
 All config entries must have a `Kind` when registered. See
-[Service Mesh - Config Entries](/docs/connect/config-entries) for the list of
+[Service Mesh - Config Entries](/consul/docs/connect/config-entries) for the list of
 supported config entries.
 
 #### Service defaults
