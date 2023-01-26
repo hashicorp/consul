@@ -114,7 +114,7 @@ We recommend using the [`bootstrap-expect` command-line flag](/consul/docs/agent
 
 #### NUMA architecture awareness
 
-Some cloud providers offer extremely large instance sizes with Non-Uniform Memory Access (NUMA) architectures.  Because the Go runtime is not NUMA aware, Consul is not NUMA aware.
+Some cloud providers offer extremely large instance sizes with Non-Uniform Memory Access (NUMA) architectures. Because the Go runtime is not NUMA aware, Consul is not NUMA aware. Even though you can run Consul on NUMA architecture, it will not take advantage of the multiprocessing capabilities. 
 
 ### Consistency modes
 
