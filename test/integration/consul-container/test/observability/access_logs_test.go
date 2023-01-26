@@ -45,7 +45,7 @@ func TestAccessLogs(t *testing.T) {
 		t.Skip()
 	}
 
-	cluster, _, _ := topology.NewPeeringCluster(t, "dc1", 1, "")
+	cluster, _, _ := topology.NewPeeringCluster(t, "dc1", 1, "", true)
 
 	// Turn on access logs. Do this before starting the sidecars so that they inherit the configuration
 	// for their admin interface
@@ -133,7 +133,13 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	require.True(t, ok, "did not write HTTP service-default")
 
 	// Create a service and proxy instance
-	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	serviceOpts := &libservice.ServiceOpts{
+		Name: libservice.StaticServerServiceName,
+		ID:   "static-server",
+	}
+
+	// Create a service and proxy instance
+	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticServerServiceName))
