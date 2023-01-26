@@ -9,6 +9,8 @@ description: >-
 
 This topic describes policies, which are components in Consul's access control list (ACL) system. Policies define which services and agents are authorized to interact with resources in the network.
 
+Looking for an policy example for your use case? Refer to the [Policy Examples](/docs/security/acl/policy-examples) topic.
+
 ## Introduction
 
 A policy is a group of one or more ACL rules that are linked to [ACL tokens](/docs/security/acl/acl-tokens). The following diagram describes the relationships between rules, policies, and tokens:
@@ -391,115 +393,143 @@ New installations of Consul ship with the following built-in policies.
 
 The `global-management` policy grants unrestricted privileges to any token linked to it. The policy is assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. You can rename the global management policy, but Consul will prevent you from modifying any other attributes, including the rule set and datacenter scope.
 
-### Namespace Management <EnterpriseAlert inline />
+The following are the policy rules for the `global-management` policy.
 
-The `namespace-management` policy will be injected into all namespaces you create. The policy will be assigned a randomized UUID and can be managed as a normal, user-defined policy within the namespace. This feature was added in Consul Enterprise 1.7.0.
+<Tabs>
 
-## Example Policies
+<Tab heading="OSS">
 
-This section includes example policy configurations for achieving specific use-cases.
-
-### Enable the Snapshot Agent to Run on a Specific Node
-
-The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers and either saves them locally or pushes them to a remote storage service. Refer to [Consul Snapshot Agent](/commands/snapshot/agent) for additional information.
-
-In the following example, the ACL policy enables the snapshot agent to run on a node named `server-1234`.
-
-<CodeTabs>
+The `global-management` policy provides write permissions on all resource types.
 
 ```hcl
-# Required to read and snapshot ACL data
 acl = "write"
-# Allow the snapshot agent to create the key consul-snapshot/lock which will
-# serve as a leader election lock when multiple snapshot agents are running in
-# an environment
-key "consul-snapshot/lock" {
-  policy = "write"
-}
-# Allow the snapshot agent to create sessions on the specified node
-session "server-1234" {
-  policy = "write"
-}
-# Allow the snapshot agent to register itself into the catalog
-service "consul-snapshot" {
-  policy = "write"
-}
-```
-
-```json
-{
-  "acl": "write",
-  "key": {
-    "consul-snapshot/lock": {
-      "policy": "write"
-    }
-  },
-  "session": {
-    "server-1234": {
-      "policy": "write"
-    }
-  },
-  "service": {
-    "consul-snapshot": {
-      "policy": "write"
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-### Enable Vault to Access the Consul Storage Backend
-
-If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
-
-In the following example, the ACL policy enables Vault to register as a service
-and provides access to the `vault/` path in Consul's KV store.
-
-<CodeTabs>
-
-```hcl
-# Provide KV visibility to all agents.
 agent_prefix "" {
-  policy = "read"
-}
-# Enable resources prefixed with 'vault/' to write to the KV
-key_prefix "vault/" {
   policy = "write"
 }
-# Enable the vault service to write to the KV
-service "vault" {
+event_prefix "" {
   policy = "write"
 }
-# Enable the agent to initialize a new session.
+key_prefix "" {
+  policy = "write"
+}
+keyring = "write"
+node_prefix "" {
+  policy = "write"
+}
+operator = "write"
+mesh = "write"
+peering = "write"
+query_prefix "" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "write"
+  intentions = "write"
+}
 session_prefix "" {
   policy = "write"
 }
 ```
 
-```json
-{
-  "agent_prefix": {
-    "": {
-      "policy": "read"
+</Tab> 
+
+<Tab heading="ENT">
+
+In Consul Enterprise, the `global-management` policy contains all of the OSS rules and
+adds additional partition and namespace scoped rules.
+
+```hcl
+acl = "write"
+agent_prefix "" {
+  policy = "write"
+}
+event_prefix "" {
+  policy = "write"
+}
+key_prefix "" {
+  policy = "write"
+}
+keyring = "write"
+node_prefix "" {
+  policy = "write"
+}
+operator = "write"
+mesh = "write"
+peering = "write"
+query_prefix "" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "write"
+  intentions = "write"
+}
+session_prefix "" {
+  policy = "write"
+}
+
+partition_prefix "" {
+  mesh = "write"
+  peering = "write"
+  namespace "default" {
+    node_prefix "" {
+      policy = "write"
     }
-  },
-  "key_prefix": {
-    "vault/": {
-      "policy": "write"
+    agent_prefix "" {
+      policy = "write"
     }
-  },
-  "service": {
-    "vault": {
-      "policy": "write"
+  }
+  namespace_prefix "" {
+    acl = "write"
+    key_prefix "" {
+      policy = "write"
     }
-  },
-  "session_prefix": {
-    "": {
-      "policy": "write"
+    node_prefix "" {
+      policy = "read"
+    }
+    session_prefix "" {
+      policy = "write"
+    }
+    service_prefix "" {
+      policy = "write"
+      intentions = "write"
     }
   }
 }
 ```
 
-</CodeTabs>
+</Tab> 
+
+</Tabs>
+
+
+### Namespace Management <EnterpriseAlert inline />
+
+The `namespace-management` policy will be injected into all namespaces you create. The policy will be assigned a randomized UUID and can be managed as a normal, user-defined policy within the namespace. 
+
+The following are the policy rules for the namespace management policy. Because this
+policy resides in a non-default namespace, these permissions are implicitly limited to 
+resources in that namespace.
+
+```hcl
+policy = "write"
+
+acl = "write"
+
+key_prefix "" {
+	policy = "write"
+}
+
+node_prefix "" {
+	policy = "read"
+}
+
+session_prefix "" {
+	policy = "write"
+}
+
+service_prefix "" {
+	policy = "write"
+	intentions = "write"
+}
+```
+

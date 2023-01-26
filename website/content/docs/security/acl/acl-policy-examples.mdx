@@ -1,0 +1,591 @@
+---
+layout: docs
+page_title: ACL Policies
+description: >-
+  ACL policy examples to help find a policy for your use case.
+---
+
+# ACL Policy Examples
+
+This topic includes example policy configurations for achieving specific use-cases.
+
+## Enable service registration into the catalog
+
+<Tabs>
+
+<Tab heading="Service Mesh">
+
+For Consul service mesh, we recommend using [Service
+Identities](/docs/security/acl#service-identities) rather than creating a custom policy. The service
+identity grants the `service:write` permissions necessary for the service and its sidecar proxy to
+register into the catalog. It grants the `service:read` and `node:read` permissions necessary
+to discover other services and nodes in the catalog.
+
+When `service:write` permissions are granted, the `intention:read` permission is implicitly granted
+in order for sidecar proxies to read and enforce intentions. Refer to [Intention Management
+Permissions](/docs/connect/intentions#intention-management-permissions) for details.
+
+</Tab>
+
+<Tab heading="Single Service">
+
+The following policy allows registering a service named `example-service`.
+
+```hcl
+service "example-service" {
+  policy = "write"
+}
+```
+
+</Tab>
+
+<Tab heading="Multiple Services">
+
+The following policy allows registering three services named `example-one`, `example-two`, and
+`example-three`.
+
+```hcl
+service "example-one" {
+  policy = "write"
+}
+
+service "example-two" {
+  policy = "write"
+}
+
+service "example-three" {
+  policy = "write"
+}
+```
+
+</Tab>
+
+<Tab heading="Prefix Match">
+
+The following policy allows registering any services with a name starting with `web-` or
+`db-`.
+
+```hcl
+service_prefix "web-" {
+  policy = "write"
+}
+
+service_prefix "db-" {
+  policy = "write"
+}
+```
+
+</Tab>
+
+</Tabs>
+
+## Enable client agent registration into the catalog
+
+Consul client agents register into the catalog as nodes, so a token with `node:write` permission is
+necessary. We recommend using [Node Identities](/docs/security/acl#node-identities) rather than creating
+custom policies for node registration.
+
+<Tabs>
+
+<Tab heading="Node identity">
+
+The node identity grants `node:write` permission for a particular node to register. It grants
+`service:read` for all services so that the client agent can detect differences between its local
+state and the catalog on the Consul servers, as part of
+[anti-entropy](/docs/architecture/anti-entropy).
+
+</Tab>
+
+<Tab heading="One node">
+
+```hcl
+node "example-node" {
+  policy = "write"
+}
+```
+
+</Tab>
+
+</Tabs>
+
+## Enable View Access to the Consul UI 
+
+The following policies grant read-only access when logged in to the Consul UI.
+
+<Tabs>
+
+<Tab heading="Catalog">
+
+The following policy grants read-only access to view nodes and services in the catalog. 
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+service_prefix "" {
+  policy = "read"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+<Tab heading="Catalog and ACL resources">
+
+The following policy grants access to view the catalog and all ACL resources.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+acl = "read"
+
+service_prefix "" {
+  policy = "read"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    acl = "read"
+    
+    service_prefix "" {
+      policy = "read"
+    }
+    
+    node_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+
+</Tabs>
+
+
+## Enable DNS
+
+The following policies contain permissions suitable for configuring DNS permissions for a Consul
+agent. Refer to [DNS with ACLs](/consul/docs/discovery/dns#dns-with-acls) for details on configuring
+the token used to authorize DNS.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+The following policy allows node, service, and prepared query 
+lookups over DNS. 
+
+```hcl
+node_prefix "" {
+  policy = "read"
+}
+
+service_prefix "" {
+  policy = "read"
+}
+
+query_prefix "" {
+  policy = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+The following policy allows node, service, and prepared query 
+lookups over DNS in any namespace and any partition.
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    
+    service_prefix "" {
+      policy = "read"
+    }
+    
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+## Enable ACL replication
+
+The following policies allow ACL replication between WAN-federated datacenters. The policy should be
+attached to the token that is configured as the replication token. 
+
+A replication token must be configured on each server in a non-primary datacenter by setting the
+`acl.tokens.replication` config field or by using the CLI command `consul acl set-agent-token
+replication <secret-id>`. Additionally, `acl.enable_token_replication = true` must be set on each
+server in a non-primary datacenter. To learn about configuring ACL replication, refer to the [ACL
+Replication for Multiple
+Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
+tutorial. 
+
+-> **Note**: ACL replication is only supported for WAN-federated datacenters. When using cluster
+peering to connect Consul datacenters, ACL replication is not required. To learn more about cluster
+peering, refer to [Differences between WAN federation and cluster
+peering](/docs/connect/cluster-peering#differences-between-wan-federation-and-cluster-peering).
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+acl = "write"
+
+operator = "write"
+
+service_prefix "" {
+  policy = "read"
+  intentions = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+With Consul Enterprise, the replication token only needs permissions for the `default` partition.
+This is because ACL replication is only supported between two WAN-federated clusters, and
+non-default partitions are not supported with WAN federation.
+
+```hcl
+operator = "write"
+
+service_prefix "" {
+  policy = "read"
+  intentions = "read"
+}
+
+namespace_prefix "" {
+  acl = "write"
+
+  service_prefix "" {
+    policy = "read"
+    intentions = "read"
+  }
+}  
+```
+
+</Tab>
+
+</Tabs>
+
+## Enable management of intentions
+
+<Tabs>
+
+<Tab heading="All Intentions">
+
+The following polices enable setting intentions for any service.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+service_prefix "" {
+  policy = "read"
+  intention = "write"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    service_prefix "" {
+      policy = "read"
+      intention = "write"
+    }
+  }
+}
+```
+
+</Tab>
+
+<!-- All Intentions -->
+</Tabs> 
+
+</Tab>
+
+<Tab heading="Single Service">
+
+<Tabs>
+
+<Tab heading="OSS">
+
+The following policy grants a service owner permission to control intentions
+for incoming connections and requests to the `example-service` service.
+
+```hcl
+service "example-service" {
+  policy = "write"
+  intention = "write"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+The following policy grants a service owner permission to control intentions
+for incoming connections and requests to the `example-service` service
+in the `prod` partition in the `example-team` namespace.
+
+```hcl
+partition "prod" {
+  namespace "example-team" {
+    service "example-service" {
+      policy = "write"
+      intention = "write"
+    }
+  }
+}
+```
+
+</Tab>
+
+<!-- Service Owners -->
+</Tabs> 
+
+</Tab>
+
+
+<Tab heading="View Intentions">
+
+The following policies allow viewing all intentions.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+service "" {
+  policy = "read"
+  intention = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    service "" {
+      policy = "read"
+      intention = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+</Tabs>
+
+
+## Enable the Snapshot Agent to Run on a Specific Node
+
+The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers and either saves them locally or pushes them to a remote storage service. Refer to [Consul Snapshot Agent](/commands/snapshot/agent) for additional information.
+
+In the following example, the ACL policy enables the snapshot agent to run on a node named `server-1234`.
+
+```hcl
+# Required to read and snapshot ACL data
+acl = "write"
+# Allow the snapshot agent to create the key consul-snapshot/lock which will
+# serve as a leader election lock when multiple snapshot agents are running in
+# an environment
+key "consul-snapshot/lock" {
+  policy = "write"
+}
+# Allow the snapshot agent to create sessions on the specified node
+session "server-1234" {
+  policy = "write"
+}
+# Allow the snapshot agent to register itself into the catalog
+service "consul-snapshot" {
+  policy = "write"
+}
+```
+
+## Enable Vault to Access the Consul Storage Backend
+
+If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
+
+In the following example, the ACL policy enables Vault to register as a service
+and provides access to the `vault/` path in Consul's KV store.
+
+```hcl
+# Provide KV visibility to all agents.
+agent_prefix "" {
+  policy = "read"
+}
+# Enable resources prefixed with 'vault/' to write to the KV
+key_prefix "vault/" {
+  policy = "write"
+}
+# Enable the vault service to write to the KV
+service "vault" {
+  policy = "write"
+}
+# Enable the agent to initialize a new session.
+session_prefix "" {
+  policy = "write"
+}
+```
+
+## Enable Consul External Service Monitor (ESM)
+
+Consul ESM can monitor third party or external services in contexts where it is not possible to run
+a Consul agent. To learn more about Consul ESM, refer to the [Register External Services with Consul
+Service Discovery](/consul/tutorials/developer-discovery/service-registration-external-services)
+tutorial.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+The following policy allows Consul ESM to monitor two nodes named `node-one` and `node-two`. It
+allows Consul ESM to register as the `consul-esm` service into the catalog, to scan for nodes to
+monitor, to store state in Consul's key/value store, and acquire a leader lock.
+
+```hcl
+# Nodes Consul ESM monitors.
+node "node-one" {
+  policy = "write"
+}
+
+node "node-two" {
+  policy = "write"
+}
+
+# Other permissions for Consul ESM to operate.
+agent "example-agent" {
+  policy = "read"
+}
+
+key_prefix "consul-esm/" {
+  policy = "write"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+
+service "consul-esm" {
+  policy = "write"
+}
+
+session "example-agent" {
+   policy = "write"
+}
+```
+
+</Tab>
+
+<Tab heading="ENT">
+
+With Consul Enterprise, Consul ESM requires `acl:read` permission in each namespace where it looks
+for external nodes and health checks to monitor. 
+
+The following policy allows Consul ESM to update status of two monitored nodes named `node-one` and
+`node-two`. It allows Consul ESM scan the `default` and `ns1` namespaces for nodes to monitor. It is
+allowed to register as the `consul-esm` service and manage its own state in the `default` namespace.
+
+Because the following policy grants cross-namespace permissions, the policy must be created in the
+`default` namespace.
+
+-> **Note**: Consul ESM does not currently support non-default partitions.
+
+```hcl
+partition "default" {
+  # Nodes Consul ESM is allowed to monitor.
+  node "node-one" {
+    policy = "write"
+  }
+  
+  node "node-two" {
+    policy = "write"
+  }
+  
+  # Namespaces Consul ESM is allowed to scan.
+  namespace "default" {
+    acl = "read"
+  }
+  namespace "ns1" {
+    acl = "read"
+  }
+
+  # Other permissions for Consul ESM to operate.
+  agent "example-agent" {
+    policy = "read"
+  }
+  
+  key_prefix "consul-esm/" {
+    policy = "write"
+  }
+  
+  node_prefix "" {
+    policy = "read"
+  }
+  
+  service "consul-esm" {
+    policy = "write"
+  }
+  
+  session "example-agent" {
+    policy = "write"
+  }
+}
+```
+
+</Tab>
+
+</Tabs>

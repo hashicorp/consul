@@ -645,6 +645,10 @@
             "path": "security/acl/acl-policies"
           },
           {
+            "title": "Policy Examples",
+            "path": "security/acl/acl-policy-examples"
+          },
+          {
             "title": "Roles",
             "path": "security/acl/acl-roles"
           },
