@@ -1647,7 +1647,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is gone
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1662,7 +1663,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is not listable (filtered due to expiry)
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 		require.Nil(t, tokenResp.Token)
 
 		// Now try to delete it (this should work).
@@ -1679,7 +1681,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is still gone (this time it's actually gone)
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1697,8 +1700,9 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is gone
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
 	})
 
 	t.Run("can't delete itself", func(t *testing.T) {
@@ -1739,12 +1743,14 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl1.TokenDelete(&req, &resp)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorIs(t, err, acl.ErrNotFound)
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 	})
 
 	t.Run("don't segfault when attempting to delete non existent token in secondary dc", func(t *testing.T) {
@@ -1760,12 +1766,14 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl2.TokenDelete(&req, &resp)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token does not exist")
 	})
 }
 
@@ -5458,11 +5466,7 @@ func retrieveTestToken(codec rpc.ClientCodec, initialManagementToken string, dat
 
 	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &arg, &out)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return &out, nil
+	return &out, err
 }
 
 func deleteTestToken(codec rpc.ClientCodec, initialManagementToken string, datacenter string, tokenAccessor string) error {

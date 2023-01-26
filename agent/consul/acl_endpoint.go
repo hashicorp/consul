@@ -325,7 +325,8 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
 			if token == nil {
-				return errNotFound
+				// token does not exist
+				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 			}
 
 			if args.Expanded {
@@ -597,8 +598,12 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
-		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
-		return nil
+		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			err := fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return err
+		}
+		return acl.ErrNotFound
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{

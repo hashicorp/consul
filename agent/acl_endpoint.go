@@ -162,12 +162,13 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 	var out structs.ACLPolicyResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.PolicyRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Policy == nil {
-		// TODO(rb): should this return a normal 404?
-		return nil, acl.ErrNotFound
+		// if no error was returned, the policy does not exist
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested policy does not exist"}
 	}
 
 	return out.Policy, nil
@@ -346,11 +347,13 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	var out structs.ACLTokenResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.TokenRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		// if no error was returned, the token does not exist
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Token does not exist"}
 	}
 
 	return out.Token, nil
@@ -393,7 +396,8 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Token == nil {
-		return nil, fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+		// if no error was returned, token does not exist
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Requested token does not exist"}
 	}
 
 	if args.Expanded {
@@ -449,6 +453,10 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 
 	var ignored string
 	if err := s.agent.RPC(req.Context(), "ACL.TokenDelete", args, &ignored); err != nil {
+		if err == acl.ErrNotFound {
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token does not exist")}
+
+		}
 		return nil, err
 	}
 	return true, nil
@@ -582,12 +590,12 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 	var out structs.ACLRoleResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.RoleRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Role == nil {
-		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Role does not exist"}
 	}
 
 	return out.Role, nil
@@ -729,12 +737,13 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 	var out structs.ACLBindingRuleResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.BindingRule == nil {
-		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		// if no error was returned, the binding rule does not exist
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Binding rule does not exist"}
 	}
 
 	return out.BindingRule, nil
@@ -871,12 +880,13 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 	var out structs.ACLAuthMethodResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodRead", &args, &out); err != nil {
+		// should return permission denied if missing permissions
 		return nil, err
 	}
 
 	if out.AuthMethod == nil {
-		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		// if no error was returned, the auth method does not exist
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Auth method does not exist"}
 	}
 
 	fixupAuthMethodConfig(out.AuthMethod)
@@ -976,7 +986,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	if args.Token == "" {
-		return nil, acl.ErrNotFound
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Token supplied with request not found"}
 	}
 
 	var ignored bool
