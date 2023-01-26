@@ -23,11 +23,11 @@ This section provides general configuration and monitoring recommendations for o
 
 ### Data plane resiliency
 
-To make service-to-service communication resilient against outages and failures, we recommend spreading multiple service instances for a service across fault domains:
+To make service-to-service communication resilient against outages and failures, we recommend spreading multiple service instances for a service across fault domains. Resilient deployments spread services across multiples of the following: 
 
-- Spread service instances across _multiple infrastructure-level availability zones_.
-- Spread service instances across _multiple runtime platform instances_, such as multiple Kubernetes clusters.
-- Spread service instances across _multiple Consul datacenters_.
+- Infrastructure-level availability zones
+- Runtime platform instances, such as Kubernetes clusters
+- Consul datacenters
 
 In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/enterprise/admin-partitions) or datacenter.
 
