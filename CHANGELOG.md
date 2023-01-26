@@ -1,4 +1,4 @@
-## 1.13.6 (January 24, 2023)
+## 1.13.6 (January 26, 2023)
 
 FEATURES:
 
@@ -8,7 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
-* partitiion: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+* partition: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
 if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
 
 BUG FIXES:
