@@ -364,8 +364,6 @@ func (s *Server) revokeLeadership() {
 
 	s.stopACLTokenReaping()
 
-	s.stopACLUpgrade()
-
 	s.resetConsistentReadReady()
 
 	s.autopilot.DisableReconciliation()
@@ -548,10 +546,6 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	s.startACLTokenReaping(ctx)
 
 	return nil
-}
-
-func (s *Server) stopACLUpgrade() {
-	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {

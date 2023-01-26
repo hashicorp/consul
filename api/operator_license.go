@@ -30,9 +30,6 @@ type License struct {
 	// no longer be used in any capacity
 	TerminationTime time.Time `json:"termination_time"`
 
-	// Whether the license will ignore termination
-	IgnoreTermination bool `json:"ignore_termination"`
-
 	// The product the license is valid for
 	Product string `json:"product"`
 

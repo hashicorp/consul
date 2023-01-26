@@ -31,10 +31,8 @@ type cmd struct {
 	datacenters []string
 	rules       string
 
-	fromToken     string
-	tokenIsSecret bool
-	showMeta      bool
-	format        string
+	showMeta bool
+	format   string
 
 	testStdin io.Reader
 }
@@ -50,8 +48,6 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.rules, "rules", "", "The policy rules. May be prefixed with '@' "+
 		"to indicate that the value is a file path to load the rules from. '-' may also be "+
 		"given to indicate that the rules are available on stdin")
-	c.flags.BoolVar(&c.tokenIsSecret, "token-secret", false, "Indicates the token provided with "+
-		"-from-token is a SecretID and not an AccessorID")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -64,10 +60,6 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
-}
-
-func (c *cmd) getRules() (string, error) {
-	return helpers.LoadDataSource(c.rules, c.testStdin)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -87,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	rules, err := c.getRules()
+	rules, err := helpers.LoadDataSource(c.rules, c.testStdin)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error loading rules: %v", err))
 		return 1
@@ -136,10 +128,10 @@ const (
 	help     = `
 Usage: consul acl policy create -name NAME [options]
 
-    Both the -rules and -from-token option values allow loading the value
-    from stdin, a file or the raw value. To use stdin pass '-' as the value.
-    To load the value from a file prefix the value with an '@'. Any other
-    values will be used directly.
+    The -rules option values allows loading the value from stdin, a file 
+    or the raw value. To use stdin pass '-' as the value. To load the value 
+    from a file prefix the value with an '@'. Any other values will be used 
+    directly.
 
     Create a new policy:
 

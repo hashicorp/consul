@@ -46,7 +46,7 @@ type ACLToken struct {
 
 	// DEPRECATED (ACL-Legacy-Compat)
 	// Rules are an artifact of legacy tokens deprecated in Consul 1.4
-	Rules string `json:",omitempty"`
+	Rules string `json:"-"`
 
 	// Namespace is the namespace the ACLToken is associated with.
 	// Namespaces are a Consul Enterprise feature.
@@ -90,7 +90,7 @@ type ACLTokenListEntry struct {
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
-	Legacy            bool `json:",omitempty"` // DEPRECATED
+	Legacy            bool `json:"-"` // DEPRECATED
 
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
