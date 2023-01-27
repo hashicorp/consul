@@ -48,10 +48,9 @@ func TestBuiltinExtensionsFromSnapshot(t *testing.T) {
 				{
 					Name: api.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
-						"ARN":                "lambda-arn",
+						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 						"PayloadPassthrough": payloadPassthrough,
 						"InvocationMode":     invocationMode,
-						"Region":             "us-east-1",
 					},
 				},
 			},

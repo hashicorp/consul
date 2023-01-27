@@ -46,9 +46,8 @@ func TestGetExtensionConfigurations_TerminatingGateway(t *testing.T) {
 				EnvoyExtension: api.EnvoyExtension{
 					Name: structs.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
-						"ARN":                "lambda-arn",
+						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 						"PayloadPassthrough": true,
-						"Region":             "us-east-1",
 					},
 				},
 				ServiceName: webService,
@@ -109,9 +108,8 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 		{
 			Name: structs.BuiltinAWSLambdaExtension,
 			Arguments: map[string]interface{}{
-				"ARN":                "lambda-arn",
+				"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 				"PayloadPassthrough": true,
-				"Region":             "us-east-1",
 			},
 		},
 		{
@@ -152,9 +150,8 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 						EnvoyExtension: api.EnvoyExtension{
 							Name: structs.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
-								"ARN":                "lambda-arn",
+								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
-								"Region":             "us-east-1",
 							},
 						},
 						ServiceName: dbService,
@@ -201,9 +198,8 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 						EnvoyExtension: api.EnvoyExtension{
 							Name: structs.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
-								"ARN":                "lambda-arn",
+								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
-								"Region":             "us-east-1",
 							},
 						},
 						ServiceName: dbService,
@@ -251,9 +247,8 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 						EnvoyExtension: api.EnvoyExtension{
 							Name: structs.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
-								"ARN":                "lambda-arn",
+								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
-								"Region":             "us-east-1",
 							},
 						},
 						ServiceName: webService,

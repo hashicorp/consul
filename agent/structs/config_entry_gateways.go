@@ -980,77 +980,6 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-func (e *BoundAPIGatewayConfigEntry) UpdateRouteBinding(refs []ResourceReference, route BoundRoute) (bool, map[ResourceReference]error) {
-	didUpdate := false
-	errors := make(map[ResourceReference]error)
-
-	if len(e.Listeners) == 0 {
-		for _, ref := range refs {
-			errors[ref] = fmt.Errorf("route cannot bind because gateway has no listeners")
-		}
-		return false, errors
-	}
-
-	for i, listener := range e.Listeners {
-		// Unbind to handle any stale route references.
-		didUnbind := listener.UnbindRoute(route)
-		if didUnbind {
-			didUpdate = true
-		}
-		e.Listeners[i] = listener
-
-		for _, ref := range refs {
-			didBind, err := e.BindRoute(ref, route)
-			if err != nil {
-				errors[ref] = err
-			}
-			if didBind {
-				didUpdate = true
-			}
-		}
-	}
-
-	return didUpdate, errors
-}
-
-func (e *BoundAPIGatewayConfigEntry) BindRoute(ref ResourceReference, route BoundRoute) (bool, error) {
-	if ref.Kind != APIGateway || e.Name != ref.Name || !e.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
-		return false, nil
-	}
-
-	if len(e.Listeners) == 0 {
-		return false, fmt.Errorf("route cannot bind because gateway has no listeners")
-	}
-
-	didBind := false
-	for i, listener := range e.Listeners {
-		if listener.Name == ref.SectionName || ref.SectionName == "" {
-			if listener.BindRoute(route) {
-				didBind = true
-				e.Listeners[i] = listener
-			}
-		}
-	}
-
-	if !didBind {
-		return false, fmt.Errorf("invalid section name: %s", ref.SectionName)
-	}
-
-	return true, nil
-}
-
-func (e *BoundAPIGatewayConfigEntry) UnbindRoute(route BoundRoute) bool {
-	didUnbind := false
-	for i, listener := range e.Listeners {
-		if listener.UnbindRoute(route) {
-			didUnbind = true
-			e.Listeners[i] = listener
-		}
-	}
-
-	return didUnbind
-}
-
 // BoundAPIGatewayListener is an API gateway listener with information
 // about the routes and certificates that have successfully bound to it.
 type BoundAPIGatewayListener struct {
@@ -1061,12 +990,13 @@ type BoundAPIGatewayListener struct {
 
 // BindRoute is used to create or update a route on the listener.
 // It returns true if the route was able to be bound to the listener.
+// Routes should only bind to listeners with their same section name
+// and protocol. Be sure to check both of these before attempting
+// to bind a route to the listener.
 func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 	if l == nil {
 		return false
 	}
-
-	// TODO (t-eckert): Add a check that the listener has the same `protocol` as the route. Fail to bind if the protocols do not match.
 
 	// Convert the abstract route interface to a ResourceReference.
 	routeRef := ResourceReference{

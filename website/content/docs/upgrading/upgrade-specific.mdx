@@ -99,10 +99,10 @@ A breaking change was made in Consul 1.14 that:
 - [Consul Connect is enabled by default.](/consul/docs/connect)
   To disable, set [`connect.enabled`](/consul/docs/agent/config/config-files#connect_enabled) to `false`.
 
-The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.2 and
-earlier. If you operate Consul service mesh using Nomad 1.4.2 or earlier, do not upgrade to Consul 1.14 until
-[hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) is
-fixed.
+The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.3 and
+earlier. If you operate Consul service mesh using Nomad 1.4.3 or earlier, do not upgrade to
+Consul 1.14 until [hashicorp/nomad#15266](https://github.com/hashicorp/nomad/issues/15266) and
+[hashicorp/nomad#15360](https://github.com/hashicorp/nomad/issues/15360) have been fixed.
 
 For 1.14.0, there is a known issue with `consul connect envoy`. If the command is configured
 to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for gRPC.
