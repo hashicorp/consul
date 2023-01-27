@@ -96,7 +96,7 @@ func CreateAndRegisterStaticClientSidecar(
 						DestinationName:  StaticServerServiceName,
 						DestinationPeer:  peerName,
 						LocalBindAddress: "0.0.0.0",
-						LocalBindPort:    5000,
+						LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
 						MeshGateway: api.MeshGatewayConfig{
 							Mode: mgwMode,
 						},
@@ -111,7 +111,7 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, 5000, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, libcluster.ServiceUpstreamLocalBindPort, node)
 	if err != nil {
 		return nil, err
 	}
