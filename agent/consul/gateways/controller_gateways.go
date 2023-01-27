@@ -96,21 +96,33 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 		return err
 	}
 
-	metaGateway := gatewayMeta{
+	metaGateway := &gatewayMeta{
 		BoundGateway: boundGatewayEntry,
 		Gateway:      gatewayEntry,
 	}
 
-	boundGateways, routeErrors := BindRoutesToGateways(wrapSlice(&metaGateway), routes...)
+	//TODO is this needed? It seems to be for my tests
+	r.reconcileListeners(metaGateway)
+	fmt.Println(metaGateway.Gateway.Listeners)
+	fmt.Println(metaGateway.BoundGateway.Listeners)
+
+	boundGateways, routeErrors := BindRoutesToGateways(wrapSlice(metaGateway), routes...)
 
 	if len(boundGateways) > 1 {
 		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
 		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
+		panic("helllo my bab")
+
 		return err
+	} else if len(routeErrors) > 0 {
+		fmt.Println(routeErrors)
+		panic("hello my baby hello my darling")
 	}
 
 	if len(boundGateways) == 0 && len(routeErrors) == 0 {
 		r.logger.Debug("API Gateway Reconciler: gateway %s reconciled without updates.")
+		panic("yoyoyoyo")
+
 		return nil
 	}
 
@@ -161,7 +173,35 @@ func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []stru
 		Name:    ref.Name,
 		Parents: parents,
 	}
+}
 
+// TODO is this even needed?
+func (r apiGatewayReconciler) reconcileListeners(gw *gatewayMeta) {
+
+	//rebuild the list from scratch, just copying over the ones that already exist
+	listeners := []structs.BoundAPIGatewayListener{}
+	for _, l := range gw.Gateway.Listeners {
+		boundListener := getBoundGatewayListener(l, gw.BoundGateway.Listeners)
+		if boundListener != nil {
+			//listener is already on gateway, copy onto our new list
+			listeners = append(listeners, *boundListener)
+			continue
+		}
+		//create new listener to add to our gateway
+		listeners = append(listeners, structs.BoundAPIGatewayListener{
+			Name: l.Name,
+		})
+	}
+	gw.BoundGateway.Listeners = listeners
+}
+
+func getBoundGatewayListener(listener structs.APIGatewayListener, boundListeners []structs.BoundAPIGatewayListener) *structs.BoundAPIGatewayListener {
+	for _, bl := range boundListeners {
+		if bl.Name == listener.Name {
+			return &bl
+		}
+	}
+	return nil
 }
 
 func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {

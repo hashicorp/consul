@@ -84,16 +84,31 @@ func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
 				Port:     8080,
 			},
 		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 	}, nil)
 	ds.On("GetConfigEntry", structs.BoundAPIGateway, mock.Anything, mock.Anything).Return(
-		makeGateway("test-gateway", []structs.BoundAPIGatewayListener{
-			makeListener("test-listener", []structs.ResourceReference{}),
-		}), nil)
+		&structs.BoundAPIGatewayConfigEntry{
+			Kind:           structs.BoundAPIGateway,
+			Name:           "test-gateway",
+			Listeners:      []structs.BoundAPIGatewayListener{},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		}, nil)
 
 	ds.On("GetConfigEntriesByKind", structs.TCPRoute).Return([]structs.ConfigEntry{
-		makeRoute(structs.TCPRoute, "test-route", []structs.ResourceReference{
-			makeRef(structs.APIGateway, "test-gateway", "test-listener"),
-		})}, nil)
+		&structs.TCPRouteConfigEntry{
+			Kind: structs.TCPRoute,
+			Name: "test-route",
+			Parents: []structs.ResourceReference{
+				{
+					Kind:           structs.APIGateway,
+					Name:           "test-gateway",
+					SectionName:    "test-listener",
+					EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+				},
+			},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		},
+	}, nil)
 
 	ds.On("Update", mock.Anything).Return(nil)
 	ds.On("UpdateStatus", mock.Anything).Return(nil)
