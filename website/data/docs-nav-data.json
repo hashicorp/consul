@@ -319,6 +319,10 @@
           {
             "title": "Define Health Checks",
             "path": "services/usage/checks"
+          },
+          {
+            "title": "Register Services and Health Checks",
+            "path": "services/usage/register-services-checks"
           }
         ]
       },
