@@ -303,19 +303,29 @@
     "divider": true
   },
   {
-    "title": "Service Discovery",
+    "title": "Services",
     "routes": [
       {
-        "title": "Register Services - Service Definitions",
-        "path": "discovery/services"
+        "title": "Services Overview",
+        "path": "services/services"
       },
       {
-        "title": "Find Services - DNS Interface",
-        "path": "discovery/dns"
+        "title": "Define",
+        "routes": [
+          {
+            "title": "Define Health Checks",
+            "path": "services/usage/checks"
+          }   
+        ]
       },
       {
-        "title": "Monitor Services - Check Definitions",
-        "path": "discovery/checks"
+        "title": "Discover",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "services/discovery/dns"
+          }
+        ]
       }
     ]
   },
