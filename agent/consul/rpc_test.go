@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/rate"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1287,12 +1288,16 @@ func TestCanRetry(t *testing.T) {
 	config := DefaultConfig()
 	now := time.Now()
 	config.RPCHoldTimeout = 7 * time.Second
+	retryableMessages := []error{
+		ErrChunkingResubmit,
+		rpcRate.ErrRetryElsewhere,
+	}
 	run := func(t *testing.T, tc testCase) {
 		timeOutValue := tc.timeout
 		if timeOutValue.IsZero() {
 			timeOutValue = now
 		}
-		require.Equal(t, tc.expected, canRetry(tc.req, tc.err, timeOutValue, config))
+		require.Equal(t, tc.expected, canRetry(tc.req, tc.err, timeOutValue, config, retryableMessages))
 	}
 
 	var testCases = []testCase{
@@ -1319,7 +1324,7 @@ func TestCanRetry(t *testing.T) {
 		{
 			name:     "ErrRetryLater",
 			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryLater),
-			expected: true,
+			expected: false,
 		},
 		{
 			name:     "EOF on read request",
