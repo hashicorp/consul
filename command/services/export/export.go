@@ -24,8 +24,9 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	serviceName string
-	peerNames   string
+	serviceName    string
+	peerNames      string
+	partitionNames string
 }
 
 func (c *cmd) init() {
@@ -34,7 +35,8 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
 	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
-	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "(Required) A list of peers to export the service to, formatted as a comma-separated list.")
+	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "A list of peers to export the service to, formatted as a comma-separated list.")
+	c.flags.StringVar(&c.peerNames, "consumer-partitions", "", "A list of partitions to export the service to, formatted as a comma-separated list.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -52,8 +54,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.peerNames == "" {
-		c.UI.Error("Missing the required -consumer-peers flag")
+	if c.peerNames == "" && c.partitionNames == "" {
+		c.UI.Error("Must provide -consumer-peers or -consumer-partitions flag")
 		return 1
 	}
 
@@ -62,6 +64,15 @@ func (c *cmd) Run(args []string) int {
 	for _, peerName := range peerNames {
 		if peerName == "" {
 			c.UI.Error(fmt.Sprintf("Invalid peer %q", peerName))
+			return 1
+		}
+	}
+
+	partitionNames := strings.Split(c.partitionNames, ",")
+
+	for _, partitionName := range partitionNames {
+		if partitionName == "" {
+			c.UI.Error(fmt.Sprintf("Invalid partition %q", partitionName))
 			return 1
 		}
 	}
@@ -83,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 			Services: []api.ExportedService{
 				{
 					Name:      c.serviceName,
-					Consumers: buildConsumersFromPeerNames(peerNames),
+					Consumers: buildConsumers(peerNames, partitionNames),
 				},
 			},
 		}
@@ -123,13 +134,27 @@ func (c *cmd) Run(args []string) int {
 						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
 					}
 				}
+				for _, partitionName := range partitionNames {
+					partitionExists := false
+
+					for _, consumer := range service.Consumers {
+						if consumer.Partition == partitionName {
+							partitionExists = true
+							break
+						}
+					}
+
+					if !partitionExists {
+						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Partition: partitionName})
+					}
+				}
 			}
 		}
 
 		if !serviceExists {
 			cfg.Services = append(cfg.Services, api.ExportedService{
 				Name:      c.serviceName,
-				Consumers: buildConsumersFromPeerNames(peerNames),
+				Consumers: buildConsumers(peerNames, partitionNames),
 			})
 		}
 
@@ -144,15 +169,20 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 	}
-	c.UI.Info(fmt.Sprintf("Successfully exported service %s to peers %s", c.serviceName, c.peerNames))
+	c.UI.Info(fmt.Sprintf("Successfully exported service %s to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
 	return 0
 }
 
-func buildConsumersFromPeerNames(peerNames []string) []api.ServiceConsumer {
+func buildConsumers(peerNames []string, partitionNames []string) []api.ServiceConsumer {
 	consumers := []api.ServiceConsumer{}
 	for _, peer := range peerNames {
 		consumers = append(consumers, api.ServiceConsumer{
 			Peer: peer,
+		})
+	}
+	for _, partition := range partitionNames {
+		consumers = append(consumers, api.ServiceConsumer{
+			Partition: partition,
 		})
 	}
 	return consumers
