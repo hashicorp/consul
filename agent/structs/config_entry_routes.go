@@ -11,6 +11,7 @@ import (
 type BoundRoute interface {
 	ConfigEntry
 	GetParents() []ResourceReference
+	GetProtocol() APIGatewayListenerProtocol
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -37,6 +38,18 @@ func (e *HTTPRouteConfigEntry) GetName() string {
 		return ""
 	}
 	return e.Name
+}
+
+func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
+	return []ResourceReference{}
+}
+
+func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolHTTP
 }
 
 func (e *HTTPRouteConfigEntry) Normalize() error {
@@ -115,6 +128,17 @@ func (e *TCPRouteConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	return e.Parents
+}
+
+func (e *TCPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolTCP
+}
+
 func (e *TCPRouteConfigEntry) GetMeta() map[string]string {
 	if e == nil {
 		return nil
@@ -158,13 +182,6 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
-	if e == nil {
-		return []ResourceReference{}
-	}
-	return e.Parents
 }
 
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
