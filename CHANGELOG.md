@@ -1,3 +1,17 @@
+## 1.12.9 (January 26, 2023)
+
+FEATURES:
+
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
 ## 1.12.8 (December 13, 2022)
 
 SECURITY:
