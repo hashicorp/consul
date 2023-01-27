@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 )
-<<<<<<< HEAD
 
 // BoundRoute indicates a route that has parent gateways which
 // can be accessed by calling the GetParents associated function.
@@ -13,15 +12,6 @@ type BoundRoute interface {
 	ConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
-}
-=======
->>>>>>> 674005f97c (APIGateway TCPRoute validation (#15855))
-
-// BoundRoute indicates a route that has parent gateways which
-// can be accessed by calling the GetParents associated function.
-type BoundRoute interface {
-	ConfigEntry
-	GetParents() []ResourceReference
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -131,10 +121,7 @@ type TCPRouteConfigEntry struct {
 
 	// Parents is a list of gateways that this route should be bound to
 	Parents []ResourceReference
-<<<<<<< HEAD
 
-=======
->>>>>>> 674005f97c (APIGateway TCPRoute validation (#15855))
 	// Services is a list of TCP-based services that this should route to.
 	// Currently, this must specify at maximum one service.
 	Services []TCPService
