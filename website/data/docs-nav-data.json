@@ -310,7 +310,7 @@
         "path": "services/services"
       },
       {
-        "title": "Define",
+        "title": "Define and Register",
         "routes": [
           {
             "title": "Define Services",
@@ -331,7 +331,11 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "services/discovery/dns"
+            "path": "services/discovery/dns-overview"
+          },
+          {
+            "title": "Configure Consul DNS Behavior",
+            "path": "services/discovery/dns-configuration"
           }
         ]
       }
