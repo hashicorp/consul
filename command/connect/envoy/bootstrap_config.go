@@ -205,8 +205,8 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 		args.StatsConfigJSON = formatStatsTags(stats)
 	}
 
-	if c.StaticClustersJSON != "" {
-		args.StaticClustersJSON = c.StaticClustersJSON
+	if err := c.generateStaticClustersJSON(args); err != nil {
+		return err
 	}
 	if c.StaticListenersJSON != "" {
 		args.StaticListenersJSON = c.StaticListenersJSON
@@ -240,6 +240,18 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 
 	return nil
 }
+
+func (c *BootstrapConfig) generateStaticClustersJSON(args *BootstrapTplArgs) error {
+	if c.StaticClustersJSON != "" {
+		staticClustersJSON, err = c.staticClustersEnvMapping(c.StaticClustersJSON)
+		if err != nil {
+			return err
+		}
+		args.StaticClustersJSON = staticClustersJSON
+	}
+	return nil
+}
+
 
 func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	var stats_sinks []string
@@ -326,6 +338,18 @@ func statsSinkEnvMapping(s string) string {
 	}
 
 	if !allowedStatsSinkEnvVars[s] {
+		// if the specified env var isn't explicitly allowed, unexpand it
+		return fmt.Sprintf("${%s}", s)
+	}
+	return os.Getenv(s)
+}
+
+func staticClustersEnvMapping(s string) string {
+	allowedStaticClustersEnvVars := map[string]bool{
+		"HOST_IP": true,
+	}
+
+	if !allowedStaticClustersEnvVars[s] {
 		// if the specified env var isn't explicitly allowed, unexpand it
 		return fmt.Sprintf("${%s}", s)
 	}
