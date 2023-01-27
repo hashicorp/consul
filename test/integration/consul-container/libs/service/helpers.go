@@ -3,9 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
-
-	"github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 
@@ -123,40 +120,4 @@ func CreateAndRegisterStaticClientSidecar(
 	deferClean.Reset()
 
 	return clientConnectProxy, nil
-}
-
-func GetEnvoyConfigDump(port int, filter string) (string, error) {
-	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://localhost:%d/config_dump?%s", port, filter)
-
-	res, err := client.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
-}
-
-func GetEnvoyClusters(port int) (string, error) {
-	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://localhost:%d/clusters?format=json", port)
-
-	res, err := client.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
 }
