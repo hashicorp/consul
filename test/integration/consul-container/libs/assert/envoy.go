@@ -2,12 +2,16 @@ package assert
 
 import (
 	"fmt"
+	"io"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
+
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +28,7 @@ func GetEnvoyListenerTCPFilters(t *testing.T, adminPort int) {
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, err = libservice.GetEnvoyConfigDump(adminPort, "")
+		dump, err = GetEnvoyOutput(adminPort, "config_dump", map[string]string{})
 		if err != nil {
 			r.Fatal("could not fetch envoy configuration")
 		}
@@ -61,15 +65,83 @@ func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, heal
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		clusters, err = libservice.GetEnvoyClusters(adminPort)
+		clusters, err = GetEnvoyOutput(adminPort, "clusters", map[string]string{"format": "json"})
 		if err != nil {
-			r.Fatal("could not fetch envoy configuration")
+			r.Fatal("could not fetch envoy clusters")
 		}
 
 		filter := fmt.Sprintf(`.cluster_statuses[] | select(.name|contains("%s")) | [.host_statuses[].health_status.eds_health_status] | [select(.[] == "%s")] | length`, clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
-		require.NoError(r, err, "could not parse envoy configuration")
+		require.NoErrorf(r, err, "could not found cluster name %s", clusterName)
 		require.Equal(r, count, len(results))
+	})
+}
+
+// AssertEnvoyMetricAtMost assert the filered metric by prefix and metric is >= count
+func AssertEnvoyMetricAtMost(t *testing.T, adminPort int, prefix, metric string, count int) {
+	var (
+		stats string
+		err   error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		stats, err = GetEnvoyOutput(adminPort, "stats", nil)
+		if err != nil {
+			r.Fatal("could not fetch envoy stats")
+		}
+		lines := strings.Split(stats, "\n")
+		err = processMetrics(lines, prefix, metric, func(v int) bool {
+			return v <= count
+		})
+		require.NoError(r, err)
+	})
+}
+
+func processMetrics(metrics []string, prefix, metric string, condition func(v int) bool) error {
+	for _, line := range metrics {
+		if strings.Contains(line, prefix) &&
+			strings.Contains(line, metric) {
+
+			metric := strings.Split(line, ":")
+			fmt.Println(metric[1])
+
+			v, err := strconv.Atoi(strings.TrimSpace(metric[1]))
+			if err != nil {
+				return fmt.Errorf("err parse metric value %s: %s", metric[1], err)
+			}
+
+			if condition(v) {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("error processing stats")
+}
+
+// AssertEnvoyMetricAtLeast assert the filered metric by prefix and metric is <= count
+func AssertEnvoyMetricAtLeast(t *testing.T, adminPort int, prefix, metric string, count int) {
+	var (
+		stats string
+		err   error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		stats, err = GetEnvoyOutput(adminPort, "stats", nil)
+		if err != nil {
+			r.Fatal("could not fetch envoy stats")
+		}
+		lines := strings.Split(stats, "\n")
+
+		err = processMetrics(lines, prefix, metric, func(v int) bool {
+			return v >= count
+		})
+		require.NoError(r, err)
 	})
 }
 
@@ -85,7 +157,7 @@ func GetEnvoyHTTPrbacFilters(t *testing.T, port int) {
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, err = libservice.GetEnvoyConfigDump(port, "")
+		dump, err = GetEnvoyOutput(port, "config_dump", map[string]string{})
 		if err != nil {
 			r.Fatal("could not fetch envoy configuration")
 		}
@@ -116,4 +188,34 @@ func GetEnvoyHTTPrbacFilters(t *testing.T, port int) {
 func sanitizeResult(s string) []string {
 	result := strings.Split(strings.ReplaceAll(s, `,`, " "), " ")
 	return append(result[:0], result[1:]...)
+}
+
+func GetEnvoyOutput(port int, path string, query map[string]string) (string, error) {
+	client := cleanhttp.DefaultClient()
+	var u url.URL
+	u.Host = fmt.Sprintf("localhost:%d", port)
+	u.Scheme = "http"
+	if path != "" {
+		u.Path = path
+	}
+	q := u.Query()
+	for k, v := range query {
+		q.Add(k, v)
+	}
+	if query != nil {
+		u.RawQuery = q.Encode()
+	}
+
+	res, err := client.Get(u.String())
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }

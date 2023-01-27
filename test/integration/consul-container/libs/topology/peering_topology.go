@@ -25,6 +25,7 @@ type BuiltCluster struct {
 	Context   *libcluster.BuildContext
 	Service   libservice.Service
 	Container *libservice.ConnectContainer
+	Gateway   libservice.Service
 }
 
 // BasicPeeringTwoClustersSetup sets up a scenario for testing peering, which consists of
@@ -50,6 +51,7 @@ func BasicPeeringTwoClustersSetup(
 
 	// Register an static-server service in acceptingCluster and export to dialing cluster
 	var serverSidecarService libservice.Service
+	var acceptingClusterGateway libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
 
@@ -62,10 +64,15 @@ func BasicPeeringTwoClustersSetup(
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
 		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
+
+		// Create the mesh gateway for dataplane traffic
+		acceptingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
+		require.NoError(t, err)
 	}
 
 	// Register an static-client service in dialing cluster and set upstream to static-server service
 	var clientSidecarService *libservice.ConnectContainer
+	var dialingClusterGateway libservice.Service
 	{
 		clientNode := dialingCluster.Clients()[0]
 
@@ -75,6 +82,10 @@ func BasicPeeringTwoClustersSetup(
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy")
+
+		// Create the mesh gateway for dataplane traffic
+		dialingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
+		require.NoError(t, err)
 	}
 
 	_, adminPort := clientSidecarService.GetAdminAddr()
@@ -87,12 +98,14 @@ func BasicPeeringTwoClustersSetup(
 			Context:   acceptingCtx,
 			Service:   serverSidecarService,
 			Container: nil,
+			Gateway:   acceptingClusterGateway,
 		},
 		&BuiltCluster{
 			Cluster:   dialingCluster,
 			Context:   dialingCtx,
 			Service:   nil,
 			Container: clientSidecarService,
+			Gateway:   dialingClusterGateway,
 		}
 }
 
@@ -203,10 +216,6 @@ func NewPeeringCluster(
 	ok, err := utils.ApplyDefaultProxySettings(client)
 	require.NoError(t, err)
 	require.True(t, ok)
-
-	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
-	require.NoError(t, err)
 
 	return cluster, ctx, client
 }
