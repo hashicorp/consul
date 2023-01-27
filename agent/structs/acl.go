@@ -293,10 +293,6 @@ type ACLToken struct {
 	// so this field is being kept to identify legacy tokens even after an auto-upgrade
 	Type string `json:"-"`
 
-	// Rules is the V1 acl rules associated with
-	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
-	Rules string `json:",omitempty"`
-
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
 	Local bool
@@ -484,7 +480,6 @@ func (t *ACLToken) SetHash(force bool) []byte {
 		// Write all the user set fields
 		hash.Write([]byte(t.Description))
 		hash.Write([]byte(t.Type))
-		hash.Write([]byte(t.Rules))
 
 		if t.Local {
 			hash.Write([]byte("local"))
@@ -521,7 +516,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 func (t *ACLToken) EstimateSize() int {
 	// 41 = 16 (RaftIndex) + 8 (Hash) + 8 (ExpirationTime) + 8 (CreateTime) + 1 (Local)
-	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules) + len(t.AuthMethod)
+	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.AuthMethod)
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
@@ -555,7 +550,6 @@ type ACLTokenListStub struct {
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64
-	Legacy            bool `json:",omitempty"`
 	acl.EnterpriseMeta
 	ACLAuthMethodEnterpriseMeta
 }
@@ -578,7 +572,6 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		Hash:                        token.Hash,
 		CreateIndex:                 token.CreateIndex,
 		ModifyIndex:                 token.ModifyIndex,
-		Legacy:                      token.Rules != "",
 		EnterpriseMeta:              token.EnterpriseMeta,
 		ACLAuthMethodEnterpriseMeta: token.ACLAuthMethodEnterpriseMeta,
 	}

@@ -657,14 +657,6 @@
             "path": "security/acl/acl-rules"
           },
           {
-            "title": "Legacy Mode",
-            "path": "security/acl/acl-legacy"
-          },
-          {
-            "title": "Token Migration",
-            "path": "security/acl/acl-migrate-tokens"
-          },
-          {
             "title": "ACLs in Federated Datacenters",
             "path": "security/acl/acl-federated-datacenters"
           },
