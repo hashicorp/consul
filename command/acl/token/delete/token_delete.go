@@ -17,17 +17,18 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
-
+	UI              cli.Ui
+	flags           *flag.FlagSet
+	http            *flags.HTTPFlags
+	help            string
 	tokenAccessorID string
+
+	tokenID string // DEPRECATED
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.tokenAccessorID, "id", "", "The Accessor ID of the token to delete. "+
+	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to delete. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.http = &flags.HTTPFlags{}
@@ -36,6 +37,10 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	// Deprecations
+	c.flags.StringVar(&c.tokenID, "id", "",
+		"DEPRECATED. Use -accessor-id instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -43,9 +48,15 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenAccessorID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -accessor-id parameter"))
-		return 1
+	tokenAccessor := c.tokenAccessorID
+	if tokenAccessor == "" {
+		if c.tokenID == "" {
+			c.UI.Error(fmt.Sprintf("Must specify the -accessor-id parameter"))
+			return 1
+		} else {
+			tokenAccessor = c.tokenID
+			c.UI.Warn(fmt.Sprintf("Use the -accessor-id parameter to specify token by Accessor ID."))
+		}
 	}
 
 	client, err := c.http.APIClient()
@@ -54,18 +65,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenAccessorID, err := acl.GetTokenAccessorIDFromPartial(client, c.tokenAccessorID)
+	tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 		return 1
 	}
 
-	if _, err := client.ACL().TokenDelete(tokenAccessorID, nil); err != nil {
-		c.UI.Error(fmt.Sprintf("Error deleting token %q: %v", tokenAccessorID, err))
+	if _, err := client.ACL().TokenDelete(tok, nil); err != nil {
+		c.UI.Error(fmt.Sprintf("Error deleting token %q: %v", tok, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Token %q deleted successfully", tokenAccessorID))
+	c.UI.Info(fmt.Sprintf("Token %q deleted successfully", tok))
 	return 0
 }
 

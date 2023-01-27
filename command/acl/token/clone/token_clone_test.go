@@ -207,7 +207,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 			"-format=json",
@@ -230,7 +230,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-format=json",
 		}

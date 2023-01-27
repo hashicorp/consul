@@ -34,7 +34,7 @@ var ACLCounters = []prometheus.CounterDefinition{
 
 var ACLSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"acl", "ResolveTokenSecret"},
+		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
 }
@@ -1014,7 +1014,7 @@ func (r *ACLResolver) ResolveTokenSecret(tokenSecretID string) (resolver.Result,
 		return resolver.Result{Authorizer: authz, ACLIdentity: ident}, nil
 	}
 
-	defer metrics.MeasureSince([]string{"acl", "ResolveTokenSecret"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
 	identity, policies, err := r.resolveTokenToIdentityAndPolicies(tokenSecretID)
 	if err != nil {

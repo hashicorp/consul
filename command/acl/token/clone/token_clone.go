@@ -27,6 +27,8 @@ type cmd struct {
 	tokenAccessorID string
 	description     string
 	format          string
+
+	tokenID string // DEPRECATED
 }
 
 func (c *cmd) init() {
@@ -47,6 +49,10 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	// Deprecations
+	c.flags.StringVar(&c.tokenID, "id", "",
+		"DEPRECATED. Use -accessor-id instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -54,9 +60,15 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenAccessorID == "" {
-		c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -accessor-id parameter"))
-		return 1
+	tokenAccessor := c.tokenAccessorID
+	if tokenAccessor == "" {
+		if c.tokenID == "" {
+			c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -accessor-id parameter"))
+			return 1
+		} else {
+			tokenAccessor = c.tokenID
+			c.UI.Warn(fmt.Sprintf("Use the -accessor-id parameter to specify token by Accessor ID."))
+		}
 	}
 
 	client, err := c.http.APIClient()
@@ -65,13 +77,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenAccessorID, err := acl.GetTokenAccessorIDFromPartial(client, c.tokenAccessorID)
+	tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error determining token Accessor ID: %v", err))
 		return 1
 	}
 
-	t, _, err := client.ACL().TokenClone(tokenAccessorID, c.description, nil)
+	t, _, err := client.ACL().TokenClone(tok, c.description, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error cloning token: %v", err))
 		return 1
