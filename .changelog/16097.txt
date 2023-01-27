@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: only use the `agent` token and do not attempt using a service token for internal deregistration of checks and services
+```
