@@ -11,7 +11,7 @@ Command: `consul tls ca create`
 
 This command creates a self-signed CA to be used for Consul TLS setup.
 
-## Example
+## Examples
 
 Create a CA:
 
@@ -21,7 +21,7 @@ $ consul tls ca create
 ==> Saved consul-ca-key.pem
 ```
 
-Create a CA which only signs certificates for example.com
+Create a CA that signs certificates exclusively for the example.com domain:
 
 ```shell-session
 $ consul tls ca create -name-constraint -domain example.com
@@ -44,10 +44,10 @@ Usage: `consul tls ca create [options]`
 - `-domain=<string>` - Domain of consul cluster. Only used when `-name-constraint` is set. Defaults to consul.
   Additional domains can be passed with `-additional-name-constraint`.
 
-- `-name-constraint` - Enables [X.509 Name Constraints](https://www.rfc-editor.org/rfc/rfc5280#page-40) for the CA.
-  If used, the CA will only sign certificates for localhost and the domains specified by `-domain` and `-additional-name-constraint`.
-  If the UI will be served over HTTPS its DNS name should be added with `-additional-constraint`. Defaults to false.
+- `-name-constraint` - Enables [X.509 name constraints](https://www.rfc-editor.org/rfc/rfc5280#page-40) for the CA.
+  If used, the CA only signs certificates for localhost and the domains specified by `-domain` and `-additional-name-constraint`.
+  If Consul's UI is served over HTTPS in your deployment, add its DNS name with `-additional-constraint` as well. Defaults to `false`.
 
-- `cluster-id` - ClusterID of the consul cluster. Sets the CA's URI with the SPIFFEID of the cluster and domain.
+- `cluster-id` - ID of the Consul cluster. Sets the CA's URI with the SPIFFEID of the cluster and domain.
 
 - `common-name` - Common Name of CA. Defaults to Consul Agent CA.
