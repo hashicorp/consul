@@ -292,5 +292,4 @@ func isAggregateCluster(c *envoy_cluster_v3.Cluster) (*envoy_aggregate_cluster_v
 		}
 	}
 	return nil, false
-
 }
