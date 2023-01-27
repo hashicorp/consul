@@ -37,7 +37,7 @@ func ParseConfigDump(rawConfig []byte) (*xdscommon.IndexedResources, error) {
 		return nil, err
 	}
 
-	return proxyConfigDumpToIndexedResources(config)
+	return ProxyConfigDumpToIndexedResources(config)
 }
 
 func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
@@ -120,15 +120,18 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 	return v.Errors(validateEndpoints, validate.DoEndpointValidation, clusters)
 }
 
-func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
+func ProxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
 	indexedResources := xdscommon.EmptyIndexedResources()
+	unmarshal := &proto.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
 
 	for _, cfg := range config.Configs {
 		switch cfg.TypeUrl {
 		case listenersType:
 			lcd := &envoy_admin_v3.ListenersConfigDump{}
 
-			err := proto.Unmarshal(cfg.GetValue(), lcd)
+			err := unmarshal.Unmarshal(cfg.GetValue(), lcd)
 			if err != nil {
 				return indexedResources, err
 			}
@@ -149,7 +152,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				}
 
 				l := &envoy_listener_v3.Listener{}
-				proto.Unmarshal(as.Listener.GetValue(), l)
+				unmarshal.Unmarshal(as.Listener.GetValue(), l)
 				if err != nil {
 					return indexedResources, err
 				}
@@ -160,7 +163,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 		case clustersType:
 			ccd := &envoy_admin_v3.ClustersConfigDump{}
 
-			err := proto.Unmarshal(cfg.GetValue(), ccd)
+			err := unmarshal.Unmarshal(cfg.GetValue(), ccd)
 			if err != nil {
 				return indexedResources, err
 			}
@@ -173,7 +176,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				}
 
 				c := &envoy_cluster_v3.Cluster{}
-				proto.Unmarshal(cluster.GetCluster().Value, c)
+				unmarshal.Unmarshal(cluster.GetCluster().Value, c)
 				if err != nil {
 					return indexedResources, err
 				}
@@ -184,7 +187,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 		case routesType:
 			rcd := &envoy_admin_v3.RoutesConfigDump{}
 
-			err := proto.Unmarshal(cfg.GetValue(), rcd)
+			err := unmarshal.Unmarshal(cfg.GetValue(), rcd)
 			if err != nil {
 				return indexedResources, err
 			}
@@ -196,7 +199,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				}
 
 				rc := &envoy_route_v3.RouteConfiguration{}
-				proto.Unmarshal(route.GetRouteConfig().Value, rc)
+				unmarshal.Unmarshal(route.GetRouteConfig().Value, rc)
 				if err != nil {
 					return indexedResources, err
 				}
@@ -207,7 +210,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 		case endpointsType:
 			ecd := &envoy_admin_v3.EndpointsConfigDump{}
 
-			err := proto.Unmarshal(cfg.GetValue(), ecd)
+			err := unmarshal.Unmarshal(cfg.GetValue(), ecd)
 			if err != nil {
 				return indexedResources, err
 			}
@@ -219,7 +222,7 @@ func proxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdsc
 				}
 
 				rc := &envoy_endpoint_v3.ClusterLoadAssignment{}
-				err := proto.Unmarshal(route.EndpointConfig.GetValue(), rc)
+				err := unmarshal.Unmarshal(route.EndpointConfig.GetValue(), rc)
 				if err != nil {
 					return indexedResources, err
 				}
