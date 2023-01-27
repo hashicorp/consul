@@ -18,7 +18,7 @@ The following CRDs are used to create and manage a peering connection:
 - `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
 - `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
 
-Peering connections, including both data-plane and control-plane traffic, will be routed over mesh gateways.
+Peering connections, including both data plane and control plane traffic, is routed through mesh gateways.
 As of Consul v1.14, you can also [implement service failovers and redirects to control traffic](/consul/docs/connect/l7-traffic) between peers.
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).

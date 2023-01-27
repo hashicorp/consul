@@ -68,7 +68,7 @@ The mapping for secondary data centers is similar with the following differences
 
 ### Combining policies within roles
 
-As you can see in the table above, depending upon your needs, a Consul on Kubernetes service account could have the need to request more than one secret.  In these cases, you will want to create one role for the Consul on Kubernetes service account that is mapped to multiple policies, each of which allows it access to a given secret.
+Depending upon your needs, a Consul on Kubernetes service account may need to request more than one secret.  To request multiple secrets, create one role for the Consul on Kubernetes service account that is mapped to multiple policies associated with the required secrets.
 
 For example, if your Consul on Kubernetes servers need access to [Consul Server TLS credentials](/docs/k8s/deployment-configurations/vault/data-integration/server-tls) and an [Enterprise license](/docs/k8s/deployment-configurations/vault/data-integration/enterprise-license):
 
