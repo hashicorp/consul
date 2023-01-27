@@ -39,9 +39,10 @@ Usage: `consul tls ca create [options]`
   Results in rejecting certificates for other DNS than specified. Can be used
   multiple times. Only used in combination with `-name-constraint`.
 
-- `-days=<int>` - Provide number of days for which the CA will be valid. Defaults to 5 years.
+- `-days=<int>` - Number of days the CA is valid for. Defaults to 1825 days (approximately 5 years).
 
-- `-domain=<string>` - Domain of consul cluster. Only used when `-name-constraint` is set. Defaults to consul.
+- `-domain=<string>` - The DNS domain of the Consul cluster that agents are configured with.
+  Defaults to `consul`. Only used when `-name-constraint` is set.
   Additional domains can be passed with `-additional-name-constraint`.
 
 - `-name-constraint` - Enables [X.509 name constraints](https://www.rfc-editor.org/rfc/rfc5280#page-40) for the CA.
