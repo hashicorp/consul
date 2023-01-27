@@ -258,7 +258,7 @@ func TestValidate(t *testing.T) {
 }
 
 func getConfig(t *testing.T) *xdscommon.IndexedResources {
-	file, err := os.Open("testdata/config.json")
+	file, err := os.Open("testdata/validateupstream/config.json")
 	require.NoError(t, err)
 	jsonBytes, err := io.ReadAll(file)
 	require.NoError(t, err)
@@ -268,7 +268,7 @@ func getConfig(t *testing.T) *xdscommon.IndexedResources {
 }
 
 func getClusters(t *testing.T) *envoy_admin_v3.Clusters {
-	file, err := os.Open("testdata/clusters.json")
+	file, err := os.Open("testdata/validateupstream/clusters.json")
 	require.NoError(t, err)
 	jsonBytes, err := io.ReadAll(file)
 	require.NoError(t, err)

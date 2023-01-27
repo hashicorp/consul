@@ -56,7 +56,7 @@ func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
 func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) error {
 	em := acl.NewEnterpriseMetaWithPartition(service.Partition, service.Namespace)
-	svc := structs.ServiceName{Name: service.Name, EnterpriseMeta: em}
+	svc := structs.NewServiceName(service.Name, &em)
 
 	// The envoyID is used to identify which listener and filter matches the upstream service.
 	var envoyID string
