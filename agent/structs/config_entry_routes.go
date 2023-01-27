@@ -24,7 +24,9 @@ type HTTPRouteConfigEntry struct {
 	// of resources, which may include routers, splitters, filters, etc.
 	Name string
 
-	Meta               map[string]string `json:",omitempty"`
+	Meta map[string]string `json:",omitempty"`
+	// Status is the asynchronous reconciliation status which an HTTPRoute propagates to the user.
+	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -93,6 +95,20 @@ func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
+var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
+
+func (e *HTTPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *HTTPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *HTTPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
+}
+
 // TCPRouteConfigEntry manages the configuration for a TCP route
 // with the given name.
 type TCPRouteConfigEntry struct {
@@ -111,7 +127,7 @@ type TCPRouteConfigEntry struct {
 	Services []TCPService
 
 	Meta map[string]string `json:",omitempty"`
-	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	// Status is the asynchronous reconciliation status which a TCPRoute propagates to the user.
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -196,6 +212,20 @@ func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+var _ ControlledConfigEntry = (*TCPRouteConfigEntry)(nil)
+
+func (e *TCPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *TCPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *TCPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
 }
 
 // TCPService is a service reference for a TCPRoute

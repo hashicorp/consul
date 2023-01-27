@@ -837,6 +837,20 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
+var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
+
+func (e *APIGatewayConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *APIGatewayConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *APIGatewayConfigEntry) DefaultStatus() Status {
+	return Status{}
+}
+
 // APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
 type APIGatewayListenerProtocol string
 
