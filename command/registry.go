@@ -2,10 +2,11 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
@@ -100,7 +101,6 @@ import (
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
-	peerexport "github.com/hashicorp/consul/command/peering/export"
 	peergenerate "github.com/hashicorp/consul/command/peering/generate"
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
@@ -108,6 +108,7 @@ import (
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
+	svcsexport "github.com/hashicorp/consul/command/services/export"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
@@ -227,7 +228,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
 		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
 		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
-		entry{"peering export", func(ui cli.Ui) (cli.Command, error) { return peerexport.New(ui), nil }},
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
@@ -235,6 +235,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
+		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},

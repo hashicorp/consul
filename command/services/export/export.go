@@ -24,9 +24,8 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	serviceName      string
-	serviceNamespace string
-	peerNames        string
+	serviceName string
+	peerNames   string
 }
 
 func (c *cmd) init() {
@@ -34,9 +33,8 @@ func (c *cmd) init() {
 
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.serviceName, "service", "", "(Required) Specify the name of the service you want to export.")
-	c.flags.StringVar(&c.serviceNamespace, "serviceNamespace", "", "(Optional) Specify the Namespace of the service, you want to export. Enterprise only feature")
-	c.flags.StringVar(&c.peerNames, "peers", "", "(Required) A list of peers to export the service to, formatted as a comma-separated list.")
+	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
+	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "(Required) A list of peers to export the service to, formatted as a comma-separated list.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -50,12 +48,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.serviceName == "" {
-		c.UI.Error("Missing the required -service flag")
+		c.UI.Error("Missing the required -name flag")
 		return 1
 	}
 
 	if c.peerNames == "" {
-		c.UI.Error("Missing the required -peers flag")
+		c.UI.Error("Missing the required -consumer-peers flag")
 		return 1
 	}
 
@@ -85,7 +83,6 @@ func (c *cmd) Run(args []string) int {
 			Services: []api.ExportedService{
 				{
 					Name:      c.serviceName,
-					Namespace: c.serviceNamespace,
 					Consumers: buildConsumersFromPeerNames(peerNames),
 				},
 			},
@@ -109,7 +106,7 @@ func (c *cmd) Run(args []string) int {
 
 		for i, service := range cfg.Services {
 
-			if service.Name == c.serviceName && service.Namespace == c.serviceNamespace {
+			if service.Name == c.serviceName {
 
 				serviceExists = true
 				for _, peerName := range peerNames {
@@ -132,7 +129,6 @@ func (c *cmd) Run(args []string) int {
 		if !serviceExists {
 			cfg.Services = append(cfg.Services, api.ExportedService{
 				Name:      c.serviceName,
-				Namespace: c.serviceNamespace,
 				Consumers: buildConsumersFromPeerNames(peerNames),
 			})
 		}
@@ -175,13 +171,13 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Export a service"
 	help     = `
-Usage: consul peering export [options] -service <service name> -peers <other cluster name>
+Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
 
   Export a service. The peers provided will be used locally by
   this cluster to refer to the other cluster where the services will be exported. 
 
   Example:
 
-  $ consul peering export -service=web -peers=other-cluster
+  $ consul services export -name=web -consumer-peers=other-cluster
 `
 )
