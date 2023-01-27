@@ -107,7 +107,10 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort := node.ClaimAdminPort()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,

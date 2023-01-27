@@ -101,7 +101,10 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort := node.ClaimAdminPort()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
