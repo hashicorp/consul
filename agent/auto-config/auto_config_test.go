@@ -317,7 +317,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 	mcfg.tokens.On("UpdateAgentToken", "secret", token.TokenSourceConfig).Return(true).Once()
 
 	// prepopulation is going to grab the token to populate the correct cache key
-	mcfg.tokens.On("AgentToken").Return("secret").Times(0)
+	mcfg.tokens.On("TokenForAgent").Return("secret").Times(0)
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -349,7 +349,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 	mcfg.tokens.On("UpdateAgentToken", "secret", token.TokenSourceConfig).Return(true).Once()
 
 	// prepopulation is going to grab the token to populate the correct cache key
-	mcfg.tokens.On("AgentToken").Return("secret").Times(0)
+	mcfg.tokens.On("TokenForAgent").Return("secret").Times(0)
 
 	// no server provider
 	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0)
@@ -431,7 +431,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	mcfg.tokens.On("UpdateAgentToken", "secret", token.TokenSourceConfig).Return(true).Once()
 
 	// prepopulation is going to grab the token to populate the correct cache key
-	mcfg.tokens.On("AgentToken").Return("secret").Times(0)
+	mcfg.tokens.On("TokenForAgent").Return("secret").Times(0)
 
 	// no server provider
 	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0)
@@ -534,7 +534,7 @@ func TestGoRoutineManagement(t *testing.T) {
 	mcfg.Config.Loader = loader.Load
 
 	// prepopulation is going to grab the token to populate the correct cache key
-	mcfg.tokens.On("AgentToken").Return("secret").Times(0)
+	mcfg.tokens.On("TokenForAgent").Return("secret").Times(0)
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -688,13 +688,13 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 	// and then again when setting up the cache watch for the leaf cert.
 	// However one of those expectations is setup in the expectInitialTLS
 	// method so we only need one more here
-	mcfg.tokens.On("AgentToken").Return(originalToken).Once()
+	mcfg.tokens.On("TokenForAgent").Return(originalToken).Once()
 
 	if autoEncrypt {
 		// when using AutoEncrypt we also have to grab the token once more
 		// when setting up the initial RPC as the ACL token is what is used
 		// to authorize the request.
-		mcfg.tokens.On("AgentToken").Return(originalToken).Once()
+		mcfg.tokens.On("TokenForAgent").Return(originalToken).Once()
 	}
 
 	// this is called once during Start to initialze the token watches
@@ -889,7 +889,7 @@ func TestTokenUpdate(t *testing.T) {
 	})
 
 	// this will be retrieved once when resetting the leaf cert watch
-	testAC.mcfg.tokens.On("AgentToken").Return(newToken).Once()
+	testAC.mcfg.tokens.On("TokenForAgent").Return(newToken).Once()
 
 	// send the notification about the token update
 	testAC.tokenUpdates <- struct{}{}

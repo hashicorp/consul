@@ -348,7 +348,11 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 		EnterpriseMeta:       ns.EnterpriseMeta,
 	}
 	if req.QueryOptions.Token == "" {
-		req.QueryOptions.Token = bd.Tokens.AgentToken()
+		tok, isAgentToken := bd.Tokens.AgentOrUserToken()
+		req.QueryOptions.Token = tok
+		if !isAgentToken {
+			bd.Logger.Warn("Agent ACL token has not been set")
+		}
 	}
 	return req
 }

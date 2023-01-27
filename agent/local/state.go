@@ -1015,11 +1015,15 @@ func (l *State) Stats() map[string]string {
 // registered to this node, and updates the local entries as InSync or Deleted.
 func (l *State) updateSyncState() error {
 	// Get all checks and services from the master
+	token, isAgentToken := l.tokens.AgentOrUserToken()
+	if !isAgentToken {
+		l.logger.Warn("Agent ACL token has not been set")
+	}
 	req := structs.NodeSpecificRequest{
 		Datacenter: l.config.Datacenter,
 		Node:       l.config.NodeName,
 		QueryOptions: structs.QueryOptions{
-			Token:            l.tokens.AgentToken(),
+			Token:            token,
 			AllowStale:       true,
 			MaxStaleDuration: fullSyncReadMaxStale,
 		},
@@ -1298,7 +1302,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 	// permission and node:write allows deregistration of services/checks on
 	// that node. Because the service token may have been deleted, using the
 	// agent token without fallback logic is a bit faster, simpler, and safer.
-	st := l.tokens.AgentToken()
+	st := l.tokens.TokenForAgent()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1351,7 +1355,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 
 	// Always use the agent token for deletion. Refer to deleteService() for
 	// an explanation.
-	ct := l.tokens.AgentToken()
+	ct := l.tokens.TokenForAgent()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1558,7 +1562,10 @@ func (l *State) syncCheck(key structs.CheckID) error {
 }
 
 func (l *State) syncNodeInfo() error {
-	at := l.tokens.AgentToken()
+	token, isAgentToken := l.tokens.AgentOrUserToken()
+	if !isAgentToken {
+		l.logger.Warn("Agent ACL token has not been set")
+	}
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
 		ID:              l.config.NodeID,
@@ -1567,7 +1574,7 @@ func (l *State) syncNodeInfo() error {
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
 		EnterpriseMeta:  l.agentEnterpriseMeta,
-		WriteRequest:    structs.WriteRequest{Token: at},
+		WriteRequest:    structs.WriteRequest{Token: token},
 	}
 	var out struct{}
 	err := l.Delegate.RPC(context.Background(), "Catalog.Register", &req, &out)
@@ -1581,7 +1588,7 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
-		accessorID := l.aclAccessorID(at)
+		accessorID := l.aclAccessorID(token)
 		l.logger.Warn("Node info update blocked by ACLs",
 			"node", l.config.NodeID,
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))

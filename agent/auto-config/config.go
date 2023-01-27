@@ -47,7 +47,7 @@ type TLSConfigurator interface {
 
 // TokenStore is an interface of the methods we will need to use from the token.Store.
 type TokenStore interface {
-	AgentToken() string
+	TokenForAgent() string
 	UpdateAgentToken(secret string, source token.TokenSource) bool
 	Notify(kind token.TokenKind) token.Notifier
 	StopNotify(notifier token.Notifier)

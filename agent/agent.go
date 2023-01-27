@@ -1945,22 +1945,25 @@ OUTER:
 			}
 
 			for segment, coord := range cs {
-				agentToken := a.tokens.AgentToken()
+				token, isAgentToken := a.tokens.AgentOrUserToken()
 				req := structs.CoordinateUpdateRequest{
 					Datacenter:     a.config.Datacenter,
 					Node:           a.config.NodeName,
 					Segment:        segment,
 					Coord:          coord,
 					EnterpriseMeta: *a.AgentEnterpriseMeta(),
-					WriteRequest:   structs.WriteRequest{Token: agentToken},
+					WriteRequest:   structs.WriteRequest{Token: token},
 				}
 				var reply struct{}
 				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						accessorID := a.aclAccessorID(agentToken)
+						accessorID := a.aclAccessorID(token)
 						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
+					}
+					if !isAgentToken {
+						a.logger.Warn("Agent ACL token has not been set")
 					}
 					continue OUTER
 				}

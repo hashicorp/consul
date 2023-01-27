@@ -194,9 +194,14 @@ func newMockTokenStore(t *testing.T) *mockTokenStore {
 	return &m
 }
 
-func (m *mockTokenStore) AgentToken() string {
+func (m *mockTokenStore) TokenForAgent() string {
 	ret := m.Called()
 	return ret.String(0)
+}
+
+func (m *mockTokenStore) AgentOrUserToken() (string, bool) {
+	ret := m.Called()
+	return ret.String(0), true
 }
 
 func (m *mockTokenStore) UpdateAgentToken(secret string, source token.TokenSource) bool {
@@ -338,7 +343,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 
 	// when prepopulating the cert in the cache we grab the token so
 	// we should expec that here
-	m.tokens.On("AgentToken").Return(token).Once()
+	m.tokens.On("TokenForAgent").Return(token).Once()
 }
 
 func (m *mockedConfig) setupInitialTLS(t *testing.T, agentName, datacenter, token string) (*structs.IndexedCARoots, *structs.IssuedCert, []string) {

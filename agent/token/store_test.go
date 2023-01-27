@@ -130,7 +130,7 @@ func TestStore_RegularTokens(t *testing.T) {
 			require.False(t, s.UpdateConfigFileRegistrationToken(tt.set.registration, tt.set.registrationSource))
 
 			require.Equal(t, tt.effective.user, s.UserToken())
-			require.Equal(t, tt.effective.agent, s.AgentToken())
+			require.Equal(t, tt.effective.agent, s.TokenForAgent())
 			require.Equal(t, tt.effective.recovery, s.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, s.ReplicationToken())
 			require.Equal(t, tt.effective.registration, s.ConfigFileRegistrationToken())

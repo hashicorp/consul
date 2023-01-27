@@ -192,7 +192,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 
 	// The following are called once for each round through the auto-encrypt initial certs outer loop
 	// (not the per-host direct rpc attempts but the one involving the RetryWaiter)
-	mcfg.tokens.On("AgentToken").Return(token).Times(2)
+	mcfg.tokens.On("TokenForAgent").Return(token).Times(2)
 	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(2)
 
 	request := structs.CASignRequest{
@@ -281,7 +281,7 @@ func TestAutoEncrypt_InitialConfiguration(t *testing.T) {
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, nodeName, datacenter, token)
 
 	// prepopulation is going to grab the token to populate the correct cache key
-	mcfg.tokens.On("AgentToken").Return(token).Times(0)
+	mcfg.tokens.On("TokenForAgent").Return(token).Times(0)
 
 	// no server provider
 	mcfg.serverProvider.On("FindLANServer").Return(&metadata.Server{Addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}}).Times(1)
@@ -361,7 +361,7 @@ func TestAutoEncrypt_TokenUpdate(t *testing.T) {
 	})
 
 	// this will be retrieved once when resetting the leaf cert watch
-	testAC.mcfg.tokens.On("AgentToken").Return(newToken).Once()
+	testAC.mcfg.tokens.On("TokenForAgent").Return(newToken).Once()
 
 	// send the notification about the token update
 	testAC.tokenUpdates <- struct{}{}
@@ -515,7 +515,7 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 	}
 
 	// the fallback routine to perform auto-encrypt again will need to grab this
-	testAC.mcfg.tokens.On("AgentToken").Return(testAC.originalToken).Once()
+	testAC.mcfg.tokens.On("TokenForAgent").Return(testAC.originalToken).Once()
 
 	testAC.mcfg.directRPC.On(
 		"RPC",

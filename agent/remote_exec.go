@@ -250,7 +250,11 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 			AllowStale: true, // Stale read for scale! Retry on failure.
 		},
 	}
-	get.Token = a.tokens.AgentToken()
+	tok, isAgentToken := a.tokens.AgentOrUserToken()
+	get.Token = tok
+	if !isAgentToken {
+		a.logger.Warn("Agent ACL token has not been set")
+	}
 	var out structs.IndexedDirEntries
 QUERY:
 	if err := a.RPC(context.Background(), "KVS.Get", &get, &out); err != nil {
@@ -317,7 +321,11 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 			Session: event.Session,
 		},
 	}
-	write.Token = a.tokens.AgentToken()
+	tok, isAgentToken := a.tokens.AgentOrUserToken()
+	write.Token = tok
+	if !isAgentToken {
+		a.logger.Warn("Agent ACL token has not been set")
+	}
 	var success bool
 	if err := a.RPC(context.Background(), "KVS.Apply", &write, &success); err != nil {
 		return err

@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestStore_Load(t *testing.T) {
@@ -26,7 +27,7 @@ func TestStore_Load(t *testing.T) {
 			ACLConfigFileRegistrationToken: "echo",
 		}
 		require.NoError(t, store.Load(cfg, logger))
-		require.Equal(t, "alfa", store.AgentToken())
+		require.Equal(t, "alfa", store.TokenForAgent())
 		require.Equal(t, "bravo", store.AgentRecoveryToken())
 		require.Equal(t, "charlie", store.UserToken())
 		require.Equal(t, "delta", store.ReplicationToken())
@@ -45,7 +46,7 @@ func TestStore_Load(t *testing.T) {
 		// ensures no error for missing persisted tokens file
 		require.NoError(t, store.Load(cfg, logger))
 		require.Equal(t, "echo", store.UserToken())
-		require.Equal(t, "foxtrot", store.AgentToken())
+		require.Equal(t, "foxtrot", store.TokenForAgent())
 		require.Equal(t, "golf", store.AgentRecoveryToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
 		require.Equal(t, "india", store.ConfigFileRegistrationToken())
@@ -74,7 +75,7 @@ func TestStore_Load(t *testing.T) {
 
 		// no updates since token persistence is not enabled
 		require.Equal(t, "echo", store.UserToken())
-		require.Equal(t, "foxtrot", store.AgentToken())
+		require.Equal(t, "foxtrot", store.TokenForAgent())
 		require.Equal(t, "golf", store.AgentRecoveryToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
 		require.Equal(t, "delta", store.ConfigFileRegistrationToken())
@@ -82,7 +83,7 @@ func TestStore_Load(t *testing.T) {
 		cfg.EnablePersistence = true
 		require.NoError(t, store.Load(cfg, logger))
 
-		require.Equal(t, "india", store.AgentToken())
+		require.Equal(t, "india", store.TokenForAgent())
 		require.Equal(t, "juliett", store.AgentRecoveryToken())
 		require.Equal(t, "kilo", store.UserToken())
 		require.Equal(t, "lima", store.ReplicationToken())
@@ -128,7 +129,7 @@ func TestStore_Load(t *testing.T) {
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
-		require.Equal(t, "mike", store.AgentToken())
+		require.Equal(t, "mike", store.TokenForAgent())
 		require.Equal(t, "november", store.AgentRecoveryToken())
 		require.Equal(t, "oscar", store.UserToken())
 		require.Equal(t, "papa", store.ReplicationToken())
@@ -154,7 +155,7 @@ func TestStore_Load(t *testing.T) {
 		require.NoError(t, os.WriteFile(tokenFile, []byte(tokens), 0600))
 		require.NoError(t, store.Load(cfg, logger))
 
-		require.Equal(t, "uniform", store.AgentToken())
+		require.Equal(t, "uniform", store.TokenForAgent())
 		require.Equal(t, "victor", store.AgentRecoveryToken())
 		require.Equal(t, "whiskey", store.UserToken())
 		require.Equal(t, "zulu", store.ReplicationToken())
@@ -178,7 +179,7 @@ func TestStore_Load(t *testing.T) {
 		require.Contains(t, err.Error(), "failed to decode tokens file")
 
 		require.Equal(t, "one", store.UserToken())
-		require.Equal(t, "two", store.AgentToken())
+		require.Equal(t, "two", store.TokenForAgent())
 		require.Equal(t, "three", store.AgentRecoveryToken())
 		require.Equal(t, "four", store.ReplicationToken())
 		require.Equal(t, "five", store.ConfigFileRegistrationToken())
@@ -201,7 +202,7 @@ func TestStore_Load(t *testing.T) {
 		require.Contains(t, err.Error(), "failed to decode tokens file")
 
 		require.Equal(t, "alfa", store.UserToken())
-		require.Equal(t, "bravo", store.AgentToken())
+		require.Equal(t, "bravo", store.TokenForAgent())
 		require.Equal(t, "charlie", store.AgentRecoveryToken())
 		require.Equal(t, "foxtrot", store.ReplicationToken())
 		require.Equal(t, "golf", store.ConfigFileRegistrationToken())

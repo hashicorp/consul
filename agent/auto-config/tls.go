@@ -197,7 +197,7 @@ func (ac *AutoConfig) leafCertRequest() cachetype.ConnectCALeafRequest {
 		Agent:          ac.config.NodeName,
 		DNSSAN:         ac.getDNSSANs(),
 		IPSAN:          ac.getIPSANs(),
-		Token:          ac.acConfig.Tokens.AgentToken(),
+		Token:          ac.acConfig.Tokens.TokenForAgent(),
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ac.config.PartitionOrEmpty()),
 	}
 }

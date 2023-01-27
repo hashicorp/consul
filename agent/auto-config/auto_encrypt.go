@@ -37,7 +37,7 @@ func (ac *AutoConfig) autoEncryptInitialCerts(ctx context.Context) (*structs.Sig
 
 func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key string) (*structs.SignedResponse, error) {
 	request := structs.CASignRequest{
-		WriteRequest: structs.WriteRequest{Token: ac.acConfig.Tokens.AgentToken()},
+		WriteRequest: structs.WriteRequest{Token: ac.acConfig.Tokens.TokenForAgent()},
 		Datacenter:   ac.config.Datacenter,
 		CSR:          csr,
 	}

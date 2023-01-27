@@ -6199,11 +6199,11 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 	}{
 		{
 			path:       "acl_agent_token",
-			tokenGetFn: (*token.Store).AgentToken,
+			tokenGetFn: (*token.Store).TokenForAgent,
 		},
 		{
 			path:       "agent",
-			tokenGetFn: (*token.Store).AgentToken,
+			tokenGetFn: (*token.Store).TokenForAgent,
 		},
 		{
 			path:       "acl_token",
@@ -6542,7 +6542,7 @@ func TestAgent_Token(t *testing.T) {
 				return
 			}
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
-			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
+			require.Equal(t, tt.effective.agent, a.tokens.TokenForAgent())
 			require.Equal(t, tt.effective.agentRecovery, a.tokens.AgentRecoveryToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
 			require.Equal(t, tt.effective.registration, a.tokens.ConfigFileRegistrationToken())

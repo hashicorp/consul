@@ -1,9 +1,8 @@
 package token
 
 import (
-	"sync"
-
 	"crypto/subtle"
+	"sync"
 )
 
 type TokenSource bool
@@ -221,19 +220,25 @@ func (t *Store) UserToken() string {
 	return t.userToken
 }
 
-// AgentToken returns the best token to use for internal agent operations.
-func (t *Store) AgentToken() string {
+// AgentOrUserToken returns the best token to use for internal agent operations, and whether that token is the agent token.
+func (t *Store) AgentOrUserToken() (token string, isAgentToken bool) {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
 	if tok := t.enterpriseAgentToken(); tok != "" {
-		return tok
+		return tok, true
 	}
 
 	if t.agentToken != "" {
-		return t.agentToken
+		return t.agentToken, true
 	}
-	return t.userToken
+	return t.userToken, false
+}
+
+// TokenForAgent returns the best token to use for internal agent operations.
+func (t *Store) TokenForAgent() (token string) {
+	tok, _ := t.AgentOrUserToken()
+	return tok
 }
 
 func (t *Store) AgentRecoveryToken() string {

@@ -234,7 +234,7 @@ func TestAgent_TokenStore(t *testing.T) {
 	if got, want := a.tokens.UserToken(), "user"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.AgentToken(), "agent"; got != want {
+	if got, want := a.tokens.TokenForAgent(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
 	if got, want := a.tokens.IsAgentRecoveryToken("recovery"), true; got != want {
@@ -5258,7 +5258,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
 
 	// spot check that we now have an ACL token
-	require.NotEmpty(t, client.tokens.AgentToken())
+	require.NotEmpty(t, client.tokens.TokenForAgent())
 
 	// grab the existing cert
 	cert1 := client.Agent.tlsConfigurator.Cert()
