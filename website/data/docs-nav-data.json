@@ -313,9 +313,13 @@
         "title": "Define",
         "routes": [
           {
+            "title": "Define Services",
+            "path": "services/usage/define-services"
+          },
+          {
             "title": "Define Health Checks",
             "path": "services/usage/checks"
-          }   
+          }
         ]
       },
       {
