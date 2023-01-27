@@ -73,7 +73,7 @@ func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplat
 	var plugin Validate
 
 	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
-		return nil, fmt.Errorf("expected extension name '/builtin/proxy/validate' but got %q", name)
+		return nil, fmt.Errorf("expected extension name 'builtin/proxy/validate' but got %q", name)
 	}
 
 	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]

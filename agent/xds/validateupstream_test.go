@@ -257,6 +257,8 @@ func TestValidate(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: Manually inspect the config and clusters files and hardcode the list of expected resource names for higher
+// confidence in these functions.
 func getConfig(t *testing.T) *xdscommon.IndexedResources {
 	file, err := os.Open("testdata/validateupstream/config.json")
 	require.NoError(t, err)
