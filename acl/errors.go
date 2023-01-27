@@ -96,9 +96,7 @@ func (e PermissionDeniedError) Error() string {
 		return message.String()
 	}
 
-	if e.Accessor == "" {
-		message.WriteString(": provided token")
-	} else if e.Accessor == AnonymousTokenID {
+	if e.Accessor == AnonymousTokenID {
 		message.WriteString(": anonymous token")
 	} else {
 		fmt.Fprintf(&message, ": token with AccessorID '%s'", e.Accessor)

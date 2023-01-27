@@ -39,6 +39,10 @@ func (g ConnectContainer) GetAddr() (string, int) {
 	return g.ip, g.appPort
 }
 
+func (g ConnectContainer) Restart() error {
+	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
+}
+
 func (g ConnectContainer) GetLogs() (string, error) {
 	rc, err := g.container.Logs(context.Background())
 	if err != nil {
@@ -107,7 +111,10 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort := node.ClaimAdminPort()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,

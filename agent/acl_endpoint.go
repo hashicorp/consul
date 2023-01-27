@@ -428,10 +428,8 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 	}
 
 	if !create {
-		if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
+		if args.ACLToken.AccessorID != tokenID {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
-		} else if args.ACLToken.AccessorID == "" {
-			args.ACLToken.AccessorID = tokenID
 		}
 	}
 
