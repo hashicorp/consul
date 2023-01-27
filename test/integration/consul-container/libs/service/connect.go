@@ -89,13 +89,13 @@ func (g ConnectContainer) GetAdminAddr() (string, int) {
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarServiceName)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
@@ -174,11 +174,13 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		ip:          info.IP,
 		appPort:     info.MappedPorts[appPortStr].Int(),
 		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: name,
+		serviceName: sidecarServiceName,
 	}
 
-	fmt.Printf("NewConnectService: name %s, bind port %d, public listener port %d\\n\"",
+	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
 		serviceName, out.appPort, serviceBindPort)
+	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
+		sidecarServiceName, out.adminPort, adminPort)
 
 	return out, nil
 }

@@ -49,6 +49,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		acceptingClient, err := acceptingCluster.GetClient(nil, false)
 		require.NoError(t, err)
 
+		_, gatewayAdminPort := dialing.Gateway.GetAdminAddr()
+
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
 		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
@@ -61,6 +63,15 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		// POST upgrade validation
 		//  - Register a new static-client service in dialing cluster and
 		//  - set upstream to static-server service in peered cluster
+
+		// Restart the gateway
+		err = dialing.Gateway.Restart()
+		require.NoError(t, err)
+		// Restarted gateway should not have any measurement on data plane traffic
+		libassert.AssertEnvoyMetricAtMost(t, gatewayAdminPort,
+			"cluster.static-server.default.default.accepting-to-dialer.external",
+			"upstream_cx_total", 0)
+
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)
 		_, port := clientSidecarService.GetAddr()
