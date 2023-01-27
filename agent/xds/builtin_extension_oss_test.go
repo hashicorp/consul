@@ -93,6 +93,14 @@ end`,
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
+		{
+			name: "lambda-connect-proxy-tproxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				extra := makeLambdaServiceDefaults(false)
+				extra.Name = "google"
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, extra)
+			},
+		},
 		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.
 		{
 			name: "lambda-connect-proxy-with-terminating-gateway-upstream",
