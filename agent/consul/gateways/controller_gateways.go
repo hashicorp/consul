@@ -95,7 +95,13 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	if err != nil {
 		return err
 	}
-	boundGateways, routeErrors := BindRoutesToGateways(wrapGatewaysInSlice(boundGatewayEntry), routes...)
+
+	metaGateway := gatewayMeta{
+		BoundGateway: boundGatewayEntry,
+		Gateway:      gatewayEntry,
+	}
+
+	boundGateways, routeErrors := BindRoutesToGateways(wrapSlice(&metaGateway), routes...)
 
 	if len(boundGateways) > 1 {
 		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
@@ -109,9 +115,6 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	}
 
 	boundGateway := boundGateways[0]
-	fmt.Println(boundGateway)
-	fmt.Println(boundGatewayEntry)
-	fmt.Println("hellp")
 
 	// now update the gateway state
 	r.logger.Debug("persisting gateway state", "state", boundGateway)
@@ -147,8 +150,8 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 }
 
 // convenience wrapper
-func wrapGatewaysInSlice(gateways ...*structs.BoundAPIGatewayConfigEntry) []*structs.BoundAPIGatewayConfigEntry {
-	return gateways
+func wrapSlice(items ...*gatewayMeta) []*gatewayMeta {
+	return items
 }
 
 func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []structs.ResourceReference) structs.ConfigEntry {
