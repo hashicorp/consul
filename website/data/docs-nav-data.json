@@ -336,6 +336,10 @@
           {
             "title": "Configure Consul DNS Behavior",
             "path": "services/discovery/dns-configuration"
+          },
+          {
+            "title": "Enable Static DNS Lookups",
+            "path": "services/discovery/dns-static-lookups"
           }
         ]
       }
