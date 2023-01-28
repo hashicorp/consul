@@ -340,6 +340,10 @@
           {
             "title": "Enable Static DNS Lookups",
             "path": "services/discovery/dns-static-lookups"
+          },
+          {
+            "title": "Enable Dynamic DNS Lookups",
+            "path": "services/discovery/dns-dynamic-lookups"
           }
         ]
       }
