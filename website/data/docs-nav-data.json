@@ -353,6 +353,10 @@
           {
             "title": "Services Configuration Overview",
             "path": "services/configuration/services-configuration-overview"
+          },
+          {
+            "title": "Services Configuration Reference",
+            "path": "services/configuration/services-configuration-reference"
           }
         ]
       }
