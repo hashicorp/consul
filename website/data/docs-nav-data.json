@@ -346,6 +346,15 @@
             "path": "services/discovery/dns-dynamic-lookups"
           }
         ]
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Services Configuration Overview",
+            "path": "services/configuration/services-configuration-overview"
+          }
+        ]
       }
     ]
   },
