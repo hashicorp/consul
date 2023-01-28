@@ -215,7 +215,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 		require.Equal(t, token.Hash, stub.Hash)
 		require.Equal(t, token.CreateIndex, stub.CreateIndex)
 		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
-		require.False(t, stub.Legacy)
 	})
 }
 

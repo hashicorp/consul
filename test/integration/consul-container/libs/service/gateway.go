@@ -79,6 +79,23 @@ func (g gatewayContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
+func (g gatewayContainer) Restart() error {
+	_, err := g.container.State(context.Background())
+	if err != nil {
+		return fmt.Errorf("error get gateway state %s", err)
+	}
+
+	err = g.container.Stop(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("error stop gateway %s", err)
+	}
+	err = g.container.Start(context.Background())
+	if err != nil {
+		return fmt.Errorf("error start gateway %s", err)
+	}
+	return nil
+}
+
 func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
@@ -101,7 +118,10 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort := node.ClaimAdminPort()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,

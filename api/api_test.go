@@ -915,7 +915,7 @@ func TestAPI_Headers(t *testing.T) {
 	`))
 	// ACL support is disabled
 	require.Error(t, err)
-	require.Equal(t, "text/plain", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 
 	_, _, err = c.Event().Fire(&UserEvent{
 		Name:    "test",

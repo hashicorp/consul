@@ -3,9 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
-
-	"github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 
@@ -96,7 +93,7 @@ func CreateAndRegisterStaticClientSidecar(
 						DestinationName:  StaticServerServiceName,
 						DestinationPeer:  peerName,
 						LocalBindAddress: "0.0.0.0",
-						LocalBindPort:    5000,
+						LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
 						MeshGateway: api.MeshGatewayConfig{
 							Mode: mgwMode,
 						},
@@ -111,7 +108,7 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, 5000, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, libcluster.ServiceUpstreamLocalBindPort, node)
 	if err != nil {
 		return nil, err
 	}
@@ -123,22 +120,4 @@ func CreateAndRegisterStaticClientSidecar(
 	deferClean.Reset()
 
 	return clientConnectProxy, nil
-}
-
-func GetEnvoyConfigDump(port int, filter string) (string, error) {
-	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://localhost:%d/config_dump?%s", port, filter)
-
-	res, err := client.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
 }

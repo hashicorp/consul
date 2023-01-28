@@ -13,6 +13,8 @@ import (
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
 func TestLeadershipMetrics(t *testing.T) {
+	t.Parallel()
+
 	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,

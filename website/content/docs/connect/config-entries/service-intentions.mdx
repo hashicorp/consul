@@ -14,7 +14,7 @@ authorization for both networking layer 4 (e.g. TCP) and networking layer 7
 (e.g. HTTP).
 
 Service intentions config entries represent a collection of
-[intentions](/docs/connect/intentions) sharing a specific destination. All
+[intentions](/consul/docs/connect/intentions) sharing a specific destination. All
 intentions governing access to a specific destination are stored in a single
 `service-intentions` config entry.
 
@@ -27,8 +27,8 @@ global setting) by defining a low precedence intention for that destination.
 
 L7 intentions within a config entry are restricted to only destination services
 that define their protocol as HTTP-based via a corresponding
-[`service-defaults`](/docs/connect/config-entries/service-defaults) config entry
-or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+[`service-defaults`](/consul/docs/connect/config-entries/service-defaults) config entry
+or globally via [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) .
 
 ## Sample Config Entries
 
@@ -718,7 +718,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-intentions` config entry requires `intentions:read` on the resource.
 
@@ -726,7 +726,7 @@ Creating, updating, or deleting a `service-intentions` config entry requires
 `intentions:write` on the resource.
 
 Intention ACL rules are specified as part of a `service` rule. See [Intention
-Management Permissions](/docs/connect/intentions#intention-management-permissions) for
+Management Permissions](/consul/docs/connect/intentions#intention-management-permissions) for
 more details.
 
 ## Regular Expression Syntax
@@ -734,5 +734,5 @@ more details.
 The actual syntax of the regular expression fields described here is entirely
 proxy-specific.
 
-When using [Envoy](/docs/connect/proxies/envoy) as a proxy, the syntax for
+When using [Envoy](/consul/docs/connect/proxies/envoy) as a proxy, the syntax for
 these fields is [RE2](https://github.com/google/re2/wiki/Syntax).

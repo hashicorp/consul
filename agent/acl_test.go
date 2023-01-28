@@ -180,10 +180,9 @@ func authzFromPolicy(policy *acl.Policy, cfg *acl.Config) (acl.Authorizer, error
 	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
-type testToken struct {
+type testTokenRules struct {
 	token structs.ACLToken
-	// yes the rules can exist on the token itself but that is legacy behavior
-	// that I would prefer these tests not rely on
+	// rules to create associated policy
 	rules string
 }
 
@@ -194,7 +193,7 @@ var (
 	serviceRWSecret = "4a1017a2-f788-4be3-93f2-90566f1340bb"
 	otherRWSecret   = "a38e8016-91b6-4876-b3e7-a307abbb2002"
 
-	testTokens = map[string]testToken{
+	testACLs = map[string]testTokenRules{
 		nodeROSecret: {
 			token: structs.ACLToken{
 				AccessorID: "9df2d1a4-2d07-414e-8ead-6053f56ed2eb",
@@ -233,8 +232,8 @@ var (
 	}
 )
 
-func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	tok, ok := testTokens[token]
+func catalogPolicy(testACL string) (structs.ACLIdentity, acl.Authorizer, error) {
+	tok, ok := testACLs[testACL]
 	if !ok {
 		return nil, nil, acl.ErrNotFound
 	}
@@ -248,8 +247,8 @@ func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	return &tok.token, authz, err
 }
 
-func catalogIdent(token string) (structs.ACLIdentity, error) {
-	tok, ok := testTokens[token]
+func catalogIdent(testACL string) (structs.ACLIdentity, error) {
+	tok, ok := testACLs[testACL]
 	if !ok {
 		return nil, acl.ErrNotFound
 	}

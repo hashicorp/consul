@@ -123,14 +123,4 @@ func init() {
 	registerEndpoint("/v1/status/peers", []string{"GET"}, (*HTTPHandlers).StatusPeers)
 	registerEndpoint("/v1/snapshot", []string{"GET", "PUT"}, (*HTTPHandlers).Snapshot)
 	registerEndpoint("/v1/txn", []string{"PUT"}, (*HTTPHandlers).Txn)
-
-	// Deprecated ACL endpoints, they do nothing but return an error
-	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/rules/translate", []string{"POST"}, (*HTTPHandlers).ACLLegacy)
-	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
 }
