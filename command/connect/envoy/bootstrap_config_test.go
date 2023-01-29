@@ -855,6 +855,30 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "static-clusters-json-with-var-expansion",
+			input: BootstrapConfig{
+				StaticClustersJSON:  `{"foo":"${HOST_IP}", "baz": "qux"}`,
+			},
+			env: []string{"HOST_IP=123.45.67.89"},
+			wantArgs: BootstrapTplArgs{
+				// Should expand the HOST_IP var in the json string
+				StaticClustersJSON: `{"foo":"123.45.67.89", "baz": "qux}`,
+			},
+			wantErr: false,
+		},
+		{
+			name: "static-clusters-json-with-invalid-var-expansion",
+			input: BootstrapConfig{
+				StaticClustersJSON:  `{"foo":"${EXTRA_HOST_IP}", "baz": "qux"}`,
+			},
+			env: []string{"EXTRA_HOST_IP=123.45.67.89"},
+			wantArgs: BootstrapTplArgs{
+				// Should not expand the EXTRA_HOST_IP var in the json string
+				StaticClustersJSON: `{"foo":"${EXTRA_HOST_IP}", "baz": "qux}`,
+			},
+			wantErr: false,
+		},
+		{
 			name: "prometheus-bind-addr-with-prometheus-backend",
 			input: BootstrapConfig{
 				PrometheusBindAddr: "0.0.0.0:9000",
