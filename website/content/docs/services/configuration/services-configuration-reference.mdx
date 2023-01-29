@@ -19,7 +19,7 @@ The following outline shows how to format the configurations in the root `servic
 - [`port`](#port): integer | optional
 - [`tags`](#tags): list of strings | optional
 - [`meta`](#meta): object | optional  
-  - [__custom_meta_key__](#meta.key): string | optional
+  - [__`custom_meta_key`__](#meta): string | optional
 - [`tagged_addresses`](#tagged_addresses): object | optional
   - [`lan`](#tagged_addresses-lan): object | optional
     - [`address`](#tagged_addresses-lan): string | optional
@@ -34,11 +34,11 @@ The following outline shows how to format the configurations in the root `servic
 - [`proxy_destination`](#proxy_destination): string | optional
 - [`proxy`](#proxy): object | optional 
 - [`connect`](#connect): object | optional
-  - [`native`](#connect-native): boolean | optional  
-  - [`sidecar_service`](#connect-sidecar_service): object | optional  
+  - [`native`](#connect): boolean | optional  
+  - [`sidecar_service`](#connect): object | optional  
 - [`weights`](#weights): object | optional
-  - [`passing`](#weights-passing): integer | optional
-  - [`warning`](#weights-warning): integer | optional
+  - [`passing`](#weights): integer | optional
+  - [`warning`](#weights): integer | optional
 - [`token`](#token): string | required if ACLs are enabled
 - [`namespace`](#namespace): string | optional
 

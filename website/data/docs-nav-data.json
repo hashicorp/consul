@@ -357,6 +357,10 @@
           {
             "title": "Services Configuration Reference",
             "path": "services/configuration/services-configuration-reference"
+          },
+          {
+            "title": "Health Checks Configuration Reference",
+            "path": "services/configuration/checks-configuration-reference"
           }
         ]
       }
