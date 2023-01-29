@@ -945,7 +945,6 @@ node "node1" {
 		aclToken := &structs.ACLToken{
 			AccessorID: tokenID,
 			SecretID:   token,
-			Rules:      "",
 		}
 		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 

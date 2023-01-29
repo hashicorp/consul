@@ -23,6 +23,10 @@ import (
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
+// Exposed ports info
+const MaxEnvoyOnNode = 10                 // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000 // local bind Port of service's upstream
+
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
 type consulContainerNode struct {
@@ -55,10 +59,14 @@ func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
 }
 
-func (c *consulContainerNode) ClaimAdminPort() int {
+func (c *consulContainerNode) ClaimAdminPort() (int, error) {
+	if c.nextAdminPortOffset >= MaxEnvoyOnNode {
+		return 0, fmt.Errorf("running out of envoy admin port, max %d, already claimed %d",
+			MaxEnvoyOnNode, c.nextAdminPortOffset)
+	}
 	p := 19000 + c.nextAdminPortOffset
 	c.nextAdminPortOffset++
-	return p
+	return p, nil
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
@@ -425,30 +433,27 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 		Name:       opts.name + "-pod",
 		SkipReaper: skipReaper,
 		ExposedPorts: []string{
-			"8500/tcp",
-			"8501/tcp",
+			"8500/tcp", // Consul HTTP API
+			"8501/tcp", // Consul HTTPs API
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"5000/tcp", // Envoy App Listener
 			"8079/tcp", // Envoy App Listener
 			"8080/tcp", // Envoy App Listener
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
-
-			"19000/tcp", // Envoy Admin Port
-			"19001/tcp", // Envoy Admin Port
-			"19002/tcp", // Envoy Admin Port
-			"19003/tcp", // Envoy Admin Port
-			"19004/tcp", // Envoy Admin Port
-			"19005/tcp", // Envoy Admin Port
-			"19006/tcp", // Envoy Admin Port
-			"19007/tcp", // Envoy Admin Port
-			"19008/tcp", // Envoy Admin Port
-			"19009/tcp", // Envoy Admin Port
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,
+	}
+
+	// Envoy upstream listener
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+
+	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
+	basePort := 19000
+	for i := 0; i < MaxEnvoyOnNode; i++ {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", basePort+i))
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".

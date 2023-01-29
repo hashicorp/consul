@@ -31,7 +31,7 @@ Check whether you are using a `token` query parameter by searching your Consul a
 $ This request used the token query parameter which is deprecated and will be removed in Consul 1.17
 ```
 
-Deprecated authentication using the `token` query parameter: 
+Deprecated authentication using the `token` query parameter:
 
 ```shell-session
 $ curl \
@@ -410,19 +410,9 @@ The `consul acl set-agent-token master` subcommand has been replaced with
 
 ### Legacy ACL System Removal
 
-The legacy ACL system that was deprecated in Consul 1.4.0 has been removed.
+The legacy ACL system that was deprecated in Consul 1.4.0 was removed in 1.11.0.
 Before upgrading you should verify that nothing is still using the legacy ACL
 system. Complete the [Migrate Legacy ACL Tokens](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens) tutorial to learn more.
-
-Due to this removal the following endpoints no longer function:
-
- - [`PUT /v1/acl/create`](/consul/api-docs/acl/legacy#create-acl-token)
- - [`PUT /v1/acl/update`](/consul/api-docs/acl/legacy#update-acl-token)
- - [`PUT /v1/acl/destroy/`](/consul/api-docs/acl/legacy#delete-acl-token)
- - [`GET /v1/acl/info/`](/consul/api-docs/acl/legacy#read-acl-token)
- - [`PUT /v1/acl/clone/`](/consul/api-docs/acl/legacy#clone-acl-token)
- - [`GET /v1/acl/list`](/consul/api-docs/acl/legacy#list-acls)
- - [`GET,POST /v1/acl/rules/translate`](/consul/api-docs/acl#translate-rules)
 
 ### Raft Storage Changes
 
@@ -785,8 +775,6 @@ new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
 with the the new ACL [Token](/consul/api-docs/acl/tokens) and
 [Policy](/consul/api-docs/acl/policies) APIs.
-
-More complete details on how to upgrade "legacy" tokens is available [here](/consul/docs/security/acl/acl-migrate-tokens).
 
 ### Connect Multi-datacenter
 

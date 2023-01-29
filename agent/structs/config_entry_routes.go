@@ -11,6 +11,7 @@ import (
 type BoundRoute interface {
 	ConfigEntry
 	GetParents() []ResourceReference
+	GetProtocol() APIGatewayListenerProtocol
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -23,7 +24,9 @@ type HTTPRouteConfigEntry struct {
 	// of resources, which may include routers, splitters, filters, etc.
 	Name string
 
-	Meta               map[string]string `json:",omitempty"`
+	Meta map[string]string `json:",omitempty"`
+	// Status is the asynchronous reconciliation status which an HTTPRoute propagates to the user.
+	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -37,6 +40,18 @@ func (e *HTTPRouteConfigEntry) GetName() string {
 		return ""
 	}
 	return e.Name
+}
+
+func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
+	return []ResourceReference{}
+}
+
+func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolHTTP
 }
 
 func (e *HTTPRouteConfigEntry) Normalize() error {
@@ -80,6 +95,20 @@ func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
+var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
+
+func (e *HTTPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *HTTPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *HTTPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
+}
+
 // TCPRouteConfigEntry manages the configuration for a TCP route
 // with the given name.
 type TCPRouteConfigEntry struct {
@@ -98,7 +127,7 @@ type TCPRouteConfigEntry struct {
 	Services []TCPService
 
 	Meta map[string]string `json:",omitempty"`
-	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	// Status is the asynchronous reconciliation status which a TCPRoute propagates to the user.
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -113,6 +142,17 @@ func (e *TCPRouteConfigEntry) GetName() string {
 		return ""
 	}
 	return e.Name
+}
+
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	return e.Parents
+}
+
+func (e *TCPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolTCP
 }
 
 func (e *TCPRouteConfigEntry) GetMeta() map[string]string {
@@ -160,13 +200,6 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
-func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
-	if e == nil {
-		return []ResourceReference{}
-	}
-	return e.Parents
-}
-
 func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
 	if e == nil {
 		return &RaftIndex{}
@@ -179,6 +212,20 @@ func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+var _ ControlledConfigEntry = (*TCPRouteConfigEntry)(nil)
+
+func (e *TCPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *TCPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *TCPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
 }
 
 // TCPService is a service reference for a TCPRoute

@@ -60,16 +60,6 @@ Usage: `consul acl token update [options]`
 - `-service-identity=<value>` - Name of a service identity to use for this
   token. May be specified multiple times. Format is the `SERVICENAME` or
   `SERVICENAME:DATACENTER1,DATACENTER2,...`
-- `-upgrade-legacy` - Add new polices to a legacy token replacing all existing
-  rules. This will cause the legacy token to behave exactly like a new token
-  but keep the same secret.
-
-~> When upgrading a legacy token you must ensure that the new policy or policies
-specified grant equivalent or appropriate access for the existing clients using
-this token. You can find examples on how to use the parameter in the [legacy
-token
-migration](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens)
-guide.
 
 - `-format={pretty|json}` - Command output format. The default value is `pretty`.
 

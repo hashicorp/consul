@@ -864,8 +864,9 @@ func TestACL_HTTP(t *testing.T) {
 		t.Run("Update", func(t *testing.T) {
 			originalToken := tokenMap[idMap["token-cloned"]]
 
-			// Accessor and Secret will be filled in
+			// Secret will be filled in
 			tokenInput := &structs.ACLToken{
+				AccessorID:  tokenMap[idMap["token-cloned"]].AccessorID,
 				Description: "Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
 					{

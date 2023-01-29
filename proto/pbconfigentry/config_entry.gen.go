@@ -387,12 +387,20 @@ func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 		return
 	}
 	t.Meta = s.Meta
+	if s.Status != nil {
+		StatusToStructs(s.Status, &t.Status)
+	}
 }
 func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
 		return
 	}
 	s.Meta = t.Meta
+	{
+		var x Status
+		StatusFromStructs(&t.Status, &x)
+		s.Status = &x
+	}
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
