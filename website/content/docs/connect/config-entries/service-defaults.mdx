@@ -216,8 +216,8 @@ Kubernetes-only object that contains the details about the `service-defaults` co
 Specifies the default protocol for the service. In service service mesh use cases, the `protocol` configuration is required to enable the following features and components:
 
 - [observability](/consul/docs/connect/observability)
-- [`service-splitter` configuration entry](/docs/connect/config-entries/service-splitter) 
-- [`service-router` configuration entry](/docs/connect/config-entries/service-router) 
+- [`service-splitter` configuration entry](/consul/docs/connect/config-entries/service-splitter) 
+- [`service-router` configuration entry](/consul/docs/connect/config-entries/service-router) 
 - [L7 intentions](/consul/docs/connect/intentions)
 
 You can specify the following value: 
@@ -546,7 +546,7 @@ Specifies default configurations for exposing HTTP paths through Envoy. Exposing
 Define configurations for exposing paths through Envoy in the `spec.expose` field in YAML for Kubernetes.
 
 ### Expose.Checks
-Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/docs/agent/config/config-files#expose_max_port) configurations. 
+Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations. 
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
