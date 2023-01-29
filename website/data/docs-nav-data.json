@@ -361,6 +361,10 @@
           {
             "title": "Health Checks Configuration Reference",
             "path": "services/configuration/checks-configuration-reference"
+          },
+          {
+            "title": "Service Defaults Configuration Reference",
+            "href": "connect/config-entries/service-defaults"
           }
         ]
       }
