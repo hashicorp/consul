@@ -3322,6 +3322,8 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 
 	gateway := structs.NewServiceName(conf.GetName(), entMeta)
 	switch conf.GetKind() {
+	case structs.APIGateway:
+		noChange, gatewayServices, err = apiConfigGatewayServices(tx, gateway, conf, entMeta)
 	case structs.IngressGateway:
 		noChange, gatewayServices, err = ingressConfigGatewayServices(tx, gateway, conf, entMeta)
 	case structs.TerminatingGateway:
@@ -3479,6 +3481,18 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 	}
 
 	return nil
+}
+
+// TODO For other gateway types, the services can be listed directly from the
+// config entry; however, API Gateway has services attached via the intermediate
+// http-route and tcp-route config entries.
+func apiConfigGatewayServices(
+	tx ReadTxn,
+	gateway structs.ServiceName,
+	conf structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
+	return false, nil, errors.New("implement me")
 }
 
 // ingressConfigGatewayServices constructs a list of GatewayService structs for
