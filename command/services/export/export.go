@@ -36,7 +36,7 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
 	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "A list of peers to export the service to, formatted as a comma-separated list.")
-	c.flags.StringVar(&c.peerNames, "consumer-partitions", "", "A list of partitions to export the service to, formatted as a comma-separated list.")
+	c.flags.StringVar(&c.partitionNames, "consumer-partitions", "", "A list of partitions to export the service to, formatted as a comma-separated list.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -58,22 +58,26 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Must provide -consumer-peers or -consumer-partitions flag")
 		return 1
 	}
+	var peerNames []string
 
-	peerNames := strings.Split(c.peerNames, ",")
-
-	for _, peerName := range peerNames {
-		if peerName == "" {
-			c.UI.Error(fmt.Sprintf("Invalid peer %q", peerName))
-			return 1
+	if c.peerNames != "" {
+		peerNames = strings.Split(c.peerNames, ",")
+		for _, peerName := range peerNames {
+			if peerName == "" {
+				c.UI.Error(fmt.Sprintf("Invalid peer %q", peerName))
+				return 1
+			}
 		}
 	}
+	var partitionNames []string
 
-	partitionNames := strings.Split(c.partitionNames, ",")
-
-	for _, partitionName := range partitionNames {
-		if partitionName == "" {
-			c.UI.Error(fmt.Sprintf("Invalid partition %q", partitionName))
-			return 1
+	if c.partitionNames != "" {
+		partitionNames = strings.Split(c.partitionNames, ",")
+		for _, partitionName := range partitionNames {
+			if partitionName == "" {
+				c.UI.Error(fmt.Sprintf("Invalid partition %q", partitionName))
+				return 1
+			}
 		}
 	}
 
@@ -98,7 +102,7 @@ func (c *cmd) Run(args []string) int {
 				},
 			},
 		}
-
+		c.UI.Info(fmt.Sprintf("%#v", cfg))
 		_, _, err = client.ConfigEntries().Set(&cfg, &api.WriteOptions{})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error creating config entry: %s", err))
@@ -106,7 +110,6 @@ func (c *cmd) Run(args []string) int {
 		}
 
 	} else {
-
 		cfg, ok := entry.(*api.ExportedServicesConfigEntry)
 		if !ok {
 			c.UI.Error(fmt.Sprintf("Existing config entry has incorrect type: %t", entry))
@@ -116,20 +119,16 @@ func (c *cmd) Run(args []string) int {
 		serviceExists := false
 
 		for i, service := range cfg.Services {
-
 			if service.Name == c.serviceName {
-
 				serviceExists = true
 				for _, peerName := range peerNames {
 					peerExists := false
-
 					for _, consumer := range service.Consumers {
 						if consumer.Peer == peerName {
 							peerExists = true
 							break
 						}
 					}
-
 					if !peerExists {
 						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
 					}
@@ -143,7 +142,6 @@ func (c *cmd) Run(args []string) int {
 							break
 						}
 					}
-
 					if !partitionExists {
 						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Partition: partitionName})
 					}
