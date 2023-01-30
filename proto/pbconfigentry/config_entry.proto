@@ -706,6 +706,7 @@ message InlineCertificate {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message HTTPRoute {
   map<string, string> Meta = 1;
+  Status Status = 2;
 }
 
 // mog annotation:
