@@ -63,7 +63,6 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	}
 
 	gatewayEntry := entry.(*structs.APIGatewayConfigEntry)
-	//TODO is this what needs to happen for the validation step
 	err = gatewayEntry.Validate()
 	if err != nil {
 		r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
@@ -111,18 +110,17 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	if len(boundGateways) > 1 {
 		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
 		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
-		panic("helllo my bab")
 
 		return err
-	} else if len(routeErrors) > 0 {
-		fmt.Println(routeErrors)
-		panic("hello my baby hello my darling")
+	} else if len(routeErrors) > 0 && len(boundGateways) > 0 {
+		err := fmt.Errorf("bind returned no gateways and (%d) errors: %v", len(routeErrors), routeErrors)
+		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
+		return err
+
 	}
 
 	if len(boundGateways) == 0 && len(routeErrors) == 0 {
 		r.logger.Debug("API Gateway Reconciler: gateway %s reconciled without updates.")
-		panic("yoyoyoyo")
-
 		return nil
 	}
 
