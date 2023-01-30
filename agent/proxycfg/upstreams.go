@@ -533,6 +533,8 @@ type discoveryChainWatchOpts struct {
 func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *ConfigSnapshot, opts discoveryChainWatchOpts) error {
 	var watchedDiscoveryChains map[UpstreamID]context.CancelFunc
 	switch s.kind {
+	case structs.ServiceKindAPIGateway:
+		watchedDiscoveryChains = snap.APIGateway.WatchedDiscoveryChains
 	case structs.ServiceKindIngressGateway:
 		watchedDiscoveryChains = snap.IngressGateway.WatchedDiscoveryChains
 	case structs.ServiceKindConnectProxy:

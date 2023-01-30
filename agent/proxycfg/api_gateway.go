@@ -122,6 +122,8 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
+	// TODO Suspect gatewayServicesWatchID is not applicable to API Gateway
+	//   since we handle all of this logic in the xRoute watchers
 	case u.CorrelationID == gatewayServicesWatchID:
 		// Handle change in the upstream services for the bound-api-gateway
 		if err := h.handleGatewayServicesUpdate(ctx, u, snap); err != nil {
@@ -251,8 +253,8 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 
 	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind:           cfg.GetKind(),
-		Name:           cfg.GetName(),
+		Kind: cfg.GetKind(),
+		Name: cfg.GetName(),
 	}
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
@@ -276,6 +278,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		Name: resp.Entry.GetName(),
 	}
 
+	seenUpstreamIDs := make(map[UpstreamID]struct{})
+
 	switch route := resp.Entry.(type) {
 	case *structs.HTTPRouteConfigEntry:
 		snap.APIGateway.HTTPRoutes.Set(ref, route)
@@ -286,25 +290,58 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.TCPRoutes.Set(ref, route)
 
 		for _, service := range route.Services {
-			upstream := structs.Upstream{
-				DestinationName: service.Name,
-				DestinationNamespace: service.NamespaceOrDefault(),
-				DestinationPartition: service.PartitionOrDefault(),
-				//LocalBindPort: TODO,
-				//IngressHosts: TODO,
-				//Config: map[string]interface{}{
-				//	"protocol": TODO,
-				//},
+			// TODO We don't have enough information (missing port, for example)
+			//   Do we actually need to construct and store this in snap.APIGateway.Upstreams?
+			//   Maybe we should collect these in h.handleGatewayServicesUpdate
+			//upstream := structs.Upstream{}
+
+			upstreamID := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+			seenUpstreamIDs[upstreamID] = struct{}{}
+
+			watchOpts := discoveryChainWatchOpts{
+				id:        upstreamID,
+				name:      service.Name,
+				namespace: service.NamespaceOrDefault(),
+				partition: service.PartitionOrDefault(),
+				// TODO datacenter: "",
+			}
+
+			handler := &handlerUpstreams{handlerState: h.handlerState}
+			if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
+				return fmt.Errorf("failed to watch discovery chain for %s: %w", upstreamID, err)
 			}
 		}
-
-		// TODO Watch each referenced discovery chain
-		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	return errors.New("implement me")
+	//snap.APIGateway.Upstreams = TODO
+	snap.APIGateway.UpstreamsSet = seenUpstreamIDs
+	//snap.APIGateway.Hosts = TODO
+	snap.APIGateway.HostsSet = true
+
+	// Stop watching any upstreams and discovery chains that have become irrelevant
+	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
+		if _, ok := seenUpstreamIDs[upstreamID]; ok {
+			continue
+		}
+
+		for targetID, cancelUpstream := range snap.APIGateway.WatchedUpstreams[upstreamID] {
+			cancelUpstream()
+			delete(snap.APIGateway.WatchedUpstreams[upstreamID], targetID)
+			delete(snap.APIGateway.WatchedUpstreamEndpoints[upstreamID], targetID)
+
+			if targetUID := NewUpstreamIDFromTargetID(targetID); targetUID.Peer != "" {
+				snap.APIGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
+				snap.APIGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+			}
+		}
+
+		cancelDiscoChain()
+		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
+	}
+
+	return nil
 }
 
 // handleGatewayServicesUpdate responds to changes in the set of watched upstreams for a gateway

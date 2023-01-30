@@ -668,7 +668,7 @@ type configSnapshotAPIGateway struct {
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
 	UpstreamsSet map[UpstreamID]struct{}
 
-	HTTPRoutes watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
+	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
 	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
 
