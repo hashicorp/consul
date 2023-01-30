@@ -106,7 +106,6 @@ func processMetrics(metrics []string, prefix, metric string, condition func(v in
 			strings.Contains(line, metric) {
 
 			metric := strings.Split(line, ":")
-			fmt.Println(metric[1])
 
 			v, err := strconv.Atoi(strings.TrimSpace(metric[1]))
 			if err != nil {

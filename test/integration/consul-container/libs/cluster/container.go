@@ -336,7 +336,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return fmt.Errorf("new hostname %q should match old hostname %q", consulReq2.Hostname, c.consulReq.Hostname)
 	}
 
-	if err := c.TerminateAndRetainPod(); err != nil {
+	if err := c.TerminateAndRetainPod(true); err != nil {
 		return fmt.Errorf("error terminating running container during upgrade: %w", err)
 	}
 
@@ -365,18 +365,22 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 // This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
-	return c.terminate(false)
+	return c.terminate(false, false)
 }
-func (c *consulContainerNode) TerminateAndRetainPod() error {
-	return c.terminate(true)
+func (c *consulContainerNode) TerminateAndRetainPod(skipFuncs bool) error {
+	return c.terminate(true, skipFuncs)
 }
-func (c *consulContainerNode) terminate(retainPod bool) error {
+func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	// Services might register a termination function that should also fire
-	// when the "agent" is cleaned up
-	for _, f := range c.terminateFuncs {
-		err := f()
-		if err != nil {
-			continue
+	// when the "agent" is cleaned up.
+	// If skipFuncs is tru, We skip the terminateFuncs of connect sidecar, e.g.,
+	// during upgrade
+	if !skipFuncs {
+		for _, f := range c.terminateFuncs {
+			err := f()
+			if err != nil {
+				continue
+			}
 		}
 	}
 
