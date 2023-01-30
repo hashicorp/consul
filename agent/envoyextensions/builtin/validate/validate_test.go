@@ -6,7 +6,7 @@ import (
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -283,7 +283,7 @@ func TestMakeValidate(t *testing.T) {
 			}
 
 			svc := api.CompoundServiceName{Name: "svc"}
-			ext := xdscommon.ExtensionConfiguration{
+			ext := extensioncommon.RuntimeConfig{
 				ServiceName: svc,
 				EnvoyExtension: api.EnvoyExtension{
 					Name:      extensionName,

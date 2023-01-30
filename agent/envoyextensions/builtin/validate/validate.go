@@ -14,8 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 )
 
 const builtinValidateExtension = "builtin/proxy/validate"
@@ -64,13 +63,13 @@ type resource struct {
 	endpoints int
 }
 
-var _ builtinextensiontemplate.Plugin = (*Validate)(nil)
+var _ extensioncommon.BasicExtension = (*Validate)(nil)
 
 // EndpointValidator allows us to inject a different function for tests.
 type EndpointValidator func(*resource, string, *envoy_admin_v3.Clusters)
 
 // MakeValidate is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
-func MakeValidate(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
+func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExtension, error) {
 	var resultErr error
 	var plugin Validate
 
@@ -189,18 +188,18 @@ func DoEndpointValidation(r *resource, sni string, clusters *envoy_admin_v3.Clus
 }
 
 // CanApply determines if the extension can apply to the given extension configuration.
-func (p *Validate) CanApply(config xdscommon.ExtensionConfiguration) bool {
+func (p *Validate) CanApply(config *extensioncommon.RuntimeConfig) bool {
 	return true
 }
 
-func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+func (p *Validate) PatchRoute(config *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	// Route name on connect proxies will be the envoy ID. We are only validating routes for the specific upstream with
 	// the envoyID configured.
 	if route.Name != p.envoyID {
 		return route, false, nil
 	}
 	p.route = true
-	for sni := range builtinextensiontemplate.RouteClusterNames(route) {
+	for sni := range extensioncommon.RouteClusterNames(route) {
 		if _, ok := p.resources[sni]; ok {
 			continue
 		}
@@ -209,7 +208,7 @@ func (p *Validate) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_
 	return route, false, nil
 }
 
-func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+func (p *Validate) PatchCluster(config *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	v, ok := p.resources[c.Name]
 	if !ok {
 		v = &resource{}
@@ -253,7 +252,7 @@ func (p *Validate) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.
 	return c, false, nil
 }
 
-func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	// If a single filter exists for a listener we say it exists.
 	p.listener = true
 
@@ -267,7 +266,7 @@ func (p *Validate) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listene
 	}
 
 	// FilterClusterNames handles the filter being an http or tcp filter.
-	for sni := range builtinextensiontemplate.FilterClusterNames(filter) {
+	for sni := range extensioncommon.FilterClusterNames(filter) {
 		// Mark any clusters we see as required resources.
 		if r, ok := p.resources[sni]; ok {
 			r.required = true
