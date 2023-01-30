@@ -52,9 +52,6 @@ var (
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
-	OutboundListenerName = "outbound_listener"
-
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
 	// Envoy config. Note that all cluster names may collide with service names
 	// since we want cluster names and service names to match to enable nice

@@ -195,7 +195,7 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, err := libservice.GetEnvoyConfigDump(adminPort, "include_eds")
+		dump, err := libassert.GetEnvoyOutput(adminPort, "config_dump", map[string]string{})
 		require.NoError(r, err, "could not fetch envoy configuration")
 
 		// Make sure there are two certs in the sidecar

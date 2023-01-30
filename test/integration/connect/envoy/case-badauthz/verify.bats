@@ -27,7 +27,7 @@ load helpers
 }
 
 @test "s2 should have network rbac rules loaded from xDS" {
-  retry_default assert_envoy_network_rbac_policy_count localhost:19001 1
+  retry_long assert_envoy_network_rbac_policy_count localhost:19001 1
 }
 
 @test "s1 upstream should NOT be able to connect to s2" {

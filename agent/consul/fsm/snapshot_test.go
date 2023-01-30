@@ -2,7 +2,6 @@ package fsm
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -87,7 +85,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Name:        "global-management",
 		Description: "Builtin Policy that grants unlimited access",
 		Rules:       structs.ACLPolicyGlobalManagement,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	policy.SetHash(true)
 	require.NoError(t, fsm.state.ACLPolicySet(1, policy))
@@ -537,21 +534,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// be persisted but that we still need to be able to restore
 	encoder := codec.NewEncoder(sink, structs.MsgpackHandle)
 
-	// Persist a legacy ACL token - this is not done in newer code
-	// but we want to ensure that restoring legacy tokens works as
-	// expected so we must inject one here manually
-	_, err = sink.Write([]byte{byte(structs.DeprecatedACLRequestType)})
-	require.NoError(t, err)
-
-	acl := LegacyACL{
-		ID:        "1057354f-69ef-4487-94ab-aead3c755445",
-		Name:      "test-legacy",
-		Type:      "client",
-		Rules:     `operator = "read"`,
-		RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-	}
-	require.NoError(t, encoder.Encode(&acl))
-
 	// Persist a ACLToken without a Hash - the state store will
 	// now tack these on but we want to ensure we can restore
 	// tokens without a hash and have the hash be set.
@@ -561,8 +543,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Description: "Test No Hash",
 		CreateTime:  time.Now(),
 		Local:       false,
-		Rules:       `operator = "read"`,
-		RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				Name: "global-management",
+				ID:   structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 	}
 
 	_, err = sink.Write([]byte{byte(structs.ACLTokenSetRequestType)})
@@ -672,16 +659,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// storing. That token just happens to be a pointer to the one in this function so it
 	// adds the Hash to our local var.
 	require.Equal(t, token, rtoken)
-
-	// Verify legacy ACL is restored
-	_, rtoken, err = fsm2.state.ACLTokenGetBySecret(nil, acl.ID, nil)
-	require.NoError(t, err)
-	require.NotNil(t, rtoken)
-	require.NotEmpty(t, rtoken.Hash)
-
-	restoredACL, err := convertACLTokenToLegacy(rtoken)
-	require.NoError(t, err)
-	require.Equal(t, &acl, restoredACL)
 
 	// Verify ACLToken without hash computes the Hash during restoration
 	_, rtoken, err = fsm2.state.ACLTokenGetByAccessor(nil, token2.AccessorID, nil)
@@ -882,23 +859,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	default:
 		require.Fail(t, "Old state not abandoned")
 	}
-}
-
-// convertACLTokenToLegacy attempts to convert an ACLToken into an legacy ACL.
-// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
-func convertACLTokenToLegacy(tok *structs.ACLToken) (*LegacyACL, error) {
-	if tok.Type == "" {
-		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
-	}
-
-	compat := &LegacyACL{
-		ID:        tok.SecretID,
-		Name:      tok.Description,
-		Type:      tok.Type,
-		Rules:     tok.Rules,
-		RaftIndex: tok.RaftIndex,
-	}
-	return compat, nil
 }
 
 func TestFSM_BadRestore_OSS(t *testing.T) {

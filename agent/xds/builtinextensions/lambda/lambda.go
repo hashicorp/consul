@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	arn_sdk "github.com/aws/aws-sdk-go/aws/arn"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -25,7 +26,6 @@ import (
 type lambda struct {
 	ARN                string
 	PayloadPassthrough bool
-	Region             string
 	Kind               api.ServiceKind
 	InvocationMode     string
 }
@@ -49,10 +49,6 @@ func MakeLambdaExtension(ext xdscommon.ExtensionConfiguration) (builtinextension
 		resultErr = multierror.Append(resultErr, fmt.Errorf("ARN is required"))
 	}
 
-	if plugin.Region == "" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("Region is required"))
-	}
-
 	plugin.Kind = ext.OutgoingProxyKind()
 
 	return plugin, resultErr
@@ -66,10 +62,14 @@ func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
 	return m
 }
 
+// CanApply returns true if the kind of the provided ExtensionConfiguration matches
+// the kind of the lambda configuration
 func (p lambda) CanApply(config xdscommon.ExtensionConfiguration) bool {
 	return config.Kind == p.Kind
 }
 
+// PatchRoute modifies the routing configuration for a service of kind TerminatingGateway. If the kind is
+// not TerminatingGateway, then it can not be modified.
 func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	if p.Kind != api.ServiceKindTerminatingGateway {
 		return route, false, nil
@@ -84,7 +84,8 @@ func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_rou
 			}
 
 			// When auto_host_rewrite is set it conflicts with strip_any_host_port
-			// on the http_connection_manager filter.
+			// on the http_connection_manager filter, which is required to be true to support
+			// lambda functions. See the patch filter method for more details.
 			action.Route.HostRewriteSpecifier = nil
 		}
 	}
@@ -92,6 +93,7 @@ func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_rou
 	return route, true, nil
 }
 
+// PatchCluster patches the provided envoy cluster with data required to support an AWS lambda function
 func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
@@ -99,6 +101,12 @@ func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Clu
 
 	if err != nil {
 		return c, false, fmt.Errorf("failed to make transport socket: %w", err)
+	}
+
+	// Use the aws SDK to parse the ARN so that we can later extract the region
+	parsedARN, err := arn_sdk.Parse(p.ARN)
+	if err != nil {
+		return c, false, err
 	}
 
 	cluster := &envoy_cluster_v3.Cluster{
@@ -127,7 +135,7 @@ func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Clu
 									Address: &envoy_core_v3.Address{
 										Address: &envoy_core_v3.Address_SocketAddress{
 											SocketAddress: &envoy_core_v3.SocketAddress{
-												Address: fmt.Sprintf("lambda.%s.amazonaws.com", p.Region),
+												Address: fmt.Sprintf("lambda.%s.amazonaws.com", parsedARN.Region),
 												PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
 													PortValue: 443,
 												},
@@ -146,6 +154,8 @@ func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Clu
 	return cluster, true, nil
 }
 
+// PatchFilter patches the provided envoy filter with an inserted lambda filter being careful not to
+// overwrite the http filters.
 func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
@@ -158,6 +168,7 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 	if config == nil {
 		return filter, false, errors.New("error unmarshalling filter")
 	}
+
 	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
@@ -170,15 +181,12 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 		return filter, false, err
 	}
 
-	var (
-		changedFilters = make([]*envoy_http_v3.HttpFilter, 0, len(config.HttpFilters)+1)
-		changed        bool
-	)
-
 	// We need to be careful about overwriting http filters completely because
 	// http filters validates intentions with the RBAC filter. This inserts the
 	// lambda filter before `envoy.filters.http.router` while keeping everything
 	// else intact.
+	changedFilters := make([]*envoy_http_v3.HttpFilter, 0, len(config.HttpFilters)+1)
+	var changed bool
 	for _, httpFilter := range config.HttpFilters {
 		if httpFilter.Name == "envoy.filters.http.router" {
 			changedFilters = append(changedFilters, lambdaHttpFilter)
@@ -190,6 +198,9 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 		config.HttpFilters = changedFilters
 	}
 
+	// StripPortMode must be set to true since all requests have to be signed using the AWS v4 signature and
+	// if the port is included in the request, it will be used in the signature calculation causing AWS to reject the
+	// Lambda HTTP request.
 	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
 		StripAnyHostPort: true,
 	}
