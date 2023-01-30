@@ -50,18 +50,10 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Len()+
 			len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -92,7 +84,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		_, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -107,7 +99,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		clusterName := generatePeeredClusterName(uid, tbs)
 
-		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid)
+		mgwMode := structs.MeshGatewayModeDefault
+		if upstream != nil {
+			mgwMode = upstream.MeshGateway.Mode
+		}
+		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid, mgwMode)
 		if err != nil {
 			return nil, err
 		}
@@ -538,7 +534,12 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 	}
 }
 
-func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *proxycfg.ConfigSnapshot, clusterName string, uid proxycfg.UpstreamID) (*envoy_endpoint_v3.ClusterLoadAssignment, error) {
+func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	clusterName string,
+	uid proxycfg.UpstreamID,
+	upstreamGatewayMode structs.MeshGatewayMode,
+) (*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	var la *envoy_endpoint_v3.ClusterLoadAssignment
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
@@ -546,11 +547,13 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(cfgSnap *pr
 		return la, err
 	}
 
-	upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+	if upstreamGatewayMode == structs.MeshGatewayModeNone {
+		s.Logger.Warn(fmt.Sprintf("invalid mesh gateway mode 'none', defaulting to 'remote' for %q", uid))
+	}
 
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
-	if upstream != nil && upstream.MeshGateway.Mode == structs.MeshGatewayModeLocal {
+	if upstreamGatewayMode == structs.MeshGatewayModeLocal {
 		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
 		if !ok {
 			// local GW is not ready; return early
@@ -643,6 +646,11 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		}
 	}
 
+	mgwMode := structs.MeshGatewayModeDefault
+	if upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); upstream != nil {
+		mgwMode = upstream.MeshGateway.Mode
+	}
+
 	// Find all resolver nodes.
 	for _, node := range chain.Nodes {
 		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
@@ -682,7 +690,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			s.Logger.Debug("generating endpoints for", "cluster", targetOpt.clusterName)
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetOpt.targetID)
 			if targetUID.Peer != "" {
-				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID)
+				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID, mgwMode)
 				if err != nil {
 					return nil, err
 				}

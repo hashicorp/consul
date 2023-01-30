@@ -68,6 +68,9 @@ type cmd struct {
 	exposeServers      bool
 	omitDeprecatedTags bool
 
+	envoyReadyBindAddress string
+	envoyReadyBindPort    int
+
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
 }
@@ -153,6 +156,11 @@ func (c *cmd) init() {
 
 	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the gateway service registration")
+
+	c.flags.StringVar(&c.envoyReadyBindAddress, "envoy-ready-bind-address", "",
+		"The address on which Envoy's readiness probe is available.")
+	c.flags.IntVar(&c.envoyReadyBindPort, "envoy-ready-bind-port", 0,
+		"The port on which Envoy's readiness probe is available.")
 
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
@@ -641,6 +649,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		bsCfg.ReadyBindAddr = lanAddr
 	}
 
+	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
+		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
+	}
+
 	if !c.disableCentralConfig {
 		// Parse the bootstrap config
 		if err := mapstructure.WeakDecode(svcProxyConfig.Config, &bsCfg); err != nil {
@@ -681,6 +693,10 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 	if grpcAddr := strings.TrimPrefix(addr, "unix://"); grpcAddr != addr {
 		// Path to unix socket
 		g.AgentSocket = grpcAddr
+		// Configure unix sockets to encrypt traffic whenever a certificate is explicitly defined.
+		if c.grpcCAFile != "" || c.grpcCAPath != "" {
+			g.AgentTLS = true
+		}
 	} else {
 		// Parse as host:port with option http prefix
 		grpcAddr = strings.TrimPrefix(addr, "http://")

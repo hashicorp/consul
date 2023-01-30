@@ -1583,6 +1583,9 @@ Use these links to navigate to a particular top-level stanza.
 
     - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
 
+    - `namespace` ((#v-connectinject-cni-namespace)) (`string: null`) - Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources.
+      Ex: "kube-system"
+
     - `cniBinDir` ((#v-connectinject-cni-cnibindir)) (`string: /opt/cni/bin`) - Location on the kubernetes node where the CNI plugin is installed. Shoud be the absolute path and start with a '/'
       Example on GKE:
 

@@ -874,8 +874,14 @@ RESOLVE_AGAIN:
 
 	targetID := target.ServiceID()
 
-	if err := c.recordServiceProtocol(targetID); err != nil {
-		return nil, err
+	// Only validate protocol if it is not a peered service.
+	// TODO: Add in remote peer protocol validation when building a chain.
+	// This likely would require querying the imported services, which
+	// shouldn't belong in the discovery chain compilation here.
+	if target.Peer == "" {
+		if err := c.recordServiceProtocol(targetID); err != nil {
+			return nil, err
+		}
 	}
 
 	// Fetch the config entry.
@@ -1007,10 +1013,16 @@ RESOLVE_AGAIN:
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
+			target.TransparentProxy.DialedDirectly = serviceDefault.TransparentProxy.DialedDirectly
 		}
 		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
-		if proxyDefault != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
+		if proxyDefault != nil {
+			if target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+				target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
+			}
+			if !target.TransparentProxy.DialedDirectly {
+				target.TransparentProxy.DialedDirectly = proxyDefault.TransparentProxy.DialedDirectly
+			}
 		}
 
 		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {

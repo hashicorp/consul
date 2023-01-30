@@ -192,8 +192,9 @@ type DiscoveryTarget struct {
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
 
-	MeshGateway MeshGatewayConfig     `json:",omitempty"`
-	Subset      ServiceResolverSubset `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
+	Subset           ServiceResolverSubset  `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty"`
 
 	ConnectTimeout time.Duration `json:",omitempty"`
 

@@ -835,6 +835,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			Manager:           a.proxyConfig,
 			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
 			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
 		})
 		go func() {
 			<-a.shutdownCh
@@ -851,7 +852,6 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a.baseDeps.XDSStreamLimiter,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 
@@ -2185,7 +2185,9 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.PartitionOrEmpty()) {
+			p.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -3531,6 +3533,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Register the services from config
 	for _, service := range conf.Services {
+		// Default service partition to the same as agent
+		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
+			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		}
+
 		ns := service.NodeService()
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
@@ -3640,7 +3647,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
+			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// we always default the service partition to the agent's partition.
+			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
@@ -4024,13 +4035,13 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}

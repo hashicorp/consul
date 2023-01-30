@@ -125,6 +125,10 @@
       {
         "title": "Network Coordinates",
         "path": "architecture/coordinates"
+      },
+      {
+        "title": "Consul at Scale",
+        "path": "architecture/scale"
       }
     ]
   },
@@ -956,6 +960,10 @@
             "path": "k8s/connect"
           },
           {
+            "title": "Admin Partitions",
+            "href": "/docs/enterprise/admin-partitions"
+          },
+          {
             "title": "Transparent Proxy",
             "href": "/docs/connect/transparent-proxy"
           },
@@ -1243,7 +1251,16 @@
       },
       {
         "title": "Network Segments",
-        "path": "enterprise/network-segments"
+        "routes":[
+          {
+            "title": "Network Segments Overview",
+            "path": "enterprise/network-segments/network-segments-overview"
+          },
+          {
+            "title": "Create a Network Segment",
+            "path": "enterprise/network-segments/create-network-segment"
+          }
+        ]
       },
       {
         "title": "Namespaces",

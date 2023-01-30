@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -88,18 +87,10 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
@@ -124,12 +115,15 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// upstream in endpoints.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			continue
 		}
 
-		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		peerMeta, found := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		if !found {
+			s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "uid", uid)
+		}
 		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
 
 		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, cfg, peerMeta, cfgSnap)
@@ -1282,18 +1276,13 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		for _, targetData := range targetClustersData {
 			target := chain.Targets[targetData.targetID]
 			sni := target.SNI
-			var additionalSpiffeIDs []string
 
-			targetSpiffeID := connect.SpiffeIDService{
-				Host:       cfgSnap.Roots.TrustDomain,
-				Namespace:  target.Namespace,
-				Partition:  target.Partition,
-				Datacenter: target.Datacenter,
-				Service:    target.Service,
-			}.URI().String()
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetData.targetID)
 			if targetUID.Peer != "" {
-				peerMeta := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
+				peerMeta, found := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
+				if !found {
+					s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "target", targetUID)
+				}
 				upstreamCluster, err := s.makeUpstreamClusterForPeerService(targetUID, upstreamConfig, peerMeta, cfgSnap)
 				if err != nil {
 					continue
@@ -1303,6 +1292,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				out = append(out, upstreamCluster)
 				continue
 			}
+
+			targetSpiffeID := connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Namespace:  target.Namespace,
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+				Service:    target.Service,
+			}.URI().String()
 
 			s.Logger.Debug("generating cluster for", "cluster", targetData.clusterName)
 			c := &envoy_cluster_v3.Cluster{
@@ -1357,9 +1354,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 				)
 
-				spiffeIDs := append([]string{targetSpiffeID}, additionalSpiffeIDs...)
-				sort.Strings(spiffeIDs)
-				err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+				err = injectSANMatcher(commonTLSContext, targetSpiffeID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 				}

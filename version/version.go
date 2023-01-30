@@ -14,7 +14,7 @@ var (
 	//
 	// Version must conform to the format expected by github.com/hashicorp/go-version
 	// for tests to work.
-	Version = "1.14.3"
+	Version = "1.14.5"
 
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""

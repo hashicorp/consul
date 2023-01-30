@@ -766,6 +766,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 				require.True(t, snap.ConnectProxy.MeshConfigSet)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
@@ -799,6 +805,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
+
+				if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+					require.True(t, snap.ConnectProxy.WatchedLocalGWEndpoints.IsWatched("dc1"))
+					_, ok := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
+					require.False(t, ok)
+				}
 			},
 		}
 
@@ -2347,7 +2359,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + dbUID.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil),
+								Chain: discoverychain.TestCompileConfigEntries(
+									t, "db", "default", "default", "dc1", "trustdomain.consul", nil,
+									&structs.ServiceConfigEntry{
+										Kind: structs.ServiceDefaults,
+										Name: "db",
+										TransparentProxy: structs.TransparentProxyConfig{
+											DialedDirectly: true,
+										},
+									},
+								),
 							},
 							Err: nil,
 						},
@@ -2384,7 +2405,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 											Proxy: structs.ConnectProxyConfig{
 												DestinationServiceName: "db",
 												TransparentProxy: structs.TransparentProxyConfig{
-													DialedDirectly: true,
+													DialedDirectly: false, // This is set true by the service-defaults entry above.
 												},
 											},
 											RaftIndex: structs.RaftIndex{
@@ -2443,7 +2464,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										Proxy: structs.ConnectProxyConfig{
 											DestinationServiceName: "db",
 											TransparentProxy: structs.TransparentProxyConfig{
-												DialedDirectly: true,
+												DialedDirectly: false,
 											},
 										},
 										RaftIndex: structs.RaftIndex{
