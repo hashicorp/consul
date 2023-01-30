@@ -222,7 +222,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	}
 	cp.HTTPRoutes = o.HTTPRoutes.DeepCopy()
 	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
-	cp.Certicates = o.Certicates.DeepCopy()
+	cp.Certificates = o.Certificates.DeepCopy()
 	if o.TLSConfig.SDS != nil {
 		cp.TLSConfig.SDS = new(structs.GatewayTLSSDSConfig)
 		*cp.TLSConfig.SDS = *o.TLSConfig.SDS

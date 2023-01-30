@@ -69,7 +69,7 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
-	snap.APIGateway.Certicates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
+	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 
 	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
@@ -187,7 +187,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 			for _, ref := range listener.Certificates {
 				ctx, cancel := context.WithCancel(ctx)
 				seenRefs[ref] = struct{}{}
-				snap.APIGateway.Certicates.InitWatch(ref, cancel)
+				snap.APIGateway.Certificates.InitWatch(ref, cancel)
 
 				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
 				if err != nil {
@@ -212,9 +212,9 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 			return true
 		})
 
-		snap.APIGateway.Certicates.ForEachKey(func(ref structs.ResourceReference) bool {
+		snap.APIGateway.Certificates.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
-				snap.APIGateway.Certicates.CancelWatch(ref)
+				snap.APIGateway.Certificates.CancelWatch(ref)
 			}
 			return true
 		})
@@ -255,10 +255,10 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 		Name:           cfg.GetName(),
 	}
 
-	snap.APIGateway.Certicates.Set(ref, cfg)
+	snap.APIGateway.Certificates.Set(ref, cfg)
 
 	// TODO
-	return errors.New("implement me")
+	return nil
 }
 
 // handleRouteConfigUpdate
@@ -284,6 +284,19 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		break
 	case *structs.TCPRouteConfigEntry:
 		snap.APIGateway.TCPRoutes.Set(ref, route)
+
+		for _, service := range route.Services {
+			upstream := structs.Upstream{
+				DestinationName: service.Name,
+				DestinationNamespace: service.NamespaceOrDefault(),
+				DestinationPartition: service.PartitionOrDefault(),
+				//LocalBindPort: TODO,
+				//IngressHosts: TODO,
+				//Config: map[string]interface{}{
+				//	"protocol": TODO,
+				//},
+			}
+		}
 
 		// TODO Watch each referenced discovery chain
 		break

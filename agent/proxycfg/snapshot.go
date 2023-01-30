@@ -669,12 +669,11 @@ type configSnapshotAPIGateway struct {
 	UpstreamsSet map[UpstreamID]struct{}
 
 	HTTPRoutes watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
-	TCPRoutes  watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
-	Certicates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
+	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
 
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
-	// TODO Does this need to be a map instead of a list?
 	Listeners map[string]structs.APIGatewayListener
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
@@ -689,10 +688,11 @@ type configSnapshotAPIGateway struct {
 //
 // FUTURE: Remove when API gateways have custom snapshot generation
 func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
-	// TODO
+
 	return configSnapshotIngressGateway{
 		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
-		// TODO Consider adding to api-gateway config entry
+		// TODO Build from c.Listeners
+		// Listeners:
 		Defaults: structs.IngressServiceConfig{},
 	}
 }
