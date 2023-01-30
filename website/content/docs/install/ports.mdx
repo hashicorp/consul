@@ -44,8 +44,7 @@ used by various tools as the default.
 **gRPC API** (Optional). Currently gRPC is
 only used to expose the xDS API to Envoy proxies. It is off by default, but port 8502 is a convention used by various tools as the default. Defaults to 8502 in `-dev` mode.
 
-**gRPCs API**. Currently gRPC over TLS is
-only used to expose the xDS API to Envoy proxies. It is [on by default](https://developer.hashicorp.com/consul/docs/agent/config/config-files#grpc_tls_port), and we recommend using 8503 for grpc_tls as your conventional gRPC port number, as it allows some tools to work automatically. 
+**gRPCs API**. By default, Consul uses gRPC over TLS to expose the xDS API to Envoy proxies.  We recommend using port `8503` for gRPC because it allows some tools to work automatically. Refer to [`grpc_tls_port`](/consul/docs/agent/config/config-files#grpc_tls_port) for additional information.
 
 **Serf LAN** This is used to handle gossip in the LAN.
 Required by all agents.
