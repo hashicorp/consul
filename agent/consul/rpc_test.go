@@ -1620,6 +1620,48 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	}
 }
 
+func TestGetWaitTime(t *testing.T) {
+	type testCase struct {
+		name       string
+		expected   time.Duration
+		retryCount int
+	}
+	config := DefaultConfig()
+	config.RPCHoldTimeout = 7 * time.Second
+	run := func(t *testing.T, tc testCase) {
+		require.Equal(t, tc.expected, getWaitTime(config, tc.retryCount))
+	}
+
+	var testCases = []testCase{
+		{
+			name:       "first attempt",
+			retryCount: 1,
+			expected:   time.Duration(430) * time.Millisecond,
+		},
+		{
+			name:       "second attempt",
+			retryCount: 2,
+			expected:   time.Duration(860) * time.Millisecond,
+		},
+		{
+			name:       "third attempt",
+			retryCount: 3,
+			expected:   time.Duration(1720) * time.Millisecond,
+		},
+		{
+			name:       "fourth attempt",
+			retryCount: 4,
+			expected:   time.Duration(3440) * time.Millisecond,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func doRaftRPC(conn net.Conn, leader string) (raft.AppendEntriesResponse, error) {
 	var resp raft.AppendEntriesResponse
 
