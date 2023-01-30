@@ -23,7 +23,7 @@ type Agent interface {
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error
-	TerminateAndRetainPod() error
+	TerminateAndRetainPod(bool) error
 	Upgrade(ctx context.Context, config Config) error
 	Exec(ctx context.Context, cmd []string) (int, error)
 	DataDir() string
