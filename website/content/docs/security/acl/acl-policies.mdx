@@ -9,7 +9,7 @@ description: >-
 
 This topic describes policies, which are components in Consul's access control list (ACL) system. Policies define which services and agents are authorized to interact with resources in the network.
 
-Looking for an policy example for your use case? Refer to the [Policy Examples](/consul/docs/security/acl/acl-policy-examples) topic.
+Refer to the [Policy Examples](/consul/docs/security/acl/acl-policy-examples) for example policy configurations.
 
 ## Introduction
 
@@ -395,7 +395,7 @@ New installations of Consul ship with the following built-in policies.
 
 The `global-management` policy grants unrestricted privileges to any token linked to it. The policy is assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. You can rename the global management policy, but Consul will prevent you from modifying any other attributes, including the rule set and datacenter scope.
 
-The following are the policy rules for the `global-management` policy.
+The following policy rules define the `global-management` policy.
 
 <Tabs>
 
@@ -504,9 +504,9 @@ partition_prefix "" {
 
 ### Namespace Management <EnterpriseAlert inline />
 
-The `namespace-management` policy will be injected into all namespaces you create. The policy will be assigned a randomized UUID and can be managed as a normal, user-defined policy within the namespace. 
+Consul injects the `namespace-management` policy into all namespaces you create. Consul also assigns the policy a randomized UUID that you can use to manage the policy within the namespace. 
 
-The following are the policy rules for the namespace management policy. Because this
+The following policy rules define the namespace management policy. Because this
 policy resides in a non-default namespace, these permissions are implicitly limited to 
 resources in that namespace.
 
