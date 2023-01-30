@@ -9,17 +9,18 @@ description: >-
 
 This topic includes example policy configurations for achieving specific use-cases.
 
-## Enable service registration into the catalog
+## Enable service registration
 
 <Tabs>
 
 <Tab heading="Service Mesh">
 
-For Consul service mesh, we recommend using [Service
-Identities](/consul/docs/security/acl#service-identities) rather than creating a custom policy. The service
-identity grants the `service:write` permissions necessary for the service and its sidecar proxy to
-register into the catalog. It grants the `service:read` and `node:read` permissions necessary
-to discover other services and nodes in the catalog.
+For Consul service mesh, we recommend using a [service
+identity](/consul/docs/security/acl#service-identities) to grant the permissions to register a
+service rather than creating a custom policy. The service identity grants the `service:write`
+permissions necessary for the service and its sidecar proxy to register into the catalog. It grants
+`service:read` and `node:read` for any services so that the sidecar proxy can discover and route to
+other services and nodes in the catalog.
 
 When `service:write` permissions are granted, the `intention:read` permission is implicitly granted
 in order for sidecar proxies to read and enforce intentions. Refer to [Intention Management
@@ -27,51 +28,30 @@ Permissions](/consul/docs/connect/intentions#intention-management-permissions) f
 
 </Tab>
 
-<Tab heading="Single Service">
+<Tab heading="Custom Policy">
 
-The following policy allows registering a service named `example-service`.
+The following policy allows a service named `web` to register into the catalog.
 
 ```hcl
-service "example-service" {
+service "web" {
   policy = "write"
 }
 ```
 
 </Tab>
 
-<Tab heading="Multiple Services">
+<Tab heading="Custom Policy (Enterprise)">
 
-The following policy allows registering three services named `example-one`, `example-two`, and
-`example-three`.
-
-```hcl
-service "example-one" {
-  policy = "write"
-}
-
-service "example-two" {
-  policy = "write"
-}
-
-service "example-three" {
-  policy = "write"
-}
-```
-
-</Tab>
-
-<Tab heading="Prefix Match">
-
-The following policy allows registering any services with a name starting with `web-` or
-`db-`.
+The following policy allows a service named `web` to register into the catalog
+in namespace `ns1` and partition `ptn1`.
 
 ```hcl
-service_prefix "web-" {
-  policy = "write"
-}
-
-service_prefix "db-" {
-  policy = "write"
+partition "ptn1" {
+  namespace "ns1" {
+    service "web" {
+      policy = "write"
+    }
+  }
 }
 ```
 
@@ -79,28 +59,52 @@ service_prefix "db-" {
 
 </Tabs>
 
-## Enable client agent registration into the catalog
+## Enable client agent registration
 
-Consul client agents register into the catalog as nodes, so a token with `node:write` permission is
-necessary. We recommend using [Node Identities](/consul/docs/security/acl#node-identities) rather than creating
-custom policies for node registration.
+To register a client agent, `node:write` is required for the node name of the gaent and broad
+`service:read` is needed for the agent to discover other services.
 
 <Tabs>
 
-<Tab heading="Node identity">
+<Tab heading="Client agent">
 
-The node identity grants `node:write` permission for a particular node to register. It grants
-`service:read` for all services so that the client agent can detect differences between its local
-state and the catalog on the Consul servers, as part of
-[anti-entropy](/consul/docs/architecture/anti-entropy).
+To register a Consul client agents, we recommend using a [node
+identity](/consul/docs/security/acl#node-identities) rather than creating a custom policy. The ACL
+token with the node identity can be configured as the [`agent`
+token](/consul/docs/agent/config/config-files#acl_tokens_agent) used for the agent's internal
+operations.
+</Tab>
+
+<Tab heading="Custom Policy">
+
+The following policy allows a node name `client1` to register into the catalog.
+
+```hcl
+node "client1" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+}
+```
 
 </Tab>
 
-<Tab heading="One node">
+<Tab heading="Custom Policy (Enterprise)">
+
+The following policy allows a node name `client1` to register into the catalog
+in the `ptn1` partition.
 
 ```hcl
-node "example-node" {
-  policy = "write"
+partition "ptn1"
+  node "client1" {
+    policy = "write"
+  }
+  namespace_prefix "" {
+    service_prefix "" {
+      policy = "read"
+    }
+  }
 }
 ```
 
@@ -108,7 +112,7 @@ node "example-node" {
 
 </Tabs>
 
-## Enable View Access to the Consul UI 
+## Enable view access to the Consul UI
 
 The following policies grant read-only access when logged in to the Consul UI.
 
@@ -116,7 +120,7 @@ The following policies grant read-only access when logged in to the Consul UI.
 
 <Tab heading="Catalog">
 
-The following policy grants read-only access to view nodes and services in the catalog. 
+The following policy grants read-only access to view nodes and services in the catalog.
 
 <Tabs>
 
@@ -126,9 +130,25 @@ The following policy grants read-only access to view nodes and services in the c
 service_prefix "" {
   policy = "read"
 }
-
 node_prefix "" {
   policy = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="Enterprise">
+
+```hcl
+partition_prefix "" {
+  namespace_prefix "" {
+    service_prefix "" {
+      policy = "read"
+    }
+    node_prefix "" {
+      policy = "read"
+    }
+  }
 }
 ```
 
@@ -148,11 +168,9 @@ The following policy grants access to view the catalog and all ACL resources.
 
 ```hcl
 acl = "read"
-
 service_prefix "" {
   policy = "read"
 }
-
 node_prefix "" {
   policy = "read"
 }
@@ -160,17 +178,15 @@ node_prefix "" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 ```hcl
 partition_prefix "" {
   namespace_prefix "" {
     acl = "read"
-    
     service_prefix "" {
       policy = "read"
     }
-    
     node_prefix "" {
       policy = "read"
     }
@@ -184,6 +200,380 @@ partition_prefix "" {
 
 </Tab>
 
+</Tabs>
+
+## Enable mesh gateway registration
+
+The following policy allows a mesh gateway to register as a service named `mesh-gateway`.
+
+The `agent:read` permission allows the `consul connect envoy` CLI command to automatically discover
+gRPC settings from the Consul agent. If this command is not used to start the gateway or if the
+Consul agent uses the default gRPC settings, then the `agent:read` permission may be ommitted.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+<Tabs>
+
+<Tab heading="Standard">
+
+```hcl
+mesh = "write"
+service "mesh-gateway" {
+   policy = "write"
+}
+service_prefix "" {
+   policy = "read"
+}
+node_prefix "" {
+   policy = "read"
+}
+agent_prefix "" {
+   policy = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="Peering">
+
+```hcl
+mesh = "write"
+peering = "read"
+service "mesh-gateway" {
+   policy = "write"
+}
+service_prefix "" {
+   policy = "read"
+}
+node_prefix "" {
+   policy = "read"
+}
+agent_prefix "" {
+   policy = "read"
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+<Tab heading="Enterprise">
+
+With Consul Enterprise, mesh gateways must register into the `default` namespace.
+
+To register a mesh gateway in a non-default partition, create the ACL token for the mesh gateway
+in the non-default partition with the following policy rules.
+
+<Tabs>
+
+<Tab heading="Standard">
+
+```hcl
+mesh = "write"
+namespace "default" {
+  service "mesh-gateway" {
+     policy = "write"
+  }
+  agent_prefix "" {
+     policy = "read"
+  }
+}
+namespace_prefix "" {
+  node_prefix "" {
+  	policy = "read"
+  }
+  service_prefix "" {
+     policy = "read"
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="Peering (Default Partition)">
+
+```hcl
+mesh = "write"
+peering = "read"
+partition_prefix "" {
+  peering = "read"
+}
+namespace "default" {
+  service "mesh-gateway" {
+     policy = "write"
+  }
+  agent_prefix "" {
+     policy = "read"
+  }
+}
+namespace_prefix "" {
+  node_prefix "" {
+  	policy = "read"
+  }
+  service_prefix "" {
+     policy = "read"
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="Peering (Non-Default Partition)">
+
+```hcl
+mesh = "write"
+peering = "read"
+namespace "default" {
+  service "mesh-gateway" {
+     policy = "write"
+  }
+  agent_prefix "" {
+     policy = "read"
+  }
+}
+namespace_prefix "" {
+  node_prefix "" {
+  	policy = "read"
+  }
+  service_prefix "" {
+     policy = "read"
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+</Tabs>
+
+
+# Enable ingress gateway registration
+
+The following policy enables an ingress gateway to register as a service named `ingress-gateway`.
+
+The `agent:read` permission allows the `consul connect envoy` CLI command to automatically discover
+gRPC settings from the Consul agent. If this command is not used to start the gateway or if the
+Consul agent uses the default gRPC settings, then the `agent:read` permission may be ommitted.
+
+
+<Tabs>
+
+<Tab heading="OSS">
+
+```hcl
+service "ingress-gateway" {
+  policy = "write"
+}
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "read"
+}
+agent_prefix "" {
+  policy = "read"
+}
+```
+
+</Tab>
+
+<Tab heading="Enterprise">
+
+```hcl
+partition "default" {
+  namespace "default" {
+    service "ingress-gateway" {
+      policy = "write"
+    }
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+    agent_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="Enterprise (Non-default Partition and Namespace)">
+
+```hcl
+partition "ptn1" {
+  namespace "ns1" {
+    service "ingress-gateway" {
+      policy = "write"
+    }
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+    agent_prefix "" {
+      policy = "read"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+## Enable terminating gateway registration
+
+The following policy allows a terminating gateway to register as a service named `terminating-gateway`
+and grants `node:read` and `service:read` for any services.
+
+The terminating gateway token needs `service:write` permission for each service that it forwards
+traffic for. The following policy examples assume the terminating gateway only needs to forward
+traffic for two services named `external-service-1` and `external-service-2`. However, in order to
+manage `service:write` permissions for large number of services, we recommend creating a Consul ACL
+role with a list of [service identities](/consul/docs/security/acl#service-identities) attached.
+The role can be attached to ACL token used by the terminating gateway and then the role can the
+updated in-place to include new services without needing to generate a new ACL token.
+
+The `agent:read` permission allows the `consul connect envoy` CLI command to automatically discover
+gRPC settings from the Consul agent. If this command is not used to start the gateway or if the
+Consul agent uses the default gRPC settings, then the `agent:read` permission may be ommitted.
+
+To learn how to configure terminating gateways, refer to the [Terminating
+Gateways](/consul/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration)
+documentation and the [Understand Terminating
+Gateways](/consul/tutorials/developer-mesh/service-mesh-terminating-gateways) tutorial.
+
+<Tabs>
+
+<Tab heading="OSS">
+
+<Tabs>
+
+<Tab heading="Standard">
+
+```hcl
+service "terminating-gateway" {
+   policy = "write"
+}
+node_prefix "" {
+  policy = "read"
+}
+agent_prefix "" {
+  policy = "read"
+}
+
+# Services the terminating gateway forwards traffic for
+service "external-service-1" {
+  policy = "write"
+}
+service "external-service-2" {
+  policy = "write"
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
+
+<Tab heading="Enterprise">
+
+<Tabs>
+
+<Tab heading="Default Partition and Namespace">
+
+The following policy allows a terminating gateway in the default partition
+and default namespace to forward traffic for the following two services:
+
+* Service `external-service-1` in the `default` namespace
+* Service `external-service-2` in the `ns1` namespace
+
+```hcl
+partition "default" {
+  namespace "default" {
+    service "terminating-gateway" {
+       policy = "write"
+    }
+    node_prefix "" {
+      policy = "read"
+    }
+    agent_prefix "" {
+      policy = "read"
+    }
+  }
+
+  # Services the terminating gateway forwards traffic for
+  namespace "default" {
+    service "external-service-1" {
+      policy = "write"
+    }
+  }
+  namespace "ns1" {
+    service "external-service-2" {
+      policy = "write"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="Non-default Partition and Namespace">
+
+The following policy allows a terminating gateway in the `ptn1` partition
+and `ns1` namespace to forward traffic for the following two services:
+
+* Service `external-service-1` in the `default` namespace
+* Service `external-service-2` in the `ns1` namespace
+
+-> **Note**: The following policy contains cross-namespace permissions. ACL Policies which
+grant cross-namespace permissions must be created in the `default` namespace.
+
+```hcl
+partition "ptn1" {
+  namespace "ns1" {
+    service "terminating-gateway" {
+       policy = "write"
+    }
+    node_prefix "" {
+      policy = "read"
+    }
+    agent_prefix "" {
+      policy = "read"
+    }
+  }
+
+  # Services the terminating gateway forwards traffic for
+  namespace "default" {
+    service "external-service-1" {
+      policy = "write"
+    }
+  }
+  namespace "ns1" {
+    service "external-service-2" {
+      policy = "write"
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+</Tab>
 
 </Tabs>
 
@@ -198,18 +588,16 @@ the token used to authorize DNS.
 
 <Tab heading="OSS">
 
-The following policy allows node, service, and prepared query 
-lookups over DNS. 
+The following policy allows node, service, and prepared query
+lookups over DNS.
 
 ```hcl
 node_prefix "" {
   policy = "read"
 }
-
 service_prefix "" {
   policy = "read"
 }
-
 query_prefix "" {
   policy = "read"
 }
@@ -217,9 +605,9 @@ query_prefix "" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
-The following policy allows node, service, and prepared query 
+The following policy allows node, service, and prepared query
 lookups over DNS in any namespace and any partition.
 
 ```hcl
@@ -228,11 +616,9 @@ partition_prefix "" {
     node_prefix "" {
       policy = "read"
     }
-    
     service_prefix "" {
       policy = "read"
     }
-    
     query_prefix "" {
       policy = "read"
     }
@@ -247,7 +633,7 @@ partition_prefix "" {
 ## Enable ACL replication
 
 The following policies allow ACL replication between WAN-federated datacenters. The policy should be
-attached to the token that is configured as the replication token. 
+attached to the token that is configured as the replication token.
 
 A replication token must be configured on each server in a non-primary datacenter by setting the
 `acl.tokens.replication` config field or by using the CLI command `consul acl set-agent-token
@@ -255,7 +641,7 @@ replication <secret-id>`. Additionally, `acl.enable_token_replication = true` mu
 server in a non-primary datacenter. To learn about configuring ACL replication, refer to the [ACL
 Replication for Multiple
 Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
-tutorial. 
+tutorial.
 
 -> **Note**: ACL replication is only supported for WAN-federated datacenters. When using cluster
 peering to connect Consul datacenters, ACL replication is not required. To learn more about cluster
@@ -268,9 +654,7 @@ peering](/consul/docs/connect/cluster-peering#differences-between-wan-federation
 
 ```hcl
 acl = "write"
-
 operator = "write"
-
 service_prefix "" {
   policy = "read"
   intentions = "read"
@@ -279,28 +663,25 @@ service_prefix "" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 With Consul Enterprise, the replication token only needs permissions for the `default` partition.
-This is because ACL replication is only supported between two WAN-federated clusters, and
-non-default partitions are not supported with WAN federation.
+This is because ACL replication is only supported between two federated clusters, and non-primary
+datacenters do not allow non-default partitions with federation.
 
 ```hcl
 operator = "write"
-
 service_prefix "" {
   policy = "read"
   intentions = "read"
 }
-
 namespace_prefix "" {
   acl = "write"
-
   service_prefix "" {
     policy = "read"
     intentions = "read"
   }
-}  
+}
 ```
 
 </Tab>
@@ -328,7 +709,7 @@ service_prefix "" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 ```hcl
 partition_prefix "" {
@@ -343,8 +724,7 @@ partition_prefix "" {
 
 </Tab>
 
-<!-- All Intentions -->
-</Tabs> 
+</Tabs>
 
 </Tab>
 
@@ -366,7 +746,7 @@ service "example-service" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 The following policy grants a service owner permission to control intentions
 for incoming connections and requests to the `example-service` service
@@ -385,8 +765,7 @@ partition "prod" {
 
 </Tab>
 
-<!-- Service Owners -->
-</Tabs> 
+</Tabs>
 
 </Tab>
 
@@ -408,7 +787,7 @@ service "" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 ```hcl
 partition_prefix "" {
@@ -501,7 +880,6 @@ monitor, to store state in Consul's key/value store, and acquire a leader lock.
 node "node-one" {
   policy = "write"
 }
-
 node "node-two" {
   policy = "write"
 }
@@ -510,19 +888,15 @@ node "node-two" {
 agent "example-agent" {
   policy = "read"
 }
-
 key_prefix "consul-esm/" {
   policy = "write"
 }
-
 node_prefix "" {
   policy = "read"
 }
-
 service "consul-esm" {
   policy = "write"
 }
-
 session "example-agent" {
    policy = "write"
 }
@@ -530,14 +904,14 @@ session "example-agent" {
 
 </Tab>
 
-<Tab heading="ENT">
+<Tab heading="Enterprise">
 
 With Consul Enterprise, Consul ESM requires `acl:read` permission in each namespace where it looks
-for external nodes and health checks to monitor. 
+for external nodes and health checks to monitor.
 
 The following policy allows Consul ESM to update status of two monitored nodes named `node-one` and
-`node-two`. It allows Consul ESM scan the `default` and `ns1` namespaces for nodes to monitor. It is
-allowed to register as the `consul-esm` service and manage its own state in the `default` namespace.
+`node-two`. It allows Consul ESM to register as the `consul-esm` service, to manage state in the
+`default` namespace, and to scan the `default` and `ns1` namespaces for nodes to monitor.
 
 Because the following policy grants cross-namespace permissions, the policy must be created in the
 `default` namespace.
@@ -550,11 +924,10 @@ partition "default" {
   node "node-one" {
     policy = "write"
   }
-  
   node "node-two" {
     policy = "write"
   }
-  
+
   # Namespaces Consul ESM is allowed to scan.
   namespace "default" {
     acl = "read"
@@ -567,19 +940,15 @@ partition "default" {
   agent "example-agent" {
     policy = "read"
   }
-  
   key_prefix "consul-esm/" {
     policy = "write"
   }
-  
   node_prefix "" {
     policy = "read"
   }
-  
   service "consul-esm" {
     policy = "write"
   }
-  
   session "example-agent" {
     policy = "write"
   }
