@@ -1,4 +1,4 @@
-package builtinextensiontemplate
+package extensioncommon
 
 import (
 	"fmt"
@@ -17,35 +17,39 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type EnvoyExtension struct {
-	Constructor PluginConstructor
-	Plugin      Plugin
-	ready       bool
+// BasicExtension is the interface that each user of BasicEnvoyExtender must implement. It
+// is responsible for modifying the xDS structures based on only the state of
+// the extension.
+type BasicExtension interface {
+	// CanApply determines if the extension can mutate resources for the given xdscommon.ExtensionConfiguration.
+	CanApply(*RuntimeConfig) bool
+
+	// PatchRoute patches a route to include the custom Envoy configuration
+	// required to integrate with the built in extension template.
+	PatchRoute(*RuntimeConfig, *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error)
+
+	// PatchCluster patches a cluster to include the custom Envoy configuration
+	// required to integrate with the built in extension template.
+	PatchCluster(*RuntimeConfig, *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error)
+
+	// PatchFilter patches an Envoy filter to include the custom Envoy
+	// configuration required to integrate with the built in extension template.
+	PatchFilter(*RuntimeConfig, *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error)
 }
 
-var _ xdscommon.EnvoyExtension = (*EnvoyExtension)(nil)
+var _ EnvoyExtender = (*BasicEnvoyExtender)(nil)
 
-// Validate ensures the data in ExtensionConfiguration can successfuly be used
-// to apply the specified Envoy extension.
-func (envoyExtension *EnvoyExtension) Validate(config xdscommon.ExtensionConfiguration) error {
-	plugin, err := envoyExtension.Constructor(config)
-
-	envoyExtension.Plugin = plugin
-	envoyExtension.ready = err == nil
-
-	return err
+// BasicEnvoyExtender provides convenience functions for iterating and applying modifications
+// to Envoy resources.
+type BasicEnvoyExtender struct {
+	Extension BasicExtension
 }
 
-// Extend updates indexed xDS structures to include patches for
-// built-in extensions. It is responsible for applying Plugins to
-// the the appropriate xDS resources. If any portion of this function fails,
-// it will attempt to continue and return an error. The caller can then determine
-// if it is better to use a partially applied extension or error out.
-func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResources, config xdscommon.ExtensionConfiguration) (*xdscommon.IndexedResources, error) {
-	if !envoyExtension.ready {
-		panic("envoy extension used without being properly constructed")
-	}
+func (envoyExtension *BasicEnvoyExtender) Validate(config *RuntimeConfig) error {
+	return nil
+}
 
+func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config *RuntimeConfig) (*xdscommon.IndexedResources, error) {
 	var resultErr error
 
 	switch config.Kind {
@@ -54,7 +58,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 		return resources, nil
 	}
 
-	if !envoyExtension.Plugin.CanApply(config) {
+	if !envoyExtender.Extension.CanApply(config) {
 		return resources, nil
 	}
 
@@ -78,7 +82,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newCluster, patched, err := envoyExtension.Plugin.PatchCluster(resource)
+				newCluster, patched, err := envoyExtender.Extension.PatchCluster(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -88,7 +92,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 				}
 
 			case *envoy_listener_v3.Listener:
-				newListener, patched, err := envoyExtension.patchListener(config, resource)
+				newListener, patched, err := envoyExtender.patchListener(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
 					continue
@@ -110,7 +114,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newRoute, patched, err := envoyExtension.Plugin.PatchRoute(resource)
+				newRoute, patched, err := envoyExtender.Extension.PatchRoute(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -127,7 +131,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 	return resources, resultErr
 }
 
-func (envoyExtension EnvoyExtension) patchListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (envoyExtension BasicEnvoyExtender) patchListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway:
 		return envoyExtension.patchTerminatingGatewayListener(config, l)
@@ -137,7 +141,7 @@ func (envoyExtension EnvoyExtension) patchListener(config xdscommon.ExtensionCon
 	return l, false, nil
 }
 
-func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	// We don't support directly targeting terminating gateways with extensions.
 	if !config.IsUpstream() {
 		return l, false, nil
@@ -160,7 +164,7 @@ func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdsc
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -177,7 +181,7 @@ func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdsc
 	return l, patched, resultErr
 }
 
-func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 
 	envoyID := ""
@@ -186,7 +190,7 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 	}
 
 	if config.IsUpstream() && envoyID == xdscommon.OutboundListenerName {
-		return envoyExtension.patchTProxyListener(config, l)
+		return b.patchTProxyListener(config, l)
 	}
 
 	// If the Envoy extension configuration is for an upstream service, the listener's
@@ -207,7 +211,7 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -224,7 +228,7 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 	return l, patched, resultErr
 }
 
-func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 	patched := false
 
@@ -239,7 +243,7 @@ func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.Extens
 		}
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)

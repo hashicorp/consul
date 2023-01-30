@@ -4,6 +4,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -952,7 +953,7 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
 			EnvoyExtensions: []structs.EnvoyExtension{
 				{
-					Name: structs.BuiltinAWSLambdaExtension,
+					Name: api.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
 						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 						"PayloadPassthrough": true,
