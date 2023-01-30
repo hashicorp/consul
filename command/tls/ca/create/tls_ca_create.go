@@ -40,7 +40,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.domain, "domain", "consul", "The DNS domain of the Consul cluster that agents are configured with. "+
 		"Defaults to consul. Only used when -name-constraint is set. "+
 		"Additional domains can be passed with -additional-name-constraint.")
-	c.flags.StringVar(&c.clusterID, "cluster-id", "", "ID of the Consul cluster. Sets the CA's URI with the SPIFFEID of the cluster and domain.")
+	c.flags.StringVar(&c.clusterID, "cluster-id", "", "ID of the Consul cluster. Sets the CA's URI with the SPIFFEID composed of the cluster ID and domain  (specified by -domain or 'consul' by default).")
 	c.flags.StringVar(&c.commonName, "common-name", "", "Common Name of CA. Defaults to Consul Agent CA.")
 	c.flags.Var(&c.additionalConstraints, "additional-name-constraint", "Add name constraints for the CA. Results in rejecting certificates "+
 		"for other DNS than specified. Can be used multiple times. Only used in combination with -name-constraint.")

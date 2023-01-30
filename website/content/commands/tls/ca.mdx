@@ -49,6 +49,7 @@ Usage: `consul tls ca create [options]`
   If used, the CA only signs certificates for localhost and the domains specified by `-domain` and `-additional-name-constraint`.
   If Consul's UI is served over HTTPS in your deployment, add its DNS name with `-additional-constraint` as well. Defaults to `false`.
 
-- `cluster-id` - ID of the Consul cluster. Sets the CA's URI with the SPIFFEID of the cluster and domain.
+- `cluster-id` - ID of the Consul cluster. Sets the CA's URI with the SPIFFEID composed of the cluster ID and domain
+  (specified by `-domain` or `consul` by default).
 
 - `common-name` - Common Name of CA. Defaults to Consul Agent CA.
