@@ -7,8 +7,11 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
@@ -16,7 +19,7 @@ import (
 
 type EnvoyExtension struct {
 	Constructor PluginConstructor
-	plugin      Plugin
+	Plugin      Plugin
 	ready       bool
 }
 
@@ -27,7 +30,7 @@ var _ xdscommon.EnvoyExtension = (*EnvoyExtension)(nil)
 func (envoyExtension *EnvoyExtension) Validate(config xdscommon.ExtensionConfiguration) error {
 	plugin, err := envoyExtension.Constructor(config)
 
-	envoyExtension.plugin = plugin
+	envoyExtension.Plugin = plugin
 	envoyExtension.ready = err == nil
 
 	return err
@@ -36,7 +39,7 @@ func (envoyExtension *EnvoyExtension) Validate(config xdscommon.ExtensionConfigu
 // Extend updates indexed xDS structures to include patches for
 // built-in extensions. It is responsible for applying Plugins to
 // the the appropriate xDS resources. If any portion of this function fails,
-// it will attempt continue and return an error. The caller can then determine
+// it will attempt to continue and return an error. The caller can then determine
 // if it is better to use a partially applied extension or error out.
 func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResources, config xdscommon.ExtensionConfiguration) (*xdscommon.IndexedResources, error) {
 	if !envoyExtension.ready {
@@ -51,14 +54,14 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 		return resources, nil
 	}
 
-	if !envoyExtension.plugin.CanApply(config) {
+	if !envoyExtension.Plugin.CanApply(config) {
 		return resources, nil
 	}
 
 	for _, indexType := range []string{
-		xdscommon.ClusterType,
 		xdscommon.ListenerType,
 		xdscommon.RouteType,
+		xdscommon.ClusterType,
 	} {
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
@@ -75,7 +78,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newCluster, patched, err := envoyExtension.plugin.PatchCluster(resource)
+				newCluster, patched, err := envoyExtension.Plugin.PatchCluster(resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -96,8 +99,9 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 
 			case *envoy_route_v3.RouteConfiguration:
 				// If the Envoy extension configuration is for an upstream service, the route's
-				// name must match the upstream service's SNI.
-				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
+				// name must match the upstream service's Envoy ID.
+				matchesEnvoyID := config.EnvoyID() == nameOrSNI
+				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) && !matchesEnvoyID {
 					continue
 				}
 
@@ -106,7 +110,7 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 					continue
 				}
 
-				newRoute, patched, err := envoyExtension.plugin.PatchRoute(resource)
+				newRoute, patched, err := envoyExtension.Plugin.PatchRoute(resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -114,7 +118,6 @@ func (envoyExtension *EnvoyExtension) Extend(resources *xdscommon.IndexedResourc
 				if patched {
 					resources.Index[xdscommon.RouteType][nameOrSNI] = newRoute
 				}
-
 			default:
 				resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported type was skipped: %T", resource))
 			}
@@ -157,7 +160,7 @@ func (envoyExtension EnvoyExtension) patchTerminatingGatewayListener(config xdsc
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -182,8 +185,12 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 		envoyID = l.Name[:i]
 	}
 
+	if config.IsUpstream() && envoyID == xdscommon.OutboundListenerName {
+		return envoyExtension.patchTProxyListener(config, l)
+	}
+
 	// If the Envoy extension configuration is for an upstream service, the listener's
-	// name must match the upstream service's EnvoyID.
+	// name must match the upstream service's EnvoyID or be the outbound listener.
 	if config.IsUpstream() && envoyID != config.EnvoyID() {
 		return l, false, nil
 	}
@@ -200,7 +207,7 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := envoyExtension.plugin.PatchFilter(filter)
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -215,6 +222,115 @@ func (envoyExtension EnvoyExtension) patchConnectProxyListener(config xdscommon.
 	}
 
 	return l, patched, resultErr
+}
+
+func (envoyExtension EnvoyExtension) patchTProxyListener(config xdscommon.ExtensionConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+	var resultErr error
+	patched := false
+
+	vip := config.Upstreams[config.ServiceName].VIP
+
+	for _, filterChain := range l.FilterChains {
+		var filters []*envoy_listener_v3.Filter
+
+		match := filterChainTProxyMatch(vip, filterChain)
+		if !match {
+			continue
+		}
+
+		for _, filter := range filterChain.Filters {
+			newFilter, ok, err := envoyExtension.Plugin.PatchFilter(filter)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+				filters = append(filters, filter)
+			}
+
+			if ok {
+				filters = append(filters, newFilter)
+				patched = true
+			}
+		}
+		filterChain.Filters = filters
+	}
+
+	return l, patched, resultErr
+}
+
+func filterChainTProxyMatch(vip string, filterChain *envoy_listener_v3.FilterChain) bool {
+	for _, prefixRange := range filterChain.FilterChainMatch.PrefixRanges {
+		// Since we always set the address prefix as the full VIP (rather than a prefix), we can just check if they are
+		// equal to find the matching filter chain.
+		if vip == prefixRange.AddressPrefix {
+			return true
+		}
+	}
+
+	return false
+}
+
+func FilterClusterNames(filter *envoy_listener_v3.Filter) map[string]struct{} {
+	clusterNames := make(map[string]struct{})
+	if filter == nil {
+		return clusterNames
+	}
+
+	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+		// If it's using RDS, the cluster names will be in the route, rather than in the http filter's route config, so
+		// we don't return any cluster names in this case. They can be gathered from the route.
+		if config.GetRds() != nil {
+			return clusterNames
+		}
+
+		cfg := config.GetRouteConfig()
+
+		clusterNames = RouteClusterNames(cfg)
+	}
+
+	if config := GetTCPProxy(filter); config != nil {
+		clusterNames[config.GetCluster()] = struct{}{}
+	}
+
+	return clusterNames
+}
+
+func RouteClusterNames(route *envoy_route_v3.RouteConfiguration) map[string]struct{} {
+	if route == nil {
+		return nil
+	}
+
+	clusterNames := make(map[string]struct{})
+
+	for _, virtualHost := range route.VirtualHosts {
+		for _, route := range virtualHost.Routes {
+			r := route.GetRoute()
+			if r == nil {
+				continue
+			}
+			if c := r.GetCluster(); c != "" {
+				clusterNames[r.GetCluster()] = struct{}{}
+			}
+
+			if wc := r.GetWeightedClusters(); wc != nil {
+				for _, c := range wc.GetClusters() {
+					if c.Name != "" {
+						clusterNames[c.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+	return clusterNames
+}
+
+func GetTCPProxy(filter *envoy_listener_v3.Filter) *envoy_tcp_proxy_v3.TcpProxy {
+	if typedConfig := filter.GetTypedConfig(); typedConfig != nil {
+		config := &envoy_tcp_proxy_v3.TcpProxy{}
+		if err := anypb.UnmarshalTo(typedConfig, config, proto.UnmarshalOptions{}); err == nil {
+			return config
+		}
+	}
+
+	return nil
 }
 
 func getSNI(chain *envoy_listener_v3.FilterChain) string {

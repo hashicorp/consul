@@ -422,14 +422,10 @@ type ACLTokenSetOptions struct {
 	CAS                          bool
 	AllowMissingPolicyAndRoleIDs bool
 	ProhibitUnprivileged         bool
-	Legacy                       bool // TODO(ACL-Legacy-Compat): remove
 	FromReplication              bool
 }
 
 func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, opts ACLTokenSetOptions) error {
-	if opts.Legacy {
-		return fmt.Errorf("failed inserting acl token: cannot use this endpoint to persist legacy tokens")
-	}
 
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -451,23 +447,11 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		return ErrMissingACLTokenSecret
 	}
 
-	if !opts.Legacy && token.AccessorID == "" {
+	if token.AccessorID == "" {
 		return ErrMissingACLTokenAccessor
 	}
-
 	if opts.FromReplication && token.Local {
 		return fmt.Errorf("Cannot replicate local tokens")
-	}
-
-	// DEPRECATED (ACL-Legacy-Compat)
-	if token.Rules != "" {
-		// When we update a legacy acl token we may have to correct old HCL to
-		// prevent the propagation of older syntax into the state store and
-		// into in-memory representations.
-		correctedRules := structs.SanitizeLegacyACLTokenRules(token.Rules)
-		if correctedRules != "" {
-			token.Rules = correctedRules
-		}
 	}
 
 	// Check for an existing ACL
@@ -496,10 +480,6 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 		if token.ModifyIndex != 0 && token.ModifyIndex != original.ModifyIndex {
 			return nil
 		}
-	}
-
-	if opts.Legacy && original != nil {
-		return fmt.Errorf("legacy tokens can not be modified")
 	}
 
 	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
@@ -717,29 +697,6 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	// Get the table index.
 	idx := aclTokenMaxIndex(tx, nil, entMeta)
 	return idx, result, nil
-}
-
-// TODO(ACL-Legacy-Compat): remove in phase 2
-func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	iter, err := tx.Get(tableACLTokens, "needs-upgrade", true)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
-	}
-
-	var tokens structs.ACLTokens
-	i := 0
-	for token := iter.Next(); token != nil; token = iter.Next() {
-		tokens = append(tokens, token.(*structs.ACLToken))
-		i += 1
-		if i >= max {
-			return tokens, nil, nil
-		}
-	}
-
-	return tokens, iter.WatchCh(), nil
 }
 
 func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {

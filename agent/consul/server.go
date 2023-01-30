@@ -118,7 +118,6 @@ const (
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
 	aclTokenReapingRoutineName            = "acl token reaping"
-	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"

@@ -94,37 +94,6 @@ func GetPolicyIDByName(client *api.Client, name string) (string, error) {
 	return policy.ID, nil
 }
 
-func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) (string, error) {
-	tokenID, err := GetTokenIDFromPartial(client, tokenID)
-	if err != nil {
-		return "", err
-	}
-
-	var token *api.ACLToken
-	if isSecret {
-		qopts := api.QueryOptions{
-			Token: tokenID,
-		}
-		token, _, err = client.ACL().TokenReadSelf(&qopts)
-	} else {
-		token, _, err = client.ACL().TokenRead(tokenID, nil)
-	}
-
-	if err != nil {
-		return "", fmt.Errorf("Error reading token: %v", err)
-	}
-
-	if token == nil {
-		return "", fmt.Errorf("Token not found for ID")
-	}
-
-	if token.Rules == "" {
-		return "", fmt.Errorf("Token is not a legacy token with rules")
-	}
-
-	return token.Rules, nil
-}
-
 func GetRoleIDFromPartial(client *api.Client, partialID string) (string, error) {
 	// the full UUID string was given
 	if len(partialID) == 36 {

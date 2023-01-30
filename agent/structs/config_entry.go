@@ -92,6 +92,15 @@ type ConfigEntry interface {
 	GetRaftIndex() *RaftIndex
 }
 
+// ControlledConfigEntry is an optional interface implemented by a ConfigEntry
+// if it is reconciled via a controller and needs to respond with Status values.
+type ControlledConfigEntry interface {
+	DefaultStatus() Status
+	GetStatus() Status
+	SetStatus(status Status)
+	ConfigEntry
+}
+
 // UpdatableConfigEntry is the optional interface implemented by a ConfigEntry
 // if it wants more control over how the update part of upsert works
 // differently than a straight create. By default without this implementation
@@ -615,10 +624,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert    ConfigEntryOp = "upsert"
-	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
-	ConfigEntryDelete    ConfigEntryOp = "delete"
-	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
+	ConfigEntryUpsert              ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS           ConfigEntryOp = "upsert-cas"
+	ConfigEntryUpsertWithStatusCAS ConfigEntryOp = "upsert-with-status-cas"
+	ConfigEntryDelete              ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS           ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.

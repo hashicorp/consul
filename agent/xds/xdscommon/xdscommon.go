@@ -43,6 +43,9 @@ const (
 	// We should probably just make it configurable if anyone actually has
 	// services named "local_app" in the future.
 	LocalAppClusterName = "local_app"
+
+	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
+	OutboundListenerName = "outbound_listener"
 )
 
 type EnvoyExtension interface {
@@ -106,6 +109,8 @@ type ExtensionConfiguration struct {
 // UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
 // is used to choose which Envoy resources to patch.
 type UpstreamData struct {
+	// VIP is the tproxy virtual IP used to reach an upstream service.
+	VIP string
 	// SNI is the SNI header used to reach an upstream service.
 	SNI map[string]struct{}
 	// EnvoyID is the envoy ID of an upstream service, structured <service> or <partition>/<ns>/<service> when using a
@@ -152,6 +157,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 	case structs.ServiceKindConnectProxy:
 		kind = api.ServiceKindConnectProxy
 		outgoingKindByService := make(map[api.CompoundServiceName]api.ServiceKind)
+		vipForService := make(map[api.CompoundServiceName]string)
 		for uid, upstreamData := range cfgSnap.ConnectProxy.WatchedUpstreamEndpoints {
 			sn := upstreamIDToCompoundServiceName(uid)
 
@@ -159,6 +165,12 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 				for _, serviceNode := range serviceNodes {
 					if serviceNode.Service == nil {
 						continue
+					}
+					vip := serviceNode.Service.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
+					if vip != "" {
+						if _, ok := vipForService[sn]; !ok {
+							vipForService[sn] = vip
+						}
 					}
 					// Store the upstream's kind, and for ServiceKindTypical we don't do anything because we'll default
 					// any unset upstreams to ServiceKindConnectProxy below.
@@ -188,6 +200,7 @@ func GetExtensionConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compou
 
 			upstreamMap[compoundServiceName] = UpstreamData{
 				SNI:               map[string]struct{}{sni: {}},
+				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
 			}

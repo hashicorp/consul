@@ -814,8 +814,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC,
 		},
 		{
-			name:   "transparent-proxy-http-upstream",
-			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
+			name: "transparent-proxy-http-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
 		},
 		{
 			name:   "transparent-proxy-with-resolver-redirect-upstream",
