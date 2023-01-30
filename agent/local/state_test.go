@@ -1202,8 +1202,6 @@ func setAgentToken(t *testing.T, a *agent.TestAgent) {
 	if err != nil {
 		t.Fatalf("setting agent token: %v", err)
 	}
-
-	t.Logf("set agent token: %v", token)
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
