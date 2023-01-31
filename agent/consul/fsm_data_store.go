@@ -34,11 +34,6 @@ func (f *FSMDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntr
 	return entries, nil
 }
 
-// UpdateStatus updates the status of a config entry
-func (f *FSMDataStore) UpdateStatus(entry structs.ConfigEntry) error {
-	return nil
-}
-
 // Update takes a config entry and upserts it in the FSM state
 func (f *FSMDataStore) Update(entry structs.ConfigEntry) error {
 	_, err := f.server.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
@@ -46,6 +41,23 @@ func (f *FSMDataStore) Update(entry structs.ConfigEntry) error {
 		Entry: entry,
 	})
 	return err
+}
+
+// UpdateStatus takes a config entry, an error, and updates the status field as needed in the FSM state
+func (f *FSMDataStore) UpdateStatus(entry structs.ControlledConfigEntry, err error) error {
+	if err == nil {
+		//TODO additional status messages for success?
+		return nil
+	}
+	status := structs.Status{
+		Conditions: []structs.Condition{{
+
+			Status: err.Error() + ": Accepted == false",
+		},
+		},
+	}
+	entry.SetStatus(status)
+	return f.Update(entry)
 }
 
 // Delete takes a config entry and deletes it from the FSM state

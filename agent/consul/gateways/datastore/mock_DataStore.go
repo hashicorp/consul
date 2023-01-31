@@ -90,13 +90,13 @@ func (_m *MockDataStore) Update(entry structs.ConfigEntry) error {
 	return r0
 }
 
-// UpdateStatus provides a mock function with given fields: entry
-func (_m *MockDataStore) UpdateStatus(entry structs.ConfigEntry) error {
-	ret := _m.Called(entry)
+// UpdateStatus provides a mock function with given fields: entry, err
+func (_m *MockDataStore) UpdateStatus(entry structs.ControlledConfigEntry, err error) error {
+	ret := _m.Called(entry, err)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(structs.ConfigEntry) error); ok {
-		r0 = rf(entry)
+	if rf, ok := ret.Get(0).(func(structs.ControlledConfigEntry, error) error); ok {
+		r0 = rf(entry, err)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -111,7 +111,7 @@ func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
 	}, nil)
 
 	ds.On("Update", mock.Anything).Return(nil)
-	ds.On("UpdateStatus", mock.Anything).Return(nil)
+	ds.On("UpdateStatus", mock.Anything, mock.Anything).Return(nil)
 	return ds
 }
 

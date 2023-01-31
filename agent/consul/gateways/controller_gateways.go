@@ -73,19 +73,17 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 
 		// then update the gateway status
 		r.logger.Debug("persisting gateway status", "gateway", metaGateway.Gateway)
-		if err := r.store.UpdateStatus(metaGateway.Gateway); err != nil {
+		if err := r.store.UpdateStatus(metaGateway.Gateway, err); err != nil {
 			return err
 		}
 	}
 
 	//// and update the route statuses
 	for route, routeError := range routeErrors {
-		//TODO find out if parents are needed for status updates
 
-		configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
-		//TODO pull in update status work
+		configEntry := r.resourceReferenceToBoundRoute(route)
 		r.logger.Error("route binding error:", routeError)
-		if err := r.store.UpdateStatus(configEntry); err != nil {
+		if err := r.store.UpdateStatus(configEntry, routeError); err != nil {
 			return err
 		}
 	}
@@ -144,13 +142,21 @@ func (r *apiGatewayReconciler) initGatewayMeta(req controller.Request) (*gateway
 	return metaGateway, nil
 }
 
-func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []structs.ResourceReference) structs.ConfigEntry {
-	//TODO handle other types
-	return &structs.TCPRouteConfigEntry{
-		Kind:    ref.Kind,
-		Name:    ref.Name,
-		Parents: parents,
+func (r *apiGatewayReconciler) resourceReferenceToBoundRoute(ref structs.ResourceReference) structs.ControlledConfigEntry {
+	//TODO currently have to retrieve from the store to persist parent field on update call, is there a better way to do this?
+	boundRoute, err := r.store.GetConfigEntry(ref.Kind, ref.Name, &ref.EnterpriseMeta)
+	if err != nil {
+		return nil
 	}
+
+	switch ref.Kind {
+	case structs.TCPRoute:
+		return boundRoute.(*structs.TCPRouteConfigEntry)
+	case structs.HTTPRoute:
+		return boundRoute.(*structs.HTTPRouteConfigEntry)
+	}
+
+	return nil
 }
 
 // ensureBoundGateway copies all relevant data from a gatewayMeta's APIGateway to BoundAPIGateway

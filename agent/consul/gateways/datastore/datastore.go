@@ -9,7 +9,7 @@ import (
 type DataStore interface {
 	GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (structs.ConfigEntry, error)
 	GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry, error)
-	UpdateStatus(entry structs.ConfigEntry) error
 	Update(entry structs.ConfigEntry) error
+	UpdateStatus(entry structs.ControlledConfigEntry, err error) error
 	Delete(entry structs.ConfigEntry) error
 }
