@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/version"
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
@@ -409,7 +411,20 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 				"partition", cfg.ServiceName.Partition,
 			}
 
+			getMetricLabels := func(err error) []metrics.Label {
+				return []metrics.Label{
+					{Name: "extension", Value: cfg.EnvoyExtension.Name},
+					{Name: "version", Value: "builtin/" + version.Version},
+					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
+					{Name: "error", Value: strconv.FormatBool(err != nil)},
+				}
+			}
+
+			now := time.Now()
 			extender, err := envoyextensions.ConstructExtension(cfg.EnvoyExtension)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
 			if err != nil {
 				logFn("failed to construct extension", errorParams...)
 
@@ -420,7 +435,9 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 				continue
 			}
 
+			now = time.Now()
 			err = extender.Validate(&cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
 			if err != nil {
 				errorParams = append(errorParams, "error", err)
 				logFn("failed to validate extension arguments", errorParams...)
@@ -431,7 +448,9 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 				continue
 			}
 
+			now = time.Now()
 			resources, err = extender.Extend(resources, &cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
 			if err == nil {
 				continue
 			}
