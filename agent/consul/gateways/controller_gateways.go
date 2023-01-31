@@ -2,9 +2,7 @@ package gateways
 
 import (
 	"context"
-	"fmt"
 	"github.com/hashicorp/consul/agent/consul/controller"
-	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/gateways/datastore"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -15,6 +13,84 @@ import (
 type apiGatewayReconciler struct {
 	logger hclog.Logger
 	store  datastore.DataStore
+}
+
+// NewAPIGatewayController returns a new APIGateway controller
+func NewAPIGatewayController(store datastore.DataStore, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
+	reconciler := apiGatewayReconciler{
+		logger: logger,
+		store:  store,
+	}
+	return controller.New(publisher, &reconciler).Subscribe(
+		&stream.SubscribeRequest{
+			Topic:   state.EventTopicAPIGateway,
+			Subject: stream.SubjectWildcard,
+		},
+	)
+}
+
+// Reconcile takes in a controller request and ensures this api gateways corresponding BoundAPIGateway exists and is
+// up to date
+func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
+	metaGateway, err := r.initGatewayMeta(req)
+	if err != nil {
+		return err
+	} else if metaGateway == nil && err == nil {
+		//delete meta gateway
+		r.logger.Info("cleaning up deleted gateway object", "request", req)
+		if err := r.store.Delete(&structs.BoundAPIGatewayConfigEntry{
+			Kind:           structs.BoundAPIGateway,
+			Name:           req.Name,
+			EnterpriseMeta: *req.Meta,
+		}); err != nil {
+			r.logger.Error("error cleaning up deleted gateway object", err)
+			return err
+		}
+		return nil
+	}
+
+	r.ensureBoundGateway(metaGateway)
+
+	r.logger.Debug("started reconciling gateway")
+
+	routes, err := r.retrieveAllRoutesFromStore()
+
+	if err != nil {
+		return err
+	}
+
+	boundGateways, routeErrors := BindRoutesToGateways([]*gatewayMeta{metaGateway}, routes...)
+
+	//In this loop there should only be 1 bound gateway returned, but looping over all returned gateways
+	//to make sure nothing gets dropped and handle case where 0 gateways are returned
+	for _, boundGateway := range boundGateways {
+		// now update the gateway state
+		r.logger.Debug("persisting gateway state", "state", boundGateway)
+		if err := r.store.Update(boundGateway); err != nil {
+			r.logger.Error("error persisting state", "error", err)
+			return err
+		}
+
+		// then update the gateway status
+		r.logger.Debug("persisting gateway status", "gateway", metaGateway.Gateway)
+		if err := r.store.UpdateStatus(metaGateway.Gateway); err != nil {
+			return err
+		}
+	}
+
+	//// and update the route statuses
+	for route, routeError := range routeErrors {
+		//TODO find out if parents are needed for status updates
+
+		configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
+		//TODO pull in update status work
+		r.logger.Error("route binding error:", routeError)
+		if err := r.store.UpdateStatus(configEntry); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute, error) {
@@ -43,104 +119,29 @@ func (r *apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRout
 	return routes, nil
 }
 
-func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
-	var apiGateway *structs.APIGatewayConfigEntry
+func (r *apiGatewayReconciler) initGatewayMeta(req controller.Request) (*gatewayMeta, error) {
+	metaGateway := &gatewayMeta{}
+
 	apiGateway, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if entry == nil {
-		r.logger.Info("cleaning up deleted gateway object", "request", req)
-		if err := r.store.Delete(&structs.BoundAPIGatewayConfigEntry{
-			Kind:           structs.BoundAPIGateway,
-			Name:           req.Name,
-			EnterpriseMeta: *req.Meta,
-		}); err != nil {
-			r.logger.Error("error cleaning up deleted gateway object", err)
-			return err
-		}
-		return nil
+	if apiGateway == nil {
+		//gateway needs to be deleted, don't init
+		return nil, nil
 	}
 
-	gatewayEntry := entry.(*structs.APIGatewayConfigEntry)
-	err = gatewayEntry.Validate()
+	metaGateway.Gateway = apiGateway.(*structs.APIGatewayConfigEntry)
+
+	boundGateway, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
-		r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
-		if updateErr := r.store.UpdateStatus(gatewayEntry); err != nil {
-			return fmt.Errorf("%v: %v", err, updateErr)
-		}
-		return err
+		return nil, err
 	}
 
-	var boundGatewayEntry *structs.BoundAPIGatewayConfigEntry
-	boundGatewayEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
-	if err != nil {
-		return err
-	}
-
-	r.ensureBoundGateway()
-
-	r.logger.Debug("started reconciling gateway")
-
-	routes, err := r.retrieveAllRoutesFromStore()
-
-	if err != nil {
-		return err
-	}
-
-	metaGateway := &gatewayMeta{
-		BoundGateway: boundGatewayEntry,
-		Gateway:      gatewayEntry,
-	}
-
-	//TODO is this needed? It seems to be for my tests
-	r.reconcileListeners(metaGateway)
-
-	boundGateways, routeErrors := BindRoutesToGateways([]*gatewayMeta{metaGateway}, routes...)
-
-	if len(boundGateways) > 1 {
-		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
-		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
-
-		return err
-	} else if len(routeErrors) > 0 && len(boundGateways) > 0 {
-		err := fmt.Errorf("bind returned no gateways and (%d) errors: %v", len(routeErrors), routeErrors)
-		r.logger.Error("API Gateway Reconciler failed to reconcile: %v", err)
-		return err
-
-	}
-
-	if len(boundGateways) == 0 && len(routeErrors) == 0 {
-		r.logger.Debug("API Gateway Reconciler: gateway %s reconciled without updates.")
-		return nil
-	}
-
-	boundGateway := boundGateways[0]
-
-	// now update the gateway state
-	r.logger.Debug("persisting gateway state", "state", boundGateway)
-	if err := r.store.Update(boundGateway); err != nil {
-		r.logger.Error("error persisting state", "error", err)
-		return err
-	}
-
-	// then update the gateway status
-	r.logger.Debug("persisting gateway status", "gateway", gatewayEntry)
-	if err := r.store.UpdateStatus(gatewayEntry); err != nil {
-		return err
-	}
-
-	//// and update the route statuses
-	for route, routeError := range routeErrors {
-		//TODO find out if parents are needed for status updates
-		configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
-		if err := r.store.UpdateStatus(configEntry); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	//initialize object, values get copied over in ensureBoundGateway if they don't exist
+	metaGateway.BoundGateway = boundGateway.(*structs.BoundAPIGatewayConfigEntry)
+	return metaGateway, nil
 }
 
 func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []structs.ResourceReference) structs.ConfigEntry {
@@ -152,6 +153,7 @@ func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []stru
 	}
 }
 
+// ensureBoundGateway copies all relevant data from a gatewayMeta's APIGateway to BoundAPIGateway
 func (r *apiGatewayReconciler) ensureBoundGateway(gw *gatewayMeta) {
 	if gw.BoundGateway == nil {
 		gw.BoundGateway = &structs.BoundAPIGatewayConfigEntry{
@@ -190,16 +192,4 @@ func getBoundGatewayListener(listener structs.APIGatewayListener, boundListeners
 		}
 	}
 	return nil
-}
-
-func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
-	reconciler := apiGatewayReconciler{
-		logger: logger,
-	}
-	return controller.New(publisher, reconciler).Subscribe(
-		&stream.SubscribeRequest{
-			Topic:   state.EventTopicAPIGateway,
-			Subject: stream.SubjectWildcard,
-		},
-	)
 }
