@@ -8,7 +8,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfigSnapshot_Clone(t *testing.T) {
@@ -48,5 +50,30 @@ func TestConfigSnapshot_Clone(t *testing.T) {
 	if diff != "" {
 		t.Logf("Copied snaspshot is different to the original. You may need to re-run `make deep-copy`.\nDiff:\n%s", diff)
 		t.FailNow()
+	}
+}
+
+func TestAPIGatewaySnapshotToIngressGatewaySnapshot(t *testing.T) {
+	cases := map[string]struct {
+		apiGatewaySnapshot *configSnapshotAPIGateway
+		expected           *configSnapshotIngressGateway
+	}{
+		"default": {
+			apiGatewaySnapshot: &configSnapshotAPIGateway{
+				Listeners: map[string]structs.APIGatewayListener{},
+			},
+			expected: &configSnapshotIngressGateway{
+				Listeners: map[IngressListenerKey]structs.IngressListener{},
+				Defaults:  structs.IngressServiceConfig{},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := tc.apiGatewaySnapshot.ToIngress()
+
+			require.Equal(t, tc.expected, actual)
+		})
 	}
 }

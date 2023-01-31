@@ -688,12 +688,12 @@ type configSnapshotAPIGateway struct {
 //
 // FUTURE: Remove when API gateways have custom snapshot generation
 func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
+	ingressListeners := make(map[IngressListenerKey]structs.IngressListener, len(c.Listeners))
 
 	return configSnapshotIngressGateway{
 		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
-		// TODO Build from c.Listeners
-		// Listeners:
-		Defaults: structs.IngressServiceConfig{},
+		Listeners:               ingressListeners,
+		Defaults:                structs.IngressServiceConfig{},
 	}
 }
 
