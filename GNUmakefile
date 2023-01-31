@@ -367,6 +367,10 @@ codegen-tools:
 
 .PHONY: deep-copy
 deep-copy:
+	@if [ -z "$(shell which deep-copy)" ]; then \
+		echo "deep-copy not found. Please run 'make codegen-tools' to install it." ; \
+		exit 1 ; \
+	fi
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
