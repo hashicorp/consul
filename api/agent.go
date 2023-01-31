@@ -118,6 +118,7 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
+	EnvoyExtensions        []EnvoyExtension        `json:",omitempty"`
 	DestinationServiceName string                  `json:",omitempty"`
 	DestinationServiceID   string                  `json:",omitempty"`
 	LocalServiceAddress    string                  `json:",omitempty"`
@@ -129,6 +130,7 @@ type AgentServiceConnectProxyConfig struct {
 	Upstreams              []Upstream              `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig       `json:",omitempty"`
 	Expose                 ExposeConfig            `json:",omitempty"`
+	AccessLogs             *AccessLogsConfig       `json:",omitempty"`
 }
 
 const (
@@ -1266,35 +1268,35 @@ func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 }
 
 // UpdateACLToken updates the agent's "acl_token". See updateToken for more
-// details.
+// details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateDefaultACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLAgentToken updates the agent's "acl_agent_token". See updateToken
-// for more details.
+// for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_agent_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token". See
-// updateToken for more details.
+// updateToken for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentMasterACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_agent_master_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLReplicationToken updates the agent's "acl_replication_token". See
-// updateToken for more details.
+// updateToken for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateReplicationACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_replication_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateDefaultACLToken updates the agent's "default" token. See updateToken
@@ -1327,6 +1329,12 @@ func (a *Agent) UpdateAgentMasterACLToken(token string, q *WriteOptions) (*Write
 // for more details
 func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateTokenFallback(token, q, "replication", "acl_replication_token")
+}
+
+// UpdateConfigFileRegistrationToken updates the agent's "replication" token. See updateToken
+// for more details
+func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("config_file_service_registration", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

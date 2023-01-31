@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Policy Read'
+description: |
+  The `consul acl policy read` command outputs rules that make up an ACL policy of the specified ID.
 ---
 
 # Consul ACL Policy Read
 
 Command: `consul acl policy read`
 
-Corresponding HTTP API Endpoints: [\[GET\] /v1/acl/policy/:id](/api-docs/acl/policies#read-a-policy), [\[GET\] /v1/acl/policy/name/:name](/api-docs/acl/policies#read-a-policy-by-name)
+Corresponding HTTP API Endpoints: [\[GET\] /v1/acl/policy/:id](/consul/api-docs/acl/policies#read-a-policy), [\[GET\] /v1/acl/policy/name/:name](/consul/api-docs/acl/policies#read-a-policy-by-name)
 
 The `acl policy read` command reads and displays a policies details.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

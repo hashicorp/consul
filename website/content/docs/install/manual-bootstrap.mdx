@@ -9,18 +9,18 @@ description: >-
 
 When deploying Consul to a datacenter for the first time, there is an initial
 bootstrapping that must be done. As of Consul 0.4, an
-[automatic bootstrapping](/docs/install/bootstrapping) is available and is
+[automatic bootstrapping](/consul/docs/install/bootstrapping) is available and is
 the recommended approach. However, older versions only support a manual
 bootstrap that is documented here.
 
 Generally, the first nodes that are started are the server nodes. Remember that
 an agent can run in both client and server mode. Server nodes are responsible
-for running the [consensus protocol](/docs/architecture/consensus), and
+for running the [consensus protocol](/consul/docs/architecture/consensus), and
 storing the cluster state. The client nodes are mostly stateless and rely on the
 server nodes, so they can be started easily.
 
 Manual bootstrapping requires that the first server that is deployed in a new
-datacenter provide the [`-bootstrap` configuration option](/docs/agent/config/cli-flags#_bootstrap).
+datacenter provide the [`-bootstrap` configuration option](/consul/docs/agent/config/cli-flags#_bootstrap).
 This option allows the server
 to assert leadership of the cluster without agreement from any other server.
 This is necessary because at this point, there are no other servers running in
@@ -32,7 +32,7 @@ something like the following will be logged:
 ```
 
 Once `Node A` is running, we can start the next set of servers. There is a
-[deployment table](/docs/architecture/consensus#deployment_table) that covers various
+[deployment table](/consul/docs/architecture/consensus#deployment_table) that covers various
 options, but it is recommended to have 3 or 5 total servers per datacenter. A
 single server deployment is _**highly**_ discouraged as data loss is inevitable
 in a failure scenario. We start the next servers **without** specifying

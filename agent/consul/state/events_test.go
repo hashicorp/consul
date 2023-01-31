@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
-	"github.com/stretchr/testify/require"
 )
 
 const aclToken = "67b04fbc-e35f-494a-ad43-739f1c8b839c"

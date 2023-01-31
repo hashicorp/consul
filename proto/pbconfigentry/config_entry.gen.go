@@ -238,6 +238,22 @@ func DestinationConfigFromStructs(t *structs.DestinationConfig, s *DestinationCo
 	s.Addresses = t.Addresses
 	s.Port = int32(t.Port)
 }
+func EnvoyExtensionToStructs(s *EnvoyExtension, t *structs.EnvoyExtension) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Required = s.Required
+	t.Arguments = EnvoyExtensionArgumentsToStructs(s.Arguments)
+}
+func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Required = t.Required
+	s.Arguments = EnvoyExtensionArgumentsFromStructs(t.Arguments)
+}
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
 	if s == nil {
 		return
@@ -534,6 +550,9 @@ func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	}
 	t.Hostnames = s.Hostnames
 	t.Meta = s.Meta
+	if s.Status != nil {
+		StatusToStructs(s.Status, &t.Status)
+	}
 }
 func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
@@ -561,6 +580,11 @@ func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	}
 	s.Hostnames = t.Hostnames
 	s.Meta = t.Meta
+	{
+		var x Status
+		StatusFromStructs(&t.Status, &x)
+		s.Status = &x
+	}
 }
 func HTTPRouteRuleToStructs(s *HTTPRouteRule, t *structs.HTTPRouteRule) {
 	if s == nil {
@@ -1218,6 +1242,14 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.LocalConnectTimeoutMs = int(s.LocalConnectTimeoutMs)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
+	{
+		t.EnvoyExtensions = make(structs.EnvoyExtensions, len(s.EnvoyExtensions))
+		for i := range s.EnvoyExtensions {
+			if s.EnvoyExtensions[i] != nil {
+				EnvoyExtensionToStructs(s.EnvoyExtensions[i], &t.EnvoyExtensions[i])
+			}
+		}
+	}
 	t.Meta = s.Meta
 }
 func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefaults) {
@@ -1256,6 +1288,16 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	s.LocalConnectTimeoutMs = int32(t.LocalConnectTimeoutMs)
 	s.LocalRequestTimeoutMs = int32(t.LocalRequestTimeoutMs)
 	s.BalanceInboundConnections = t.BalanceInboundConnections
+	{
+		s.EnvoyExtensions = make([]*EnvoyExtension, len(t.EnvoyExtensions))
+		for i := range t.EnvoyExtensions {
+			{
+				var x EnvoyExtension
+				EnvoyExtensionFromStructs(&t.EnvoyExtensions[i], &x)
+				s.EnvoyExtensions[i] = &x
+			}
+		}
+	}
 	s.Meta = t.Meta
 }
 func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {

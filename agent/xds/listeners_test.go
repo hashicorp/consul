@@ -814,8 +814,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC,
 		},
 		{
-			name:   "transparent-proxy-http-upstream",
-			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
+			name: "transparent-proxy-http-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
 		},
 		{
 			name:   "transparent-proxy-with-resolver-redirect-upstream",
@@ -840,6 +842,48 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
 				}, nil)
+			},
+		},
+		{
+			name: "access-logs-defaults",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled: true,
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-json-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:    true,
+						Type:       structs.FileLogSinkType,
+						Path:       "/tmp/accesslog.txt",
+						JSONFormat: "{ \"custom_start_time\": \"%START_TIME%\" }",
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-text-stderr-disablelistenerlogs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.StdErrLogSinkType,
+						TextFormat:          "CUSTOM FORMAT %START_TIME%",
+					}
+				},
+					nil)
 			},
 		},
 	}

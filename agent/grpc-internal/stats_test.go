@@ -26,7 +26,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, rate.NullRateLimiter())
+	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, rate.NullRequestLimitsHandler())
 
 	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
 

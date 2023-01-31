@@ -32,6 +32,11 @@ const (
 	HTTPRoute         string = "http-route"
 )
 
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
+)
+
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
@@ -108,6 +113,13 @@ type ExposeConfig struct {
 	Paths []ExposePath `json:",omitempty"`
 }
 
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+type EnvoyExtension struct {
+	Name      string
+	Required  bool
+	Arguments map[string]interface{} `bexpr:"-"`
+}
+
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`
@@ -129,9 +141,10 @@ type ExposePath struct {
 type LogSinkType string
 
 const (
-	FileLogSinkType   LogSinkType = "file"
-	StdErrLogSinkType LogSinkType = "stderr"
-	StdOutLogSinkType LogSinkType = "stdout"
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
 )
 
 // AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
@@ -276,6 +289,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
 	ModifyIndex               uint64
@@ -299,7 +313,8 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig       `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64

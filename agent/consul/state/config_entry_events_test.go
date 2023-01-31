@@ -20,7 +20,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 	}{
 		"upsert mesh config": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.MeshConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{
 					Meta: map[string]string{"foo": "bar"},
 				})
 			},
@@ -39,7 +39,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete mesh config": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.MeshConfigEntry{})
+				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{})
 			},
 			mutate: func(tx *txn) error {
 				return deleteConfigEntryTxn(tx, 0, structs.MeshConfig, structs.MeshConfigMesh, nil)
@@ -57,7 +57,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service resolver": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceResolverConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceResolverConfigEntry{
 					Name: "web",
 				})
 			},
@@ -76,7 +76,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service resolver": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceResolverConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceResolverConfigEntry{
 					Name: "web",
 				})
 			},
@@ -98,7 +98,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert ingress gateway": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.IngressGatewayConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.IngressGatewayConfigEntry{
 					Name: "gw1",
 				})
 			},
@@ -117,7 +117,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete ingress gateway": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.IngressGatewayConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.IngressGatewayConfigEntry{
 					Name: "gw1",
 				})
 			},
@@ -139,7 +139,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service intentions": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceIntentionsConfigEntry{
 					Name: "web",
 				})
 			},
@@ -158,7 +158,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service intentions": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceIntentionsConfigEntry{
 					Name: "web",
 				})
 			},
@@ -180,7 +180,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service defaults": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceConfigEntry{
 					Name: "web",
 				})
 			},
@@ -199,7 +199,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service defaults": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceConfigEntry{
 					Name: "web",
 				})
 			},
@@ -551,32 +551,32 @@ func TestServiceDefaultsSnapshot(t *testing.T) {
 func TestAPIGatewaySnapshot(t *testing.T) {
 	const index uint64 = 123
 
-	ixn1 := &structs.APIGatewayConfigEntry{
+	gw1 := &structs.APIGatewayConfigEntry{
 		Kind: structs.APIGateway,
 		Name: "agw1",
 	}
-	ixn2 := &structs.APIGatewayConfigEntry{
+	gw2 := &structs.APIGatewayConfigEntry{
 		Kind: structs.APIGateway,
 		Name: "agw2",
 	}
 
 	store := testStateStore(t)
-	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
-	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+	require.NoError(t, store.EnsureConfigEntry(index, gw1))
+	require.NoError(t, store.EnsureConfigEntry(index, gw2))
 
 	testCases := map[string]struct {
 		subject stream.Subject
 		events  []stream.Event
 	}{
 		"named entry": {
-			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			subject: EventSubjectConfigEntry{Name: gw1.Name},
 			events: []stream.Event{
 				{
 					Topic: EventTopicAPIGateway,
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: gw1,
 					},
 				},
 			},
@@ -589,7 +589,7 @@ func TestAPIGatewaySnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: gw1,
 					},
 				},
 				{
@@ -597,7 +597,7 @@ func TestAPIGatewaySnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn2,
+						Value: gw2,
 					},
 				},
 			},
@@ -620,32 +620,32 @@ func TestAPIGatewaySnapshot(t *testing.T) {
 func TestTCPRouteSnapshot(t *testing.T) {
 	const index uint64 = 123
 
-	ixn1 := &structs.TCPRouteConfigEntry{
+	rt1 := &structs.TCPRouteConfigEntry{
 		Kind: structs.TCPRoute,
 		Name: "tcprt1",
 	}
-	ixn2 := &structs.TCPRouteConfigEntry{
+	rt2 := &structs.TCPRouteConfigEntry{
 		Kind: structs.TCPRoute,
 		Name: "tcprt2",
 	}
 
 	store := testStateStore(t)
-	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
-	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+	require.NoError(t, store.EnsureConfigEntry(index, rt1))
+	require.NoError(t, store.EnsureConfigEntry(index, rt2))
 
 	testCases := map[string]struct {
 		subject stream.Subject
 		events  []stream.Event
 	}{
 		"named entry": {
-			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			subject: EventSubjectConfigEntry{Name: rt1.Name},
 			events: []stream.Event{
 				{
 					Topic: EventTopicTCPRoute,
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: rt1,
 					},
 				},
 			},
@@ -658,7 +658,7 @@ func TestTCPRouteSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: rt1,
 					},
 				},
 				{
@@ -666,7 +666,7 @@ func TestTCPRouteSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn2,
+						Value: rt2,
 					},
 				},
 			},
@@ -689,32 +689,32 @@ func TestTCPRouteSnapshot(t *testing.T) {
 func TestHTTPRouteSnapshot(t *testing.T) {
 	const index uint64 = 123
 
-	ixn1 := &structs.HTTPRouteConfigEntry{
+	rt1 := &structs.HTTPRouteConfigEntry{
 		Kind: structs.HTTPRoute,
 		Name: "httprt1",
 	}
-	ixn2 := &structs.HTTPRouteConfigEntry{
+	gw2 := &structs.HTTPRouteConfigEntry{
 		Kind: structs.HTTPRoute,
 		Name: "httprt2",
 	}
 
 	store := testStateStore(t)
-	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
-	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+	require.NoError(t, store.EnsureConfigEntry(index, rt1))
+	require.NoError(t, store.EnsureConfigEntry(index, gw2))
 
 	testCases := map[string]struct {
 		subject stream.Subject
 		events  []stream.Event
 	}{
 		"named entry": {
-			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			subject: EventSubjectConfigEntry{Name: rt1.Name},
 			events: []stream.Event{
 				{
 					Topic: EventTopicHTTPRoute,
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: rt1,
 					},
 				},
 			},
@@ -727,7 +727,7 @@ func TestHTTPRouteSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: rt1,
 					},
 				},
 				{
@@ -735,7 +735,7 @@ func TestHTTPRouteSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn2,
+						Value: gw2,
 					},
 				},
 			},
@@ -758,32 +758,32 @@ func TestHTTPRouteSnapshot(t *testing.T) {
 func TestInlineCertificateSnapshot(t *testing.T) {
 	const index uint64 = 123
 
-	ixn1 := &structs.InlineCertificateConfigEntry{
+	crt1 := &structs.InlineCertificateConfigEntry{
 		Kind: structs.InlineCertificate,
 		Name: "inlinecert1",
 	}
-	ixn2 := &structs.InlineCertificateConfigEntry{
+	crt2 := &structs.InlineCertificateConfigEntry{
 		Kind: structs.InlineCertificate,
 		Name: "inlinecert2",
 	}
 
 	store := testStateStore(t)
-	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
-	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+	require.NoError(t, store.EnsureConfigEntry(index, crt1))
+	require.NoError(t, store.EnsureConfigEntry(index, crt2))
 
 	testCases := map[string]struct {
 		subject stream.Subject
 		events  []stream.Event
 	}{
 		"named entry": {
-			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			subject: EventSubjectConfigEntry{Name: crt1.Name},
 			events: []stream.Event{
 				{
 					Topic: EventTopicInlineCertificate,
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: crt1,
 					},
 				},
 			},
@@ -796,7 +796,7 @@ func TestInlineCertificateSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: crt1,
 					},
 				},
 				{
@@ -804,7 +804,7 @@ func TestInlineCertificateSnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn2,
+						Value: crt2,
 					},
 				},
 			},
@@ -827,32 +827,32 @@ func TestInlineCertificateSnapshot(t *testing.T) {
 func TestBoundAPIGatewaySnapshot(t *testing.T) {
 	const index uint64 = 123
 
-	ixn1 := &structs.BoundAPIGatewayConfigEntry{
+	gw1 := &structs.BoundAPIGatewayConfigEntry{
 		Kind: structs.BoundAPIGateway,
 		Name: "boundapigw1",
 	}
-	ixn2 := &structs.BoundAPIGatewayConfigEntry{
+	gw2 := &structs.BoundAPIGatewayConfigEntry{
 		Kind: structs.BoundAPIGateway,
 		Name: "boundapigw2",
 	}
 
 	store := testStateStore(t)
-	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
-	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+	require.NoError(t, store.EnsureConfigEntry(index, gw1))
+	require.NoError(t, store.EnsureConfigEntry(index, gw2))
 
 	testCases := map[string]struct {
 		subject stream.Subject
 		events  []stream.Event
 	}{
 		"named entry": {
-			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			subject: EventSubjectConfigEntry{Name: gw1.Name},
 			events: []stream.Event{
 				{
 					Topic: EventTopicBoundAPIGateway,
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: gw1,
 					},
 				},
 			},
@@ -865,7 +865,7 @@ func TestBoundAPIGatewaySnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn1,
+						Value: gw1,
 					},
 				},
 				{
@@ -873,7 +873,7 @@ func TestBoundAPIGatewaySnapshot(t *testing.T) {
 					Index: index,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: ixn2,
+						Value: gw2,
 					},
 				},
 			},

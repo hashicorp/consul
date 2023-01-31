@@ -1,15 +1,30 @@
 package xdscommon
 
 import (
-	"github.com/golang/protobuf/proto"
-
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
+	// PublicListenerName is the name we give the public listener in Envoy config.
+	PublicListenerName = "public_listener"
+
+	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
+	OutboundListenerName = "outbound_listener"
+
+	// LocalAppClusterName is the name we give the local application "cluster" in
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collide however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
+	LocalAppClusterName = "local_app"
+
 	// Resource types in xDS v3. These are copied from
 	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
 	// the rest of that package.
@@ -50,131 +65,5 @@ func EmptyIndexedResources() *IndexedResources {
 			ListenerType: make(map[string][]string),
 			ClusterType:  make(map[string][]string),
 		},
-	}
-}
-
-type ServiceConfig struct {
-	// Kind identifies the final proxy kind that will make the request to the
-	// destination service.
-	Kind api.ServiceKind
-	Meta map[string]string
-}
-
-// PluginConfiguration is passed into Envoy plugins. It should depend on the
-// API client rather than the structs package because the API client is meant
-// to be public.
-type PluginConfiguration struct {
-	// ServiceConfigs is a mapping from service names to the data Envoy plugins
-	// need to override the default Envoy configurations.
-	ServiceConfigs map[api.CompoundServiceName]ServiceConfig
-
-	// SNIToServiceName is a mapping from SNIs to service names. This allows
-	// Envoy plugins to easily convert from an SNI Envoy resource name to the
-	// associated service's CompoundServiceName
-	SNIToServiceName map[string]api.CompoundServiceName
-
-	// EnvoyIDToServiceName is a mapping from EnvoyIDs to service names. This allows
-	// Envoy plugins to easily convert from an EnvoyID Envoy resource name to the
-	// associated service's CompoundServiceName
-	EnvoyIDToServiceName map[string]api.CompoundServiceName
-
-	// Kind is mode the local Envoy proxy is running in. For now, only
-	// terminating gateways are supported.
-	Kind api.ServiceKind
-}
-
-// MakePluginConfiguration generates the configuration that will be sent to
-// Envoy plugins.
-func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfiguration {
-	serviceConfigs := make(map[api.CompoundServiceName]ServiceConfig)
-	sniMappings := make(map[string]api.CompoundServiceName)
-	envoyIDMappings := make(map[string]api.CompoundServiceName)
-
-	trustDomain := ""
-	if cfgSnap.Roots != nil {
-		trustDomain = cfgSnap.Roots.TrustDomain
-	}
-
-	switch cfgSnap.Kind {
-	case structs.ServiceKindConnectProxy:
-		connectProxies := make(map[proxycfg.UpstreamID]struct{})
-		for uid, upstreamData := range cfgSnap.ConnectProxy.WatchedUpstreamEndpoints {
-			for _, serviceNodes := range upstreamData {
-				// Lambdas and likely other integrations won't be attached to nodes.
-				// After agentless, we may need to reconsider this.
-				if len(serviceNodes) == 0 {
-					connectProxies[uid] = struct{}{}
-				}
-				for _, serviceNode := range serviceNodes {
-					if serviceNode.Service.Kind == structs.ServiceKindTypical || serviceNode.Service.Kind == structs.ServiceKindConnectProxy {
-						connectProxies[uid] = struct{}{}
-					}
-				}
-			}
-		}
-
-		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
-
-		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
-			if _, ok := connectProxies[uid]; !ok {
-				continue
-			}
-
-			serviceConfigs[upstreamIDToCompoundServiceName(uid)] = ServiceConfig{
-				Meta: dc.ServiceMeta,
-				Kind: api.ServiceKindConnectProxy,
-			}
-
-			compoundServiceName := upstreamIDToCompoundServiceName(uid)
-			meta := uid.EnterpriseMeta
-			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-			sniMappings[sni] = compoundServiceName
-			envoyIDMappings[uid.EnvoyID()] = compoundServiceName
-		}
-	case structs.ServiceKindTerminatingGateway:
-		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
-			compoundServiceName := serviceNameToCompoundServiceName(svc)
-			serviceConfigs[compoundServiceName] = ServiceConfig{
-				Meta: c.Meta,
-				Kind: api.ServiceKindTerminatingGateway,
-			}
-
-			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-			sniMappings[sni] = compoundServiceName
-
-			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
-			envoyIDMappings[envoyID.EnvoyID()] = compoundServiceName
-
-			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
-			if hasResolver {
-				for subsetName := range resolver.Subsets {
-					sni := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
-					sniMappings[sni] = compoundServiceName
-				}
-			}
-		}
-	}
-
-	return PluginConfiguration{
-		ServiceConfigs:       serviceConfigs,
-		SNIToServiceName:     sniMappings,
-		EnvoyIDToServiceName: envoyIDMappings,
-		Kind:                 api.ServiceKind(cfgSnap.Kind),
-	}
-}
-
-func serviceNameToCompoundServiceName(svc structs.ServiceName) api.CompoundServiceName {
-	return api.CompoundServiceName{
-		Name:      svc.Name,
-		Partition: svc.PartitionOrDefault(),
-		Namespace: svc.NamespaceOrDefault(),
-	}
-}
-
-func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServiceName {
-	return api.CompoundServiceName{
-		Name:      uid.Name,
-		Partition: uid.PartitionOrDefault(),
-		Namespace: uid.NamespaceOrDefault(),
 	}
 }

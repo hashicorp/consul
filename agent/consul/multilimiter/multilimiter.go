@@ -3,11 +3,12 @@ package multilimiter
 import (
 	"bytes"
 	"context"
-	radix "github.com/hashicorp/go-immutable-radix"
-	"golang.org/x/time/rate"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	radix "github.com/hashicorp/go-immutable-radix"
+	"golang.org/x/time/rate"
 )
 
 var _ RateLimiter = &MultiLimiter{}
@@ -23,6 +24,8 @@ func Key(prefix, key []byte) KeyType {
 }
 
 // RateLimiter is the interface implemented by MultiLimiter
+//
+//go:generate mockery --name RateLimiter --inpackage --filename mock_RateLimiter.go
 type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool

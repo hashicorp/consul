@@ -22,7 +22,7 @@ Your datacenter must meet the following requirements prior to configuring the Co
 - Consul 1.11.2+
 - HashiCorp Consul Helm chart 0.47.1+
 - Consul Service Mesh must be deployed on the Kubernetes cluster that API Gateway is deployed on.
-- Envoy:  Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details.
+- Envoy:  Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
 
 ### TCP Port Requirements
 
@@ -47,7 +47,7 @@ The following table lists API Gateway limitations related to specific Consul fea
 
 | Consul Feature | Limitation |
 | -------------- | ---------- |
-| [Admin partitions](/docs/enterprise/admin-partitions) | You can deploy Consul API Gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
+| [Admin partitions](/consul/docs/enterprise/admin-partitions) | You can deploy Consul API Gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 | Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, you can route to services in other datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 
 ## Deployment Environments

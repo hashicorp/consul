@@ -162,7 +162,7 @@ func (a *ACL) aclPreCheck() error {
 
 // BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -207,9 +207,24 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err != nil {
 		return err
 	}
-	secret, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return err
+	secret := args.BootstrapSecret
+	if secret == "" {
+		secret, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = uuid.ParseUUID(secret)
+		if err != nil {
+			return err
+		}
+		ok, err := a.srv.checkTokenUUID(secret)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
+		}
 	}
 
 	req := structs.ACLTokenBootstrapRequest{
@@ -455,10 +470,6 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return fmt.Errorf("Cannot clone a token created from an auth method")
 	}
 
-	if token.Rules != "" {
-		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
-	}
-
 	clone := &structs.ACLToken{
 		Policies:          token.Policies,
 		Roles:             token.Roles,
@@ -559,7 +570,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
 	}
 
-	if args.TokenID == structs.ACLTokenAnonymousID {
+	if args.TokenID == acl.AnonymousTokenID {
 		return fmt.Errorf("Delete operation not permitted on the anonymous token")
 	}
 

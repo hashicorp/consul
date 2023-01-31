@@ -6,6 +6,14 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+// BoundRoute indicates a route that has parent gateways which
+// can be accessed by calling the GetParents associated function.
+type BoundRoute interface {
+	ConfigEntry
+	GetParents() []ResourceReference
+	GetProtocol() APIGatewayListenerProtocol
+}
+
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
 // with the given name.
 type HTTPRouteConfigEntry struct {
@@ -24,7 +32,9 @@ type HTTPRouteConfigEntry struct {
 	// Hostnames are the hostnames for which this HTTPRoute should respond to requests.
 	Hostnames []string
 
-	Meta               map[string]string `json:",omitempty"`
+	Meta map[string]string `json:",omitempty"`
+	// Status is the asynchronous reconciliation status which an HTTPRoute propagates to the user.
+	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -38,6 +48,18 @@ func (e *HTTPRouteConfigEntry) GetName() string {
 		return ""
 	}
 	return e.Name
+}
+
+func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
+	return []ResourceReference{}
+}
+
+func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolHTTP
 }
 
 func (e *HTTPRouteConfigEntry) Normalize() error {
@@ -204,6 +226,20 @@ type HTTPService struct {
 	acl.EnterpriseMeta
 }
 
+var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
+
+func (e *HTTPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *HTTPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *HTTPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
+}
+
 // TCPRouteConfigEntry manages the configuration for a TCP route
 // with the given name.
 type TCPRouteConfigEntry struct {
@@ -216,12 +252,13 @@ type TCPRouteConfigEntry struct {
 
 	// Parents is a list of gateways that this route should be bound to
 	Parents []ResourceReference
+
 	// Services is a list of TCP-based services that this should route to.
 	// Currently, this must specify at maximum one service.
 	Services []TCPService
 
 	Meta map[string]string `json:",omitempty"`
-	// Status is the asynchronous status which a TCPRoute propagates to the user.
+	// Status is the asynchronous reconciliation status which a TCPRoute propagates to the user.
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -236,6 +273,17 @@ func (e *TCPRouteConfigEntry) GetName() string {
 		return ""
 	}
 	return e.Name
+}
+
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
+	if e == nil {
+		return []ResourceReference{}
+	}
+	return e.Parents
+}
+
+func (e *TCPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
+	return ListenerProtocolTCP
 }
 
 func (e *TCPRouteConfigEntry) GetMeta() map[string]string {
@@ -295,6 +343,20 @@ func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+var _ ControlledConfigEntry = (*TCPRouteConfigEntry)(nil)
+
+func (e *TCPRouteConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *TCPRouteConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *TCPRouteConfigEntry) DefaultStatus() Status {
+	return Status{}
 }
 
 // TCPService is a service reference for a TCPRoute

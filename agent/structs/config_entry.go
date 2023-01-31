@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 )
@@ -87,6 +87,15 @@ type ConfigEntry interface {
 	GetRaftIndex() *RaftIndex
 }
 
+// ControlledConfigEntry is an optional interface implemented by a ConfigEntry
+// if it is reconciled via a controller and needs to respond with Status values.
+type ControlledConfigEntry interface {
+	DefaultStatus() Status
+	GetStatus() Status
+	SetStatus(status Status)
+	ConfigEntry
+}
+
 // UpdatableConfigEntry is the optional interface implemented by a ConfigEntry
 // if it wants more control over how the update part of upsert works
 // differently than a straight create. By default without this implementation
@@ -125,6 +134,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -245,6 +255,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
+	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
 	return validationErr
 }
 
@@ -353,6 +367,7 @@ type ProxyConfigEntry struct {
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
 	AccessLogs       AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -407,33 +422,15 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
 	}
 
-	switch e.AccessLogs.Type {
-	case "", StdErrLogSinkType, StdOutLogSinkType:
-		// OK
-	case FileLogSinkType:
-		if e.AccessLogs.Path == "" {
-			return errors.New("path must be specified when using file type access logs")
-		}
-	default:
-		return fmt.Errorf("invalid access log type: %s", e.AccessLogs.Type)
-	}
-
-	if e.AccessLogs.JSONFormat != "" && e.AccessLogs.TextFormat != "" {
-		return errors.New("cannot specify both access log JSONFormat and TextFormat")
-	}
-
-	if e.AccessLogs.Type != FileLogSinkType && e.AccessLogs.Path != "" {
-		return errors.New("path is only valid for file type access logs")
-	}
-
-	if e.AccessLogs.JSONFormat != "" {
-		msg := json.RawMessage{}
-		if err := json.Unmarshal([]byte(e.AccessLogs.JSONFormat), &msg); err != nil {
-			return fmt.Errorf("invalid access log json for JSON format: %w", err)
-		}
+	if err := e.AccessLogs.Validate(); err != nil {
+		return err
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
 	}
 
@@ -576,10 +573,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert    ConfigEntryOp = "upsert"
-	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
-	ConfigEntryDelete    ConfigEntryOp = "delete"
-	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
+	ConfigEntryUpsert              ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS           ConfigEntryOp = "upsert-cas"
+	ConfigEntryUpsertWithStatusCAS ConfigEntryOp = "upsert-with-status-cas"
+	ConfigEntryDelete              ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS           ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -1146,7 +1144,9 @@ type ServiceConfigResponse struct {
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
 	Destination       DestinationConfig      `json:",omitempty"`
+	AccessLogs        AccessLogsConfig       `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
+	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
 	QueryMeta
 }
 

@@ -837,6 +837,20 @@ func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
+var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
+
+func (e *APIGatewayConfigEntry) GetStatus() Status {
+	return e.Status
+}
+
+func (e *APIGatewayConfigEntry) SetStatus(status Status) {
+	e.Status = status
+}
+
+func (e *APIGatewayConfigEntry) DefaultStatus() Status {
+	return Status{}
+}
+
 // APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
 type APIGatewayListenerProtocol string
 
@@ -986,4 +1000,56 @@ type BoundAPIGatewayListener struct {
 	Name         string
 	Routes       []ResourceReference
 	Certificates []ResourceReference
+}
+
+// BindRoute is used to create or update a route on the listener.
+// It returns true if the route was able to be bound to the listener.
+// Routes should only bind to listeners with their same section name
+// and protocol. Be sure to check both of these before attempting
+// to bind a route to the listener.
+func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
+	if l == nil {
+		return false
+	}
+
+	// Convert the abstract route interface to a ResourceReference.
+	routeRef := ResourceReference{
+		Kind:           route.GetKind(),
+		Name:           route.GetName(),
+		EnterpriseMeta: *route.GetEnterpriseMeta(),
+	}
+
+	// If the listener has no routes, create a new slice of routes with the given route.
+	if l.Routes == nil {
+		l.Routes = []ResourceReference{routeRef}
+		return true
+	}
+
+	// If the route matches an existing route, update it and return.
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == routeRef.Kind && listenerRoute.Name == routeRef.Name && listenerRoute.EnterpriseMeta.IsSame(&routeRef.EnterpriseMeta) {
+			l.Routes[i] = routeRef
+			return true
+		}
+	}
+
+	// If the route is new to the listener, append it.
+	l.Routes = append(l.Routes, routeRef)
+
+	return true
+}
+
+func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
+	if l == nil {
+		return false
+	}
+
+	for i, listenerRoute := range l.Routes {
+		if listenerRoute.Kind == route.GetKind() && listenerRoute.Name == route.GetName() && listenerRoute.EnterpriseMeta.IsSame(route.GetEnterpriseMeta()) {
+			l.Routes = append(l.Routes[:i], l.Routes[i+1:]...)
+			return true
+		}
+	}
+
+	return false
 }

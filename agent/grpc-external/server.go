@@ -49,7 +49,7 @@ func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		grpc.MaxRecvMsgSize(50 * 1024 * 1024),
-		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(limiter, agentmiddleware.NewPanicHandler(logger))),
+		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(limiter, agentmiddleware.NewPanicHandler(logger), logger)),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(unaryInterceptors...),
 		middleware.WithStreamServerChain(streamInterceptors...),

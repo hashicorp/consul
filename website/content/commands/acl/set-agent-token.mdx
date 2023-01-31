@@ -1,23 +1,25 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Set Agent Token'
+description: >-
+  The `consul acl set-agent-token` command updates an agent's ACL tokens to introduce the agent ACL tokens for the first time or to update tokens.
 ---
 
 # Consul ACL Set Agent Token
 
 Command: `consul acl set-agent-token`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/token/:type](/api-docs/agent#update-acl-tokens)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/token/:type](/consul/api-docs/agent#update-acl-tokens)
 
 This command updates the ACL tokens currently in use by the agent. It can be used to introduce
 ACL tokens to the agent for the first time, or to update tokens that were initially loaded from
 the agent's configuration. Tokens are not persisted unless
-[`acl.enable_token_persistence`](/docs/agent/config/config-files#acl_enable_token_persistence)
+[`acl.enable_token_persistence`](/consul/docs/agent/config/config-files#acl_enable_token_persistence)
 is `true`, so tokens will need to be updated again if that option is `false` and
 the agent is restarted.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -45,6 +47,13 @@ The token types are:
 - `replication` - This is the token that the agent will use for replication
   operations. This token will need to be configured with read access to
   whatever data is being replicated.
+
+- `config_file_service_registration` - This is the token that the agent uses to
+  register services and checks defined in config files. This token needs to be
+  configured with write permissions for the services or checks being registered.
+  If not set, the `default` token is used. If a service or check definition
+  contains a `token` field, then that token is used to register that service or
+  check instead of the `config_file_service_registration` token.
 
 ### API Options
 

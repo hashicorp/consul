@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
@@ -150,14 +150,14 @@ func enterpriseMetaFromStructs(m acl.EnterpriseMeta) *pbcommon.EnterpriseMeta {
 	return pbcommon.NewEnterpriseMetaFromStructs(m)
 }
 
-func timeFromStructs(t *time.Time) *timestamp.Timestamp {
+func timeFromStructs(t *time.Time) *timestamppb.Timestamp {
 	if t == nil {
 		return nil
 	}
 	return timestamppb.New(*t)
 }
 
-func timeToStructs(ts *timestamp.Timestamp) *time.Time {
+func timeToStructs(ts *timestamppb.Timestamp) *time.Time {
 	if ts == nil {
 		return nil
 	}
@@ -426,5 +426,73 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 		return structs.HTTPQueryMatchRegularExpression
 	default:
 		return structs.HTTPQueryMatchExact
+=======
+func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
+	if args != nil {
+		st := args.GetStructValue()
+		if st != nil {
+			return st.AsMap()
+		}
+	}
+	return nil
+}
+
+func EnvoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
+	if s, err := structpb.NewValue(args); err == nil {
+		return s
+	}
+	return nil
+}
+
+func EnvoyExtensionsToStructs(args []*EnvoyExtension) []structs.EnvoyExtension {
+	o := make([]structs.EnvoyExtension, len(args))
+	for i := range args {
+		var e structs.EnvoyExtension
+		if args[i] != nil {
+			e = structs.EnvoyExtension{
+				Name:      args[i].Name,
+				Required:  args[i].Required,
+				Arguments: EnvoyExtensionArgumentsToStructs(args[i].Arguments),
+			}
+		}
+
+		o[i] = e
+	}
+
+	return o
+}
+
+func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension {
+	o := make([]*EnvoyExtension, len(args))
+	for i, e := range args {
+		o[i] = &EnvoyExtension{
+			Name:      e.Name,
+			Required:  e.Required,
+			Arguments: EnvoyExtensionArgumentsFromStructs(e.Arguments),
+		}
+	}
+
+	return o
+}
+
+func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGatewayListenerProtocol {
+	switch a {
+	case structs.ListenerProtocolHTTP:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	case structs.ListenerProtocolTCP:
+		return APIGatewayListenerProtocol_ListenerProtocolTCP
+	default:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	}
+}
+
+func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewayListenerProtocol {
+	switch a {
+	case APIGatewayListenerProtocol_ListenerProtocolHTTP:
+		return structs.ListenerProtocolHTTP
+	case APIGatewayListenerProtocol_ListenerProtocolTCP:
+		return structs.ListenerProtocolTCP
+	default:
+		return structs.ListenerProtocolHTTP
 	}
 }

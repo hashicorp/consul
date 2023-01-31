@@ -213,6 +213,10 @@ func (l *SessionLimiter) deleteSessionWithID(id uint64) {
 	l.deleteSessionLocked(idx, id)
 }
 
+// SessionTerminatedChan is a channel that will be closed to notify session-
+// holders that a session has been terminated.
+type SessionTerminatedChan <-chan struct{}
+
 // Session allows its holder to perform an operation (e.g. serve a gRPC stream)
 // concurrenly with other session-holders. Sessions may be terminated abruptly
 // by the SessionLimiter, so it is the responsibility of the holder to receive
@@ -228,7 +232,7 @@ type Session interface {
 	//
 	// The session-holder MUST receive on it and exit (e.g. close the gRPC stream)
 	// when it is closed.
-	Terminated() <-chan struct{}
+	Terminated() SessionTerminatedChan
 }
 
 type session struct {
@@ -240,6 +244,6 @@ type session struct {
 
 func (s *session) End() { s.l.deleteSessionWithID(s.id) }
 
-func (s *session) Terminated() <-chan struct{} { return s.termCh }
+func (s *session) Terminated() SessionTerminatedChan { return s.termCh }
 
 func (s *session) terminate() { close(s.termCh) }

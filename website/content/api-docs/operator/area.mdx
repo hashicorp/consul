@@ -24,7 +24,7 @@ datacenters, so not all servers need to be fully connected. This allows for
 complex topologies among Consul datacenters like hub/spoke and more general
 trees.
 
-Please check the [Network Areas tutorial](https://learn.hashicorp.com/tutorials/consul/federation-network-areas) for more details.
+Please check the [Network Areas tutorial](/consul/tutorials/datacenter-operations/federation-network-areas) for more details.
 
 ## Create Network Area
 
@@ -36,16 +36,16 @@ successfully.
 | `POST` | `/operator/area` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator area create`](/commands/operator/area#create).
+The corresponding CLI command is [`consul operator area create`](/consul/commands/operator/area#create).
 
 ### Query Parameters
 
@@ -105,16 +105,16 @@ This endpoint lists all network areas.
 | `GET`  | `/operator/area` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `YES`            | `all`             | `none`        | `operator:read` |
 
-The corresponding CLI command is [`consul operator area list`](/commands/operator/area#list).
+The corresponding CLI command is [`consul operator area list`](/consul/commands/operator/area#list).
 
 ### Query Parameters
 
@@ -149,16 +149,16 @@ This endpoint updates a network area to the given configuration.
 | `PUT`  | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator area update`](/commands/operator/area#update).
+The corresponding CLI command is [`consul operator area update`](/consul/commands/operator/area#update).
 
 ### Query Parameters
 
@@ -196,10 +196,10 @@ This endpoint lists a specific network area.
 | `GET`  | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -242,16 +242,16 @@ This endpoint deletes a specific network area.
 | `DELETE` | `/operator/area/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator area delete`](/commands/operator/area#delete).
+The corresponding CLI command is [`consul operator area delete`](/consul/commands/operator/area#delete).
 
 ### Path Parameters
 
@@ -280,16 +280,16 @@ area.
 | `PUT`  | `/operator/area/:uuid/join` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator area join`](/commands/operator/area#join).
+The corresponding CLI command is [`consul operator area join`](/consul/commands/operator/area#join).
 
 ### Path Parameters
 
@@ -355,16 +355,16 @@ network area.
 | `GET`  | `/operator/area/:uuid/members` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `operator:read` |
 
-The corresponding CLI command is [`consul operator area members`](/commands/operator/area#members).
+The corresponding CLI command is [`consul operator area members`](/consul/commands/operator/area#members).
 
 ### Path Parameters
 
@@ -416,7 +416,7 @@ $ curl \
 
 - `Build` has the Consul version running on the node.
 
-- `Protocol` is the [protocol version](/docs/upgrading#protocol-versions)
+- `Protocol` is the [protocol version](/consul/docs/upgrading#protocol-versions)
   being spoken by the node.
 
 - `Status` is the current health status of the node, as determined by the
@@ -426,4 +426,4 @@ $ curl \
 
 - `RTT` is an estimated network round trip time from the server answering the
   query to the given server, in nanoseconds. This is computed using [network
-  coordinates](/docs/architecture/coordinates).
+  coordinates](/consul/docs/architecture/coordinates).

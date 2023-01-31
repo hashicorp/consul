@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Role Create'
+description: |
+  The `consul acl role create` command creates a new role attached to one or more ACL policies. 
 ---
 
 # Consul ACL Role Create
 
 Command: `consul acl role create`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/role](/api-docs/acl/roles#create-a-role)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/role](/consul/api-docs/acl/roles#create-a-role)
 
 The `acl role create` command creates new roles.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
