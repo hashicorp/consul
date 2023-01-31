@@ -125,6 +125,10 @@
       {
         "title": "Network Coordinates",
         "path": "architecture/coordinates"
+      },
+      {
+        "title": "Consul at Scale",
+        "path": "architecture/scale"
       }
     ]
   },
@@ -651,14 +655,6 @@
           {
             "title": "Rules Reference",
             "path": "security/acl/acl-rules"
-          },
-          {
-            "title": "Legacy Mode",
-            "path": "security/acl/acl-legacy"
-          },
-          {
-            "title": "Token Migration",
-            "path": "security/acl/acl-migrate-tokens"
           },
           {
             "title": "ACLs in Federated Datacenters",

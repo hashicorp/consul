@@ -387,12 +387,20 @@ func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 		return
 	}
 	t.Meta = s.Meta
+	if s.Status != nil {
+		StatusToStructs(s.Status, &t.Status)
+	}
 }
 func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
 		return
 	}
 	s.Meta = t.Meta
+	{
+		var x Status
+		StatusFromStructs(&t.Status, &x)
+		s.Status = &x
+	}
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
@@ -973,7 +981,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
 	{
-		t.EnvoyExtensions = make([]structs.EnvoyExtension, len(s.EnvoyExtensions))
+		t.EnvoyExtensions = make(structs.EnvoyExtensions, len(s.EnvoyExtensions))
 		for i := range s.EnvoyExtensions {
 			if s.EnvoyExtensions[i] != nil {
 				EnvoyExtensionToStructs(s.EnvoyExtensions[i], &t.EnvoyExtensions[i])
