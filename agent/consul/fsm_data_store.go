@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// implementation of consul/gateways/datastore
+// FSMDataStore implements the DataStore interface using the Consul server and finite state manager.
 type FSMDataStore struct {
 	s   *Server
 	fsm *fsm.FSM
