@@ -11,7 +11,7 @@
   font-size: var(--typo-size-600);
 }
 %pill-allow {
-  color: rgb(var(--tone-green-800));
+  color: var(--token-color-palette-green-400);
   background-color: rgb(var(--tone-green-100));
 }
 %pill-deny {

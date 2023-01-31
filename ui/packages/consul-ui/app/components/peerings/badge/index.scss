@@ -8,7 +8,7 @@
 
   &.active {
     background: rgb(var(--tone-green-050));
-    color: rgb(var(--tone-green-600));
+    color: var(--token-color-foreground-success);
   }
   &.pending {
     background: rgb(var(--tone-strawberry-050));

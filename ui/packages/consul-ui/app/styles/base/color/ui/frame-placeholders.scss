@@ -104,7 +104,7 @@
 %frame-green-800 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-green-500));
-  border-color: rgb(var(--tone-green-800));
+  border-color: var(--token-color-palette-green-400);
   color: rgb(var(--tone-gray-000));
 }
 %frame-blue-200 {

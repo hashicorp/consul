@@ -19,7 +19,7 @@
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status.healthy + dd {
   background-color: rgb(var(--tone-green-050));
-  color: rgb(var(--tone-green-800));
+  color: var(--token-color-palette-green-400);
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status:not(.healthy) + dd {
   background-color: var(--token-color-surface-critical);
@@ -31,7 +31,7 @@
 }
 %consul-server-card .health-status.healthy + dd::before {
   --icon-name: icon-check;
-  --icon-color: rgb(var(--tone-green-800));
+  --icon-color: var(--token-color-palette-green-400);
 }
 %consul-server-card .health-status:not(.healthy) + dd::before {
   --icon-name: icon-x;

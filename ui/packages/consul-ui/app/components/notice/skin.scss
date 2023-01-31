@@ -25,7 +25,7 @@
   border-color: rgb(var(--tone-green-500));
 }
 %notice-success header * {
-  color: rgb(var(--tone-green-800));
+  color: var(--token-color-palette-green-400);
 }
 %notice-info {
   border-color: rgb(var(--tone-blue-100));
