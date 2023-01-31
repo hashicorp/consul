@@ -31,14 +31,12 @@ func TestExportCommand(t *testing.T) {
 	t.Cleanup(func() { _ = a.Shutdown() })
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-
 	t.Run("service name is required", func(t *testing.T) {
 
 		ui := cli.NewMockUi()
 		cmd := New(ui)
 
-		args := []string{
-		}
+		args := []string{}
 
 		code := cmd.Run(args)
 		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
