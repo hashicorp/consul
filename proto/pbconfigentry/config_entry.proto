@@ -824,7 +824,6 @@ message HTTPHeaderFilter {
   map<string, string> Set = 3;
 }
 
-
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.HTTPService
