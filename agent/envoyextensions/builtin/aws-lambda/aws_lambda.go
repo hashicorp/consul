@@ -1,4 +1,4 @@
-package lambda
+package awslambda
 
 import (
 	"errors"
@@ -17,61 +17,58 @@ import (
 	"github.com/mitchellh/mapstructure"
 	pstruct "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 )
 
-type lambda struct {
+var _ extensioncommon.BasicExtension = (*awsLambda)(nil)
+
+type awsLambda struct {
 	ARN                string
 	PayloadPassthrough bool
-	Kind               api.ServiceKind
 	InvocationMode     string
 }
 
-var _ builtinextensiontemplate.Plugin = (*lambda)(nil)
-
-// MakeLambdaExtension is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
-func MakeLambdaExtension(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
-	var resultErr error
-	var plugin lambda
-
-	if name := ext.EnvoyExtension.Name; name != api.BuiltinAWSLambdaExtension {
-		return nil, fmt.Errorf("expected extension name 'lambda' but got %q", name)
+// Constructor follows a specific function signature required for the extension registration.
+func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) {
+	var a awsLambda
+	if name := ext.Name; name != api.BuiltinAWSLambdaExtension {
+		return nil, fmt.Errorf("expected extension name %q but got %q", api.BuiltinAWSLambdaExtension, name)
 	}
-
-	if err := mapstructure.Decode(ext.EnvoyExtension.Arguments, &plugin); err != nil {
-		return nil, fmt.Errorf("error decoding extension arguments: %v", err)
+	if err := a.fromArguments(ext.Arguments); err != nil {
+		return nil, err
 	}
-
-	if plugin.ARN == "" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("ARN is required"))
-	}
-
-	plugin.Kind = ext.OutgoingProxyKind()
-
-	return plugin, resultErr
+	return &extensioncommon.BasicEnvoyExtender{
+		Extension: &a,
+	}, nil
 }
 
-func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
-	m := envoy_lambda_v3.Config_SYNCHRONOUS
-	if s == "asynchronous" {
-		m = envoy_lambda_v3.Config_ASYNCHRONOUS
+func (a *awsLambda) fromArguments(args map[string]interface{}) error {
+	if err := mapstructure.Decode(args, a); err != nil {
+		return fmt.Errorf("error decoding extension arguments: %v", err)
 	}
-	return m
+	return a.validate()
+}
+
+func (a *awsLambda) validate() error {
+	var resultErr error
+	if a.ARN == "" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("ARN is required"))
+	}
+	return resultErr
 }
 
 // CanApply returns true if the kind of the provided ExtensionConfiguration matches
 // the kind of the lambda configuration
-func (p lambda) CanApply(config xdscommon.ExtensionConfiguration) bool {
-	return config.Kind == p.Kind
+func (a *awsLambda) CanApply(config *extensioncommon.RuntimeConfig) bool {
+	return config.Kind == config.OutgoingProxyKind()
 }
 
 // PatchRoute modifies the routing configuration for a service of kind TerminatingGateway. If the kind is
 // not TerminatingGateway, then it can not be modified.
-func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	if p.Kind != api.ServiceKindTerminatingGateway {
+func (a *awsLambda) PatchRoute(r *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	if r.Kind != api.ServiceKindTerminatingGateway {
 		return route, false, nil
 	}
 
@@ -94,7 +91,7 @@ func (p lambda) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_rou
 }
 
 // PatchCluster patches the provided envoy cluster with data required to support an AWS lambda function
-func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+func (a *awsLambda) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
 	})
@@ -104,7 +101,7 @@ func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Clu
 	}
 
 	// Use the aws SDK to parse the ARN so that we can later extract the region
-	parsedARN, err := arn_sdk.Parse(p.ARN)
+	parsedARN, err := arn_sdk.Parse(a.ARN)
 	if err != nil {
 		return c, false, err
 	}
@@ -156,7 +153,7 @@ func (p lambda) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Clu
 
 // PatchFilter patches the provided envoy filter with an inserted lambda filter being careful not to
 // overwrite the http filters.
-func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}
@@ -172,9 +169,9 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
-			Arn:                p.ARN,
-			PayloadPassthrough: p.PayloadPassthrough,
-			InvocationMode:     toEnvoyInvocationMode(p.InvocationMode),
+			Arn:                a.ARN,
+			PayloadPassthrough: a.PayloadPassthrough,
+			InvocationMode:     toEnvoyInvocationMode(a.InvocationMode),
 		},
 	)
 	if err != nil {
@@ -210,4 +207,12 @@ func (p lambda) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v
 	}
 
 	return newFilter, true, nil
+}
+
+func toEnvoyInvocationMode(s string) envoy_lambda_v3.Config_InvocationMode {
+	m := envoy_lambda_v3.Config_SYNCHRONOUS
+	if s == "asynchronous" {
+		m = envoy_lambda_v3.Config_ASYNCHRONOUS
+	}
+	return m
 }

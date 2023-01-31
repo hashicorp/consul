@@ -10,13 +10,13 @@ import (
 	envoy_lua_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
-
-	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
-	"github.com/hashicorp/consul/api"
 )
+
+var _ extensioncommon.BasicExtension = (*lua)(nil)
 
 type lua struct {
 	ProxyType string
@@ -24,73 +24,62 @@ type lua struct {
 	Script    string
 }
 
-var _ builtinextensiontemplate.Plugin = (*lua)(nil)
-
-// MakeLuaExtension is a builtinextensiontemplate.PluginConstructor for a builtinextensiontemplate.EnvoyExtension.
-func MakeLuaExtension(ext xdscommon.ExtensionConfiguration) (builtinextensiontemplate.Plugin, error) {
-	var resultErr error
-	var plugin lua
-
-	if name := ext.EnvoyExtension.Name; name != api.BuiltinLuaExtension {
+// Constructor follows a specific function signature required for the extension registration.
+func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) {
+	var l lua
+	if name := ext.Name; name != api.BuiltinLuaExtension {
 		return nil, fmt.Errorf("expected extension name 'lua' but got %q", name)
 	}
-
-	if err := mapstructure.Decode(ext.EnvoyExtension.Arguments, &plugin); err != nil {
-		return nil, fmt.Errorf("error decoding extension arguments: %v", err)
+	if err := l.fromArguments(ext.Arguments); err != nil {
+		return nil, err
 	}
-
-	if plugin.Script == "" {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("Script is required"))
-	}
-
-	if err := validateProxyType(plugin.ProxyType); err != nil {
-		resultErr = multierror.Append(resultErr, err)
-	}
-
-	if err := validateListener(plugin.Listener); err != nil {
-		resultErr = multierror.Append(resultErr, err)
-	}
-
-	return plugin, resultErr
+	return &extensioncommon.BasicEnvoyExtender{
+		Extension: &l,
+	}, nil
 }
 
-func validateProxyType(t string) error {
-	if t != "connect-proxy" {
-		return fmt.Errorf("unexpected ProxyType %q", t)
+func (l *lua) fromArguments(args map[string]interface{}) error {
+	if err := mapstructure.Decode(args, l); err != nil {
+		return fmt.Errorf("error decoding extension arguments: %v", err)
 	}
-
-	return nil
+	return l.validate()
 }
 
-func validateListener(t string) error {
-	if t != "inbound" && t != "outbound" {
-		return fmt.Errorf("unexpected Listener %q", t)
+func (l *lua) validate() error {
+	var resultErr error
+	if l.Script == "" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("missing Script value"))
 	}
-
-	return nil
+	if l.ProxyType != "connect-proxy" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected ProxyType %q", l.ProxyType))
+	}
+	if l.Listener != "inbound" && l.Listener != "outbound" {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected Listener %q", l.Listener))
+	}
+	return resultErr
 }
 
 // CanApply determines if the extension can apply to the given extension configuration.
-func (p lua) CanApply(config xdscommon.ExtensionConfiguration) bool {
-	return string(config.Kind) == p.ProxyType && p.matchesListenerDirection(config)
+func (l *lua) CanApply(config *extensioncommon.RuntimeConfig) bool {
+	return string(config.Kind) == l.ProxyType && l.matchesListenerDirection(config)
 }
 
-func (p lua) matchesListenerDirection(config xdscommon.ExtensionConfiguration) bool {
-	return (config.IsUpstream() && p.Listener == "outbound") || (!config.IsUpstream() && p.Listener == "inbound")
+func (l *lua) matchesListenerDirection(config *extensioncommon.RuntimeConfig) bool {
+	return (config.IsUpstream() && l.Listener == "outbound") || (!config.IsUpstream() && l.Listener == "inbound")
 }
 
 // PatchRoute does nothing.
-func (p lua) PatchRoute(route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
+func (l *lua) PatchRoute(_ *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
 	return route, false, nil
 }
 
 // PatchCluster does nothing.
-func (p lua) PatchCluster(c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
+func (l *lua) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
 	return c, false, nil
 }
 
 // PatchFilter inserts a lua filter directly prior to envoy.filters.http.router.
-func (p lua) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}
@@ -105,7 +94,7 @@ func (p lua) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_listener_v3.F
 	luaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.lua",
 		&envoy_lua_v3.Lua{
-			InlineCode: p.Script,
+			InlineCode: l.Script,
 		},
 	)
 	if err != nil {

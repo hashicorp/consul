@@ -1,19 +1,20 @@
 //go:build !consulent
 // +build !consulent
 
-package xdscommon
+package extensionruntime
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
-func TestGetExtensionConfigurations_TerminatingGateway(t *testing.T) {
+func TestGetRuntimeConfigurations_TerminatingGateway(t *testing.T) {
 	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t)
 
 	webService := api.CompoundServiceName{
@@ -37,21 +38,21 @@ func TestGetExtensionConfigurations_TerminatingGateway(t *testing.T) {
 		Partition: "default",
 	}
 
-	expected := map[api.CompoundServiceName][]ExtensionConfiguration{
+	expected := map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
 		apiService:   {},
 		cacheService: {},
 		dbService:    {},
 		webService: {
 			{
 				EnvoyExtension: api.EnvoyExtension{
-					Name: structs.BuiltinAWSLambdaExtension,
+					Name: api.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
 						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 						"PayloadPassthrough": true,
 					},
 				},
 				ServiceName: webService,
-				Upstreams: map[api.CompoundServiceName]UpstreamData{
+				Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 					apiService: {
 						SNI: map[string]struct{}{
 							"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -88,10 +89,10 @@ func TestGetExtensionConfigurations_TerminatingGateway(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expected, GetExtensionConfigurations(snap))
+	require.Equal(t, expected, GetRuntimeConfigurations(snap))
 }
 
-func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
+func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 	dbService := api.CompoundServiceName{
 		Name:      "db",
 		Partition: "default",
@@ -106,7 +107,7 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 	// Setup multiple extensions to ensure all of them are in the ExtensionConfiguration map.
 	envoyExtensions := []structs.EnvoyExtension{
 		{
-			Name: structs.BuiltinAWSLambdaExtension,
+			Name: api.BuiltinAWSLambdaExtension,
 			Arguments: map[string]interface{}{
 				"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 				"PayloadPassthrough": true,
@@ -139,23 +140,23 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 
 	type testCase struct {
 		snapshot *proxycfg.ConfigSnapshot
-		expected map[api.CompoundServiceName][]ExtensionConfiguration
+		expected map[api.CompoundServiceName][]extensioncommon.RuntimeConfig
 	}
 	cases := map[string]testCase{
 		"connect proxy upstream": {
 			snapshot: snapConnect,
-			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+			expected: map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
 				dbService: {
 					{
 						EnvoyExtension: api.EnvoyExtension{
-							Name: structs.BuiltinAWSLambdaExtension,
+							Name: api.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
 								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]UpstreamData{
+						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -175,7 +176,7 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]UpstreamData{
+						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -192,18 +193,18 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 		},
 		"terminating gateway upstream": {
 			snapshot: snapTermGw,
-			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+			expected: map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
 				dbService: {
 					{
 						EnvoyExtension: api.EnvoyExtension{
-							Name: structs.BuiltinAWSLambdaExtension,
+							Name: api.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
 								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]UpstreamData{
+						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -223,7 +224,7 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]UpstreamData{
+						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -240,12 +241,12 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 		},
 		"local service extensions": {
 			snapshot: snapWebConnect,
-			expected: map[api.CompoundServiceName][]ExtensionConfiguration{
+			expected: map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
 				dbService: {},
 				webService: {
 					{
 						EnvoyExtension: api.EnvoyExtension{
-							Name: structs.BuiltinAWSLambdaExtension,
+							Name: api.BuiltinAWSLambdaExtension,
 							Arguments: map[string]interface{}{
 								"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 								"PayloadPassthrough": true,
@@ -274,7 +275,7 @@ func TestGetExtensionConfigurations_ConnectProxy(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tc.expected, GetExtensionConfigurations(tc.snapshot))
+			require.Equal(t, tc.expected, GetRuntimeConfigurations(tc.snapshot))
 		})
 	}
 }
