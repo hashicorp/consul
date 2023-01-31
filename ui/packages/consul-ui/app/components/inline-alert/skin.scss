@@ -38,5 +38,5 @@
 }
 %inline-alert-info::before {
   @extend %with-info-circle-fill-mask;
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }

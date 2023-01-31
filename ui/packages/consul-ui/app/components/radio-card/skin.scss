@@ -7,7 +7,7 @@
   cursor: pointer;
 }
 %radio-card.checked {
-  border-color: rgb(var(--tone-blue-500));
+  border-color: var(--token-color-foreground-action);
 }
 %radio-card > :first-child {
   background-color: rgb(var(--tone-gray-050));

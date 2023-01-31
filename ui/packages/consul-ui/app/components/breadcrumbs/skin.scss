@@ -3,7 +3,7 @@
   text-decoration: none;
 }
 %crumbs:hover {
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
   text-decoration: underline;
 }
 %crumbs::before {

@@ -16,7 +16,7 @@
   }
   &.establishing {
     background: rgb(var(--tone-blue-050));
-    color: rgb(var(--tone-blue-500));
+    color: var(--token-color-foreground-action);
   }
   &.failing {
     background: var(--token-color-surface-critical);

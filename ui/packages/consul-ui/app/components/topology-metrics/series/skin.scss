@@ -93,7 +93,7 @@
   color: rgb(var(--tone-gray-500));
 }
 .sparkline-key-link:hover {
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }
 #metrics-container:hover .sparkline-key-link::before {
   @extend %with-info-circle-fill-mask, %as-pseudo;

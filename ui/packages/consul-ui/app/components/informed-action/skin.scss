@@ -30,15 +30,15 @@
   /* variants */
   &.info {
     header {
-      color: rgb(var(--tone-blue-700));
+      color: var(--token-color-foreground-action-active);
     }
     header::before {
       @extend %with-info-circle-fill-mask, %as-pseudo;
-      background-color: rgb(var(--tone-blue-500));
+      background-color: var(--token-color-foreground-action);
       margin-right: 5px;
     }
     > div {
-      background-color: rgb(var(--tone-blue-010));
+      background-color: var(--token-color-surface-action);
     }
   }
   &.dangerous {
@@ -68,7 +68,7 @@
   }
   /**/
   > ul > .action > * {
-    color: rgb(var(--tone-blue-500));
+    color: var(--token-color-foreground-action);
   }
   > ul > .dangerous > * {
     @extend %frame-red-300;

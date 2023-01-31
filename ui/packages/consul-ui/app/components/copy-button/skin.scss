@@ -1,5 +1,5 @@
 %copy-button {
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
   --icon-color: var(--transparent);
 }
 %copy-button::before {
@@ -11,11 +11,11 @@
 }
 %copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
   --icon-color: rgb(var(--tone-gray-050));
 }
 %copy-button:hover::before {
-  --icon-color: rgb(var(--tone-blue-500));
+  --icon-color: var(--token-color-foreground-action);
 }
 %copy-button:active {
   --icon-color: rgb(var(--tone-gray-200));

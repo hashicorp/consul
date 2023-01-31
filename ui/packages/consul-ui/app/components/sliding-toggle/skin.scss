@@ -22,7 +22,7 @@
 }
 %sliding-toggle label input:checked + span::before,
 %sliding-toggle-negative label input + span::before {
-  background-color: rgb(var(--tone-blue-500));
+  background-color: var(--token-color-foreground-action);
 }
 %sliding-toggle label span::before,
 %sliding-toggle-negative label input:checked + span::before {

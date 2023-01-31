@@ -33,7 +33,7 @@
 
 %composite-row-header [rel='me'] dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }
 
 %icon-definition.node dt::before {

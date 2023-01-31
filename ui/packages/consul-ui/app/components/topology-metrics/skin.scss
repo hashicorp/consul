@@ -1,7 +1,7 @@
 .topology-notices {
   button {
     @extend %button;
-    color: rgb(var(--tone-blue-500));
+    color: var(--token-color-foreground-action);
   }
   button::before {
     @extend %as-pseudo;

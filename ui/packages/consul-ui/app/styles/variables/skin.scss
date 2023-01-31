@@ -18,7 +18,7 @@
   /* --tone-brand-900: var(--tone-strawberry-900) */
 
   /* themeable ui colors */
-  --typo-action-500: rgb(var(--tone-blue-500));
+  --typo-action-500: var(--token-color-foreground-action);
   --decor-error-500: var(--token-color-foreground-critical);
   --typo-contrast-999: rgb(var(--tone-gray-999));
 

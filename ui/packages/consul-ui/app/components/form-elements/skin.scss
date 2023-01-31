@@ -28,7 +28,7 @@ textarea:disabled + .CodeMirror,
   border-color: rgb(var(--tone-gray-500));
 }
 %form-element-text-input-focus {
-  border-color: var(--typo-action-500, rgb(var(--tone-blue-500)));
+  border-color: var(--typo-action-500, var(--token-color-foreground-action));
 }
 %form-element-label {
   color: var(--typo-contrast-999, inherit);
