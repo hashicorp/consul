@@ -157,7 +157,7 @@
 }
 %frame-red-500 {
   @extend %frame-border-000;
-  background-color: var(--token-color-border-critical);
+  background-color: var(--token-color-surface-critical);
   border-color: var(--token-color-foreground-critical);
   color: var(--token-color-foreground-critical-high-contrast);
 }

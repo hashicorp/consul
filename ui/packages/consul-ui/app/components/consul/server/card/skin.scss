@@ -22,7 +22,7 @@
   color: rgb(var(--tone-green-800));
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status:not(.healthy) + dd {
-  background-color: var(--token-color-border-critical);
+  background-color: var(--token-color-surface-critical);
   color: var(--token-color-foreground-critical);
 }
 %consul-server-card .health-status + dd::before {

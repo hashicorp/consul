@@ -49,7 +49,7 @@
   color: rgb(var(--tone-yellow-800));
 }
 %notice-error {
-  background-color: var(--token-color-border-critical);
+  background-color: var(--token-color-surface-critical);
   border-color: var(--token-color-foreground-critical);
 }
 %notice-error header * {

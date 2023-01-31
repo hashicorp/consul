@@ -19,7 +19,7 @@
     color: rgb(var(--tone-blue-500));
   }
   &.failing {
-    background: var(--token-color-border-critical);
+    background: var(--token-color-surface-critical);
     color: var(--token-color-foreground-critical);
   }
   &.deleting {
