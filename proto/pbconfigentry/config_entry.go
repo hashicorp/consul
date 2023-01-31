@@ -426,7 +426,9 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 		return structs.HTTPQueryMatchRegularExpression
 	default:
 		return structs.HTTPQueryMatchExact
-=======
+	}
+}
+
 func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
 	if args != nil {
 		st := args.GetStructValue()
