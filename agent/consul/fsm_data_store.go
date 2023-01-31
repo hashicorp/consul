@@ -8,11 +8,12 @@ import (
 
 // implementation of consul/gateways/datastore
 type FSMDataStore struct {
-	s   *Server
-	fsm *fsm.FSM
+	server *Server
+	fsm    *fsm.FSM
 }
 
-func (f FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (*structs.ConfigEntry, error) {
+// GetConfigEntry takes in a kind, name, and meta and returns a configentry and an error from the FSM state
+func (f *FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (*structs.ConfigEntry, error) {
 	store := f.fsm.State()
 
 	_, entry, err := store.ConfigEntry(nil, kind, name, meta)
@@ -22,7 +23,8 @@ func (f FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.Enterpr
 	return &entry, nil
 }
 
-func (f FSMDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry, error) {
+// GetConfigEntriesByKind takes in a kind and returns all instances of that kind of config entry from the FSM state
+func (f *FSMDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry, error) {
 	store := f.fsm.State()
 
 	_, entries, err := store.ConfigEntriesByKind(nil, kind, acl.WildcardEnterpriseMeta())
@@ -32,20 +34,23 @@ func (f FSMDataStore) GetConfigEntriesByKind(kind string) ([]structs.ConfigEntry
 	return entries, nil
 }
 
-func (f FSMDataStore) UpdateStatus(entry structs.ConfigEntry) error {
+// UpdateStatus updates the status of a config entry
+func (f *FSMDataStore) UpdateStatus(entry structs.ConfigEntry) error {
 	return nil
 }
 
-func (f FSMDataStore) Update(entry structs.ConfigEntry) error {
-	_, err := f.s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+// Update takes a config entry and upserts it in the FSM state
+func (f *FSMDataStore) Update(entry structs.ConfigEntry) error {
+	_, err := f.server.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
 		Op:    structs.ConfigEntryUpsertCAS,
 		Entry: entry,
 	})
 	return err
 }
 
-func (f FSMDataStore) Delete(entry structs.ConfigEntry) error {
-	_, err := f.s.leaderRaftApply("ConfigEntry.Delete", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+// Delete takes a config entry and deletes it from the FSM state
+func (f *FSMDataStore) Delete(entry structs.ConfigEntry) error {
+	_, err := f.server.leaderRaftApply("ConfigEntry.Delete", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
 		Op:    structs.ConfigEntryDelete,
 		Entry: entry,
 	})

@@ -17,7 +17,7 @@ type apiGatewayReconciler struct {
 	store  datastore.DataStore
 }
 
-func (r apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute, error) {
+func (r *apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute, error) {
 	tcpRoutes, err := r.store.GetConfigEntriesByKind(structs.TCPRoute)
 	if err != nil {
 		return nil, err
@@ -73,19 +73,12 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	}
 
 	var boundGatewayEntry *structs.BoundAPIGatewayConfigEntry
-	boundEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
+	boundGatewayEntry, err := r.store.GetConfigEntry(structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
 		return err
 	}
-	if boundEntry == nil {
-		boundGatewayEntry = &structs.BoundAPIGatewayConfigEntry{
-			Kind:           structs.BoundAPIGateway,
-			Name:           gatewayEntry.Name,
-			EnterpriseMeta: gatewayEntry.EnterpriseMeta,
-		}
-	} else {
-		boundGatewayEntry = boundEntry.(*structs.BoundAPIGatewayConfigEntry)
-	}
+
+	r.ensureBoundGateway()
 
 	r.logger.Debug("started reconciling gateway")
 
@@ -102,10 +95,8 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 
 	//TODO is this needed? It seems to be for my tests
 	r.reconcileListeners(metaGateway)
-	fmt.Println(metaGateway.Gateway.Listeners)
-	fmt.Println(metaGateway.BoundGateway.Listeners)
 
-	boundGateways, routeErrors := BindRoutesToGateways(wrapSlice(metaGateway), routes...)
+	boundGateways, routeErrors := BindRoutesToGateways([]*gatewayMeta{metaGateway}, routes...)
 
 	if len(boundGateways) > 1 {
 		err := fmt.Errorf("bind returned more gateways (%d) than it was given (1)", len(boundGateways))
@@ -140,28 +131,15 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	}
 
 	//// and update the route statuses
-	for _, listener := range boundGateway.Listeners {
-		for _, route := range listener.Routes {
-			routeErr, ok := routeErrors[route]
-			if ok {
-				r.logger.Error("route error", routeErr)
-				//TODO does anything special need to be done in this situaion?
-			}
-			//TODO find out if parents are needed for status updates
-			configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
-			if err := r.store.UpdateStatus(configEntry); err != nil {
-				return err
-			}
-
+	for route, routeError := range routeErrors {
+		//TODO find out if parents are needed for status updates
+		configEntry := resourceReferenceToBoundRoute(route, []structs.ResourceReference{})
+		if err := r.store.UpdateStatus(configEntry); err != nil {
+			return err
 		}
 	}
 
 	return nil
-}
-
-// convenience wrapper
-func wrapSlice(items ...*gatewayMeta) []*gatewayMeta {
-	return items
 }
 
 func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []structs.ResourceReference) structs.ConfigEntry {
@@ -173,8 +151,19 @@ func resourceReferenceToBoundRoute(ref structs.ResourceReference, parents []stru
 	}
 }
 
-// TODO is this even needed?
-func (r apiGatewayReconciler) reconcileListeners(gw *gatewayMeta) {
+func (r *apiGatewayReconciler) ensureBoundGateway(gw *gatewayMeta) {
+	if gw.BoundGateway == nil {
+		gw.BoundGateway = &structs.BoundAPIGatewayConfigEntry{
+			Kind:           structs.BoundAPIGateway,
+			Name:           gw.Gateway.Name,
+			EnterpriseMeta: gw.Gateway.EnterpriseMeta,
+		}
+	}
+
+	r.ensureListeners(gw)
+}
+
+func (r *apiGatewayReconciler) ensureListeners(gw *gatewayMeta) {
 
 	//rebuild the list from scratch, just copying over the ones that already exist
 	listeners := []structs.BoundAPIGatewayListener{}
