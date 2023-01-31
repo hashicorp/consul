@@ -121,6 +121,8 @@ func (c *cmd) Run(args []string) int {
 		for i, service := range cfg.Services {
 			if service.Name == c.serviceName {
 				serviceExists = true
+
+				// Add a consumer for each peer where one doesn't already exist
 				for _, peerName := range peerNames {
 					peerExists := false
 					for _, consumer := range service.Consumers {
@@ -133,6 +135,8 @@ func (c *cmd) Run(args []string) int {
 						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
 					}
 				}
+
+				// Add a consumer for each partition where one doesn't already exist
 				for _, partitionName := range partitionNames {
 					partitionExists := false
 
