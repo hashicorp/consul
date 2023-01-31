@@ -12,15 +12,22 @@ type FSMDataStore struct {
 	fsm    *fsm.FSM
 }
 
+func NewFSMDataStore(server *Server, fsm *fsm.FSM) *FSMDataStore {
+	return &FSMDataStore{
+		server: server,
+		fsm:    fsm,
+	}
+}
+
 // GetConfigEntry takes in a kind, name, and meta and returns a configentry and an error from the FSM state
-func (f *FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (*structs.ConfigEntry, error) {
+func (f *FSMDataStore) GetConfigEntry(kind string, name string, meta *acl.EnterpriseMeta) (structs.ConfigEntry, error) {
 	store := f.fsm.State()
 
 	_, entry, err := store.ConfigEntry(nil, kind, name, meta)
 	if err != nil {
 		return nil, err
 	}
-	return &entry, nil
+	return entry, nil
 }
 
 // GetConfigEntriesByKind takes in a kind and returns all instances of that kind of config entry from the FSM state
