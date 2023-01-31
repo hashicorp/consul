@@ -72,8 +72,6 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_TCPRoute
 	case structs.InlineCertificate:
 		topic = pbsubscribe.Topic_InlineCertificate
-	case structs.BoundAPIGateway:
-		topic = pbsubscribe.Topic_BoundAPIGateway
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}
