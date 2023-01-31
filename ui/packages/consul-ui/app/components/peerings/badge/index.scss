@@ -28,11 +28,11 @@
   }
   &.terminated {
     background: rgb(var(--tone-gray-150));
-    color: rgb(var(--tone-gray-800));
+    color: var(--token-color-foreground-primary);
   }
   &.undefined {
     background: rgb(var(--tone-gray-150));
-    color: rgb(var(--tone-gray-800));
+    color: var(--token-color-foreground-primary);
   }
 
   .peerings-badge__text {

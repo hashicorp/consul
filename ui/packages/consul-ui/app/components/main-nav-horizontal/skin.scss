@@ -18,13 +18,13 @@
 }
 %main-nav-horizontal-toggle-button::before {
   --icon-name: icon-menu;
-  --icon-color: rgb(var(--tone-gray-800));
+  --icon-color: var(--token-color-foreground-primary);
   content: '';
   cursor: pointer;
 }
 %main-nav-horizontal-action,
 %main-nav-horizontal-action-intent,
 %main-nav-horizontal-action-active {
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 /**/

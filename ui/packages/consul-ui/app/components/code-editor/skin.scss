@@ -200,8 +200,8 @@ $syntax-dark-gray: #535f73;
       rgb(var(--tone-gray-150)) 100%
     );
     border: 1px solid rgb(var(--tone-gray-150));
-    border-bottom-color: rgb(var(--tone-gray-600));
-    border-top-color: rgb(var(--tone-gray-400));
+    border-bottom-color: var(--token-color-foreground-faint);
+    border-top-color: var(--token-color-foreground-disabled);
 
     .toolbar {
       .title {
@@ -210,7 +210,7 @@ $syntax-dark-gray: #535f73;
         font-weight: 700;
       }
       .toolbar-separator {
-        border-right: 1px solid rgb(var(--tone-gray-300));
+        border-right: 1px solid var(--token-color-palette-neutral-300);
       }
     }
     .ember-power-select-trigger {

@@ -27,13 +27,13 @@
   @extend %frame-gray-400;
 }
 %secondary-button:disabled {
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %secondary-button:active {
   /* %frame-gray-something */
   @extend %frame-gray-700;
-  background-color: rgb(var(--tone-gray-200));
-  color: rgb(var(--tone-gray-800));
+  background-color: var(--token-color-surface-interactive-active);
+  color: var(--token-color-foreground-primary);
   border-color: rgb(var(--tone-gray-700));
 }
 /**/
@@ -80,7 +80,7 @@
   top: 0;
   height: 100%;
   margin-left: 8px;
-  background-color: rgb(var(--tone-gray-300));
+  background-color: var(--token-color-palette-neutral-300);
 }
 %sort-button::before {
   @extend %with-sort-mask, %as-pseudo;

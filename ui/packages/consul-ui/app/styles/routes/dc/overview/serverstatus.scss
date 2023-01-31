@@ -41,7 +41,7 @@ section[data-route='dc.show.serverstatus'] {
 %server-failure-tolerance header em {
   @extend %pill-200;
   font-size: 0.812rem; /* 13px */
-  background-color: rgb(var(--tone-gray-200));
+  background-color: var(--token-color-surface-interactive-active);
 
   text-transform: uppercase;
   font-style: normal;
@@ -116,7 +116,7 @@ section[data-route='dc.show.serverstatus'] {
   @extend %visually-unhidden;
 }
 %redundancy-zone header dl:not(.warning) {
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
 }
 %redundancy-zone header dl.warning {
   background-color: rgb(var(--tone-orange-100));

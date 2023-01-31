@@ -40,7 +40,7 @@
 }
 %popover-select .value-empty button::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %popover-select .value-unknown button::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;

@@ -19,7 +19,7 @@
 }
 %healthcheck-output dd em {
   @extend %pill;
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
   /*TODO: Should this be merged into %pill? */
   cursor: default;
   font-style: normal;
@@ -43,16 +43,16 @@
   border-radius: var(--decor-radius-100);
 }
 %healthcheck-output dd:first-of-type {
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %healthcheck-output pre {
   background-color: rgb(var(--tone-gray-050));
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %healthcheck-output {
   /* TODO: this should be a frame-gray */
   color: rgb(var(--tone-gray-900));
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
   border-style: solid;
 
   border-left-width: 4px;

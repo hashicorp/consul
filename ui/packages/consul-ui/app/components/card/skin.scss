@@ -14,7 +14,7 @@
 %card,
 %card > section,
 %card > ul > li {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 %card ul {
   /*TODO: %list-style-none?*/

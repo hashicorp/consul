@@ -5,7 +5,7 @@
 
     .dcs-message {
       padding: 8px 12px;
-      border-bottom: 1px solid rgb(var(--tone-gray-400));
+      border-bottom: 1px solid var(--token-color-foreground-disabled);
       max-width: fit-content;
     }
   }
@@ -14,14 +14,14 @@
     @extend %menu-panel-badge;
   }
   nav .dcs .dc-name {
-    color: rgb(var(--tone-gray-600));
+    color: var(--token-color-foreground-faint);
     padding: 3.25px 0px;
     font-weight: var(--typo-weight-semibold);
   }
   nav .dcs .dc-name span {
     @extend %pill-200;
     margin-left: 1rem;
-    background-color: rgb(var(--tone-gray-300));
+    background-color: var(--token-color-palette-neutral-300);
     color: rgb(var(--tone-gray-999));
   }
   nav li.partitions,

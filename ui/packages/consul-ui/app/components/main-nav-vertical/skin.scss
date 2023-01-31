@@ -24,13 +24,13 @@
   color: rgb(var(--tone-gray-700));
 }
 %main-nav-vertical li:not([role='separator']) > span {
-  color: rgb(var(--tone-gray-300));
+  color: var(--token-color-palette-neutral-300);
 }
 %main-nav-vertical [role='separator'] {
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %main-nav-vertical-action {
-  color: rgb(var(--tone-gray-800));
+  color: var(--token-color-foreground-primary);
 }
 %main-nav-vertical-item,
 %main-nav-vertical-action-intent,

@@ -19,7 +19,7 @@
   transition-property: stroke;
 
   fill: none;
-  stroke: rgb(var(--tone-gray-400));
+  stroke: var(--token-color-foreground-disabled);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -40,8 +40,8 @@
   border: 1px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: rgb(var(--tone-gray-200));
-  background-color: rgb(var(--tone-gray-100));
+  border-color: var(--token-color-surface-interactive-active);
+  background-color: var(--token-color-surface-strong);
 
   pointer-events: none;
 }
@@ -111,10 +111,10 @@
   border: 2px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-foreground-disabled);
 }
 %discovery-chain circle {
   stroke-width: 2;
-  stroke: rgb(var(--tone-gray-400));
+  stroke: var(--token-color-foreground-disabled);
   fill: rgb(var(--tone-gray-000));
 }

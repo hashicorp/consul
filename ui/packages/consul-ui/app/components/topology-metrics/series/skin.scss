@@ -8,7 +8,7 @@
     font-size: 0.875em;
     line-height: 1.5em;
     font-weight: normal;
-    border: 1px solid rgb(var(--tone-gray-300));
+    border: 1px solid var(--token-color-palette-neutral-300);
     background: #fff;
     border-radius: 2px;
     box-sizing: border-box;
@@ -19,7 +19,7 @@
       font-weight: bold;
       font-size: 14px;
       color: #000;
-      border-bottom: 1px solid rgb(var(--tone-gray-200));
+      border-bottom: 1px solid var(--token-color-surface-interactive-active);
       margin-bottom: 4px;
       text-align: center;
     }
@@ -31,7 +31,7 @@
     }
 
     .sparkline-tt-sum {
-      border-top: 1px solid rgb(var(--tone-gray-200));
+      border-top: 1px solid var(--token-color-surface-interactive-active);
       margin-top: 4px;
       padding: 8px 10px 0 10px;
     }
@@ -58,7 +58,7 @@
     height: 12px;
     left: 15px;
     bottom: -7px;
-    border: 1px solid rgb(var(--tone-gray-300));
+    border: 1px solid var(--token-color-palette-neutral-300);
     border-top: 0;
     border-left: 0;
     background: #fff;

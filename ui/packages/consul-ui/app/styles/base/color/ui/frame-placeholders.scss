@@ -18,69 +18,69 @@
 %frame-gray-050 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
-  color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-foreground-disabled);
 }
 /* modal main content */
 %frame-gray-100 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-000));
-  border-color: rgb(var(--tone-gray-300));
-  color: rgb(var(--tone-gray-600)); /*  wasn't set */
+  border-color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-foreground-faint); /*  wasn't set */
 }
 /* hover */
 %frame-gray-200 {
   @extend %frame-border-000;
   background-color: var(--transparent);
   border-color: rgb(var(--tone-gray-700));
-  color: rgb(var(--tone-gray-800));
+  color: var(--token-color-foreground-primary);
 }
 %frame-gray-300 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-000));
   border-color: rgb(var(--tone-gray-700));
-  color: rgb(var(--tone-gray-800));
+  color: var(--token-color-foreground-primary);
 }
 /* button */
 /**/
 %frame-gray-400 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
-  color: rgb(var(--tone-gray-800));
+  border-color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-foreground-primary);
 }
 %frame-gray-500 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
-  color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-foreground-disabled);
 }
 
 /* tabs */
 %frame-gray-600 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
   border-color: rgb(var(--tone-gray-500));
   color: rgb(var(--tone-gray-500));
 }
 /* active */
 %frame-gray-700 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-200));
+  background-color: var(--token-color-surface-interactive-active);
   border-color: rgb(var(--tone-gray-700));
-  color: rgb(var(--tone-gray-800));
+  color: var(--token-color-foreground-primary);
 }
 /* modal bars */
 %frame-gray-800 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
   color: rgb(var(--tone-gray-900));
 }
 %frame-gray-900 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-100));
-  border-color: rgb(var(--tone-gray-300));
+  background-color: var(--token-color-surface-strong);
+  border-color: var(--token-color-palette-neutral-300);
   color: rgb(var(--tone-gray-900));
 }
 
@@ -128,7 +128,7 @@
 %frame-blue-600 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-blue-200));
-  border-color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-foreground-disabled);
   color: rgb(var(--tone-blue-050));
 }
 %frame-blue-700 {
@@ -164,7 +164,7 @@
 %frame-red-600 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-red-200));
-  border-color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-foreground-disabled);
   color: rgb(var(--tone-gray-000));
 }
 %frame-red-700 {

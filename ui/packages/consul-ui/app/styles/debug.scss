@@ -43,7 +43,7 @@
 [id^='docfy-demo-preview-typography'] figure,
 [id^='docfy-demo-preview-icons'] figure {
   border: var(--decor-border-100);
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
   height: 80px;
 }
 
@@ -235,7 +235,7 @@ html.with-route-announcer .route-title {
         border-top: 1px solid;
         border-left: 1px solid;
         border-right: 1px solid;
-        border-color: rgb(var(--tone-gray-200));
+        border-color: var(--token-color-surface-interactive-active);
         padding: 1rem;
         margin-bottom: 0;
       }
@@ -248,7 +248,7 @@ html.with-route-announcer .route-title {
       }
       figcaption {
         margin-bottom: 0.5rem;
-        color: rgb(var(--tone-gray-400));
+        color: var(--token-color-foreground-disabled);
         font-style: italic;
       }
       figcaption code {

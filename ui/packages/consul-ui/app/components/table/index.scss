@@ -36,7 +36,7 @@ table.consul-metadata-list tbody tr:hover {
 
 %table td.folder::before {
   @extend %with-folder-outline-mask, %as-pseudo;
-  background-color: rgb(var(--tone-gray-300));
+  background-color: var(--token-color-palette-neutral-300);
   margin-top: 1px;
   margin-right: 5px;
 }

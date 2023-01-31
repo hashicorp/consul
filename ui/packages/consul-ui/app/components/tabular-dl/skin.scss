@@ -1,11 +1,11 @@
 %tabular-dl {
   > dt:last-of-type,
   > dd:last-of-type {
-    border-color: rgb(var(--tone-gray-300)) !important;
+    border-color: var(--token-color-palette-neutral-300) !important;
   }
   dt,
   dd {
-    border-color: rgb(var(--tone-gray-300)) !important;
+    border-color: var(--token-color-palette-neutral-300) !important;
     color: rgb(var(--tone-gray-999)) !important;
   }
   dt {

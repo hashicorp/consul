@@ -17,7 +17,7 @@
   @extend %p3;
   text-transform: uppercase;
   font-weight: var(--typo-weight-medium);
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %menu-panel-item {
   list-style-type: none;

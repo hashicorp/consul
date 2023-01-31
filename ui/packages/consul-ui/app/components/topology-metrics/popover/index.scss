@@ -26,7 +26,7 @@
   &.l7 > button::before,
   &.l7 .tippy-arrow::after {
     @extend %with-layers-mask, %as-pseudo;
-    --icon-color: rgb(var(--tone-gray-300));
+    --icon-color: var(--token-color-palette-neutral-300);
   }
   &.not-defined > button::before,
   &.not-defined .tippy-arrow::after {

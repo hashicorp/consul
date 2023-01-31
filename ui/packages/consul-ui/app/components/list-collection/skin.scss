@@ -1,6 +1,6 @@
 %list-collection > ul {
   border-top: 1px solid;
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 %list-collection-partial-button {
   cursor: pointer;

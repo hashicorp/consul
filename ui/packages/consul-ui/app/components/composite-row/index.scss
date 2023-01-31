@@ -56,7 +56,7 @@
   overflow-x: visible !important;
 }
 .consul-intention-permission-list > ul {
-  border-top: 1px solid rgb(var(--tone-gray-200));
+  border-top: 1px solid var(--token-color-surface-interactive-active);
 }
 .consul-service-instance-list .port dt,
 .consul-service-instance-list .port dt::before {

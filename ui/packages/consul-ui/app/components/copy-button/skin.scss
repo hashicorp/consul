@@ -18,5 +18,5 @@
   --icon-color: var(--token-color-foreground-action);
 }
 %copy-button:active {
-  --icon-color: rgb(var(--tone-gray-200));
+  --icon-color: var(--token-color-surface-interactive-active);
 }

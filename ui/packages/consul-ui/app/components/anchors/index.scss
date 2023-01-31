@@ -4,7 +4,7 @@ a[rel*='external']::after {
   margin-left: 8px;
 }
 %main-content label a[rel*='help'] {
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %main-content a[rel*='help']::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;

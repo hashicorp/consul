@@ -2,12 +2,12 @@
   list-style-type: none;
   border: var(--decor-border-100);
   border-top-color: var(--transparent);
-  border-bottom-color: rgb(var(--tone-gray-200));
+  border-bottom-color: var(--token-color-surface-interactive-active);
   border-right-color: var(--transparent);
   border-left-color: var(--transparent);
 }
 %list-row-intent {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
   /*TODO: This should use a shared/CSS prop shadow*/
   box-shadow: 0 2px 4px rgb(var(--black) / 10%);
   border-top-color: var(--transparent);

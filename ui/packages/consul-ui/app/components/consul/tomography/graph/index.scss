@@ -4,15 +4,15 @@
   }
   .axis {
     fill: none;
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
     stroke-dasharray: 4 4;
   }
   .border {
     fill: none;
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
   }
   .point {
-    stroke: rgb(var(--tone-gray-400));
+    stroke: var(--token-color-foreground-disabled);
     fill: rgb(var(--tone-magenta-600));
   }
   .lines rect {
@@ -21,12 +21,12 @@
     stroke-width: 5px;
   }
   .lines rect:hover {
-    fill: rgb(var(--tone-gray-300));
+    fill: var(--token-color-palette-neutral-300);
     height: 3px;
     y: -1px;
   }
   .tick line {
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
   }
   .tick text {
     font-size: var(--typo-size-600);

@@ -14,7 +14,7 @@ textarea:disabled + .CodeMirror,
 %form fieldset > p,
 %form-element-note,
 %form-element-text-input::placeholder {
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %form-element-error > input,
 %form-element-error > textarea {
@@ -22,7 +22,7 @@ textarea:disabled + .CodeMirror,
 }
 %form-element-text-input {
   color: rgb(var(--tone-gray-500));
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
 }
 %form-element-text-input-hover {
   border-color: rgb(var(--tone-gray-500));
