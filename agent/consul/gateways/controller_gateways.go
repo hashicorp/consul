@@ -44,7 +44,8 @@ func (r apiGatewayReconciler) retrieveAllRoutesFromStore() ([]structs.BoundRoute
 }
 
 func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
-	entry, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
+	var apiGateway *structs.APIGatewayConfigEntry
+	apiGateway, err := r.store.GetConfigEntry(req.Kind, req.Name, req.Meta)
 	if err != nil {
 		return err
 	}
