@@ -171,7 +171,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
-		requireExtensionMetrics(t, scenario, api.BuiltinLuaExtension, "web-sidecar-proxy", nil)
+		requireExtensionMetrics(t, scenario, api.BuiltinLuaExtension, sid, nil)
 	})
 
 	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
@@ -1548,7 +1548,7 @@ func requireExtensionMetrics(
 	t *testing.T,
 	scenario *testServerScenario,
 	extName string,
-	service string,
+	sid structs.ServiceID,
 	err error,
 ) {
 	data := scenario.sink.Data()
@@ -1558,7 +1558,9 @@ func requireExtensionMetrics(
 	expectLabels := []metrics.Label{
 		{Name: "extension", Value: extName},
 		{Name: "version", Value: "builtin/" + version.Version},
-		{Name: "service", Value: service},
+		{Name: "service", Value: sid.ID},
+		{Name: "partition", Value: sid.PartitionOrDefault()},
+		{Name: "namespace", Value: sid.NamespaceOrDefault()},
 		{Name: "error", Value: strconv.FormatBool(err != nil)},
 	}
 

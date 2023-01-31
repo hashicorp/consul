@@ -416,6 +416,8 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 					{Name: "extension", Value: cfg.EnvoyExtension.Name},
 					{Name: "version", Value: "builtin/" + version.Version},
 					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
 					{Name: "error", Value: strconv.FormatBool(err != nil)},
 				}
 			}
