@@ -37,3 +37,13 @@ load helpers
   echo "$output" | grep -E "X-Consul-Namespace: default"
   echo "$output" | grep -E "X-Consul-Trust-Domain: (\w+-){4}\w+.consul"
 }
+
+@test "s1(tcp) proxy should not be changed by lua extension" {
+  TCP_FILTERS=$(get_envoy_listener_filters localhost:19000)
+  PUB=$(echo "$TCP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
+
+  echo "TCP_FILTERS = $TCP_FILTERS"
+  echo "PUB = $PUB"
+
+  [ "$PUB" = "envoy.filters.network.rbac,envoy.filters.network.tcp_proxy" ]
+}
