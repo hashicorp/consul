@@ -370,7 +370,7 @@ func (h *handlerAPIGateway) handleGatewayServicesUpdate(ctx context.Context, u U
 
 		up := &handlerUpstreams{handlerState: h.handlerState}
 		if err := up.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
-			return fmt.Errorf("failed to watch discovery chain for %h: %v", uid, err)
+			return fmt.Errorf("failed to watch discovery chain for %+v: %v", uid, err)
 		}
 		watchedSvcs[uid] = struct{}{}
 
