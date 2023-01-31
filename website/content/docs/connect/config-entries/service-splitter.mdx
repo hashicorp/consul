@@ -5,10 +5,11 @@ Description:
 
 # Service Splitter Configuration Reference
 
-This topic describes how to configure service splitter configuration entries. Configure and apply service splitters to redirect a percentage of incoming traffic requests for a specific service. 
+This topic describes how to configure service splitter configuration entries. Configure and apply service splitters to redirect a percentage of incoming traffic requests for a specific service.
+
 ## Configuration model
 
-The following list outlines field hierarchy, data types, and requirements in a service splitter configuration entry. Click on a property name to view details about the configuration.
+The following list outlines field hierarchy, language-specific data types, and requirements in a service splitter configuration entry. Click on a property name to view details about the configuration.
 
 <Tabs>
 
@@ -16,18 +17,18 @@ The following list outlines field hierarchy, data types, and requirements in a s
 
 - [`Kind`](#kind): string | required
 - [`Name`](#name): string | required
-- [`Namespace`](#namespace): string | optional <Enterprise />
-- [`Partition`](#partition): string | optional <Enterprise />
+- [`Namespace`](#namespace): string | optional <EnterpriseAlert inline />
+- [`Partition`](#partition): string | optional <EnterpriseAlert inline />
 - [`Meta`](#meta): map | optional
 - [`Splits`](#splits): map | required
 	- [`weight`](#splits-weight): number | required
 	- [`Service`](#splits-service): string | required
-	- [`ServiceSubset](#splits-servicesubset): string | optional
-- [`Namespace`](#splits-namespace): string | optional <Enterprise />
-- [`Partition`](#splits-partition): string | optional <Enterprise />
+	- [`ServiceSubset`](#splits-servicesubset): string | optional
+- [`Namespace`](#splits-namespace): string | optional <EnterpriseAlert inline />
+- [`Partition`](#splits-partition): string | optional <EnterpriseAlert inline />
 - [`RequestHeaders`](#splits-requestheaders): map | optional
 - [`ResponseHeaders`](#splits-responseheaders): map | optional
-- 
+
 </Tab>
 
 <Tab heading="YAML" group="yaml">
@@ -36,16 +37,16 @@ The following list outlines field hierarchy, data types, and requirements in a s
 - [`kind`](#kind): string | required
 - [`metadata`](#metadata): object | required
 	- [`name`](#name): string | required
-	- [`namespace`](#namespace): string | optional <Enterprise />
+	- [`namespace`](#namespace): string | optional <EnterpriseAlert inline />
 - [`spec`](#spec): object | required
 	- [`splits`](#splits): array | required
 		- [`weight`](#splits-weight): float32 | required
 		- [`service`](#splits-service): string | required
-	- [`serviceSubset`](#splits-servicesubset): string | optional
-- [`namespace`](#splits-namespace): string | optional <Enterprise />
-- [`partition`](#splits-partition): string | optional <Enterprise />
-- [`requestHeaders`](#splits-requestheaders): HTTPHeaderModifiers | optional
-- [`responseHeaders`](#splits-responseheaders): HTTPHeaderModifiers | optional
+	  - [`serviceSubset`](#splits-servicesubset): string | optional
+    - [`namespace`](#splits-namespace): string | optional <EnterpriseAlert inline />
+    - [`partition`](#splits-partition): string | optional <EnterpriseAlert inline />
+    - [`requestHeaders`](#splits-requestheaders): HTTPHeaderModifiers | optional
+    - [`responseHeaders`](#splits-responseheaders): HTTPHeaderModifiers | optional
 
 </Tab>
 </Tabs>
@@ -60,103 +61,109 @@ This section provides details about the fields you can configure in a `service-s
 
 ### Kind
 
-Specifies the kind of configuration entry. Must be set to `service-splitter`.
-Data type: string 
-Default: none
-Required: required
+Specifies the type of configuration entry to implement. Must be set to `service-splitter`.
+
+- JSON data type: `string`
+- Default: ""
+- Required: required
 
 ### Name
 
-Names the configuration entry in Consul..
-Data type: string 
-Default: none
-Required: required
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings.
 
-### Namespace <Enterprise />
+- JSON data type: `string`
+- Default: ""
+- Required: required
 
-Specifies the namespace the configuration entry applies to. 
-Data type: string 
-Default: none
-Required: optional
+### Namespace <EnterpriseAlert inline />
 
-### Partition <Enterprise />
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
 
-Specifies the admin partition the configuration entry applies to.
-Data type: string 
-Default: none
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
+
+### Partition <EnterpriseAlert inline />
+
+Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
+
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### Meta
 
 Specifies key/value pairs to add to the K/V store.
 
-Data type: map(string:string)
-Default: null
-Required: optional
+- JSON data type: `object`
+- Default: `null`
+- Required: optional
 
 ### Splits
 
-Defines how much traffic to send to sets of service instances during a traffic split. The sum of weights for a set of service instances must add up to 100. Either [`Splits.service`]#splits-servicesubset) or `[Splits.serviceSubset`](#splits-servicesubset) must be defined to direct split traffic.
+Defines how much traffic to send to sets of service instances during a traffic split. The sum of weights for a set of service instances must add up to 100. Either [`Splits.service`]#splits-servicesubset) or [`Splits.serviceSubset`](#splits-servicesubset) must be defined to direct split traffic.
 
-Data type: array
-Default: null
-Required: required
+- JSON data type: `array`
+- Default: `null`
+- Required: optional
 
 ### Splits.weight
 
-A value between 0 and 100 representing a percentage of the total traffic to direct for the traffic split. The smallest representable weight is 1/10000 or .01%.
+Specifies what percentage of the traffic is sent to the set of service instances specified in the [`splits.Service`](#splits-service) field.
 
-Data type: float32
-Default: 0
-Required: required
+Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+- JSON data type: `float32`
+- Default: `null`
+- Required: optional
 
 ### Splits.service
 
-The service the split traffic should resolve to.
+Specifies the name of the service to resolve. If undefined, this value defaults to the service with the same name as the configuration entry.
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `array`
+- Default: ""
+- Required: optional
 
 ### Splits.serviceSubset
 
-The named subset of the given service to resolve instead of one defined as that service's `DefaultSubset`. The default subset is used when this field is empty.
+Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. If empty, the `split` uses the default subset.
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: ""
+- Required: optional
 
-### Splits.namespace <Enterprise />
+### Splits.namespace <EnterpriseAlert inline />
 
-The namespace that the traffic split takes effects in. If empty, the current namespace is used.
+Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resolving the service. By default, the `service-splitter` uses the [namespace specified in the top-level configuration entry](#namespace).
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
-### Splits.partition <Enterprise />
+### Splits.partition <EnterpriseAlert inline />
 
-The admin partition that the traffic split takes effects in. If empty, the current partition is used.
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use for resolving the service. By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### Splits.requestHeaders
 
 A set of HTTP-specific header modification rules that apply to requests routed to this split. This field cannot be used with a tcp listener.
 
-Data type: HTTPHeaderModifiers
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### Splits.responseHeaders
 
 A set of HTTP-specific header modification rules that apply to responses from this split. This field cannot be used with a tcp listener.
 
-Data type: HTTPHeaderModifiers
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 </Tab>
 
@@ -164,97 +171,117 @@ Required: optional
 
 ### apiVersion
 
-Use this space to thoroughly, but succinctly, document the configuration item. This format is intended to allow you to create complete documentation, however, _stay within the scope of the reference_. If the description deviates from the reference material, create a new Concept topic or add the information to an existing Concept.     
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. The `apiVersion` field is not supported for non-Kubernetes deployments.
+
+- JSON data type: `string`
+- Default: ""
+- Required: required
 
 ### kind
 
-Add your description. You can include example configurations and describe any dependencies or cascading effects that the configuration may have. 
+Specifies the type of configuration entry to implement. Must be set to `serviceSplitter`.
+
+- JSON data type: `string`
+- Default: ""
+- Required: required
 
 ### metadata
 
-Kubernetes-only object that contains the service name, namespace, and admin partition that the configuration entry applies to. 
+Kubernetes-only object that contains the service name, namespace, and admin partition that the configuration entry applies to.
+
+- JSON data type: `object`
+- Default: ""
+- Required: required
 
 ### metadata.name
 
-Specifies the name of the service to configure.
-Data type: string 
-Default: none
-Required: required
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings.
 
-### metadata.namespace <Enterprise />
+- JSON data type: `string`
+- Default: ""
+- Required: required
 
-Specifies the namespace the configuration entry applies to. 
-Data type: string 
-Default: none
-Required: optional
+### metadata.namespace <EnterpriseAlert inline />
+
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
+
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### spec
 
-Kubernetes-only object that contains the details about the `service-defaults` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.   
+Kubernetes-only object that contains the details about the `service-defaults` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
+
+- JSON data type: `object`
+- Default: `null`
+- Required: required
 
 ### spec.splits
 
 Defines how much traffic to send to sets of service instances during a traffic split. The sum of weights for a set of service instances must add up to 100. Either [`Splits.service`]#splits-servicesubset) or `[Splits.serviceSubset`](#splits-servicesubset) must be defined to direct split traffic.
 
-Data type: array
-Default: null
-Required: required
+- JSON data type: `array`
+- Default: `null`
+- Required: optional
 
 ### spec.splits.weight
 
-A value between 0 and 100 representing a percentage of the total traffic to direct for the traffic split. The smallest representable weight is 1/10000 or .01%.
+Specifies what percentage of the traffic is sent to the set of service instances specified in the [`splits.Service`](#splits-service) field.
 
-Data type: float32
-Default: 0
-Required: required
+Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+- JSON data type: `float32`
+- Default: `null`
+- Required: optional
 
 ### spec.splits.service
 
-The service the split traffic should resolve to.
+Specifies the name of the service to resolve. If undefined, this value defaults to the service with the same name as the configuration entry.
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `array`
+- Default: ""
+- Required: optional
 
 ### spec.splits.serviceSubset
 
-The named subset of the given service to resolve instead of one defined as that service's `DefaultSubset`. The default subset is used when this field is empty.
+Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. If empty, the `split` uses the default subset.
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: ""
+- Required: optional
 
-### spec.splits.namespace <Enterprise />
+### spec.splits.namespace <EnterpriseAlert inline />
 
-The namespace that the traffic split takes effects in. If empty, the current namespace is used.
+Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resolving the service. By default, the `service-splitter` uses the [namespace specified in the top-level configuration entry](#namespace).
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
-### spec.splits.partition <Enterprise />
+### spec.splits.partition <EnterpriseAlert inline />
 
-The admin partition that the traffic split takes effects in. If empty, the current partition is used.
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use for resolving the service. By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
 
-Data type: string
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### spec.splits.requestHeaders
 
 A set of HTTP-specific header modification rules that apply to requests routed to this split. This field cannot be used with a tcp listener.
 
-Data type: HTTPHeaderModifiers
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 ### spec.splits.responseHeaders
 
 A set of HTTP-specific header modification rules that apply to responses from this split. This field cannot be used with a tcp listener.
 
-Data type: HTTPHeaderModifiers
-Default: “”
-Required: optional
+- JSON data type: `string`
+- Default: `null`
+- Required: optional
 
 </Tab>
 </Tabs>
@@ -263,22 +290,25 @@ Required: optional
 
 The examples in this section demonstrate common configurations for `service-splitter` configuration entries. When every field is utilized, a `service-splitter` configuration entry takes the following form:
 
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
 ```hcl
 Kind      = "service-splitter"           ## string  | required
-Name      = “name”                       ## string  | required
-Namespace = “namespace”                  ## string
-Partition = “partition”                  ## string 
+Name      = "config-entry-name"          ## string  | required
+Namespace = "main"                       ## string
+Partition = "partition"                  ## string 
 Meta      = {                            ## map
-  key         = "value"
-  answer      = 42
-            }
+  key     = "value"            
+  }
 Splits = [                               ## list    | required
   {                                      ## map     
     Weight        = 90                   ## number  | required
-    Service       = “service”            ## string     
+    Service       = "service"            ## string     
     ServiceSubset = "v1"                 ## string
-    Namespace     = “target-namespace”   ## string
-    Partition     = “target-partition”   ## string
+    Namespace     = "target-namespace"   ## string
+    Partition     = "target-partition"   ## string
     RequestHeaders {                     ## map
       Set {
         "X-Web-Version": "from-v1"
@@ -292,10 +322,10 @@ Splits = [                               ## list    | required
   },
   {
     Weight        = 10            
-    Service       = “service”    
+    Service       = "service"    
     ServiceSubset = "v2"          
-    Namespace     = “target-namespace”  
-    Partition     = “target-partition”  
+    Namespace     = "target-namespace"  
+    Partition     = "target-partition"  
     RequestHeaders {
       Set {
         "X-Web-Version": "from-v2"
@@ -308,11 +338,53 @@ Splits = [                               ## list    | required
 ]
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # string | required
+kind: ServiceSplitter                             # string | required
+metadata:                                         # object | required
+  name: config-entry-name                         # string | required
+  namespace: main                                 # string
+spec:
+  splits:                                         # list
+    - weight: 90                                  # floating point | required
+      service: service                            # string 
+      serviceSubset: v1                           # string 
+      namespace: target-namespace                 # string 
+      partition: target-partition                 # string 
+      requestHeaders:  
+        set:
+          x-web-version: from-v1                  # string 
+      responseHeaders:
+        set:
+          x-web-version: to-v1                    # string 
+    - weight: 10
+      service: service
+      serviceSubset: v2
+      namespace: target-namespace
+      partition: target-partition
+      requestHeaders:
+        set:
+          x-web-version: from-v2
+      responseHeaders:
+        set:
+          x-web-version: to-v2      
+```
+
+</Tab>
+
+</Tabs>
+
 ### Two subsets of same service
 
 Split traffic between two subsets of the same service:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -329,6 +401,10 @@ Splits = [
 ]
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -341,6 +417,10 @@ spec:
     - weight: 10
       serviceSubset: v2
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -359,13 +439,17 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+</Tabs>
 
 ### Two different services
 
 Split traffic between two services:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -382,6 +466,10 @@ Splits = [
 ]
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -394,6 +482,10 @@ spec:
     - weight: 50
       service: web-rewrite
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -411,14 +503,18 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+</Tabs>
 
 ### Set HTTP Headers
 
 Split traffic between two subsets with extra headers added so clients can tell
 which version:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-splitter"
@@ -445,6 +541,10 @@ Splits = [
 ]
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -463,6 +563,10 @@ spec:
         set:
           x-web-version: v2
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -491,4 +595,6 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+
+</Tabs>
