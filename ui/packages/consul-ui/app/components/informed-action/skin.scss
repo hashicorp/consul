@@ -55,7 +55,7 @@
   }
   &.warning {
     header {
-      color: rgb(var(--tone-orange-700));
+      color: var(--token-color-foreground-warning-on-surface);
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;

@@ -120,7 +120,7 @@ section[data-route='dc.show.serverstatus'] {
 }
 %redundancy-zone header dl.warning {
   background-color: rgb(var(--tone-orange-100));
-  color: rgb(var(--tone-orange-800));
+  color: var(--token-color-palette-amber-400);
 }
 %redundancy-zone header dl.warning::before {
   --icon-name: icon-alert-circle;
