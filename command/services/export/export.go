@@ -40,7 +40,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.PartitionFlag())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -58,8 +58,8 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Must provide -consumer-peers or -consumer-partitions flag")
 		return 1
 	}
-	var peerNames []string
 
+	var peerNames []string
 	if c.peerNames != "" {
 		peerNames = strings.Split(c.peerNames, ",")
 		for _, peerName := range peerNames {
@@ -69,8 +69,8 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	}
-	var partitionNames []string
 
+	var partitionNames []string
 	if c.partitionNames != "" {
 		partitionNames = strings.Split(c.partitionNames, ",")
 		for _, partitionName := range partitionNames {
