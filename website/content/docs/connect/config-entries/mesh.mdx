@@ -317,7 +317,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
+            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
@@ -326,7 +326,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'TransparentProxy',
       type: 'TransparentProxyConfig: <optional>',
       description:
-        'Controls configuration specific to proxies in `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
+        'Controls configuration specific to proxies in `transparent` [mode](/consul/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
       children: [
         {
           name: 'MeshDestinationsOnly',
