@@ -220,9 +220,6 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		retV := o.ConfigSnapshotUpstreams.DeepCopy()
 		cp.ConfigSnapshotUpstreams = *retV
 	}
-	cp.HTTPRoutes = o.HTTPRoutes.DeepCopy()
-	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
-	cp.Certificates = o.Certificates.DeepCopy()
 	if o.TLSConfig.SDS != nil {
 		cp.TLSConfig.SDS = new(structs.GatewayTLSSDSConfig)
 		*cp.TLSConfig.SDS = *o.TLSConfig.SDS
@@ -258,8 +255,11 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 			cp.UpstreamsSet[k2] = v2
 		}
 	}
+	cp.HTTPRoutes = o.HTTPRoutes.DeepCopy()
+	cp.TCPRoutes = o.TCPRoutes.DeepCopy()
+	cp.Certificates = o.Certificates.DeepCopy()
 	if o.Listeners != nil {
-		cp.Listeners = make(map[IngressListenerKey]structs.APIGatewayListener, len(o.Listeners))
+		cp.Listeners = make(map[string]structs.APIGatewayListener, len(o.Listeners))
 		for k2, v2 := range o.Listeners {
 			var cp_Listeners_v2 structs.APIGatewayListener
 			if v2.TLS.Certificates != nil {
@@ -271,6 +271,21 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				copy(cp_Listeners_v2.TLS.CipherSuites, v2.TLS.CipherSuites)
 			}
 			cp.Listeners[k2] = cp_Listeners_v2
+		}
+	}
+	if o.BoundListeners != nil {
+		cp.BoundListeners = make(map[string]structs.BoundAPIGatewayListener, len(o.BoundListeners))
+		for k2, v2 := range o.BoundListeners {
+			var cp_BoundListeners_v2 structs.BoundAPIGatewayListener
+			if v2.Routes != nil {
+				cp_BoundListeners_v2.Routes = make([]structs.ResourceReference, len(v2.Routes))
+				copy(cp_BoundListeners_v2.Routes, v2.Routes)
+			}
+			if v2.Certificates != nil {
+				cp_BoundListeners_v2.Certificates = make([]structs.ResourceReference, len(v2.Certificates))
+				copy(cp_BoundListeners_v2.Certificates, v2.Certificates)
+			}
+			cp.BoundListeners[k2] = cp_BoundListeners_v2
 		}
 	}
 	return &cp
