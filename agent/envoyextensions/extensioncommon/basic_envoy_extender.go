@@ -169,11 +169,12 @@ func (b BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfi
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
+				continue
 			}
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
-			} else if err == nil { // NOTE: this is to prevent filter being added twice
+			} else {
 				filters = append(filters, filter)
 			}
 		}
@@ -217,12 +218,13 @@ func (b BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
+				continue
 			}
 
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
-			} else if err == nil { // NOTE: this is to prevent filter being added twice
+			} else {
 				filters = append(filters, filter)
 			}
 		}
@@ -251,12 +253,13 @@ func (b BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
+				continue
 			}
 
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
-			} else if err == nil { // NOTE: this is to prevent filter being added twice
+			} else {
 				filters = append(filters, filter)
 			}
 		}
