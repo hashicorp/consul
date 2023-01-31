@@ -173,6 +173,8 @@ func (b BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfi
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
+			} else if err == nil { // NOTE: this is to prevent filter being added twice
+				filters = append(filters, filter)
 			}
 		}
 		filterChain.Filters = filters
@@ -220,6 +222,8 @@ func (b BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
+			} else if err == nil { // NOTE: this is to prevent filter being added twice
+				filters = append(filters, filter)
 			}
 		}
 		filterChain.Filters = filters
@@ -252,6 +256,8 @@ func (b BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true
+			} else if err == nil { // NOTE: this is to prevent filter being added twice
+				filters = append(filters, filter)
 			}
 		}
 		filterChain.Filters = filters
