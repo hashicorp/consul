@@ -1,12 +1,12 @@
 ---
 layout: docs
 page_title: Service Defaults Configuration Reference
-description: 0>
+description: ->
   Use the service-defaults configuration entry to set default configurations for services, such as upstreams, protocols, and namespaces. Learn how to configure service-defaults.
 ---
 
 # Service Defaults Configuration Reference
-This topic describes how to configure service defaults configuration entries. Configure and apply service defaults to specify common configurations, such as upstreams and gateways, for all services in your cluster. Refer to [Define service defaults](/consul/docs/services/usage/define-services#define-service-defaults) for usage information.
+This topic describes how to configure service defaults configuration entries. The service defaults configuration entry contains common configuration settings for service mesh services, such as upstreams and gateways. Refer to [Define service defaults](/consul/docs/services/usage/define-services#define-service-defaults) for usage information.
 
 ## Configuration model
 
@@ -36,10 +36,10 @@ The following outline shows how to format the service splitter configuration ent
       - [`MaxConnections`](#upstreamconfig-overrides-limits): integer | `0`
       - [`MaxPendingRequests`](#upstreamconfig-overrides-limits): integer | `0`
       - [`MaxConcurrentRequests`](#upstreamconfig-overrides-limits): integer | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthchecks): list of objects | optional
-      - [`Interval`](#upstreamconfig-overrides-passivehealthchecks): string | `0s`
-      - [`MaxFailures`](#upstreamconfig-overrides-passivehealthchecks): integer | `0`
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthchecks): integer | `100`
+    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): list of objects | optional
+      - [`Interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
+      - [`MaxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+      - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
   - [`Defaults`](#upstreamconfig-defaults): array of objects | no default
     - [`Protocol`](#upstreamconfig-defaults-protocol): string | no default
     - [`ConnectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
@@ -50,16 +50,16 @@ The following outline shows how to format the service splitter configuration ent
       - [`MaxConnections`](#upstreamconfig-defaults-limits): integer | `0`
       - [`MaxPendingRequests`](#upstreamconfig-defaults-limits): integer | `0`
       - [`MaxConcurrentRequests`](#upstreamconfig-defaults-limits): integer | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthchecks): list of objects | optional
-      - [`Interval`](#upstreamconfig-defaults-passivehealthchecks): string | `0s`
-      - [`MaxFailures`](#upstreamconfig-defaults-passivehealthchecks): integer | `0`
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthchecks): integer | 
+    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): list of objects | optional
+      - [`Interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
+      - [`MaxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
+      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | 
 - [`TransparentProxy`](#transparentproxy): list of objects | no default
-  - [`OutboundListenerPort`](#transparentproxy-outboundlistenerport): integer | `15001`
-  - [`DialedDirectly`](#transparentproxy-dialeddirectly): boolean | `false`
+  - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
+  - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
 - [`Destination`](#destination): list of objects | no default
-  - [`Addresses`](#destination-addresses): array of strings | no default
-  - [`Port`](#destination-port): integer | `0`
+  - [`Addresses`](#destination): array of strings | no default
+  - [`Port`](#destination): integer | `0`
 - [`MaxInboundConnections`](#maxinboundconnections): integer | `0`
 - [`LocalConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
 - [`LocalRequestTiimeoutMs`](#localrequesttimeoutms): integer | `0`
@@ -100,10 +100,10 @@ The following outline shows how to format the service splitter configuration ent
         - [`maxConnections`](#upstreamconfig-overrides-limits): integer | `0`
         - [`maxPendingRequests`](#upstreamconfig-overrides-limits): integer | `0`
         - [`maxConcurrentRequests`](#upstreamconfig-overrides-limits): integer | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthchecks): list of objects | optional
-        - [`interval`](#upstreamconfig-overrides-passivehealthchecks): string | `0s`
-        - [`maxFailures`](#upstreamconfig-overrides-passivehealthchecks): integer | `0`
-        - [`mnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthchecks): integer | `100`
+      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): list of objects | optional
+        - [`interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
+        - [`maxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+        - [`mnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
     - [`defaults`](#upstreamconfig-defaults): array of objects | no default
       - [`protocol`](#upstreamconfig-defaults-protocol): string | no default
       - [`connectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
@@ -114,16 +114,16 @@ The following outline shows how to format the service splitter configuration ent
         - [`maxConnections`](#upstreamconfig-defaults-limits): integer | `0`
         - [`maxPendingRequests`](#upstreamconfig-defaults-limits): integer | `0`
         - [`maxConcurrentRequests`](#upstreamconfig-defaults-limits): integer | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthchecks): list of objects | optional
-        - [`interval`](#upstreamconfig-defaults-passivehealthchecks): string | `0s`
-        - [`maxFailures`](#upstreamconfig-defaults-passivehealthchecks): integer | `0`
-        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthchecks): integer | 
+      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): list of objects | optional
+        - [`interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
+        - [`maxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
+        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | 
   - [`transparentProxy`](#transparentproxy): list of objects | no default
-    - [`outboundListenerPort`](#transparentproxy-outboundlistenerport): integer | `15001`
-    - [`dialedDirectly`](#transparentproxy-dialeddirectly): boolean | `false`
+    - [`outboundListenerPort`](#transparentproxy): integer | `15001`
+    - [`dialedDirectly`](#transparentproxy): boolean | `false`
   - [`destination`](#destination): list of objects | no default
-    - [`addresses`](#destination-addresses): array of strings | no default
-    - [`port`](#destination-port): integer | `0`
+    - [`addresses`](#destination): array of strings | no default
+    - [`port`](#destination): integer | `0`
   - [`maxInboundConnections`](#maxinboundconnections): integer | `0`
   - [`localConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
   - [`localRequestTiimeoutMs`](#localrequesttimeoutms): integer | `0`
@@ -330,7 +330,6 @@ For non-Kubernetes environments, we recommend configuring the upstream timeout i
 #### Kubernetes
 Configure an upstream connection timeout in the `spec.upstreamConfig.overrides.connectTimeoutMs` field in YAML for Kubernetes. We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
-
 ### UpstreamConfig.Overrides.MeshGateway
 Object that contains the default mesh gateway `mode` field for the upstream. Refer to [Connect Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration) in the mesh gateway documentation for additional information. 
 
@@ -344,7 +343,6 @@ You can specify the following string values for the `mode` field:
 Configure the mesh gateway connection mode in the `spec.upstreamConfig.overrides.meshGateway.mode` field in YAML for Kubernetes.
 
 ### UpstreamConfig.Overrides.BalanceOutboundConnections
-
 Sets the strategy for allocating outbound connections from the upstream across Envoy proxy threads. The only supported value is `exact_balance`. By default, no connections are balanced. Refer to the [Envoy documentation](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig) for details. 
 
 - Data type: string
@@ -570,20 +568,13 @@ Specifies an array of objects that define paths to expose through Envoy when `Ex
 #### Kubernetes
 Define paths to expose through Envoy in the `spec.expose.paths` field in YAML for Kubernetes. 
 
+## Example configurations
 
-<!-- OLD CONTENT - KEEPING FOR NOW JUST IN CASE
+The following examples describe common `service-defaults` configurations.
 
-## Sample Config Entries
+### Set the default protocol
 
-### Default protocol
-
--> **NOTE**: The default protocol can also be configured globally for all proxies
-using the [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#default-protocol)
-config entry. However, if the protocol value is specified in a service defaults
-config entry for a given service, that value will take precedence over the
-globally configured value from proxy defaults.
-
-Set the default protocol for a service in the default namespace to HTTP:
+In the following example, protocol for the `web` service in the `default` namespace is set to `http`:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -614,10 +605,7 @@ spec:
 
 </CodeTabs>
 
--->
-## Example configurations
-
-The following examples describe common `service-defaults` configurations.
+You can also set the global default protocol for all proxies in the [`proxy-defaults` configuration entry](/consul/docs/connect/config-entries/proxy-defaults#default-protocol), but the protocol specified for individual service instances in the `service-defaults` configuration entry takes precedence over the globally-configured value set in the `proxy-defaults`.
 
 ### Upstream configuration
 
