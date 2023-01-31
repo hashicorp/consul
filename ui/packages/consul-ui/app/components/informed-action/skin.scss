@@ -43,14 +43,14 @@
   }
   &.dangerous {
     header {
-      color: rgb(var(--tone-red-700));
+      color: var(--token-color-palette-red-400);
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: rgb(var(--tone-red-500));
+      background-color: var(--token-color-foreground-critical);
     }
     > div {
-      background-color: rgb(var(--tone-red-010));
+      background-color: var(--token-color-surface-critical);
     }
   }
   &.warning {

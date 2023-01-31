@@ -52,7 +52,7 @@
 %with-deny-300,
 %with-deny-500 {
   --icon-name: icon-skip;
-  --icon-color: rgb(var(--tone-red-500));
+  --icon-color: var(--token-color-foreground-critical);
 }
 %with-l7-300,
 %with-l7-500 {
@@ -61,7 +61,7 @@
 %with-allow-500,
 %with-deny-500,
 %with-l7-500 {
-  --icon-resolution: .5;
+  --icon-resolution: 0.5;
 }
 %with-allow-300,
 %with-allow-500,

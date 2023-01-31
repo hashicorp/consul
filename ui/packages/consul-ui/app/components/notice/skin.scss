@@ -49,11 +49,11 @@
   color: rgb(var(--tone-yellow-800));
 }
 %notice-error {
-  background-color: rgb(var(--tone-red-050));
-  border-color: rgb(var(--tone-red-500));
+  background-color: var(--token-color-border-critical);
+  border-color: var(--token-color-foreground-critical);
 }
 %notice-error header * {
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %notice-success::before {
   @extend %with-check-circle-fill-mask;
@@ -73,5 +73,5 @@
 }
 %notice-error::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }

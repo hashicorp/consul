@@ -26,7 +26,7 @@
 }
 %inline-alert-error::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %inline-alert-warning::before {
   @extend %with-alert-triangle-mask;

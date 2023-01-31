@@ -16,7 +16,7 @@
   nav .dcs .dc-name {
     color: rgb(var(--tone-gray-600));
     padding: 3.25px 0px;
-    font-weight: var(--typo-weight-semibold)
+    font-weight: var(--typo-weight-semibold);
   }
   nav .dcs .dc-name span {
     @extend %pill-200;
@@ -55,7 +55,7 @@
   }
   .acls-separator span {
     @extend %led-icon;
-    color: rgb(var(--tone-red-500));
+    color: var(--token-color-foreground-critical);
     display: inline-block;
     position: relative;
     top: 2px;

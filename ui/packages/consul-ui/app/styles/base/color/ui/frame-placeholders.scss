@@ -152,14 +152,14 @@
 %frame-red-300 {
   @extend %frame-border-000;
   background-color: var(--transparent);
-  border-color: rgb(var(--tone-red-500));
-  color: rgb(var(--tone-red-500));
+  border-color: var(--token-color-foreground-critical);
+  color: var(--token-color-foreground-critical);
 }
 %frame-red-500 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-red-050));
-  border-color: rgb(var(--tone-red-500));
-  color: rgb(var(--tone-red-800));
+  background-color: var(--token-color-border-critical);
+  border-color: var(--token-color-foreground-critical);
+  color: var(--token-color-foreground-critical-high-contrast);
 }
 %frame-red-600 {
   @extend %frame-border-000;
@@ -169,19 +169,19 @@
 }
 %frame-red-700 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-red-500));
-  border-color: rgb(var(--tone-red-800));
+  background-color: var(--token-color-foreground-critical);
+  border-color: var(--token-color-foreground-critical-high-contrast);
   color: rgb(var(--tone-gray-000));
 }
 %frame-red-800 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-red-500));
-  border-color: rgb(var(--tone-red-800));
+  background-color: var(--token-color-foreground-critical);
+  border-color: var(--token-color-foreground-critical-high-contrast);
   color: rgb(var(--tone-gray-000));
 }
 %frame-red-900 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-red-700));
-  border-color: rgb(var(--tone-red-800));
+  background-color: var(--token-color-palette-red-400);
+  border-color: var(--token-color-foreground-critical-high-contrast);
   color: rgb(var(--tone-gray-000));
 }

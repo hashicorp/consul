@@ -36,7 +36,7 @@
 }
 %popover-select .value-critical button::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %popover-select .value-empty button::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;

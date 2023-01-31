@@ -36,7 +36,7 @@
 }
 %healthcheck-output.critical::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %healthcheck-output,
 %healthcheck-output pre {
@@ -64,5 +64,5 @@
   border-left-color: rgb(var(--tone-yellow-500));
 }
 %healthcheck-output.critical {
-  border-left-color: rgb(var(--tone-red-500));
+  border-left-color: var(--token-color-foreground-critical);
 }

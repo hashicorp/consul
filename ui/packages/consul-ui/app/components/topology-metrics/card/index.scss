@@ -68,7 +68,7 @@
     }
     .critical::before {
       @extend %with-cancel-square-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-red-500));
+      --icon-color: var(--token-color-foreground-critical);
     }
     .empty::before {
       @extend %with-minus-square-fill-mask, %as-pseudo;

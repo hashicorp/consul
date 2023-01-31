@@ -15,7 +15,7 @@
   }
   &.critical dt::before {
     @extend %with-cancel-square-fill-mask;
-    color: rgb(var(--tone-red-500));
+    color: var(--token-color-foreground-critical);
   }
   &.empty dt::before {
     @extend %with-minus-square-fill-mask;

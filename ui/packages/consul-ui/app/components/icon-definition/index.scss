@@ -18,7 +18,7 @@
 %icon-definition.critical dt::before,
 %composite-row-header .critical dd::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %icon-definition.empty dt::before,
 %composite-row-header .empty dd::before {

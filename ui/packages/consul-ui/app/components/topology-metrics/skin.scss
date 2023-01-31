@@ -86,15 +86,15 @@
     stroke-dasharray: 4;
   }
   path[data-permission='deny'] {
-    stroke: rgb(var(--tone-red-500));
+    stroke: var(--token-color-foreground-critical);
   }
   .deny-dot {
-    stroke: rgb(var(--tone-red-500));
+    stroke: var(--token-color-foreground-critical);
     stroke-width: 2;
   }
   .deny-arrow {
-    fill: rgb(var(--tone-red-500));
-    stroke: rgb(var(--tone-red-500));
+    fill: var(--token-color-foreground-critical);
+    stroke: var(--token-color-foreground-critical);
     stroke-linejoin: round;
   }
 }

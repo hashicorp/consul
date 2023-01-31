@@ -18,7 +18,7 @@ textarea:disabled + .CodeMirror,
 }
 %form-element-error > input,
 %form-element-error > textarea {
-  border-color: var(--decor-error-500, rgb(var(--tone-red-500))) !important;
+  border-color: var(--decor-error-500, var(--token-color-foreground-critical)) !important;
 }
 %form-element-text-input {
   color: rgb(var(--tone-gray-500));

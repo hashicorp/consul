@@ -15,7 +15,7 @@
   background-color: rgb(var(--tone-green-100));
 }
 %pill-deny {
-  color: rgb(var(--tone-red-800));
+  color: var(--token-color-foreground-critical-high-contrast);
   background-color: rgb(var(--tone-red-100));
 }
 %pill-l7 {

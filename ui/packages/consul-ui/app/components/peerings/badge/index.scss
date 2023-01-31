@@ -19,8 +19,8 @@
     color: rgb(var(--tone-blue-500));
   }
   &.failing {
-    background: rgb(var(--tone-red-050));
-    color: rgb(var(--tone-red-500));
+    background: var(--token-color-border-critical);
+    color: var(--token-color-foreground-critical);
   }
   &.deleting {
     background: rgb(var(--tone-yellow-050));

@@ -22,8 +22,8 @@
   color: rgb(var(--tone-green-800));
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status:not(.healthy) + dd {
-  background-color: rgb(var(--tone-red-050));
-  color: rgb(var(--tone-red-500));
+  background-color: var(--token-color-border-critical);
+  color: var(--token-color-foreground-critical);
 }
 %consul-server-card .health-status + dd::before {
   --icon-size: icon-000;
@@ -35,6 +35,5 @@
 }
 %consul-server-card .health-status:not(.healthy) + dd::before {
   --icon-name: icon-x;
-  --icon-color: rgb(var(--tone-red-500));
+  --icon-color: var(--token-color-foreground-critical);
 }
-
