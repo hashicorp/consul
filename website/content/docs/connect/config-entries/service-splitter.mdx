@@ -13,6 +13,7 @@ The following list outlines field hierarchy, data types, and requirements in a s
 <Tabs>
 
 <Tab heading="HCL" group="hcl">
+
 - [`Kind`](#kind): string | required
 - [`Name`](#name): string | required
 - [`Namespace`](#namespace): string | optional <Enterprise />
@@ -26,9 +27,11 @@ The following list outlines field hierarchy, data types, and requirements in a s
 - [`Partition`](#splits-partition): string | optional <Enterprise />
 - [`RequestHeaders`](#splits-requestheaders): map | optional
 - [`ResponseHeaders`](#splits-responseheaders): map | optional
+- 
 </Tab>
 
 <Tab heading="YAML" group="yaml">
+
 - [`apiVersion`](#apiVersion): string | required
 - [`kind`](#kind): string | required
 - [`metadata`](#metadata): object | required
@@ -46,6 +49,7 @@ The following list outlines field hierarchy, data types, and requirements in a s
 
 </Tab>
 </Tabs>
+
 ## Specification
 
 This section provides details about the fields you can configure in a `service-splitter` configuration entry.
@@ -53,18 +57,21 @@ This section provides details about the fields you can configure in a `service-s
 <Tabs>
 
 <Tab heading="HCL" group="hcl">
+
 ### Kind
 
 Specifies the kind of configuration entry. Must be set to `service-splitter`.
 Data type: string 
 Default: none
 Required: required
+
 ### Name
 
 Names the configuration entry in Consul..
 Data type: string 
 Default: none
 Required: required
+
 ### Namespace <Enterprise />
 
 Specifies the namespace the configuration entry applies to. 
@@ -256,6 +263,7 @@ Required: optional
 
 The examples in this section demonstrate common configurations for `service-splitter` configuration entries. When every field is utilized, a `service-splitter` configuration entry takes the following form:
 
+```hcl
 Kind      = "service-splitter"           ## string  | required
 Name      = “name”                       ## string  | required
 Namespace = “namespace”                  ## string
@@ -298,7 +306,7 @@ Splits = [                               ## list    | required
         "X-Web-Version": "to-v2"
   },
 ]
-
+```
 
 ### Two subsets of same service
 
@@ -484,4 +492,3 @@ spec:
 ```
 
 </CodeTabs>
-
