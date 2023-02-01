@@ -1,4 +1,4 @@
-package troubleshoot
+package proxy
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestTroubleshootConnectCommand_noTabs(t *testing.T) {
+func TestTroubleshootProxyCommand_noTabs(t *testing.T) {
 	t.Parallel()
 
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {

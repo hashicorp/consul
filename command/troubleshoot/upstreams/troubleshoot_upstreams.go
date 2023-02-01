@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/consul/command/flags"
-	troubleshoot "github.com/hashicorp/consul/troubleshoot/connect"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot"
 	"github.com/mitchellh/cli"
 )
 
@@ -89,13 +89,13 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Troubleshoots service mesh issues"
+	synopsis = "Get upstream envoy identifiers for the current envoy instance"
 	help     = `
 Usage: consul troubleshoot upstreams [options]
   
-  Connects to local Envoy and lists upstream service envoy IDs.
+  Connects to local Envoy and lists upstream service envoy identifiers.
   This command is used in combination with 
-  'consul troubleshoot connect' to diagnose issues in Consul service mesh. 
+  'consul troubleshoot proxy' to diagnose issues in Consul service mesh. 
   Examples:
     $ consul troubleshoot upstreams
 `
