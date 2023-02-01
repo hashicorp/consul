@@ -29,21 +29,6 @@ type cmd struct {
 	partitionNames string
 }
 
-func (c *cmd) init() {
-	//This function defines the flags
-
-	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-
-	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
-	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "A list of peers to export the service to, formatted as a comma-separated list.")
-	c.flags.StringVar(&c.partitionNames, "consumer-partitions", "", "A list of partitions to export the service to, formatted as a comma-separated list.")
-
-	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	c.help = flags.Usage(help, c.flags)
-}
-
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -70,15 +55,10 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	var partitionNames []string
-	if c.partitionNames != "" {
-		partitionNames = strings.Split(c.partitionNames, ",")
-		for _, partitionName := range partitionNames {
-			if partitionName == "" {
-				c.UI.Error(fmt.Sprintf("Invalid partition %q", partitionName))
-				return 1
-			}
-		}
+	partitionNames, err := c.getPartitionNames()
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
 	}
 
 	client, err := c.http.APIClient()
@@ -176,7 +156,7 @@ func (c *cmd) Run(args []string) int {
 }
 
 func buildConsumers(peerNames []string, partitionNames []string) []api.ServiceConsumer {
-	consumers := []api.ServiceConsumer{}
+	var consumers []api.ServiceConsumer
 	for _, peer := range peerNames {
 		consumers = append(consumers, api.ServiceConsumer{
 			Peer: peer,
