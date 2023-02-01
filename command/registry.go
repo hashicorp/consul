@@ -116,6 +116,8 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
+	troubleshoot "github.com/hashicorp/consul/command/troubleshoot/connect"
+	upstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
@@ -240,6 +242,8 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"tls ca create", func(ui cli.Ui) (cli.Command, error) { return tlscacreate.New(ui), nil }},
 		entry{"tls cert", func(ui cli.Ui) (cli.Command, error) { return tlscert.New(), nil }},
 		entry{"tls cert create", func(ui cli.Ui) (cli.Command, error) { return tlscertcreate.New(ui), nil }},
+		entry{"troubleshoot connect", func(ui cli.Ui) (cli.Command, error) { return troubleshoot.New(ui), nil }},
+		entry{"troubleshoot upstreams", func(ui cli.Ui) (cli.Command, error) { return upstreams.New(ui), nil }},
 		entry{"validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil }},
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},
