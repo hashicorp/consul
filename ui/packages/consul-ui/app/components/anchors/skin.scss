@@ -8,7 +8,7 @@
 %anchor,
 %anchor-intent,
 %anchor-active {
-  color: rgb(var(--color-action));
+  color: var(--token-color-foreground-action);
 }
 %anchor-decoration:hover,
 %anchor-decoration:focus {

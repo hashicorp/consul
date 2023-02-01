@@ -12,7 +12,7 @@
   color: inherit;
 }
 %inline-alert-error {
-  color: rgb(var(--color-failure));
+  color: var(--token-color-foreground-critical);
 }
 %inline-alert::before {
   font-size: 14px;

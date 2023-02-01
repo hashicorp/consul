@@ -13,7 +13,7 @@ body {
 }
 /* TODO: Consider changing this to 'p a, dd a, td a' etc etc */
 a {
-  color: rgb(var(--color-action));
+  color: var(--token-color-foreground-action);
 }
 html {
   background-color: rgb(var(--tone-gray-000));

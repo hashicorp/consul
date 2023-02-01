@@ -26,6 +26,6 @@
   color: inherit;
 }
 %list-row-detail a:hover {
-  color: rgb(var(--color-action));
+  color: var(--token-color-foreground-action);
   text-decoration: underline;
 }

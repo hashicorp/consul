@@ -51,7 +51,7 @@
       background-color: rgb(var(--tone-gray-500));
     }
     a:hover {
-      color: rgb(var(--color-action));
+      color: var(--token-color-foreground-action);
     }
     .metrics-link::before {
       @extend %with-exit-mask, %as-pseudo;

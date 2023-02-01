@@ -31,9 +31,7 @@
 }
 %consul-server-card .health-status.healthy + dd::before {
   --icon-name: icon-check;
-  --icon-color: var(--token-color-palette-green-400);
 }
 %consul-server-card .health-status:not(.healthy) + dd::before {
   --icon-name: icon-x;
-  --icon-color: var(--token-color-foreground-critical);
 }

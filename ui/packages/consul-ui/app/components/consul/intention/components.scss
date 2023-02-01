@@ -12,7 +12,7 @@
 }
 %pill-allow {
   color: var(--token-color-palette-green-400);
-  background-color: rgb(var(--tone-green-100));
+  background-color: var(--token-color-border-success);
 }
 %pill-deny {
   color: var(--token-color-foreground-critical-high-contrast);

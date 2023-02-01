@@ -30,7 +30,6 @@
   color: var(--token-color-foreground-faint);
 }
 %secondary-button:active {
-  /* %frame-gray-something */
   @extend %frame-gray-700;
   background-color: var(--token-color-surface-interactive-active);
   color: var(--token-color-foreground-primary);
