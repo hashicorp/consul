@@ -1,0 +1,3 @@
+```release-note:feature
+envoy: Add support for expanding ${HOST_IP} in envoy static clusters so clustes pointing to a host's external interface can be created
+```
