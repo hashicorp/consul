@@ -42,11 +42,11 @@
   color: var(--token-color-foreground-action-active);
 }
 %notice-warning {
-  border-color: rgb(var(--tone-yellow-100));
-  background-color: rgb(var(--tone-yellow-050));
+  border-color: var(--token-color-vault-border);
+  background-color: var(--token-color-vault-gradient-faint-start);
 }
 %notice-warning header * {
-  color: rgb(var(--tone-yellow-800));
+  color: var(--token-color-vault-foreground);
 }
 %notice-error {
   background-color: var(--token-color-surface-critical);
@@ -65,7 +65,7 @@
 }
 %notice-highlight::before {
   @extend %with-star-fill-mask;
-  color: rgb(var(--tone-yellow-500));
+  color: var(--token-color-vault-brand);
 }
 %notice-warning::before {
   @extend %with-alert-triangle-mask;

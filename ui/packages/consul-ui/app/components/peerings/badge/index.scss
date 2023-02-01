@@ -23,8 +23,8 @@
     color: var(--token-color-foreground-critical);
   }
   &.deleting {
-    background: rgb(var(--tone-yellow-050));
-    color: rgb(var(--tone-yellow-800));
+    background: var(--token-color-vault-gradient-faint-start);
+    color: var(--token-color-vault-foreground);
   }
   &.terminated {
     background: var(--token-color-surface-interactive-active);

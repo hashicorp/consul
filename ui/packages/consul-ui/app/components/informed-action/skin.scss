@@ -59,11 +59,11 @@
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: rgb(var(--tone-yellow-500));
+      background-color: var(--token-color-vault-brand);
       margin-right: 5px;
     }
     > div {
-      background-color: rgb(var(--tone-yellow-050));
+      background-color: var(--token-color-vault-gradient-faint-start);
     }
   }
   /**/

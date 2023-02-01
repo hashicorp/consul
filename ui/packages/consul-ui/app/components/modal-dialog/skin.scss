@@ -1,7 +1,7 @@
 %modal-dialog.warning header {
-  background-color: rgb(var(--tone-yellow-050));
-  border-color: rgb(var(--tone-yellow-500));
-  color: rgb(var(--tone-yellow-800));
+  background-color: var(--token-color-vault-gradient-faint-start);
+  border-color: var(--token-color-vault-brand);
+  color: var(--token-color-vault-foreground);
 }
 %modal-dialog.warning header > *:not(label) {
   font-size: var(--typo-size-500);
@@ -9,7 +9,7 @@
 }
 %modal-dialog.warning header::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: rgb(var(--tone-yellow-500));
+  color: var(--token-color-vault-brand);
   float: left;
   margin-top: 2px;
   margin-right: 3px;

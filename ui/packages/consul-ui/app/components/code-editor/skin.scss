@@ -21,7 +21,7 @@ $syntax-dark-gray: #535f73;
   --syntax-dark-gray: #{$syntax-dark-gray};
 
   --syntax-gutter-grey: #2a2f36;
-  --syntax-yellow: rgb(var(--tone-yellow-500));
+  --syntax-yellow: var(--token-color-vault-brand);
 }
 .CodeMirror {
   max-width: 1260px;
