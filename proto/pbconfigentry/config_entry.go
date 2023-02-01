@@ -267,6 +267,168 @@ func meshGatewayModeToStructs(a MeshGatewayMode) structs.MeshGatewayMode {
 	}
 }
 
+func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGatewayListenerProtocol {
+	switch a {
+	case structs.ListenerProtocolHTTP:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	case structs.ListenerProtocolTCP:
+		return APIGatewayListenerProtocol_ListenerProtocolTCP
+	default:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP
+	}
+}
+
+func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewayListenerProtocol {
+	switch a {
+	case APIGatewayListenerProtocol_ListenerProtocolHTTP:
+		return structs.ListenerProtocolHTTP
+	case APIGatewayListenerProtocol_ListenerProtocolTCP:
+		return structs.ListenerProtocolTCP
+	default:
+		return structs.ListenerProtocolHTTP
+	}
+}
+
+func httpMatchMethodFromStructs(a structs.HTTPMatchMethod) HTTPMatchMethod {
+	switch a {
+	case structs.HTTPMatchMethodAll:
+		return HTTPMatchMethod_HTTPMatchMethodAll
+	case structs.HTTPMatchMethodConnect:
+		return HTTPMatchMethod_HTTPMatchMethodConnect
+	case structs.HTTPMatchMethodDelete:
+		return HTTPMatchMethod_HTTPMatchMethodDelete
+	case structs.HTTPMatchMethodGet:
+		return HTTPMatchMethod_HTTPMatchMethodGet
+	case structs.HTTPMatchMethodHead:
+		return HTTPMatchMethod_HTTPMatchMethodHead
+	case structs.HTTPMatchMethodOptions:
+		return HTTPMatchMethod_HTTPMatchMethodOptions
+	case structs.HTTPMatchMethodPatch:
+		return HTTPMatchMethod_HTTPMatchMethodPatch
+	case structs.HTTPMatchMethodPost:
+		return HTTPMatchMethod_HTTPMatchMethodPost
+	case structs.HTTPMatchMethodPut:
+		return HTTPMatchMethod_HTTPMatchMethodPut
+	case structs.HTTPMatchMethodTrace:
+		return HTTPMatchMethod_HTTPMatchMethodTrace
+	default:
+		return HTTPMatchMethod_HTTPMatchMethodAll
+	}
+}
+
+func httpMatchMethodToStructs(a HTTPMatchMethod) structs.HTTPMatchMethod {
+	switch a {
+	case HTTPMatchMethod_HTTPMatchMethodAll:
+		return structs.HTTPMatchMethodAll
+	case HTTPMatchMethod_HTTPMatchMethodConnect:
+		return structs.HTTPMatchMethodConnect
+	case HTTPMatchMethod_HTTPMatchMethodDelete:
+		return structs.HTTPMatchMethodDelete
+	case HTTPMatchMethod_HTTPMatchMethodGet:
+		return structs.HTTPMatchMethodGet
+	case HTTPMatchMethod_HTTPMatchMethodHead:
+		return structs.HTTPMatchMethodHead
+	case HTTPMatchMethod_HTTPMatchMethodOptions:
+		return structs.HTTPMatchMethodOptions
+	case HTTPMatchMethod_HTTPMatchMethodPatch:
+		return structs.HTTPMatchMethodPatch
+	case HTTPMatchMethod_HTTPMatchMethodPost:
+		return structs.HTTPMatchMethodPost
+	case HTTPMatchMethod_HTTPMatchMethodPut:
+		return structs.HTTPMatchMethodPut
+	case HTTPMatchMethod_HTTPMatchMethodTrace:
+		return structs.HTTPMatchMethodTrace
+	default:
+		return structs.HTTPMatchMethodAll
+	}
+}
+
+func httpHeaderMatchFromStructs(a structs.HTTPHeaderMatchType) HTTPHeaderMatchType {
+	switch a {
+	case structs.HTTPHeaderMatchExact:
+		return HTTPHeaderMatchType_HTTPHeaderMatchExact
+	case structs.HTTPHeaderMatchPrefix:
+		return HTTPHeaderMatchType_HTTPHeaderMatchPrefix
+	case structs.HTTPHeaderMatchPresent:
+		return HTTPHeaderMatchType_HTTPHeaderMatchPresent
+	case structs.HTTPHeaderMatchRegularExpression:
+		return HTTPHeaderMatchType_HTTPHeaderMatchRegularExpression
+	case structs.HTTPHeaderMatchSuffix:
+		return HTTPHeaderMatchType_HTTPHeaderMatchSuffix
+	default:
+		return HTTPHeaderMatchType_HTTPHeaderMatchExact
+	}
+}
+
+func httpHeaderMatchToStructs(a HTTPHeaderMatchType) structs.HTTPHeaderMatchType {
+	switch a {
+	case HTTPHeaderMatchType_HTTPHeaderMatchExact:
+		return structs.HTTPHeaderMatchExact
+	case HTTPHeaderMatchType_HTTPHeaderMatchPrefix:
+		return structs.HTTPHeaderMatchPrefix
+	case HTTPHeaderMatchType_HTTPHeaderMatchPresent:
+		return structs.HTTPHeaderMatchPresent
+	case HTTPHeaderMatchType_HTTPHeaderMatchRegularExpression:
+		return structs.HTTPHeaderMatchRegularExpression
+	case HTTPHeaderMatchType_HTTPHeaderMatchSuffix:
+		return structs.HTTPHeaderMatchSuffix
+	default:
+		return structs.HTTPHeaderMatchExact
+	}
+}
+
+func httpPathMatchFromStructs(a structs.HTTPPathMatchType) HTTPPathMatchType {
+	switch a {
+	case structs.HTTPPathMatchExact:
+		return HTTPPathMatchType_HTTPPathMatchExact
+	case structs.HTTPPathMatchPrefix:
+		return HTTPPathMatchType_HTTPPathMatchPrefix
+	case structs.HTTPPathMatchRegularExpression:
+		return HTTPPathMatchType_HTTPPathMatchRegularExpression
+	default:
+		return HTTPPathMatchType_HTTPPathMatchExact
+	}
+}
+
+func httpPathMatchToStructs(a HTTPPathMatchType) structs.HTTPPathMatchType {
+	switch a {
+	case HTTPPathMatchType_HTTPPathMatchExact:
+		return structs.HTTPPathMatchExact
+	case HTTPPathMatchType_HTTPPathMatchPrefix:
+		return structs.HTTPPathMatchPrefix
+	case HTTPPathMatchType_HTTPPathMatchRegularExpression:
+		return structs.HTTPPathMatchRegularExpression
+	default:
+		return structs.HTTPPathMatchExact
+	}
+}
+
+func httpQueryMatchFromStructs(a structs.HTTPQueryMatchType) HTTPQueryMatchType {
+	switch a {
+	case structs.HTTPQueryMatchExact:
+		return HTTPQueryMatchType_HTTPQueryMatchExact
+	case structs.HTTPQueryMatchPresent:
+		return HTTPQueryMatchType_HTTPQueryMatchPresent
+	case structs.HTTPQueryMatchRegularExpression:
+		return HTTPQueryMatchType_HTTPQueryMatchRegularExpression
+	default:
+		return HTTPQueryMatchType_HTTPQueryMatchExact
+	}
+}
+
+func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
+	switch a {
+	case HTTPQueryMatchType_HTTPQueryMatchExact:
+		return structs.HTTPQueryMatchExact
+	case HTTPQueryMatchType_HTTPQueryMatchPresent:
+		return structs.HTTPQueryMatchPresent
+	case HTTPQueryMatchType_HTTPQueryMatchRegularExpression:
+		return structs.HTTPQueryMatchRegularExpression
+	default:
+		return structs.HTTPQueryMatchExact
+	}
+}
+
 func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
 	if args != nil {
 		st := args.GetStructValue()
@@ -313,26 +475,4 @@ func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension
 	}
 
 	return o
-}
-
-func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGatewayListenerProtocol {
-	switch a {
-	case structs.ListenerProtocolHTTP:
-		return APIGatewayListenerProtocol_ListenerProtocolHTTP
-	case structs.ListenerProtocolTCP:
-		return APIGatewayListenerProtocol_ListenerProtocolTCP
-	default:
-		return APIGatewayListenerProtocol_ListenerProtocolHTTP
-	}
-}
-
-func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewayListenerProtocol {
-	switch a {
-	case APIGatewayListenerProtocol_ListenerProtocolHTTP:
-		return structs.ListenerProtocolHTTP
-	case APIGatewayListenerProtocol_ListenerProtocolTCP:
-		return structs.ListenerProtocolTCP
-	default:
-		return structs.ListenerProtocolHTTP
-	}
 }
