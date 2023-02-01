@@ -146,7 +146,14 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 	}
-	c.UI.Info(fmt.Sprintf("Successfully exported service %s to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
+
+	if len(c.peerNames) > 0 && len(c.partitionNames) > 0 {
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
+	} else if len(c.peerNames) > 0 {
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q", c.serviceName, c.peerNames))
+	} else if len(c.partitionNames) > 0 {
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to partitions %q", c.serviceName, c.partitionNames))
+	}
 	return 0
 }
 
