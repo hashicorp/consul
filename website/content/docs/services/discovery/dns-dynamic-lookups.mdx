@@ -6,7 +6,7 @@ description: ->
 ---
 
 # Enable Dynamic Queries DNS Queries
-This topic describes how to dynamically query the Consul catalog using prepared queries. Prepared queries are configurations that enable you to register a complex service query and execute it on demand. For information about how to perform standard node and service lookups, refer to [Enable Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups).
+This topic describes how to dynamically query the Consul catalog using prepared queries. Prepared queries are configurations that enable you to register a complex service query and execute it on demand. For information about how to perform standard node and service lookups, refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups).
 
 ## Introduction
 Prepared queries provide a rich set of lookup features, such as filtering by multiple tags and automatically failing over to look for services in remote datacenters if no healthy nodes are available in the local datacenter. You can also create prepared query templates that match names using a prefix match, allowing a single template to apply to potentially many services. Refer to [Query Consul Nodes and Services Overview](/consul/docs/services/discovery/dns-overview) for additional information about DNS query behaviors.
@@ -26,45 +26,48 @@ Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-q
 
 1. Specify the prepared query options in JSON format. The following prepared query targets all instances of the `redis` service in `dc1` and `dc2`:
 
-        ```json
-        {
-        "Name": "my-query",
-        "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "Token": "",
+    ```json
+    {
+      "Name": "my-query",
+      "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+      "Token": "",
         "Service": {
-            "Service": "redis",
-            "Failover": {
+          "Service": "redis",
+          "Failover": {
             "NearestN": 3,
             "Datacenters": ["dc1", "dc2"]
+          },
+          "Near": "node1",
+          "OnlyPassing": false,
+          "Tags": ["primary", "!experimental"],
+          "NodeMeta": { 
+            "instance_type": "m3.large" 
             },
-            "Near": "node1",
-            "OnlyPassing": false,
-            "Tags": ["primary", "!experimental"],
-            "NodeMeta": { "instance_type": "m3.large" },
-            "ServiceMeta": { "environment": "production" }
-        },
+          "ServiceMeta": { 
+            "environment": "production" 
+            }
+          },
         "DNS": {
-            "TTL": "10s"
-        }
-        }
-
-        ```
+          "TTL": "10s"
+          }
+    }
+    ```
 
  Refer to the [prepared query configuration reference](/consul/api-docs/query#create-prepared-query) for information about all available options.
 
 1. Send the query in a POST request to the [`/query` API endpoint](/consul/api-docs/query). If the request is successful, Consul prints an ID for the prepared query. 
 
-        In the following example, the prepared query configuration is stored in the `payload.json` file:
+    In the following example, the prepared query configuration is stored in the `payload.json` file:
 
-        ```shell-session
-        $ curl --request POST --data @payload.json http://127.0.0.1:8500/v1/query
-        {"ID":"014af5ff-29e6-e972-dcf8-6ee602137127"}%
-        ```
+    ```shell-session
+    $ curl --request POST --data @payload.json http://127.0.0.1:8500/v1/query
+    {"ID":"014af5ff-29e6-e972-dcf8-6ee602137127"}%
+    ```
 1. To run the query, send a GET request to the endpoint and specify the ID returned from the POST call. 
 
-        ```shell-session
-        $ curl http://127.0.0.1:8500/v1/query/14af5ff-29e6-e972-dcf8-6ee602137127/execute\?near\=_agent
-        ```
+    ```shell-session
+    $ curl http://127.0.0.1:8500/v1/query/14af5ff-29e6-e972-dcf8-6ee602137127/execute\?near\=_agent
+    ```
  
 ## Execute prepared queries
 You can execute a prepared query using the standard lookup format or the strict RFC 2782 SRV lookup.

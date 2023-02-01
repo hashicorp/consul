@@ -327,10 +327,10 @@
         ]
       },
       {
-        "title": "Discover",
+        "title": "Service Discovery",
         "routes": [
           {
-            "title": "Overview",
+            "title": "DNS Usage Overview",
             "path": "services/discovery/dns-overview"
           },
           {
@@ -338,7 +338,7 @@
             "path": "services/discovery/dns-configuration"
           },
           {
-            "title": "Enable Static DNS Lookups",
+            "title": "Perform Static DNS Lookups",
             "path": "services/discovery/dns-static-lookups"
           },
           {

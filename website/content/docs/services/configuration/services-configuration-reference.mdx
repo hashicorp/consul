@@ -353,7 +353,7 @@ Larger integer values increase the weight state. Services have the following def
 - `"passing" : 1` 
 - `"warning" : 1`
 
-Services in a `critical` state are excluded from DNS responses by default. Services with `warning` checks are included in responses by default. Refer to [Enable Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups) for additional information.
+Services in a `critical` state are excluded from DNS responses by default. Services with `warning` checks are included in responses by default. Refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups) for additional information.
 
 In the following example, service instances in a `passing`  state respond to DNS SRV requests, while instances in a `critical` instance can still respond at a lower frequency:
 
