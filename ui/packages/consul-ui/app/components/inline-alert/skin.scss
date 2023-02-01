@@ -30,7 +30,7 @@
 }
 %inline-alert-warning::before {
   @extend %with-alert-triangle-mask;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
   /* the warning triangle always looks */
   /* too low just because its a triangle */
   /* this tweak make it look better */

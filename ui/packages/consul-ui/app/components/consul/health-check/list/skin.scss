@@ -32,7 +32,7 @@
 }
 %healthcheck-output.warning::before {
   @extend %with-alert-triangle-mask;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %healthcheck-output.critical::before {
   @extend %with-cancel-square-fill-mask;

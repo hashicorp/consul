@@ -65,7 +65,7 @@ section[data-route='dc.show.serverstatus'] {
 %server-failure-tolerance dl.warning dd::before {
   --icon-name: icon-alert-circle;
   --icon-size: icon-800;
-  --icon-color: rgb(var(--tone-orange-400));
+  --icon-color: var(--token-color-foreground-warning);
   content: '';
   margin-right: 0.5rem; /* 8px */
 }

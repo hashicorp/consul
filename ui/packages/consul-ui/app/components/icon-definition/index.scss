@@ -13,7 +13,7 @@
 %icon-definition.warning dt::before,
 %composite-row-header .warning dd::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %icon-definition.critical dt::before,
 %composite-row-header .critical dd::before {

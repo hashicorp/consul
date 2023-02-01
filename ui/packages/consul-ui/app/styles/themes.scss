@@ -2,7 +2,7 @@
 
 %main-nav-horizontal .dangerous button:hover,
 %main-nav-horizontal .dangerous button:focus {
-  color: rgb(var(--white)) !important;
+  color: var(--token-color-surface-primary) !important;
 }
 
 %main-nav-vertical .menu-panel a:hover,

@@ -32,7 +32,7 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl .warning::before {
   --icon-name: icon-alert-circle;
-  --icon-color: rgb(var(--orange-500));
+  --icon-color: var(--token-color-foreground-warning);
 }
 %license-validity dl .valid:not(.warning)::before {
   --icon-name: icon-check-circle;

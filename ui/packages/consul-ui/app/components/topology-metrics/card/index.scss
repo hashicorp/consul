@@ -64,7 +64,7 @@
     }
     .warning::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-orange-500));
+      --icon-color: var(--token-color-foreground-warning);
     }
     .critical::before {
       @extend %with-cancel-square-fill-mask, %as-pseudo;
