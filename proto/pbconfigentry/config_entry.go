@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
@@ -12,6 +11,11 @@ import (
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/types"
 )
+
+// Function variables to support proto generation
+// This allows for using functions in the local package without having to generate imports
+var EnvoyExtensionsToStructs = pbcommon.EnvoyExtensionsToStructs
+var EnvoyExtensionsFromStructs = pbcommon.EnvoyExtensionsFromStructs
 
 func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 	switch s.Kind {
@@ -179,11 +183,11 @@ func intentionActionToStructs(a IntentionAction) structs.IntentionAction {
 	return structs.IntentionActionDeny
 }
 
-func intentionSourceTypeFromStructs(structs.IntentionSourceType) IntentionSourceType {
+func intentionSourceTypeFromStructs(_ structs.IntentionSourceType) IntentionSourceType {
 	return IntentionSourceType_Consul
 }
 
-func intentionSourceTypeToStructs(IntentionSourceType) structs.IntentionSourceType {
+func intentionSourceTypeToStructs(_ IntentionSourceType) structs.IntentionSourceType {
 	return structs.IntentionSourceConsul
 }
 
@@ -427,52 +431,4 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 	default:
 		return structs.HTTPQueryMatchExact
 	}
-}
-
-func EnvoyExtensionArgumentsToStructs(args *structpb.Value) map[string]interface{} {
-	if args != nil {
-		st := args.GetStructValue()
-		if st != nil {
-			return st.AsMap()
-		}
-	}
-	return nil
-}
-
-func EnvoyExtensionArgumentsFromStructs(args map[string]interface{}) *structpb.Value {
-	if s, err := structpb.NewValue(args); err == nil {
-		return s
-	}
-	return nil
-}
-
-func EnvoyExtensionsToStructs(args []*EnvoyExtension) []structs.EnvoyExtension {
-	o := make([]structs.EnvoyExtension, len(args))
-	for i := range args {
-		var e structs.EnvoyExtension
-		if args[i] != nil {
-			e = structs.EnvoyExtension{
-				Name:      args[i].Name,
-				Required:  args[i].Required,
-				Arguments: EnvoyExtensionArgumentsToStructs(args[i].Arguments),
-			}
-		}
-
-		o[i] = e
-	}
-
-	return o
-}
-
-func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension {
-	o := make([]*EnvoyExtension, len(args))
-	for i, e := range args {
-		o[i] = &EnvoyExtension{
-			Name:      e.Name,
-			Required:  e.Required,
-			Arguments: EnvoyExtensionArgumentsFromStructs(e.Arguments),
-		}
-	}
-
-	return o
 }
