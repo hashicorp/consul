@@ -34,7 +34,7 @@ In the event that any individual domain experiences a failure, service failover 
 Service failover across Consul datacenters must be configured in the datacenters before you can use it. Use one of the following methods to configure failover across datacenters:
 
 - **If you are using Consul service mesh**: Implement failover using [service-resolver configuration entries](/consul/docs/connect/config-entries/service-resolver#failover).
-- **If you are using Consul service discovery without service mesh**: Implement [geo-redundant failover using prepared queries](consul/tutorials/developer-discovery/automate-geo-failover).
+- **If you are using Consul service discovery without service mesh**: Implement [geo-redundant failover using prepared queries](/consul/tutorials/developer-discovery/automate-geo-failover).
 
 ### Control plane resiliency
 
@@ -196,7 +196,7 @@ In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-f
 - Reduce the amount of data written to disk
 - Increase the amount of time it takes to load the raft.db file on startup
 
-We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](consul/docs/agent/config/config-files#NoFreelistSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
+We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
 
 #### Raft snapshots
 
@@ -217,7 +217,7 @@ In Consul v1.10 and higher, operators can try to prevent a snapshot install loop
 - After truncation, the lowest number on `consul.raft.leader.oldestLogAge` should always be at least two times higher than the lowest number for `consul.raft.rpc.installSnapshot`.
 - If these metrics are too close, increase the number of Raft trailing logs, which increases `consul.raft.leader.oldestLogAge`. Do not set the Raft trailing logs higher than necessary, as it can negatively affect write throughput and latency.
 
-For more information, refer to [Raft Replication Capacity Issues](h/consul/docs/agent/telemetry#raft-replication-capacity-issues).
+For more information, refer to [Raft Replication Capacity Issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues).
 
 ## Performance considerations for specific use cases
 
@@ -280,4 +280,4 @@ At scale, using Consul as a backend for Vault results in increased memory and CP
 
 In situations where Consul handles large amounts of data and has high write throughput, we recommend adding monitoring for the [capacity and health of raft replication on servers](/consul/docs/agent/telemetry#raft-replication-capacity-issues). If the server experiences heavy load when the size of its stored data is large enough, a follower may be unable to catch up on replication and become a voter after restarting. This situation occurs when the time it takes for a server to restore from disk takes longer than it takes for the leader to write a new snapshot and truncate its logs. Refer to [Raft snapshots](#raft-snapshots) for more information.
 
-Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.
+Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.
