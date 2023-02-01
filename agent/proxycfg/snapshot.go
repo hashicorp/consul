@@ -689,7 +689,71 @@ type configSnapshotAPIGateway struct {
 //
 // FUTURE: Remove when API gateways have custom snapshot generation
 func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
+	// Convert API Gateway Listeners to Ingress Listeners.
 	ingressListeners := make(map[IngressListenerKey]structs.IngressListener, len(c.Listeners))
+	for name, listener := range c.Listeners {
+		boundListener, ok := c.BoundListeners[name]
+		if !ok {
+			// This should never happen, but if it does, we should just skip it.
+			continue
+		}
+
+		ingressListener := structs.IngressListener{
+			Port:     listener.Port,
+			Protocol: string(listener.Protocol),
+			TLS:      nil,
+			Services: make([]structs.IngressService, 0, len(boundListener.Routes)),
+		}
+
+		// Set the TLS config if it exists.
+		{
+		}
+
+		// Convert API Gateway Routes to Ingress Services.
+		for _, routeRef := range boundListener.Routes {
+			var ingressService structs.IngressService
+
+			switch routeRef.Kind {
+			case structs.HTTPRoute:
+				httpRoute, ok := c.HTTPRoutes.Get(routeRef)
+				if !ok {
+					continue
+				}
+				fmt.Println(httpRoute)
+			case structs.TCPRoute:
+				tcpRoute, ok := c.TCPRoutes.Get(routeRef)
+				if !ok {
+					continue
+				}
+				fmt.Println(tcpRoute)
+			default:
+				continue
+			}
+
+			ingressListener.Services = append(ingressListener.Services, ingressService)
+
+			/*
+				ingressService := structs.IngressService{
+					Name:                  route.Name,
+					Hosts:                 []string{""},
+					TLS:                   nil,
+					RequestHeaders:        nil,
+					ResponseHeaders:       nil,
+					MaxConnections:        0,
+					MaxPendingRequests:    0,
+					MaxConcurrentRequests: 0,
+					PassiveHealthCheck:    nil,
+					Meta:                  nil,
+					EnterpriseMeta:        route.EnterpriseMeta,
+				}
+			*/
+		}
+
+		ingressListeners[IngressListenerKey{
+			Port:     listener.Port,
+			Protocol: string(listener.Protocol),
+		}] = ingressListener
+	}
 
 	return configSnapshotIngressGateway{
 		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
