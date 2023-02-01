@@ -303,7 +303,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				name:      service.Name,
 				namespace: service.NamespaceOrDefault(),
 				partition: service.PartitionOrDefault(),
-				// TODO datacenter: "",
+				datacenter: h.stateConfig.source.Datacenter,
 			}
 
 			handler := &handlerUpstreams{handlerState: h.handlerState}
