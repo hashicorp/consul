@@ -162,7 +162,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 					// putting this last as there are cases where logs
 					// were not present in consumer when assertion was made.
 					checkLogsForMessage(r, logConsumer.Msgs,
-						fmt.Sprintf("[WARN]  agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
+						fmt.Sprintf("[DEBUG] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
 
 				})
