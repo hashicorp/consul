@@ -71,7 +71,7 @@ func TestExportCommand(t *testing.T) {
 		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Invalid peer")
 	})
-	
+
 	t.Run("initial config entry should be created", func(t *testing.T) {
 
 		ui := cli.NewMockUi()
