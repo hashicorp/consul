@@ -2,6 +2,6 @@
 %inline-code {
   border: 1px solid;
   color: rgb(var(--tone-brand-600));
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-surface-interactive-active);
 }

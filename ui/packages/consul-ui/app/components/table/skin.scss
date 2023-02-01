@@ -7,7 +7,7 @@
 }
 %table td {
   border-color: var(--token-color-surface-interactive-active);
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %table th,
 %table td strong {
@@ -19,7 +19,7 @@
  */
 %table a,
 %tbody-th {
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
 }
 %table td:first-child {
   @extend %tbody-th;

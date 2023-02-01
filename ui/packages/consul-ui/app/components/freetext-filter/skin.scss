@@ -3,7 +3,7 @@
     border: var(--decor-border-100);
     border-radius: var(--decor-radius-100);
 
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
     border-color: var(--token-color-surface-interactive-active);
     color: var(--token-color-foreground-disabled);
   }
@@ -35,7 +35,7 @@
     margin-top: -8px;
   }
   .popover-menu {
-    background-color: rgb(var(--tone-gray-050));
+    background-color: var(--token-color-surface-strong);
     color: var(--token-color-foreground-primary);
   }
   .popover-menu {

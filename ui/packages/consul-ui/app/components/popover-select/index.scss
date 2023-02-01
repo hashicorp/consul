@@ -44,7 +44,7 @@
 }
 %popover-select .value-unknown button::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %popover-select.type-source li:not(.partition) button {
   text-transform: capitalize;
@@ -54,7 +54,7 @@
 }
 %popover-select.type-source li.partition button::before {
   @extend %with-user-team-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %popover-select .jwt button::before {
   @extend %with-logo-jwt-color-icon, %as-pseudo;

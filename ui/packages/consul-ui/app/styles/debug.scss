@@ -59,7 +59,7 @@
   background-color: var(--token-color-surface-primary);
 }
 #docfy-demo-preview-color1 {
-  background-color: rgb(var(--black));
+  background-color: var(--token-color-hashicorp-brand);
   @extend %theme-dark;
 }
 
@@ -140,7 +140,7 @@ html.with-route-announcer .route-title {
 }
 .docs {
   & {
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
   }
   .tabular-collection,
   .list-collection {
@@ -255,12 +255,12 @@ html.with-route-announcer .route-title {
         @extend %inline-code;
       }
       figure > [type='text'] {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         width: 100%;
         padding: 0.5rem;
       }
       figure > select {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         padding: 0.5rem;
       }
     }

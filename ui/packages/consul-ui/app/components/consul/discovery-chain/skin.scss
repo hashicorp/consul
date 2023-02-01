@@ -30,10 +30,10 @@
 }
 %chain-node,
 %chain-node a {
-  color: rgb(var(--tone-gray-900)) !important;
+  color: var(--token-color-foreground-strong) !important;
 }
 %discovery-chain-edge-active {
-  stroke: rgb(var(--tone-gray-900));
+  stroke: var(--token-color-foreground-strong);
 }
 %chain-group {
   border-radius: var(--decor-radius-100);
@@ -66,8 +66,8 @@
 }
 %chain-node-active {
   opacity: 1;
-  background-color: rgb(var(--tone-gray-000));
-  border-color: rgb(var(--tone-gray-500));
+  background-color: var(--token-color-surface-primary);
+  border-color: var(--token-color-foreground-faint);
 }
 /* TODO: More text truncation, centralize */
 %route-card header:not(.short) dd {
@@ -105,7 +105,7 @@
 /**/
 %with-chain-outlet::before {
   @extend %as-pseudo;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 
   border-radius: var(--decor-radius-full);
   border: 2px solid;
@@ -116,5 +116,5 @@
 %discovery-chain circle {
   stroke-width: 2;
   stroke: var(--token-color-foreground-disabled);
-  fill: rgb(var(--tone-gray-000));
+  fill: var(--token-color-surface-primary);
 }

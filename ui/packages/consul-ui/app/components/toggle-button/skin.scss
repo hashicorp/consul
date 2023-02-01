@@ -3,7 +3,7 @@
   cursor: pointer;
 }
 %toggle-button-intent {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
 }
 %toggle-button-active {
   background-color: var(--token-color-surface-strong);

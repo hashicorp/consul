@@ -74,16 +74,16 @@ section[data-route='dc.show.serverstatus'] {
 }
 %server-failure-tolerance dt {
   @extend %p2;
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
 }
 %server-failure-tolerance dd {
   font-size: var(--typo-size-250);
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %server-failure-tolerance header span::before {
   --icon-name: icon-info;
   --icon-size: icon-300;
-  --icon-color: rgb(var(--tone-gray-500));
+  --icon-color: var(--token-color-foreground-faint);
   vertical-align: unset;
   content: '';
 }

@@ -12,7 +12,7 @@
   }
 }
 .topology-container {
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
 }
 
 // Columns/Containers & Lines
@@ -33,22 +33,22 @@
   display: inline-flex;
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: rgb(var(--tone-gray-500));
+    background-color: var(--token-color-foreground-faint);
   }
 }
 
 // Metrics Container
 #metrics-container {
   div:first-child {
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
   }
   .link {
     background-color: var(--token-color-surface-strong);
     a {
-      color: rgb(var(--tone-gray-700));
+      color: var(--token-color-foreground-faint);
     }
     a::before {
-      background-color: rgb(var(--tone-gray-500));
+      background-color: var(--token-color-foreground-faint);
     }
     a:hover {
       color: var(--token-color-foreground-action);
@@ -69,7 +69,7 @@
     fill: transparent;
   }
   circle {
-    fill: rgb(var(--tone-gray-000));
+    fill: var(--token-color-surface-primary);
   }
   .allow-arrow {
     fill: var(--token-color-palette-neutral-300);

@@ -4,7 +4,7 @@
   }
   .lock-delay::before {
     @extend %with-delay-mask, %as-pseudo;
-    color: rgb(var(--tone-gray-700));
+    color: var(--token-color-foreground-faint);
   }
   .ttl::before {
     @extend %with-history-mask, %as-pseudo;

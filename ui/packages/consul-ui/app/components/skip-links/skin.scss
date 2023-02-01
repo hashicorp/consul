@@ -1,6 +1,6 @@
 %skip-links {
-  outline: 1px solid rgb(var(--tone-gray-000));
-  color: rgb(var(--tone-gray-000));
+  outline: 1px solid var(--token-color-surface-primary);
+  color: var(--token-color-surface-primary);
   background-color: var(--token-color-foreground-action);
 }
 %skip-links button,

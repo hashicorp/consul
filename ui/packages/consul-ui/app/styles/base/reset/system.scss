@@ -9,14 +9,14 @@ strong {
 }
 /* %typo-body */
 body {
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
 }
 /* TODO: Consider changing this to 'p a, dd a, td a' etc etc */
 a {
   color: var(--token-color-foreground-action);
 }
 html {
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }
 hr {
   background-color: var(--token-color-surface-interactive-active);

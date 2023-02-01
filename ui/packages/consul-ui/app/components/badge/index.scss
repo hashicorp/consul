@@ -9,7 +9,7 @@
 %badge + dd {
   @extend %pill;
   background-color: var(--token-color-surface-strong);
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %badge::after,
 %badge-reversed::after,

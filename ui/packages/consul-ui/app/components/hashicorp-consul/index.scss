@@ -22,7 +22,7 @@
     @extend %pill-200;
     margin-left: 1rem;
     background-color: var(--token-color-palette-neutral-300);
-    color: rgb(var(--tone-gray-999));
+    color: var(--token-color-hashicorp-brand);
   }
   nav li.partitions,
   nav li.nspaces {

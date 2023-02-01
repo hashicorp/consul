@@ -75,7 +75,7 @@
   }
 
   h3 {
-    color: rgb(var(--tone-gray-900));
+    color: var(--token-color-foreground-strong);
     font-size: 16px;
   }
 
@@ -84,13 +84,13 @@
       font-weight: 600;
     }
     dd {
-      color: rgb(var(--tone-gray-500));
+      color: var(--token-color-foreground-faint);
     }
   }
 }
 
 .sparkline-key-link {
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 .sparkline-key-link:hover {
   color: var(--token-color-foreground-action);

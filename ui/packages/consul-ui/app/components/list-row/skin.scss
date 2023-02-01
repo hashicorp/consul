@@ -14,13 +14,13 @@
   cursor: pointer;
 }
 %list-row-header {
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %list-row-header * {
   color: inherit;
 }
 %list-row-detail {
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %list-row-detail a {
   color: inherit;

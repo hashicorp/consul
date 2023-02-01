@@ -26,7 +26,7 @@ fieldset [role='group'] {
 [role='group'] fieldset:not(:first-of-type) {
   padding-left: 20px;
   border-left: 1px solid;
-  border-left: rgb(var(--tone-gray-500));
+  border-left: var(--token-color-foreground-faint);
 }
 [role='group'] fieldset:not(:last-of-type) {
   padding-right: 20px;

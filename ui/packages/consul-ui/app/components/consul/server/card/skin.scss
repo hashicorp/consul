@@ -6,7 +6,7 @@
 }
 %consul-server-card .name + dd {
   @extend %h300;
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
   animation-name: typo-truncate;
 }
 %consul-server-card .health-status + dd {

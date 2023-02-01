@@ -22,7 +22,7 @@
     height: 100%;
     display: block;
     content: '';
-    background-color: rgb(var(--tone-gray-050));
+    background-color: var(--token-color-surface-strong);
   }
   .copy-button {
     position: absolute;
@@ -45,7 +45,7 @@
   button[aria-expanded]::before {
     content: '';
     --icon-size: icon-000;
-    --icon-color: rgb(var(--tone-gray-500));
+    --icon-color: var(--token-color-foreground-faint);
   }
   button[aria-expanded='true']::before {
     --icon-name: icon-eye-off;
@@ -68,6 +68,6 @@
     margin-top: 8px;
     margin-bottom: 13px;
     border: 3px dashed var(--token-color-palette-neutral-300);
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
   }
 }

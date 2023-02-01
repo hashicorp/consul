@@ -24,7 +24,7 @@
   @extend %with-transition-500;
   transition-property: background-color, border-color;
   border-color: transparent;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %tab-button-intent,
 %tab-button-active {

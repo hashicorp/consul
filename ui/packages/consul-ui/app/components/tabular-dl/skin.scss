@@ -6,16 +6,16 @@
   dt,
   dd {
     border-color: var(--token-color-palette-neutral-300) !important;
-    color: rgb(var(--tone-gray-999)) !important;
+    color: var(--token-color-hashicorp-brand) !important;
   }
   dt {
     font-weight: var(--typo-weight-bold);
   }
   dd .copy-button button::before {
-    background-color: rgb(var(--tone-gray-999));
+    background-color: var(--token-color-hashicorp-brand);
   }
   dt.type + dd span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: rgb(var(--tone-gray-500));
+    background-color: var(--token-color-foreground-faint);
   }
 }

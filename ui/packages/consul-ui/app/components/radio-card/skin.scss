@@ -3,14 +3,14 @@
   border-radius: var(--decor-radius-100);
   border-color: var(--token-color-surface-interactive-active);
   box-shadow: var(--decor-elevation-400);
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
   cursor: pointer;
 }
 %radio-card.checked {
   border-color: var(--token-color-foreground-action);
 }
 %radio-card > :first-child {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
 }
 %radio-card.checked > :first-child {
   background-color: var(--token-color-surface-action);
@@ -19,7 +19,7 @@
   margin-bottom: 0.5em;
 }
 %radio-card header {
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %radio-card-with-icon > :last-child {
   padding-left: 47px;

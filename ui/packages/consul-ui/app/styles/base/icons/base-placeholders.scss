@@ -1,11 +1,3 @@
-%theme-light {
-  --theme-dark-none: ;
-  --theme-light-none: initial;
-}
-%theme-dark {
-  --theme-dark-none: initial;
-  --theme-light-none: ;
-}
 %with-glyph-icon {
   font-weight: var(--typo-weight-normal);
   background-color: var(--token-color-surface-strong);

@@ -15,14 +15,14 @@
   margin-right: 3px;
 }
 %modal-dialog-overlay {
-  background-color: rgb(var(--tone-gray-000) / 90%);
+  background-color: rgb(var(--token-color-surface-interactive) / 90%);
 }
 %modal-window {
   box-shadow: var(--decor-elevation-800);
 }
 %modal-window {
   /*%frame-gray-000*/
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }
 %modal-window > footer,
 %modal-window > header {

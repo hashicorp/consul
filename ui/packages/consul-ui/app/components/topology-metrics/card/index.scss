@@ -5,9 +5,9 @@
 #upstream-container .topology-metrics-card,
 #downstream-container .topology-metrics-card {
   display: block;
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
   overflow: hidden;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
   border-radius: var(--decor-radius-100);
   border: 1px solid;
   /* TODO: If this color is combined with the above */
@@ -28,7 +28,7 @@
       margin-right: 8px;
     }
     dd {
-      color: rgb(var(--tone-gray-700));
+      color: var(--token-color-foreground-faint);
     }
     span {
       margin-right: 8px;
@@ -56,7 +56,7 @@
     .partition dt::before,
     .nspace dt::before,
     .health dt::before {
-      --icon-color: rgb(var(--tone-gray-500));
+      --icon-color: var(--token-color-foreground-faint);
     }
     .passing::before {
       @extend %with-check-circle-fill-mask, %as-pseudo;
@@ -72,7 +72,7 @@
     }
     .empty::before {
       @extend %with-minus-square-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-gray-500));
+      --icon-color: var(--token-color-foreground-faint);
     }
   }
   .details {
@@ -96,7 +96,7 @@
       span::before {
         margin-right: 0px;
         @extend %with-union-mask, %as-pseudo;
-        --icon-color: rgb(var(--tone-gray-500));
+        --icon-color: var(--token-color-foreground-faint);
       }
       dl:first-child {
         grid-area: partition;

@@ -19,6 +19,6 @@
   }
   &.empty dt::before {
     @extend %with-minus-square-fill-mask;
-    color: rgb(var(--tone-gray-500));
+    color: var(--token-color-foreground-faint);
   }
 }

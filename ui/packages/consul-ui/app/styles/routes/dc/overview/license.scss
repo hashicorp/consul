@@ -13,7 +13,7 @@ section[data-route='dc.show.license'] {
 }
 
 %license-validity p {
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
 }
 %license-validity dl {
   @extend %horizontal-kv-list;

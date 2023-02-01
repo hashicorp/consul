@@ -46,12 +46,12 @@
   color: var(--token-color-foreground-disabled);
 }
 %healthcheck-output pre {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   color: var(--token-color-foreground-faint);
 }
 %healthcheck-output {
   /* TODO: this should be a frame-gray */
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
   border-color: var(--token-color-surface-interactive-active);
   border-style: solid;
 

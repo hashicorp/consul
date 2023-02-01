@@ -27,11 +27,11 @@
     color: rgb(var(--tone-yellow-800));
   }
   &.terminated {
-    background: rgb(var(--tone-gray-150));
+    background: var(--token-color-surface-interactive-active);
     color: var(--token-color-foreground-primary);
   }
   &.undefined {
-    background: rgb(var(--tone-gray-150));
+    background: var(--token-color-surface-interactive-active);
     color: var(--token-color-foreground-primary);
   }
 

@@ -6,7 +6,7 @@
   @extend %as-pseudo;
   width: 12px;
   height: 12px;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
   border-top: 1px solid var(--token-color-palette-neutral-300);
   border-right: 1px solid var(--token-color-palette-neutral-300);
   transform: rotate(-45deg);

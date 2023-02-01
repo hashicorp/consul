@@ -33,7 +33,7 @@
   @extend %frame-gray-700;
   background-color: var(--token-color-surface-interactive-active);
   color: var(--token-color-foreground-primary);
-  border-color: rgb(var(--tone-gray-700));
+  border-color: var(--token-color-foreground-faint);
 }
 /**/
 %dangerous-button {
@@ -51,8 +51,8 @@
 }
 
 %internal-button {
-  color: rgb(var(--tone-gray-900));
-  background-color: rgb(var(--tone-gray-000));
+  color: var(--token-color-foreground-strong);
+  background-color: var(--token-color-surface-primary);
 }
 %internal-button-dangerous {
   @extend %frame-red-300;
@@ -61,7 +61,7 @@
   @extend %frame-red-700;
 }
 %internal-button-intent {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
 }
 %internal-button:focus,
 %internal-button:hover {

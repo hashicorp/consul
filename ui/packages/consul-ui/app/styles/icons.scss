@@ -13,7 +13,7 @@
 %theme-light {
   --icon-aws: icon-aws-color;
   --icon-vault: icon-vault;
-  --color-vault-500: rgb(var(--black));
+  --color-vault-500: var(--token-color-hashicorp-brand);
 }
 %theme-dark {
   --icon-aws: icon-aws;

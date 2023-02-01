@@ -5,7 +5,7 @@
   justify-content: center;
   --icon-size: icon-700; /* 24px */
   --icon-name: var(--icon-loading);
-  --icon-color: rgb(var(--tone-gray-500));
+  --icon-color: var(--token-color-foreground-faint);
 }
 %progress-indeterminate::before {
   content: '';

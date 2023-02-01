@@ -20,8 +20,8 @@
   text-decoration: none;
 }
 %main-nav-vertical {
-  background-color: rgb(var(--tone-gray-050));
-  color: rgb(var(--tone-gray-700));
+  background-color: var(--token-color-foreground-strong);
+  color: var(--token-color-foreground-faint);
 }
 %main-nav-vertical li:not([role='separator']) > span {
   color: var(--token-color-palette-neutral-300);
@@ -35,14 +35,14 @@
 %main-nav-vertical-item,
 %main-nav-vertical-action-intent,
 %main-nav-vertical-action-active {
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-palette-neutral-300);
 }
 %main-nav-vertical-action-active {
-  background-color: rgb(var(--tone-gray-150));
-  border-color: rgb(var(--tone-gray-999));
+  background-color: rgb(var(--token-color-palette-neutral-300));
+  border-color: var(--token-color-hashicorp-brand);
 }
 %main-nav-vertical [aria-label]::before {
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
   content: attr(aria-label);
   display: block;
   margin-top: -0.5rem;
@@ -50,13 +50,13 @@
 }
 %main-nav-vertical-popover-menu-trigger {
   border: var(--decor-border-100);
-  border-color: rgb(var(--tone-gray-500));
+  border-color: var(--token-color-foreground-faint);
   border-radius: var(--decor-radius-100);
 
   font-weight: inherit;
 
-  background-color: rgb(var(--tone-gray-050));
-  color: rgb(var(--tone-gray-999));
+  background-color: var(--token-color-surface-strong);
+  color: var(--token-color-hashicorp-brand);
 }
 %main-nav-vertical-popover-menu-trigger[aria-expanded='true'] {
   border-bottom-left-radius: var(--decor-radius-000);

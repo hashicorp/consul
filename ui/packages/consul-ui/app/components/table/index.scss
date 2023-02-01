@@ -21,7 +21,7 @@ table.consul-metadata-list tbody tr:hover {
 
 %table th span::after {
   @extend %with-info-circle-outline-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
   margin-left: 4px;
 }
 %table tbody tr {

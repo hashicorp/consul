@@ -1,6 +1,6 @@
 .tomography-graph {
   .background {
-    fill: rgb(var(--tone-gray-050));
+    fill: var(--token-color-surface-strong);
   }
   .axis {
     fill: none;
@@ -31,6 +31,6 @@
   .tick text {
     font-size: var(--typo-size-600);
     text-anchor: start;
-    color: rgb(var(--tone-gray-900));
+    color: var(--token-color-foreground-strong);
   }
 }

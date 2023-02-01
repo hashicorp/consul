@@ -141,7 +141,7 @@ use `-mask`, use `-icon` instead:
   {{css-props (set this 'icons') prefix='icon-'}}
   class={{class-map (concat 'theme-' (or this.theme 'light'))}}
   style={{style-map
-    (array '--icon-color' (if (eq this.type 'monochrome') 'rgb(var(--black))'))
+    (array '--icon-color' (if (eq this.type 'monochrome') 'var(--token-color-hashicorp-brand)'))
     (array '--icon-size' (concat 'icon-' (or this.size '500')))
     (array '--icon-resolution' (if (gt this.size 500) '.5' '1'))
   }}

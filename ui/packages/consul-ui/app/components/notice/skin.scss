@@ -1,7 +1,7 @@
 %notice {
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %notice::before {
   @extend %as-pseudo;
@@ -35,7 +35,7 @@
   color: var(--token-color-foreground-action-active);
 }
 %notice-highlight {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
 }
 %notice-info header * {

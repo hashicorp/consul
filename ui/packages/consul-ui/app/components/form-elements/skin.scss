@@ -21,11 +21,11 @@ textarea:disabled + .CodeMirror,
   border-color: var(--decor-error-500, var(--token-color-foreground-critical)) !important;
 }
 %form-element-text-input {
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
   border-color: var(--token-color-palette-neutral-300);
 }
 %form-element-text-input-hover {
-  border-color: rgb(var(--tone-gray-500));
+  border-color: var(--token-color-foreground-faint);
 }
 %form-element-text-input-focus {
   border-color: var(--typo-action-500, var(--token-color-foreground-action));

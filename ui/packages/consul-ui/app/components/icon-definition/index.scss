@@ -23,12 +23,12 @@
 %icon-definition.empty dt::before,
 %composite-row-header .empty dd::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %icon-definition.unknown dt::before,
 %composite-row-header .unknown dd::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 
 %composite-row-header [rel='me'] dd::before {

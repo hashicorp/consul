@@ -11,7 +11,7 @@
   color: var(--token-color-foreground-faint);
 }
 %app-view-header dd > a {
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %app-view-content div > dl > dd {
   color: var(--token-color-foreground-disabled);

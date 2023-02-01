@@ -11,21 +11,21 @@
 /* modal close button */
 %frame-gray-050 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
   color: var(--token-color-foreground-disabled);
 }
 /* button focus */
 %frame-gray-300 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-000));
-  border-color: rgb(var(--tone-gray-700));
+  background-color: var(--token-color-surface-primary);
+  border-color: var(--token-color-foreground-faint);
   color: var(--token-color-foreground-primary);
 }
 /* button secondary*/
 %frame-gray-400 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
   color: var(--token-color-foreground-primary);
 }
@@ -34,28 +34,28 @@
 %frame-gray-600 {
   @extend %frame-border-000;
   background-color: var(--token-color-surface-strong);
-  border-color: rgb(var(--tone-gray-500));
-  color: rgb(var(--tone-gray-500));
+  border-color: var(--token-color-foreground-faint);
+  color: var(--token-color-foreground-faint);
 }
 /* button active */
 %frame-gray-700 {
   @extend %frame-border-000;
   background-color: var(--token-color-surface-interactive-active);
-  border-color: rgb(var(--tone-gray-700));
+  border-color: var(--token-color-foreground-faint);
   color: var(--token-color-foreground-primary);
 }
 /* modal bars */
 %frame-gray-800 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
 }
 %frame-gray-900 {
   @extend %frame-border-000;
   background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
-  color: rgb(var(--tone-gray-900));
+  color: var(--token-color-foreground-strong);
 }
 
 %frame-yellow-500 {
@@ -67,7 +67,7 @@
   @extend %frame-border-000;
   background-color: rgb(var(--tone-yellow-500));
   border-color: rgb(var(--tone-yellow-800));
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-green-500 {
   @extend %frame-border-000;
@@ -79,17 +79,17 @@
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-success);
   border-color: var(--token-color-palette-green-400);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-blue-200 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
   border-color: var(--token-color-foreground-action);
   color: var(--token-color-foreground-action);
 }
 %frame-blue-300 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
   border-color: var(--token-color-foreground-action);
   color: var(--token-color-foreground-action);
 }
@@ -109,19 +109,19 @@
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-action);
   border-color: var(--token-color-palette-blue-500);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-blue-800 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-action);
   border-color: var(--token-color-palette-blue-500);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-blue-900 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-action-active);
   border-color: var(--token-color-palette-blue-500);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-red-300 {
   @extend %frame-border-000;
@@ -139,23 +139,23 @@
   @extend %frame-border-000;
   background-color: var(--token-color-border-critical);
   border-color: var(--token-color-foreground-disabled);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-red-700 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-critical);
   border-color: var(--token-color-foreground-critical-high-contrast);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-red-800 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-critical);
   border-color: var(--token-color-foreground-critical-high-contrast);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }
 %frame-red-900 {
   @extend %frame-border-000;
   background-color: var(--token-color-palette-red-400);
   border-color: var(--token-color-foreground-critical-high-contrast);
-  color: rgb(var(--tone-gray-000));
+  color: var(--token-color-surface-primary);
 }

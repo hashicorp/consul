@@ -22,7 +22,7 @@
 }
 %more-popover-menu-trigger > *::after {
   --icon-name: icon-more-horizontal;
-  --icon-color: rgb(var(--tone-gray-900));
+  --icon-color: var(--token-color-foreground-strong);
   --icon-size: icon-300;
   content: '';
   position: absolute;
@@ -36,5 +36,5 @@
 }
 %more-popover-menu-trigger > *:hover,
 %more-popover-menu-trigger > *:focus {
-  background-color: rgb(var(--tone-gray-050));
+  background-color: var(--token-color-surface-strong);
 }
