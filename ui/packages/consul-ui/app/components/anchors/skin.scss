@@ -20,7 +20,7 @@
 %anchor {
   @extend %anchor-decoration;
   cursor: pointer;
-  background-color: var(--transparent);
+  background-color: transparent;
 }
 %anchor:hover,
 %anchor:focus {

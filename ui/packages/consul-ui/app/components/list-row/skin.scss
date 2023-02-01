@@ -1,16 +1,16 @@
 %list-row {
   list-style-type: none;
   border: var(--decor-border-100);
-  border-top-color: var(--transparent);
+  border-top-color: transparent;
   border-bottom-color: var(--token-color-surface-interactive-active);
-  border-right-color: var(--transparent);
-  border-left-color: var(--transparent);
+  border-right-color: transparent;
+  border-left-color: transparent;
 }
 %list-row-intent {
   border-color: var(--token-color-surface-interactive-active);
   /*TODO: This should use a shared/CSS prop shadow*/
   box-shadow: 0 2px 4px rgb(var(--black) / 10%);
-  border-top-color: var(--transparent);
+  border-top-color: transparent;
   cursor: pointer;
 }
 %list-row-header {

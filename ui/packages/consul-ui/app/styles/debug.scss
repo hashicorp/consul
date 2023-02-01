@@ -56,7 +56,7 @@
 }
 #docfy-demo-preview-color0 {
   @extend %theme-light;
-  background-color: rgb(var(--white));
+  background-color: var(--token-color-surface-primary);
 }
 #docfy-demo-preview-color1 {
   background-color: rgb(var(--black));

@@ -23,7 +23,7 @@
 %tab-button {
   @extend %with-transition-500;
   transition-property: background-color, border-color;
-  border-color: var(--transparent);
+  border-color: transparent;
   color: rgb(var(--tone-gray-500));
 }
 %tab-button-intent,
@@ -35,5 +35,5 @@
   border-color: var(--token-color-palette-neutral-300);
 }
 %tab-nav.animatable .selected a {
-  border-color: var(--transparent) !important;
+  border-color: transparent !important;
 }

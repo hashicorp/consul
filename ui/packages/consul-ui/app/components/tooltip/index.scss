@@ -43,7 +43,7 @@
     height: calc(var(--size) * 2);
   }
   &::before {
-    border-color: var(--transparent);
+    border-color: transparent;
     border-style: solid;
   }
 }

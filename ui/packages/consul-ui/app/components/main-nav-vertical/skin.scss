@@ -2,7 +2,7 @@
   @extend %p1;
   cursor: pointer;
   border-right: var(--decor-border-400);
-  border-color: var(--transparent);
+  border-color: transparent;
 }
 %main-nav-vertical-action > a {
   color: inherit;

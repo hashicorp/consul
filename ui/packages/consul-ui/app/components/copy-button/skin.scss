@@ -1,6 +1,6 @@
 %copy-button {
   color: var(--token-color-foreground-action);
-  --icon-color: var(--transparent);
+  --icon-color: transparent;
 }
 %copy-button::before {
   @extend %with-copy-action-mask, %as-pseudo;

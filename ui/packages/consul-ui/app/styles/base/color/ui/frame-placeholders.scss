@@ -6,12 +6,6 @@
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
 }
-%frame-brand-300 {
-  @extend %frame-border-000;
-  background-color: var(--transparent);
-  border-color: rgb(var(--decor-brand-600));
-  color: rgb(var(--typo-brand-600));
-}
 
 /* possibly filter bar */
 /* modal close button */
@@ -21,39 +15,19 @@
   border-color: var(--token-color-palette-neutral-300);
   color: var(--token-color-foreground-disabled);
 }
-/* modal main content */
-%frame-gray-100 {
-  @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-000));
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-faint); /*  wasn't set */
-}
-/* hover */
-%frame-gray-200 {
-  @extend %frame-border-000;
-  background-color: var(--transparent);
-  border-color: rgb(var(--tone-gray-700));
-  color: var(--token-color-foreground-primary);
-}
+/* button focus */
 %frame-gray-300 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-000));
   border-color: rgb(var(--tone-gray-700));
   color: var(--token-color-foreground-primary);
 }
-/* button */
-/**/
+/* button secondary*/
 %frame-gray-400 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-050));
   border-color: var(--token-color-palette-neutral-300);
   color: var(--token-color-foreground-primary);
-}
-%frame-gray-500 {
-  @extend %frame-border-000;
-  background-color: rgb(var(--tone-gray-050));
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-disabled);
 }
 
 /* tabs */
@@ -63,7 +37,7 @@
   border-color: rgb(var(--tone-gray-500));
   color: rgb(var(--tone-gray-500));
 }
-/* active */
+/* button active */
 %frame-gray-700 {
   @extend %frame-border-000;
   background-color: var(--token-color-surface-interactive-active);
@@ -151,7 +125,7 @@
 }
 %frame-red-300 {
   @extend %frame-border-000;
-  background-color: var(--transparent);
+  background-color: transparent;
   border-color: var(--token-color-foreground-critical);
   color: var(--token-color-foreground-critical);
 }

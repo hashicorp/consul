@@ -18,7 +18,7 @@
 %theme-dark {
   --icon-aws: icon-aws;
   --icon-vault: icon-vault;
-  --color-aws-500: rgb(var(--white));
+  --color-aws-500: var(--token-color-surface-primary);
   --color-vault-500: rgb(var(--tone-lemon-500));
 }
 
