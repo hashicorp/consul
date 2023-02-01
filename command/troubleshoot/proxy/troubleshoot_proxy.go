@@ -1,4 +1,4 @@
-package troubleshoot
+package proxy
 
 import (
 	"flag"
@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/consul/command/flags"
-	troubleshoot "github.com/hashicorp/consul/troubleshoot/connect"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot"
 	"github.com/mitchellh/cli"
 )
 
@@ -31,7 +31,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.upstream, "upstream", os.Getenv("TROUBLESHOOT_CONNECT_UPSTREAM"), "The upstream service that receives the communication. ")
+	c.flags.StringVar(&c.upstream, "upstream", os.Getenv("TROUBLESHOOT_UPSTREAM"), "The upstream service that receives the communication. ")
 
 	defaultAdminBind := "localhost:19000"
 	if adminBind := os.Getenv("ADMIN_BIND"); adminBind != "" {
@@ -53,7 +53,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.upstream == "" {
-		c.UI.Error("-upstream service SNI is required")
+		c.UI.Error("-upstream envoy identifier is required")
 		return 1
 	}
 
@@ -94,11 +94,11 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Troubleshoots service mesh issues"
+	synopsis = "Troubleshoots service mesh issues from the current envoy instance"
 	help     = `
 Usage: consul troubleshoot proxy [options]
   Connects to local envoy proxy and troubleshoots service mesh communication issues.
-  Requires an upstream service SNI.
+  Requires an upstream service envoy identifier.
   Examples:
     $ consul troubleshoot proxy -upstream foo
  
