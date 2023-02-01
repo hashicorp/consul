@@ -366,6 +366,66 @@ func GatewayTLSSDSConfigFromStructs(t *structs.GatewayTLSSDSConfig, s *GatewayTL
 	s.ClusterName = t.ClusterName
 	s.CertResource = t.CertResource
 }
+func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
+	if s == nil {
+		return
+	}
+	{
+		t.Headers = make([]structs.HTTPHeaderFilter, len(s.Headers))
+		for i := range s.Headers {
+			if s.Headers[i] != nil {
+				HTTPHeaderFilterToStructs(s.Headers[i], &t.Headers[i])
+			}
+		}
+	}
+}
+func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
+	if s == nil {
+		return
+	}
+	{
+		s.Headers = make([]*HTTPHeaderFilter, len(t.Headers))
+		for i := range t.Headers {
+			{
+				var x HTTPHeaderFilter
+				HTTPHeaderFilterFromStructs(&t.Headers[i], &x)
+				s.Headers[i] = &x
+			}
+		}
+	}
+}
+func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
+	if s == nil {
+		return
+	}
+	t.Add = s.Add
+	t.Remove = s.Remove
+	t.Set = s.Set
+}
+func HTTPHeaderFilterFromStructs(t *structs.HTTPHeaderFilter, s *HTTPHeaderFilter) {
+	if s == nil {
+		return
+	}
+	s.Add = t.Add
+	s.Remove = t.Remove
+	s.Set = t.Set
+}
+func HTTPHeaderMatchToStructs(s *HTTPHeaderMatch, t *structs.HTTPHeaderMatch) {
+	if s == nil {
+		return
+	}
+	t.Match = httpHeaderMatchToStructs(s.Match)
+	t.Name = s.Name
+	t.Value = s.Value
+}
+func HTTPHeaderMatchFromStructs(t *structs.HTTPHeaderMatch, s *HTTPHeaderMatch) {
+	if s == nil {
+		return
+	}
+	s.Match = httpHeaderMatchFromStructs(t.Match)
+	s.Name = t.Name
+	s.Value = t.Value
+}
 func HTTPHeaderModifiersToStructs(s *HTTPHeaderModifiers, t *structs.HTTPHeaderModifiers) {
 	if s == nil {
 		return
@@ -382,10 +442,113 @@ func HTTPHeaderModifiersFromStructs(t *structs.HTTPHeaderModifiers, s *HTTPHeade
 	s.Set = t.Set
 	s.Remove = t.Remove
 }
+func HTTPMatchToStructs(s *HTTPMatch, t *structs.HTTPMatch) {
+	if s == nil {
+		return
+	}
+	{
+		t.Headers = make([]structs.HTTPHeaderMatch, len(s.Headers))
+		for i := range s.Headers {
+			if s.Headers[i] != nil {
+				HTTPHeaderMatchToStructs(s.Headers[i], &t.Headers[i])
+			}
+		}
+	}
+	t.Method = httpMatchMethodToStructs(s.Method)
+	if s.Path != nil {
+		HTTPPathMatchToStructs(s.Path, &t.Path)
+	}
+	{
+		t.Query = make([]structs.HTTPQueryMatch, len(s.Query))
+		for i := range s.Query {
+			if s.Query[i] != nil {
+				HTTPQueryMatchToStructs(s.Query[i], &t.Query[i])
+			}
+		}
+	}
+}
+func HTTPMatchFromStructs(t *structs.HTTPMatch, s *HTTPMatch) {
+	if s == nil {
+		return
+	}
+	{
+		s.Headers = make([]*HTTPHeaderMatch, len(t.Headers))
+		for i := range t.Headers {
+			{
+				var x HTTPHeaderMatch
+				HTTPHeaderMatchFromStructs(&t.Headers[i], &x)
+				s.Headers[i] = &x
+			}
+		}
+	}
+	s.Method = httpMatchMethodFromStructs(t.Method)
+	{
+		var x HTTPPathMatch
+		HTTPPathMatchFromStructs(&t.Path, &x)
+		s.Path = &x
+	}
+	{
+		s.Query = make([]*HTTPQueryMatch, len(t.Query))
+		for i := range t.Query {
+			{
+				var x HTTPQueryMatch
+				HTTPQueryMatchFromStructs(&t.Query[i], &x)
+				s.Query[i] = &x
+			}
+		}
+	}
+}
+func HTTPPathMatchToStructs(s *HTTPPathMatch, t *structs.HTTPPathMatch) {
+	if s == nil {
+		return
+	}
+	t.Match = httpPathMatchToStructs(s.Match)
+	t.Value = s.Value
+}
+func HTTPPathMatchFromStructs(t *structs.HTTPPathMatch, s *HTTPPathMatch) {
+	if s == nil {
+		return
+	}
+	s.Match = httpPathMatchFromStructs(t.Match)
+	s.Value = t.Value
+}
+func HTTPQueryMatchToStructs(s *HTTPQueryMatch, t *structs.HTTPQueryMatch) {
+	if s == nil {
+		return
+	}
+	t.Match = httpQueryMatchToStructs(s.Match)
+	t.Name = s.Name
+	t.Value = s.Value
+}
+func HTTPQueryMatchFromStructs(t *structs.HTTPQueryMatch, s *HTTPQueryMatch) {
+	if s == nil {
+		return
+	}
+	s.Match = httpQueryMatchFromStructs(t.Match)
+	s.Name = t.Name
+	s.Value = t.Value
+}
 func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	if s == nil {
 		return
 	}
+	{
+		t.Parents = make([]structs.ResourceReference, len(s.Parents))
+		for i := range s.Parents {
+			if s.Parents[i] != nil {
+				ResourceReferenceToStructs(s.Parents[i], &t.Parents[i])
+			}
+		}
+	}
+	{
+		t.Rules = make([]structs.HTTPRouteRule, len(s.Rules))
+		for i := range s.Rules {
+			if s.Rules[i] != nil {
+				HTTPRouteRuleToStructs(s.Rules[i], &t.Rules[i])
+			}
+		}
+	}
+	t.Hostnames = s.Hostnames
 	t.Meta = s.Meta
 	if s.Status != nil {
 		StatusToStructs(s.Status, &t.Status)
@@ -395,12 +558,111 @@ func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
 		return
 	}
+	{
+		s.Parents = make([]*ResourceReference, len(t.Parents))
+		for i := range t.Parents {
+			{
+				var x ResourceReference
+				ResourceReferenceFromStructs(&t.Parents[i], &x)
+				s.Parents[i] = &x
+			}
+		}
+	}
+	{
+		s.Rules = make([]*HTTPRouteRule, len(t.Rules))
+		for i := range t.Rules {
+			{
+				var x HTTPRouteRule
+				HTTPRouteRuleFromStructs(&t.Rules[i], &x)
+				s.Rules[i] = &x
+			}
+		}
+	}
+	s.Hostnames = t.Hostnames
 	s.Meta = t.Meta
 	{
 		var x Status
 		StatusFromStructs(&t.Status, &x)
 		s.Status = &x
 	}
+}
+func HTTPRouteRuleToStructs(s *HTTPRouteRule, t *structs.HTTPRouteRule) {
+	if s == nil {
+		return
+	}
+	if s.Filters != nil {
+		HTTPFiltersToStructs(s.Filters, &t.Filters)
+	}
+	{
+		t.Matches = make([]structs.HTTPMatch, len(s.Matches))
+		for i := range s.Matches {
+			if s.Matches[i] != nil {
+				HTTPMatchToStructs(s.Matches[i], &t.Matches[i])
+			}
+		}
+	}
+	{
+		t.Services = make([]structs.HTTPService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				HTTPServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
+}
+func HTTPRouteRuleFromStructs(t *structs.HTTPRouteRule, s *HTTPRouteRule) {
+	if s == nil {
+		return
+	}
+	{
+		var x HTTPFilters
+		HTTPFiltersFromStructs(&t.Filters, &x)
+		s.Filters = &x
+	}
+	{
+		s.Matches = make([]*HTTPMatch, len(t.Matches))
+		for i := range t.Matches {
+			{
+				var x HTTPMatch
+				HTTPMatchFromStructs(&t.Matches[i], &x)
+				s.Matches[i] = &x
+			}
+		}
+	}
+	{
+		s.Services = make([]*HTTPService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x HTTPService
+				HTTPServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
+}
+func HTTPServiceToStructs(s *HTTPService, t *structs.HTTPService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Weight = int(s.Weight)
+	if s.Filters != nil {
+		HTTPFiltersToStructs(s.Filters, &t.Filters)
+	}
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Weight = int32(t.Weight)
+	{
+		var x HTTPFilters
+		HTTPFiltersFromStructs(&t.Filters, &x)
+		s.Filters = &x
+	}
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
