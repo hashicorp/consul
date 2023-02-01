@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -1051,6 +1052,17 @@ func flattenedHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (*stru
 		Meta:           route.Meta,
 		EnterpriseMeta: route.EnterpriseMeta,
 	}, router, splitters, defaults
+}
+
+func compileRouteDiscoveryChain(svc *structs.IngressService, route *structs.HTTPRouteConfigEntry, handlerState handlerState) {
+	req := discoverychain.CompileRequest{
+		ServiceName:          svc.Name,
+		EvaluateInNamespace:  route.NamespaceOrDefault(),
+		EvaluateInPartition:  route.PartitionOrDefault(),
+		EvaluateInDatacenter: handlerState.source.Datacenter,
+	}
+
+	discoverychain, _ := discoverychain.Compile(req)
 }
 
 // ToIngress converts a configSnapshotAPIGateway to a configSnapshotIngressGateway.
