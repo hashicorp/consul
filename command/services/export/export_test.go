@@ -54,7 +54,7 @@ func TestExportCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "Must provide -consumer-peers flag")
+		require.Contains(t, ui.ErrorWriter.String(), "Missing the required -consumer-peers flag")
 	})
 
 	t.Run("valid peer name is required", func(t *testing.T) {
