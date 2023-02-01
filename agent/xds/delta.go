@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,12 +24,15 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/version"
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
@@ -393,52 +397,67 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 }
 
 func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot) error {
-	var err error
-	cfgs := xdscommon.GetExtensionConfigurations(cfgSnap)
-
-	for _, extensions := range cfgs {
-		for _, ext := range extensions {
+	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
+	for _, cfgs := range serviceConfigs {
+		for _, cfg := range cfgs {
 			logFn := s.Logger.Warn
-			if ext.EnvoyExtension.Required {
+			if cfg.EnvoyExtension.Required {
 				logFn = s.Logger.Error
 			}
-			extensionContext := []interface{}{
-				"extension", ext.EnvoyExtension.Name,
-				"service", ext.ServiceName.Name,
-				"namespace", ext.ServiceName.Namespace,
-				"partition", ext.ServiceName.Partition,
+			errorParams := []interface{}{
+				"extension", cfg.EnvoyExtension.Name,
+				"service", cfg.ServiceName.Name,
+				"namespace", cfg.ServiceName.Namespace,
+				"partition", cfg.ServiceName.Partition,
 			}
 
-			extension, ok := GetBuiltInExtension(ext)
-			if !ok {
-				logFn("failed to find extension", extensionContext...)
-
-				if ext.EnvoyExtension.Required {
-					return status.Errorf(codes.Unavailable, "failed to find extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+			getMetricLabels := func(err error) []metrics.Label {
+				return []metrics.Label{
+					{Name: "extension", Value: cfg.EnvoyExtension.Name},
+					{Name: "version", Value: "builtin/" + version.Version},
+					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
+					{Name: "error", Value: strconv.FormatBool(err != nil)},
 				}
-
-				continue
 			}
 
-			err = extension.Validate(ext)
+			now := time.Now()
+			extender, err := envoyextensions.ConstructExtension(cfg.EnvoyExtension)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
 			if err != nil {
-				extensionContext = append(extensionContext, "error", err)
-				logFn("failed to validate extension arguments", extensionContext...)
-				if ext.EnvoyExtension.Required {
-					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+				logFn("failed to construct extension", errorParams...)
+
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to construct extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
 				}
 
 				continue
 			}
 
-			resources, err = extension.Extend(resources, ext)
+			now = time.Now()
+			err = extender.Validate(&cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
+			if err != nil {
+				errorParams = append(errorParams, "error", err)
+				logFn("failed to validate extension arguments", errorParams...)
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			now = time.Now()
+			resources, err = extender.Extend(resources, &cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
 			if err == nil {
 				continue
 			}
 
-			logFn("failed to apply envoy extension", extensionContext...)
-			if ext.EnvoyExtension.Required {
-				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q plugin: %v", ext.EnvoyExtension.Name, err)
+			logFn("failed to apply envoy extension", errorParams...)
+			if cfg.EnvoyExtension.Required {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q extension: %v", cfg.EnvoyExtension.Name, err)
 			}
 		}
 	}

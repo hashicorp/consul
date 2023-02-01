@@ -2,10 +2,10 @@ package xds
 
 import (
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/envoyextensions/builtin/validate"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/builtinextensions/validate"
-	"github.com/hashicorp/consul/agent/xds/builtinextensiontemplate"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 
@@ -79,7 +79,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 	}
 
 	// Build an ExtensionConfiguration for Validate plugin.
-	extConfig := xdscommon.ExtensionConfiguration{
+	extConfig := extensioncommon.RuntimeConfig{
 		EnvoyExtension: api.EnvoyExtension{
 			Name: "builtin/proxy/validate",
 			Arguments: map[string]interface{}{
@@ -87,7 +87,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 			},
 		},
 		ServiceName: service,
-		Upstreams: map[api.CompoundServiceName]xdscommon.UpstreamData{
+		Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
 			service: {
 				VIP: vip,
 				// Even though snis are under the upstream service name we're validating, it actually contains all
@@ -100,19 +100,24 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
-
-	extension := builtinextensiontemplate.EnvoyExtension{Constructor: validate.MakeValidate}
-	err := extension.Validate(extConfig)
+	basicExtension, err := validate.MakeValidate(extConfig)
+	if err != nil {
+		return err
+	}
+	extender := extensioncommon.BasicEnvoyExtender{
+		Extension: basicExtension,
+	}
+	err = extender.Validate(&extConfig)
 	if err != nil {
 		return err
 	}
 
-	_, err = extension.Extend(indexedResources, extConfig)
+	_, err = extender.Extend(indexedResources, &extConfig)
 	if err != nil {
 		return err
 	}
 
-	v, ok := extension.Plugin.(*validate.Validate)
+	v, ok := extender.Extension.(*validate.Validate)
 	if !ok {
 		panic("validate plugin was not correctly created")
 	}

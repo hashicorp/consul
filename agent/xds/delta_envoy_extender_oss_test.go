@@ -16,15 +16,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestBuiltinExtensionsFromSnapshot(t *testing.T) {
+func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 	// If opposite is true, the returned service defaults config entry will have
 	// payload-passthrough=true and invocation-mode=asynchronous.
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
@@ -208,14 +210,14 @@ end`,
 					require.NoError(t, err)
 
 					indexedResources := indexResources(g.Logger, res)
-					cfgs := xdscommon.GetExtensionConfigurations(snap)
+					cfgs := extensionruntime.GetRuntimeConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {
-							builtInExtension, ok := GetBuiltInExtension(ext)
-							require.True(t, ok)
-							err = builtInExtension.Validate(ext)
+							extender, err := envoyextensions.ConstructExtension(ext.EnvoyExtension)
 							require.NoError(t, err)
-							indexedResources, err = builtInExtension.Extend(indexedResources, ext)
+							err = extender.Validate(&ext)
+							require.NoError(t, err)
+							indexedResources, err = extender.Extend(indexedResources, &ext)
 							require.NoError(t, err)
 						}
 					}

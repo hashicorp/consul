@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -2831,16 +2832,19 @@ func TestServiceConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `invalid EnvoyExtensions[0]: Name "not-a-builtin" is not a built-in extension`,
+			validateErr: `name "not-a-builtin" is not a built-in extension`,
 		},
-		"validate: valid extension name": {
+		"validate: valid extension": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "http",
 				EnvoyExtensions: []EnvoyExtension{
 					{
-						Name: BuiltinAWSLambdaExtension,
+						Name: api.BuiltinAWSLambdaExtension,
+						Arguments: map[string]interface{}{
+							"ARN": "some-arn",
+						},
 					},
 				},
 			},

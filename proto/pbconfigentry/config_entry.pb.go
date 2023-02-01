@@ -333,6 +333,229 @@ func (APIGatewayListenerProtocol) EnumDescriptor() ([]byte, []int) {
 	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{5}
 }
 
+type HTTPMatchMethod int32
+
+const (
+	HTTPMatchMethod_HTTPMatchMethodAll     HTTPMatchMethod = 0
+	HTTPMatchMethod_HTTPMatchMethodConnect HTTPMatchMethod = 1
+	HTTPMatchMethod_HTTPMatchMethodDelete  HTTPMatchMethod = 2
+	HTTPMatchMethod_HTTPMatchMethodGet     HTTPMatchMethod = 3
+	HTTPMatchMethod_HTTPMatchMethodHead    HTTPMatchMethod = 4
+	HTTPMatchMethod_HTTPMatchMethodOptions HTTPMatchMethod = 5
+	HTTPMatchMethod_HTTPMatchMethodPatch   HTTPMatchMethod = 6
+	HTTPMatchMethod_HTTPMatchMethodPost    HTTPMatchMethod = 7
+	HTTPMatchMethod_HTTPMatchMethodPut     HTTPMatchMethod = 8
+	HTTPMatchMethod_HTTPMatchMethodTrace   HTTPMatchMethod = 9
+)
+
+// Enum value maps for HTTPMatchMethod.
+var (
+	HTTPMatchMethod_name = map[int32]string{
+		0: "HTTPMatchMethodAll",
+		1: "HTTPMatchMethodConnect",
+		2: "HTTPMatchMethodDelete",
+		3: "HTTPMatchMethodGet",
+		4: "HTTPMatchMethodHead",
+		5: "HTTPMatchMethodOptions",
+		6: "HTTPMatchMethodPatch",
+		7: "HTTPMatchMethodPost",
+		8: "HTTPMatchMethodPut",
+		9: "HTTPMatchMethodTrace",
+	}
+	HTTPMatchMethod_value = map[string]int32{
+		"HTTPMatchMethodAll":     0,
+		"HTTPMatchMethodConnect": 1,
+		"HTTPMatchMethodDelete":  2,
+		"HTTPMatchMethodGet":     3,
+		"HTTPMatchMethodHead":    4,
+		"HTTPMatchMethodOptions": 5,
+		"HTTPMatchMethodPatch":   6,
+		"HTTPMatchMethodPost":    7,
+		"HTTPMatchMethodPut":     8,
+		"HTTPMatchMethodTrace":   9,
+	}
+)
+
+func (x HTTPMatchMethod) Enum() *HTTPMatchMethod {
+	p := new(HTTPMatchMethod)
+	*p = x
+	return p
+}
+
+func (x HTTPMatchMethod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HTTPMatchMethod) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_pbconfigentry_config_entry_proto_enumTypes[6].Descriptor()
+}
+
+func (HTTPMatchMethod) Type() protoreflect.EnumType {
+	return &file_proto_pbconfigentry_config_entry_proto_enumTypes[6]
+}
+
+func (x HTTPMatchMethod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HTTPMatchMethod.Descriptor instead.
+func (HTTPMatchMethod) EnumDescriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{6}
+}
+
+type HTTPHeaderMatchType int32
+
+const (
+	HTTPHeaderMatchType_HTTPHeaderMatchExact             HTTPHeaderMatchType = 0
+	HTTPHeaderMatchType_HTTPHeaderMatchPrefix            HTTPHeaderMatchType = 1
+	HTTPHeaderMatchType_HTTPHeaderMatchPresent           HTTPHeaderMatchType = 2
+	HTTPHeaderMatchType_HTTPHeaderMatchRegularExpression HTTPHeaderMatchType = 3
+	HTTPHeaderMatchType_HTTPHeaderMatchSuffix            HTTPHeaderMatchType = 4
+)
+
+// Enum value maps for HTTPHeaderMatchType.
+var (
+	HTTPHeaderMatchType_name = map[int32]string{
+		0: "HTTPHeaderMatchExact",
+		1: "HTTPHeaderMatchPrefix",
+		2: "HTTPHeaderMatchPresent",
+		3: "HTTPHeaderMatchRegularExpression",
+		4: "HTTPHeaderMatchSuffix",
+	}
+	HTTPHeaderMatchType_value = map[string]int32{
+		"HTTPHeaderMatchExact":             0,
+		"HTTPHeaderMatchPrefix":            1,
+		"HTTPHeaderMatchPresent":           2,
+		"HTTPHeaderMatchRegularExpression": 3,
+		"HTTPHeaderMatchSuffix":            4,
+	}
+)
+
+func (x HTTPHeaderMatchType) Enum() *HTTPHeaderMatchType {
+	p := new(HTTPHeaderMatchType)
+	*p = x
+	return p
+}
+
+func (x HTTPHeaderMatchType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HTTPHeaderMatchType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_pbconfigentry_config_entry_proto_enumTypes[7].Descriptor()
+}
+
+func (HTTPHeaderMatchType) Type() protoreflect.EnumType {
+	return &file_proto_pbconfigentry_config_entry_proto_enumTypes[7]
+}
+
+func (x HTTPHeaderMatchType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HTTPHeaderMatchType.Descriptor instead.
+func (HTTPHeaderMatchType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{7}
+}
+
+type HTTPPathMatchType int32
+
+const (
+	HTTPPathMatchType_HTTPPathMatchExact             HTTPPathMatchType = 0
+	HTTPPathMatchType_HTTPPathMatchPrefix            HTTPPathMatchType = 1
+	HTTPPathMatchType_HTTPPathMatchRegularExpression HTTPPathMatchType = 3
+)
+
+// Enum value maps for HTTPPathMatchType.
+var (
+	HTTPPathMatchType_name = map[int32]string{
+		0: "HTTPPathMatchExact",
+		1: "HTTPPathMatchPrefix",
+		3: "HTTPPathMatchRegularExpression",
+	}
+	HTTPPathMatchType_value = map[string]int32{
+		"HTTPPathMatchExact":             0,
+		"HTTPPathMatchPrefix":            1,
+		"HTTPPathMatchRegularExpression": 3,
+	}
+)
+
+func (x HTTPPathMatchType) Enum() *HTTPPathMatchType {
+	p := new(HTTPPathMatchType)
+	*p = x
+	return p
+}
+
+func (x HTTPPathMatchType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HTTPPathMatchType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_pbconfigentry_config_entry_proto_enumTypes[8].Descriptor()
+}
+
+func (HTTPPathMatchType) Type() protoreflect.EnumType {
+	return &file_proto_pbconfigentry_config_entry_proto_enumTypes[8]
+}
+
+func (x HTTPPathMatchType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HTTPPathMatchType.Descriptor instead.
+func (HTTPPathMatchType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{8}
+}
+
+type HTTPQueryMatchType int32
+
+const (
+	HTTPQueryMatchType_HTTPQueryMatchExact             HTTPQueryMatchType = 0
+	HTTPQueryMatchType_HTTPQueryMatchPresent           HTTPQueryMatchType = 1
+	HTTPQueryMatchType_HTTPQueryMatchRegularExpression HTTPQueryMatchType = 3
+)
+
+// Enum value maps for HTTPQueryMatchType.
+var (
+	HTTPQueryMatchType_name = map[int32]string{
+		0: "HTTPQueryMatchExact",
+		1: "HTTPQueryMatchPresent",
+		3: "HTTPQueryMatchRegularExpression",
+	}
+	HTTPQueryMatchType_value = map[string]int32{
+		"HTTPQueryMatchExact":             0,
+		"HTTPQueryMatchPresent":           1,
+		"HTTPQueryMatchRegularExpression": 3,
+	}
+)
+
+func (x HTTPQueryMatchType) Enum() *HTTPQueryMatchType {
+	p := new(HTTPQueryMatchType)
+	*p = x
+	return p
+}
+
+func (x HTTPQueryMatchType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HTTPQueryMatchType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_pbconfigentry_config_entry_proto_enumTypes[9].Descriptor()
+}
+
+func (HTTPQueryMatchType) Type() protoreflect.EnumType {
+	return &file_proto_pbconfigentry_config_entry_proto_enumTypes[9]
+}
+
+func (x HTTPQueryMatchType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HTTPQueryMatchType.Descriptor instead.
+func (HTTPQueryMatchType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{9}
+}
+
 type ConfigEntry struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4248,8 +4471,11 @@ type HTTPRoute struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Meta   map[string]string `protobuf:"bytes,1,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Status *Status           `protobuf:"bytes,2,opt,name=Status,proto3" json:"Status,omitempty"`
+	Meta      map[string]string    `protobuf:"bytes,1,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Parents   []*ResourceReference `protobuf:"bytes,2,rep,name=Parents,proto3" json:"Parents,omitempty"`
+	Rules     []*HTTPRouteRule     `protobuf:"bytes,3,rep,name=Rules,proto3" json:"Rules,omitempty"`
+	Hostnames []string             `protobuf:"bytes,4,rep,name=Hostnames,proto3" json:"Hostnames,omitempty"`
+	Status    *Status              `protobuf:"bytes,5,opt,name=Status,proto3" json:"Status,omitempty"`
 }
 
 func (x *HTTPRoute) Reset() {
@@ -4291,9 +4517,572 @@ func (x *HTTPRoute) GetMeta() map[string]string {
 	return nil
 }
 
+func (x *HTTPRoute) GetParents() []*ResourceReference {
+	if x != nil {
+		return x.Parents
+	}
+	return nil
+}
+
+func (x *HTTPRoute) GetRules() []*HTTPRouteRule {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+func (x *HTTPRoute) GetHostnames() []string {
+	if x != nil {
+		return x.Hostnames
+	}
+	return nil
+}
+
 func (x *HTTPRoute) GetStatus() *Status {
 	if x != nil {
 		return x.Status
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteRule
+// output=config_entry.gen.go
+// name=Structs
+type HTTPRouteRule struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Filters  *HTTPFilters   `protobuf:"bytes,1,opt,name=Filters,proto3" json:"Filters,omitempty"`
+	Matches  []*HTTPMatch   `protobuf:"bytes,2,rep,name=Matches,proto3" json:"Matches,omitempty"`
+	Services []*HTTPService `protobuf:"bytes,3,rep,name=Services,proto3" json:"Services,omitempty"`
+}
+
+func (x *HTTPRouteRule) Reset() {
+	*x = HTTPRouteRule{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[51]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPRouteRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPRouteRule) ProtoMessage() {}
+
+func (x *HTTPRouteRule) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[51]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPRouteRule.ProtoReflect.Descriptor instead.
+func (*HTTPRouteRule) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *HTTPRouteRule) GetFilters() *HTTPFilters {
+	if x != nil {
+		return x.Filters
+	}
+	return nil
+}
+
+func (x *HTTPRouteRule) GetMatches() []*HTTPMatch {
+	if x != nil {
+		return x.Matches
+	}
+	return nil
+}
+
+func (x *HTTPRouteRule) GetServices() []*HTTPService {
+	if x != nil {
+		return x.Services
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPMatch
+// output=config_entry.gen.go
+// name=Structs
+type HTTPMatch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Headers []*HTTPHeaderMatch `protobuf:"bytes,1,rep,name=Headers,proto3" json:"Headers,omitempty"`
+	// mog: func-to=httpMatchMethodToStructs func-from=httpMatchMethodFromStructs
+	Method HTTPMatchMethod   `protobuf:"varint,2,opt,name=Method,proto3,enum=hashicorp.consul.internal.configentry.HTTPMatchMethod" json:"Method,omitempty"`
+	Path   *HTTPPathMatch    `protobuf:"bytes,3,opt,name=Path,proto3" json:"Path,omitempty"`
+	Query  []*HTTPQueryMatch `protobuf:"bytes,4,rep,name=Query,proto3" json:"Query,omitempty"`
+}
+
+func (x *HTTPMatch) Reset() {
+	*x = HTTPMatch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[52]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPMatch) ProtoMessage() {}
+
+func (x *HTTPMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[52]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPMatch.ProtoReflect.Descriptor instead.
+func (*HTTPMatch) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *HTTPMatch) GetHeaders() []*HTTPHeaderMatch {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *HTTPMatch) GetMethod() HTTPMatchMethod {
+	if x != nil {
+		return x.Method
+	}
+	return HTTPMatchMethod_HTTPMatchMethodAll
+}
+
+func (x *HTTPMatch) GetPath() *HTTPPathMatch {
+	if x != nil {
+		return x.Path
+	}
+	return nil
+}
+
+func (x *HTTPMatch) GetQuery() []*HTTPQueryMatch {
+	if x != nil {
+		return x.Query
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderMatch
+// output=config_entry.gen.go
+// name=Structs
+type HTTPHeaderMatch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// mog: func-to=httpHeaderMatchToStructs func-from=httpHeaderMatchFromStructs
+	Match HTTPHeaderMatchType `protobuf:"varint,1,opt,name=Match,proto3,enum=hashicorp.consul.internal.configentry.HTTPHeaderMatchType" json:"Match,omitempty"`
+	Name  string              `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
+	Value string              `protobuf:"bytes,3,opt,name=Value,proto3" json:"Value,omitempty"`
+}
+
+func (x *HTTPHeaderMatch) Reset() {
+	*x = HTTPHeaderMatch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[53]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPHeaderMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPHeaderMatch) ProtoMessage() {}
+
+func (x *HTTPHeaderMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[53]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPHeaderMatch.ProtoReflect.Descriptor instead.
+func (*HTTPHeaderMatch) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *HTTPHeaderMatch) GetMatch() HTTPHeaderMatchType {
+	if x != nil {
+		return x.Match
+	}
+	return HTTPHeaderMatchType_HTTPHeaderMatchExact
+}
+
+func (x *HTTPHeaderMatch) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HTTPHeaderMatch) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPPathMatch
+// output=config_entry.gen.go
+// name=Structs
+type HTTPPathMatch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// mog: func-to=httpPathMatchToStructs func-from=httpPathMatchFromStructs
+	Match HTTPPathMatchType `protobuf:"varint,1,opt,name=Match,proto3,enum=hashicorp.consul.internal.configentry.HTTPPathMatchType" json:"Match,omitempty"`
+	Value string            `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty"`
+}
+
+func (x *HTTPPathMatch) Reset() {
+	*x = HTTPPathMatch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[54]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPPathMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPPathMatch) ProtoMessage() {}
+
+func (x *HTTPPathMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[54]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPPathMatch.ProtoReflect.Descriptor instead.
+func (*HTTPPathMatch) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *HTTPPathMatch) GetMatch() HTTPPathMatchType {
+	if x != nil {
+		return x.Match
+	}
+	return HTTPPathMatchType_HTTPPathMatchExact
+}
+
+func (x *HTTPPathMatch) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPQueryMatch
+// output=config_entry.gen.go
+// name=Structs
+type HTTPQueryMatch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// mog: func-to=httpQueryMatchToStructs func-from=httpQueryMatchFromStructs
+	Match HTTPQueryMatchType `protobuf:"varint,1,opt,name=Match,proto3,enum=hashicorp.consul.internal.configentry.HTTPQueryMatchType" json:"Match,omitempty"`
+	Name  string             `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
+	Value string             `protobuf:"bytes,3,opt,name=Value,proto3" json:"Value,omitempty"`
+}
+
+func (x *HTTPQueryMatch) Reset() {
+	*x = HTTPQueryMatch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[55]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPQueryMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPQueryMatch) ProtoMessage() {}
+
+func (x *HTTPQueryMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[55]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPQueryMatch.ProtoReflect.Descriptor instead.
+func (*HTTPQueryMatch) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *HTTPQueryMatch) GetMatch() HTTPQueryMatchType {
+	if x != nil {
+		return x.Match
+	}
+	return HTTPQueryMatchType_HTTPQueryMatchExact
+}
+
+func (x *HTTPQueryMatch) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HTTPQueryMatch) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPFilters
+// output=config_entry.gen.go
+// name=Structs
+type HTTPFilters struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Headers []*HTTPHeaderFilter `protobuf:"bytes,1,rep,name=Headers,proto3" json:"Headers,omitempty"`
+}
+
+func (x *HTTPFilters) Reset() {
+	*x = HTTPFilters{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[56]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPFilters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPFilters) ProtoMessage() {}
+
+func (x *HTTPFilters) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[56]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPFilters.ProtoReflect.Descriptor instead.
+func (*HTTPFilters) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *HTTPFilters) GetHeaders() []*HTTPHeaderFilter {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderFilter
+// output=config_entry.gen.go
+// name=Structs
+type HTTPHeaderFilter struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Add    map[string]string `protobuf:"bytes,1,rep,name=Add,proto3" json:"Add,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Remove []string          `protobuf:"bytes,2,rep,name=Remove,proto3" json:"Remove,omitempty"`
+	Set    map[string]string `protobuf:"bytes,3,rep,name=Set,proto3" json:"Set,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *HTTPHeaderFilter) Reset() {
+	*x = HTTPHeaderFilter{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[57]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPHeaderFilter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPHeaderFilter) ProtoMessage() {}
+
+func (x *HTTPHeaderFilter) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[57]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPHeaderFilter.ProtoReflect.Descriptor instead.
+func (*HTTPHeaderFilter) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *HTTPHeaderFilter) GetAdd() map[string]string {
+	if x != nil {
+		return x.Add
+	}
+	return nil
+}
+
+func (x *HTTPHeaderFilter) GetRemove() []string {
+	if x != nil {
+		return x.Remove
+	}
+	return nil
+}
+
+func (x *HTTPHeaderFilter) GetSet() map[string]string {
+	if x != nil {
+		return x.Set
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPService
+// output=config_entry.gen.go
+// name=Structs
+type HTTPService struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
+	// mog: func-to=int func-from=int32
+	Weight  int32        `protobuf:"varint,2,opt,name=Weight,proto3" json:"Weight,omitempty"`
+	Filters *HTTPFilters `protobuf:"bytes,3,opt,name=Filters,proto3" json:"Filters,omitempty"`
+	// mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+	EnterpriseMeta *pbcommon.EnterpriseMeta `protobuf:"bytes,4,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
+}
+
+func (x *HTTPService) Reset() {
+	*x = HTTPService{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[58]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPService) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPService) ProtoMessage() {}
+
+func (x *HTTPService) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[58]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPService.ProtoReflect.Descriptor instead.
+func (*HTTPService) Descriptor() ([]byte, []int) {
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *HTTPService) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HTTPService) GetWeight() int32 {
+	if x != nil {
+		return x.Weight
+	}
+	return 0
+}
+
+func (x *HTTPService) GetFilters() *HTTPFilters {
+	if x != nil {
+		return x.Filters
+	}
+	return nil
+}
+
+func (x *HTTPService) GetEnterpriseMeta() *pbcommon.EnterpriseMeta {
+	if x != nil {
+		return x.EnterpriseMeta
 	}
 	return nil
 }
@@ -4318,7 +5107,7 @@ type TCPRoute struct {
 func (x *TCPRoute) Reset() {
 	*x = TCPRoute{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[51]
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[59]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4331,7 +5120,7 @@ func (x *TCPRoute) String() string {
 func (*TCPRoute) ProtoMessage() {}
 
 func (x *TCPRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[51]
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[59]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4344,7 +5133,7 @@ func (x *TCPRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPRoute.ProtoReflect.Descriptor instead.
 func (*TCPRoute) Descriptor() ([]byte, []int) {
-	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{51}
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *TCPRoute) GetMeta() map[string]string {
@@ -4395,7 +5184,7 @@ type TCPService struct {
 func (x *TCPService) Reset() {
 	*x = TCPService{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[52]
+		mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[60]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4408,7 +5197,7 @@ func (x *TCPService) String() string {
 func (*TCPService) ProtoMessage() {}
 
 func (x *TCPService) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[52]
+	mi := &file_proto_pbconfigentry_config_entry_proto_msgTypes[60]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4421,7 +5210,7 @@ func (x *TCPService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPService.ProtoReflect.Descriptor instead.
 func (*TCPService) Descriptor() ([]byte, []int) {
-	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{52}
+	return file_proto_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *TCPService) GetName() string {
@@ -5303,13 +6092,151 @@ var file_proto_pbconfigentry_config_entry_proto_rawDesc = []byte{
 	0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
 	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38,
-	0x01, 0x22, 0xdb, 0x01, 0x0a, 0x09, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x12,
+	0x01, 0x22, 0x99, 0x03, 0x0a, 0x09, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x12,
 	0x4e, 0x0a, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x3a, 0x2e,
 	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
 	0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
 	0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x2e,
 	0x4d, 0x65, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x12,
-	0x45, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x52, 0x0a, 0x07, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x38, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
+	0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x07, 0x50, 0x61, 0x72, 0x65,
+	0x6e, 0x74, 0x73, 0x12, 0x4a, 0x0a, 0x05, 0x52, 0x75, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x34, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
+	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52,
+	0x6f, 0x75, 0x74, 0x65, 0x52, 0x75, 0x6c, 0x65, 0x52, 0x05, 0x52, 0x75, 0x6c, 0x65, 0x73, 0x12,
+	0x1c, 0x0a, 0x09, 0x48, 0x6f, 0x73, 0x74, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x18, 0x04, 0x20, 0x03,
+	0x28, 0x09, 0x52, 0x09, 0x48, 0x6f, 0x73, 0x74, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x12, 0x45, 0x0a,
+	0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e,
+	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
+	0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x1a, 0x37, 0x0a, 0x09, 0x4d, 0x65, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
+	0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0xf9, 0x01,
+	0x0a, 0x0d, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x52, 0x75, 0x6c, 0x65, 0x12,
+	0x4c, 0x0a, 0x07, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x32, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
+	0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x46, 0x69, 0x6c,
+	0x74, 0x65, 0x72, 0x73, 0x52, 0x07, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x12, 0x4a, 0x0a,
+	0x07, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x30,
+	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
+	0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x52, 0x07, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x65, 0x73, 0x12, 0x4e, 0x0a, 0x08, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69,
+	0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e,
+	0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x52,
+	0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x22, 0xc4, 0x02, 0x0a, 0x09, 0x48, 0x54,
+	0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x50, 0x0a, 0x07, 0x48, 0x65, 0x61, 0x64, 0x65,
+	0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x36, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69,
+	0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65,
+	0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79,
+	0x2e, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x52, 0x07, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x12, 0x4e, 0x0a, 0x06, 0x4d, 0x65, 0x74,
+	0x68, 0x6f, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x36, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f,
+	0x64, 0x52, 0x06, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x48, 0x0a, 0x04, 0x50, 0x61, 0x74,
+	0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63,
+	0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72,
+	0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e,
+	0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x52, 0x04, 0x50,
+	0x61, 0x74, 0x68, 0x12, 0x4b, 0x0a, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79, 0x18, 0x04, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x35, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
+	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x52, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79,
+	0x22, 0x8d, 0x01, 0x0a, 0x0f, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d,
+	0x61, 0x74, 0x63, 0x68, 0x12, 0x50, 0x0a, 0x05, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0e, 0x32, 0x3a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e,
+	0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50,
+	0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x52,
+	0x05, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x56, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x56, 0x61, 0x6c, 0x75, 0x65,
+	0x22, 0x75, 0x0a, 0x0d, 0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68, 0x4d, 0x61, 0x74, 0x63,
+	0x68, 0x12, 0x4e, 0x0a, 0x05, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e,
+	0x32, 0x38, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
+	0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74,
+	0x68, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x52, 0x05, 0x4d, 0x61, 0x74, 0x63,
+	0x68, 0x12, 0x14, 0x0a, 0x05, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x05, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x8b, 0x01, 0x0a, 0x0e, 0x48, 0x54, 0x54, 0x50,
+	0x51, 0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x4f, 0x0a, 0x05, 0x4d, 0x61,
+	0x74, 0x63, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x39, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x51, 0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x54, 0x79, 0x70, 0x65, 0x52, 0x05, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x4e,
+	0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x12,
+	0x14, 0x0a, 0x05, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05,
+	0x56, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x60, 0x0a, 0x0b, 0x48, 0x54, 0x54, 0x50, 0x46, 0x69, 0x6c,
+	0x74, 0x65, 0x72, 0x73, 0x12, 0x51, 0x0a, 0x07, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x37, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54,
+	0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52, 0x07,
+	0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x22, 0xc2, 0x02, 0x0a, 0x10, 0x48, 0x54, 0x54, 0x50,
+	0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x52, 0x0a, 0x03,
+	0x41, 0x64, 0x64, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x40, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x46, 0x69, 0x6c, 0x74,
+	0x65, 0x72, 0x2e, 0x41, 0x64, 0x64, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x03, 0x41, 0x64, 0x64,
+	0x12, 0x16, 0x0a, 0x06, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09,
+	0x52, 0x06, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x12, 0x52, 0x0a, 0x03, 0x53, 0x65, 0x74, 0x18,
+	0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x40, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x48, 0x54,
+	0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x2e, 0x53,
+	0x65, 0x74, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x03, 0x53, 0x65, 0x74, 0x1a, 0x36, 0x0a, 0x08,
+	0x41, 0x64, 0x64, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x1a, 0x36, 0x0a, 0x08, 0x53, 0x65, 0x74, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0xe1, 0x01, 0x0a,
+	0x0b, 0x48, 0x54, 0x54, 0x50, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x12, 0x0a, 0x04,
+	0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65,
+	0x12, 0x16, 0x0a, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x4c, 0x0a, 0x07, 0x46, 0x69, 0x6c, 0x74,
+	0x65, 0x72, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x79, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x52, 0x07, 0x46,
+	0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x12, 0x58, 0x0a, 0x0e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70,
+	0x72, 0x69, 0x73, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x30,
+	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
+	0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f,
+	0x6e, 0x2e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d, 0x65, 0x74, 0x61,
+	0x52, 0x0e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d, 0x65, 0x74, 0x61,
+	0x22, 0xfc, 0x02, 0x0a, 0x08, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x12, 0x4d, 0x0a,
+	0x04, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x39, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69,
+	0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e,
+	0x74, 0x72, 0x79, 0x2e, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x2e, 0x4d, 0x65, 0x74,
+	0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x12, 0x52, 0x0a, 0x07,
+	0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x38, 0x2e,
+	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
+	0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65,
+	0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x07, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73,
+	0x12, 0x4d, 0x0a, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x31, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
+	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x54, 0x43, 0x50, 0x53, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x52, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x12,
+	0x45, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x2d, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73,
 	0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06,
@@ -5317,97 +6244,115 @@ var file_proto_pbconfigentry_config_entry_proto_rawDesc = []byte{
 	0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22,
-	0xfc, 0x02, 0x0a, 0x08, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x12, 0x4d, 0x0a, 0x04,
-	0x4d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x39, 0x2e, 0x68, 0x61, 0x73,
-	0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e,
-	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74,
-	0x72, 0x79, 0x2e, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x2e, 0x4d, 0x65, 0x74, 0x61,
-	0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x12, 0x52, 0x0a, 0x07, 0x50,
-	0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x38, 0x2e, 0x68,
-	0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e,
-	0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65,
-	0x6e, 0x74, 0x72, 0x79, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x65, 0x66,
-	0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x07, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x12,
-	0x4d, 0x0a, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x31, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f,
-	0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x54, 0x43, 0x50, 0x53, 0x65, 0x72,
-	0x76, 0x69, 0x63, 0x65, 0x52, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x12, 0x45,
-	0x0a, 0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d,
-	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
-	0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06, 0x53,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x1a, 0x37, 0x0a, 0x09, 0x4d, 0x65, 0x74, 0x61, 0x45, 0x6e, 0x74,
-	0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x92,
-	0x01, 0x0a, 0x0a, 0x54, 0x43, 0x50, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x12, 0x0a,
-	0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d,
-	0x65, 0x12, 0x16, 0x0a, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x05, 0x52, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x58, 0x0a, 0x0e, 0x45, 0x6e, 0x74,
-	0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x30, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f,
-	0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f,
-	0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d,
-	0x65, 0x74, 0x61, 0x52, 0x0e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d,
-	0x65, 0x74, 0x61, 0x2a, 0xfd, 0x01, 0x0a, 0x04, 0x4b, 0x69, 0x6e, 0x64, 0x12, 0x0f, 0x0a, 0x0b,
-	0x4b, 0x69, 0x6e, 0x64, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x12, 0x0a,
-	0x0e, 0x4b, 0x69, 0x6e, 0x64, 0x4d, 0x65, 0x73, 0x68, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x10,
-	0x01, 0x12, 0x17, 0x0a, 0x13, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
-	0x52, 0x65, 0x73, 0x6f, 0x6c, 0x76, 0x65, 0x72, 0x10, 0x02, 0x12, 0x16, 0x0a, 0x12, 0x4b, 0x69,
-	0x6e, 0x64, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79,
-	0x10, 0x03, 0x12, 0x19, 0x0a, 0x15, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
-	0x65, 0x49, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x10, 0x04, 0x12, 0x17, 0x0a,
-	0x13, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x65, 0x66, 0x61,
-	0x75, 0x6c, 0x74, 0x73, 0x10, 0x05, 0x12, 0x19, 0x0a, 0x15, 0x4b, 0x69, 0x6e, 0x64, 0x49, 0x6e,
-	0x6c, 0x69, 0x6e, 0x65, 0x43, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x10,
-	0x06, 0x12, 0x12, 0x0a, 0x0e, 0x4b, 0x69, 0x6e, 0x64, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74, 0x65,
-	0x77, 0x61, 0x79, 0x10, 0x07, 0x12, 0x17, 0x0a, 0x13, 0x4b, 0x69, 0x6e, 0x64, 0x42, 0x6f, 0x75,
-	0x6e, 0x64, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x10, 0x08, 0x12, 0x11,
-	0x0a, 0x0d, 0x4b, 0x69, 0x6e, 0x64, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x10,
-	0x09, 0x12, 0x10, 0x0a, 0x0c, 0x4b, 0x69, 0x6e, 0x64, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75, 0x74,
-	0x65, 0x10, 0x0a, 0x2a, 0x26, 0x0a, 0x0f, 0x49, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f, 0x6e,
-	0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x65, 0x6e, 0x79, 0x10, 0x00,
-	0x12, 0x09, 0x0a, 0x05, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x10, 0x01, 0x2a, 0x21, 0x0a, 0x13, 0x49,
-	0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x54, 0x79,
-	0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x10, 0x00, 0x2a, 0x50,
-	0x0a, 0x09, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x14, 0x0a, 0x10, 0x50,
-	0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x10,
-	0x00, 0x12, 0x18, 0x0a, 0x14, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x54, 0x72,
-	0x61, 0x6e, 0x73, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x10, 0x01, 0x12, 0x13, 0x0a, 0x0f, 0x50,
-	0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x69, 0x72, 0x65, 0x63, 0x74, 0x10, 0x02,
-	0x2a, 0x7b, 0x0a, 0x0f, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4d,
-	0x6f, 0x64, 0x65, 0x12, 0x1a, 0x0a, 0x16, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77,
-	0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x10, 0x00, 0x12,
-	0x17, 0x0a, 0x13, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4d, 0x6f,
-	0x64, 0x65, 0x4e, 0x6f, 0x6e, 0x65, 0x10, 0x01, 0x12, 0x18, 0x0a, 0x14, 0x4d, 0x65, 0x73, 0x68,
-	0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x4c, 0x6f, 0x63, 0x61, 0x6c,
-	0x10, 0x02, 0x12, 0x19, 0x0a, 0x15, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61,
-	0x79, 0x4d, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x10, 0x03, 0x2a, 0x4f, 0x0a,
-	0x1a, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4c, 0x69, 0x73, 0x74, 0x65,
-	0x6e, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x12, 0x18, 0x0a, 0x14, 0x4c,
-	0x69, 0x73, 0x74, 0x65, 0x6e, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x48,
-	0x54, 0x54, 0x50, 0x10, 0x00, 0x12, 0x17, 0x0a, 0x13, 0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x65,
-	0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x54, 0x43, 0x50, 0x10, 0x01, 0x42, 0xa6,
-	0x02, 0x0a, 0x29, 0x63, 0x6f, 0x6d, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70,
-	0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
-	0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x10, 0x43, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01,
-	0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73,
-	0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2f, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x2f, 0x70, 0x62, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
-	0x79, 0xa2, 0x02, 0x04, 0x48, 0x43, 0x49, 0x43, 0xaa, 0x02, 0x25, 0x48, 0x61, 0x73, 0x68, 0x69,
-	0x63, 0x6f, 0x72, 0x70, 0x2e, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x49, 0x6e, 0x74, 0x65,
-	0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79,
-	0xca, 0x02, 0x25, 0x48, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x5c, 0x43, 0x6f, 0x6e,
-	0x73, 0x75, 0x6c, 0x5c, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x5c, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0xe2, 0x02, 0x31, 0x48, 0x61, 0x73, 0x68, 0x69,
-	0x63, 0x6f, 0x72, 0x70, 0x5c, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x5c, 0x49, 0x6e, 0x74, 0x65,
-	0x72, 0x6e, 0x61, 0x6c, 0x5c, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79,
-	0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x28, 0x48,
-	0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x3a, 0x3a, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
-	0x3a, 0x3a, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x3a, 0x3a, 0x43, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x92, 0x01, 0x0a, 0x0a, 0x54, 0x43, 0x50, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61,
+	0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x58, 0x0a, 0x0e, 0x45, 0x6e,
+	0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x30, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
+	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63,
+	0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65,
+	0x4d, 0x65, 0x74, 0x61, 0x52, 0x0e, 0x45, 0x6e, 0x74, 0x65, 0x72, 0x70, 0x72, 0x69, 0x73, 0x65,
+	0x4d, 0x65, 0x74, 0x61, 0x2a, 0xfd, 0x01, 0x0a, 0x04, 0x4b, 0x69, 0x6e, 0x64, 0x12, 0x0f, 0x0a,
+	0x0b, 0x4b, 0x69, 0x6e, 0x64, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x12,
+	0x0a, 0x0e, 0x4b, 0x69, 0x6e, 0x64, 0x4d, 0x65, 0x73, 0x68, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x10, 0x01, 0x12, 0x17, 0x0a, 0x13, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
+	0x65, 0x52, 0x65, 0x73, 0x6f, 0x6c, 0x76, 0x65, 0x72, 0x10, 0x02, 0x12, 0x16, 0x0a, 0x12, 0x4b,
+	0x69, 0x6e, 0x64, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61,
+	0x79, 0x10, 0x03, 0x12, 0x19, 0x0a, 0x15, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x49, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x10, 0x04, 0x12, 0x17,
+	0x0a, 0x13, 0x4b, 0x69, 0x6e, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x65, 0x66,
+	0x61, 0x75, 0x6c, 0x74, 0x73, 0x10, 0x05, 0x12, 0x19, 0x0a, 0x15, 0x4b, 0x69, 0x6e, 0x64, 0x49,
+	0x6e, 0x6c, 0x69, 0x6e, 0x65, 0x43, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65,
+	0x10, 0x06, 0x12, 0x12, 0x0a, 0x0e, 0x4b, 0x69, 0x6e, 0x64, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74,
+	0x65, 0x77, 0x61, 0x79, 0x10, 0x07, 0x12, 0x17, 0x0a, 0x13, 0x4b, 0x69, 0x6e, 0x64, 0x42, 0x6f,
+	0x75, 0x6e, 0x64, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x10, 0x08, 0x12,
+	0x11, 0x0a, 0x0d, 0x4b, 0x69, 0x6e, 0x64, 0x48, 0x54, 0x54, 0x50, 0x52, 0x6f, 0x75, 0x74, 0x65,
+	0x10, 0x09, 0x12, 0x10, 0x0a, 0x0c, 0x4b, 0x69, 0x6e, 0x64, 0x54, 0x43, 0x50, 0x52, 0x6f, 0x75,
+	0x74, 0x65, 0x10, 0x0a, 0x2a, 0x26, 0x0a, 0x0f, 0x49, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f,
+	0x6e, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x65, 0x6e, 0x79, 0x10,
+	0x00, 0x12, 0x09, 0x0a, 0x05, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x10, 0x01, 0x2a, 0x21, 0x0a, 0x13,
+	0x49, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x69, 0x6f, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x54,
+	0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x10, 0x00, 0x2a,
+	0x50, 0x0a, 0x09, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x14, 0x0a, 0x10,
+	0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74,
+	0x10, 0x00, 0x12, 0x18, 0x0a, 0x14, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x54,
+	0x72, 0x61, 0x6e, 0x73, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x10, 0x01, 0x12, 0x13, 0x0a, 0x0f,
+	0x50, 0x72, 0x6f, 0x78, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x69, 0x72, 0x65, 0x63, 0x74, 0x10,
+	0x02, 0x2a, 0x7b, 0x0a, 0x0f, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79,
+	0x4d, 0x6f, 0x64, 0x65, 0x12, 0x1a, 0x0a, 0x16, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65,
+	0x77, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x10, 0x00,
+	0x12, 0x17, 0x0a, 0x13, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4d,
+	0x6f, 0x64, 0x65, 0x4e, 0x6f, 0x6e, 0x65, 0x10, 0x01, 0x12, 0x18, 0x0a, 0x14, 0x4d, 0x65, 0x73,
+	0x68, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x4c, 0x6f, 0x63, 0x61,
+	0x6c, 0x10, 0x02, 0x12, 0x19, 0x0a, 0x15, 0x4d, 0x65, 0x73, 0x68, 0x47, 0x61, 0x74, 0x65, 0x77,
+	0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x10, 0x03, 0x2a, 0x4f,
+	0x0a, 0x1a, 0x41, 0x50, 0x49, 0x47, 0x61, 0x74, 0x65, 0x77, 0x61, 0x79, 0x4c, 0x69, 0x73, 0x74,
+	0x65, 0x6e, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x12, 0x18, 0x0a, 0x14,
+	0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c,
+	0x48, 0x54, 0x54, 0x50, 0x10, 0x00, 0x12, 0x17, 0x0a, 0x13, 0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e,
+	0x65, 0x72, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x54, 0x43, 0x50, 0x10, 0x01, 0x2a,
+	0x92, 0x02, 0x0a, 0x0f, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74,
+	0x68, 0x6f, 0x64, 0x12, 0x16, 0x0a, 0x12, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x41, 0x6c, 0x6c, 0x10, 0x00, 0x12, 0x1a, 0x0a, 0x16, 0x48,
+	0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x43, 0x6f,
+	0x6e, 0x6e, 0x65, 0x63, 0x74, 0x10, 0x01, 0x12, 0x19, 0x0a, 0x15, 0x48, 0x54, 0x54, 0x50, 0x4d,
+	0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65,
+	0x10, 0x02, 0x12, 0x16, 0x0a, 0x12, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d,
+	0x65, 0x74, 0x68, 0x6f, 0x64, 0x47, 0x65, 0x74, 0x10, 0x03, 0x12, 0x17, 0x0a, 0x13, 0x48, 0x54,
+	0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x48, 0x65, 0x61,
+	0x64, 0x10, 0x04, 0x12, 0x1a, 0x0a, 0x16, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x10, 0x05, 0x12,
+	0x18, 0x0a, 0x14, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68,
+	0x6f, 0x64, 0x50, 0x61, 0x74, 0x63, 0x68, 0x10, 0x06, 0x12, 0x17, 0x0a, 0x13, 0x48, 0x54, 0x54,
+	0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x50, 0x6f, 0x73, 0x74,
+	0x10, 0x07, 0x12, 0x16, 0x0a, 0x12, 0x48, 0x54, 0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d,
+	0x65, 0x74, 0x68, 0x6f, 0x64, 0x50, 0x75, 0x74, 0x10, 0x08, 0x12, 0x18, 0x0a, 0x14, 0x48, 0x54,
+	0x54, 0x50, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x54, 0x72, 0x61,
+	0x63, 0x65, 0x10, 0x09, 0x2a, 0xa7, 0x01, 0x0a, 0x13, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61,
+	0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x12, 0x18, 0x0a, 0x14,
+	0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x45,
+	0x78, 0x61, 0x63, 0x74, 0x10, 0x00, 0x12, 0x19, 0x0a, 0x15, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65,
+	0x61, 0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x10,
+	0x01, 0x12, 0x1a, 0x0a, 0x16, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d,
+	0x61, 0x74, 0x63, 0x68, 0x50, 0x72, 0x65, 0x73, 0x65, 0x6e, 0x74, 0x10, 0x02, 0x12, 0x24, 0x0a,
+	0x20, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x52, 0x65, 0x67, 0x75, 0x6c, 0x61, 0x72, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f,
+	0x6e, 0x10, 0x03, 0x12, 0x19, 0x0a, 0x15, 0x48, 0x54, 0x54, 0x50, 0x48, 0x65, 0x61, 0x64, 0x65,
+	0x72, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x53, 0x75, 0x66, 0x66, 0x69, 0x78, 0x10, 0x04, 0x2a, 0x68,
+	0x0a, 0x11, 0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x54,
+	0x79, 0x70, 0x65, 0x12, 0x16, 0x0a, 0x12, 0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68, 0x4d,
+	0x61, 0x74, 0x63, 0x68, 0x45, 0x78, 0x61, 0x63, 0x74, 0x10, 0x00, 0x12, 0x17, 0x0a, 0x13, 0x48,
+	0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x50, 0x72, 0x65, 0x66,
+	0x69, 0x78, 0x10, 0x01, 0x12, 0x22, 0x0a, 0x1e, 0x48, 0x54, 0x54, 0x50, 0x50, 0x61, 0x74, 0x68,
+	0x4d, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x67, 0x75, 0x6c, 0x61, 0x72, 0x45, 0x78, 0x70, 0x72,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x10, 0x03, 0x2a, 0x6d, 0x0a, 0x12, 0x48, 0x54, 0x54, 0x50,
+	0x51, 0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x54, 0x79, 0x70, 0x65, 0x12, 0x17,
+	0x0a, 0x13, 0x48, 0x54, 0x54, 0x50, 0x51, 0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68,
+	0x45, 0x78, 0x61, 0x63, 0x74, 0x10, 0x00, 0x12, 0x19, 0x0a, 0x15, 0x48, 0x54, 0x54, 0x50, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x50, 0x72, 0x65, 0x73, 0x65, 0x6e, 0x74,
+	0x10, 0x01, 0x12, 0x23, 0x0a, 0x1f, 0x48, 0x54, 0x54, 0x50, 0x51, 0x75, 0x65, 0x72, 0x79, 0x4d,
+	0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x67, 0x75, 0x6c, 0x61, 0x72, 0x45, 0x78, 0x70, 0x72, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x10, 0x03, 0x42, 0xa6, 0x02, 0x0a, 0x29, 0x63, 0x6f, 0x6d, 0x2e,
+	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
+	0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x65, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x10, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x45, 0x6e, 0x74,
+	0x72, 0x79, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f,
+	0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x70, 0x62, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0xa2, 0x02, 0x04, 0x48, 0x43, 0x49,
+	0x43, 0xaa, 0x02, 0x25, 0x48, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x43, 0x6f,
+	0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0xca, 0x02, 0x25, 0x48, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x5c, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x5c, 0x49, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x5c, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x79, 0xe2, 0x02, 0x31, 0x48, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x5c, 0x43, 0x6f,
+	0x6e, 0x73, 0x75, 0x6c, 0x5c, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x5c, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74,
+	0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x28, 0x48, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x3a, 0x3a, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x3a, 0x3a, 0x49, 0x6e, 0x74, 0x65, 0x72,
+	0x6e, 0x61, 0x6c, 0x3a, 0x3a, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x79,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -5422,8 +6367,8 @@ func file_proto_pbconfigentry_config_entry_proto_rawDescGZIP() []byte {
 	return file_proto_pbconfigentry_config_entry_proto_rawDescData
 }
 
-var file_proto_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_proto_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
+var file_proto_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
+var file_proto_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 79)
 var file_proto_pbconfigentry_config_entry_proto_goTypes = []interface{}{
 	(Kind)(0),                             // 0: hashicorp.consul.internal.configentry.Kind
 	(IntentionAction)(0),                  // 1: hashicorp.consul.internal.configentry.IntentionAction
@@ -5431,185 +6376,216 @@ var file_proto_pbconfigentry_config_entry_proto_goTypes = []interface{}{
 	(ProxyMode)(0),                        // 3: hashicorp.consul.internal.configentry.ProxyMode
 	(MeshGatewayMode)(0),                  // 4: hashicorp.consul.internal.configentry.MeshGatewayMode
 	(APIGatewayListenerProtocol)(0),       // 5: hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
-	(*ConfigEntry)(nil),                   // 6: hashicorp.consul.internal.configentry.ConfigEntry
-	(*MeshConfig)(nil),                    // 7: hashicorp.consul.internal.configentry.MeshConfig
-	(*TransparentProxyMeshConfig)(nil),    // 8: hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
-	(*MeshTLSConfig)(nil),                 // 9: hashicorp.consul.internal.configentry.MeshTLSConfig
-	(*MeshDirectionalTLSConfig)(nil),      // 10: hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	(*MeshHTTPConfig)(nil),                // 11: hashicorp.consul.internal.configentry.MeshHTTPConfig
-	(*PeeringMeshConfig)(nil),             // 12: hashicorp.consul.internal.configentry.PeeringMeshConfig
-	(*ServiceResolver)(nil),               // 13: hashicorp.consul.internal.configentry.ServiceResolver
-	(*ServiceResolverSubset)(nil),         // 14: hashicorp.consul.internal.configentry.ServiceResolverSubset
-	(*ServiceResolverRedirect)(nil),       // 15: hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	(*ServiceResolverFailover)(nil),       // 16: hashicorp.consul.internal.configentry.ServiceResolverFailover
-	(*ServiceResolverFailoverTarget)(nil), // 17: hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
-	(*LoadBalancer)(nil),                  // 18: hashicorp.consul.internal.configentry.LoadBalancer
-	(*RingHashConfig)(nil),                // 19: hashicorp.consul.internal.configentry.RingHashConfig
-	(*LeastRequestConfig)(nil),            // 20: hashicorp.consul.internal.configentry.LeastRequestConfig
-	(*HashPolicy)(nil),                    // 21: hashicorp.consul.internal.configentry.HashPolicy
-	(*CookieConfig)(nil),                  // 22: hashicorp.consul.internal.configentry.CookieConfig
-	(*IngressGateway)(nil),                // 23: hashicorp.consul.internal.configentry.IngressGateway
-	(*IngressServiceConfig)(nil),          // 24: hashicorp.consul.internal.configentry.IngressServiceConfig
-	(*GatewayTLSConfig)(nil),              // 25: hashicorp.consul.internal.configentry.GatewayTLSConfig
-	(*GatewayTLSSDSConfig)(nil),           // 26: hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	(*IngressListener)(nil),               // 27: hashicorp.consul.internal.configentry.IngressListener
-	(*IngressService)(nil),                // 28: hashicorp.consul.internal.configentry.IngressService
-	(*GatewayServiceTLSConfig)(nil),       // 29: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	(*HTTPHeaderModifiers)(nil),           // 30: hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	(*ServiceIntentions)(nil),             // 31: hashicorp.consul.internal.configentry.ServiceIntentions
-	(*SourceIntention)(nil),               // 32: hashicorp.consul.internal.configentry.SourceIntention
-	(*IntentionPermission)(nil),           // 33: hashicorp.consul.internal.configentry.IntentionPermission
-	(*IntentionHTTPPermission)(nil),       // 34: hashicorp.consul.internal.configentry.IntentionHTTPPermission
-	(*IntentionHTTPHeaderPermission)(nil), // 35: hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
-	(*ServiceDefaults)(nil),               // 36: hashicorp.consul.internal.configentry.ServiceDefaults
-	(*TransparentProxyConfig)(nil),        // 37: hashicorp.consul.internal.configentry.TransparentProxyConfig
-	(*EnvoyExtension)(nil),                // 38: hashicorp.consul.internal.configentry.EnvoyExtension
-	(*MeshGatewayConfig)(nil),             // 39: hashicorp.consul.internal.configentry.MeshGatewayConfig
-	(*ExposeConfig)(nil),                  // 40: hashicorp.consul.internal.configentry.ExposeConfig
-	(*ExposePath)(nil),                    // 41: hashicorp.consul.internal.configentry.ExposePath
-	(*UpstreamConfiguration)(nil),         // 42: hashicorp.consul.internal.configentry.UpstreamConfiguration
-	(*UpstreamConfig)(nil),                // 43: hashicorp.consul.internal.configentry.UpstreamConfig
-	(*UpstreamLimits)(nil),                // 44: hashicorp.consul.internal.configentry.UpstreamLimits
-	(*PassiveHealthCheck)(nil),            // 45: hashicorp.consul.internal.configentry.PassiveHealthCheck
-	(*DestinationConfig)(nil),             // 46: hashicorp.consul.internal.configentry.DestinationConfig
-	(*APIGateway)(nil),                    // 47: hashicorp.consul.internal.configentry.APIGateway
-	(*Status)(nil),                        // 48: hashicorp.consul.internal.configentry.Status
-	(*Condition)(nil),                     // 49: hashicorp.consul.internal.configentry.Condition
-	(*APIGatewayListener)(nil),            // 50: hashicorp.consul.internal.configentry.APIGatewayListener
-	(*APIGatewayTLSConfiguration)(nil),    // 51: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
-	(*ResourceReference)(nil),             // 52: hashicorp.consul.internal.configentry.ResourceReference
-	(*BoundAPIGateway)(nil),               // 53: hashicorp.consul.internal.configentry.BoundAPIGateway
-	(*BoundAPIGatewayListener)(nil),       // 54: hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	(*InlineCertificate)(nil),             // 55: hashicorp.consul.internal.configentry.InlineCertificate
-	(*HTTPRoute)(nil),                     // 56: hashicorp.consul.internal.configentry.HTTPRoute
-	(*TCPRoute)(nil),                      // 57: hashicorp.consul.internal.configentry.TCPRoute
-	(*TCPService)(nil),                    // 58: hashicorp.consul.internal.configentry.TCPService
-	nil,                                   // 59: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	nil,                                   // 60: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	nil,                                   // 61: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	nil,                                   // 62: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	nil,                                   // 63: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	nil,                                   // 64: hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	nil,                                   // 65: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	nil,                                   // 66: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	nil,                                   // 67: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	nil,                                   // 68: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	nil,                                   // 69: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	nil,                                   // 70: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	nil,                                   // 71: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	nil,                                   // 72: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	nil,                                   // 73: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	nil,                                   // 74: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	(*pbcommon.EnterpriseMeta)(nil),       // 75: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.RaftIndex)(nil),            // 76: hashicorp.consul.internal.common.RaftIndex
-	(*durationpb.Duration)(nil),           // 77: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),         // 78: google.protobuf.Timestamp
-	(*structpb.Value)(nil),                // 79: google.protobuf.Value
+	(HTTPMatchMethod)(0),                  // 6: hashicorp.consul.internal.configentry.HTTPMatchMethod
+	(HTTPHeaderMatchType)(0),              // 7: hashicorp.consul.internal.configentry.HTTPHeaderMatchType
+	(HTTPPathMatchType)(0),                // 8: hashicorp.consul.internal.configentry.HTTPPathMatchType
+	(HTTPQueryMatchType)(0),               // 9: hashicorp.consul.internal.configentry.HTTPQueryMatchType
+	(*ConfigEntry)(nil),                   // 10: hashicorp.consul.internal.configentry.ConfigEntry
+	(*MeshConfig)(nil),                    // 11: hashicorp.consul.internal.configentry.MeshConfig
+	(*TransparentProxyMeshConfig)(nil),    // 12: hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
+	(*MeshTLSConfig)(nil),                 // 13: hashicorp.consul.internal.configentry.MeshTLSConfig
+	(*MeshDirectionalTLSConfig)(nil),      // 14: hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	(*MeshHTTPConfig)(nil),                // 15: hashicorp.consul.internal.configentry.MeshHTTPConfig
+	(*PeeringMeshConfig)(nil),             // 16: hashicorp.consul.internal.configentry.PeeringMeshConfig
+	(*ServiceResolver)(nil),               // 17: hashicorp.consul.internal.configentry.ServiceResolver
+	(*ServiceResolverSubset)(nil),         // 18: hashicorp.consul.internal.configentry.ServiceResolverSubset
+	(*ServiceResolverRedirect)(nil),       // 19: hashicorp.consul.internal.configentry.ServiceResolverRedirect
+	(*ServiceResolverFailover)(nil),       // 20: hashicorp.consul.internal.configentry.ServiceResolverFailover
+	(*ServiceResolverFailoverTarget)(nil), // 21: hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
+	(*LoadBalancer)(nil),                  // 22: hashicorp.consul.internal.configentry.LoadBalancer
+	(*RingHashConfig)(nil),                // 23: hashicorp.consul.internal.configentry.RingHashConfig
+	(*LeastRequestConfig)(nil),            // 24: hashicorp.consul.internal.configentry.LeastRequestConfig
+	(*HashPolicy)(nil),                    // 25: hashicorp.consul.internal.configentry.HashPolicy
+	(*CookieConfig)(nil),                  // 26: hashicorp.consul.internal.configentry.CookieConfig
+	(*IngressGateway)(nil),                // 27: hashicorp.consul.internal.configentry.IngressGateway
+	(*IngressServiceConfig)(nil),          // 28: hashicorp.consul.internal.configentry.IngressServiceConfig
+	(*GatewayTLSConfig)(nil),              // 29: hashicorp.consul.internal.configentry.GatewayTLSConfig
+	(*GatewayTLSSDSConfig)(nil),           // 30: hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	(*IngressListener)(nil),               // 31: hashicorp.consul.internal.configentry.IngressListener
+	(*IngressService)(nil),                // 32: hashicorp.consul.internal.configentry.IngressService
+	(*GatewayServiceTLSConfig)(nil),       // 33: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	(*HTTPHeaderModifiers)(nil),           // 34: hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	(*ServiceIntentions)(nil),             // 35: hashicorp.consul.internal.configentry.ServiceIntentions
+	(*SourceIntention)(nil),               // 36: hashicorp.consul.internal.configentry.SourceIntention
+	(*IntentionPermission)(nil),           // 37: hashicorp.consul.internal.configentry.IntentionPermission
+	(*IntentionHTTPPermission)(nil),       // 38: hashicorp.consul.internal.configentry.IntentionHTTPPermission
+	(*IntentionHTTPHeaderPermission)(nil), // 39: hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
+	(*ServiceDefaults)(nil),               // 40: hashicorp.consul.internal.configentry.ServiceDefaults
+	(*TransparentProxyConfig)(nil),        // 41: hashicorp.consul.internal.configentry.TransparentProxyConfig
+	(*EnvoyExtension)(nil),                // 42: hashicorp.consul.internal.configentry.EnvoyExtension
+	(*MeshGatewayConfig)(nil),             // 43: hashicorp.consul.internal.configentry.MeshGatewayConfig
+	(*ExposeConfig)(nil),                  // 44: hashicorp.consul.internal.configentry.ExposeConfig
+	(*ExposePath)(nil),                    // 45: hashicorp.consul.internal.configentry.ExposePath
+	(*UpstreamConfiguration)(nil),         // 46: hashicorp.consul.internal.configentry.UpstreamConfiguration
+	(*UpstreamConfig)(nil),                // 47: hashicorp.consul.internal.configentry.UpstreamConfig
+	(*UpstreamLimits)(nil),                // 48: hashicorp.consul.internal.configentry.UpstreamLimits
+	(*PassiveHealthCheck)(nil),            // 49: hashicorp.consul.internal.configentry.PassiveHealthCheck
+	(*DestinationConfig)(nil),             // 50: hashicorp.consul.internal.configentry.DestinationConfig
+	(*APIGateway)(nil),                    // 51: hashicorp.consul.internal.configentry.APIGateway
+	(*Status)(nil),                        // 52: hashicorp.consul.internal.configentry.Status
+	(*Condition)(nil),                     // 53: hashicorp.consul.internal.configentry.Condition
+	(*APIGatewayListener)(nil),            // 54: hashicorp.consul.internal.configentry.APIGatewayListener
+	(*APIGatewayTLSConfiguration)(nil),    // 55: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
+	(*ResourceReference)(nil),             // 56: hashicorp.consul.internal.configentry.ResourceReference
+	(*BoundAPIGateway)(nil),               // 57: hashicorp.consul.internal.configentry.BoundAPIGateway
+	(*BoundAPIGatewayListener)(nil),       // 58: hashicorp.consul.internal.configentry.BoundAPIGatewayListener
+	(*InlineCertificate)(nil),             // 59: hashicorp.consul.internal.configentry.InlineCertificate
+	(*HTTPRoute)(nil),                     // 60: hashicorp.consul.internal.configentry.HTTPRoute
+	(*HTTPRouteRule)(nil),                 // 61: hashicorp.consul.internal.configentry.HTTPRouteRule
+	(*HTTPMatch)(nil),                     // 62: hashicorp.consul.internal.configentry.HTTPMatch
+	(*HTTPHeaderMatch)(nil),               // 63: hashicorp.consul.internal.configentry.HTTPHeaderMatch
+	(*HTTPPathMatch)(nil),                 // 64: hashicorp.consul.internal.configentry.HTTPPathMatch
+	(*HTTPQueryMatch)(nil),                // 65: hashicorp.consul.internal.configentry.HTTPQueryMatch
+	(*HTTPFilters)(nil),                   // 66: hashicorp.consul.internal.configentry.HTTPFilters
+	(*HTTPHeaderFilter)(nil),              // 67: hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	(*HTTPService)(nil),                   // 68: hashicorp.consul.internal.configentry.HTTPService
+	(*TCPRoute)(nil),                      // 69: hashicorp.consul.internal.configentry.TCPRoute
+	(*TCPService)(nil),                    // 70: hashicorp.consul.internal.configentry.TCPService
+	nil,                                   // 71: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	nil,                                   // 72: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	nil,                                   // 73: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	nil,                                   // 74: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	nil,                                   // 75: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	nil,                                   // 76: hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	nil,                                   // 77: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	nil,                                   // 78: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	nil,                                   // 79: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	nil,                                   // 80: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	nil,                                   // 81: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	nil,                                   // 82: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	nil,                                   // 83: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	nil,                                   // 84: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	nil,                                   // 85: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	nil,                                   // 86: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	nil,                                   // 87: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	nil,                                   // 88: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	(*pbcommon.EnterpriseMeta)(nil),       // 89: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.RaftIndex)(nil),            // 90: hashicorp.consul.internal.common.RaftIndex
+	(*durationpb.Duration)(nil),           // 91: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),         // 92: google.protobuf.Timestamp
+	(*structpb.Value)(nil),                // 93: google.protobuf.Value
 }
 var file_proto_pbconfigentry_config_entry_proto_depIdxs = []int32{
-	0,  // 0: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
-	75, // 1: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	76, // 2: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
-	7,  // 3: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
-	13, // 4: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
-	23, // 5: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
-	31, // 6: hashicorp.consul.internal.configentry.ConfigEntry.ServiceIntentions:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions
-	36, // 7: hashicorp.consul.internal.configentry.ConfigEntry.ServiceDefaults:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults
-	8,  // 8: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
-	9,  // 9: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
-	11, // 10: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
-	59, // 11: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	12, // 12: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
-	10, // 13: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	10, // 14: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
-	60, // 15: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	15, // 16: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	61, // 17: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	77, // 18: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
-	18, // 19: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
-	62, // 20: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	17, // 21: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
-	19, // 22: hashicorp.consul.internal.configentry.LoadBalancer.RingHashConfig:type_name -> hashicorp.consul.internal.configentry.RingHashConfig
-	20, // 23: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
-	21, // 24: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
-	22, // 25: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
-	77, // 26: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
-	25, // 27: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
-	27, // 28: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
-	63, // 29: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	24, // 30: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
-	45, // 31: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	26, // 32: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	28, // 33: hashicorp.consul.internal.configentry.IngressListener.Services:type_name -> hashicorp.consul.internal.configentry.IngressService
-	25, // 34: hashicorp.consul.internal.configentry.IngressListener.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
-	29, // 35: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	30, // 36: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	30, // 37: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	64, // 38: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	75, // 39: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	45, // 40: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	26, // 41: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	65, // 42: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	66, // 43: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	32, // 44: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
-	67, // 45: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	1,  // 46: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
-	33, // 47: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
-	2,  // 48: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
-	68, // 49: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	78, // 50: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
-	78, // 51: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
-	75, // 52: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	1,  // 53: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
-	34, // 54: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
-	35, // 55: hashicorp.consul.internal.configentry.IntentionHTTPPermission.Header:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
-	3,  // 56: hashicorp.consul.internal.configentry.ServiceDefaults.Mode:type_name -> hashicorp.consul.internal.configentry.ProxyMode
-	37, // 57: hashicorp.consul.internal.configentry.ServiceDefaults.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyConfig
-	39, // 58: hashicorp.consul.internal.configentry.ServiceDefaults.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	40, // 59: hashicorp.consul.internal.configentry.ServiceDefaults.Expose:type_name -> hashicorp.consul.internal.configentry.ExposeConfig
-	42, // 60: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
-	46, // 61: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
-	69, // 62: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	38, // 63: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.configentry.EnvoyExtension
-	79, // 64: hashicorp.consul.internal.configentry.EnvoyExtension.Arguments:type_name -> google.protobuf.Value
-	4,  // 65: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
-	41, // 66: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
-	43, // 67: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	43, // 68: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	75, // 69: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	44, // 70: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	45, // 71: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
-	39, // 72: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	77, // 73: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
-	70, // 74: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	50, // 75: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
-	48, // 76: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	49, // 77: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
-	52, // 78: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	78, // 79: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
-	5,  // 80: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
-	51, // 81: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
-	52, // 82: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	75, // 83: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	71, // 84: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	54, // 85: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	52, // 86: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	52, // 87: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	72, // 88: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	73, // 89: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	48, // 90: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	74, // 91: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	52, // 92: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	58, // 93: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
-	48, // 94: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	75, // 95: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	14, // 96: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
-	16, // 97: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
-	98, // [98:98] is the sub-list for method output_type
-	98, // [98:98] is the sub-list for method input_type
-	98, // [98:98] is the sub-list for extension type_name
-	98, // [98:98] is the sub-list for extension extendee
-	0,  // [0:98] is the sub-list for field type_name
+	0,   // 0: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
+	89,  // 1: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	90,  // 2: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
+	11,  // 3: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
+	17,  // 4: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
+	27,  // 5: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
+	35,  // 6: hashicorp.consul.internal.configentry.ConfigEntry.ServiceIntentions:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions
+	40,  // 7: hashicorp.consul.internal.configentry.ConfigEntry.ServiceDefaults:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults
+	12,  // 8: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
+	13,  // 9: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
+	15,  // 10: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
+	71,  // 11: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	16,  // 12: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
+	14,  // 13: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	14,  // 14: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
+	72,  // 15: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	19,  // 16: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
+	73,  // 17: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	91,  // 18: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
+	22,  // 19: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
+	74,  // 20: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	21,  // 21: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
+	23,  // 22: hashicorp.consul.internal.configentry.LoadBalancer.RingHashConfig:type_name -> hashicorp.consul.internal.configentry.RingHashConfig
+	24,  // 23: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
+	25,  // 24: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
+	26,  // 25: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
+	91,  // 26: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
+	29,  // 27: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
+	31,  // 28: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
+	75,  // 29: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	28,  // 30: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
+	49,  // 31: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	30,  // 32: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	32,  // 33: hashicorp.consul.internal.configentry.IngressListener.Services:type_name -> hashicorp.consul.internal.configentry.IngressService
+	29,  // 34: hashicorp.consul.internal.configentry.IngressListener.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
+	33,  // 35: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	34,  // 36: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	34,  // 37: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
+	76,  // 38: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	89,  // 39: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	49,  // 40: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	30,  // 41: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
+	77,  // 42: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	78,  // 43: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	36,  // 44: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
+	79,  // 45: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	1,   // 46: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
+	37,  // 47: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
+	2,   // 48: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
+	80,  // 49: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	92,  // 50: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
+	92,  // 51: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
+	89,  // 52: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	1,   // 53: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
+	38,  // 54: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
+	39,  // 55: hashicorp.consul.internal.configentry.IntentionHTTPPermission.Header:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPHeaderPermission
+	3,   // 56: hashicorp.consul.internal.configentry.ServiceDefaults.Mode:type_name -> hashicorp.consul.internal.configentry.ProxyMode
+	41,  // 57: hashicorp.consul.internal.configentry.ServiceDefaults.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyConfig
+	43,  // 58: hashicorp.consul.internal.configentry.ServiceDefaults.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
+	44,  // 59: hashicorp.consul.internal.configentry.ServiceDefaults.Expose:type_name -> hashicorp.consul.internal.configentry.ExposeConfig
+	46,  // 60: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
+	50,  // 61: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
+	81,  // 62: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	42,  // 63: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.configentry.EnvoyExtension
+	93,  // 64: hashicorp.consul.internal.configentry.EnvoyExtension.Arguments:type_name -> google.protobuf.Value
+	4,   // 65: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
+	45,  // 66: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
+	47,  // 67: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
+	47,  // 68: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
+	89,  // 69: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	48,  // 70: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	49,  // 71: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
+	43,  // 72: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
+	91,  // 73: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
+	82,  // 74: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	54,  // 75: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
+	52,  // 76: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	53,  // 77: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
+	56,  // 78: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	92,  // 79: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
+	5,   // 80: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
+	55,  // 81: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
+	56,  // 82: hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	89,  // 83: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	83,  // 84: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	58,  // 85: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
+	56,  // 86: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	56,  // 87: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	84,  // 88: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	85,  // 89: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	56,  // 90: hashicorp.consul.internal.configentry.HTTPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	61,  // 91: hashicorp.consul.internal.configentry.HTTPRoute.Rules:type_name -> hashicorp.consul.internal.configentry.HTTPRouteRule
+	52,  // 92: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	66,  // 93: hashicorp.consul.internal.configentry.HTTPRouteRule.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
+	62,  // 94: hashicorp.consul.internal.configentry.HTTPRouteRule.Matches:type_name -> hashicorp.consul.internal.configentry.HTTPMatch
+	68,  // 95: hashicorp.consul.internal.configentry.HTTPRouteRule.Services:type_name -> hashicorp.consul.internal.configentry.HTTPService
+	63,  // 96: hashicorp.consul.internal.configentry.HTTPMatch.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatch
+	6,   // 97: hashicorp.consul.internal.configentry.HTTPMatch.Method:type_name -> hashicorp.consul.internal.configentry.HTTPMatchMethod
+	64,  // 98: hashicorp.consul.internal.configentry.HTTPMatch.Path:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatch
+	65,  // 99: hashicorp.consul.internal.configentry.HTTPMatch.Query:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatch
+	7,   // 100: hashicorp.consul.internal.configentry.HTTPHeaderMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatchType
+	8,   // 101: hashicorp.consul.internal.configentry.HTTPPathMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatchType
+	9,   // 102: hashicorp.consul.internal.configentry.HTTPQueryMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatchType
+	67,  // 103: hashicorp.consul.internal.configentry.HTTPFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	86,  // 104: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	87,  // 105: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	66,  // 106: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
+	89,  // 107: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	88,  // 108: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	56,  // 109: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	70,  // 110: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
+	52,  // 111: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	89,  // 112: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	18,  // 113: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
+	20,  // 114: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
+	115, // [115:115] is the sub-list for method output_type
+	115, // [115:115] is the sub-list for method input_type
+	115, // [115:115] is the sub-list for extension type_name
+	115, // [115:115] is the sub-list for extension extendee
+	0,   // [0:115] is the sub-list for field type_name
 }
 
 func init() { file_proto_pbconfigentry_config_entry_proto_init() }
@@ -6231,7 +7207,7 @@ func file_proto_pbconfigentry_config_entry_proto_init() {
 			}
 		}
 		file_proto_pbconfigentry_config_entry_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TCPRoute); i {
+			switch v := v.(*HTTPRouteRule); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6243,6 +7219,102 @@ func file_proto_pbconfigentry_config_entry_proto_init() {
 			}
 		}
 		file_proto_pbconfigentry_config_entry_proto_msgTypes[52].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPMatch); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPHeaderMatch); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[54].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPPathMatch); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPQueryMatch); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[56].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPFilters); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPHeaderFilter); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[58].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPService); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TCPRoute); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbconfigentry_config_entry_proto_msgTypes[60].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TCPService); i {
 			case 0:
 				return &v.state
@@ -6267,8 +7339,8 @@ func file_proto_pbconfigentry_config_entry_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_pbconfigentry_config_entry_proto_rawDesc,
-			NumEnums:      6,
-			NumMessages:   69,
+			NumEnums:      10,
+			NumMessages:   79,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

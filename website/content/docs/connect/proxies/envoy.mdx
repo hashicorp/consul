@@ -124,6 +124,12 @@ Envoy requires an initial bootstrap configuration file. You can either create th
 
 Connect to a local Consul client agent and run the [`consul connect envoy` command](/consul/commands/connect/envoy) to create the Envoy bootstrap configuration. The command either outputs the bootstrap configuration directly to stdout or generates the configuration and issues an `exec` command to the Envoy binary as a convenience wrapper. For more information about using `exec` to bootstrap Envoy, refer to [Exec Security Details](/consul/commands/connect/envoy#exec-security-details).
 
+If you experience issues when bootstrapping Envoy proxies from the CLI, use the
+`-enable-config-gen-logging` flag to enable debug message logging. These logs can
+help you troubleshoot issues that occur during the bootstrapping process. 
+For more information about available flags and parameters, refer to the
+[`consul connect envoy CLI` reference](/consul/commands/connect/envoy).
+
 ### Generate the bootstrap file from Consul Dataplane
 
 Consul Dataplane automatically configures and manages an Envoy process. Consul Dataplane generates the Envoy bootstrap configuration file prior to starting Envoy. To configure how Consul Dataplane starts Envoy, refer to the [Consul Dataplane CLI reference](/consul/docs/connect/dataplane/consul-dataplane).

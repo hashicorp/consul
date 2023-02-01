@@ -706,7 +706,136 @@ message InlineCertificate {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message HTTPRoute {
   map<string, string> Meta = 1;
-  Status Status = 2;
+  repeated ResourceReference Parents = 2;
+  repeated HTTPRouteRule Rules = 3;
+  repeated string Hostnames = 4;
+  Status Status = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteRule
+// output=config_entry.gen.go
+// name=Structs
+message HTTPRouteRule {
+  HTTPFilters Filters = 1;
+  repeated HTTPMatch Matches = 2;
+  repeated HTTPService Services = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPMatch {
+  repeated HTTPHeaderMatch Headers = 1;
+  // mog: func-to=httpMatchMethodToStructs func-from=httpMatchMethodFromStructs
+  HTTPMatchMethod Method = 2;
+  HTTPPathMatch Path = 3;
+  repeated HTTPQueryMatch Query = 4;
+}
+
+enum HTTPMatchMethod {
+  HTTPMatchMethodAll = 0;
+  HTTPMatchMethodConnect = 1;
+  HTTPMatchMethodDelete = 2;
+  HTTPMatchMethodGet = 3;
+  HTTPMatchMethodHead = 4;
+  HTTPMatchMethodOptions = 5;
+  HTTPMatchMethodPatch = 6;
+  HTTPMatchMethodPost = 7;
+  HTTPMatchMethodPut = 8;
+  HTTPMatchMethodTrace = 9;
+}
+
+enum HTTPHeaderMatchType {
+  HTTPHeaderMatchExact = 0;
+  HTTPHeaderMatchPrefix = 1;
+  HTTPHeaderMatchPresent = 2;
+  HTTPHeaderMatchRegularExpression = 3;
+  HTTPHeaderMatchSuffix = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderMatch {
+  // mog: func-to=httpHeaderMatchToStructs func-from=httpHeaderMatchFromStructs
+  HTTPHeaderMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+enum HTTPPathMatchType {
+  HTTPPathMatchExact = 0;
+  HTTPPathMatchPrefix = 1;
+  HTTPPathMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPPathMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPPathMatch {
+  // mog: func-to=httpPathMatchToStructs func-from=httpPathMatchFromStructs
+  HTTPPathMatchType Match = 1;
+  string Value = 2;
+}
+
+enum HTTPQueryMatchType {
+  HTTPQueryMatchExact = 0;
+  HTTPQueryMatchPresent = 1;
+  HTTPQueryMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPQueryMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPQueryMatch {
+  // mog: func-to=httpQueryMatchToStructs func-from=httpQueryMatchFromStructs
+  HTTPQueryMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPFilters
+// output=config_entry.gen.go
+// name=Structs
+message HTTPFilters {
+  repeated HTTPHeaderFilter Headers = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderFilter
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderFilter {
+  map<string, string> Add = 1;
+  repeated string Remove = 2;
+  map<string, string> Set = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPService
+// output=config_entry.gen.go
+// name=Structs
+message HTTPService {
+  string Name = 1;
+  // mog: func-to=int func-from=int32
+  int32 Weight = 2;
+  HTTPFilters Filters = 3;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
 }
 
 // mog annotation:
