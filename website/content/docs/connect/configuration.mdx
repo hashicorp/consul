@@ -9,14 +9,11 @@ description: >-
 
 There are many configuration options exposed for Consul service mesh. The only option
 that must be set is the `connect.enabled` option on Consul servers to enable Consul service mesh.
-All other configurations are optional and have reasonable defaults.
+All other configurations are optional and have defaults suitable for many environments.
 
-Consul Connect is the component shipped with Consul that enables service mesh functionality. The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
+The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
 
--> **Tip:** Service mesh is enabled by default when running Consul in
-dev mode with `consul agent -dev`.
-
-## Agent Configuration
+## Agent configuration
 
 Begin by enabling Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
@@ -75,18 +72,12 @@ automatically ensure complete security. Please read the [Connect production
 tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist) to understand the additional steps
 needed for a secure deployment.
 
-## Centralized Proxy and Service Configuration
+## Centralized proxy and service configuration
 
-To account for common Connect use cases where you have many instances of the
-same service, and many colocated sidecar proxies, Consul allows you to customize
-the settings for all of your proxies or all the instances of a given service at
-once using [Configuration Entries](/consul/docs/agent/config-entries).
-
-You can override centralized configurations for individual proxy instances in
-their
+If your network contains many instances of the same service and many colocated sidecar proxies, you can specify global settings for proxies or services in [Configuration Entries](/consul/docs/agent/config-entries). You can override the centralized configurations for individual proxy instances in their
 [sidecar service definitions](/consul/docs/connect/registration/sidecar-service),
 and the default protocols for service instances in their [service
-registrations](/consul/docs/discovery/services).
+definitions](/consul/docs/services/usage/define-services).
 
 ## Schedulers
 

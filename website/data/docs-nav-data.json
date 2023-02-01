@@ -452,11 +452,6 @@
           {
             "title": "Proxy Integration",
             "path": "connect/proxies/integrate"
-          },
-          {
-            "title": "Managed (Deprecated)",
-            "path": "connect/proxies/managed-deprecated",
-            "hidden": true
           }
         ]
       },

@@ -586,8 +586,7 @@ These actions may required an ACL token to complete. Use the following methods t
   This allows a single token to be used during all check registration operations.
 * Provide an ACL token with `service` and `check` definitions at registration time.
   This allows for greater flexibility and enables the use of multiple tokens on the same agent.
-  Refer to the [services](/consul/docs/discovery/services) and [checks](/consul/docs/discovery/checks) documentation for examples.
-  Tokens may also be passed to the [HTTP API](/consul/api-docs) for operations that require them.
+  Refer to the [services](/consul/docs/services/usage/define-services) and [checks](/consul/docs/services/usage/checks) documentation for examples. You can also pass tokens to the [HTTP API](/consul/api-docs) for operations that require them.
 
 ### Reading Imported Nodes
 
@@ -815,12 +814,12 @@ to use for registration events:
 2. Providing an ACL token with service and check definitions at registration
    time. This allows for greater flexibility and enables the use of multiple
    tokens on the same agent. Examples of what this looks like are available for
-   both [services](/consul/docs/discovery/services) and
-   [checks](/consul/docs/discovery/checks). Tokens may also be passed to the [HTTP
-   API](/consul/api-docs) for operations that require them. **Note:** all tokens
+   both [services](/consul/docs/services/usage/define-services) and
+   [checks](/consul/docs/services/usage/checks). Tokens may also be passed to the [HTTP
+   API](/consul/api-docs) for operations that require them. Note that all tokens
    passed to an agent are persisted on local disk to allow recovery from
-   restarts. See [`-data-dir` flag
-   documentation](/consul/docs/agent/config/cli-flags#_data_dir) for notes on securing
+   restarts. Refer to [`-data-dir` flag
+   documentation](/consul/docs/agent/config/cli-flags#_data_dir) for information about securing
    access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
