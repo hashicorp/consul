@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
 )
 
-func TestMakeLuaPatcher(t *testing.T) {
+func TestConstructor(t *testing.T) {
 	makeArguments := func(overrides map[string]interface{}) map[string]interface{} {
 		m := map[string]interface{}{
 			"ProxyType": "connect-proxy",
@@ -71,7 +71,7 @@ func TestMakeLuaPatcher(t *testing.T) {
 			}
 
 			svc := api.CompoundServiceName{Name: "svc"}
-			ext := xdscommon.ExtensionConfiguration{
+			ext := extensioncommon.RuntimeConfig{
 				ServiceName: svc,
 				EnvoyExtension: api.EnvoyExtension{
 					Name:      extensionName,
@@ -79,11 +79,11 @@ func TestMakeLuaPatcher(t *testing.T) {
 				},
 			}
 
-			patcher, err := MakeLuaExtension(ext)
+			e, err := Constructor(ext.EnvoyExtension)
 
 			if tc.ok {
 				require.NoError(t, err)
-				require.Equal(t, tc.expected, patcher)
+				require.Equal(t, &extensioncommon.BasicEnvoyExtender{Extension: &tc.expected}, e)
 			} else {
 				require.Error(t, err)
 			}

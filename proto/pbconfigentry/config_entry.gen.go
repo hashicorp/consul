@@ -981,7 +981,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
 	{
-		t.EnvoyExtensions = make([]structs.EnvoyExtension, len(s.EnvoyExtensions))
+		t.EnvoyExtensions = make(structs.EnvoyExtensions, len(s.EnvoyExtensions))
 		for i := range s.EnvoyExtensions {
 			if s.EnvoyExtensions[i] != nil {
 				EnvoyExtensionToStructs(s.EnvoyExtensions[i], &t.EnvoyExtensions[i])
