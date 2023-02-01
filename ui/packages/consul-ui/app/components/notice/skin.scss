@@ -21,8 +21,8 @@
   @extend %notice;
 }
 %notice-success {
-  background-color: rgb(var(--tone-green-050));
-  border-color: rgb(var(--tone-green-500));
+  background-color: var(--token-color-surface-success);
+  border-color: var(--token-color-foreground-success);
 }
 %notice-success header * {
   color: var(--token-color-palette-green-400);
@@ -57,7 +57,7 @@
 }
 %notice-success::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %notice-info::before {
   @extend %with-info-circle-fill-mask;

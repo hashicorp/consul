@@ -8,7 +8,7 @@
 %icon-definition.passing dt::before,
 %composite-row-header .passing dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %icon-definition.warning dt::before,
 %composite-row-header .warning dd::before {

@@ -60,7 +60,7 @@
     }
     .passing::before {
       @extend %with-check-circle-fill-mask, %as-pseudo;
-      --icon-color: rgb(var(--tone-green-500));
+      --icon-color: var(--token-color-foreground-success);
     }
     .warning::before {
       @extend %with-alert-triangle-mask, %as-pseudo;

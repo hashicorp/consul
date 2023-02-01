@@ -97,21 +97,21 @@
 }
 %frame-green-500 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-green-050));
-  border-color: rgb(var(--tone-green-500));
-  color: rgb(var(--tone-green-500));
+  background-color: var(--token-color-surface-success);
+  border-color: var(--token-color-foreground-success);
+  color: var(--token-color-foreground-success);
 }
 %frame-green-800 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-green-500));
+  background-color: var(--token-color-foreground-success);
   border-color: var(--token-color-palette-green-400);
   color: rgb(var(--tone-gray-000));
 }
 %frame-blue-200 {
   @extend %frame-border-000;
   background-color: rgb(var(--tone-gray-000));
-  border-color: rgb(var(--tone-blue-300));
-  color: rgb(var(--tone-blue-300));
+  border-color: var(--token-color-foreground-action);
+  color: var(--token-color-foreground-action);
 }
 %frame-blue-300 {
   @extend %frame-border-000;
@@ -121,32 +121,32 @@
 }
 %frame-blue-500 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-blue-050));
+  background-color: var(--token-color-surface-action);
   border-color: var(--token-color-foreground-action);
-  color: rgb(var(--tone-blue-800));
+  color: var(--token-color-palette-blue-500);
 }
 %frame-blue-600 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-blue-200));
+  background-color: var(--token-color-border-action);
   border-color: var(--token-color-foreground-disabled);
-  color: rgb(var(--tone-blue-050));
+  color: var(--token-color-surface-action);
 }
 %frame-blue-700 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-blue-400));
-  border-color: rgb(var(--tone-blue-800));
+  background-color: var(--token-color-foreground-action);
+  border-color: var(--token-color-palette-blue-500);
   color: rgb(var(--tone-gray-000));
 }
 %frame-blue-800 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-action);
-  border-color: rgb(var(--tone-blue-800));
+  border-color: var(--token-color-palette-blue-500);
   color: rgb(var(--tone-gray-000));
 }
 %frame-blue-900 {
   @extend %frame-border-000;
   background-color: var(--token-color-foreground-action-active);
-  border-color: rgb(var(--tone-blue-800));
+  border-color: var(--token-color-palette-blue-500);
   color: rgb(var(--tone-gray-000));
 }
 %frame-red-300 {
@@ -163,7 +163,7 @@
 }
 %frame-red-600 {
   @extend %frame-border-000;
-  background-color: rgb(var(--tone-red-200));
+  background-color: var(--token-color-border-critical);
   border-color: var(--token-color-foreground-disabled);
   color: rgb(var(--tone-gray-000));
 }

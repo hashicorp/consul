@@ -18,7 +18,7 @@
   color: var(--token-color-foreground-faint);
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status.healthy + dd {
-  background-color: rgb(var(--tone-green-050));
+  background-color: var(--token-color-surface-success);
   color: var(--token-color-palette-green-400);
 }
 %consul-server-card:not(.voting-status-non-voter) .health-status:not(.healthy) + dd {

@@ -28,7 +28,7 @@
 }
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %healthcheck-output.warning::before {
   @extend %with-alert-triangle-mask;
@@ -58,7 +58,7 @@
   border-left-width: 4px;
 }
 %healthcheck-output.passing {
-  border-left-color: rgb(var(--tone-green-500));
+  border-left-color: var(--token-color-foreground-success);
 }
 %healthcheck-output.warning {
   border-left-color: rgb(var(--tone-yellow-500));

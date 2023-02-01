@@ -7,7 +7,7 @@
   }
   &.passing dt::before {
     @extend %with-check-circle-fill-mask;
-    color: rgb(var(--tone-green-500));
+    color: var(--token-color-foreground-success);
   }
   &.warning dt::before {
     @extend %with-alert-triangle-mask;

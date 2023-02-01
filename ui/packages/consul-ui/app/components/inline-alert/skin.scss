@@ -22,7 +22,7 @@
 }
 %inline-alert-success::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %inline-alert-error::before {
   @extend %with-cancel-square-fill-mask;

@@ -13,7 +13,7 @@
   background-color: rgb(var(--tone-gray-050));
 }
 %radio-card.checked > :first-child {
-  background-color: rgb(var(--tone-blue-050));
+  background-color: var(--token-color-surface-action);
 }
 %radio-card header {
   margin-bottom: 0.5em;

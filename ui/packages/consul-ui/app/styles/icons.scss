@@ -47,7 +47,7 @@
 %with-allow-300,
 %with-allow-500 {
   --icon-name: icon-arrow-right;
-  --icon-color: rgb(var(--tone-green-500));
+  --icon-color: var(--token-color-foreground-success);
 }
 %with-deny-300,
 %with-deny-500 {
