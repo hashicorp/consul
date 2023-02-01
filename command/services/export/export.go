@@ -34,13 +34,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.serviceName == "" {
-		c.UI.Error("Missing the required -name flag")
-		return 1
-	}
-
-	if c.peerNames == "" && c.partitionNames == "" {
-		c.UI.Error("Must provide -consumer-peers or -consumer-partitions flag")
+	if err := c.validateFlags(); err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
 

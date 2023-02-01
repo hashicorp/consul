@@ -4,6 +4,7 @@
 package export
 
 import (
+	"errors"
 	"flag"
 
 	"github.com/hashicorp/consul/command/flags"
@@ -21,6 +22,18 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
+}
+
+func (c *cmd) validateFlags() error {
+	if c.serviceName == "" {
+		return errors.New("Missing the required -name flag")
+	}
+
+	if c.peerNames == "" {
+		return errors.New("Missing the required -consumer-peers flag")
+	}
+
+	return nil
 }
 
 func (c *cmd) getPartitionNames() ([]string, error) {
