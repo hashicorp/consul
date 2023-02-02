@@ -36,7 +36,7 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 	metaGateway, err := r.initGatewayMeta(req)
 	if err != nil {
 		return err
-	} else if metaGateway == nil && err == nil {
+	} else if metaGateway == nil {
 		//delete meta gateway
 		r.logger.Info("cleaning up deleted gateway object", "request", req)
 		if err := r.store.Delete(&structs.BoundAPIGatewayConfigEntry{
