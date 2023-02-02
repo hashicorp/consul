@@ -10,8 +10,6 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"

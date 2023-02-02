@@ -203,6 +203,23 @@ func ComputeResolvedServiceConfig(
 		resolvedConfigs[wildcard] = wildcardUpstreamDefaults
 	}
 
+	// For Consul 1.14.x, service-defaults would apply to either local or peer services as long
+	// as the `name` matched. We introduce `legacyUpstreams` as a compatibility mode for:
+	//   1. old agents, that are using the deprecated UpstreamIDs api
+	//   2. Migrations to 1.15 that do not specify the "peer" field. The behavior should remain the same
+	//      until the config entries are updates.
+	//
+	// This should be remove in Consul 1.16
+	var hasPeerUpstream bool
+	for _, override := range upstreamOverrides {
+		if override.Peer != "" {
+			hclog.Default().Error("*** Found peer name in service-defaults", "name", override.Name)
+			hasPeerUpstream = true
+			break
+		}
+	}
+	legacyUpstreams := len(args.UpstreamIDs) > 0 || !hasPeerUpstream
+
 	for upstream := range seenUpstreams {
 		resolvedCfg := make(map[string]interface{})
 
@@ -254,8 +271,16 @@ func ComputeResolvedServiceConfig(
 		}
 
 		// Merge in Overrides for the upstream (step 5).
-		if upstreamOverrides[upstream] != nil {
-			upstreamOverrides[upstream].MergeInto(resolvedCfg)
+		if legacyUpstreams {
+			peerlessUpstream := upstream
+			peerlessUpstream.Peer = ""
+			if upstreamOverrides[peerlessUpstream] != nil {
+				upstreamOverrides[peerlessUpstream].MergeInto(resolvedCfg)
+			}
+		} else {
+			if upstreamOverrides[upstream] != nil {
+				upstreamOverrides[upstream].MergeInto(resolvedCfg)
+			}
 		}
 
 		if len(resolvedCfg) > 0 {
