@@ -1,4 +1,4 @@
-package l7trafficmanagement
+package upgrade
 
 import (
 	"context"
@@ -24,10 +24,12 @@ import (
 // Steps:
 //   - Create a single agent cluster.
 //   - Create one static-server and 2 subsets and 1 client and sidecar, then register them with Consul
-//   - Validate static-server and 2 subsets are and proxy admin endpoint is healthy
+//   - Validate static-server and 2 subsets are and proxy admin endpoint is healthy - 3 instances
 //   - Validate static servers proxy listeners should be up and have right certs
-func TestTrafficManagement_SetupServerAndClientWithSubsets(t *testing.T) {
+func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 	t.Parallel()
+
+	var responseFormat = map[string]string{"format": "json"}
 
 	type testcase struct {
 		oldversion    string
@@ -87,30 +89,34 @@ func TestTrafficManagement_SetupServerAndClientWithSubsets(t *testing.T) {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server.default", "HEALTHY", 1)
 
-		// Upgrade cluster and begin service validation
+		// Upgrade cluster, restart sidecars then begin service traffic validation
 		require.NoError(t, cluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, clientService.Restart())
+		require.NoError(t, serverService.Restart())
+		require.NoError(t, serverServiceV1.Restart())
+		require.NoError(t, serverServiceV2.Restart())
 
 		// POST upgrade validation; repeat client & proxy validation
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server.default", "HEALTHY", 1)
 
 		// validate  static-client proxy admin is up
-		_, statusCode, err := libassert.GetEnvoyOutput(adminPort, "stats", map[string]string{"format": "json"})
+		_, statusCode, err := libassert.GetEnvoyOutput(adminPort, "stats", responseFormat)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode, fmt.Sprintf("service cannot be reached %v", statusCode))
 
 		// validate static-server proxy admin is up
-		_, statusCode1, err := libassert.GetEnvoyOutput(serverAdminPort, "stats", map[string]string{"format": "json"})
+		_, statusCode1, err := libassert.GetEnvoyOutput(serverAdminPort, "stats", responseFormat)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode1, fmt.Sprintf("service cannot be reached %v", statusCode1))
 
 		// validate static-server-v1 proxy admin is up
-		_, statusCode2, err := libassert.GetEnvoyOutput(serverAdminPortV1, "stats", map[string]string{"format": "json"})
+		_, statusCode2, err := libassert.GetEnvoyOutput(serverAdminPortV1, "stats", responseFormat)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode2, fmt.Sprintf("service cannot be reached %v", statusCode2))
 
 		// validate static-server-v2 proxy admin is up
-		_, statusCode3, err := libassert.GetEnvoyOutput(serverAdminPortV2, "stats", map[string]string{"format": "json"})
+		_, statusCode3, err := libassert.GetEnvoyOutput(serverAdminPortV2, "stats", responseFormat)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode3, fmt.Sprintf("service cannot be reached %v", statusCode3))
 
