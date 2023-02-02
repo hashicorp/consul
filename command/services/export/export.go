@@ -198,10 +198,10 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Export a service"
 	help     = `
-Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
+Usage: consul services export [options] -name <service name> -consumer-peers <peer names>
 
-  Export a service. The peers provided will be used locally by
-  this cluster to refer to the other cluster where the services will be exported. 
+  Export a service. The peer names provided will be used locally by
+  this cluster to refer to the peer where the services will be exported. 
 
   Example:
 
