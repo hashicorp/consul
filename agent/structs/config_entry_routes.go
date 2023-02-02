@@ -39,6 +39,16 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
+func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
+	targets := []HTTPService{}
+	for _, rule := range e.Rules {
+		for _, service := range rule.Services {
+			targets = append(targets, service)
+		}
+	}
+	return targets
+}
+
 func (e *HTTPRouteConfigEntry) GetKind() string {
 	return HTTPRoute
 }
@@ -271,6 +281,10 @@ type TCPRouteConfigEntry struct {
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *TCPRouteConfigEntry) GetTargets() []TCPService {
+	return e.Services
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {
