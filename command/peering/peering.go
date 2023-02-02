@@ -61,10 +61,6 @@ Usage: consul peering <subcommand> [options] [args]
 
     $ consul peering read -name west-dc
 
-  Export services between peers:
-
-    $ consul peering export -service=web -peers=west-dc
-
   Delete and close a peering connection:
 
     $ consul peering delete -name west-dc
