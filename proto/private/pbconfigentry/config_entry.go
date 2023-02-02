@@ -373,6 +373,24 @@ func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewa
 	}
 }
 
+func conditionStatusToStructs(s string) structs.ConditionStatus {
+	switch s {
+	case "True":
+		return structs.ConditionStatusTrue
+	case "False":
+		return structs.ConditionStatusFalse
+	case "Unknown":
+	default:
+		return structs.ConditionStatusUnknown
+	}
+
+	return structs.ConditionStatusUnknown
+}
+
+func conditionStatusFromStructs(s structs.ConditionStatus) string {
+	return string(s)
+}
+
 func httpMatchMethodFromStructs(a structs.HTTPMatchMethod) HTTPMatchMethod {
 	switch a {
 	case structs.HTTPMatchMethodAll:

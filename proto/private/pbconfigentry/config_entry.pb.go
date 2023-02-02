@@ -3954,7 +3954,8 @@ type Condition struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type     string             `protobuf:"bytes,1,opt,name=Type,proto3" json:"Type,omitempty"`
+	Type string `protobuf:"bytes,1,opt,name=Type,proto3" json:"Type,omitempty"`
+	// mog: func-from=conditionStatusFromStructs func-to=conditionStatusToStructs
 	Status   string             `protobuf:"bytes,2,opt,name=Status,proto3" json:"Status,omitempty"`
 	Reason   string             `protobuf:"bytes,3,opt,name=Reason,proto3" json:"Reason,omitempty"`
 	Message  string             `protobuf:"bytes,4,opt,name=Message,proto3" json:"Message,omitempty"`

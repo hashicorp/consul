@@ -603,6 +603,7 @@ message Status {
 // name=Structs
 message Condition {
   string Type = 1;
+  // mog: func-from=conditionStatusFromStructs func-to=conditionStatusToStructs
   string Status = 2;
   string Reason = 3;
   string Message = 4;

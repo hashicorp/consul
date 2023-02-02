@@ -52,18 +52,30 @@ func (f *FSMDataStore) Update(entry structs.ConfigEntry) error {
 
 // UpdateStatus takes a config entry, an error, and updates the status field as needed in the FSM state
 func (f *FSMDataStore) UpdateStatus(entry structs.ControlledConfigEntry, err error) error {
-	if err == nil {
-		//TODO additional status messages for success?
-		return nil
-	}
-	status := structs.Status{
-		Conditions: []structs.Condition{{
+	var status structs.Status
 
-			Status: err.Error() + ": Accepted == false",
-		},
-		},
+	if err != nil {
+		status = structs.Status{
+			Conditions: []structs.Condition{{
+				Type:   string(structs.RouteConditionAccepted),
+				Status: structs.ConditionStatusFalse,
+				// FIXME: a typed reason should be passed into this method alongside the error message
+				Reason:  string(structs.RouteReasonNotAllowedByListeners),
+				Message: err.Error(),
+			}},
+		}
+	} else {
+		status = structs.Status{
+			Conditions: []structs.Condition{{
+				Type:   string(structs.RouteConditionAccepted),
+				Status: structs.ConditionStatusTrue,
+				Reason: string(structs.RouteReasonAccepted),
+			}},
+		}
 	}
+
 	entry.SetStatus(status)
+
 	return f.Update(entry)
 }
 
