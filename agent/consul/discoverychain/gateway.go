@@ -60,6 +60,9 @@ func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntr
 
 		for _, rule := range route.Rules {
 			// If a rule has no matches defined, add default match
+			if rule.Matches == nil {
+				rule.Matches = []structs.HTTPMatch{}
+			}
 			if len(rule.Matches) == 0 {
 				rule.Matches = []structs.HTTPMatch{{
 					Path: structs.HTTPPathMatch{
