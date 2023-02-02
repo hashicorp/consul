@@ -1538,7 +1538,7 @@ func assertDeltaResponse(t *testing.T, got, want *envoy_discovery_v3.DeltaDiscov
 func mustMakeVersionMap(t *testing.T, resources ...proto.Message) map[string]string {
 	m := make(map[string]string)
 	for _, res := range resources {
-		name := getResourceName(res)
+		name := xdscommon.GetResourceName(res)
 		m[name] = mustHashResource(t, res)
 	}
 	return m
