@@ -762,6 +762,7 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 		resp.WriteHeader(http.StatusNotFound)
 		msg := acl.ACLResourceNotExistError("binding rule", args.EnterpriseMeta)
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
+
 	}
 
 	return out.BindingRule, nil

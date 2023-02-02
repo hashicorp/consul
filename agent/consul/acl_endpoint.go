@@ -332,6 +332,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			reply.SourceDatacenter = args.Datacenter
 			if token == nil {
 				// token does not exist
+				if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+				}
 				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 			}
 
