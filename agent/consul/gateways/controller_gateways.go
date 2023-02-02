@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
+	"github.com/pkg/errors"
 )
 
 type apiGatewayReconciler struct {
@@ -43,8 +44,9 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 			Name:           req.Name,
 			EnterpriseMeta: *req.Meta,
 		}); err != nil {
-			r.logger.Error("error cleaning up deleted gateway object", err)
-			return err
+			msg := "error cleaning up deleted gateway object"
+			r.logger.Error(msg, err)
+			return errors.Wrap(err, msg)
 		}
 		return nil
 	}
@@ -67,8 +69,9 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 		// now update the gateway state
 		r.logger.Debug("persisting gateway state", "state", boundGateway)
 		if err := r.store.Update(boundGateway); err != nil {
-			r.logger.Error("error persisting state", "error", err)
-			return err
+			msg := "error persisting state"
+			r.logger.Error(msg, "error", err)
+			return errors.Wrap(err, msg)
 		}
 
 		// then update the gateway status
@@ -80,7 +83,6 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 
 	//// and update the route statuses
 	for route, routeError := range routeErrors {
-
 		configEntry := r.resourceReferenceToBoundRoute(route)
 		r.logger.Error("route binding error:", routeError)
 		if err := r.store.UpdateStatus(configEntry, routeError); err != nil {
