@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
@@ -227,6 +228,44 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.TLSConfig.CipherSuites != nil {
 		cp.TLSConfig.CipherSuites = make([]types.TLSCipherSuite, len(o.TLSConfig.CipherSuites))
 		copy(cp.TLSConfig.CipherSuites, o.TLSConfig.CipherSuites)
+	}
+	if o.APIGatewayConfigEntry != nil {
+		cp.APIGatewayConfigEntry = new(structs.APIGatewayConfigEntry)
+		*cp.APIGatewayConfigEntry = *o.APIGatewayConfigEntry
+		if o.APIGatewayConfigEntry.Listeners != nil {
+			cp.APIGatewayConfigEntry.Listeners = make([]structs.APIGatewayListener, len(o.APIGatewayConfigEntry.Listeners))
+			copy(cp.APIGatewayConfigEntry.Listeners, o.APIGatewayConfigEntry.Listeners)
+			for i4 := range o.APIGatewayConfigEntry.Listeners {
+				if o.APIGatewayConfigEntry.Listeners[i4].TLS.Certificates != nil {
+					cp.APIGatewayConfigEntry.Listeners[i4].TLS.Certificates = make([]structs.ResourceReference, len(o.APIGatewayConfigEntry.Listeners[i4].TLS.Certificates))
+					copy(cp.APIGatewayConfigEntry.Listeners[i4].TLS.Certificates, o.APIGatewayConfigEntry.Listeners[i4].TLS.Certificates)
+				}
+				if o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites != nil {
+					cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites))
+					copy(cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites, o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites)
+				}
+			}
+		}
+		if o.APIGatewayConfigEntry.Status.Conditions != nil {
+			cp.APIGatewayConfigEntry.Status.Conditions = make([]structs.Condition, len(o.APIGatewayConfigEntry.Status.Conditions))
+			copy(cp.APIGatewayConfigEntry.Status.Conditions, o.APIGatewayConfigEntry.Status.Conditions)
+			for i5 := range o.APIGatewayConfigEntry.Status.Conditions {
+				if o.APIGatewayConfigEntry.Status.Conditions[i5].Resource != nil {
+					cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = new(structs.ResourceReference)
+					*cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = *o.APIGatewayConfigEntry.Status.Conditions[i5].Resource
+				}
+				if o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime != nil {
+					cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = new(time.Time)
+					*cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = *o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime
+				}
+			}
+		}
+		if o.APIGatewayConfigEntry.Meta != nil {
+			cp.APIGatewayConfigEntry.Meta = make(map[string]string, len(o.APIGatewayConfigEntry.Meta))
+			for k4, v4 := range o.APIGatewayConfigEntry.Meta {
+				cp.APIGatewayConfigEntry.Meta[k4] = v4
+			}
+		}
 	}
 	if o.Hosts != nil {
 		cp.Hosts = make([]string, len(o.Hosts))
