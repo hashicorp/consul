@@ -81,7 +81,10 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("error running the tests: " + err.Error())
 		return 1
 	}
-	c.UI.Output(output)
+
+	for _, o := range output {
+		c.UI.Output(o)
+	}
 	return 0
 }
 
@@ -97,6 +100,7 @@ const (
 	synopsis = "Troubleshoots service mesh issues from the current envoy instance"
 	help     = `
 Usage: consul troubleshoot proxy [options]
+  
   Connects to local envoy proxy and troubleshoots service mesh communication issues.
   Requires an upstream service envoy identifier.
   Examples:
