@@ -54,7 +54,7 @@ func (g exampleContainer) Restart() error {
 }
 
 func (g exampleContainer) GetLogs() (string, error) {
-	rc, err := g.container.Logs(context.Background())
+	rc, err := g.container.Logs(g.ctx)
 	if err != nil {
 		return "", fmt.Errorf("could not get logs for example service %s: %w", g.GetServiceName(), err)
 	}
@@ -88,6 +88,11 @@ func (g exampleContainer) Start() error {
 
 func (c exampleContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
+}
+
+func (c exampleContainer) GetStatus() (string, error) {
+	state, err := c.container.State(c.ctx)
+	return state.Status, err
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent) (Service, error) {

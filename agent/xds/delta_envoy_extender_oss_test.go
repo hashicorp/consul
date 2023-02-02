@@ -186,6 +186,28 @@ end`,
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
+		{
+			name: "lambda-and-lua-connect-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				nsFunc := func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLuaExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType": "connect-proxy",
+								"Listener":  "inbound",
+								"Script": `
+function envoy_on_request(request_handle)
+  request_handle:headers():add("test", "test")
+end`,
+							},
+						},
+					}
+				}
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]

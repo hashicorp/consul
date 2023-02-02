@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -42,6 +43,7 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
+	logger hclog.Logger
 
 	// flags
 	meshGateway              bool
@@ -65,6 +67,7 @@ type cmd struct {
 	prometheusCertFile       string
 	prometheusKeyFile        string
 	ignoreEnvoyCompatibility bool
+	enableLogging            bool
 
 	// mesh gateway registration information
 	register           bool
@@ -221,6 +224,9 @@ func (c *cmd) init() {
 			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
 			"Default is `false`.")
 
+	c.flags.BoolVar(&c.enableLogging, "enable-config-gen-logging", false,
+		"Output debug log messages during config generation")
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
@@ -229,6 +235,12 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
+
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -281,6 +293,8 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
+	c.logger.Debug("Initialized API client")
+
 	// TODO: refactor
 	return c.run(c.flags.Args())
 }
@@ -350,6 +364,7 @@ func (c *cmd) run(args []string) int {
 			c.proxyID = c.gatewaySvcName
 
 		}
+		c.logger.Debug("Set Proxy ID", "proxy-id", c.proxyID)
 	}
 	if c.proxyID == "" {
 		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
@@ -443,6 +458,7 @@ func (c *cmd) run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
+		c.logger.Debug("Proxy registration complete")
 
 		if !c.bootstrap {
 			// We need stdout to be reserved exclusively for the JSON blob, so
@@ -457,6 +473,7 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// Generate config
+	c.logger.Debug("Generating bootstrap config")
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -465,11 +482,13 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
+		c.logger.Debug("Outputting bootstrap config")
 		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
 	// Find Envoy binary
+	c.logger.Debug("Finding envoy binary")
 	binary, err := c.findBinary()
 	if err != nil {
 		c.UI.Error("Couldn't find envoy binary: " + err.Error())
@@ -497,6 +516,7 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	c.logger.Debug("Executing envoy binary")
 	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
@@ -618,6 +638,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated template args")
 
 	var bsCfg BootstrapConfig
 
@@ -665,6 +686,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svcList.Node.Datacenter
 		c.gatewayKind = svcList.Services[0].Kind
 	}
+	c.logger.Debug("Fetched registration info")
 	if svcProxyConfig == nil {
 		return nil, errors.New("service is not a Connect proxy or gateway")
 	}
@@ -700,6 +722,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err := generateAccessLogs(c, args); err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated access logs")
 
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {

@@ -73,15 +73,20 @@ func (g ConnectContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
-	return g.container.Start(context.Background())
+	return g.container.Start(g.ctx)
 }
 
-func (c ConnectContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
+func (g ConnectContainer) Terminate() error {
+	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
 func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
+}
+
+func (g ConnectContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by

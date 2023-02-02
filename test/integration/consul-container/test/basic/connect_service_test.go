@@ -31,6 +31,7 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 
+	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 }
 

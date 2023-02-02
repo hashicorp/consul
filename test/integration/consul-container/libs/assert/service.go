@@ -75,3 +75,10 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 	require.NoError(t, err)
 	return strings.Contains(logs, target)
 }
+
+// AssertContainerState validates service container status
+func AssertContainerState(t *testing.T, service libservice.Service, state string) {
+	containerStatus, err := service.GetStatus()
+	require.NoError(t, err)
+	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", containerStatus, state))
+}
