@@ -213,7 +213,6 @@ func ComputeResolvedServiceConfig(
 	var hasPeerUpstream bool
 	for _, override := range upstreamOverrides {
 		if override.Peer != "" {
-			hclog.Default().Error("*** Found peer name in service-defaults", "name", override.Name)
 			hasPeerUpstream = true
 			break
 		}
@@ -271,16 +270,18 @@ func ComputeResolvedServiceConfig(
 		}
 
 		// Merge in Overrides for the upstream (step 5).
+		// In the legacy case, overrides only match on name. We remove the peer and try to match against
+		// our map of overrides. We still want to check the full PSN in the map in case there is a specific
+		// override that applies to peers.
 		if legacyUpstreams {
 			peerlessUpstream := upstream
 			peerlessUpstream.Peer = ""
 			if upstreamOverrides[peerlessUpstream] != nil {
 				upstreamOverrides[peerlessUpstream].MergeInto(resolvedCfg)
 			}
-		} else {
-			if upstreamOverrides[upstream] != nil {
-				upstreamOverrides[upstream].MergeInto(resolvedCfg)
-			}
+		}
+		if upstreamOverrides[upstream] != nil {
+			upstreamOverrides[upstream].MergeInto(resolvedCfg)
 		}
 
 		if len(resolvedCfg) > 0 {
