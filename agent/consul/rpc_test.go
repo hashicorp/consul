@@ -1629,7 +1629,8 @@ func TestGetWaitTime(t *testing.T) {
 	config := DefaultConfig()
 	config.RPCHoldTimeout = 7 * time.Second
 	run := func(t *testing.T, tc testCase) {
-		require.Equal(t, tc.expected, getWaitTime(config, tc.retryCount))
+		require.GreaterOrEqual(t, getWaitTime(config, tc.retryCount), 0*time.Second)
+		require.LessOrEqual(t, getWaitTime(config, tc.retryCount), tc.expected)
 	}
 
 	var testCases = []testCase{

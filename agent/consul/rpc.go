@@ -560,32 +560,25 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 func getWaitTime(config *Config, retryCount int) time.Duration {
 	rpcHoldTimeoutInSeconds := config.RPCHoldTimeout.Seconds() // TODO: define default value on safe side?
 	initialBackoffInSeconds := math.Min(1, rpcHoldTimeoutInSeconds/structs.JitterFraction)
-	backoffMultiplierInSeconds := 2.0 // math.Min(math.Max(rpcHoldTimeout/structs.MaxRetries, 2), 2)
+	backoffMultiplierInSeconds := 2.0
 
-	print("\nrpcHoldTimeoutInSeconds ")
-	print(rpcHoldTimeoutInSeconds)
+	fmt.Println("rpcHoldTimeoutInSeconds: ", rpcHoldTimeoutInSeconds)
 
-	print("\n jitter ")
-	print(structs.JitterFraction)
+	fmt.Println("jitter: ", structs.JitterFraction)
 
 	floatJitter := float64(structs.JitterFraction)
 
-	print("\nfloatJitter ")
-	print(floatJitter)
+	fmt.Println("floatjitter: ", float64(structs.JitterFraction))
 
 	threshold := rpcHoldTimeoutInSeconds / floatJitter
 
-	print("\nthreshold ")
-	print(threshold)
+	fmt.Println("threshold: ", threshold)
 
-	print("\ninitialBackoffInSeconds:::::")
-	print(initialBackoffInSeconds)
+	fmt.Println("initialBackoffInSeconds: ", initialBackoffInSeconds)
 
-	print("\nretryCount:::::")
-	print(float64(retryCount - 1))
+	fmt.Println("retryCount: ", retryCount-1)
 
-	print("\npower:::::")
-	print(math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
+	fmt.Println("power: ", math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
 
 	waitTimeInSeconds := initialBackoffInSeconds * math.Pow(backoffMultiplierInSeconds, float64(retryCount-1))
 	// Itr1:
@@ -623,10 +616,10 @@ func getWaitTime(config *Config, retryCount int) time.Duration {
 	// retryCount = 2
 	// waitTimeInSeconds = 0.43 * 2^4 = 6.88s
 
-	print("\nwait time:::::")
-	print(waitTimeInSeconds)
+	fmt.Println("waitTimeInSeconds: ", waitTimeInSeconds)
+	fmt.Println("wait time duration: ", time.Duration(waitTimeInSeconds*float64(time.Second)))
 
-	return lib.RandomStagger(time.Duration(waitTimeInSeconds)) // TODO:change this to not be between 0 lower limit?
+	return lib.RandomStagger(time.Duration(waitTimeInSeconds * float64(time.Second))) // TODO:change this to not be between 0 lower limit?
 }
 
 // canRetry returns true if the request and error indicate that a retry is safe.
