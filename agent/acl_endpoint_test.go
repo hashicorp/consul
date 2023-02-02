@@ -1845,7 +1845,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
-			require.ErrorContains(t, err, "Requested token does not exist")
+			require.ErrorContains(t, err, "token does not exist")
 		})
 	})
 }
@@ -2010,7 +2010,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.ErrorContains(t, err, "Requested token does not exist")
+				require.ErrorContains(t, err, "token does not exist")
 			})
 		})
 	}

@@ -167,7 +167,11 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 	}
 
 	if out.Policy == nil {
-		// if no error was returned, the policy does not exist
+		// if no error was returned above, the policy does not exist
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			msg := fmt.Sprintf("Requested policy not found in namespace %s", ns)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg}
+		}
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested policy does not exist"}
 	}
 
@@ -352,8 +356,8 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	}
 
 	if out.Token == nil {
-		// if no error was returned, the token does not exist
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Token does not exist"}
+		// if no error was returned above, the token does not exist
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Supplied token does not exist"}
 	}
 
 	return out.Token, nil
@@ -396,8 +400,12 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Token == nil {
-		// if no error was returned, token does not exist
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Requested token does not exist"}
+		// if no error was returned above, the token does not exist
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			msg := fmt.Sprintf("Requested token not found in namespace %s", ns)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg}
+		}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested token does not exist"}
 	}
 
 	if args.Expanded {
@@ -454,8 +462,7 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 	var ignored string
 	if err := s.agent.RPC(req.Context(), "ACL.TokenDelete", args, &ignored); err != nil {
 		if err == acl.ErrNotFound {
-			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token does not exist")}
-
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Cannot find token to delete")}
 		}
 		return nil, err
 	}
@@ -595,7 +602,13 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Role == nil {
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Role does not exist"}
+		// if not permission denied error is returned above, role does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			msg := fmt.Sprintf("Requested role not found in namespace %s", ns)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg}
+		}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested role does not exist"}
 	}
 
 	return out.Role, nil
@@ -742,8 +755,13 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 	}
 
 	if out.BindingRule == nil {
-		// if no error was returned, the binding rule does not exist
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Binding rule does not exist"}
+		// if no error was returned above, the binding rule does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			msg := fmt.Sprintf("Requested binding rule not found in namespace %s", ns)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg}
+		}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested binding rule does not exist"}
 	}
 
 	return out.BindingRule, nil
@@ -885,8 +903,13 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 	}
 
 	if out.AuthMethod == nil {
-		// if no error was returned, the auth method does not exist
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Auth method does not exist"}
+		// if no error was returned above, the auth method does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			msg := fmt.Sprintf("Requested auth method not found in namespace %s", ns)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg}
+		}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Requested auth method does not exist"}
 	}
 
 	fixupAuthMethodConfig(out.AuthMethod)

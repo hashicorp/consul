@@ -326,6 +326,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			reply.SourceDatacenter = args.Datacenter
 			if token == nil {
 				// token does not exist
+				if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+				}
 				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 			}
 
@@ -459,8 +462,13 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, &args.ACLToken.EnterpriseMeta)
 	if err != nil {
 		return err
-	} else if token == nil || token.IsExpired(time.Now()) {
-		return acl.ErrNotFound
+	} else if token == nil {
+		if ns := args.ACLToken.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+	} else if token.IsExpired(time.Now()) {
+		return fmt.Errorf("token is expired: %w", acl.ErrNotFound)
 	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
@@ -600,8 +608,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	} else {
 		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
 		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
-			err := fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
-			return err
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return acl.ErrNotFound
 	}
