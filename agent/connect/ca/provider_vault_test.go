@@ -274,7 +274,7 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
 	require.NoError(t, err)
 
-	// Wait past the TTL and make sure the token has been renewed.
+	// Retry past the TTL and make sure the token has been renewed.
 	retry.Run(t, func(r *retry.R) {
 		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
 		require.NoError(r, err)
