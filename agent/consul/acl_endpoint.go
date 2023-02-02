@@ -338,6 +338,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 			}
 
+			reply.Index, reply.Token = index, token
+			reply.SourceDatacenter = args.Datacenter
+
 			if args.Expanded {
 				info, err := a.lookupExpandedTokenInfo(ws, state, token)
 				if err != nil {
