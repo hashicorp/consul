@@ -29,6 +29,19 @@ type cmd struct {
 	partitionNames string
 }
 
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+
+	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
+	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "Peers the service will be exported to, formatted as a comma-separated list. Not required for Enterprise if setting -consumer-partitions.")
+	c.flags.StringVar(&c.partitionNames, "consumer-partitions", "", "Required if not setting -consumer-peers. The local partitions within the same datacenter that the service will be exported to, formatted as a comma-separated list. Admin Partitions are a Consul Enterprise feature.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
+	c.help = flags.Usage(help, c.flags)
+}
+
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
