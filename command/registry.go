@@ -6,8 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/hashicorp/consul/command/operator/raft/transferleader"
-
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -98,6 +96,7 @@ import (
 	operraft "github.com/hashicorp/consul/command/operator/raft"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
