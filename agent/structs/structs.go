@@ -2244,6 +2244,10 @@ type PeeredServiceName struct {
 	Peer        string
 }
 
+func (psn PeeredServiceName) String() string {
+	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
+}
+
 type ServiceName struct {
 	Name               string
 	acl.EnterpriseMeta `mapstructure:",squash"`

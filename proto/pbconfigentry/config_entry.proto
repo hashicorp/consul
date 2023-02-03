@@ -529,6 +529,7 @@ message UpstreamConfig {
   PassiveHealthCheck PassiveHealthCheck = 8;
   MeshGatewayConfig MeshGateway = 9;
   string BalanceOutboundConnections = 10;
+  string Peer = 11;
 }
 
 // mog annotation:

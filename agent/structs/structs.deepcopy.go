@@ -594,27 +594,26 @@ func (o *ServiceConfigResponse) DeepCopy() *ServiceConfigResponse {
 			cp.ProxyConfig[k2] = v2
 		}
 	}
-	if o.UpstreamConfigs != nil {
-		cp.UpstreamConfigs = make(map[string]map[string]interface{}, len(o.UpstreamConfigs))
-		for k2, v2 := range o.UpstreamConfigs {
-			var cp_UpstreamConfigs_v2 map[string]interface{}
-			if v2 != nil {
-				cp_UpstreamConfigs_v2 = make(map[string]interface{}, len(v2))
-				for k3, v3 := range v2 {
-					cp_UpstreamConfigs_v2[k3] = v3
-				}
-			}
-			cp.UpstreamConfigs[k2] = cp_UpstreamConfigs_v2
-		}
-	}
 	if o.UpstreamIDConfigs != nil {
-		cp.UpstreamIDConfigs = make([]OpaqueUpstreamConfig, len(o.UpstreamIDConfigs))
+		cp.UpstreamIDConfigs = make([]OpaqueUpstreamConfigDeprecated, len(o.UpstreamIDConfigs))
 		copy(cp.UpstreamIDConfigs, o.UpstreamIDConfigs)
 		for i2 := range o.UpstreamIDConfigs {
 			if o.UpstreamIDConfigs[i2].Config != nil {
 				cp.UpstreamIDConfigs[i2].Config = make(map[string]interface{}, len(o.UpstreamIDConfigs[i2].Config))
 				for k4, v4 := range o.UpstreamIDConfigs[i2].Config {
 					cp.UpstreamIDConfigs[i2].Config[k4] = v4
+				}
+			}
+		}
+	}
+	if o.UpstreamConfigs != nil {
+		cp.UpstreamConfigs = make([]OpaqueUpstreamConfig, len(o.UpstreamConfigs))
+		copy(cp.UpstreamConfigs, o.UpstreamConfigs)
+		for i2 := range o.UpstreamConfigs {
+			if o.UpstreamConfigs[i2].Config != nil {
+				cp.UpstreamConfigs[i2].Config = make(map[string]interface{}, len(o.UpstreamConfigs[i2].Config))
+				for k4, v4 := range o.UpstreamConfigs[i2].Config {
+					cp.UpstreamConfigs[i2].Config[k4] = v4
 				}
 			}
 		}
