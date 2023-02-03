@@ -741,6 +741,8 @@ CHECK_LEADER:
 	retryableMessages := []error{
 		// If we are chunking and it doesn't seem to have completed, try again.
 		ErrChunkingResubmit,
+
+		rate.ErrRetryLater,
 	}
 
 	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {

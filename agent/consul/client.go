@@ -304,8 +304,6 @@ TRY:
 		// These rate limit errors are returned before the handler is called, so are
 		// safe to retry.
 		rpcRate.ErrRetryElsewhere,
-
-		rpcRate.ErrRetryLater,
 	}
 
 	if retry := canRetry(info, rpcErr, firstCheck, c.config, retryableMessages); !retry {

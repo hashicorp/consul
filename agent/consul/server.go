@@ -1532,6 +1532,7 @@ func (i *inmemCodec) Close() error {
 
 // RPC is used to make a local RPC call
 func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	firstCheck := time.Now()
 	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
 		method:     method,
@@ -1552,8 +1553,29 @@ func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
+
+TRY:
 	if err := s.rpcServer.ServeRequest(codec); err != nil {
-		return err
+		info, _ := args.(structs.RPCInfo)
+
+		retryableMessages := []error{
+			// These rate limit errors are returned before the handler is called, so are
+			// safe to retry.
+			rpcRate.ErrRetryElsewhere,
+		}
+
+		if retry := canRetry(info, err, firstCheck, s.config, retryableMessages); !retry {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: s.config.NodeName}})
+			return err
+		}
+
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
+		select {
+		case <-time.After(jitter):
+			goto TRY
+		case <-s.shutdownCh:
+			return err
+		}
 	}
 	return codec.err
 }
