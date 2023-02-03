@@ -1534,6 +1534,7 @@ func (i *inmemCodec) Close() error {
 func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	firstCheck := time.Now()
 	retryCount := 0
+	previousJitter := time.Duration(0)
 	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
 		method:     method,
@@ -1557,6 +1558,7 @@ func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply
 
 TRY:
 	retryCount++
+
 	if err := s.rpcServer.ServeRequest(codec); err != nil {
 		info, _ := args.(structs.RPCInfo)
 
@@ -1571,8 +1573,9 @@ TRY:
 			return err
 		}
 
-		// jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
-		jitter := getWaitTime(s.config, retryCount)
+		jitter := getWaitTime(s.config, previousJitter, retryCount)
+		previousJitter = jitter
+
 		select {
 		case <-time.After(jitter):
 			goto TRY

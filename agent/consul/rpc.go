@@ -557,69 +557,14 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-func getWaitTime(config *Config, retryCount int) time.Duration {
-	rpcHoldTimeoutInSeconds := config.RPCHoldTimeout.Seconds() // TODO: define default value on safe side?
+func getWaitTime(config *Config, previousWaitTime time.Duration, retryCount int) time.Duration {
+	rpcHoldTimeoutInSeconds := config.RPCHoldTimeout.Seconds()
 	initialBackoffInSeconds := math.Min(1, rpcHoldTimeoutInSeconds/structs.JitterFraction)
 	backoffMultiplierInSeconds := 2.0
 
-	// fmt.Println("rpcHoldTimeoutInSeconds: ", rpcHoldTimeoutInSeconds)
-
-	// fmt.Println("jitter: ", structs.JitterFraction)
-
-	// floatJitter := float64(structs.JitterFraction)
-
-	// fmt.Println("floatjitter: ", float64(structs.JitterFraction))
-
-	// threshold := rpcHoldTimeoutInSeconds / floatJitter
-
-	// fmt.Println("threshold: ", threshold)
-
-	// fmt.Println("initialBackoffInSeconds: ", initialBackoffInSeconds)
-
-	// fmt.Println("retryCount: ", retryCount-1)
-
-	// fmt.Println("power: ", math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
-
 	waitTimeInSeconds := initialBackoffInSeconds * math.Pow(backoffMultiplierInSeconds, float64(retryCount-1))
-	// Itr1:
-	// rpcHoldTimeoutInSeconds = 7s
-	// initialBackoffInSeconds = 7/16 = 0.43s
-	// backoffMultiplierInSeconds = 2
-	// retryCount = 1
-	// waitTimeInSeconds = 0.43 * 2^0 = 0.43s
 
-	// Itr2:
-	// rpcHoldTimeoutInSeconds = 7s
-	// initialBackoffInSeconds = 7/16 = 0.43s
-	// backoffMultiplierInSeconds = 2
-	// retryCount = 2
-	// waitTimeInSeconds = 0.43 * 2^1 = 0.86s
-
-	// Itr3:
-	// rpcHoldTimeoutInSeconds = 7s
-	// initialBackoffInSeconds = 7/16 = 0.43s
-	// backoffMultiplierInSeconds = 2
-	// retryCount = 2
-	// waitTimeInSeconds = 0.43 * 2^2 = 1.72s
-
-	// Itr4:
-	// rpcHoldTimeoutInSeconds = 7s
-	// initialBackoffInSeconds = 7/16 = 0.43s
-	// backoffMultiplierInSeconds = 2
-	// retryCount = 2
-	// waitTimeInSeconds = 0.43 * 2^3 = 3.44s
-
-	// Itr5:
-	// rpcHoldTimeoutInSeconds = 7s
-	// initialBackoffInSeconds = 7/16 = 0.43s
-	// backoffMultiplierInSeconds = 2
-	// retryCount = 2
-	// waitTimeInSeconds = 0.43 * 2^4 = 6.88s
-
-	// fmt.Println("waitTimeInSeconds: ", waitTimeInSeconds)
-	// fmt.Println("wait time duration: ", time.Duration(waitTimeInSeconds*float64(time.Second)))
-
-	return lib.RandomStagger(time.Duration(waitTimeInSeconds * float64(time.Second))) // TODO:change this to not be between 0 lower limit?
+	return lib.RandomStaggerWithRange(previousWaitTime, time.Duration(waitTimeInSeconds*float64(time.Second)))
 }
 
 // canRetry returns true if the request and error indicate that a retry is safe.
@@ -781,6 +726,7 @@ func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
 	firstCheck := time.Now()
 	retryCount := 0
+	previousJitter := time.Duration(0)
 CHECK_LEADER:
 	retryCount++
 	// Fail fast if we are in the process of leaving
@@ -815,16 +761,9 @@ CHECK_LEADER:
 
 	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
 		// Gate the request until there is a leader
-		// jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
+		jitter := getWaitTime(s.config, previousJitter, retryCount)
+		previousJitter = jitter
 
-		// 0.43
-		// 0.43 * 2 => 0.86
-		// 0.43 * 4 => 1.72
-		// 0.43 * 8 => 3.44
-		// ------------------
-		// 0.43 * 16 => 7.3 => 7
-
-		jitter := getWaitTime(s.config, retryCount)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
