@@ -136,7 +136,7 @@ func (r *routeReconciler[T]) Reconcile(ctx context.Context, req controller.Reque
 	}
 	for _, ref := range boundRefs {
 		updater.SetCondition(structs.Condition{
-			Type:               "Accepted",
+			Type:               "Bound",
 			Status:             "True",
 			Reason:             "Bound",
 			Resource:           &ref,
@@ -146,7 +146,7 @@ func (r *routeReconciler[T]) Reconcile(ctx context.Context, req controller.Reque
 	}
 	for reference, err := range bindErrors {
 		updater.SetCondition(structs.Condition{
-			Type:               "Accepted",
+			Type:               "Bound",
 			Status:             "False",
 			Reason:             "FailedToBind",
 			Resource:           &reference,
@@ -155,18 +155,28 @@ func (r *routeReconciler[T]) Reconcile(ctx context.Context, req controller.Reque
 		})
 	}
 
-	// first update all of the state values
+	// first update any gateway statuses that are now in conflict
+	for _, gateway := range meta {
+		toUpdate, shouldUpdate := gateway.checkConflicts()
+		if shouldUpdate {
+			r.logger.Debug("persisting gateway status", "route", route)
+			return r.updater.UpdateWithStatus(toUpdate)
+		}
+	}
+
+	// next update the route status
+	if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
+		r.logger.Debug("persisting route status", "route", route)
+		return r.updater.UpdateWithStatus(toUpdate)
+	}
+
+	// now update all of the state values
 	for _, state := range modifiedGateways {
 		r.logger.Debug("persisting gateway state", "state", state)
 		if err := r.updater.Update(state); err != nil {
 			r.logger.Error("error persisting state", "error", err)
 			return err
 		}
-	}
-
-	// now update the route status
-	if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
-		return r.updater.UpdateWithStatus(toUpdate)
 	}
 
 	if ws != nil {

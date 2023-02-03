@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -178,4 +179,27 @@ func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGa
 		}
 	}
 	return -1, nil
+}
+
+func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
+	now := time.Now()
+	updater := structs.NewStatusUpdater(g.Gateway)
+	for i, listener := range g.BoundGateway.Listeners {
+		protocol := g.Gateway.Listeners[i].Protocol
+		switch protocol {
+		case structs.ListenerProtocolTCP:
+			if len(listener.Routes) > 1 {
+				updater.SetCondition(structs.Condition{
+					Type:               "Conflicted",
+					Status:             "True",
+					Reason:             "RouteConflict",
+					Message:            "TCP-based listeners currently only support binding a single route",
+					LastTransitionTime: &now,
+				})
+			}
+		}
+	}
+
+	toUpdate, shouldUpdate := updater.UpdateEntry()
+	return toUpdate, shouldUpdate
 }
