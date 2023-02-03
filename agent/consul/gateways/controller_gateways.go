@@ -32,6 +32,9 @@ func NewAPIGatewayController(store DataStore, publisher state.EventPublisher, lo
 // Reconcile takes in a controller request and ensures this api gateways corresponding BoundAPIGateway exists and is
 // up to date
 func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
+
+	r.logger.Debug("started reconciling gateway", "gateway", req.Name)
+
 	metaGateway, err := r.initGatewayMeta(req)
 	if err != nil {
 		return err
@@ -51,8 +54,6 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 	}
 
 	r.ensureBoundGateway(metaGateway)
-
-	r.logger.Debug("started reconciling gateway")
 
 	routes, err := r.retrieveAllRoutesFromStore()
 
