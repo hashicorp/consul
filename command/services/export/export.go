@@ -85,13 +85,13 @@ func (c *cmd) Run(args []string) int {
 	if entry == nil {
 		cfg = c.initializeConfigEntry(peerNames, partitionNames)
 	} else {
-		cfg, ok := entry.(*api.ExportedServicesConfigEntry)
+		existingCfg, ok := entry.(*api.ExportedServicesConfigEntry)
 		if !ok {
 			c.UI.Error(fmt.Sprintf("Existing config entry has incorrect type: %t", entry))
 			return 1
 		}
 
-		cfg = c.updateConfigEntry(cfg, peerNames, partitionNames)
+		cfg = c.updateConfigEntry(existingCfg, peerNames, partitionNames)
 	}
 
 	ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
