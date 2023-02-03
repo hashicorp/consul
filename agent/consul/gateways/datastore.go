@@ -1,4 +1,4 @@
-package datastore
+package gateways
 
 import (
 	"github.com/hashicorp/consul/acl"

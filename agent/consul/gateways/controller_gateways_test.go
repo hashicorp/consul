@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
-	"github.com/hashicorp/consul/agent/consul/gateways/datastore"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
@@ -14,7 +13,7 @@ import (
 func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 	type fields struct {
 		logger hclog.Logger
-		store  datastore.DataStore
+		store  DataStore
 	}
 	type args struct {
 		ctx context.Context
@@ -72,8 +71,8 @@ func Test_apiGatewayReconciler_Reconcile(t *testing.T) {
 	}
 }
 
-func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
-	ds := datastore.NewMockDataStore(t)
+func datastoreWithUpdate(t *testing.T) *MockDataStore {
+	ds := NewMockDataStore(t)
 	ds.On("GetConfigEntry", structs.APIGateway, mock.Anything, mock.Anything).Return(&structs.APIGatewayConfigEntry{
 		Kind: structs.APIGateway,
 		Name: "test-gateway",
@@ -115,8 +114,8 @@ func datastoreWithUpdate(t *testing.T) *datastore.MockDataStore {
 	return ds
 }
 
-func datastoreWithDelete(t *testing.T) *datastore.MockDataStore {
-	ds := datastore.NewMockDataStore(t)
+func datastoreWithDelete(t *testing.T) *MockDataStore {
+	ds := NewMockDataStore(t)
 	ds.On("GetConfigEntry", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 	ds.On("Delete", mock.Anything).Return(nil)
 	return ds

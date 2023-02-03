@@ -3,7 +3,6 @@ package gateways
 import (
 	"context"
 	"github.com/hashicorp/consul/agent/consul/controller"
-	"github.com/hashicorp/consul/agent/consul/gateways/datastore"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -13,11 +12,11 @@ import (
 
 type apiGatewayReconciler struct {
 	logger hclog.Logger
-	store  datastore.DataStore
+	store  DataStore
 }
 
 // NewAPIGatewayController returns a new APIGateway controller
-func NewAPIGatewayController(store datastore.DataStore, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
+func NewAPIGatewayController(store DataStore, publisher state.EventPublisher, logger hclog.Logger) controller.Controller {
 	reconciler := apiGatewayReconciler{
 		logger: logger,
 		store:  store,
