@@ -1623,35 +1623,40 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 func TestGetWaitTime(t *testing.T) {
 	type testCase struct {
 		name       string
+		previous   time.Duration
 		expected   time.Duration
 		retryCount int
 	}
 	config := DefaultConfig()
 	config.RPCHoldTimeout = 7 * time.Second
 	run := func(t *testing.T, tc testCase) {
-		require.GreaterOrEqual(t, getWaitTime(config, tc.retryCount), 0*time.Second)
-		require.LessOrEqual(t, getWaitTime(config, tc.retryCount), tc.expected)
+		require.GreaterOrEqual(t, getWaitTime(config, tc.previous, tc.retryCount), tc.previous)
+		require.LessOrEqual(t, getWaitTime(config, tc.previous, tc.retryCount), tc.expected)
 	}
 
 	var testCases = []testCase{
 		{
 			name:       "first attempt",
 			retryCount: 1,
+			previous:   time.Duration(0),
 			expected:   time.Duration(430) * time.Millisecond,
 		},
 		{
 			name:       "second attempt",
 			retryCount: 2,
+			previous:   time.Duration(430) * time.Millisecond,
 			expected:   time.Duration(860) * time.Millisecond,
 		},
 		{
 			name:       "third attempt",
 			retryCount: 3,
+			previous:   time.Duration(860) * time.Millisecond,
 			expected:   time.Duration(1720) * time.Millisecond,
 		},
 		{
 			name:       "fourth attempt",
 			retryCount: 4,
+			previous:   time.Duration(1720) * time.Millisecond,
 			expected:   time.Duration(3440) * time.Millisecond,
 		},
 	}

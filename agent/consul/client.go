@@ -273,6 +273,7 @@ func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply
 	// TODO (slackpad) Plumb a deadline here with a context.
 	firstCheck := time.Now()
 	retryCount := 0
+	previousJitter := time.Duration(0)
 TRY:
 	retryCount++
 	manager, server := c.router.FindLANRoute()
@@ -324,8 +325,9 @@ TRY:
 	)
 
 	// We can wait a bit and retry!
-	// jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
-	jitter := getWaitTime(c.config, retryCount)
+	jitter := getWaitTime(c.config, previousJitter, retryCount)
+	previousJitter = jitter
+
 	select {
 	case <-time.After(jitter):
 		goto TRY
