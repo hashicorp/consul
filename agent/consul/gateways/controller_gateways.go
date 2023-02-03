@@ -127,7 +127,7 @@ func (r *apiGatewayReconciler) initGatewayMeta(req controller.Request) (*gateway
 	}
 
 	if apiGateway == nil {
-		//gateway needs to be deleted, don't init
+		//gateway doesn't exist
 		return nil, nil
 	}
 
