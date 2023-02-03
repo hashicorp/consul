@@ -50,6 +50,10 @@ The following Kubernetes resource annotations could be used on a pod to control 
   list of additional user IDs to exclude from traffic redirection when running in transparent proxy
   mode.
 
+- `consul.hashicorp.com/use-proxy-health-check` - It this is set to `true`, it configures
+  a readiness endpoint on Consul sidecar proxy and queries the proxy instead of the proxy's inbound port which
+  forwards the request to the application.
+
 - `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
   served. This defaults to the name of the Kubernetes service associated with the pod.
@@ -81,7 +85,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         ```
 
       - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in a different namespace. Place
-      the upstream namespace after the service name. For additional details about configuring the injector, refer to 
+      the upstream namespace after the service name. For additional details about configuring the injector, refer to
 
       [Consul Enterprise Namespaces](#consul-enterprise-namespaces) .
         ```yaml
