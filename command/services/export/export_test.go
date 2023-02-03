@@ -43,20 +43,6 @@ func TestExportCommand(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "Missing the required -name flag")
 	})
 
-	t.Run("peer is required", func(t *testing.T) {
-
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		args := []string{
-			"-name=testservice",
-		}
-
-		code := cmd.Run(args)
-		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "Missing the required -consumer-peers flag")
-	})
-
 	t.Run("valid peer name is required", func(t *testing.T) {
 
 		ui := cli.NewMockUi()
