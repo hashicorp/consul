@@ -97,6 +97,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 }
 
 // Configure sets up the provider using the given configuration.
+// Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	config, err := ParseVaultCAConfig(cfg.RawConfig)
 	if err != nil {
@@ -173,6 +174,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		if v.stopWatcher != nil {
+			// stop the running watcher loop if we are re-configuring
 			v.stopWatcher()
 		}
 		v.stopWatcher = cancel
