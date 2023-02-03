@@ -55,7 +55,6 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 	r.logger.Debug("started reconciling gateway")
 
 	routes, err := r.retrieveAllRoutesFromStore()
-
 	if err != nil {
 		return err
 	}
