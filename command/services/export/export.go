@@ -80,23 +80,10 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error reading config entry %s/%s: %v", "exported-services", "default", err))
 		return 1
 	}
-	if entry == nil {
-		cfg := api.ExportedServicesConfigEntry{
-			Name: "default",
-			Services: []api.ExportedService{
-				{
-					Name:      c.serviceName,
-					Consumers: buildConsumers(peerNames, partitionNames),
-				},
-			},
-		}
-		c.UI.Info(fmt.Sprintf("%#v", cfg))
-		_, _, err = client.ConfigEntries().Set(&cfg, &api.WriteOptions{})
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error creating config entry: %s", err))
-			return 1
-		}
 
+	var cfg *api.ExportedServicesConfigEntry
+	if entry == nil {
+		cfg = c.initializeConfigEntry(peerNames, partitionNames)
 	} else {
 		cfg, ok := entry.(*api.ExportedServicesConfigEntry)
 		if !ok {
@@ -104,70 +91,88 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		serviceExists := false
+		cfg = c.updateConfigEntry(cfg, peerNames, partitionNames)
+	}
 
-		for i, service := range cfg.Services {
-			if service.Name == c.serviceName {
-				serviceExists = true
+	ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error writing config entry: %s", err))
+		return 1
+	} else if !ok {
+		c.UI.Error(fmt.Sprintf("Config entry was changed during update. Please try again"))
+		return 1
+	}
 
-				// Add a consumer for each peer where one doesn't already exist
-				for _, peerName := range peerNames {
-					peerExists := false
-					for _, consumer := range service.Consumers {
-						if consumer.Peer == peerName {
-							peerExists = true
-							break
-						}
-					}
-					if !peerExists {
-						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
+	switch {
+	case len(c.peerNames) > 0 && len(c.partitionNames) > 0:
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
+	case len(c.peerNames) > 0:
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q", c.serviceName, c.peerNames))
+	case len(c.partitionNames) > 0:
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to partitions %q", c.serviceName, c.partitionNames))
+	}
+
+	return 0
+}
+
+func (c *cmd) initializeConfigEntry(peerNames, partitionNames []string) *api.ExportedServicesConfigEntry {
+	return &api.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []api.ExportedService{
+			{
+				Name:      c.serviceName,
+				Consumers: buildConsumers(peerNames, partitionNames),
+			},
+		},
+	}
+}
+
+func (c *cmd) updateConfigEntry(cfg *api.ExportedServicesConfigEntry, peerNames, partitionNames []string) *api.ExportedServicesConfigEntry {
+	serviceExists := false
+
+	for i, service := range cfg.Services {
+		if service.Name == c.serviceName {
+			serviceExists = true
+
+			// Add a consumer for each peer where one doesn't already exist
+			for _, peerName := range peerNames {
+				peerExists := false
+				for _, consumer := range service.Consumers {
+					if consumer.Peer == peerName {
+						peerExists = true
+						break
 					}
 				}
+				if !peerExists {
+					cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Peer: peerName})
+				}
+			}
 
-				// Add a consumer for each partition where one doesn't already exist
-				for _, partitionName := range partitionNames {
-					partitionExists := false
+			// Add a consumer for each partition where one doesn't already exist
+			for _, partitionName := range partitionNames {
+				partitionExists := false
 
-					for _, consumer := range service.Consumers {
-						if consumer.Partition == partitionName {
-							partitionExists = true
-							break
-						}
+				for _, consumer := range service.Consumers {
+					if consumer.Partition == partitionName {
+						partitionExists = true
+						break
 					}
-					if !partitionExists {
-						cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Partition: partitionName})
-					}
+				}
+				if !partitionExists {
+					cfg.Services[i].Consumers = append(cfg.Services[i].Consumers, api.ServiceConsumer{Partition: partitionName})
 				}
 			}
 		}
-
-		if !serviceExists {
-			cfg.Services = append(cfg.Services, api.ExportedService{
-				Name:      c.serviceName,
-				Consumers: buildConsumers(peerNames, partitionNames),
-			})
-		}
-
-		ok, _, err := client.ConfigEntries().CAS(cfg, cfg.GetModifyIndex(), nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error writing modifed service and peer to config entry: %s", err))
-			return 1
-		}
-
-		if !ok {
-			c.UI.Error(fmt.Sprintf("Modifed service and peer config entry was changed during update. Please try again"))
-			return 1
-		}
 	}
 
-	if len(c.peerNames) > 0 && len(c.partitionNames) > 0 {
-		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
-	} else if len(c.peerNames) > 0 {
-		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q", c.serviceName, c.peerNames))
-	} else if len(c.partitionNames) > 0 {
-		c.UI.Info(fmt.Sprintf("Successfully exported service %q to partitions %q", c.serviceName, c.partitionNames))
+	if !serviceExists {
+		cfg.Services = append(cfg.Services, api.ExportedService{
+			Name:      c.serviceName,
+			Consumers: buildConsumers(peerNames, partitionNames),
+		})
 	}
-	return 0
+
+	return cfg
 }
 
 func buildConsumers(peerNames []string, partitionNames []string) []api.ServiceConsumer {
