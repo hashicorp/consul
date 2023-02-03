@@ -74,6 +74,30 @@ func (s *Server) stopConnectLeader() {
 func (s *Server) runConfigEntryControllers(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
+	updater := &gateways.Updater{
+		UpdateWithStatus: func(entry structs.ControlledConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryUpsertWithStatusCAS,
+				Entry: entry,
+			})
+			return err
+		},
+		Update: func(entry structs.ConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryUpsertCAS,
+				Entry: entry,
+			})
+			return err
+		},
+		Delete: func(entry structs.ConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Delete", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryDelete,
+				Entry: entry,
+			})
+			return err
+		},
+	}
+
 	group.Go(func() error {
 		logger := s.logger.Named(logging.APIGatewayController)
 		return gateways.NewAPIGatewayController(s.fsm, s.publisher, logger).Run(ctx)
@@ -81,12 +105,12 @@ func (s *Server) runConfigEntryControllers(ctx context.Context) error {
 
 	group.Go(func() error {
 		logger := s.logger.Named(logging.HTTPRouteController)
-		return gateways.NewHTTPRouteController(s.fsm, s.publisher, logger).Run(ctx)
+		return gateways.NewHTTPRouteController(s.fsm, s.publisher, updater, logger).Run(ctx)
 	})
 
 	group.Go(func() error {
 		logger := s.logger.Named(logging.TCPRouteController)
-		return gateways.NewTCPRouteController(s.fsm, s.publisher, logger).Run(ctx)
+		return gateways.NewTCPRouteController(s.fsm, s.publisher, updater, logger).Run(ctx)
 	})
 
 	return group.Wait()

@@ -364,7 +364,12 @@ func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidUnbind := tc.gateway.unbindRoute(tc.route)
+			routeRef := structs.ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.gateway.unbindRoute(routeRef)
 
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.BoundGateway.Listeners)

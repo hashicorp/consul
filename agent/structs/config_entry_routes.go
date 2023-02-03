@@ -12,6 +12,7 @@ type BoundRoute interface {
 	ConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
+	GetTargetedServices() []ServiceName
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -47,6 +48,14 @@ func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
 		}
 	}
 	return targets
+}
+
+func (e *HTTPRouteConfigEntry) GetTargetedServices() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.GetTargets() {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
 }
 
 func (e *HTTPRouteConfigEntry) GetKind() string {
@@ -281,6 +290,14 @@ type TCPRouteConfigEntry struct {
 
 func (e *TCPRouteConfigEntry) GetTargets() []TCPService {
 	return e.Services
+}
+
+func (e *TCPRouteConfigEntry) GetTargetedServices() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.Services {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {

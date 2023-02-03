@@ -48,4 +48,5 @@ deep-copy \
   -type TCPRouteConfigEntry \
   -type Upstream \
   -type UpstreamConfiguration \
+  -type Status \
   ./

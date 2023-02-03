@@ -3,6 +3,8 @@ package gateways
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -15,6 +17,36 @@ type gatewayMeta struct {
 	BoundGateway *structs.BoundAPIGatewayConfigEntry
 	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
+}
+
+// getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
+// tuples based on the state coming from the store. Any gateway that does not have
+// a current bound state will be filtered out.
+func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
+	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return nil, err
+	}
+	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return nil, err
+	}
+
+	meta := make([]*gatewayMeta, 0, len(boundGateways))
+	for _, b := range boundGateways {
+		bound := b.(*structs.BoundAPIGatewayConfigEntry)
+		for _, g := range gateways {
+			gateway := g.(*structs.APIGatewayConfigEntry)
+			if bound.References(gateway) {
+				meta = append(meta, &gatewayMeta{
+					BoundGateway: bound,
+					Gateway:      gateway,
+				})
+				break
+			}
+		}
+	}
+	return meta, nil
 }
 
 // updateRouteBinding takes a parent resource reference and a BoundRoute and
@@ -40,8 +72,13 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 	}
 
 	for i, listener := range g.BoundGateway.Listeners {
+		routeRef := structs.ResourceReference{
+			Kind:           route.GetKind(),
+			Name:           route.GetName(),
+			EnterpriseMeta: *route.GetEnterpriseMeta(),
+		}
 		// Unbind to handle any stale route references.
-		didUnbind := listener.UnbindRoute(route)
+		didUnbind := listener.UnbindRoute(routeRef)
 		if didUnbind {
 			didUpdate = true
 		}
@@ -93,8 +130,13 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 		}
 
 		if listener.Protocol == route.GetProtocol() {
+			routeRef := structs.ResourceReference{
+				Kind:           route.GetKind(),
+				Name:           route.GetName(),
+				EnterpriseMeta: *route.GetEnterpriseMeta(),
+			}
 			i, boundListener := g.boundListenerByName(listener.Name)
-			if boundListener != nil && boundListener.BindRoute(route) {
+			if boundListener != nil && boundListener.BindRoute(routeRef) {
 				didBind = true
 				g.BoundGateway.Listeners[i] = *boundListener
 			}
@@ -113,7 +155,7 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 
 // unbindRoute takes a route and unbinds it from all of the listeners on a gateway.
 // It returns true if the route was unbound and false if it was not.
-func (g *gatewayMeta) unbindRoute(route structs.BoundRoute) bool {
+func (g *gatewayMeta) unbindRoute(route structs.ResourceReference) bool {
 	if g.BoundGateway == nil {
 		return false
 	}

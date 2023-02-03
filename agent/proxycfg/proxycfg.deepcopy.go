@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
-	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
@@ -246,19 +245,9 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				}
 			}
 		}
-		if o.APIGatewayConfigEntry.Status.Conditions != nil {
-			cp.APIGatewayConfigEntry.Status.Conditions = make([]structs.Condition, len(o.APIGatewayConfigEntry.Status.Conditions))
-			copy(cp.APIGatewayConfigEntry.Status.Conditions, o.APIGatewayConfigEntry.Status.Conditions)
-			for i5 := range o.APIGatewayConfigEntry.Status.Conditions {
-				if o.APIGatewayConfigEntry.Status.Conditions[i5].Resource != nil {
-					cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = new(structs.ResourceReference)
-					*cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = *o.APIGatewayConfigEntry.Status.Conditions[i5].Resource
-				}
-				if o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime != nil {
-					cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = new(time.Time)
-					*cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = *o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime
-				}
-			}
+		{
+			retV := o.APIGatewayConfigEntry.Status.DeepCopy()
+			cp.APIGatewayConfigEntry.Status = *retV
 		}
 		if o.APIGatewayConfigEntry.Meta != nil {
 			cp.APIGatewayConfigEntry.Meta = make(map[string]string, len(o.APIGatewayConfigEntry.Meta))

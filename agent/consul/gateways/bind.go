@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -29,6 +30,11 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 
 	for _, route := range routes {
 		parentRefs, gatewayRefs := getReferences(route)
+		routeRef := structs.ResourceReference{
+			Kind:           route.GetKind(),
+			Name:           route.GetName(),
+			EnterpriseMeta: *route.GetEnterpriseMeta(),
+		}
 
 		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
 		for _, gateway := range gateways {
@@ -44,7 +50,7 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 				for _, ref := range references {
 					delete(parentRefs, ref)
 				}
-			} else if gateway.unbindRoute(route) {
+			} else if gateway.unbindRoute(routeRef) {
 				modified = append(modified, gateway.BoundGateway)
 			}
 		}
@@ -70,4 +76,28 @@ func getReferences(route structs.BoundRoute) (referenceSet, gatewayRefs) {
 	}
 
 	return parentRefs, gatewayRefs
+}
+
+func requestToResourceRef(req controller.Request) structs.ResourceReference {
+	ref := structs.ResourceReference{
+		Kind: req.Kind,
+		Name: req.Name,
+	}
+	if req.Meta != nil {
+		ref.EnterpriseMeta = *req.Meta
+	}
+	return ref
+}
+
+// RemoveRoute unbinds the route from the given gateways, returning the list of gateways that were modified.
+func RemoveRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*gatewayMeta {
+	modified := []*gatewayMeta{}
+
+	for _, entry := range entries {
+		if entry.unbindRoute(route) {
+			modified = append(modified, entry)
+		}
+	}
+
+	return modified
 }

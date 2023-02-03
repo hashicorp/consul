@@ -916,6 +916,11 @@ type BoundAPIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+// References returns whether or not this bound api gateway references the given api gateway.
+func (e *BoundAPIGatewayConfigEntry) References(gateway *APIGatewayConfigEntry) bool {
+	return e.Name == gateway.Name && e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta)
+}
+
 func (e *BoundAPIGatewayConfigEntry) GetKind() string {
 	return BoundAPIGateway
 }
@@ -1008,16 +1013,9 @@ type BoundAPIGatewayListener struct {
 // Routes should only bind to listeners with their same section name
 // and protocol. Be sure to check both of these before attempting
 // to bind a route to the listener.
-func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
+func (l *BoundAPIGatewayListener) BindRoute(routeRef ResourceReference) bool {
 	if l == nil {
 		return false
-	}
-
-	// Convert the abstract route interface to a ResourceReference.
-	routeRef := ResourceReference{
-		Kind:           route.GetKind(),
-		Name:           route.GetName(),
-		EnterpriseMeta: *route.GetEnterpriseMeta(),
 	}
 
 	// If the listener has no routes, create a new slice of routes with the given route.
@@ -1040,13 +1038,13 @@ func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 	return true
 }
 
-func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
+func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
 	if l == nil {
 		return false
 	}
 
 	for i, listenerRoute := range l.Routes {
-		if listenerRoute.Kind == route.GetKind() && listenerRoute.Name == route.GetName() && listenerRoute.EnterpriseMeta.IsSame(route.GetEnterpriseMeta()) {
+		if listenerRoute.Kind == route.Kind && listenerRoute.Name == route.Name && listenerRoute.EnterpriseMeta.IsSame(&route.EnterpriseMeta) {
 			l.Routes = append(l.Routes[:i], l.Routes[i+1:]...)
 			return true
 		}
