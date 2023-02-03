@@ -80,7 +80,7 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 		}
 	}
 
-	//// and update the route statuses
+	// and update the route statuses
 	for route, routeError := range routeErrors {
 		configEntry := r.resourceReferenceToBoundRoute(route)
 		r.logger.Error("route binding error:", routeError)
