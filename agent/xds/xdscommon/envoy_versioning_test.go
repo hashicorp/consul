@@ -1,4 +1,4 @@
-package xds
+package xdscommon
 
 import (
 	"testing"
@@ -72,7 +72,7 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	)
 
 	type testcase struct {
-		expect    supportedProxyFeatures
+		expect    SupportedProxyFeatures
 		expectErr string
 	}
 
@@ -129,7 +129,7 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	for _, v := range []string{
 		"1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4", "1.18.5", "1.18.6",
 	} {
-		cases[v] = testcase{expect: supportedProxyFeatures{
+		cases[v] = testcase{expect: SupportedProxyFeatures{
 			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect: true,
 		}}
 	}
@@ -140,13 +140,13 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.23.0", "1.23.1", "1.23.2",
 		"1.24.0",
 	} {
-		cases[v] = testcase{expect: supportedProxyFeatures{}}
+		cases[v] = testcase{expect: SupportedProxyFeatures{}}
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			sf, err := determineSupportedProxyFeaturesFromString(name)
+			sf, err := DetermineSupportedProxyFeaturesFromString(name)
 			if tc.expectErr == "" {
 				require.Equal(t, tc.expect, sf)
 			} else {

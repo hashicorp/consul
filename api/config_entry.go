@@ -179,14 +179,17 @@ type UpstreamConfiguration struct {
 }
 
 type UpstreamConfig struct {
-	// Name is only accepted within a service-defaults config entry.
+	// Name is only accepted within service-defaults.upstreamConfig.overrides .
 	Name string `json:",omitempty"`
 
-	// Partition is only accepted within a service-defaults config entry.
+	// Partition is only accepted within service-defaults.upstreamConfig.overrides .
 	Partition string `json:",omitempty"`
 
-	// Namespace is only accepted within a service-defaults config entry.
+	// Namespace is only accepted within service-defaults.upstreamConfig.overrides .
 	Namespace string `json:",omitempty"`
+
+	// Peer is only accepted within service-defaults.upstreamConfig.overrides .
+	Peer string `json:",omitempty"`
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.

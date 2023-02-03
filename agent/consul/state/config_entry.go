@@ -1205,7 +1205,11 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 			if override.Name == "" {
 				continue // skip this impossible condition
 			}
-			seenUpstreams[override.ServiceID()] = struct{}{}
+			if override.Peer != "" {
+				continue // Peer services do not have service-defaults config entries to fetch.
+			}
+			sid := override.PeeredServiceName().ServiceName.ToServiceID()
+			seenUpstreams[sid] = struct{}{}
 		}
 	}
 

@@ -1,4 +1,4 @@
-package xds
+package validateupstream
 
 import (
 	"io"
@@ -7,6 +7,8 @@ import (
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -205,7 +207,7 @@ func TestValidateUpstreams(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	sf, err := determineSupportedProxyFeaturesFromString(latestEnvoyVersion)
+	sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(latestEnvoyVersion)
 	require.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -215,15 +217,15 @@ func TestValidateUpstreams(t *testing.T) {
 			// We need to replace the TLS certs with deterministic ones to make golden
 			// files workable. Note we don't update these otherwise they'd change
 			// golden files for every test case and so not be any use!
-			setupTLSRootsAndLeaf(t, snap)
+			testcommon.SetupTLSRootsAndLeaf(t, snap)
 
-			g := newResourceGenerator(testutil.Logger(t), nil, false)
+			g := xds.NewResourceGenerator(testutil.Logger(t), nil, false)
 			g.ProxyFeatures = sf
 
-			res, err := g.allResourcesFromSnapshot(snap)
+			res, err := g.AllResourcesFromSnapshot(snap)
 			require.NoError(t, err)
 
-			indexedResources := indexResources(g.Logger, res)
+			indexedResources := xdscommon.IndexResources(g.Logger, res)
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}
@@ -249,8 +251,7 @@ func TestValidateUpstreams(t *testing.T) {
 	}
 }
 
-// TODO make config.json and clusters.json use an http upstream with L7 config entries for more confidence.
-func TestValidate(t *testing.T) {
+func TestValidate2(t *testing.T) {
 	indexedResources := getConfig(t)
 	clusters := getClusters(t)
 	err := Validate(indexedResources, service, "", "", true, clusters)

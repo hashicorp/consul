@@ -64,7 +64,7 @@ func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 		}
 
 		if !strings.Contains(string(body), phrase) {
-			r.Fatal("received an incorrect response ", body)
+			r.Fatal("received an incorrect response ", string(body))
 		}
 	})
 }

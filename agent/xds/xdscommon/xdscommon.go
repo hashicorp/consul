@@ -1,6 +1,11 @@
 package xdscommon
 
 import (
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,6 +56,39 @@ type IndexedResources struct {
 	// childResourceNames. This only applies if the child and parent do not
 	// share a name.
 	ChildIndex map[string]map[string][]string
+}
+
+func IndexResources(logger hclog.Logger, resources map[string][]proto.Message) *IndexedResources {
+	data := EmptyIndexedResources()
+
+	for typeURL, typeRes := range resources {
+		for _, res := range typeRes {
+			name := GetResourceName(res)
+			if name == "" {
+				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
+			} else {
+				data.Index[typeURL][name] = res
+			}
+		}
+	}
+
+	return data
+}
+
+func GetResourceName(res proto.Message) string {
+	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
+	switch x := res.(type) {
+	case *envoy_listener_v3.Listener: // LDS
+		return x.Name
+	case *envoy_route_v3.RouteConfiguration: // RDS
+		return x.Name
+	case *envoy_cluster_v3.Cluster: // CDS
+		return x.Name
+	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
+		return x.ClusterName
+	default:
+		return ""
+	}
 }
 
 func EmptyIndexedResources() *IndexedResources {

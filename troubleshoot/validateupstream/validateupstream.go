@@ -1,4 +1,4 @@
-package xds
+package validateupstream
 
 import (
 	"github.com/hashicorp/consul/acl"

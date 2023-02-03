@@ -15,7 +15,13 @@ const (
 	StaticClientServiceName = "static-client"
 )
 
-func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Service, error) {
+type ServiceOpts struct {
+	Name string
+	ID   string
+	Meta map[string]string
+}
+
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -24,7 +30,8 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 	// Register the static-server service and sidecar first to prevent race with sidecar
 	// trying to get xDS before it's ready
 	req := &api.AgentServiceRegistration{
-		Name: StaticServerServiceName,
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
@@ -37,6 +44,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 			Interval: "10s",
 			Status:   api.HealthPassing,
 		},
+		Meta: serviceOpts.Meta,
 	}
 
 	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
@@ -52,7 +60,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent) (Service, Se
 		_ = serverService.Terminate()
 	})
 
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), StaticServerServiceName, 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, 8080, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
