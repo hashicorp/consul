@@ -10,8 +10,9 @@ import (
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
 var (
@@ -214,7 +215,7 @@ func (h *Handler) Allow(op Operation) error {
 			"limit_enforced", enforced,
 		)
 
-		metrics.IncrCounterWithLabels([]string{"consul", "rate_limit"}, 1, []metrics.Label{
+		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
 			{
 				Name:  "limit_type",
 				Value: l.desc,
