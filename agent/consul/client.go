@@ -316,12 +316,6 @@ TRY:
 		return rpcErr
 	}
 
-	c.logger.Warn("Retrying RPC to server",
-		"method", method,
-		"server", server.Addr,
-		"error", rpcErr,
-	)
-
 	// We can wait a bit and retry!
 	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
 	select {
