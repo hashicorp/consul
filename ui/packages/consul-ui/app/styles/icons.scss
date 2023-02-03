@@ -10,18 +10,6 @@
   }
 }
 
-%theme-light {
-  --icon-aws: icon-aws-color;
-  --icon-vault: icon-vault;
-  --color-vault-500: var(--token-color-hashicorp-brand);
-}
-%theme-dark {
-  --icon-aws: icon-aws;
-  --icon-vault: icon-vault;
-  --color-aws-500: var(--token-color-surface-primary);
-  --color-vault-500: rgb(var(--tone-lemon-500));
-}
-
 %with-vault-100,
 %with-vault-300 {
   --icon-name: icon-vault;
@@ -29,7 +17,7 @@
 }
 %with-aws-100,
 %with-aws-300 {
-  --icon-name: var(--icon-aws);
+  --icon-name: icon-aws-color;
   content: '';
 }
 %with-allow-100,

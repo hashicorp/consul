@@ -24,13 +24,13 @@
 %with-leader-tile::before {
   background-image: linear-gradient(
     135deg,
-    rgb(var(--strawberry-010)) 0%,
-    rgb(var(--strawberry-200)) 100%
+    var(--token-color-consul-surface) 0%,
+    var(--token-color-consul-border) 100%
   );
   border-color: rgb(var(--token-color-hashicorp-brand) / 10%);
 }
 %with-leader-tile::after {
   --icon-name: icon-star-fill;
   --icon-size: icon-700;
-  color: rgb(var(--strawberry-500));
+  color: var(--token-color-consul-brand);
 }

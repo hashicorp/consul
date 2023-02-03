@@ -13,10 +13,10 @@
   }
   .point {
     stroke: var(--token-color-foreground-disabled);
-    fill: rgb(var(--tone-magenta-600));
+    fill: var(--token-color-consul-foreground);
   }
   .lines rect {
-    fill: rgb(var(--tone-magenta-600));
+    fill: var(--token-color-consul-foreground);
     stroke: transparent;
     stroke-width: 5px;
   }

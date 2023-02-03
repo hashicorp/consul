@@ -35,7 +35,7 @@ section[data-route='dc.show.serverstatus'] {
   padding-bottom: 0.5rem; /* 8px */
   margin-bottom: 1rem; /* 16px */
   border-bottom: var(--decor-border-100);
-  border-color: rgb(var(--tone-border));
+  border-color: var(--tone-border);
 }
 
 %server-failure-tolerance header em {
