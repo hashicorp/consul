@@ -562,23 +562,23 @@ func getWaitTime(config *Config, retryCount int) time.Duration {
 	initialBackoffInSeconds := math.Min(1, rpcHoldTimeoutInSeconds/structs.JitterFraction)
 	backoffMultiplierInSeconds := 2.0
 
-	fmt.Println("rpcHoldTimeoutInSeconds: ", rpcHoldTimeoutInSeconds)
+	// fmt.Println("rpcHoldTimeoutInSeconds: ", rpcHoldTimeoutInSeconds)
 
-	fmt.Println("jitter: ", structs.JitterFraction)
+	// fmt.Println("jitter: ", structs.JitterFraction)
 
-	floatJitter := float64(structs.JitterFraction)
+	// floatJitter := float64(structs.JitterFraction)
 
-	fmt.Println("floatjitter: ", float64(structs.JitterFraction))
+	// fmt.Println("floatjitter: ", float64(structs.JitterFraction))
 
-	threshold := rpcHoldTimeoutInSeconds / floatJitter
+	// threshold := rpcHoldTimeoutInSeconds / floatJitter
 
-	fmt.Println("threshold: ", threshold)
+	// fmt.Println("threshold: ", threshold)
 
-	fmt.Println("initialBackoffInSeconds: ", initialBackoffInSeconds)
+	// fmt.Println("initialBackoffInSeconds: ", initialBackoffInSeconds)
 
-	fmt.Println("retryCount: ", retryCount-1)
+	// fmt.Println("retryCount: ", retryCount-1)
 
-	fmt.Println("power: ", math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
+	// fmt.Println("power: ", math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
 
 	waitTimeInSeconds := initialBackoffInSeconds * math.Pow(backoffMultiplierInSeconds, float64(retryCount-1))
 	// Itr1:
@@ -616,8 +616,8 @@ func getWaitTime(config *Config, retryCount int) time.Duration {
 	// retryCount = 2
 	// waitTimeInSeconds = 0.43 * 2^4 = 6.88s
 
-	fmt.Println("waitTimeInSeconds: ", waitTimeInSeconds)
-	fmt.Println("wait time duration: ", time.Duration(waitTimeInSeconds*float64(time.Second)))
+	// fmt.Println("waitTimeInSeconds: ", waitTimeInSeconds)
+	// fmt.Println("wait time duration: ", time.Duration(waitTimeInSeconds*float64(time.Second)))
 
 	return lib.RandomStagger(time.Duration(waitTimeInSeconds * float64(time.Second))) // TODO:change this to not be between 0 lower limit?
 }
