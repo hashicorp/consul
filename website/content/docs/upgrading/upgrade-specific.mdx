@@ -89,9 +89,8 @@ In Consul v1.15 and higher:
 
 #### `service-defaults` Overrides for Upstream Peered Services
 
-In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) would apply to a both local and peered services as long as the `name` field matched.
-Consul 1.15.0 introduces a compatibility mode to maintain this behavior as long as [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
-However, starting in Consul 1.16.0, peered services will require explicit overrides in `service-defaults` by specifying the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) field.
+In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) applies to both local and peered services as long as the `name` field matched.
+Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
 We recommend converting any upstream peer service overrides as a 1.15.x post-upgrade step.
 
 Before Consul v1.15:
