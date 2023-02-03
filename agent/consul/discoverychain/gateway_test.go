@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddTCPRoute(t *testing.T) {
+func TestGatewayChainSynthesizer_AddTCPRoute(t *testing.T) {
 	t.Parallel()
 
 	datacenter := "dc1"
@@ -37,7 +37,7 @@ func TestAddTCPRoute(t *testing.T) {
 	require.Equal(t, expected, *gatewayChainSynthesizer)
 }
 
-func TestAddHTTPRoute(t *testing.T) {
+func TestGatewayChainSynthesizer_AddHTTPRoute(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
@@ -458,6 +458,87 @@ func TestAddHTTPRoute(t *testing.T) {
 			gatewayChainSynthesizer.AddHTTPRoute(tc.route)
 
 			require.Equal(t, tc.expectedMatchesByHostname, gatewayChainSynthesizer.matchesByHostname)
+		})
+	}
+}
+
+func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		synthesizer             *GatewayChainSynthesizer
+		tcpRoutes               []*structs.TCPRouteConfigEntry
+		httpRoutes              []*structs.HTTPRouteConfigEntry
+		chain                   *structs.CompiledDiscoveryChain
+		extra                   []*structs.CompiledDiscoveryChain
+		expectedIngressServices []structs.IngressService
+		expectedDiscoveryChain  *structs.CompiledDiscoveryChain
+	}{
+		// TODO Add tests for other synthesizer types.
+		"TCPRoute-based listener": {
+			synthesizer: NewGatewayChainSynthesizer("dc1", &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			}),
+			tcpRoutes: []*structs.TCPRouteConfigEntry{
+				{
+					Kind: structs.TCPRoute,
+					Name: "tcp-route",
+				},
+			},
+			chain: &structs.CompiledDiscoveryChain{
+				ServiceName: "foo",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+			},
+			extra:                   []*structs.CompiledDiscoveryChain{},
+			expectedIngressServices: []structs.IngressService{},
+			expectedDiscoveryChain: &structs.CompiledDiscoveryChain{
+				ServiceName: "foo",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+			},
+		},
+		"HTTPRoute-based listener": {
+			synthesizer: NewGatewayChainSynthesizer("dc1", &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			}),
+			httpRoutes: []*structs.HTTPRouteConfigEntry{
+				{
+					Kind: structs.HTTPRoute,
+					Name: "http-route",
+				},
+			},
+			chain: &structs.CompiledDiscoveryChain{
+				ServiceName: "foo",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+			},
+			extra:                   []*structs.CompiledDiscoveryChain{},
+			expectedIngressServices: []structs.IngressService{},
+			expectedDiscoveryChain: &structs.CompiledDiscoveryChain{
+				ServiceName: "foo",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for _, tcpRoute := range tc.tcpRoutes {
+				tc.synthesizer.AddTCPRoute(*tcpRoute)
+			}
+			for _, httpRoute := range tc.httpRoutes {
+				tc.synthesizer.AddHTTPRoute(*httpRoute)
+			}
+
+			ingressServices, discoveryChain, err := tc.synthesizer.Synthesize(tc.chain, tc.extra...)
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedIngressServices, ingressServices)
+			require.Equal(t, tc.expectedDiscoveryChain, discoveryChain)
 		})
 	}
 }
