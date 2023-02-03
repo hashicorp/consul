@@ -13,7 +13,8 @@ var (
 	LatestImageName string
 	LatestVersion   string
 
-	FollowLog bool
+	FollowLog       bool
+	Version_1_14, _ = version.NewVersion("1.14")
 )
 
 const (

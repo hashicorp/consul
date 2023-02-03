@@ -42,8 +42,8 @@ func BasicPeeringTwoClustersSetup(
 	t *testing.T,
 	consulVersion string,
 ) (*BuiltCluster, *BuiltCluster) {
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion)
-	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, "dc2", 1, consulVersion)
+	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
+	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, "dc2", 1, consulVersion, true)
 	require.NoError(t, dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName))
 
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
@@ -57,10 +57,16 @@ func BasicPeeringTwoClustersSetup(
 
 		// Create a service and proxy instance
 		var err error
-		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode)
+		// Create a service and proxy instance
+		serviceOpts := libservice.ServiceOpts{
+			Name: libservice.StaticServerServiceName,
+			ID:   "static-server",
+			Meta: map[string]string{"version": ""},
+		}
+		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
 
-		libassert.CatalogServiceExists(t, acceptingClient, "static-server")
+		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName)
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
 		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
@@ -169,13 +175,14 @@ func NewPeeringCluster(
 	datacenter string,
 	numServers int,
 	version string,
+	injectAutoEncryption bool,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
 	require.NotEmpty(t, datacenter)
 	require.True(t, numServers > 0)
 
 	opts := libcluster.BuildOptions{
 		Datacenter:             datacenter,
-		InjectAutoEncryption:   true,
+		InjectAutoEncryption:   injectAutoEncryption,
 		InjectGossipEncryption: true,
 		AllowHTTPAnyway:        true,
 		ConsulVersion:          version,
