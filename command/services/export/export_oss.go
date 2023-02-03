@@ -5,6 +5,8 @@ package export
 
 import (
 	"errors"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func (c *cmd) validateFlags() error {
@@ -21,6 +23,10 @@ func (c *cmd) validateFlags() error {
 
 func (c *cmd) getPartitionNames() ([]string, error) {
 	return []string{}, nil
+}
+
+func (c *cmd) serviceMatches(service api.ExportedService) bool {
+	return service.Name == c.serviceName
 }
 
 const (

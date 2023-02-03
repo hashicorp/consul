@@ -131,7 +131,7 @@ func (c *cmd) updateConfigEntry(cfg *api.ExportedServicesConfigEntry, peerNames,
 	serviceExists := false
 
 	for i, service := range cfg.Services {
-		if service.Name == c.serviceName {
+		if c.serviceMatches(service) {
 			serviceExists = true
 
 			// Add a consumer for each peer where one doesn't already exist
