@@ -305,12 +305,15 @@ func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
+	// overwrite stopWatcher to set flag on stop for testing
+	// be sure that original stopWatcher gets called to avoid goroutine leak
 	gotStopped := uint32(0)
 	realStop := provider.stopWatcher
 	provider.stopWatcher = func() {
 		atomic.StoreUint32(&gotStopped, 1)
 		realStop()
 	}
+
 	// Check the last renewal time.
 	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
 	require.NoError(t, err)
