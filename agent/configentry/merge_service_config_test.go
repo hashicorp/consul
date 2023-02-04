@@ -758,3 +758,122 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 		})
 	}
 }
+
+func Test_MergeServiceConfig_ProxyConfigOverrides(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "service defaults proxy has empty fields",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						Config: map[string]interface{}{
+							"max_inbound_connections":  100,
+							"local_request_timeout_ms": 200,
+							"local_connect_timeout_ms": 300,
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"max_inbound_connections":  100,
+						"local_request_timeout_ms": 200,
+						"local_connect_timeout_ms": 300,
+					},
+				},
+			},
+		},
+		{
+			name: "service registration proxy config has empty fields",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{
+						"max_inbound_connections":  1000,
+						"local_request_timeout_ms": 2000,
+						"local_connect_timeout_ms": 3000,
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy:   structs.ConnectProxyConfig{},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"max_inbound_connections":  1000,
+						"local_request_timeout_ms": 2000,
+						"local_connect_timeout_ms": 3000,
+					},
+				},
+			},
+		},
+		{
+			name: "service defaults overrides the service registration",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{
+						"max_inbound_connections":  1000,
+						"local_request_timeout_ms": 2000,
+						"local_connect_timeout_ms": 3000,
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						Config: map[string]interface{}{
+							"max_inbound_connections":  100,
+							"local_request_timeout_ms": 200,
+							"local_connect_timeout_ms": 300,
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"max_inbound_connections":  1000,
+						"local_request_timeout_ms": 2000,
+						"local_connect_timeout_ms": 3000,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := MergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}

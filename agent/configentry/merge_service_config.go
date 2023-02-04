@@ -109,7 +109,7 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	// Merge proxy defaults
 	ns := nsRaw.(*structs.NodeService)
 
-	if err := mergo.Merge(&ns.Proxy.Config, defaults.ProxyConfig); err != nil {
+	if err := mergo.Merge(&ns.Proxy.Config, defaults.ProxyConfig, mergo.WithOverride); err != nil {
 		return nil, err
 	}
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
