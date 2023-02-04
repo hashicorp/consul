@@ -319,11 +319,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
-<<<<<<< HEAD
-      This setting is required for [Cluster Peering](/docs/connect/cluster-peering/k8s).
-=======
       This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
->>>>>>> 9e184e1b04 (Update helm docs based on consul-k8s release/1.0.x branch (#16157))
 
     - `enableAutoEncrypt` ((#v-global-tls-enableautoencrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
       It also switches consul-k8s-control-plane components to retrieve the CA from the servers
