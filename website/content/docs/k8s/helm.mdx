@@ -1740,9 +1740,9 @@ Use these links to navigate to a particular top-level stanza.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
 
-    By default, we exclude kube-system since usually users won't
-    want those pods injected and local-path-storage and openebs so that
-    Kind (Kubernetes In Docker) and OpenEBS (https://openebs.io/) respectively can provision Pods used to create PVCs.
+    By default, we exclude the kube-system namespace since usually users won't
+    want those pods injected and also the local-path-storage namespace so that
+    Kind (Kubernetes In Docker) can provision Pods used to create PVCs.
     Note that this exclusion is only supported in Kubernetes v1.21.1+.
 
     Example:
