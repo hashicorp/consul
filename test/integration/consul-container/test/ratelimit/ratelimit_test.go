@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -48,6 +49,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 		operations  []operation
 	}
 
+	// getKV and putKV are net/RPC calls
 	getKV := action{
 		function: func(client *api.Client) error {
 			_, _, err := client.KV().Get("foo", &api.QueryOptions{})
@@ -62,6 +64,30 @@ func TestServerRequestRateLimit(t *testing.T) {
 			return err
 		},
 		rateLimitOperation: "KVS.Apply",
+		rateLimitType:      "global/write",
+	}
+
+	// listPartition and putPartition are gRPC calls
+	listPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			_, _, err := client.Partitions().List(ctx, nil)
+			return err
+		},
+		rateLimitOperation: "ConnectCA.Roots",
+		rateLimitType:      "global/read",
+	}
+
+	putPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			p := api.Partition{
+				Name: "ptest",
+			}
+			_, _, err := client.Partitions().Create(ctx, &p, nil)
+			return err
+		},
+		rateLimitOperation: "ConnectCA.Roots",
 		rateLimitType:      "global/write",
 	}
 
@@ -86,7 +112,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "HTTP & net/RPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: yes",
+			description: "HTTP & net/RPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
 			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
 			operations: []operation{
 				{
@@ -120,7 +146,63 @@ func TestServerRequestRateLimit(t *testing.T) {
 					expectMetric:      true,
 				},
 			},
-		}}
+		},
+		// gRPC
+		{
+			description: "GRPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+			},
+		},
+		{
+			description: "GRPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      false,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      false,
+				},
+			},
+		},
+		{
+			description: "GRPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
+			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  nonRetryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  retryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+			},
+		},
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
