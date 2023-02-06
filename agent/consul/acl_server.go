@@ -148,6 +148,16 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
 		return true, aclToken, nil
 	}
+	if aclToken == nil && token == acl.AnonymousTokenSecret {
+		// synthesize the anonymous token for early use, bootstrapping has not completed
+		s.InsertAnonymousToken()
+		fallbackId := structs.ACLToken{
+			AccessorID:  acl.AnonymousTokenID,
+			SecretID:    acl.AnonymousTokenSecret,
+			Description: "synthesized anonymous token",
+		}
+		return true, &fallbackId, nil
+	}
 
 	defaultErr := acl.ErrNotFound
 	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
